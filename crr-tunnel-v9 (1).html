@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRR Sacred Vortex — Full Power</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; overflow: hidden; font-family: 'Cormorant Garamond', serif; }
+        canvas { display: block; position: fixed; top: 0; left: 0; }
+        
+        #main-canvas { z-index: 1; }
+        #ui-canvas { z-index: 2; pointer-events: none; }
+        
+        #start-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at center, rgba(8,5,18,0.98) 0%, #000 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        #start-overlay h1 {
+            color: rgba(255, 225, 190, 0.95);
+            font-size: clamp(30px, 6vw, 60px);
+            font-weight: 300;
+            letter-spacing: 0.2em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 80px rgba(255, 180, 100, 0.5);
+        }
+        
+        #start-overlay .subtitle {
+            color: rgba(180, 160, 255, 0.7);
+            font-size: 12px;
+            letter-spacing: 0.5em;
+            margin-bottom: 50px;
+        }
+        
+        #start-overlay p {
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 15px;
+            margin-bottom: 50px;
+            text-align: center;
+            max-width: 520px;
+            line-height: 2.1;
+        }
+        
+        #start-overlay .start-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 200, 150, 0.35);
+            color: rgba(255, 225, 190, 0.9);
+            padding: 20px 80px;
+            font-size: 14px;
+            font-family: inherit;
+            letter-spacing: 0.35em;
+            cursor: pointer;
+            transition: all 0.5s;
+        }
+        
+        #start-overlay .start-btn:hover {
+            background: rgba(255, 200, 150, 0.08);
+            border-color: rgba(255, 200, 150, 0.6);
+            box-shadow: 0 0 60px rgba(255, 180, 100, 0.25);
+            letter-spacing: 0.4em;
+        }
+        
+        #form-announce {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            opacity: 0;
+            z-index: 500;
+            pointer-events: none;
+            transition: opacity 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        
+        #form-announce.visible { opacity: 1; }
+        
+        #form-announce .name {
+            font-size: clamp(55px, 14vw, 130px);
+            color: #fff;
+            font-weight: 300;
+            letter-spacing: 0.06em;
+            text-shadow: 
+                0 0 20px #fff,
+                0 0 40px rgba(255, 240, 200, 0.95),
+                0 0 80px rgba(255, 200, 120, 0.8),
+                0 0 140px rgba(255, 160, 80, 0.6),
+                0 0 200px rgba(255, 100, 50, 0.4);
+            margin-bottom: 18px;
+        }
+        
+        #form-announce .desc {
+            font-size: clamp(12px, 2vw, 17px);
+            color: rgba(210, 190, 255, 0.9);
+            letter-spacing: 0.4em;
+            text-shadow: 0 0 30px rgba(180, 150, 255, 0.5);
+        }
+        
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 200;
+        }
+        
+        #controls button {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.5);
+            width: 36px;
+            height: 36px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        #controls button.active {
+            background: rgba(255,200,150,0.12);
+            border-color: rgba(255,200,150,0.35);
+        }
+        
+        #depth {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,220,180,0.4);
+            font-size: 18px;
+            letter-spacing: 0.15em;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        #crr-calc {
+            position: fixed;
+            bottom: 25px;
+            left: 25px;
+            color: rgba(180, 200, 255, 0.6);
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.7;
+            z-index: 100;
+            pointer-events: none;
+            text-shadow: 0 0 10px rgba(100, 150, 255, 0.3);
+            transition: opacity 0.3s;
+        }
+        
+        #crr-calc.visible {
+            opacity: 1;
+        }
+        
+        #crr-calc .label {
+            color: rgba(255, 220, 180, 0.4);
+            font-size: 9px;
+            letter-spacing: 0.15em;
+        }
+        
+        #crr-calc .formula {
+            color: rgba(200, 230, 255, 0.75);
+            font-size: 11px;
+        }
+        
+        #crr-calc .value {
+            color: rgba(255, 255, 255, 0.85);
+        }
+        
+        #crr-calc .symmetry {
+            color: rgba(255, 200, 150, 0.75);
+            font-size: 12px;
+            margin-bottom: 8px;
+            letter-spacing: 0.05em;
+        }
+        
+        #vignette {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at center,
+                transparent 0%,
+                rgba(0,0,0,0.1) 40%,
+                rgba(0,0,0,0.5) 100%);
+            pointer-events: none;
+            z-index: 3;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-overlay">
+        <h1>SACRED VORTEX</h1>
+        <div class="subtitle">COHERENCE · RUPTURE · REGENERATION</div>
+        <p>
+            Journey through the eye of coherence.<br>
+            Sacred geometries crystallize from the dissipative flow.<br>
+            Each form is an attractor the system visits, then releases.
+        </p>
+        <button class="start-btn">Enter</button>
+    </div>
+    
+    <canvas id="main-canvas"></canvas>
+    <canvas id="ui-canvas"></canvas>
+    <div id="vignette"></div>
+    
+    <div id="form-announce">
+        <div class="name" id="announce-name"></div>
+        <div class="desc" id="announce-desc"></div>
+    </div>
+    
+    <div id="depth">0</div>
+    
+    <div id="crr-calc">
+        <div class="symmetry" id="calc-symmetry">DISSIPATIVE FLOW</div>
+        <div><span class="label">PATTERN</span></div>
+        <div class="formula" id="calc-pattern">dθ/dt = ω(r)</div>
+        <div style="height: 6px"></div>
+        <div><span class="label">COHERENCE</span></div>
+        <div>C(θ,t) = <span class="value" id="calc-coherence">0.30</span></div>
+        <div style="height: 6px"></div>
+        <div><span class="label">PRECISION</span></div>
+        <div>Ω = <span class="value" id="calc-omega">0.10</span></div>
+        <div style="height: 6px"></div>
+        <div><span class="label">RATIO</span></div>
+        <div>C/Ω = <span class="value" id="calc-ratio">3.00</span></div>
+        <div style="height: 6px"></div>
+        <div><span class="label">REGENERATION WEIGHT</span></div>
+        <div>exp(C/Ω) = <span class="value" id="calc-expco">20.1</span></div>
+    </div>
+    
+    <div id="controls">
+        <button id="btn-sound" class="active">♫</button>
+        <button id="btn-pause">❚❚</button>
+    </div>
+
+<script>
+/**
+ * ============================================================================
+ * CRR SACRED VORTEX — FULL POWER
+ * ============================================================================
+ * 
+ * 200,000 particles with CRR-optimized updates
+ * All sacred geometries from the framework
+ * Deep depth of field with atmospheric perspective
+ * Longer journeys between manifestations
+ * 
+ * The mathematics:
+ * - n-fold symmetry via cos(n·θ) pattern matching
+ * - exp(C/Ω) weights particle behavior
+ * - High coherence particles slow down, glow, drift to vertices
+ * - Low coherence particles flow freely in the vortex
+ */
+
+const canvas = document.getElementById('main-canvas');
+const gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'high-performance' });
+const uiCanvas = document.getElementById('ui-canvas');
+const uiCtx = uiCanvas.getContext('2d');
+
+let W, H, cx, cy;
+
+// ============================================================================
+// CONFIGURATION - FULL POWER
+// ============================================================================
+
+const N = 200000;  // Dense particle field
+const VISIBLE_DEPTH = 2000;  // Deep view distance
+const ZONE_SPACING = 1200;  // Longer travel between shapes
+
+// Particle arrays
+const theta = new Float32Array(N);
+const radius = new Float32Array(N);
+const depthZ = new Float32Array(N);
+const baseSpeed = new Float32Array(N);
+const coherence = new Float32Array(N);
+const brightness = new Float32Array(N);
+const hueShift = new Float32Array(N);
+const depthLayer = new Uint8Array(N);  // For LOD optimization
+
+// Viewer state
+let viewerZ = 0;
+let viewerSpeed = 2.2;
+let targetSpeed = 2.2;
+let lookX = 0, lookY = 0;
+let time = 0;
+
+// Manifestation state
+let globalSlow = 1.0;
+let targetSlow = 1.0;
+let manifestStrength = 0;
+let currentForm = null;
+let lastZoneIndex = -1;
+
+// Audio
+let audioCtx, masterGain;
+let droneOscs = [];
+let audioStarted = false;
+let soundEnabled = true;
+let isPaused = false;
+
+// ============================================================================
+// SACRED FORMS — Complete CRR Set
+// ============================================================================
+
+const SACRED_FORMS = [
+    {
+        name: 'CIRCLE',
+        desc: 'SO(2) · Infinite Symmetry',
+        type: 'continuous',
+        n: 0,
+        symmetry: 'SO(2)',
+        formula: 'P(θ) = 1  ∀θ ∈ [0, 2π)',
+        color: [0.4, 0.85, 1.0],
+        harmonics: [1, 2, 4, 8],
+        pattern: (th, r, t) => 0.7 + 0.3 * Math.sin(r * 10 + t),  // Concentric rings
+        draw: (ctx, r, alpha, t) => {
+            for (let i = 1; i <= 4; i++) {
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 0.25 * i, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+    },
+    {
+        name: 'TRIANGLE',
+        desc: 'Z₃ · Triadic Fire',
+        type: 'polygon',
+        n: 3,
+        symmetry: 'Z₃',
+        formula: 'P(θ) = ½(cos(3θ) + 1)^0.6',
+        color: [1.0, 0.65, 0.35],
+        harmonics: [1, 5/4, 3/2],
+        pattern: (th, r, t) => Math.pow((Math.cos(3 * th) + 1) / 2, 0.6),
+        draw: (ctx, r, alpha, t) => drawPolygon(ctx, 3, r, -Math.PI/2)
+    },
+    {
+        name: 'SQUARE',
+        desc: 'Z₄ · Stable Foundation',
+        type: 'polygon',
+        n: 4,
+        symmetry: 'Z₄',
+        formula: 'P(θ) = ½(cos(4θ) + 1)^0.6',
+        color: [0.4, 1.0, 0.5],
+        harmonics: [1, 5/4, 3/2, 2],
+        pattern: (th, r, t) => Math.pow((Math.cos(4 * th) + 1) / 2, 0.6),
+        draw: (ctx, r, alpha, t) => drawPolygon(ctx, 4, r, -Math.PI/4)
+    },
+    {
+        name: 'PENTAGON',
+        desc: 'Z₅ · φ Awakens',
+        type: 'polygon',
+        n: 5,
+        symmetry: 'Z₅',
+        formula: 'P(θ) = ½(cos(5θ) + 1)^0.6',
+        color: [0.75, 0.45, 1.0],
+        harmonics: [1, 9/8, 5/4, 3/2, 5/3],
+        pattern: (th, r, t) => Math.pow((Math.cos(5 * th) + 1) / 2, 0.6),
+        draw: (ctx, r, alpha, t) => drawPolygon(ctx, 5, r, -Math.PI/2)
+    },
+    {
+        name: 'HEXAGON',
+        desc: 'Z₆ · Perfect Packing',
+        type: 'polygon',
+        n: 6,
+        symmetry: 'Z₆',
+        formula: 'P(θ) = ½(cos(6θ) + 1)^0.6',
+        color: [0.3, 0.95, 0.9],
+        harmonics: [1, 9/8, 5/4, 4/3, 3/2, 5/3],
+        pattern: (th, r, t) => Math.pow((Math.cos(6 * th) + 1) / 2, 0.6),
+        draw: (ctx, r, alpha, t) => drawPolygon(ctx, 6, r, 0)
+    },
+    {
+        name: 'SPIRAL',
+        desc: 'Golden · φ = 1.618...',
+        type: 'spiral',
+        n: 5,  // 5-arm spiral
+        symmetry: 'φ-spiral',
+        formula: 'P(θ,r) = ½(cos(5θ - ln(r)·3) + 1)',
+        color: [1.0, 0.9, 0.4],
+        harmonics: [1, 1.618, 2.618, 4.236],
+        pattern: (th, r, t) => {
+            const spiral = 5 * th - Math.log(r + 0.1) * 3 - t * 0.5;
+            return Math.pow((Math.cos(spiral) + 1) / 2, 0.5);
+        },
+        draw: (ctx, r, alpha, t) => {
+            ctx.beginPath();
+            const phi = 1.618;
+            for (let a = 0; a < Math.PI * 6; a += 0.05) {
+                const sr = 5 * Math.pow(phi, a / (Math.PI / 2));
+                if (sr > r) break;
+                const x = Math.cos(a + t * 0.3) * sr;
+                const y = Math.sin(a + t * 0.3) * sr;
+                a === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+    },
+    {
+        name: 'FLOWER',
+        desc: 'Flower of Life · Genesis',
+        type: 'flower',
+        n: 6,
+        symmetry: 'Z₆ × rings',
+        formula: 'P(θ) = cos²(6θ)',
+        color: [1.0, 0.5, 0.8],
+        harmonics: [1, 9/8, 5/4, 4/3, 3/2, 5/3, 15/8, 2],
+        pattern: (th, r, t) => {
+            const petal = Math.pow(Math.cos(6 * th), 2);
+            const ring = 0.5 + 0.5 * Math.cos(r * 0.025 - t * 0.3);
+            return petal * ring;
+        },
+        draw: (ctx, r, alpha, t) => {
+            const cr = r * 0.33;
+            ctx.beginPath();
+            ctx.arc(0, 0, cr, 0, Math.PI * 2);
+            ctx.stroke();
+            for (let i = 0; i < 6; i++) {
+                const a = i * Math.PI / 3;
+                ctx.beginPath();
+                ctx.arc(Math.cos(a) * cr, Math.sin(a) * cr, cr, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+    },
+    {
+        name: 'YIN YANG',
+        desc: 'Dual Vortex · Complementary',
+        type: 'yinyang',
+        n: 2,
+        symmetry: 'Z₂',
+        formula: 'P(θ) = H(sin(θ + r/50))',
+        color: [0.6, 0.6, 1.0],
+        harmonics: [1, 3/2, 2, 3],
+        pattern: (th, r, t) => {
+            const wave = Math.sin(th + r * 0.02 + t * 0.3);
+            return wave > 0 ? 0.85 : 0.25;
+        },
+        draw: (ctx, r, alpha, t) => {
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2);
+            ctx.stroke();
+            // S-curve
+            ctx.beginPath();
+            ctx.arc(0, -r * 0.45, r * 0.45, Math.PI/2, Math.PI * 1.5);
+            ctx.arc(0, r * 0.45, r * 0.45, -Math.PI/2, Math.PI/2);
+            ctx.stroke();
+            // Dots
+            ctx.beginPath();
+            ctx.arc(0, -r * 0.45, r * 0.12, 0, Math.PI * 2);
+            ctx.arc(0, r * 0.45, r * 0.12, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    },
+    {
+        name: 'OCTAGRAM',
+        desc: 'Z₈ · Star of Regeneration',
+        type: 'polygon',
+        n: 8,
+        symmetry: 'Z₈',
+        formula: 'P(θ) = ½(cos(8θ) + 1)^0.6',
+        color: [1.0, 0.75, 0.55],
+        harmonics: [1, 9/8, 5/4, 11/8, 3/2, 13/8, 7/4, 2],
+        pattern: (th, r, t) => Math.pow((Math.cos(8 * th) + 1) / 2, 0.6),
+        draw: (ctx, r, alpha, t) => drawPolygon(ctx, 8, r, Math.PI/8)
+    },
+    {
+        name: 'ENNEAGRAM',
+        desc: 'Z₉ · Sacred Nine',
+        type: 'polygon',
+        n: 9,
+        symmetry: 'Z₉',
+        formula: 'P(θ) = ½(cos(9θ) + 1)^0.6',
+        color: [0.9, 0.5, 0.6],
+        harmonics: [1, 10/9, 9/8, 6/5, 5/4, 4/3, 3/2, 5/3, 9/5],
+        pattern: (th, r, t) => Math.pow((Math.cos(9 * th) + 1) / 2, 0.6),
+        draw: (ctx, r, alpha, t) => drawPolygon(ctx, 9, r, -Math.PI/2)
+    },
+    {
+        name: 'DODECAGON',
+        desc: 'Z₁₂ · Cosmic Clock',
+        type: 'polygon',
+        n: 12,
+        symmetry: 'Z₁₂',
+        formula: 'P(θ) = ½(cos(12θ) + 1)^0.6',
+        color: [0.7, 0.9, 1.0],
+        harmonics: [1, 16/15, 9/8, 6/5, 5/4, 4/3, 3/2, 8/5, 5/3, 16/9, 15/8, 2],
+        pattern: (th, r, t) => Math.pow((Math.cos(12 * th) + 1) / 2, 0.6),
+        draw: (ctx, r, alpha, t) => drawPolygon(ctx, 12, r, 0)
+    },
+    {
+        name: 'OUROBOROS',
+        desc: 'Return · The Cycle Completes',
+        type: 'ouroboros',
+        n: 1,
+        symmetry: 'SO(2)→',
+        formula: 'P(θ,t) = 0.6 + 0.4·sin(θ - t/2)',
+        color: [1.0, 1.0, 1.0],
+        harmonics: [1, 2, 3, 4, 5, 6, 7, 8],
+        pattern: (th, r, t) => 0.6 + 0.4 * Math.sin(th + r * 0.01 - t * 0.5),
+        draw: (ctx, r, alpha, t) => {
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2);
+            ctx.stroke();
+            // Snake head eating tail
+            const headAngle = t * 0.2;
+            const hx = Math.cos(headAngle) * r * 0.85;
+            const hy = Math.sin(headAngle) * r * 0.85;
+            ctx.beginPath();
+            ctx.arc(hx, hy, r * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+];
+
+function drawPolygon(ctx, n, r, offset) {
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+        const a = (i / n) * Math.PI * 2 + offset;
+        const x = Math.cos(a) * r * 0.9;
+        const y = Math.sin(a) * r * 0.9;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+}
+
+// Zone setup
+let zones = [];
+
+function initZones() {
+    for (let i = 0; i < 50; i++) {
+        zones.push({
+            center: ZONE_SPACING * (i + 1),
+            form: SACRED_FORMS[i % SACRED_FORMS.length]
+        });
+    }
+}
+
+// ============================================================================
+// PARTICLE SYSTEM — CRR Optimized
+// ============================================================================
+
+function initParticles() {
+    for (let i = 0; i < N; i++) {
+        resetParticle(i, Math.random() * VISIBLE_DEPTH);
+    }
+}
+
+function resetParticle(i, z) {
+    depthZ[i] = z;
+    theta[i] = Math.random() * Math.PI * 2;
+    
+    // Radius - concentrate at walls with some interior particles for depth
+    const u = Math.random();
+    if (u < 0.75) {
+        radius[i] = 0.6 + 0.4 * Math.pow(Math.random(), 0.3);  // Wall particles
+    } else {
+        radius[i] = 0.15 + 0.45 * Math.random();  // Interior particles for depth
+    }
+    
+    // Speed varies with radius (angular momentum conservation)
+    baseSpeed[i] = 0.004 + 0.014 * (1 - radius[i]) + Math.random() * 0.002;
+    
+    // Initial coherence
+    coherence[i] = 0.3 + Math.random() * 0.2;
+    
+    // Base brightness - always visible, varies with depth layer
+    brightness[i] = 0.5 + Math.random() * 0.3;
+    
+    // Iridescence
+    hueShift[i] = Math.random();
+    
+    // Depth layer for LOD (0 = near, 3 = far)
+    depthLayer[i] = Math.floor(z / (VISIBLE_DEPTH / 4));
+}
+
+// ============================================================================
+// CRR PATTERN MATCHING
+// ============================================================================
+
+function getPatternMatch(th, r, form, t) {
+    return form.pattern(th, r, t);
+}
+
+function getNearestVertex(th, n) {
+    if (n === 0) return th;  // Continuous symmetry
+    const sector = Math.PI * 2 / n;
+    return Math.round(th / sector) * sector;
+}
+
+// ============================================================================
+// UPDATE — CRR Optimized
+// ============================================================================
+
+function update() {
+    if (isPaused) return;
+    
+    // Smooth slowdown
+    globalSlow += (targetSlow - globalSlow) * 0.035;
+    
+    const flowSpeed = (2.2 + viewerSpeed * 0.35) * globalSlow;
+    
+    // Find current zone
+    const checkDepth = viewerZ + 200;
+    let inZone = null;
+    let zoneProgress = 0;
+    let zoneIndex = -1;
+    
+    for (let i = 0; i < zones.length; i++) {
+        const zone = zones[i];
+        const dist = Math.abs(checkDepth - zone.center);
+        
+        if (dist < 180) {
+            inZone = zone;
+            zoneIndex = i;
+            zoneProgress = 1 - dist / 180;
+            zoneProgress = zoneProgress * zoneProgress * (3 - 2 * zoneProgress);  // Smoothstep
+            break;
+        }
+    }
+    
+    // Manifestation state
+    if (inZone && zoneProgress > 0.2) {
+        if (zoneIndex !== lastZoneIndex) {
+            currentForm = inZone.form;
+            lastZoneIndex = zoneIndex;
+            announceForm(inZone.form);
+            if (soundEnabled && audioStarted) playFormSound(inZone.form);
+        }
+        manifestStrength = zoneProgress;
+        targetSlow = 0.25 + 0.5 * (1 - zoneProgress);
+    } else {
+        manifestStrength *= 0.94;
+        if (manifestStrength < 0.03) currentForm = null;
+        targetSlow = 1.0;
+    }
+    
+    // CRR-Optimized particle update
+    // Near particles: full update every frame
+    // Far particles: update every 2-4 frames based on depth layer
+    const frameNum = Math.floor(time * 60);
+    
+    for (let i = 0; i < N; i++) {
+        // LOD: Skip some far particles for efficiency
+        const layer = depthLayer[i];
+        if (layer > 0 && (frameNum % (layer + 1)) !== 0) {
+            // Still move depth for smooth flow
+            depthZ[i] -= flowSpeed;
+            if (depthZ[i] < -30) resetParticle(i, VISIBLE_DEPTH + Math.random() * 150);
+            continue;
+        }
+        
+        // Flow toward viewer
+        depthZ[i] -= flowSpeed;
+        
+        // Recycle
+        if (depthZ[i] < -30) {
+            resetParticle(i, VISIBLE_DEPTH + Math.random() * 150);
+            continue;
+        }
+        
+        // Update depth layer
+        depthLayer[i] = Math.min(3, Math.floor(depthZ[i] / (VISIBLE_DEPTH / 4)));
+        
+        // Base rotation
+        let rotSpeed = baseSpeed[i] * globalSlow;
+        
+        // Pattern matching when manifesting
+        let patternBoost = 0;
+        
+        if (currentForm && manifestStrength > 0.1) {
+            const match = getPatternMatch(theta[i], radius[i], currentForm, time);
+            
+            if (match > 0.4) {
+                patternBoost = match * manifestStrength;
+                
+                // CRR coherence accumulation
+                coherence[i] = Math.min(1.0, coherence[i] + match * manifestStrength * 0.015);
+                
+                // exp(C/Ω) effect - high coherence = slow down more
+                const omega = 0.05 + radius[i] * 0.1;
+                const expCO = Math.min(3, Math.exp(coherence[i] / omega));
+                
+                // Slow down - coherence captures
+                rotSpeed *= (1 - match * manifestStrength * 0.75 * (expCO / 3));
+                
+                // Drift toward nearest vertex (for polygon types)
+                if (currentForm.n >= 3) {
+                    const nearest = getNearestVertex(theta[i], currentForm.n);
+                    const drift = (nearest - theta[i]) * 0.025 * manifestStrength * match;
+                    theta[i] += drift;
+                }
+            }
+        } else {
+            // Coherence decay when not manifesting
+            coherence[i] = coherence[i] * 0.98 + 0.3 * 0.02;
+        }
+        
+        // Apply rotation
+        theta[i] += rotSpeed;
+        if (theta[i] > Math.PI * 2) theta[i] -= Math.PI * 2;
+        if (theta[i] < 0) theta[i] += Math.PI * 2;
+        
+        // Brightness: depth-based atmospheric + pattern boost
+        const depthFactor = 1 - depthZ[i] / VISIBLE_DEPTH;
+        const baseBright = 0.35 + 0.4 * depthFactor + 0.15 * (1 - radius[i]);
+        brightness[i] = baseBright + patternBoost * 1.8;
+        brightness[i] = Math.min(3.0, brightness[i]);
+        
+        // Iridescence shift
+        hueShift[i] += 0.0008 * globalSlow;
+        if (hueShift[i] > 1) hueShift[i] -= 1;
+    }
+    
+    viewerZ += viewerSpeed * globalSlow;
+    time += 0.016 * globalSlow;
+}
+
+// ============================================================================
+// WEBGL RENDERING — Deep Depth of Field
+// ============================================================================
+
+const vsrc = `
+attribute float a_theta;
+attribute float a_radius;
+attribute float a_depth;
+attribute float a_brightness;
+attribute float a_hue;
+attribute float a_coherence;
+
+uniform vec2 u_res;
+uniform vec2 u_look;
+uniform float u_time;
+
+varying float v_bright;
+varying float v_hue;
+varying float v_alpha;
+varying float v_depth;
+varying float v_coherence;
+
+void main() {
+    float z = max(a_depth, 5.0);
+    
+    // Perspective with depth of field
+    float fov = 400.0;
+    float scale = fov / z;
+    
+    // Tunnel radius
+    float tunnelR = min(u_res.x, u_res.y) * 0.5;
+    float screenR = tunnelR * scale * a_radius;
+    
+    float x = cos(a_theta) * screenR;
+    float y = sin(a_theta) * screenR;
+    
+    // Parallax - stronger for near particles
+    float parallaxStrength = 0.4 + 0.4 * (1.0 - z / 2000.0);
+    x += u_look.x * scale * parallaxStrength;
+    y += u_look.y * scale * parallaxStrength;
+    
+    vec2 pos = vec2(x, y) + u_res * 0.5;
+    vec2 clip = (pos / u_res) * 2.0 - 1.0;
+    clip.y *= -1.0;
+    
+    gl_Position = vec4(clip, z / 2500.0, 1.0);
+    
+    // Size: near = sharp small, far = soft large (DOF effect)
+    float baseSize = 1.5 + a_brightness * 3.5;
+    // Far particles slightly larger and softer
+    float dofSize = 1.0 + (z / 2000.0) * 1.5;
+    gl_PointSize = clamp(baseSize * scale * 0.38 * dofSize, 0.5, 35.0);
+    
+    v_bright = a_brightness;
+    v_coherence = a_coherence;
+    
+    // Iridescent hue - shifts with angle, depth, and time
+    v_hue = a_theta / 6.283 + a_hue * 0.5 + z * 0.00015 + sin(u_time * 0.2 + a_theta) * 0.05;
+    
+    // Alpha: atmospheric perspective - far = more transparent and desaturated
+    float depthFade = 1.0 - smoothstep(200.0, 2000.0, z);
+    float nearBoost = smoothstep(200.0, 50.0, z) * 0.3;  // Near particles extra bright
+    v_alpha = (0.4 + a_brightness * 0.35 + nearBoost) * (0.3 + depthFade * 0.7);
+    
+    v_depth = z / 2000.0;
+}
+`;
+
+const fsrc = `
+precision mediump float;
+
+varying float v_bright;
+varying float v_hue;
+varying float v_alpha;
+varying float v_depth;
+varying float v_coherence;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+    vec2 c = 2.0 * gl_PointCoord - 1.0;
+    float r2 = dot(c, c);
+    if (r2 > 1.0) discard;
+    
+    // Softer falloff for far particles (DOF)
+    float softness = 0.8 + v_depth * 0.4;
+    float soft = pow(1.0 - sqrt(r2), softness);
+    
+    // Iridescent color
+    float hue = fract(v_hue + 0.58);
+    
+    // Saturation decreases with depth (atmospheric) and brightness (glow)
+    float sat = 0.75 - v_depth * 0.3 - v_bright * 0.25;
+    sat = max(0.1, sat);
+    
+    float val = min(1.0, 0.4 + v_bright * 0.5);
+    
+    vec3 rgb = hsv2rgb(vec3(hue, sat, val));
+    
+    // Atmospheric tint for far particles
+    vec3 fogColor = vec3(0.15, 0.12, 0.25);
+    rgb = mix(rgb, fogColor, v_depth * 0.4);
+    
+    // Hot white core for bright/coherent particles
+    float core = smoothstep(0.45, 0.0, r2) * v_bright * 0.7;
+    rgb += vec3(core, core * 0.97, core * 0.9);
+    
+    rgb = min(rgb, vec3(1.0));
+    
+    gl_FragColor = vec4(rgb, v_alpha * soft);
+}
+`;
+
+let program;
+let thetaBuf, radiusBuf, depthBuf, brightBuf, hueBuf, cohBuf;
+
+function initGL() {
+    const vs = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vs, vsrc);
+    gl.compileShader(vs);
+    
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fs, fsrc);
+    gl.compileShader(fs);
+    
+    program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+    
+    const thetaLoc = gl.getAttribLocation(program, 'a_theta');
+    const radiusLoc = gl.getAttribLocation(program, 'a_radius');
+    const depthLoc = gl.getAttribLocation(program, 'a_depth');
+    const brightLoc = gl.getAttribLocation(program, 'a_brightness');
+    const hueLoc = gl.getAttribLocation(program, 'a_hue');
+    const cohLoc = gl.getAttribLocation(program, 'a_coherence');
+    
+    thetaBuf = gl.createBuffer();
+    radiusBuf = gl.createBuffer();
+    depthBuf = gl.createBuffer();
+    brightBuf = gl.createBuffer();
+    hueBuf = gl.createBuffer();
+    cohBuf = gl.createBuffer();
+    
+    // Store locations for render
+    program.thetaLoc = thetaLoc;
+    program.radiusLoc = radiusLoc;
+    program.depthLoc = depthLoc;
+    program.brightLoc = brightLoc;
+    program.hueLoc = hueLoc;
+    program.cohLoc = cohLoc;
+    program.resLoc = gl.getUniformLocation(program, 'u_res');
+    program.lookLoc = gl.getUniformLocation(program, 'u_look');
+    program.timeLoc = gl.getUniformLocation(program, 'u_time');
+    
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+}
+
+function render() {
+    gl.clearColor(0.012, 0.008, 0.022, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    gl.uniform2f(program.resLoc, W, H);
+    gl.uniform2f(program.lookLoc, lookX, lookY);
+    gl.uniform1f(program.timeLoc, time);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, thetaBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, theta, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(program.thetaLoc);
+    gl.vertexAttribPointer(program.thetaLoc, 1, gl.FLOAT, false, 0, 0);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, radiusBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, radius, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(program.radiusLoc);
+    gl.vertexAttribPointer(program.radiusLoc, 1, gl.FLOAT, false, 0, 0);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, depthBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, depthZ, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(program.depthLoc);
+    gl.vertexAttribPointer(program.depthLoc, 1, gl.FLOAT, false, 0, 0);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, brightBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, brightness, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(program.brightLoc);
+    gl.vertexAttribPointer(program.brightLoc, 1, gl.FLOAT, false, 0, 0);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, hueBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, hueShift, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(program.hueLoc);
+    gl.vertexAttribPointer(program.hueLoc, 1, gl.FLOAT, false, 0, 0);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, cohBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, coherence, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(program.cohLoc);
+    gl.vertexAttribPointer(program.cohLoc, 1, gl.FLOAT, false, 0, 0);
+    
+    gl.drawArrays(gl.POINTS, 0, N);
+}
+
+// ============================================================================
+// UI OVERLAY
+// ============================================================================
+
+function renderUI() {
+    uiCtx.clearRect(0, 0, W, H);
+    
+    if (!currentForm || manifestStrength < 0.15) return;
+    
+    const alpha = manifestStrength * 0.5;
+    const r = Math.min(W, H) * 0.42;
+    const col = currentForm.color;
+    
+    uiCtx.save();
+    uiCtx.translate(cx + lookX * 0.025, cy + lookY * 0.025);
+    
+    uiCtx.shadowBlur = 70 * manifestStrength;
+    uiCtx.shadowColor = `rgba(${col[0]*255|0}, ${col[1]*255|0}, ${col[2]*255|0}, ${alpha})`;
+    uiCtx.strokeStyle = `rgba(${col[0]*255|0}, ${col[1]*255|0}, ${col[2]*255|0}, ${alpha * 0.45})`;
+    uiCtx.fillStyle = `rgba(${col[0]*255|0}, ${col[1]*255|0}, ${col[2]*255|0}, ${alpha * 0.2})`;
+    uiCtx.lineWidth = 1.5 + manifestStrength;
+    
+    currentForm.draw(uiCtx, r, alpha, time);
+    
+    // Vertex glows for polygons
+    if (currentForm.n >= 3 && currentForm.type === 'polygon') {
+        for (let i = 0; i < currentForm.n; i++) {
+            const offset = currentForm.n === 3 ? -Math.PI/2 : 
+                          currentForm.n === 4 ? -Math.PI/4 :
+                          currentForm.n === 5 ? -Math.PI/2 : 
+                          currentForm.n === 8 ? Math.PI/8 : 0;
+            const a = (i / currentForm.n) * Math.PI * 2 + offset;
+            const x = Math.cos(a) * r * 0.9;
+            const y = Math.sin(a) * r * 0.9;
+            
+            const grad = uiCtx.createRadialGradient(x, y, 0, x, y, 55 * manifestStrength);
+            grad.addColorStop(0, `rgba(255, 255, 255, ${alpha * 0.9})`);
+            grad.addColorStop(0.25, `rgba(${col[0]*255|0}, ${col[1]*255|0}, ${col[2]*255|0}, ${alpha * 0.6})`);
+            grad.addColorStop(1, 'transparent');
+            
+            uiCtx.fillStyle = grad;
+            uiCtx.beginPath();
+            uiCtx.arc(x, y, 55 * manifestStrength, 0, Math.PI * 2);
+            uiCtx.fill();
+        }
+    }
+    
+    uiCtx.restore();
+}
+
+// ============================================================================
+// AUDIO
+// ============================================================================
+
+function initAudio() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.4;
+    masterGain.connect(audioCtx.destination);
+    
+    const droneGain = audioCtx.createGain();
+    droneGain.gain.value = 0.12;
+    droneGain.connect(masterGain);
+    
+    [27.5, 55, 82.5, 110, 165].forEach((f, i) => {
+        const osc = audioCtx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = f;
+        const g = audioCtx.createGain();
+        g.gain.value = 0.35 / (i + 1);
+        osc.connect(g);
+        g.connect(droneGain);
+        osc.start();
+        droneOscs.push({ osc, gain: g, baseFreq: f });
+    });
+    
+    // LFO
+    const lfo = audioCtx.createOscillator();
+    lfo.frequency.value = 0.04;
+    const lfoG = audioCtx.createGain();
+    lfoG.gain.value = 1.5;
+    lfo.connect(lfoG);
+    lfoG.connect(droneOscs[1].osc.frequency);
+    lfo.start();
+    
+    audioStarted = true;
+}
+
+function playFormSound(form) {
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const base = 110;
+    
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.22, now + 0.5);
+    g.gain.setValueAtTime(0.22, now + 1.5);
+    g.gain.linearRampToValueAtTime(0.1, now + 3);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 5);
+    g.connect(masterGain);
+    
+    const delay = audioCtx.createDelay();
+    delay.delayTime.value = 0.2;
+    const fb = audioCtx.createGain();
+    fb.gain.value = 0.4;
+    delay.connect(fb);
+    fb.connect(delay);
+    delay.connect(g);
+    
+    form.harmonics.forEach((ratio, i) => {
+        const osc = audioCtx.createOscillator();
+        osc.type = i < 2 ? 'sine' : 'triangle';
+        osc.frequency.value = base * ratio;
+        osc.detune.value = (Math.random() - 0.5) * 5;
+        const og = audioCtx.createGain();
+        og.gain.value = 0.18 / (i + 1);
+        osc.connect(og);
+        og.connect(g);
+        og.connect(delay);
+        osc.start(now + i * 0.02);
+        osc.stop(now + 5);
+    });
+}
+
+function announceForm(form) {
+    const el = document.getElementById('form-announce');
+    document.getElementById('announce-name').textContent = form.name;
+    document.getElementById('announce-desc').textContent = form.desc;
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 2500);
+}
+
+// ============================================================================
+// CRR CALCULATIONS DISPLAY
+// ============================================================================
+
+let avgCoherence = 0.3;
+let avgOmega = 0.1;
+let avgExpCO = 1;
+let displayState = 'VORTEX';
+
+function updateCalculations() {
+    const calcEl = document.getElementById('crr-calc');
+    
+    // Always show the calculations
+    calcEl.classList.add('visible');
+    
+    // Determine state
+    if (currentForm && manifestStrength > 0.3) {
+        displayState = 'MANIFESTING';
+        document.getElementById('calc-symmetry').textContent = currentForm.symmetry + ' · ' + currentForm.name;
+        document.getElementById('calc-pattern').textContent = currentForm.formula;
+    } else if (manifestStrength > 0.05) {
+        displayState = 'DISSOLVING';
+        document.getElementById('calc-symmetry').textContent = '→ TRANSITION';
+        document.getElementById('calc-pattern').textContent = 'C(θ,t) decaying...';
+    } else {
+        displayState = 'VORTEX';
+        document.getElementById('calc-symmetry').textContent = 'DISSIPATIVE FLOW';
+        document.getElementById('calc-pattern').textContent = 'dθ/dt = ω(r) · awaiting coherence';
+    }
+    
+    // Calculate values from all particles (sample for efficiency)
+    let sumC = 0, sumO = 0, sumExpCO = 0, count = 0;
+    
+    for (let i = 0; i < N; i += 150) {
+        const c = coherence[i];
+        const omega = 0.05 + radius[i] * 0.1;
+        const expCO = Math.exp(c / omega);
+        
+        sumC += c;
+        sumO += omega;
+        sumExpCO += expCO;
+        count++;
+    }
+    
+    if (count > 0) {
+        const targetC = sumC / count;
+        const targetO = sumO / count;
+        const targetExpCO = sumExpCO / count;  // No cap - show real value
+        
+        // Smooth the values
+        avgCoherence += (targetC - avgCoherence) * 0.08;
+        avgOmega += (targetO - avgOmega) * 0.08;
+        avgExpCO += (targetExpCO - avgExpCO) * 0.08;
+    }
+    
+    // Update display with appropriate precision
+    document.getElementById('calc-coherence').textContent = avgCoherence.toFixed(3);
+    document.getElementById('calc-omega').textContent = avgOmega.toFixed(3);
+    
+    // Show the ratio
+    const ratio = avgCoherence / avgOmega;
+    document.getElementById('calc-ratio').textContent = ratio.toFixed(2);
+    
+    // Format exp(C/Ω) based on magnitude
+    if (avgExpCO > 1000) {
+        document.getElementById('calc-expco').textContent = avgExpCO.toExponential(1);
+    } else if (avgExpCO > 100) {
+        document.getElementById('calc-expco').textContent = avgExpCO.toFixed(0);
+    } else {
+        document.getElementById('calc-expco').textContent = avgExpCO.toFixed(2);
+    }
+}
+
+// ============================================================================
+// MAIN
+// ============================================================================
+
+function resize() {
+    W = canvas.width = uiCanvas.width = innerWidth;
+    H = canvas.height = uiCanvas.height = innerHeight;
+    cx = W / 2;
+    cy = H / 2;
+    gl.viewport(0, 0, W, H);
+}
+
+function loop() {
+    update();
+    render();
+    renderUI();
+    updateCalculations();
+    document.getElementById('depth').textContent = Math.floor(viewerZ / 10);
+    requestAnimationFrame(loop);
+}
+
+// Input
+addEventListener('mousemove', e => {
+    lookX = (e.clientX - cx) * 0.22;
+    lookY = (e.clientY - cy) * 0.22;
+});
+
+addEventListener('wheel', e => {
+    targetSpeed = Math.max(0.5, Math.min(5, targetSpeed - e.deltaY * 0.002));
+}, { passive: true });
+
+addEventListener('keydown', e => {
+    if (e.code === 'Space') {
+        isPaused = !isPaused;
+        document.getElementById('btn-pause').textContent = isPaused ? '▶' : '❚❚';
+    }
+    if (e.code === 'ArrowUp') targetSpeed = Math.min(5, targetSpeed + 0.3);
+    if (e.code === 'ArrowDown') targetSpeed = Math.max(0.5, targetSpeed - 0.3);
+});
+
+document.getElementById('btn-sound').onclick = e => {
+    soundEnabled = !soundEnabled;
+    e.target.classList.toggle('active', soundEnabled);
+    if (masterGain) masterGain.gain.value = soundEnabled ? 0.4 : 0;
+};
+
+document.getElementById('btn-pause').onclick = () => {
+    isPaused = !isPaused;
+    document.getElementById('btn-pause').textContent = isPaused ? '▶' : '❚❚';
+};
+
+document.querySelector('.start-btn').onclick = () => {
+    document.getElementById('start-overlay').style.display = 'none';
+    initAudio();
+};
+
+addEventListener('resize', resize);
+resize();
+initGL();
+initZones();
+initParticles();
+loop();
+</script>
+</body>
+</html>
