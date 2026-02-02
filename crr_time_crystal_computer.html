@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRR Computational Time Crystal</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: linear-gradient(135deg, #0a0a12 0%, #0d1520 100%);
+      min-height: 100vh;
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
+      color: #b8c5d6;
+      padding: 20px;
+    }
+    
+    h1 {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: 3px;
+      color: #7eb8da;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      text-align: center;
+      font-size: 11px;
+      color: rgba(140, 170, 200, 0.5);
+      margin-bottom: 25px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 300px 1fr 300px;
+      gap: 20px;
+    }
+    
+    .panel {
+      background: rgba(15, 25, 40, 0.8);
+      border: 1px solid rgba(80, 140, 200, 0.2);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    
+    .panel h2 {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      color: rgba(150, 190, 230, 0.9);
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(80, 140, 200, 0.2);
+    }
+    
+    .input-section {
+      margin-bottom: 20px;
+    }
+    
+    .bit-input {
+      display: flex;
+      align-items: center;
+      margin: 12px 0;
+    }
+    
+    .bit-label {
+      width: 80px;
+      font-size: 12px;
+      color: rgba(180, 200, 220, 0.8);
+    }
+    
+    .bit-toggle {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .bit-btn {
+      width: 50px;
+      height: 36px;
+      border: 2px solid rgba(100, 160, 220, 0.3);
+      background: rgba(20, 35, 55, 0.8);
+      color: #7eb8da;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .bit-btn:hover {
+      border-color: rgba(100, 180, 240, 0.5);
+      background: rgba(30, 50, 80, 0.8);
+    }
+    
+    .bit-btn.active {
+      background: linear-gradient(135deg, rgba(60, 130, 200, 0.6), rgba(40, 100, 160, 0.6));
+      border-color: rgba(100, 180, 240, 0.8);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(80, 160, 240, 0.3);
+    }
+    
+    .operation-select {
+      margin: 20px 0;
+    }
+    
+    .op-btn {
+      width: 100%;
+      padding: 12px;
+      margin: 6px 0;
+      border: 2px solid rgba(100, 160, 220, 0.2);
+      background: rgba(20, 35, 55, 0.6);
+      color: #8eb8d8;
+      font-family: inherit;
+      font-size: 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+    
+    .op-btn:hover {
+      border-color: rgba(100, 180, 240, 0.4);
+      background: rgba(30, 50, 80, 0.6);
+    }
+    
+    .op-btn.active {
+      background: linear-gradient(135deg, rgba(50, 100, 150, 0.5), rgba(30, 70, 110, 0.5));
+      border-color: rgba(100, 180, 240, 0.6);
+    }
+    
+    .op-name {
+      font-weight: 600;
+      color: #a8d0f0;
+    }
+    
+    .op-desc {
+      font-size: 10px;
+      color: rgba(140, 170, 200, 0.6);
+      margin-top: 3px;
+    }
+    
+    .run-btn {
+      width: 100%;
+      padding: 14px;
+      margin-top: 15px;
+      border: none;
+      background: linear-gradient(135deg, #2a6090, #1a4060);
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .run-btn:hover {
+      background: linear-gradient(135deg, #3070a0, #205070);
+      box-shadow: 0 0 20px rgba(60, 140, 220, 0.3);
+    }
+    
+    .run-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    #crystalCanvas {
+      width: 100%;
+      height: 500px;
+      border-radius: 8px;
+      background: #080c12;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 15px;
+      font-size: 11px;
+    }
+    
+    .stat-label {
+      color: rgba(140, 170, 200, 0.5);
+    }
+    
+    .stat-value {
+      text-align: right;
+      color: rgba(180, 220, 255, 0.9);
+    }
+    
+    .stat-value.highlight {
+      color: #6fd8a8;
+    }
+    
+    .output-section {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(80, 140, 200, 0.2);
+    }
+    
+    .output-display {
+      background: rgba(10, 20, 35, 0.8);
+      border: 2px solid rgba(80, 160, 220, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin-top: 12px;
+    }
+    
+    .output-label {
+      font-size: 10px;
+      color: rgba(140, 170, 200, 0.5);
+      margin-bottom: 8px;
+    }
+    
+    .output-value {
+      font-size: 48px;
+      font-weight: 700;
+      color: #7ed8b8;
+      text-shadow: 0 0 30px rgba(120, 220, 180, 0.4);
+    }
+    
+    .output-equation {
+      font-size: 14px;
+      color: rgba(180, 210, 240, 0.8);
+      margin-top: 10px;
+      font-family: 'Times New Roman', serif;
+      font-style: italic;
+    }
+    
+    .explanation {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(20, 40, 60, 0.4);
+      border-radius: 6px;
+      font-size: 10px;
+      line-height: 1.6;
+      color: rgba(160, 190, 220, 0.7);
+    }
+    
+    .phase-indicator {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    
+    .phase-C { background: rgba(60, 180, 140, 0.3); color: #6fd8a8; }
+    .phase-δ { background: rgba(220, 120, 80, 0.3); color: #f0a878; }
+    .phase-R { background: rgba(140, 120, 200, 0.3); color: #b8a8e0; }
+    
+    .equation-box {
+      margin-top: 15px;
+      padding: 12px;
+      background: rgba(10, 20, 35, 0.6);
+      border-left: 3px solid rgba(100, 160, 220, 0.4);
+      font-family: 'Times New Roman', serif;
+      font-style: italic;
+      font-size: 12px;
+      color: rgba(160, 190, 220, 0.8);
+    }
+    
+    .truth-table {
+      width: 100%;
+      margin-top: 15px;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    
+    .truth-table th, .truth-table td {
+      padding: 8px 10px;
+      text-align: center;
+      border-bottom: 1px solid rgba(80, 140, 200, 0.15);
+    }
+    
+    .truth-table th {
+      color: rgba(140, 180, 220, 0.7);
+      font-weight: 500;
+    }
+    
+    .truth-table tr.current {
+      background: rgba(60, 140, 200, 0.2);
+    }
+    
+    .truth-table .result {
+      color: #6fd8a8;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <h1>CRR COMPUTATIONAL TIME CRYSTAL</h1>
+  <div class="subtitle">Binary logic via domain interference • R = ∫ s(τ)·exp(C(τ)/Ω) dτ</div>
+  
+  <div class="container">
+    <!-- Left Panel: Inputs -->
+    <div class="panel">
+      <h2>BINARY INPUTS</h2>
+      
+      <div class="input-section">
+        <div class="bit-input">
+          <span class="bit-label">Input A:</span>
+          <div class="bit-toggle">
+            <button class="bit-btn active" data-input="A" data-value="0">0</button>
+            <button class="bit-btn" data-input="A" data-value="1">1</button>
+          </div>
+        </div>
+        
+        <div class="bit-input">
+          <span class="bit-label">Input B:</span>
+          <div class="bit-toggle">
+            <button class="bit-btn active" data-input="B" data-value="0">0</button>
+            <button class="bit-btn" data-input="B" data-value="1">1</button>
+          </div>
+        </div>
+      </div>
+      
+      <h2>OPERATION</h2>
+      <div class="operation-select">
+        <button class="op-btn active" data-op="AND">
+          <div class="op-name">AND Gate</div>
+          <div class="op-desc">Output 1 only if both inputs are 1</div>
+        </button>
+        <button class="op-btn" data-op="OR">
+          <div class="op-name">OR Gate</div>
+          <div class="op-desc">Output 1 if either input is 1</div>
+        </button>
+        <button class="op-btn" data-op="XOR">
+          <div class="op-name">XOR Gate</div>
+          <div class="op-desc">Output 1 if inputs differ (nonlinear!)</div>
+        </button>
+        <button class="op-btn" data-op="NAND">
+          <div class="op-name">NAND Gate</div>
+          <div class="op-desc">NOT AND — universal gate</div>
+        </button>
+      </div>
+      
+      <button class="run-btn" id="runBtn">▶ COMPUTE</button>
+      
+      <div class="explanation">
+        <strong>How it works:</strong><br>
+        Bits are encoded as spin domain patterns. Logic operations emerge from 
+        domain interference during CRR dynamics. The exp(C/Ω) memory weighting
+        enables nonlinear computation.
+      </div>
+    </div>
+    
+    <!-- Center: Crystal Visualization -->
+    <div class="panel" style="padding: 15px;">
+      <canvas id="crystalCanvas"></canvas>
+    </div>
+    
+    <!-- Right Panel: Output -->
+    <div class="panel">
+      <h2>CRR DYNAMICS <span class="phase-indicator phase-C" id="phaseIndicator">Coherence</span></h2>
+      
+      <div class="stats-grid">
+        <span class="stat-label">Ω</span>
+        <span class="stat-value">1/π ≈ 0.318</span>
+        <span class="stat-label">Cycle</span>
+        <span class="stat-value" id="cycleValue">0</span>
+        <span class="stat-label">⟨C⟩</span>
+        <span class="stat-value" id="cohValue">0.000</span>
+        <span class="stat-label">⟨s⟩</span>
+        <span class="stat-value" id="orderValue">0.000</span>
+        <span class="stat-label">Domain A</span>
+        <span class="stat-value highlight" id="domainA">0</span>
+        <span class="stat-label">Domain B</span>
+        <span class="stat-value highlight" id="domainB">0</span>
+      </div>
+      
+      <div class="output-section">
+        <h2>COMPUTATION RESULT</h2>
+        <div class="output-display">
+          <div class="output-label">Output Bit</div>
+          <div class="output-value" id="outputValue">—</div>
+          <div class="output-equation" id="outputEquation">A ∧ B = ?</div>
+        </div>
+      </div>
+      
+      <div class="equation-box">
+        <strong>Regeneration:</strong><br>
+        R = ∫ s(τ)·e<sup>C(τ)/Ω</sup> dτ / ∫ e<sup>C(τ)/Ω</sup> dτ
+      </div>
+      
+      <h2 style="margin-top: 20px;">TRUTH TABLE</h2>
+      <table class="truth-table" id="truthTable">
+        <tr>
+          <th>A</th>
+          <th>B</th>
+          <th>Result</th>
+        </tr>
+        <tr data-a="0" data-b="0">
+          <td>0</td>
+          <td>0</td>
+          <td class="result">—</td>
+        </tr>
+        <tr data-a="0" data-b="1">
+          <td>0</td>
+          <td>1</td>
+          <td class="result">—</td>
+        </tr>
+        <tr data-a="1" data-b="0">
+          <td>1</td>
+          <td>0</td>
+          <td class="result">—</td>
+        </tr>
+        <tr data-a="1" data-b="1">
+          <td>1</td>
+          <td>1</td>
+          <td class="result">—</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <script>
+// ============================================================================
+// CRR COMPUTATIONAL TIME CRYSTAL
+// ============================================================================
+
+const canvas = document.getElementById('crystalCanvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width - 30;
+    canvas.height = 500;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const OMEGA = 1 / Math.PI;
+const XI = 0.15;
+const DRIVE_PERIOD = 2.0;
+const DRIVE_STRENGTH = 1.3;
+
+// ============================================================================
+// STATE
+// ============================================================================
+
+let inputA = 0;
+let inputB = 0;
+let operation = 'AND';
+let computing = false;
+let computeStartTime = 0;
+let computeDuration = 4000; // ms
+let result = null;
+
+// ============================================================================
+// PARTICLE SYSTEM
+// ============================================================================
+
+class ComputeParticle {
+    constructor(x, y, domain) {
+        this.x = x;
+        this.y = y;
+        this.domain = domain; // 'A', 'B', or 'output'
+        this.s = 0;
+        this.C = 0.1;
+        this.history = [];
+        this.targetS = 0;
+    }
+    
+    setInput(bit) {
+        this.targetS = bit === 1 ? 0.9 : -0.9;
+        this.s = this.targetS * 0.5;
+    }
+    
+    recordHistory() {
+        this.history.push({ s: this.s, C: this.C });
+        if (this.history.length > 80) this.history.shift();
+    }
+    
+    computeMemoryTarget() {
+        if (this.history.length < 2) return this.s;
+        let num = 0, den = 0;
+        for (const h of this.history) {
+            const w = Math.exp(Math.min(20, h.C / OMEGA));
+            num += h.s * w;
+            den += w;
+        }
+        return den > 0.001 ? Math.max(-1, Math.min(1, num / den)) : this.s;
+    }
+}
+
+// Create particles in two input domains and one output domain
+const particles = [];
+const DOMAIN_SIZE = 12;
+
+// Domain A (left side)
+for (let i = 0; i < DOMAIN_SIZE; i++) {
+    const angle = (i / DOMAIN_SIZE) * Math.PI * 2;
+    const r = 0.25 + Math.random() * 0.1;
+    particles.push(new ComputeParticle(
+        -0.4 + Math.cos(angle) * r * 0.3,
+        Math.sin(angle) * r * 0.5,
+        'A'
+    ));
+}
+
+// Domain B (right side)
+for (let i = 0; i < DOMAIN_SIZE; i++) {
+    const angle = (i / DOMAIN_SIZE) * Math.PI * 2;
+    const r = 0.25 + Math.random() * 0.1;
+    particles.push(new ComputeParticle(
+        0.4 + Math.cos(angle) * r * 0.3,
+        Math.sin(angle) * r * 0.5,
+        'B'
+    ));
+}
+
+// Output domain (center-bottom)
+for (let i = 0; i < DOMAIN_SIZE * 1.5; i++) {
+    const angle = (i / (DOMAIN_SIZE * 1.5)) * Math.PI * 2;
+    const r = 0.2 + Math.random() * 0.15;
+    particles.push(new ComputeParticle(
+        Math.cos(angle) * r * 0.35,
+        0.5 + Math.sin(angle) * r * 0.3,
+        'output'
+    ));
+}
+
+// ============================================================================
+// CRR DYNAMICS
+// ============================================================================
+
+let time = 0;
+let lastDriveTime = 0;
+let cycle = 0;
+let phase = 'C';
+
+function computeLocalField(p) {
+    let ws = 0, tw = 0;
+    for (const other of particles) {
+        if (other === p) continue;
+        const dx = p.x - other.x;
+        const dy = p.y - other.y;
+        const r = Math.sqrt(dx * dx + dy * dy);
+        if (r < XI * 4) {
+            const w = Math.exp(-r * r / (2 * XI * XI));
+            ws += other.s * w;
+            tw += w;
+        }
+    }
+    return tw > 0.001 ? ws / tw : 0;
+}
+
+function applyOperation(domainA_avg, domainB_avg) {
+    // Convert domain averages to bits
+    const bitA = domainA_avg > 0 ? 1 : 0;
+    const bitB = domainB_avg > 0 ? 1 : 0;
+    
+    switch (operation) {
+        case 'AND':
+            return (bitA === 1 && bitB === 1) ? 1 : 0;
+        case 'OR':
+            return (bitA === 1 || bitB === 1) ? 1 : 0;
+        case 'XOR':
+            return (bitA !== bitB) ? 1 : 0;
+        case 'NAND':
+            return (bitA === 1 && bitB === 1) ? 0 : 1;
+        default:
+            return 0;
+    }
+}
+
+function update(dt) {
+    if (!computing) return;
+    
+    time += dt;
+    const progress = (time - lastDriveTime) / DRIVE_PERIOD;
+    
+    // Determine phase
+    if (progress >= 1) {
+        // Rupture!
+        for (const p of particles) {
+            if (p.domain === 'output') {
+                // Output domain responds to operation
+                const domainA_avg = particles.filter(q => q.domain === 'A')
+                    .reduce((sum, q) => sum + q.s, 0) / DOMAIN_SIZE;
+                const domainB_avg = particles.filter(q => q.domain === 'B')
+                    .reduce((sum, q) => sum + q.s, 0) / DOMAIN_SIZE;
+                
+                const opResult = applyOperation(domainA_avg, domainB_avg);
+                p.targetS = opResult === 1 ? 0.85 : -0.85;
+            }
+            p.C *= 0.3;
+        }
+        lastDriveTime = time;
+        cycle++;
+        phase = 'δ';
+    } else if (progress < 0.1) {
+        phase = 'δ';
+    } else if (progress < 0.4) {
+        phase = 'R';
+        // Regeneration phase
+        for (const p of particles) {
+            const memTarget = p.computeMemoryTarget();
+            const localField = computeLocalField(p);
+            const target = 0.4 * memTarget + 0.3 * localField + 0.3 * p.targetS;
+            p.s += (target - p.s) * dt * 2.5;
+            p.s = Math.max(-1, Math.min(1, p.s));
+            p.C *= Math.exp(-dt * 0.3);
+            p.C = Math.max(0.05, p.C);
+        }
+    } else {
+        phase = 'C';
+        // Coherence accumulation
+        for (const p of particles) {
+            const localField = computeLocalField(p);
+            const alignment = p.s * localField;
+            const L = 0.5 * (1 + alignment) / 2;
+            p.C += L * dt;
+            p.C = Math.min(2, p.C);
+            
+            // Drift toward target
+            p.s += (p.targetS - p.s) * dt * 0.3;
+            p.s += (localField - p.s) * dt * 0.1;
+            p.s = Math.max(-1, Math.min(1, p.s));
+        }
+    }
+    
+    // Record history
+    if (Math.floor(time * 8) !== Math.floor((time - dt) * 8)) {
+        for (const p of particles) p.recordHistory();
+    }
+}
+
+// ============================================================================
+// RENDERING
+// ============================================================================
+
+function spinToColor(s, C) {
+    const t = (s + 1) / 2;
+    // Cyan (s=-1) to coral/gold (s=+1)
+    const h = 180 - t * 160;
+    const sat = 60 + 30 * Math.abs(s);
+    const light = 40 + C * 25;
+    return `hsl(${h}, ${sat}%, ${light}%)`;
+}
+
+function render() {
+    ctx.fillStyle = '#080c12';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2 - 30;
+    const scale = Math.min(canvas.width, canvas.height) * 0.6;
+    
+    // Draw domain labels
+    ctx.font = '11px monospace';
+    ctx.fillStyle = 'rgba(140, 180, 220, 0.5)';
+    ctx.textAlign = 'center';
+    ctx.fillText('INPUT A', cx - scale * 0.4, cy - scale * 0.35);
+    ctx.fillText('INPUT B', cx + scale * 0.4, cy - scale * 0.35);
+    ctx.fillText('OUTPUT', cx, cy + scale * 0.65);
+    
+    // Draw domain boundaries
+    ctx.strokeStyle = 'rgba(80, 140, 200, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+    
+    // Domain A circle
+    ctx.beginPath();
+    ctx.arc(cx - scale * 0.4, cy, scale * 0.22, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Domain B circle
+    ctx.beginPath();
+    ctx.arc(cx + scale * 0.4, cy, scale * 0.22, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Output circle
+    ctx.beginPath();
+    ctx.arc(cx, cy + scale * 0.5, scale * 0.25, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.setLineDash([]);
+    
+    // Draw connections during processing
+    if (computing && phase !== 'δ') {
+        ctx.globalAlpha = 0.15;
+        for (const p of particles) {
+            if (p.domain !== 'output') continue;
+            for (const other of particles) {
+                if (other.domain === 'output') continue;
+                const x1 = cx + p.x * scale;
+                const y1 = cy + p.y * scale;
+                const x2 = cx + other.x * scale;
+                const y2 = cy + other.y * scale;
+                
+                ctx.strokeStyle = spinToColor((p.s + other.s) / 2, 0.5);
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+        }
+        ctx.globalAlpha = 1;
+    }
+    
+    // Draw particles
+    for (const p of particles) {
+        const x = cx + p.x * scale;
+        const y = cy + p.y * scale;
+        const baseSize = 8 + p.C * 6;
+        const color = spinToColor(p.s, p.C);
+        
+        // Glow
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, baseSize * 1.5);
+        grad.addColorStop(0, color);
+        grad.addColorStop(0.5, color.replace(')', ', 0.3)').replace('hsl', 'hsla'));
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, baseSize * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Core
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, baseSize * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Spin indicator
+        const angle = (p.s + 1) / 2 * Math.PI;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(angle) * baseSize * 0.7, y - Math.sin(angle) * baseSize * 0.7);
+        ctx.stroke();
+    }
+    
+    // Rupture flash
+    if (phase === 'δ' && computing) {
+        const flashProgress = ((time - lastDriveTime) / DRIVE_PERIOD) / 0.1;
+        ctx.fillStyle = `rgba(255, 240, 220, ${Math.max(0, 0.15 * (1 - flashProgress))})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    // Draw operation symbol
+    ctx.font = 'bold 24px serif';
+    ctx.fillStyle = 'rgba(180, 210, 240, 0.6)';
+    ctx.textAlign = 'center';
+    const opSymbol = { AND: '∧', OR: '∨', XOR: '⊕', NAND: '⊼' }[operation];
+    ctx.fillText(opSymbol, cx, cy + scale * 0.15);
+    
+    // Update HUD
+    updateHUD();
+}
+
+function updateHUD() {
+    const phaseEl = document.getElementById('phaseIndicator');
+    phaseEl.textContent = { C: 'Coherence', δ: 'Rupture', R: 'Regeneration' }[phase];
+    phaseEl.className = `phase-indicator phase-${phase}`;
+    
+    document.getElementById('cycleValue').textContent = cycle;
+    
+    const avgC = particles.reduce((s, p) => s + p.C, 0) / particles.length;
+    document.getElementById('cohValue').textContent = avgC.toFixed(3);
+    
+    const avgS = particles.reduce((s, p) => s + p.s, 0) / particles.length;
+    document.getElementById('orderValue').textContent = avgS.toFixed(3);
+    
+    const domainA_avg = particles.filter(p => p.domain === 'A')
+        .reduce((s, p) => s + p.s, 0) / DOMAIN_SIZE;
+    const domainB_avg = particles.filter(p => p.domain === 'B')
+        .reduce((s, p) => s + p.s, 0) / DOMAIN_SIZE;
+    
+    document.getElementById('domainA').textContent = domainA_avg > 0 ? '1' : '0';
+    document.getElementById('domainB').textContent = domainB_avg > 0 ? '1' : '0';
+}
+
+// ============================================================================
+// CONTROLS
+// ============================================================================
+
+// Bit toggles
+document.querySelectorAll('.bit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const input = btn.dataset.input;
+        const value = parseInt(btn.dataset.value);
+        
+        // Update UI
+        document.querySelectorAll(`.bit-btn[data-input="${input}"]`).forEach(b => {
+            b.classList.toggle('active', b.dataset.value === btn.dataset.value);
+        });
+        
+        if (input === 'A') inputA = value;
+        else inputB = value;
+        
+        // Update particles
+        particles.filter(p => p.domain === 'A').forEach(p => p.setInput(inputA));
+        particles.filter(p => p.domain === 'B').forEach(p => p.setInput(inputB));
+        
+        // Highlight current row in truth table
+        updateTruthTable();
+    });
+});
+
+// Operation select
+document.querySelectorAll('.op-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.op-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        operation = btn.dataset.op;
+        updateEquation();
+        updateTruthTable();
+    });
+});
+
+// Run button
+document.getElementById('runBtn').addEventListener('click', () => {
+    if (computing) return;
+    
+    computing = true;
+    computeStartTime = performance.now();
+    time = 0;
+    lastDriveTime = 0;
+    cycle = 0;
+    result = null;
+    
+    // Set inputs
+    particles.filter(p => p.domain === 'A').forEach(p => p.setInput(inputA));
+    particles.filter(p => p.domain === 'B').forEach(p => p.setInput(inputB));
+    particles.filter(p => p.domain === 'output').forEach(p => {
+        p.s = 0;
+        p.targetS = 0;
+    });
+    
+    document.getElementById('outputValue').textContent = '...';
+    document.getElementById('runBtn').disabled = true;
+    
+    // Schedule result read
+    setTimeout(() => {
+        // Read output domain
+        const output_avg = particles.filter(p => p.domain === 'output')
+            .reduce((s, p) => s + p.s, 0) / (DOMAIN_SIZE * 1.5);
+        result = output_avg > 0 ? 1 : 0;
+        
+        document.getElementById('outputValue').textContent = result;
+        updateTruthTableResult();
+        
+        setTimeout(() => {
+            computing = false;
+            document.getElementById('runBtn').disabled = false;
+        }, 500);
+    }, computeDuration);
+});
+
+function updateEquation() {
+    const symbols = { AND: '∧', OR: '∨', XOR: '⊕', NAND: '⊼' };
+    document.getElementById('outputEquation').textContent = 
+        `A ${symbols[operation]} B = ?`;
+}
+
+function updateTruthTable() {
+    const rows = document.querySelectorAll('#truthTable tr[data-a]');
+    rows.forEach(row => {
+        const a = parseInt(row.dataset.a);
+        const b = parseInt(row.dataset.b);
+        row.classList.toggle('current', a === inputA && b === inputB);
+    });
+}
+
+function updateTruthTableResult() {
+    const row = document.querySelector(`#truthTable tr[data-a="${inputA}"][data-b="${inputB}"]`);
+    if (row) {
+        row.querySelector('.result').textContent = result;
+    }
+}
+
+// Initialize
+particles.filter(p => p.domain === 'A').forEach(p => p.setInput(inputA));
+particles.filter(p => p.domain === 'B').forEach(p => p.setInput(inputB));
+updateEquation();
+updateTruthTable();
+
+// ============================================================================
+// ANIMATION LOOP
+// ============================================================================
+
+let lastTime = performance.now();
+
+function animate(now) {
+    const dt = Math.min((now - lastTime) / 1000, 0.033);
+    lastTime = now;
+    
+    update(dt);
+    render();
+    
+    requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
