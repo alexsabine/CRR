@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRR Time Crystal — Deep Zoom Explorer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #000; 
+      overflow: hidden; 
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
+    }
+    canvas { display: block; cursor: grab; }
+    canvas:active { cursor: grabbing; }
+    
+    #hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: rgba(140, 180, 220, 0.9);
+      font-size: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 16px 20px;
+      border-radius: 6px;
+      border: 1px solid rgba(80, 140, 200, 0.3);
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+      min-width: 180px;
+    }
+    
+    #hud h1 {
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: rgba(180, 220, 255, 0.95);
+      letter-spacing: 1.5px;
+    }
+    
+    .subtitle {
+      font-size: 8px;
+      color: rgba(100, 140, 180, 0.5);
+      margin-bottom: 12px;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 3px 14px;
+      font-size: 9px;
+    }
+    
+    .label { color: rgba(100, 140, 180, 0.5); }
+    .value { color: rgba(180, 220, 255, 0.9); text-align: right; }
+    .highlight { color: rgba(120, 220, 180, 0.9); }
+    
+    #controls {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: rgba(180, 210, 240, 0.9);
+      font-size: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 16px 20px;
+      border-radius: 6px;
+      border: 1px solid rgba(80, 140, 200, 0.3);
+      backdrop-filter: blur(12px);
+      min-width: 200px;
+    }
+    
+    #controls h2 {
+      font-size: 10px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: rgba(150, 190, 230, 0.9);
+      letter-spacing: 1px;
+    }
+    
+    .control-group {
+      margin-bottom: 12px;
+    }
+    
+    .control-group-title {
+      font-size: 8px;
+      color: rgba(100, 140, 180, 0.6);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .control-row {
+      display: flex;
+      align-items: center;
+      margin: 4px 0;
+      cursor: pointer;
+    }
+    
+    .control-row:hover {
+      color: rgba(200, 230, 255, 1);
+    }
+    
+    .control-row input {
+      margin-right: 8px;
+      cursor: pointer;
+      accent-color: rgba(100, 180, 255, 0.8);
+    }
+    
+    .control-row label {
+      cursor: pointer;
+      font-size: 9px;
+    }
+    
+    #equations {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      font-family: 'Times New Roman', Georgia, serif;
+      font-size: 12px;
+      font-style: italic;
+      color: rgba(120, 160, 200, 0.5);
+      line-height: 1.8;
+      pointer-events: none;
+    }
+    
+    #scale-info {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      color: rgba(100, 140, 180, 0.6);
+      font-size: 9px;
+      text-align: right;
+      pointer-events: none;
+    }
+    
+    .scale-bar {
+      width: 60px;
+      height: 2px;
+      background: rgba(100, 140, 180, 0.4);
+      margin-top: 6px;
+      margin-left: auto;
+    }
+    
+    .key-hint {
+      font-size: 8px;
+      color: rgba(100, 140, 180, 0.4);
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(80, 120, 160, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <div id="hud">
+    <h1>CRR TIME CRYSTAL</h1>
+    <div class="subtitle">Deep zoom explorer</div>
+    <div class="stats">
+      <span class="label">Ω</span><span class="value">1/π</span>
+      <span class="label">zoom</span><span class="value" id="zoom">1.0×</span>
+      <span class="label">LOD</span><span class="value highlight" id="lod">Macro</span>
+      <span class="label">⟨s⟩</span><span class="value" id="orderParam">0.000</span>
+      <span class="label">⟨C⟩</span><span class="value" id="avgCoherence">0.000</span>
+      <span class="label">cycle</span><span class="value" id="cycle">0</span>
+      <span class="label">phase</span><span class="value" id="phase">C</span>
+    </div>
+  </div>
+  
+  <div id="controls">
+    <h2>VISUALIZATION</h2>
+    
+    <div class="control-group">
+      <div class="control-group-title">Field Display</div>
+      <div class="control-row">
+        <input type="checkbox" id="showField" checked>
+        <label for="showField">Coherence field C(x)</label>
+      </div>
+      <div class="control-row">
+        <input type="checkbox" id="showParticles" checked>
+        <label for="showParticles">Spin particles</label>
+      </div>
+      <div class="control-row">
+        <input type="checkbox" id="showShell">
+        <label for="showShell">Crystal shell</label>
+      </div>
+    </div>
+    
+    <div class="control-group">
+      <div class="control-group-title">CRR Dynamics</div>
+      <div class="control-row">
+        <input type="checkbox" id="showConnections">
+        <label for="showConnections">Local field h(x)</label>
+      </div>
+      <div class="control-row">
+        <input type="checkbox" id="showMemory">
+        <label for="showMemory">Memory traces</label>
+      </div>
+      <div class="control-row">
+        <input type="checkbox" id="showWeights">
+        <label for="showWeights">exp(C/Ω) weights</label>
+      </div>
+    </div>
+    
+    <div class="control-group">
+      <div class="control-group-title">Analysis</div>
+      <div class="control-row">
+        <input type="checkbox" id="showDomains">
+        <label for="showDomains">Domain boundaries</label>
+      </div>
+      <div class="control-row">
+        <input type="checkbox" id="showRupture" checked>
+        <label for="showRupture">Rupture flash</label>
+      </div>
+    </div>
+    
+    <div class="key-hint">
+      Scroll: zoom (up to 500×)<br>
+      Drag: rotate / pan<br>
+      Space: pause
+    </div>
+  </div>
+  
+  <div id="equations">
+    R = ∫ s(τ)·exp(C(τ)/Ω) dτ / ∫ exp(C(τ)/Ω) dτ
+  </div>
+  
+  <div id="scale-info">
+    <span id="scaleText">~1 cm</span>
+    <div class="scale-bar"></div>
+  </div>
+
+  <script>
+/**
+ * ══════════════════════════════════════════════════════════════════════════════
+ * CRR TIME CRYSTAL: DEEP ZOOM EXPLORER
+ * ══════════════════════════════════════════════════════════════════════════════
+ * 
+ * This version allows zooming from centimeter scale down to ~20 micrometers,
+ * revealing how the SAME CRR physics manifests at different scales.
+ * 
+ * VISUALIZATION CONTROLS let you see different aspects of the CRR dynamics:
+ * 
+ *   COHERENCE FIELD: The continuous C(x) = Σᵢ Cᵢ · K(|x - xᵢ|)
+ *   SPIN PARTICLES:  Individual spins with states s ∈ [-1, +1]
+ *   LOCAL FIELD:     Neighbor connections showing h(x) interactions
+ *   MEMORY TRACES:   Recent history used in regeneration integral
+ *   exp(C/Ω) WEIGHTS: Visual size showing memory weight contribution
+ *   DOMAIN BOUNDARIES: Where spin sign changes (low coherence regions)
+ * 
+ * ALL of these emerge from the same equation:
+ * 
+ *   R = ∫ s(τ)·exp(C(τ)/Ω) dτ / ∫ exp(C(τ)/Ω) dτ
+ * 
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+const OMEGA = 1 / Math.PI;
+const XI = 0.12;
+const XI2 = XI * XI;
+const DRIVE_PERIOD = 2.2;
+const DRIVE_STRENGTH = 1.5;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CAMERA
+// ══════════════════════════════════════════════════════════════════════════════
+
+let zoom = 1.0;
+let targetZoom = 1.0;
+let rotY = 0, rotX = 0.2;
+let panX = 0, panY = 0;
+let targetPanX = 0, targetPanY = 0;
+let autoRotate = true;
+let isDragging = false;
+let lastMouse = { x: 0, y: 0 };
+let paused = false;
+
+function getLOD() {
+    if (zoom < 3) return 'macro';
+    if (zoom < 15) return 'meso';
+    if (zoom < 60) return 'micro';
+    return 'quantum';
+}
+
+function getScaleText() {
+    if (zoom < 1.5) return '~1 cm';
+    if (zoom < 3) return '~5 mm';
+    if (zoom < 8) return '~1 mm';
+    if (zoom < 20) return '~500 μm';
+    if (zoom < 50) return '~200 μm';
+    if (zoom < 100) return '~100 μm';
+    if (zoom < 200) return '~50 μm';
+    return '~20 μm';
+}
+
+canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    targetZoom *= e.deltaY > 0 ? 0.88 : 1.12;
+    targetZoom = Math.max(0.5, Math.min(500, targetZoom));
+});
+
+canvas.addEventListener('mousedown', e => {
+    isDragging = true;
+    autoRotate = false;
+    lastMouse = { x: e.clientX, y: e.clientY };
+});
+
+canvas.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - lastMouse.x;
+    const dy = e.clientY - lastMouse.y;
+    
+    if (zoom < 10) {
+        rotY += dx * 0.005;
+        rotX += dy * 0.005;
+        rotX = Math.max(-1.5, Math.min(1.5, rotX));
+    } else {
+        targetPanX += dx / zoom * 3;
+        targetPanY += dy / zoom * 3;
+    }
+    lastMouse = { x: e.clientX, y: e.clientY };
+});
+
+canvas.addEventListener('mouseup', () => isDragging = false);
+canvas.addEventListener('mouseleave', () => isDragging = false);
+
+document.addEventListener('keydown', e => {
+    if (e.code === 'Space') {
+        e.preventDefault();
+        paused = !paused;
+    }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════════════════════════════════
+
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smoothstep = (a, b, t) => { const x = clamp((t - a) / (b - a), 0, 1); return x * x * (3 - 2 * x); };
+const coherenceKernel = r => Math.exp(-r * r / (2 * XI2));
+const safeExp = x => Math.exp(clamp(x, -20, 20));
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GEOMETRY
+// ══════════════════════════════════════════════════════════════════════════════
+
+const CRYSTAL_HEIGHT = 1.2;
+const CRYSTAL_RADIUS = 0.9;
+
+function insideCrystal(x, y, z) {
+    const absY = Math.abs(y);
+    const rXZ = Math.sqrt(x * x + z * z);
+    return rXZ < CRYSTAL_RADIUS * (1 - absY / CRYSTAL_HEIGHT) && absY < CRYSTAL_HEIGHT;
+}
+
+const SHELL_SIDES = 6;
+const shellVertices = [[0, -CRYSTAL_HEIGHT, 0], [0, CRYSTAL_HEIGHT, 0]];
+for (let i = 0; i < SHELL_SIDES; i++) {
+    const a = (i / SHELL_SIDES) * Math.PI * 2;
+    shellVertices.push([Math.cos(a) * CRYSTAL_RADIUS, 0, Math.sin(a) * CRYSTAL_RADIUS]);
+}
+const shellEdges = [];
+for (let i = 0; i < SHELL_SIDES; i++) {
+    shellEdges.push([0, i + 2], [1, i + 2], [i + 2, ((i + 1) % SHELL_SIDES) + 2]);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PARTICLE
+// ══════════════════════════════════════════════════════════════════════════════
+
+class Particle {
+    constructor(x, y, z) {
+        this.x = x; this.y = y; this.z = z;
+        this.s = (Math.random() - 0.5) * 2;
+        this.coherence = 0.05 + Math.random() * 0.2;
+        this.history = [];
+        this.memoryTrace = [];
+        this.disorder = (Math.random() - 0.5) * 0.15;
+        this.driveKick = 0;
+        this.neighbors = [];
+        this.brightness = 0.5 + Math.random() * 0.5;
+        this.jitter = { x: 0, y: 0, z: 0 };
+    }
+    
+    recordHistory(t) {
+        this.history.push({ t, s: this.s, C: this.coherence });
+        if (this.history.length > 120) this.history.shift();
+        this.memoryTrace.push({ s: this.s, C: this.coherence, t });
+        if (this.memoryTrace.length > 40) this.memoryTrace.shift();
+    }
+    
+    computeMemoryTarget() {
+        if (this.history.length < 2) return this.s;
+        let num = 0, den = 0;
+        for (const h of this.history) {
+            const w = safeExp(h.C / OMEGA);
+            num += h.s * w;
+            den += w;
+        }
+        return den > 0.001 ? clamp(num / den, -1, 1) : this.s;
+    }
+    
+    getMemoryWeights() {
+        const weights = [];
+        let total = 0;
+        for (const h of this.history) {
+            const w = safeExp(h.C / OMEGA);
+            weights.push({ ...h, weight: w });
+            total += w;
+        }
+        for (const w of weights) w.normalized = total > 0 ? w.weight / total : 0;
+        return weights;
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TIME CRYSTAL
+// ══════════════════════════════════════════════════════════════════════════════
+
+class TimeCrystal {
+    constructor() {
+        this.time = 0;
+        this.lastDriveTime = 0;
+        this.cycle = 0;
+        this.phase = 'C';
+        this.particles = [];
+        this.fieldPoints = [];
+        
+        this.createParticles();
+        this.buildNeighbors();
+        this.createFieldPoints();
+    }
+    
+    createParticles() {
+        const N = 700;
+        for (let i = 0; i < N; i++) {
+            let x, y, z, attempts = 0;
+            do {
+                x = (Math.random() - 0.5) * 2 * CRYSTAL_RADIUS;
+                y = (Math.random() - 0.5) * 2 * CRYSTAL_HEIGHT;
+                z = (Math.random() - 0.5) * 2 * CRYSTAL_RADIUS;
+                attempts++;
+            } while (!insideCrystal(x, y, z) && attempts < 100);
+            if (insideCrystal(x, y, z)) this.particles.push(new Particle(x, y, z));
+        }
+    }
+    
+    buildNeighbors() {
+        const cutoff = XI * 5;
+        for (const p of this.particles) {
+            p.neighbors = [];
+            for (const o of this.particles) {
+                if (p === o) continue;
+                const r = Math.sqrt((p.x-o.x)**2 + (p.y-o.y)**2 + (p.z-o.z)**2);
+                if (r < cutoff) p.neighbors.push({ p: o, r, w: coherenceKernel(r) });
+            }
+            p.neighbors.sort((a, b) => a.r - b.r);
+            if (p.neighbors.length > 15) p.neighbors.length = 15;
+        }
+    }
+    
+    createFieldPoints() {
+        const N = 3000;
+        for (let i = 0; i < N; i++) {
+            let x, y, z, attempts = 0;
+            do {
+                x = (Math.random() - 0.5) * 2.1 * CRYSTAL_RADIUS;
+                y = (Math.random() - 0.5) * 2.1 * CRYSTAL_HEIGHT;
+                z = (Math.random() - 0.5) * 2.1 * CRYSTAL_RADIUS;
+                attempts++;
+            } while (!insideCrystal(x * 0.93, y * 0.93, z * 0.93) && attempts < 100);
+            this.fieldPoints.push({ x, y, z, intensity: 0, spin: 0 });
+        }
+    }
+    
+    computeLocalField(x, y, z) {
+        let ws = 0, tw = 0;
+        for (const p of this.particles) {
+            const r = Math.sqrt((x-p.x)**2 + (y-p.y)**2 + (z-p.z)**2);
+            if (r < XI * 5) { const w = coherenceKernel(r); ws += p.s * w; tw += w; }
+        }
+        return tw > 0.001 ? ws / tw : 0;
+    }
+    
+    computeCoherenceField(x, y, z) {
+        let C = 0;
+        for (const p of this.particles) {
+            const r = Math.sqrt((x-p.x)**2 + (y-p.y)**2 + (z-p.z)**2);
+            if (r < XI * 5) C += p.coherence * coherenceKernel(r);
+        }
+        return C;
+    }
+    
+    update(dt) {
+        if (paused) return;
+        this.time += dt;
+        
+        const progress = (this.time - this.lastDriveTime) / DRIVE_PERIOD;
+        
+        if (progress >= 1) {
+            this.triggerRupture();
+            this.lastDriveTime = this.time;
+            this.cycle++;
+        }
+        
+        if (progress < 0.08) this.phase = 'δ';
+        else if (progress < 0.35) { this.phase = 'R'; this.runRegeneration(dt); }
+        else { this.phase = 'C'; this.runCoherence(dt); }
+        
+        if (Math.floor(this.time * 10) !== Math.floor((this.time - dt) * 10)) {
+            for (const p of this.particles) p.recordHistory(this.time);
+        }
+        
+        this.updateJitter(dt);
+        this.updateField();
+    }
+    
+    runCoherence(dt) {
+        for (const p of this.particles) {
+            const h = this.computeLocalField(p.x, p.y, p.z);
+            const L = 0.4 * (1 + p.s * h) / 2;
+            p.coherence += L * dt;
+            p.coherence = clamp(p.coherence, 0, 3);
+            p.s += (h - p.s) * dt * 0.05;
+            p.s = clamp(p.s, -1, 1);
+        }
+    }
+    
+    triggerRupture() {
+        for (const p of this.particles) {
+            p.driveKick = -Math.sign(p.s || 0.01) * DRIVE_STRENGTH * (1 + p.disorder);
+        }
+    }
+    
+    runRegeneration(dt) {
+        for (const p of this.particles) {
+            const mem = p.computeMemoryTarget();
+            const h = this.computeLocalField(p.x, p.y, p.z);
+            const target = 0.50 * mem + 0.25 * h + 0.20 * p.driveKick + 0.05 * p.disorder;
+            p.s += (target - p.s) * dt * 3.5;
+            p.s = clamp(p.s, -1, 1);
+            p.driveKick *= Math.exp(-dt * 4);
+            p.coherence *= Math.exp(-dt * 0.5);
+            p.coherence = Math.max(0.02, p.coherence);
+        }
+    }
+    
+    updateJitter(dt) {
+        const scale = this.phase === 'δ' ? 0.015 : 0.003;
+        for (const p of this.particles) {
+            p.jitter.x += (Math.random() - 0.5) * scale - p.jitter.x * 0.1;
+            p.jitter.y += (Math.random() - 0.5) * scale - p.jitter.y * 0.1;
+            p.jitter.z += (Math.random() - 0.5) * scale - p.jitter.z * 0.1;
+        }
+    }
+    
+    updateField() {
+        for (const fp of this.fieldPoints) {
+            const C = this.computeCoherenceField(fp.x, fp.y, fp.z);
+            fp.intensity = clamp(safeExp(C / OMEGA) / 10, 0, 1);
+            fp.spin = this.computeLocalField(fp.x, fp.y, fp.z);
+        }
+    }
+    
+    getOrderParameter() {
+        let s = 0; for (const p of this.particles) s += p.s;
+        return this.particles.length ? s / this.particles.length : 0;
+    }
+    
+    getAvgCoherence() {
+        let c = 0; for (const p of this.particles) c += p.coherence;
+        return this.particles.length ? c / this.particles.length : 0;
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PROJECTION
+// ══════════════════════════════════════════════════════════════════════════════
+
+function project(x, y, z) {
+    x += panX / 100; y += panY / 100;
+    const cy = Math.cos(rotY), sy = Math.sin(rotY);
+    const cx = Math.cos(rotX), sx = Math.sin(rotX);
+    const x1 = x * cy - z * sy;
+    const z1 = x * sy + z * cy;
+    const y1 = y * cx - z1 * sx;
+    const z2 = y * sx + z1 * cx;
+    const fov = 4 / zoom;
+    const scale = fov / (fov + z2 + 3);
+    const ss = Math.min(W, H) * 0.3 * zoom;
+    return { x: W/2 + x1 * scale * ss, y: H/2 + y1 * scale * ss, z: z2, scale: scale * zoom };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COLOR
+// ══════════════════════════════════════════════════════════════════════════════
+
+function spinToHSL(s, c) {
+    const t = (s + 1) / 2;
+    // Match the reference image colors: pink/coral (s=-1) to gold/yellow (s=+1)
+    const hue = 350 - t * 50;  // 350 (pink) to 300 or... let's try: 20 (coral) to 45 (gold)
+    // Actually looking at image: pink-coral to tan-gold
+    // Let's use: hue 350-10 (pink) for s=-1, hue 35-50 (gold) for s=+1
+    const h = lerp(355, 40, t);  // Pink to gold
+    const sat = 50 + 30 * Math.abs(s);
+    const light = 45 + c * 20;
+    return { h, s: sat, l: light };
+}
+
+function hsl(hsl, a) {
+    return `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${a})`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RENDERING
+// ══════════════════════════════════════════════════════════════════════════════
+
+const crystal = new TimeCrystal();
+
+// Visualization state
+const vis = {
+    showField: true,
+    showParticles: true,
+    showShell: false,
+    showConnections: false,
+    showMemory: false,
+    showWeights: false,
+    showDomains: false,
+    showRupture: true
+};
+
+// Bind checkboxes
+for (const key of Object.keys(vis)) {
+    const el = document.getElementById(key);
+    if (el) {
+        el.checked = vis[key];
+        el.addEventListener('change', () => vis[key] = el.checked);
+    }
+}
+
+function render() {
+    ctx.fillStyle = '#0a0808';
+    ctx.fillRect(0, 0, W, H);
+    
+    const lod = getLOD();
+    const avgC = crystal.getAvgCoherence();
+    
+    // Background
+    const bg = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.6);
+    bg.addColorStop(0, `rgba(40, 25, 25, ${0.2 + avgC * 0.1})`);
+    bg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    
+    // Coherence field
+    if (vis.showField) {
+        const fieldAlpha = Math.max(0, 1 - smoothstep(5, 25, zoom));
+        if (fieldAlpha > 0.02) renderField(fieldAlpha);
+    }
+    
+    // Domain boundaries
+    if (vis.showDomains && zoom > 3) {
+        renderDomainBoundaries();
+    }
+    
+    // Connections (local field visualization)
+    if (vis.showConnections && zoom > 5) {
+        renderConnections();
+    }
+    
+    // Particles
+    if (vis.showParticles) {
+        renderParticles();
+    }
+    
+    // Memory visualization
+    if (vis.showMemory && zoom > 15) {
+        renderMemoryTraces();
+    }
+    
+    // Shell
+    if (vis.showShell) {
+        renderShell();
+    }
+    
+    // Rupture flash
+    if (vis.showRupture && crystal.phase === 'δ') {
+        const progress = (crystal.time - crystal.lastDriveTime) / (DRIVE_PERIOD * 0.08);
+        ctx.fillStyle = `rgba(255, 230, 220, ${Math.max(0, 1 - progress) * 0.1})`;
+        ctx.fillRect(0, 0, W, H);
+    }
+    
+    // HUD
+    document.getElementById('zoom').textContent = zoom.toFixed(1) + '×';
+    document.getElementById('lod').textContent = lod.charAt(0).toUpperCase() + lod.slice(1);
+    document.getElementById('orderParam').textContent = crystal.getOrderParameter().toFixed(3);
+    document.getElementById('avgCoherence').textContent = avgC.toFixed(3);
+    document.getElementById('cycle').textContent = crystal.cycle;
+    document.getElementById('phase').textContent = crystal.phase + (paused ? ' ⏸' : '');
+    document.getElementById('scaleText').textContent = getScaleText();
+}
+
+function renderField(alpha) {
+    const sorted = crystal.fieldPoints
+        .map(fp => ({ fp, proj: project(fp.x, fp.y, fp.z) }))
+        .sort((a, b) => a.proj.z - b.proj.z);
+    
+    for (const { fp, proj } of sorted) {
+        if (fp.intensity < 0.015) continue;
+        const a = fp.intensity * alpha * Math.min(1, proj.scale) * 0.8;
+        const size = (1 + fp.intensity * 5) * proj.scale;
+        if (size < 0.4) continue;
+        
+        const col = spinToHSL(fp.spin, fp.intensity);
+        ctx.fillStyle = hsl(col, a);
+        ctx.beginPath();
+        ctx.arc(proj.x, proj.y, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function renderParticles() {
+    const sorted = crystal.particles
+        .map(p => ({ p, proj: project(p.x + p.jitter.x, p.y + p.jitter.y, p.z + p.jitter.z) }))
+        .sort((a, b) => a.proj.z - b.proj.z);
+    
+    const microDetail = smoothstep(10, 40, zoom);
+    
+    for (const { p, proj } of sorted) {
+        const coh = clamp(p.coherence, 0, 2);
+        const expCO = safeExp(coh / OMEGA);
+        const flash = crystal.phase === 'δ' ? 1.3 : 1;
+        const bright = (0.4 + 0.6 * coh / 2) * p.brightness;
+        const col = spinToHSL(p.s, coh);
+        
+        // Size based on exp(C/Ω) if showing weights
+        const baseSize = vis.showWeights ? (2 + expCO * 1.5) : (2 + coh * 1.5);
+        const glowSize = baseSize * proj.scale;
+        
+        // Glow
+        if (glowSize > 1) {
+            const glow = ctx.createRadialGradient(proj.x, proj.y, 0, proj.x, proj.y, glowSize);
+            glow.addColorStop(0, hsl(col, bright * 0.6 * flash));
+            glow.addColorStop(0.5, hsl(col, bright * 0.2));
+            glow.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, glowSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Core with detail at high zoom
+        const coreSize = baseSize * proj.scale * 0.4;
+        
+        if (microDetail > 0.5 && coreSize > 3) {
+            // Detailed particle view
+            ctx.strokeStyle = hsl(col, bright * 0.9 * flash);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, coreSize, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.fillStyle = hsl(col, bright * flash);
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, coreSize * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Spin indicator
+            const indicatorLen = coreSize * 0.9;
+            const angle = (p.s + 1) / 2 * Math.PI;
+            ctx.strokeStyle = `rgba(255, 255, 255, ${bright * 0.5})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(proj.x, proj.y);
+            ctx.lineTo(proj.x + Math.cos(angle) * indicatorLen, proj.y - Math.sin(angle) * indicatorLen);
+            ctx.stroke();
+        } else {
+            // Simple dot
+            ctx.fillStyle = hsl(col, bright * flash);
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, Math.max(0.8, coreSize), 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}
+
+function renderConnections() {
+    const alpha = smoothstep(5, 20, zoom) * 0.4;
+    
+    for (const p of crystal.particles) {
+        const proj1 = project(p.x + p.jitter.x, p.y + p.jitter.y, p.z + p.jitter.z);
+        
+        for (const n of p.neighbors.slice(0, 5)) {
+            const proj2 = project(n.p.x + n.p.jitter.x, n.p.y + n.p.jitter.y, n.p.z + n.p.jitter.z);
+            
+            const alignment = p.s * n.p.s;
+            const t = (alignment + 1) / 2;
+            const col = spinToHSL(alignment, 0.5);
+            
+            ctx.strokeStyle = hsl(col, n.w * alpha);
+            ctx.lineWidth = 0.5 + n.w;
+            ctx.beginPath();
+            ctx.moveTo(proj1.x, proj1.y);
+            ctx.lineTo(proj2.x, proj2.y);
+            ctx.stroke();
+        }
+    }
+}
+
+function renderMemoryTraces() {
+    const alpha = smoothstep(15, 50, zoom) * 0.5;
+    
+    for (const p of crystal.particles) {
+        const proj = project(p.x + p.jitter.x, p.y + p.jitter.y, p.z + p.jitter.z);
+        
+        if (p.memoryTrace.length < 3) continue;
+        
+        // Draw trace as small dots showing state evolution
+        for (let i = 0; i < p.memoryTrace.length; i++) {
+            const m = p.memoryTrace[i];
+            const age = (p.memoryTrace.length - i) / p.memoryTrace.length;
+            
+            // Position offset based on state
+            const offsetX = m.s * 4 * proj.scale;
+            const offsetY = -m.C * 3 * proj.scale;
+            
+            const col = spinToHSL(m.s, m.C);
+            ctx.fillStyle = hsl(col, alpha * (1 - age * 0.8));
+            ctx.beginPath();
+            ctx.arc(proj.x + offsetX, proj.y + offsetY, (1.5 - age) * proj.scale * 0.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}
+
+function renderDomainBoundaries() {
+    const alpha = smoothstep(3, 15, zoom) * 0.6;
+    
+    // Find particles at domain boundaries (where neighbors have opposite sign)
+    for (const p of crystal.particles) {
+        let oppositeCount = 0;
+        for (const n of p.neighbors) {
+            if (Math.sign(p.s) !== Math.sign(n.p.s)) oppositeCount++;
+        }
+        
+        if (oppositeCount > p.neighbors.length * 0.3) {
+            const proj = project(p.x + p.jitter.x, p.y + p.jitter.y, p.z + p.jitter.z);
+            
+            // Highlight boundary particle
+            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(proj.x, proj.y, 3 * proj.scale, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+}
+
+function renderShell() {
+    const alpha = Math.max(0.1, 0.5 - smoothstep(3, 30, zoom));
+    
+    ctx.strokeStyle = `rgba(120, 100, 90, ${alpha})`;
+    ctx.lineWidth = 1;
+    
+    for (const [a, b] of shellEdges) {
+        const p1 = project(...shellVertices[a]);
+        const p2 = project(...shellVertices[b]);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LOOP
+// ══════════════════════════════════════════════════════════════════════════════
+
+let lastTime = performance.now();
+
+function animate(now) {
+    const dt = Math.min((now - lastTime) / 1000, 0.033);
+    lastTime = now;
+    
+    zoom = lerp(zoom, targetZoom, 0.08);
+    panX = lerp(panX, targetPanX, 0.1);
+    panY = lerp(panY, targetPanY, 0.1);
+    
+    if (autoRotate && !isDragging && zoom < 8) rotY += 0.002;
+    
+    crystal.update(dt);
+    render();
+    
+    requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
