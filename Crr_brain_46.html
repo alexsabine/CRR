@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRR Brain — X-Ray Neural Simulation</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+:root {
+  --bg:#020408; --c-coh:#2dd4bf; --c-rup:#ff4070; --c-reg:#a78bfa;
+  --c-omega:#fb923c; --c-xrb:#8ecfff; --c-blood:#e04060; --c-breath:#60c0e0;
+  --mono:'JetBrains Mono',monospace; --serif:'Cormorant Garamond',Georgia,serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:#fff;font-family:var(--mono);overflow:hidden;height:100vh}
+#app{display:grid;grid-template-columns:1fr 290px;grid-template-rows:42px 1fr 140px;height:100vh}
+
+#hdr{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid rgba(58,143,212,.1);background:rgba(58,143,212,.02)}
+#hdr h1{font-family:var(--serif);font-size:20px;font-weight:600}
+#hdr h1 b{color:var(--c-xrb);font-weight:600}
+#hdr .meta{font-size:9px;color:rgba(142,207,255,.3);letter-spacing:2px;text-transform:uppercase}
+
+#bw{position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 50%,rgba(58,143,212,.04) 0%,transparent 70%);cursor:crosshair}
+canvas#bc{width:100%;height:100%;display:block}
+#bhud{position:absolute;top:10px;left:12px;pointer-events:none}
+#bhud .tg{font-size:7px;color:rgba(142,207,255,.25);letter-spacing:2px;text-transform:uppercase}
+#bhud .vl{font-size:18px;font-weight:700;color:var(--c-xrb);line-height:1.2}
+#bhud .vl.r{color:var(--c-rup)}
+#sh{position:absolute;bottom:8px;left:12px;font-size:8px;color:rgba(142,207,255,.2)}
+
+/* Breath/Heart HUD bottom-right */
+#vitals{position:absolute;bottom:10px;right:10px;pointer-events:none;text-align:right}
+#vitals .vrow{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:3px}
+#vitals .vicon{font-size:14px}
+#vitals .vlabel{font-size:7px;color:rgba(142,207,255,.25);letter-spacing:1.5px;text-transform:uppercase}
+#vitals .vval{font-size:13px;font-weight:600}
+.heart-icon{color:var(--c-blood);transition:transform .1s}
+.heart-icon.beat{transform:scale(1.3)}
+.breath-bar{width:60px;height:4px;background:rgba(96,192,224,.1);border-radius:2px;overflow:hidden}
+.breath-fill{height:100%;background:var(--c-breath);border-radius:2px;transition:width .1s}
+
+#pn{border-left:1px solid rgba(58,143,212,.08);display:flex;flex-direction:column;overflow-y:auto;background:rgba(58,143,212,.01)}
+.ps{padding:10px 12px;border-bottom:1px solid rgba(58,143,212,.06)}
+.ps .t{font-size:7px;letter-spacing:2px;text-transform:uppercase;color:rgba(142,207,255,.25);margin-bottom:7px}
+
+.layers{display:flex;flex-direction:column;gap:3px}
+.layer-row{display:flex;align-items:center;gap:7px;cursor:pointer;padding:2px 0;user-select:none}
+.layer-row input[type=checkbox]{appearance:none;-webkit-appearance:none;width:11px;height:11px;border:1.5px solid rgba(142,207,255,.25);border-radius:2px;cursor:pointer;position:relative;flex-shrink:0}
+.layer-row input[type=checkbox]:checked{background:rgba(142,207,255,.15);border-color:rgba(142,207,255,.5)}
+.layer-row input[type=checkbox]:checked::after{content:'✓';position:absolute;top:-2px;left:1px;font-size:9px;color:var(--c-xrb)}
+.layer-row .lbl{font-size:8px;color:rgba(142,207,255,.4)}
+.layer-row .sw{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+
+.or{display:flex;align-items:baseline;gap:5px}
+.or .sym{font-size:22px;font-weight:700;color:var(--c-omega);font-family:var(--serif)}
+.or .v{font-size:13px;font-weight:600;color:var(--c-omega)}
+.or .l{font-size:8px;color:rgba(142,207,255,.25)}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:rgba(142,207,255,.08);border-radius:2px;outline:none;margin:5px 0 4px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--c-omega);cursor:pointer;border:2px solid var(--bg)}
+.pr{display:flex;gap:2px}
+.pr button{flex:1;padding:3px 1px;font-size:7px;font-family:var(--mono);background:rgba(142,207,255,.03);border:1px solid rgba(142,207,255,.07);color:rgba(142,207,255,.4);border-radius:3px;cursor:pointer;transition:all .2s}
+.pr button:hover,.pr button.on{background:rgba(251,146,60,.1);border-color:var(--c-omega);color:var(--c-omega)}
+
+/* Breath control */
+.breath-ctrl{margin-top:6px}
+.breath-ctrl .bpm-row{display:flex;align-items:center;gap:6px;margin-top:4px}
+.breath-ctrl .bpm-row span{font-size:9px;color:rgba(142,207,255,.35)}
+.breath-ctrl .bpm-row .bval{color:var(--c-breath);font-weight:600}
+.breath-phase{display:flex;gap:3px;margin-top:5px}
+.breath-phase .bp{flex:1;text-align:center;padding:3px;border-radius:3px;font-size:7px;letter-spacing:.5px;text-transform:uppercase}
+.bp-c{border:1px solid rgba(45,212,191,.1);color:rgba(45,212,191,.3)}
+.bp-d{border:1px solid rgba(255,64,112,.1);color:rgba(255,64,112,.3)}
+.bp-r{border:1px solid rgba(167,139,250,.1);color:rgba(167,139,250,.3)}
+.bp.active{font-weight:700}
+.bp-c.active{background:rgba(45,212,191,.08);color:var(--c-coh);border-color:rgba(45,212,191,.3)}
+.bp-d.active{background:rgba(255,64,112,.08);color:var(--c-rup);border-color:rgba(255,64,112,.3)}
+.bp-r.active{background:rgba(167,139,250,.08);color:var(--c-reg);border-color:rgba(167,139,250,.3)}
+
+.crr-boxes{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.cb{text-align:center;padding:4px 3px;border-radius:4px}
+.cb .s{font-size:13px;font-weight:700;font-family:var(--serif)}
+.cb .n{font-size:9px;margin-top:1px}
+.cb .lb{font-size:6px;color:rgba(142,207,255,.25);text-transform:uppercase;letter-spacing:1px;margin-top:1px}
+.cc{background:rgba(45,212,191,.05);border:1px solid rgba(45,212,191,.1)}.cc .s,.cc .n{color:var(--c-coh)}
+.cd{background:rgba(255,64,112,.05);border:1px solid rgba(255,64,112,.1)}.cd .s,.cd .n{color:var(--c-rup)}
+.cr{background:rgba(167,139,250,.05);border:1px solid rgba(167,139,250,.1)}.cr .s,.cr .n{color:var(--c-reg)}
+
+canvas#kc{width:100%;height:35px;border-radius:3px}
+.ki{display:flex;justify-content:space-between;margin-top:2px;font-size:7px;color:rgba(142,207,255,.25)}
+.ki span{color:var(--c-reg)}.ki .ep{color:var(--c-omega)}
+
+.rl{display:flex;flex-direction:column;gap:2px}
+.ri{display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:3px;cursor:pointer;transition:background .15s}
+.ri:hover{background:rgba(142,207,255,.03)}
+.rd{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.rn{font-size:8px;color:rgba(142,207,255,.35);flex:1}
+.rb{width:36px;height:3px;background:rgba(142,207,255,.05);border-radius:2px;overflow:hidden}
+.rbf{height:100%;border-radius:2px;transition:width .12s}
+.rs{font-size:7px;width:8px;text-align:center;font-weight:600}
+
+.meq{font-size:8px;color:rgba(142,207,255,.3);line-height:1.7}
+.meq .e{color:rgba(142,207,255,.5);font-size:9px}
+
+#osc{grid-column:1/-1;border-top:1px solid rgba(58,143,212,.08);display:grid;grid-template-columns:repeat(8,1fr);background:rgba(0,0,0,.4)}
+.och{border-right:1px solid rgba(58,143,212,.04);position:relative;overflow:hidden}
+.och:last-child{border-right:none}
+.ol{position:absolute;top:2px;left:4px;font-size:6px;letter-spacing:1px;text-transform:uppercase;color:rgba(142,207,255,.2);z-index:1}
+.of{position:absolute;top:2px;right:4px;font-size:6px;color:rgba(142,207,255,.15);z-index:1;font-weight:600}
+.oc{width:100%;height:100%;display:block}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(142,207,255,.06);border-radius:2px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hdr">
+    <h1>CRR <b>Brain</b></h1>
+    <div class="meta">X-Ray Neural Simulation · temporalgrammar.ai</div>
+  </div>
+  <div id="bw">
+    <canvas id="bc"></canvas>
+    <div id="bhud">
+      <div class="tg">Global Coherence</div>
+      <div class="vl" id="hc">0.000</div>
+      <div class="tg" style="margin-top:5px">Rupture Rate</div>
+      <div class="vl r" id="hr">0/s</div>
+    </div>
+    <div id="vitals">
+      <div class="vrow">
+        <span class="vlabel">Heart</span>
+        <span class="vval" style="color:var(--c-blood)" id="hr-bpm">72</span>
+        <span style="font-size:7px;color:rgba(224,64,96,.4)">BPM</span>
+        <span class="heart-icon" id="heart-icon">♥</span>
+      </div>
+      <div class="vrow">
+        <span class="vlabel">Breath</span>
+        <span class="vval" style="color:var(--c-breath)" id="br-rate">6</span>
+        <span style="font-size:7px;color:rgba(96,192,224,.4)">/min</span>
+        <div class="breath-bar"><div class="breath-fill" id="br-fill"></div></div>
+      </div>
+      <div class="vrow">
+        <span class="vlabel" id="br-phase-label" style="color:var(--c-coh)">INHALE (C)</span>
+      </div>
+    </div>
+    <div id="sh">Click to stimulate · Scroll to adjust Ω</div>
+  </div>
+  <div id="pn">
+    <div class="ps">
+      <div class="t">Visible Layers</div>
+      <div class="layers">
+        <label class="layer-row"><input type="checkbox" id="ly-anat" checked><div class="sw" style="background:#3a6fa8"></div><span class="lbl">Brain anatomy</span></label>
+        <label class="layer-row"><input type="checkbox" id="ly-blood" checked><div class="sw" style="background:#e04060"></div><span class="lbl">Blood vessels</span></label>
+        <label class="layer-row"><input type="checkbox" id="ly-conn" checked><div class="sw" style="background:#1a4a7a"></div><span class="lbl">Connections</span></label>
+        <label class="layer-row"><input type="checkbox" id="ly-nodes" checked><div class="sw" style="background:#5aafff"></div><span class="lbl">Neural nodes</span></label>
+        <label class="layer-row"><input type="checkbox" id="ly-glow" checked><div class="sw" style="background:#8ecfff"></div><span class="lbl">Activity glow</span></label>
+        <label class="layer-row"><input type="checkbox" id="ly-pulse" checked><div class="sw" style="background:#fff"></div><span class="lbl">Traveling pulses</span></label>
+        <label class="layer-row"><input type="checkbox" id="ly-spark" checked><div class="sw" style="background:#ff4070"></div><span class="lbl">Rupture sparks</span></label>
+        <label class="layer-row"><input type="checkbox" id="ly-wave" checked><div class="sw" style="background:#2dd4bf"></div><span class="lbl">Cortical waves</span></label>
+        <label class="layer-row"><input type="checkbox" id="ly-labels" checked><div class="sw" style="background:rgba(142,207,255,.3)"></div><span class="lbl">Region labels</span></label>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="t">Ω Boundary Control</div>
+      <div class="or"><span class="sym">Ω</span><span class="v" id="ov">0.318</span><span class="l" id="olab">= 1/π (Z₂)</span></div>
+      <input type="range" id="os" min="0.04" max="0.8" step="0.001" value="0.318">
+      <div class="pr">
+        <button onclick="setO(0.08,'1/4π')">Rigid</button>
+        <button onclick="setO(0.159,'1/2π')">SO(2)</button>
+        <button onclick="setO(0.318,'1/π')" class="on">Z₂</button>
+        <button onclick="setO(0.5,'High')">Open</button>
+        <button onclick="setO(0.7,'Dissolve')">Dissolve</button>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="t">Breath CRR Cycle (π² ≈ 10s)</div>
+      <div class="breath-ctrl">
+        <div class="breath-phase">
+          <div class="bp bp-c" id="bph-c">Inhale = C</div>
+          <div class="bp bp-d" id="bph-d">Peak = δ</div>
+          <div class="bp bp-r" id="bph-r">Exhale = R</div>
+        </div>
+        <div class="bpm-row">
+          <span>Rate:</span>
+          <input type="range" id="breath-rate" min="3" max="20" step="0.5" value="6" style="flex:1">
+          <span class="bval" id="br-val">6</span><span>/min</span>
+        </div>
+        <div class="bpm-row">
+          <span>Heart:</span>
+          <input type="range" id="heart-rate" min="40" max="120" step="1" value="72" style="flex:1">
+          <span class="bval" id="hr-val" style="color:var(--c-blood)">72</span><span>BPM</span>
+        </div>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="t">CRR Operators</div>
+      <div class="crr-boxes">
+        <div class="cb cc"><div class="s">C</div><div class="n" id="mC">0.00</div><div class="lb">Cohere</div></div>
+        <div class="cb cd"><div class="s">δ</div><div class="n" id="mD">0</div><div class="lb">Rupture</div></div>
+        <div class="cb cr"><div class="s">R</div><div class="n" id="mR">0.00</div><div class="lb">Regen</div></div>
+      </div>
+    </div>
+    <div class="ps">
+      <div class="t">exp(C/Ω) Memory Kernel</div>
+      <canvas id="kc" width="270" height="35"></canvas>
+      <div class="ki"><span>Mean: <span id="mk">1.0</span></span><span class="ep">e^π ≈ 23.14</span></div>
+    </div>
+    <div class="ps" style="flex:1;overflow-y:auto">
+      <div class="t">Cortical Regions</div>
+      <div class="rl" id="rlst"></div>
+    </div>
+    <div class="ps">
+      <div class="t">Active Equations</div>
+      <div class="meq">
+        <div class="e">C(x,t) = ∫L(x,τ)dτ</div>
+        <div>δ fires when C ≥ Ω</div>
+        <div class="e">R = ∫φ·exp(C/Ω)·Θ(…)dτ</div>
+        <div class="e">Breath: inhale=C, peak=δ, exhale=R</div>
+        <div>Ω modulated by respiration</div>
+      </div>
+    </div>
+  </div>
+  <div id="osc">
+    <div class="och"><span class="ol">Delta</span><span class="of">~1Hz</span><canvas class="oc" id="o0"></canvas></div>
+    <div class="och"><span class="ol">Theta</span><span class="of">~4Hz</span><canvas class="oc" id="o1"></canvas></div>
+    <div class="och"><span class="ol">Alpha</span><span class="of">~10Hz</span><canvas class="oc" id="o2"></canvas></div>
+    <div class="och"><span class="ol">Beta</span><span class="of">~20Hz</span><canvas class="oc" id="o3"></canvas></div>
+    <div class="och"><span class="ol">Gamma</span><span class="of">~40Hz</span><canvas class="oc" id="o4"></canvas></div>
+    <div class="och"><span class="ol">Global</span><span class="of">CRR</span><canvas class="oc" id="o5"></canvas></div>
+    <div class="och"><span class="ol">Heart</span><span class="of" style="color:rgba(224,64,96,.3)">♥</span><canvas class="oc" id="o6"></canvas></div>
+    <div class="och"><span class="ol">Breath</span><span class="of" style="color:rgba(96,192,224,.3)">≋</span><canvas class="oc" id="o7"></canvas></div>
+  </div>
+</div>
+<script>
+const PI=Math.PI,TAU=2*PI,E_PI=Math.exp(PI);
+const cv=document.getElementById('bc'),G=cv.getContext('2d');
+let W,H,BX,BY,SC;const DPR=window.devicePixelRatio||1;
+function ly(id){return document.getElementById('ly-'+id).checked}
+function hex2rgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+
+// ─── BRAIN SHAPE ───────────────────────────────────────────────────────────
+const BP=[[-.42,-.02],[-.44,-.12,-.43,-.24,-.38,-.34],[-.35,-.38,-.30,-.43,-.24,-.46],
+[-.18,-.48,-.12,-.50,-.06,-.50],[.00,-.505,.06,-.50,.12,-.49],[.18,-.48,.24,-.46,.29,-.42],
+[.34,-.38,.38,-.32,.40,-.24],[.42,-.16,.43,-.08,.42,.00],[.41,.06,.39,.10,.36,.14],
+[.34,.18,.30,.22,.24,.24],[.28,.28,.30,.34,.28,.38],[.26,.42,.20,.44,.14,.42],
+[.10,.41,.06,.44,.04,.46],[.02,.48,.00,.46,-.02,.44],[-.04,.42,-.08,.38,-.14,.34],
+[-.20,.30,-.28,.26,-.34,.20],[-.38,.16,-.42,.12,-.44,.06],[-.45,.02,-.44,.00,-.42,-.02]];
+function mkPath(bx,by,s){const p=new Path2D();p.moveTo(bx+BP[0][0]*s,by+BP[0][1]*s);for(let i=1;i<BP.length;i++){const c=BP[i];p.bezierCurveTo(bx+c[0]*s,by+c[1]*s,bx+c[2]*s,by+c[3]*s,bx+c[4]*s,by+c[5]*s);}p.closePath();return p}
+function tracePath(c,bx,by,s){c.beginPath();c.moveTo(bx+BP[0][0]*s,by+BP[0][1]*s);for(let i=1;i<BP.length;i++){const d=BP[i];c.bezierCurveTo(bx+d[0]*s,by+d[1]*s,bx+d[2]*s,by+d[3]*s,bx+d[4]*s,by+d[5]*s)}c.closePath()}
+
+// ─── VASCULAR TREE ─────────────────────────────────────────────────────────
+// Arteries branching through the brain (normalized coordinates)
+// Based on Circle of Willis and major cerebral arteries
+const VESSELS = [];
+function buildVessels() {
+  VESSELS.length = 0;
+  // Internal carotid → enters brain stem area, splits into ACA and MCA
+  // Vertebral arteries → basilar → posterior cerebral
+  
+  // Main trunk: internal carotid rising up through brainstem
+  addVessel([
+    [.02, .50], [.01, .42], [.00, .34], [-.01, .26], [-.02, .18], [-.02, .10], [-.01, .02]
+  ], 2.5, 'trunk');
+  
+  // Circle of Willis (ring at base)
+  addVessel([[-.01,.02],[-.06,.00],[-.12,-.02],[-.16,-.01]], 1.8, 'willis');
+  addVessel([[-.01,.02],[.04,.00],[.10,-.02],[.16,-.01]], 1.8, 'willis');
+  
+  // Anterior cerebral artery (ACA) — runs along midline, curves over top
+  addVessel([[-.02,.02],[-.06,-.06],[-.10,-.14],[-.14,-.22],[-.16,-.30],[-.14,-.38],[-.08,-.44],[-.02,-.48]], 1.5, 'aca');
+  
+  // Middle cerebral artery (MCA) — branches laterally into Sylvian fissure
+  addVessel([[-.01,.02],[-.08,.00],[-.16,-.02],[-.22,-.06],[-.28,-.10],[-.34,-.14]], 2.0, 'mca');
+  // MCA branches
+  addVessel([[-.22,-.06],[-.24,-.14],[-.26,-.22],[-.28,-.30]], 1.0, 'mca-br');
+  addVessel([[-.28,-.10],[-.30,-.18],[-.32,-.26]], 0.8, 'mca-br');
+  addVessel([[-.16,-.02],[-.18,-.10],[-.20,-.18]], 0.8, 'mca-br');
+  
+  // Posterior cerebral artery (PCA) — runs backward
+  addVessel([[.04,.00],[.10,.02],[.18,.00],[.26,-.04],[.32,-.10],[.36,-.18]], 1.4, 'pca');
+  addVessel([[.26,-.04],[.28,-.14],[.30,-.24]], 0.8, 'pca-br');
+  
+  // Superior cerebellar
+  addVessel([[.08,.04],[.14,.12],[.18,.22],[.22,.30]], 1.0, 'cereb');
+  addVessel([[.14,.12],[.20,.16],[.26,.20]], 0.7, 'cereb-br');
+  
+  // Temporal branches
+  addVessel([[-.16,-.02],[-.18,.06],[-.20,.14],[-.24,.20]], 0.9, 'temp');
+  addVessel([[-.08,.00],[-.10,.08],[-.14,.16]], 0.7, 'temp-br');
+  
+  // Frontal branches from ACA
+  addVessel([[-.14,-.22],[-.20,-.18],[-.26,-.16]], 0.7, 'front');
+  addVessel([[-.10,-.14],[-.16,-.12],[-.22,-.10]], 0.6, 'front');
+  addVessel([[-.14,-.38],[-.20,-.36],[-.26,-.32]], 0.6, 'front');
+  
+  // Parietal branches
+  addVessel([[-.02,-.48],[.04,-.46],[.10,-.42],[.16,-.38]], 0.8, 'par');
+  addVessel([[.10,-.42],[.14,-.36],[.18,-.30]], 0.6, 'par-br');
+  addVessel([[.16,-.38],[.22,-.34],[.26,-.28]], 0.6, 'par-br');
+  
+  // Occipital
+  addVessel([[.36,-.18],[.38,-.10],[.38,-.02],[.36,.06]], 0.7, 'occ');
+}
+
+function addVessel(pts, width, type) {
+  VESSELS.push({ pts, width, type });
+}
+
+// Arterial territory: which vessel types supply which regions (real neuroanatomy)
+const ART_TERR = {
+  0:['aca','front'],      // PFC — ACA
+  1:['mca','mca-br'],     // Premotor — MCA
+  2:['mca','mca-br'],     // M1 — MCA  
+  3:['mca','mca-br'],     // S1 — MCA
+  4:['par','par-br'],     // Parietal — ACA/MCA watershed
+  5:['pca','pca-br','occ'], // Occipital — PCA
+  6:['mca','mca-br','temp'], // Sup Temporal — MCA
+  7:['temp','temp-br'],   // Inf Temporal — MCA/PCA
+  8:['aca','front'],      // Cingulate — ACA
+  9:['pca','pca-br'],     // Hippocampus — PCA
+  10:['trunk','willis'],  // Thalamus — Circle of Willis perforators
+  11:['cereb','cereb-br'],// Cerebellum — cerebellar arteries
+  12:['mca','mca-br'],    // Broca's — MCA
+  13:['mca','mca-br'],    // Wernicke's — MCA
+};
+
+// ─── CARDIO-RESPIRATORY CRR SYSTEM ─────────────────────────────────────────
+let heartRate = 72;
+let baseHeartRate = 72;    // user-set (before RSA + arousal)
+let breathRate = 6;
+let baseBreathRate = 6;    // user-set (before arousal)
+let heartPhase = 0;
+let breathPhase = 0;
+let heartCRR = { C: 0, mode: 0, R: 0 };
+let breathCRR = { C: 0, mode: 0, R: 0 };
+let heartPulseWaves = [];
+let baseOmega = 1/PI;
+let breathOmegaMod = 0;
+let oxygenLevel = 1.0;     // breath modulates: inhale↑ exhale↓ → affects C accumulation
+let neuralArousal = 0;     // limbic/cingulate activity → speeds heart & breath (stress)
+let regionalBlood = new Float32Array(14); // blood supply per region (neurovascular coupling)
+let heartPulseExcite = 0;  // transient baroreceptor excitability boost from heartbeat
+
+function simCardio(realDt) {
+  // ── 1. RESPIRATORY SINUS ARRHYTHMIA (RSA) ──
+  // Heart rate naturally oscillates with breath: faster on inhale, slower on exhale
+  // This is mediated by vagal tone and is a key marker of healthy autonomic function
+  const rsaMod = breathCRR.mode === 0 ? breathCRR.C * 8 :    // inhale: +8 BPM max
+                 breathCRR.mode === 2 ? -breathCRR.R * 10 :   // exhale: -10 BPM max
+                 0;
+  
+  // ── 2. NEURAL AROUSAL → HEART & BREATH FEEDBACK ──
+  // Limbic system (cingulate, hippocampus, thalamus) activity drives autonomic arousal
+  // High arousal → sympathetic activation → faster heart & breath
+  const arousalMod = neuralArousal * 15; // up to +15 BPM from neural stress
+  
+  heartRate = Math.max(40, Math.min(150, baseHeartRate + rsaMod + arousalMod));
+  breathRate = Math.max(3, Math.min(30, baseBreathRate + neuralArousal * 4));
+  
+  const hPeriod = 60 / heartRate;
+  const bPeriod = 60 / breathRate;
+  
+  // ── HEART CRR CYCLE ──
+  heartPhase += realDt / hPeriod;
+  if (heartPhase >= 1) {
+    heartPhase -= 1;
+    heartPulseWaves.push({ t: 0, speed: 1.2 + Math.random() * 0.3 });
+    heartCRR.mode = 1;
+    heartCRR.C = 0;
+    heartPulseExcite = 1.0; // baroreceptor spike
+  }
+  
+  if (heartCRR.mode === 0) {
+    heartCRR.C = heartPhase;
+  } else if (heartCRR.mode === 1) {
+    if (heartPhase > 0.1) { heartCRR.mode = 2; heartCRR.R = 1; }
+  } else {
+    heartCRR.R = Math.max(0, 1 - (heartPhase - 0.1) * 3);
+    if (heartCRR.R <= 0) heartCRR.mode = 0;
+  }
+  
+  // ── 3. BARORECEPTOR-CORTICAL COUPLING ──
+  // Each heartbeat's pressure wave transiently increases neural excitability
+  // Decays over ~200ms after systole
+  heartPulseExcite *= Math.exp(-realDt * 8); // ~125ms decay constant
+  
+  // Blood pulse wave propagation (real-time)
+  for (let i = heartPulseWaves.length - 1; i >= 0; i--) {
+    heartPulseWaves[i].t += realDt * heartPulseWaves[i].speed;
+    if (heartPulseWaves[i].t > 1.5) heartPulseWaves.splice(i, 1);
+  }
+  
+  // ── 4. NEUROVASCULAR COUPLING ──
+  // Active brain regions demand more blood (basis of fMRI BOLD signal)
+  // Blood supply per region tracks neural activity with ~2s hemodynamic delay
+  if (nds.length > 0) {
+    for (let r = 0; r < 14; r++) {
+      let activity = 0, count = 0;
+      for (const nd of nds) {
+        if (nd.ri === r) { activity += nd.br; count++; }
+      }
+      if (count > 0) {
+        const demand = activity / count; // 0-1 activity level
+        // Hemodynamic response: blood supply sluggishly tracks demand (~2s time constant)
+        regionalBlood[r] += (demand - regionalBlood[r]) * realDt * 0.5;
+      }
+    }
+  }
+  
+  // ── BREATH CRR CYCLE ──
+  breathPhase += realDt / bPeriod;
+  if (breathPhase >= 1) breathPhase -= 1;
+  
+  if (breathPhase < 0.4) {
+    breathCRR.mode = 0;
+    breathCRR.C = breathPhase / 0.4;
+    breathCRR.R = 0;
+  } else if (breathPhase < 0.45) {
+    breathCRR.mode = 1;
+  } else if (breathPhase < 0.95) {
+    breathCRR.mode = 2;
+    breathCRR.R = 1 - (breathPhase - 0.45) / 0.5;
+    breathCRR.C = 0;
+  } else {
+    breathCRR.mode = 0;
+    breathCRR.C = 0;
+    breathCRR.R = 0;
+  }
+  
+  // ── 5. BREATH → OXYGEN SUPPLY ──
+  // Inhale raises blood oxygen → neurons accumulate C faster
+  // Exhale lowers it → accumulation slows
+  if (breathCRR.mode === 0) {
+    oxygenLevel = 0.85 + 0.3 * breathCRR.C; // rises from 0.85 to 1.15
+  } else if (breathCRR.mode === 2) {
+    oxygenLevel = 1.15 - 0.3 * (1 - breathCRR.R); // falls from 1.15 to 0.85
+  } else {
+    oxygenLevel = 1.15; // peak
+  }
+  
+  // ── 6. BREATH MODULATES Ω ──
+  if (breathCRR.mode === 0) {
+    breathOmegaMod = -0.06 * breathCRR.C;
+    breathGlow = breathCRR.C * 0.15;
+  } else if (breathCRR.mode === 2) {
+    breathOmegaMod = 0.08 * breathCRR.R;
+    breathGlow = breathCRR.R * 0.05;
+  } else {
+    breathOmegaMod = 0;
+    breathGlow = 0.18;
+  }
+  
+  // Heart Ω modulation (baroreceptor coupling)
+  const heartMod = heartPulseExcite * -0.02;
+  
+  gO = Math.max(0.04, Math.min(0.8, baseOmega + breathOmegaMod + heartMod));
+}
+
+// ─── SULCI & INTERNAL (from v2) ────────────────────────────────────────────
+function drawSulci(c,bx,by,s,a){
+  c.lineCap='round';
+  const sulci=[[[-.04,-.50],[-.02,-.38],[.02,-.25],[.01,-.12]],[[-.16,.04],[-.06,-.02],[.06,-.06],[.18,-.14]],
+  [[-.18,.12],[-.06,.06],[.06,.02],[.16,-.04]],[[-.14,-.46],[-.12,-.36],[-.10,-.24],[-.08,-.12]],
+  [[.08,-.48],[.08,-.38],[.10,-.26],[.10,-.14]],[[.10,-.38],[.18,-.36],[.26,-.32],[.32,-.26]],
+  [[-.36,-.16],[-.28,-.18],[-.20,-.16],[-.14,-.10]],[[-.34,-.30],[-.26,-.34],[-.18,-.34],[-.12,-.30]],
+  [[.26,-.42],[.30,-.32],[.34,-.20],[.36,-.08]],[[.36,-.04],[.38,.04],[.36,.10],[.32,.14]]];
+  for(const p of sulci){c.strokeStyle=`rgba(20,55,110,${a})`;c.lineWidth=1.2;c.beginPath();c.moveTo(bx+p[0][0]*s,by+p[0][1]*s);c.bezierCurveTo(bx+p[1][0]*s,by+p[1][1]*s,bx+p[2][0]*s,by+p[2][1]*s,bx+p[3][0]*s,by+p[3][1]*s);c.stroke()}
+  c.strokeStyle=`rgba(20,55,110,${a*.4})`;c.lineWidth=1;c.beginPath();c.moveTo(bx-s*.32,by-s*.24);c.bezierCurveTo(bx-s*.18,by-s*.30,bx-s*.02,by-s*.32,bx+s*.14,by-s*.30);c.bezierCurveTo(bx+s*.24,by-s*.28,bx+s*.30,by-s*.22,bx+s*.34,by-s*.14);c.stroke();
+  c.strokeStyle=`rgba(20,55,110,${a*.5})`;c.lineWidth=.8;for(let i=0;i<5;i++){const yo=s*(.28+i*.025);c.beginPath();c.moveTo(bx+s*.14,by+yo);c.bezierCurveTo(bx+s*.18,by+yo+s*.008,bx+s*.24,by+yo+s*.008,bx+s*.27,by+yo-s*.005);c.stroke()}}
+
+function drawInternal(c,bx,by,s){
+  c.strokeStyle='rgba(50,120,200,.2)';c.lineWidth=2.5;c.lineCap='round';c.beginPath();c.moveTo(bx-s*.24,by-s*.16);c.bezierCurveTo(bx-s*.12,by-s*.22,bx+s*.08,by-s*.22,bx+s*.20,by-s*.16);c.stroke();
+  c.fillStyle='rgba(50,120,200,.05)';c.beginPath();c.ellipse(bx+s*.02,by+s*.02,s*.08,s*.05,-.2,0,TAU);c.fill();c.strokeStyle='rgba(50,120,200,.1)';c.lineWidth=.8;c.stroke();
+  c.strokeStyle='rgba(30,80,160,.08)';c.lineWidth=1.5;c.beginPath();c.moveTo(bx-s*.14,by-s*.06);c.bezierCurveTo(bx-s*.10,by-s*.14,bx+s*.02,by-s*.16,bx+s*.10,by-s*.12);c.bezierCurveTo(bx+s*.14,by-s*.08,bx+s*.12,by+s*.02,bx+s*.08,by+s*.06);c.stroke();
+  c.strokeStyle='rgba(60,140,220,.12)';c.lineWidth=1.5;c.beginPath();c.moveTo(bx-s*.04,by+s*.10);c.bezierCurveTo(bx+s*.02,by+s*.08,bx+s*.08,by+s*.10,bx+s*.12,by+s*.14);c.stroke();
+  c.fillStyle='rgba(40,100,180,.03)';c.beginPath();c.ellipse(bx+s*.02,by+s*.40,s*.04,s*.08,.1,0,TAU);c.fill()}
+
+let brainP=null,brainTex=null;
+function renderTex(){
+  const oc=document.createElement('canvas');oc.width=cv.width;oc.height=cv.height;const o=oc.getContext('2d');o.scale(DPR,DPR);
+  const bg=o.createRadialGradient(BX,BY,0,BX,BY,SC*.6);bg.addColorStop(0,'rgba(8,18,35,.2)');bg.addColorStop(1,'rgba(2,4,8,0)');o.fillStyle=bg;o.fillRect(0,0,W,H);
+  tracePath(o,BX,BY,SC);const bf=o.createRadialGradient(BX-SC*.05,BY-SC*.1,SC*.05,BX,BY,SC*.5);bf.addColorStop(0,'rgba(25,70,130,.08)');bf.addColorStop(.5,'rgba(15,45,90,.05)');bf.addColorStop(1,'rgba(8,25,50,.02)');o.fillStyle=bf;o.fill();
+  for(let g=3;g>=0;g--){tracePath(o,BX,BY,SC);o.strokeStyle=`rgba(45,115,195,${.015+g*.012})`;o.lineWidth=1+g*1.3;o.stroke()}
+  tracePath(o,BX,BY,SC);o.strokeStyle='rgba(60,140,220,.18)';o.lineWidth=1;o.stroke();
+  drawSulci(o,BX,BY,SC,.25);drawInternal(o,BX,BY,SC);
+  o.save();o.clip(brainP);o.strokeStyle='rgba(35,90,160,.018)';o.lineWidth=.5;
+  for(let y=-.5;y<.5;y+=.02){o.beginPath();for(let x=-.5;x<.5;x+=.008){const px=BX+x*SC,py=BY+(y+Math.sin(x*35+y*18)*.006)*SC;if(x===-.5)o.moveTo(px,py);else o.lineTo(px,py)}o.stroke()}
+  o.restore();brainTex=oc}
+
+// ─── REGIONS ───────────────────────────────────────────────────────────────
+const REGS=[
+  {nm:"Prefrontal",ab:"PFC",col:"#fb923c",cx:-.28,cy:-.22,rx:.12,ry:.14,h:2,n:14},
+  {nm:"Premotor",ab:"PMC",col:"#f472b6",cx:-.10,cy:-.36,rx:.08,ry:.12,h:3,n:10},
+  {nm:"Motor",ab:"M1",col:"#f472b6",cx:-.02,cy:-.40,rx:.06,ry:.10,h:4,n:8},
+  {nm:"Somatosensory",ab:"S1",col:"#e879f9",cx:.06,cy:-.40,rx:.06,ry:.10,h:4,n:8},
+  {nm:"Parietal",ab:"PAR",col:"#a78bfa",cx:.18,cy:-.34,rx:.10,ry:.12,h:3,n:12},
+  {nm:"Occipital",ab:"OCC",col:"#2dd4bf",cx:.36,cy:-.06,rx:.06,ry:.14,h:4,n:10},
+  {nm:"Sup.Temporal",ab:"STG",col:"#38bdf8",cx:-.04,cy:.02,rx:.14,ry:.06,h:3,n:10},
+  {nm:"Inf.Temporal",ab:"ITG",col:"#38bdf8",cx:-.10,cy:.16,rx:.14,ry:.06,h:3,n:8},
+  {nm:"Cingulate",ab:"CNG",col:"#f43f5e",cx:.00,cy:-.20,rx:.16,ry:.04,h:1,n:8},
+  {nm:"Hippocampus",ab:"HPC",col:"#fbbf24",cx:.04,cy:.10,rx:.06,ry:.03,h:2,n:6},
+  {nm:"Thalamus",ab:"THL",col:"#94a3b8",cx:.02,cy:.02,rx:.04,ry:.03,h:1,n:5},
+  {nm:"Cerebellum",ab:"CBL",col:"#4ade80",cx:.22,cy:.36,rx:.08,ry:.06,h:2,n:10},
+  {nm:"Broca's",ab:"BRC",col:"#fb923c",cx:-.20,cy:-.06,rx:.05,ry:.05,h:3,n:6},
+  {nm:"Wernicke's",ab:"WRN",col:"#38bdf8",cx:.10,cy:-.08,rx:.06,ry:.05,h:3,n:6},
+];
+
+class Nd{constructor(x,y,ri,h){this.x=x;this.y=y;this.ri=ri;this.h=h;this.C=Math.random()*.05;this.om=1/PI;this.mode=0;this.R=0;this.rt=0;this.Cr=0;this.eCO=1;this.wn=TAU/(PI*PI)*Math.pow(PI,h)+(Math.random()-.5)*1.5;this.ph=Math.random()*TAU;this.inp=0;this.stim=0;this.br=0;this.fl=0;this.sz=1+Math.random()*.6}}
+
+let nds=[],cns=[],adj=[],gO=1/PI,dt=.016,sT=0,rC=0,rP=0,rTm=0,rR=0,parts=[],puls=[];
+let lastWall=performance.now(); // real-time clock for cardio
+let breathGlow=0; // visible breath-brain coupling intensity
+const OL=300,oB=Array.from({length:8},()=>new Float32Array(OL));
+const oCol=['#2dd4bf','#38bdf8','#a78bfa','#f472b6','#fb923c','#ff4070','#e04060','#60c0e0'];
+
+function init(){
+  nds=[];cns=[];buildVessels();
+  for(let r=0;r<REGS.length;r++){const rg=REGS[r];for(let i=0;i<rg.n;i++){const a=(i/rg.n)*TAU+Math.random()*.6,rd=.2+Math.random()*.8;nds.push(new Nd(rg.cx+Math.cos(a)*rg.rx*rd,rg.cy+Math.sin(a)*rg.ry*rd,r,rg.h))}}
+  for(let i=0;i<90;i++){const nx=(Math.random()-.5)*.8,ny=(Math.random()-.5)*.9;if(G.isPointInPath(brainP,BX+nx*SC,BY+ny*SC)){let b=0,bd=9;for(let r=0;r<REGS.length;r++){const d=(nx-REGS[r].cx)**2+(ny-REGS[r].cy)**2;if(d<bd){bd=d;b=r}}nds.push(new Nd(nx,ny,b,REGS[b].h))}}
+  for(let i=0;i<nds.length;i++)for(let j=i+1;j<nds.length;j++){const d=Math.hypot(nds[i].x-nds[j].x,nds[i].y-nds[j].y),same=nds[i].ri===nds[j].ri;if(same&&d<.18)cns.push({a:i,b:j,w:.7+Math.random()*.5});else if(d<.22)cns.push({a:i,b:j,w:.15+Math.random()*.25});else if(d<.4&&Math.random()<.08)cns.push({a:i,b:j,w:.03+Math.random()*.1})}
+  adj=nds.map(()=>[]);for(const c of cns){adj[c.a].push({j:c.b,w:c.w});adj[c.b].push({j:c.a,w:c.w})}}
+
+function sim(){
+  const N=nds.length,K=2.5;
+  // Phase coupling (Kuramoto)
+  for(let i=0;i<N;i++){const nd=nds[i];let pI=0,cI=0;for(const a of adj[i]){const o=nds[a.j],pd=o.ph-nd.ph;pI+=a.w*Math.sin(pd);if(Math.cos(pd)>0&&o.mode===0)cI+=a.w*Math.cos(pd)*o.C*.3}nd.inp=cI+nd.stim;nd.stim*=.94;nd.ph+=(nd.wn+K*pI/Math.max(1,adj[i].length))*dt;if(nd.ph>TAU)nd.ph-=TAU;if(nd.ph<0)nd.ph+=TAU}
+  
+  // CRR dynamics with full physiological coupling
+  let limbicAct = 0, limbicCount = 0; // for arousal computation
+  for(let i=0;i<N;i++){const nd=nds[i];
+    // ── 7. HIERARCHICAL Ω ──
+    // Higher cortical levels (h=1,2) have effectively larger Ω (more integration)
+    // Lower levels (h=3,4) have tighter Ω (more precision, faster cycling)
+    // This creates the natural hierarchy: slow frontal rhythms, fast sensory rhythms
+    const hierScale = 1 + (nd.h - 2.5) * -0.15; // h=1→1.225, h=2→1.075, h=3→0.925, h=4→0.775
+    nd.om = gO * hierScale;
+    
+    // Regional blood supply affects local dynamics
+    const bloodSupply = 0.7 + regionalBlood[nd.ri] * 0.6; // 0.7-1.3
+    
+    if(nd.mode===0){
+      // ── COHERENCE ACCUMULATION ──
+      // Rate modulated by: oxygen (breath), blood supply (neurovascular), baroreceptor (heart)
+      const baseRate = Math.abs(Math.cos(nd.ph))*(.5+nd.inp)+.1;
+      const oxyMod = oxygenLevel;                    // breath→oxygen→C rate
+      const bloodMod = bloodSupply;                   // blood supply→metabolism→C rate  
+      const baroMod = 1 + heartPulseExcite * 0.3;    // heartbeat→excitability boost
+      
+      nd.C += baseRate * oxyMod * bloodMod * baroMod * 1.8 * dt;
+      
+      if(nd.C>=nd.om){nd.mode=1;nd.Cr=nd.C;nd.eCO=Math.min(Math.exp(nd.C/nd.om),800);nd.rt=0;nd.fl=1;rC++;
+        const sx=BX+nd.x*SC,sy=BY+nd.y*SC;
+        for(let p=0;p<3;p++){const ang=Math.random()*TAU,spd=15+Math.random()*30;parts.push({x:sx,y:sy,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:.25+Math.random()*.15,ml:.4})}
+        for(const a of adj[i]){if(a.w>.2)puls.push({fi:i,ti:a.j,t:0,spd:2+Math.random()*2,col:REGS[nd.ri].col});if(a.w>.3)nds[a.j].C+=nd.Cr*a.w*.15}}
+      nd.br=nd.C/nd.om}
+    else if(nd.mode===1){nd.rt+=dt;nd.fl*=.8;if(nd.rt>.05){nd.mode=2;nd.R=nd.eCO}nd.br=1}
+    else{
+      nd.rt+=dt;
+      // Regeneration rate boosted by blood supply (oxygen/glucose for repair)
+      nd.R=nd.eCO*Math.exp(-2*nd.rt*bloodSupply);
+      nd.C=nd.R*nd.om*.3;
+      if(nd.R<.05||nd.rt>2){nd.mode=0;nd.C=Math.max(.01,nd.C*.1);nd.R=0}
+      nd.br=.2+nd.R*.3}
+    
+    // Accumulate limbic arousal (regions 8=Cingulate, 9=Hippocampus, 10=Thalamus)
+    if(nd.ri===8||nd.ri===9||nd.ri===10){ limbicAct+=nd.br; limbicCount++; }
+  }
+  
+  // ── NEURAL AROUSAL COMPUTATION ──
+  // Limbic activity drives autonomic arousal (with slow time constant ~5s)
+  if(limbicCount>0){
+    const limbicLevel = limbicAct / limbicCount;
+    neuralArousal += (limbicLevel * 0.5 - neuralArousal) * dt * 0.3; // slow integration
+    neuralArousal = Math.max(0, Math.min(1, neuralArousal));
+  }
+  
+  for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.95;p.vy*=.95;p.life-=dt;if(p.life<=0)parts.splice(i,1)}
+  for(let i=puls.length-1;i>=0;i--){puls[i].t+=dt*puls[i].spd;if(puls[i].t>=1)puls.splice(i,1)}
+  sT+=dt;rTm+=dt;if(rTm>=1){rR=rC-rP;rP=rC;rTm=0}}
+
+// Called once per frame — update oscilloscope traces
+function updateOscBuffers(){
+  for(let b=0;b<8;b++)oB[b].copyWithin(0,1);
+  const bands=[{n:.5,x:4},{n:4,x:8},{n:8,x:13},{n:13,x:30},{n:30,x:80}];
+  for(let b=0;b<5;b++){let ss=0,cs=0,c=0;for(const nd of nds){const f=nd.wn/TAU;if(f>=bands[b].n*.3&&f<=bands[b].x*3){const w=nd.mode===1?2:(nd.mode===0?nd.C/nd.om:nd.R);ss+=Math.sin(nd.ph*(b+1))*w;cs+=Math.cos(nd.ph*(b+1))*w;c++}}if(c>0)oB[b][OL-1]=Math.sqrt(ss*ss+cs*cs)/c}
+  let tc=0;for(const nd of nds)tc+=nd.C;oB[5][OL-1]=tc/nds.length;
+  // Heart trace (ECG-like spike on systole)
+  oB[6][OL-1] = heartCRR.mode===1 ? 1 : (heartCRR.mode===0 ? heartCRR.C*.3 : heartCRR.R*.15);
+  // Breath trace (smooth sinusoid)
+  oB[7][OL-1] = breathCRR.mode===0 ? breathCRR.C : (breathCRR.mode===2 ? -breathCRR.R : (breathCRR.mode===1 ? 1 : 0));
+}
+
+// ─── DRAW VESSELS ──────────────────────────────────────────────────────────
+function drawVessels() {
+  // Compute per-vessel-type blood demand from neurovascular coupling
+  const typeDemand = {};
+  for (let r = 0; r < 14; r++) {
+    const arts = ART_TERR[r] || [];
+    for (const a of arts) {
+      typeDemand[a] = Math.max(typeDemand[a] || 0, regionalBlood[r]);
+    }
+  }
+  
+  for (const v of VESSELS) {
+    const pts = v.pts;
+    if (pts.length < 2) continue;
+    
+    // Neurovascular: vessel brightness tracks regional demand
+    const demand = typeDemand[v.type] || 0.2;
+    const baseAlpha = 0.08 + demand * 0.12; // 0.08-0.20 based on demand
+    
+    // Base vessel
+    G.strokeStyle = `rgba(140,30,50,${baseAlpha})`;
+    G.lineWidth = v.width * 0.8;
+    G.lineCap = 'round'; G.lineJoin = 'round';
+    G.beginPath();
+    G.moveTo(BX + pts[0][0]*SC, BY + pts[0][1]*SC);
+    for (let i = 1; i < pts.length; i++) {
+      if (i < pts.length - 1) {
+        const mx = (pts[i][0] + pts[i+1][0]) / 2, my = (pts[i][1] + pts[i+1][1]) / 2;
+        G.quadraticCurveTo(BX + pts[i][0]*SC, BY + pts[i][1]*SC, BX + mx*SC, BY + my*SC);
+      } else G.lineTo(BX + pts[i][0]*SC, BY + pts[i][1]*SC);
+    }
+    G.stroke();
+    
+    // Pulse waves traveling through vessels
+    for (const pw of heartPulseWaves) {
+      // Each vessel segment lights up as the pulse passes
+      const totalLen = pts.length - 1;
+      for (let i = 0; i < totalLen; i++) {
+        const segStart = i / totalLen;
+        const segEnd = (i + 1) / totalLen;
+        const pulsePos = pw.t;
+        const dist = Math.abs(pulsePos - (segStart + segEnd) / 2);
+        
+        if (dist < 0.15) {
+          const intensity = (1 - dist / 0.15) * (1 - pw.t * 0.7);
+          if (intensity > 0.01) {
+            const x1 = BX + pts[i][0]*SC, y1 = BY + pts[i][1]*SC;
+            const x2 = BX + pts[i+1][0]*SC, y2 = BY + pts[i+1][1]*SC;
+            
+            G.strokeStyle = `rgba(220,50,70,${intensity * 0.35})`;
+            G.lineWidth = v.width * 1.2;
+            G.beginPath();
+            G.moveTo(x1, y1);
+            G.lineTo(x2, y2);
+            G.stroke();
+            
+            // Bright core of pulse
+            const px = x1 + (x2-x1) * ((pulsePos - segStart) / (segEnd - segStart));
+            const py = y1 + (y2-y1) * ((pulsePos - segStart) / (segEnd - segStart));
+            if (intensity > 0.3) {
+              const pg = G.createRadialGradient(px,py,0,px,py,v.width*2);
+              pg.addColorStop(0, `rgba(255,80,100,${intensity*.2})`);
+              pg.addColorStop(1, 'rgba(0,0,0,0)');
+              G.fillStyle = pg;
+              G.beginPath(); G.arc(px,py,v.width*2,0,TAU); G.fill();
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// ─── MAIN DRAW ─────────────────────────────────────────────────────────────
+function draw(){
+  G.setTransform(DPR,0,0,DPR,0,0);G.clearRect(0,0,W,H);
+  if(ly('anat')&&brainTex){G.setTransform(1,0,0,1,0,0);G.drawImage(brainTex,0,0);G.setTransform(DPR,0,0,DPR,0,0)}
+  
+  // BLOOD VESSELS
+  if(ly('blood')) drawVessels();
+  
+  // CONNECTIONS
+  if(ly('conn')){G.lineCap='round';for(const c of cns){const a=nds[c.a],b=nds[c.b];const al=Math.cos(a.ph-b.ph),act=Math.max(a.br,b.br);if(al>.3&&act>.3){const alpha=al*act*.04*c.w;if(alpha>.004){G.strokeStyle=`rgba(70,150,230,${Math.min(alpha,.1)})`;G.lineWidth=.3+c.w*.3;G.beginPath();G.moveTo(BX+a.x*SC,BY+a.y*SC);G.lineTo(BX+b.x*SC,BY+b.y*SC);G.stroke()}}}}
+  
+  // PULSES
+  if(ly('pulse')){for(const p of puls){const a=nds[p.fi],b=nds[p.ti];const ax=BX+a.x*SC,ay=BY+a.y*SC,bx=BX+b.x*SC,by=BY+b.y*SC;const px=ax+(bx-ax)*p.t,py=ay+(by-ay)*p.t;const al=(1-p.t);const gr=G.createRadialGradient(px,py,0,px,py,4);gr.addColorStop(0,`rgba(200,230,255,${al*.6})`);gr.addColorStop(.5,`rgba(80,160,240,${al*.15})`);gr.addColorStop(1,'rgba(0,0,0,0)');G.fillStyle=gr;G.beginPath();G.arc(px,py,4,0,TAU);G.fill()}}
+  
+  // NODES + GLOW
+  const showN=ly('nodes'),showG=ly('glow');
+  if(showN||showG){for(let i=0;i<nds.length;i++){const nd=nds[i],x=BX+nd.x*SC,y=BY+nd.y*SC;const rgb=hex2rgb(REGS[nd.ri].col);let r,g,b,al;
+    if(nd.mode===0){const t=Math.min(nd.br,1);r=Math.round(rgb[0]*.3+60+t*80);g=Math.round(rgb[1]*.3+120+t*60);b=Math.round(rgb[2]*.3+160+t*40);al=.08+t*.45}
+    else if(nd.mode===1){r=240;g=245;b=255;al=nd.fl*.7}
+    else{const rv=Math.min(nd.R,.6);r=Math.round(80+rv*50);g=Math.round(120+rv*40);b=240;al=.1+rv*.35}
+    const sz=nd.sz*(1+Math.min(nd.br,.6)*.3);
+    if(showG&&(nd.br>.5||nd.mode===1)){const glR=sz+Math.min(nd.br,1)*4;const gl=G.createRadialGradient(x,y,sz*.5,x,y,glR);gl.addColorStop(0,`rgba(${r},${g},${b},${al*.12})`);gl.addColorStop(1,'rgba(0,0,0,0)');G.fillStyle=gl;G.beginPath();G.arc(x,y,glR,0,TAU);G.fill()}
+    if(showG&&nd.mode===1&&nd.fl>.3){const bR=sz+6*nd.fl;const bu=G.createRadialGradient(x,y,0,x,y,bR);bu.addColorStop(0,`rgba(255,255,255,${nd.fl*.15})`);bu.addColorStop(.4,`rgba(180,210,250,${nd.fl*.04})`);bu.addColorStop(1,'rgba(0,0,0,0)');G.fillStyle=bu;G.beginPath();G.arc(x,y,bR,0,TAU);G.fill()}
+    if(showN){G.fillStyle=`rgba(${r},${g},${b},${al})`;G.beginPath();G.arc(x,y,sz,0,TAU);G.fill();if(nd.br>.6){G.fillStyle=`rgba(220,240,255,${Math.min(nd.br*.15,.3)})`;G.beginPath();G.arc(x,y,sz*.3,0,TAU);G.fill()}}}}
+  
+  // SPARKS
+  if(ly('spark')){for(const p of parts){const al=p.life/p.ml;G.fillStyle=`rgba(180,220,255,${al*.7})`;G.beginPath();G.arc(p.x,p.y,1.2,0,TAU);G.fill()}}
+  
+  // WAVES
+  if(ly('wave')){G.save();G.clip(brainP);G.globalCompositeOperation='screen';const wt=sT*3;
+    const wc=[[.8,.008,'rgba(45,212,191,.015)'],[2,.004,'rgba(70,140,240,.012)'],[5,.002,'rgba(140,120,230,.008)']];
+    for(const[freq,amp,col]of wc){G.strokeStyle=col;G.lineWidth=.8;for(let y=-.5;y<.55;y+=.045){G.beginPath();for(let x=-.5;x<.5;x+=.012){const wave=Math.sin(x*freq*20+wt*freq+y*10)*amp;const px=BX+x*SC,py=BY+(y+wave)*SC;if(x===-.5)G.moveTo(px,py);else G.lineTo(px,py)}G.stroke()}}G.restore()}
+  
+  // BREATH-BRAIN COUPLING GLOW — whole brain luminance follows respiration
+  if(breathGlow>0.01){
+    G.save();G.clip(brainP);
+    const breathCol = breathCRR.mode===0 ? '45,212,191' : // inhale: teal (C)
+                      breathCRR.mode===1 ? '255,250,255' : // peak: white flash (δ) 
+                      '167,139,250'; // exhale: purple (R)
+    const bg=G.createRadialGradient(BX,BY-SC*.1,0,BX,BY,SC*.45);
+    bg.addColorStop(0,`rgba(${breathCol},${breathGlow*0.6})`);
+    bg.addColorStop(0.5,`rgba(${breathCol},${breathGlow*0.2})`);
+    bg.addColorStop(1,'rgba(0,0,0,0)');
+    G.fillStyle=bg;G.fillRect(BX-SC*.5,BY-SC*.55,SC,SC*1.1);
+    G.restore();
+  }
+  
+  // LABELS
+  if(ly('labels')){G.font='7px JetBrains Mono';G.textAlign='center';for(const rg of REGS){G.fillStyle='rgba(142,207,255,.1)';G.fillText(rg.ab,BX+rg.cx*SC,BY+rg.cy*SC-rg.ry*SC-4)}}
+}
+
+// ─── OSCILLOSCOPE ──────────────────────────────────────────────────────────
+function drawOsc(){
+  for(let ch=0;ch<8;ch++){const c=document.getElementById('o'+ch),x=c.getContext('2d');const cw=c.width/DPR,ht=c.height/DPR;x.setTransform(DPR,0,0,DPR,0,0);x.clearRect(0,0,cw,ht);
+    x.strokeStyle='rgba(58,143,212,.04)';x.lineWidth=.5;x.beginPath();x.moveTo(0,ht/2);x.lineTo(cw,ht/2);x.stroke();
+    const buf=oB[ch];let mx=.01;for(let i=0;i<OL;i++)mx=Math.max(mx,Math.abs(buf[i]));
+    x.strokeStyle=oCol[ch]+'18';x.lineWidth=3;x.beginPath();for(let i=0;i<OL;i++){const px=(i/OL)*cw,py=ht/2-(buf[i]/mx)*(ht*.36);if(i===0)x.moveTo(px,py);else x.lineTo(px,py)}x.stroke();
+    x.strokeStyle=oCol[ch];x.lineWidth=1;x.beginPath();for(let i=0;i<OL;i++){const px=(i/OL)*cw,py=ht/2-(buf[i]/mx)*(ht*.36);if(i===0)x.moveTo(px,py);else x.lineTo(px,py)}x.stroke()}}
+
+function drawK(){const c=document.getElementById('kc'),x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);const bw=c.width/nds.length;for(let i=0;i<nds.length;i++){const v=Math.min(nds[i].eCO,E_PI),h=(v/E_PI)*c.height;x.fillStyle=nds[i].mode===2?REGS[nds[i].ri].col+'99':REGS[nds[i].ri].col+'15';x.fillRect(i*bw,c.height-h,bw-.3,h)}}
+
+// ─── UI ────────────────────────────────────────────────────────────────────
+function updateUI(){
+  let ss=0,cs=0,tc=0,tr=0,td=0,tk=0;
+  for(const nd of nds){ss+=Math.sin(nd.ph);cs+=Math.cos(nd.ph);tc+=nd.C;tr+=nd.R;if(nd.mode===1)td++;tk+=nd.eCO}
+  const N=nds.length;
+  document.getElementById('hc').textContent=(Math.sqrt(ss*ss+cs*cs)/N).toFixed(3);
+  document.getElementById('hr').textContent=rR+'/s';
+  document.getElementById('mC').textContent=(tc/N).toFixed(2);
+  document.getElementById('mD').textContent=td;
+  document.getElementById('mR').textContent=(tr/N).toFixed(2);
+  document.getElementById('mk').textContent=(tk/N).toFixed(1);
+  
+  // Omega display: show actual (breath-modulated) value
+  document.getElementById('ov').textContent=gO.toFixed(3);
+  // Update label to show modulation direction
+  const omDir = breathOmegaMod > 0.01 ? ' ↑' : (breathOmegaMod < -0.01 ? ' ↓' : '');
+  
+  // Heart icon beat animation
+  const hi=document.getElementById('heart-icon');
+  hi.classList.toggle('beat', heartCRR.mode===1);
+  document.getElementById('hr-bpm').textContent=Math.round(heartRate);
+  document.getElementById('br-rate').textContent=breathRate.toFixed(1);
+  
+  // Breath fill bar
+  const fillPct = breathCRR.mode===0 ? breathCRR.C*100 : (breathCRR.mode===2 ? (1-breathCRR.R)*100 : 100);
+  document.getElementById('br-fill').style.width = (100-fillPct)+'%';
+  
+  // Breath phase indicators
+  const bphC=document.getElementById('bph-c'),bphD=document.getElementById('bph-d'),bphR=document.getElementById('bph-r');
+  bphC.classList.toggle('active',breathCRR.mode===0&&breathCRR.C>0);
+  bphD.classList.toggle('active',breathCRR.mode===1);
+  bphR.classList.toggle('active',breathCRR.mode===2);
+  
+  // Phase label in vitals HUD
+  const lbl=document.getElementById('br-phase-label');
+  if(breathCRR.mode===0&&breathCRR.C>0){lbl.textContent='INHALE (C)';lbl.style.color='var(--c-coh)'}
+  else if(breathCRR.mode===1){lbl.textContent='PEAK (δ)';lbl.style.color='var(--c-rup)'}
+  else if(breathCRR.mode===2){lbl.textContent='EXHALE (R)';lbl.style.color='var(--c-reg)'}
+  else{lbl.textContent='PAUSE';lbl.style.color='rgba(142,207,255,.3)'}
+  
+  updateRegs();
+}
+
+function updateRegs(){
+  const el=document.getElementById('rlst');
+  if(!el.children.length){for(let r=0;r<REGS.length;r++){const rg=REGS[r],d=document.createElement('div');d.className='ri';d.innerHTML=`<div class="rd" style="background:${rg.col}"></div><div class="rn">${rg.ab}</div><div class="rb"><div class="rbf" style="background:${rg.col}"></div></div><div class="rs" style="color:${rg.col}">C</div>`;d.addEventListener('click',()=>stimR(r));el.appendChild(d)}}
+  for(let r=0;r<REGS.length;r++){const rn=nds.filter(n=>n.ri===r);const mc=rn.reduce((s,n)=>s+n.C,0)/rn.length;const pct=Math.min(100,(mc/gO)*100);const hr=rn.some(n=>n.mode===1),hg=rn.some(n=>n.mode===2);const it=el.children[r],st=it.querySelector('.rs');it.querySelector('.rbf').style.width=pct+'%';if(hr){st.style.color='var(--c-rup)';st.textContent='δ'}else if(hg){st.style.color='var(--c-reg)';st.textContent='R'}else{st.style.color=REGS[r].col;st.textContent='C'}}}
+
+function stimR(ri){for(const nd of nds)if(nd.ri===ri){nd.stim=.5+Math.random()*.3;nd.C+=gO*.4}}
+function setO(v,l){baseOmega=v;document.getElementById('os').value=v;document.getElementById('olab').textContent=l?`= ${l}`:'';document.querySelectorAll('.pr button').forEach(b=>b.classList.remove('on'));event.target.classList.add('on')}
+document.getElementById('os').addEventListener('input',function(){baseOmega=parseFloat(this.value);const pr={'1/4π':.08,'1/2π':.159,'1/π':.318,'High':.5,'Dissolve':.7};let cl='',md=9;for(const[n,v]of Object.entries(pr))if(Math.abs(baseOmega-v)<md){md=Math.abs(baseOmega-v);cl=n}document.getElementById('olab').textContent=md<.02?`≈ ${cl}`:'';document.querySelectorAll('.pr button').forEach(b=>b.classList.remove('on'))});
+document.getElementById('breath-rate').addEventListener('input',function(){baseBreathRate=parseFloat(this.value);document.getElementById('br-val').textContent=baseBreathRate});
+document.getElementById('heart-rate').addEventListener('input',function(){baseHeartRate=parseInt(this.value);document.getElementById('hr-val').textContent=baseHeartRate});
+
+cv.addEventListener('click',function(e){const rect=this.getBoundingClientRect();const nx=((e.clientX-rect.left)/rect.width*W-BX)/SC,ny=((e.clientY-rect.top)/rect.height*H-BY)/SC;let best=0,bd=9;for(let r=0;r<REGS.length;r++){const d=Math.hypot(nx-REGS[r].cx,ny-REGS[r].cy);if(d<bd){bd=d;best=r}}if(bd<.25)stimR(best)});
+cv.addEventListener('wheel',function(e){e.preventDefault();baseOmega=Math.max(.04,Math.min(.8,baseOmega-e.deltaY*.0005));document.getElementById('os').value=baseOmega},{passive:false});
+
+function resize(){const wrap=document.getElementById('bw');W=wrap.clientWidth;H=wrap.clientHeight;cv.width=W*DPR;cv.height=H*DPR;BX=W*.5;BY=H*.48;SC=Math.min(W,H)*.88;brainP=mkPath(BX,BY,SC);for(let i=0;i<8;i++){const c=document.getElementById('o'+i),p=c.parentElement;c.width=p.clientWidth*DPR;c.height=p.clientHeight*DPR}renderTex()}
+window.addEventListener('resize',resize);
+
+let fr=0;
+function loop(){
+  // Real wall-clock time for cardio-respiratory system
+  const now=performance.now();
+  const realDt=Math.min((now-lastWall)/1000, 0.05); // cap at 50ms to handle tab switches
+  lastWall=now;
+  simCardio(realDt); // runs at real physiological time
+  
+  for(let s=0;s<3;s++)sim(); // neural sim at accelerated time
+  updateOscBuffers(); // once per frame
+  draw();
+  if(fr%2===0){drawOsc();drawK()}
+  if(fr%6===0)updateUI();
+  fr++;requestAnimationFrame(loop)}
+resize();init();loop();
+</script>
+</body>
+</html>

@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRR Organ & Choir — Playable Instrument</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --g:rgba(200,185,155,0.8);--gd:rgba(200,185,155,0.5);--gf:rgba(200,185,155,0.35);
+  --gg:rgba(200,185,155,0.2);--gb:rgba(160,130,70,0.3);--gbd:rgba(160,130,70,0.12);
+  --bg:#0a0908;--accent:rgba(200,170,80,0.6);--choir-accent:rgba(140,170,220,0.6);
+  --choir-bg:rgba(100,140,200,0.04);
+}
+html,body{width:100%;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--g);font-family:'Cormorant Garamond',serif}
+
+/* ── SPLASH ── */
+#splash{position:fixed;inset:0;z-index:100;background:#030204;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .8s}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:560px;padding:0 24px}
+#splash .symbol{font-size:52px;opacity:.35;margin-bottom:14px;animation:pulse 3s ease-in-out infinite}
+#splash h1{font-size:clamp(1.5rem,3.5vw,2.5rem);font-weight:300;letter-spacing:.14em;margin-bottom:10px}
+#splash p{font-size:clamp(.75rem,1.4vw,.95rem);font-weight:300;opacity:.5;letter-spacing:.05em;line-height:1.7}
+#splash .eq{font-family:'JetBrains Mono',monospace;font-size:clamp(.55rem,1vw,.7rem);opacity:.2;margin-top:16px}
+#splash .hint{font-size:.7rem;opacity:.25;margin-top:20px;letter-spacing:.08em}
+@keyframes pulse{0%,100%{opacity:.25;transform:scale(1)}50%{opacity:.5;transform:scale(1.04)}}
+
+/* ── APP LAYOUT ── */
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#top-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;border-bottom:1px solid var(--gbd);flex-shrink:0}
+#top-bar .title{font-size:10px;letter-spacing:.16em;color:var(--gd);font-weight:400}
+#top-bar .mode-info{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--gf)}
+#main{flex:1;display:flex;min-height:0;overflow:hidden}
+
+/* ── VISUALIZER ── */
+#viz-panel{flex:1;position:relative;min-width:0}
+#viz-canvas{width:100%;height:100%;display:block}
+/* Lyrics overlay */
+#lyrics-overlay{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;z-index:5}
+#lyrics-current{font-size:clamp(14px,2.5vw,22px);font-weight:400;color:rgba(200,185,155,.7);letter-spacing:.08em;
+  text-shadow:0 0 20px rgba(200,170,80,.15);transition:opacity .3s;min-height:30px}
+#lyrics-next{font-size:clamp(10px,1.5vw,14px);font-weight:300;color:rgba(200,185,155,.25);letter-spacing:.06em;margin-top:4px;min-height:20px;font-style:italic}
+
+/* ── CONTROLS ── */
+#controls{width:270px;border-left:1px solid var(--gbd);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;
+  scrollbar-width:thin;scrollbar-color:rgba(160,130,70,.2) transparent}
+#controls::-webkit-scrollbar{width:5px}
+#controls::-webkit-scrollbar-thumb{background:rgba(160,130,70,.2);border-radius:3px}
+.ctrl-section{padding:9px 12px;border-bottom:1px solid var(--gbd)}
+.ctrl-title{font-size:8px;letter-spacing:.13em;color:var(--gf);margin-bottom:7px;font-weight:500;text-transform:uppercase}
+.ctrl-row{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.ctrl-label{font-size:10px;color:var(--gd);letter-spacing:.04em;width:76px;flex-shrink:0}
+.ctrl-slider{flex:1;height:3px;cursor:pointer;-webkit-appearance:none;appearance:none;background:rgba(200,185,155,.1);border-radius:2px;outline:none}
+.ctrl-slider::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:rgba(200,170,80,.6);cursor:pointer}
+.ctrl-slider::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:rgba(200,170,80,.6);border:none;cursor:pointer}
+.ctrl-val{width:36px;text-align:right;font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--gf)}
+
+/* Stops */
+.stop-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.stop-btn{padding:4px 6px;font-size:9px;font-family:'Cormorant Garamond',serif;letter-spacing:.05em;
+  border:1px solid var(--gbd);background:transparent;color:var(--gf);cursor:pointer;border-radius:3px;transition:all .2s;text-align:center}
+.stop-btn.active{background:rgba(200,170,80,.08);border-color:var(--accent);color:var(--g)}
+.stop-btn.choir-stop.active{background:var(--choir-bg);border-color:var(--choir-accent);color:rgba(180,200,230,.8)}
+.stop-btn:hover{border-color:rgba(200,170,80,.35)}
+
+/* Symmetry */
+.sym-row{display:flex;gap:3px;margin-bottom:5px}
+.sym-btn{flex:1;padding:3px;font-size:8px;font-family:'JetBrains Mono',monospace;
+  border:1px solid var(--gbd);background:transparent;color:var(--gf);cursor:pointer;border-radius:2px;transition:all .2s}
+.sym-btn.active{background:rgba(200,170,80,.08);border-color:var(--accent);color:var(--g)}
+
+/* Songs */
+.song-btn{width:100%;padding:6px 8px;font-size:10px;font-family:'Cormorant Garamond',serif;letter-spacing:.06em;
+  border:1px solid var(--gbd);background:transparent;color:var(--gd);cursor:pointer;border-radius:3px;transition:all .2s;
+  text-align:left;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center}
+.song-btn:hover{border-color:rgba(200,170,80,.35);background:rgba(200,170,80,.03)}
+.song-btn.playing{border-color:rgba(200,170,80,.5);background:rgba(200,170,80,.06);color:var(--g)}
+.song-btn .song-key{font-size:8px;font-family:'JetBrains Mono',monospace;color:var(--gf)}
+#song-transport{display:flex;gap:4px;margin-top:6px}
+.transport-btn{flex:1;padding:4px;font-size:10px;border:1px solid var(--gbd);background:transparent;color:var(--gd);
+  cursor:pointer;border-radius:2px;text-align:center;transition:all .15s;font-family:'Cormorant Garamond',serif}
+.transport-btn:hover{border-color:rgba(200,170,80,.35)}
+.transport-btn.active{background:rgba(200,170,80,.08);border-color:var(--accent)}
+
+/* Metrics */
+.metric-row{display:flex;justify-content:space-between;padding:1.5px 0}
+.metric-label{font-size:9px;color:var(--gd)}
+.metric-val{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--g)}
+#exp-mini-bars{display:flex;gap:2px;height:22px;align-items:flex-end;margin-top:3px}
+.exp-bar-col{flex:1;display:flex;flex-direction:column;align-items:center}
+.exp-mini-bar{width:100%;border-radius:1px 1px 0 0;transition:height .1s;min-width:3px}
+
+/* Equations */
+#equations{font-size:8px;font-family:'JetBrains Mono',monospace;color:var(--gg);line-height:1.6;padding:3px 4px;background:rgba(255,255,255,.01);border-radius:3px;margin-top:3px}
+#equations .hl{color:rgba(200,170,80,.3)}
+
+/* ── KEYBOARD ── */
+#keyboard-wrap{flex-shrink:0;border-top:1px solid var(--gbd);padding:6px 10px 10px;background:rgba(6,5,4,.95)}
+#keyboard-label{font-size:8px;letter-spacing:.1em;color:var(--gg);margin-bottom:5px;text-align:center}
+#keyboard{display:flex;justify-content:center;position:relative;height:105px;max-width:900px;margin:0 auto;user-select:none}
+.key{position:relative;border-radius:0 0 4px 4px;cursor:pointer;transition:background .08s,box-shadow .15s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px}
+.key-white{width:34px;height:105px;background:linear-gradient(180deg,rgba(220,210,190,.08),rgba(200,190,170,.04));
+  border:1px solid rgba(200,185,155,.1);margin:0 1px;z-index:1}
+.key-white:hover{background:rgba(200,185,155,.06)}
+.key-white.pressed{background:linear-gradient(180deg,rgba(200,170,80,.12),rgba(200,170,80,.06));border-color:rgba(200,170,80,.3);
+  box-shadow:0 0 15px rgba(200,170,80,.1),inset 0 -4px 10px rgba(200,170,80,.05)}
+.key-white.song-active{background:linear-gradient(180deg,rgba(120,160,220,.1),rgba(120,160,220,.04));border-color:rgba(120,160,220,.3);
+  box-shadow:0 0 12px rgba(120,160,220,.08)}
+.key .key-letter{font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(200,185,155,.18);pointer-events:none}
+.key.pressed .key-letter,.key.song-active .key-letter{color:rgba(200,170,80,.45)}
+.key-black{width:21px;height:65px;background:linear-gradient(180deg,rgba(20,18,15,.95),rgba(30,26,20,.9));
+  border:1px solid rgba(80,70,50,.2);margin:0 -10.5px;z-index:2}
+.key-black:hover{background:rgba(40,35,25,.9)}
+.key-black.pressed{background:linear-gradient(180deg,rgba(100,85,50,.3),rgba(80,65,40,.2));border-color:rgba(200,170,80,.3);
+  box-shadow:0 0 12px rgba(200,170,80,.08)}
+.key-black.song-active{background:linear-gradient(180deg,rgba(100,130,180,.2),rgba(80,110,160,.1));border-color:rgba(120,160,220,.3)}
+.key .crr-glow{position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .15s}
+.key-white .crr-glow{background:radial-gradient(ellipse at 50% 80%,rgba(200,170,80,.15),transparent 70%)}
+.key-black .crr-glow{background:radial-gradient(ellipse at 50% 70%,rgba(200,170,80,.2),transparent 70%)}
+.key .phase-dot{position:absolute;top:5px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;pointer-events:none;opacity:0}
+
+/* Blake bar */
+#blake-bar{border-top:1px solid rgba(160,130,70,.08);padding:3px 16px;text-align:center;flex-shrink:0;background:rgba(6,5,4,.95)}
+#blake-bar .bt{font-size:clamp(8px,1.2vw,10px);font-style:italic;color:rgba(200,185,155,.2);letter-spacing:.07em;font-weight:300}
+#blake-bar .bs{font-size:clamp(7px,.9vw,8px);color:rgba(200,185,155,.12);letter-spacing:.05em;font-style:normal;margin-left:6px}
+
+#sustain-indicator{position:fixed;bottom:135px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:.1em;
+  color:rgba(200,170,80,.35);opacity:0;transition:opacity .3s;pointer-events:none;z-index:10;font-family:'JetBrains Mono',monospace}
+#sustain-indicator.active{opacity:1}
+
+@media(max-width:800px){
+  #controls{width:210px}
+  .key-white{width:26px;height:85px}.key-black{width:16px;height:52px;margin:0 -8px}
+  #keyboard{height:85px}
+}
+@media(max-width:600px){
+  #main{flex-direction:column}
+  #controls{width:100%;max-height:28vh;border-left:none;border-top:1px solid var(--gbd)}
+  #viz-panel{min-height:100px}
+}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="inner">
+  <div class="symbol">𝄞</div>
+  <h1>CRR Organ & Choir</h1>
+  <p>A playable instrument where every note is a CRR agent.<br>
+  Coherence builds as you hold keys. Rupture fires on release.<br>
+  Regeneration shapes the decay — memory-weighted, exp(C/Ω)-amplified.<br><br>
+  <span style="opacity:.6">Toggle choir voices for monks singing vowels through formant filters.<br>
+  Play pre-programmed hymns — including Blake's Jerusalem.</span></p>
+  <div class="eq">C(x,t)=∫L(x,τ)dτ · δ(release) · R=∫φ·exp(C/Ω)·Θ dτ</div>
+  <div class="hint">click anywhere to begin · play with keyboard or select a hymn</div>
+</div></div>
+
+<div id="app">
+  <div id="top-bar">
+    <span class="title">CRR ORGAN & CHOIR</span>
+    <span class="mode-info" id="top-status">C=0.000 · Ω=0.318 · voices: 0</span>
+  </div>
+  <div id="main">
+    <div id="viz-panel">
+      <canvas id="viz-canvas"></canvas>
+      <div id="lyrics-overlay">
+        <div id="lyrics-current"></div>
+        <div id="lyrics-next"></div>
+      </div>
+    </div>
+    <div id="controls">
+      <div class="ctrl-section">
+        <div class="ctrl-title">Organ Stops</div>
+        <div class="stop-grid" id="organ-stops">
+          <button class="stop-btn active" data-stop="principal">Principal 8′</button>
+          <button class="stop-btn" data-stop="flute">Flute 4′</button>
+          <button class="stop-btn" data-stop="string">String 8′</button>
+          <button class="stop-btn" data-stop="reed">Reed 16′</button>
+        </div>
+      </div>
+      <div class="ctrl-section">
+        <div class="ctrl-title" style="color:rgba(120,160,220,.5)">Choir Voices — Formant Synthesis</div>
+        <div class="stop-grid" id="choir-stops">
+          <button class="stop-btn choir-stop active" data-choir="bass">Bass (Z₂)</button>
+          <button class="stop-btn choir-stop active" data-choir="tenor">Tenor (φ)</button>
+          <button class="stop-btn choir-stop active" data-choir="alto">Alto (SO₂)</button>
+          <button class="stop-btn choir-stop" data-choir="soprano">Soprano (SO₂)</button>
+        </div>
+      </div>
+      <div class="ctrl-section">
+        <div class="ctrl-title">CRR Symmetry</div>
+        <div class="sym-row">
+          <button class="sym-btn active" data-sym="Z2">Z₂ 1/π</button>
+          <button class="sym-btn" data-sym="SO2">SO₂ 1/2π</button>
+          <button class="sym-btn" data-sym="phi">φ 1/πφ</button>
+        </div>
+      </div>
+      <div class="ctrl-section">
+        <div class="ctrl-title">🎵 Hymns & Songs</div>
+        <div id="song-list"></div>
+        <div id="song-transport">
+          <button class="transport-btn" id="btn-play">▶ Play</button>
+          <button class="transport-btn" id="btn-stop">■ Stop</button>
+        </div>
+        <div class="ctrl-row" style="margin-top:6px">
+          <span class="ctrl-label">Tempo</span>
+          <input class="ctrl-slider" type="range" min="40" max="160" step="1" value="88" id="sl-tempo">
+          <span class="ctrl-val" id="vl-tempo">88</span>
+        </div>
+      </div>
+      <div class="ctrl-section">
+        <div class="ctrl-title">Modulation</div>
+        <div class="ctrl-row"><span class="ctrl-label">Ω scale</span><input class="ctrl-slider" type="range" min="0.1" max="4" step="0.01" value="1" id="sl-omega"><span class="ctrl-val" id="vl-omega">1.00</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">Reverb</span><input class="ctrl-slider" type="range" min="0" max="1" step="0.01" value="0.7" id="sl-reverb"><span class="ctrl-val" id="vl-reverb">0.70</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">Volume</span><input class="ctrl-slider" type="range" min="0" max="1" step="0.01" value="0.4" id="sl-volume"><span class="ctrl-val" id="vl-volume">0.40</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">Brightness</span><input class="ctrl-slider" type="range" min="0" max="1" step="0.01" value="0.5" id="sl-bright"><span class="ctrl-val" id="vl-bright">0.50</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">Choir Vowel</span><input class="ctrl-slider" type="range" min="0" max="4.99" step="0.01" value="0" id="sl-vowel"><span class="ctrl-val" id="vl-vowel">A</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">Choir Mix</span><input class="ctrl-slider" type="range" min="0" max="1" step="0.01" value="0.6" id="sl-choirmix"><span class="ctrl-val" id="vl-choirmix">0.60</span></div>
+      </div>
+      <div class="ctrl-section">
+        <div class="ctrl-title">Live CRR State</div>
+        <div id="live-metrics">
+          <div class="metric-row"><span class="metric-label">Active voices</span><span class="metric-val" id="m-voices">0</span></div>
+          <div class="metric-row"><span class="metric-label">Total C</span><span class="metric-val" id="m-totalC">0.000</span></div>
+          <div class="metric-row"><span class="metric-label">Max exp(C/Ω)</span><span class="metric-val" id="m-maxExp">1.000</span></div>
+          <div class="metric-row"><span class="metric-label">Ruptures</span><span class="metric-val" id="m-ruptures">0</span></div>
+          <div class="metric-row"><span class="metric-label">In regen</span><span class="metric-val" id="m-regen">0</span></div>
+          <div class="metric-row"><span class="metric-label">Ω (effective)</span><span class="metric-val" id="m-omega">0.318</span></div>
+        </div>
+        <div class="ctrl-title" style="margin-top:5px">exp(C/Ω) per Note</div>
+        <div id="exp-mini-bars"></div>
+      </div>
+      <div class="ctrl-section">
+        <div class="ctrl-title">CRR Equations (Live)</div>
+        <div id="equations">
+          <div>Hold key → C(t) = ∫L·dτ accumulates</div>
+          <div class="hl">exp(C/Ω) = <span id="eq-exp">1.000</span></div>
+          <div>Release → δ(now) rupture</div>
+          <div>Decay → R = ∫φ·exp(C/Ω)·Θ dτ</div>
+          <div style="margin-top:3px;color:rgba(200,185,155,.15)">Longer hold → richer memory → longer decay</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="keyboard-wrap">
+    <div id="keyboard-label">Z-M = lower octave · Q-P = upper octave · SPACE = sustain pedal</div>
+    <div id="keyboard"></div>
+  </div>
+  <div id="blake-bar"><span class="bt">"I must Create a System, or be enslav'd by another Man's"</span><span class="bs">— Blake, Jerusalem</span></div>
+</div>
+<div id="sustain-indicator">SUSTAIN</div>
+
+<script>
+const PI=Math.PI, TAU=2*PI, PHI=(1+Math.sqrt(5))/2;
+
+// ═══════════════════════════════════════════════════════════════
+// §0 CRR AGENT
+// ═══════════════════════════════════════════════════════════════
+class CRRAgent {
+  constructor(sym='Z2', os=1) {
+    this.sym=sym; this.omegaScale=os;
+    this.omegaBase = sym==='Z2'?1/PI : sym==='SO2'?1/TAU : 1/(PI*PHI);
+    this.C=0; this.lastRC=0; this.ruptures=0; this.sinceRupture=0;
+    this.inRegen=false; this.regenProg=0; this.phase='idle';
+    this.memD=48; this.mem=new Float32Array(this.memD); this.memI=0;
+    this.postRC=0; this.peakC=0;
+  }
+  get omega(){ return this.omegaBase * this.omegaScale }
+  get expCO(){ return Math.exp(Math.min(8, this.C / Math.max(.001, this.omega))) }
+  accumulate(L, dt=1){
+    this.C += L*dt; this.peakC = Math.max(this.peakC, this.C);
+    this.sinceRupture++; this.mem[this.memI % this.memD] = this.C; this.memI++;
+    this.phase = 'C';
+  }
+  rupture(){
+    this.lastRC=this.C; this.ruptures++; this.sinceRupture=0;
+    this.inRegen=true; this.regenProg=0; this.phase='delta';
+  }
+  regenerate(phi=1){
+    if(!this.inRegen) return 1;
+    this.phase='R';
+    const regenRate = .018 * phi / Math.max(1, Math.log(this.expCO+1)*.4);
+    this.regenProg = Math.min(1, this.regenProg + regenRate);
+    let wS=0, wT=0; const d=Math.min(this.memI, this.memD);
+    for(let i=0;i<d;i++){const w=Math.exp(Math.min(5,this.mem[i]/Math.max(.001,this.omega)));wS+=this.mem[i]*w;wT+=w}
+    this.postRC = wT>0 ? wS/wT : this.C;
+    if(this.regenProg>=1){ this.inRegen=false; this.phase='idle'; this.C*=.1; this.peakC*=.3; }
+    return this.regenProg;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §1 NOTE DEFS & KEY MAP
+// ═══════════════════════════════════════════════════════════════
+const NOTE_NAMES=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const midiToFreq=m=>440*Math.pow(2,(m-69)/12);
+const midiToName=m=>NOTE_NAMES[m%12]+Math.floor(m/12-1);
+const isBlack=m=>[1,3,6,8,10].includes(m%12);
+
+const KEY_MAP={
+  'z':48,'s':49,'x':50,'d':51,'c':52,'v':53,'g':54,'b':55,'h':56,'n':57,'j':58,'m':59,
+  'q':60,'2':61,'w':62,'3':63,'e':64,'r':65,'5':66,'t':67,'6':68,'y':69,'7':70,'u':71,
+  'i':72,'9':73,'o':74,'0':75,'p':76
+};
+const ALL_MIDI=[]; for(let m=48;m<=76;m++) ALL_MIDI.push(m);
+
+// ═══════════════════════════════════════════════════════════════
+// §2 STATE
+// ═══════════════════════════════════════════════════════════════
+let ac=null, masterGain=null, dryGain=null, wetGain=null, convolver=null;
+let sustainPedal=false, totalRuptures=0;
+const voices=new Map();
+
+// Shared noise buffer for choir breath (created once)
+let sharedNoiseBuf=null;
+
+const ctrl={
+  omega:1, reverb:.7, volume:.4, brightness:.5, vowelPos:0, choirMix:.6,
+  sym:'Z2', tempo:88,
+  stops:{principal:true,flute:false,string:false,reed:false},
+  choir:{bass:true,tenor:true,alto:true,soprano:false}
+};
+
+class VoiceState {
+  constructor(midi){
+    this.midi=midi; this.freq=midiToFreq(midi);
+    this.agent=new CRRAgent(ctrl.sym,ctrl.omega);
+    this.held=true; this.sustained=false;
+    this.startTime=performance.now(); this.releaseTime=0;
+    this.nodes=[]; this.gainNode=null;
+    this.choirGainNode=null; this.organGainNode=null;
+    this._choirRefs=[]; this.peakGain=0; this.alive=true;
+    this.isSongNote=false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §3 STOP & FORMANT DEFINITIONS
+// ═══════════════════════════════════════════════════════════════
+const STOP_DEFS={
+  principal:{harmonics:[1,2,3,4,5,6],amps:[1,.5,.28,.15,.08,.04]},
+  flute:{harmonics:[1,2,3],amps:[1,.12,.03]},
+  string:{harmonics:[1,2,3,4,5,6,7,8],amps:[.7,.65,.55,.45,.35,.25,.18,.12]},
+  reed:{harmonics:[.5,1,2,3,4,5,6,7],amps:[.4,1,.6,.5,.35,.3,.2,.15]}
+};
+
+// §3.1 Formant tables — proper values for male/female voice synthesis
+const FORMANTS={
+  A:{f1:730,f2:1090,f3:2440,b1:80,b2:90,b3:120},
+  E:{f1:530,f2:1840,f3:2480,b1:60,b2:80,b3:100},
+  I:{f1:270,f2:2290,f3:3010,b1:50,b2:80,b3:100},
+  O:{f1:570,f2:840,f3:2410,b1:70,b2:80,b3:100},
+  U:{f1:300,f2:920,f3:2200,b1:55,b2:70,b3:90}
+};
+const VOWELS=['A','E','I','O','U'];
+
+function getFormantBlend(){
+  const pos=ctrl.vowelPos;
+  const idx=Math.floor(pos), frac=pos-idx;
+  const v1=VOWELS[Math.min(4,idx)], v2=VOWELS[Math.min(4,idx+1)||4];
+  const f1=FORMANTS[v1], f2=FORMANTS[v2];
+  return {
+    f1:f1.f1+(f2.f1-f1.f1)*frac, f2:f1.f2+(f2.f2-f1.f2)*frac, f3:f1.f3+(f2.f3-f1.f3)*frac,
+    b1:f1.b1+(f2.b1-f1.b1)*frac, b2:f1.b2+(f2.b2-f1.b2)*frac, b3:f1.b3+(f2.b3-f1.b3)*frac
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §4 AUDIO INIT
+// ═══════════════════════════════════════════════════════════════
+function initAudio(){
+  ac=new(window.AudioContext||window.webkitAudioContext)();
+  masterGain=ac.createGain(); masterGain.gain.value=ctrl.volume;
+  dryGain=ac.createGain(); dryGain.gain.value=1-ctrl.reverb;
+  wetGain=ac.createGain(); wetGain.gain.value=ctrl.reverb;
+
+  const comp=ac.createDynamicsCompressor();
+  comp.threshold.value=-20; comp.knee.value=10; comp.ratio.value=4;
+  comp.attack.value=.003; comp.release.value=.15;
+
+  // Cathedral impulse response — long tail with early reflections
+  convolver=ac.createConvolver();
+  const irLen=ac.sampleRate*3.5, irBuf=ac.createBuffer(2,irLen,ac.sampleRate);
+  for(let ch=0;ch<2;ch++){
+    const d=irBuf.getChannelData(ch);
+    for(let i=0;i<irLen;i++){
+      const t=i/ac.sampleRate;
+      let env=Math.exp(-t*1.6)*.6;
+      // Early reflections
+      if(t<.12) env+=Math.exp(-t*25)*.25*Math.sin(t*180+ch*1.2);
+      if(t>.02&&t<.08) env+=Math.exp(-(t-.04)*40)*.15;
+      d[i]=(Math.random()*2-1)*env;
+    }
+  }
+  convolver.buffer=irBuf;
+
+  masterGain.connect(dryGain); masterGain.connect(convolver);
+  convolver.connect(wetGain); dryGain.connect(comp); wetGain.connect(comp);
+  comp.connect(ac.destination);
+
+  // Shared noise buffer for choir breath
+  const nLen=ac.sampleRate*2;
+  sharedNoiseBuf=ac.createBuffer(1,nLen,ac.sampleRate);
+  const nd=sharedNoiseBuf.getChannelData(0);
+  for(let i=0;i<nLen;i++) nd[i]=(Math.random()*2-1);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §5 VOICE CREATION — organ + choir (formant synthesis)
+// ═══════════════════════════════════════════════════════════════
+function createVoice(midi, isSongNote=false){
+  if(!ac) return null;
+  const vs=new VoiceState(midi);
+  vs.isSongNote=isSongNote;
+  const now=ac.currentTime, freq=vs.freq;
+
+  // Note master gain
+  const noteGain=ac.createGain();
+  noteGain.gain.setValueAtTime(0,now);
+  noteGain.gain.linearRampToValueAtTime(.7,now+.035);
+  noteGain.connect(masterGain);
+  vs.gainNode=noteGain; vs.nodes.push(noteGain);
+
+  // §5.1 ORGAN — additive sine partials per stop
+  const organGain=ac.createGain();
+  organGain.gain.value=1-ctrl.choirMix;
+  organGain.connect(noteGain);
+  vs.organGainNode=organGain; vs.nodes.push(organGain);
+
+  let hasOrgan=false;
+  for(const[sn,sd] of Object.entries(STOP_DEFS)){
+    if(!ctrl.stops[sn]) continue;
+    hasOrgan=true;
+    const sg=ac.createGain(); sg.gain.value=.18; sg.connect(organGain); vs.nodes.push(sg);
+    for(let h=0;h<sd.harmonics.length;h++){
+      const hf=freq*sd.harmonics[h]; if(hf>12000) continue;
+      const osc=ac.createOscillator(); osc.type='sine';
+      osc.frequency.setValueAtTime(hf,now);
+      const hg=ac.createGain();
+      hg.gain.value=sd.amps[h]*Math.pow(ctrl.brightness,h*.4);
+      osc.connect(hg); hg.connect(sg); osc.start(now);
+      vs.nodes.push(osc,hg);
+    }
+  }
+
+  // §5.2 CHOIR — sawtooth through formant filters
+  // THIS is the key: sawtooth has energy at ALL harmonics,
+  // so the formant bandpass filters can shape it into vowel sounds.
+  const choirGain=ac.createGain();
+  choirGain.gain.value=ctrl.choirMix;
+  choirGain.connect(noteGain);
+  vs.choirGainNode=choirGain; vs.nodes.push(choirGain);
+
+  let hasChoir=false;
+  const choirParts=['bass','tenor','alto','soprano'];
+  const choirShifts={bass:-12,tenor:0,alto:0,soprano:12};
+  const choirSyms={bass:'Z2',tenor:'phi',alto:'SO2',soprano:'SO2'};
+  const choirVolumes={bass:.55,tenor:.5,alto:.4,soprano:.35};
+
+  for(const part of choirParts){
+    if(!ctrl.choir[part]) continue;
+    hasChoir=true;
+
+    const partFreq=freq*Math.pow(2,choirShifts[part]/12);
+    // Clamp choir to reasonable vocal range
+    if(partFreq<55||partFreq>1200) continue;
+
+    const vGain=ac.createGain();
+    vGain.gain.value=choirVolumes[part];
+
+    // §5.2.1 SAWTOOTH SOURCE — rich harmonics for formant shaping
+    // Use two slightly detuned saws for natural chorus/ensemble effect
+    const saw1=ac.createOscillator();
+    saw1.type='sawtooth';
+    saw1.frequency.setValueAtTime(partFreq,now);
+
+    const saw2=ac.createOscillator();
+    saw2.type='sawtooth';
+    saw2.frequency.setValueAtTime(partFreq*1.003,now); // slight detune — ensemble
+
+    const saw3=ac.createOscillator();
+    saw3.type='sawtooth';
+    saw3.frequency.setValueAtTime(partFreq*.997,now); // other side
+
+    const sawMix=ac.createGain();
+    sawMix.gain.value=.25; // prevent clipping from 3 saws
+
+    saw1.connect(sawMix); saw2.connect(sawMix); saw3.connect(sawMix);
+    saw1.start(now); saw2.start(now); saw3.start(now);
+    vs.nodes.push(saw1,saw2,saw3,sawMix);
+
+    // §5.2.2 FORMANT FILTERS — three bandpass filters = vowel
+    const fmt=getFormantBlend();
+    const fScale=part==='soprano'?1.15:part==='alto'?1.08:1.0;
+
+    const f1=ac.createBiquadFilter(); f1.type='bandpass';
+    f1.frequency.value=fmt.f1*fScale; f1.Q.value=fmt.f1/(fmt.b1||80);
+    const f1g=ac.createGain(); f1g.gain.value=1.0;
+
+    const f2=ac.createBiquadFilter(); f2.type='bandpass';
+    f2.frequency.value=fmt.f2*fScale; f2.Q.value=fmt.f2/(fmt.b2||90);
+    const f2g=ac.createGain(); f2g.gain.value=.7;
+
+    const f3=ac.createBiquadFilter(); f3.type='bandpass';
+    f3.frequency.value=fmt.f3*fScale; f3.Q.value=fmt.f3/(fmt.b3||100);
+    const f3g=ac.createGain(); f3g.gain.value=.35;
+
+    sawMix.connect(f1); sawMix.connect(f2); sawMix.connect(f3);
+    f1.connect(f1g); f2.connect(f2g); f3.connect(f3g);
+    f1g.connect(vGain); f2g.connect(vGain); f3g.connect(vGain);
+
+    // §5.2.3 Breath noise — aspirant quality
+    const noise=ac.createBufferSource();
+    noise.buffer=sharedNoiseBuf; noise.loop=true;
+    const nFilt=ac.createBiquadFilter(); nFilt.type='bandpass';
+    nFilt.frequency.value=1800+Math.random()*400; nFilt.Q.value=.6;
+    const nGain=ac.createGain(); nGain.gain.value=.012;
+    noise.connect(nFilt); nFilt.connect(nGain); nGain.connect(vGain);
+    noise.start(now);
+    vs.nodes.push(noise,nFilt,nGain);
+
+    // §5.2.4 Vibrato — LFO modulates all three saws
+    const vibLFO=ac.createOscillator(); vibLFO.type='sine';
+    vibLFO.frequency.value=5.2+Math.random()*.8;
+    const vibGain=ac.createGain(); vibGain.gain.value=0;
+    vibLFO.connect(vibGain);
+    vibGain.connect(saw1.frequency);
+    vibGain.connect(saw2.frequency);
+    vibGain.connect(saw3.frequency);
+    vibLFO.start(now);
+    vs.nodes.push(vibLFO,vibGain);
+
+    vGain.connect(choirGain);
+    vs.nodes.push(f1,f2,f3,f1g,f2g,f3g,vGain);
+
+    vs._choirRefs.push({vGain,f1,f2,f3,f1g,f2g,f3g,vibGain,nGain,partFreq,fScale,saw1,saw2,saw3});
+  }
+
+  // If nothing active, make a basic tone
+  if(!hasOrgan&&!hasChoir){
+    const osc=ac.createOscillator(); osc.type='sine';
+    osc.frequency.value=freq; osc.connect(noteGain);
+    const g=ac.createGain(); g.gain.value=.2;
+    osc.connect(g); g.connect(noteGain); osc.start(now);
+    vs.nodes.push(osc,g);
+  }
+
+  return vs;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §6 VOICE UPDATE — CRR per frame
+// ═══════════════════════════════════════════════════════════════
+function updateVoice(vs,dt){
+  if(!vs.alive||!vs.gainNode) return;
+  const ag=vs.agent;
+  ag.omegaScale=ctrl.omega;
+
+  if(vs.held||vs.sustained){
+    // §6.1 COHERENCE — accumulate
+    ag.accumulate(.015,dt);
+    const cF=Math.tanh(ag.C*1.5);
+    const tgt=.25+.55*cF;
+    const cur=vs.gainNode.gain.value;
+    vs.gainNode.gain.value=cur+(tgt-cur)*.03;
+    vs.peakGain=Math.max(vs.peakGain,vs.gainNode.gain.value);
+
+    // §6.2 Choir CRR modulation: vibrato depth + formant drift from exp(C/Ω)
+    const vibDepth=Math.min(4,ag.expCO)/4;
+    const fmt=getFormantBlend();
+    for(const ref of vs._choirRefs){
+      ref.vibGain.gain.value=ref.partFreq*.005*vibDepth;
+      ref.nGain.gain.value=.008+.015*vibDepth;
+      // Live formant update
+      const t=performance.now()*.001;
+      const drift=Math.sin(t*.4)*vibDepth*30;
+      ref.f1.frequency.value=fmt.f1*ref.fScale+drift;
+      ref.f2.frequency.value=fmt.f2*ref.fScale-drift*.5;
+      ref.f3.frequency.value=fmt.f3*ref.fScale+drift*.3;
+    }
+
+    // Update mix
+    if(vs.organGainNode) vs.organGainNode.gain.value=1-ctrl.choirMix;
+    if(vs.choirGainNode) vs.choirGainNode.gain.value=ctrl.choirMix;
+  } else {
+    // §6.3 RELEASE → RUPTURE → REGENERATION
+    if(ag.phase==='C'||ag.phase==='idle'){
+      ag.rupture(); totalRuptures++;
+      vs.releaseTime=performance.now();
+    }
+    const rProg=ag.regenerate(1);
+    if(ag.phase==='delta'){
+      vs.gainNode.gain.value*=.65;
+      ag.phase='R';
+    } else if(ag.phase==='R'){
+      const memF=Math.log(ag.expCO+1)/4;
+      const decTgt=vs.peakGain*(1-rProg)*Math.min(1,memF);
+      const cur=vs.gainNode.gain.value;
+      vs.gainNode.gain.value=cur+(decTgt-cur)*.04;
+      // Choir breath fades during regen
+      for(const ref of vs._choirRefs) ref.nGain.gain.value=.02*(1-rProg);
+    }
+    if(ag.phase==='idle'||vs.gainNode.gain.value<.002){ killVoice(vs); return; }
+  }
+}
+
+function killVoice(vs){
+  vs.alive=false;
+  const now=ac?ac.currentTime:0;
+  if(vs.gainNode) try{vs.gainNode.gain.linearRampToValueAtTime(0,now+.025)}catch(e){}
+  setTimeout(()=>{
+    for(const n of vs.nodes){try{if(n.stop)n.stop()}catch(e){}try{n.disconnect()}catch(e){}}
+    vs.nodes=[];
+  },60);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §7 KEY HANDLERS
+// ═══════════════════════════════════════════════════════════════
+const pressedKeys=new Set();
+function noteOn(midi,isSong=false){
+  if(voices.has(midi)){const ex=voices.get(midi);if(!ex.held){killVoice(ex);voices.delete(midi)}else return}
+  const vs=createVoice(midi,isSong);
+  if(vs) voices.set(midi,vs);
+}
+function noteOff(midi){
+  const vs=voices.get(midi);
+  if(!vs) return;
+  if(sustainPedal){vs.held=false;vs.sustained=true} else {vs.held=false;vs.sustained=false}
+}
+function releaseSustain(){for(const[m,vs]of voices)if(vs.sustained&&!vs.held)vs.sustained=false}
+
+document.addEventListener('keydown',e=>{
+  if(e.repeat) return;
+  const k=e.key.toLowerCase();
+  if(k===' '){e.preventDefault();sustainPedal=true;document.getElementById('sustain-indicator').classList.add('active');return}
+  if(KEY_MAP[k]!==undefined){e.preventDefault();pressedKeys.add(k);noteOn(KEY_MAP[k])}
+});
+document.addEventListener('keyup',e=>{
+  const k=e.key.toLowerCase();
+  if(k===' '){sustainPedal=false;document.getElementById('sustain-indicator').classList.remove('active');releaseSustain();return}
+  if(KEY_MAP[k]!==undefined){pressedKeys.delete(k);noteOff(KEY_MAP[k])}
+});
+
+// ═══════════════════════════════════════════════════════════════
+// §8 SONGS — pre-programmed hymns with lyrics & CRR vowel sync
+// ═══════════════════════════════════════════════════════════════
+// Format: { notes: [[midi, durationInBeats, lyricSyllable, vowel], ...] }
+// vowel index: 0=A, 1=E, 2=I, 3=O, 4=U (auto-morphs choir formants)
+// Use 0 for rests. Bass notes can be added as second simultaneous voice.
+
+const SONGS = {
+  jerusalem: {
+    title: "Jerusalem",
+    subtitle: "Blake / Parry",
+    key: "D major",
+    defaultTempo: 88,
+    // Melody approximation in D major
+    notes: [
+      // "And did those feet in ancient time"
+      {m:62,d:2,l:"And",v:0},  {m:62,d:1,l:"did",v:2},  {m:64,d:1,l:"those",v:3},
+      {m:66,d:2,l:"feet",v:1},  {m:66,d:1,l:"in",v:2},  {m:69,d:1,l:"an-",v:0},
+      {m:69,d:1.5,l:"cient",v:1},{m:67,d:1,l:"",v:1},{m:66,d:1.5,l:"time,",v:0},
+      {m:0,d:1,l:"",v:0},
+      // "Walk upon England's mountains green"
+      {m:64,d:2,l:"Walk",v:3}, {m:64,d:1,l:"u-",v:4}, {m:66,d:1,l:"pon",v:3},
+      {m:67,d:2,l:"Eng-",v:1}, {m:67,d:1,l:"land's",v:0}, {m:71,d:1.5,l:"moun-",v:3},
+      {m:69,d:1,l:"tains",v:1}, {m:67,d:2,l:"green:",v:1},
+      {m:0,d:1.5,l:"",v:0},
+      // "And was the holy Lamb of God"
+      {m:69,d:1.5,l:"And",v:0}, {m:69,d:1,l:"was",v:0}, {m:71,d:1,l:"the",v:1},
+      {m:69,d:1.5,l:"ho-",v:3}, {m:67,d:1,l:"ly",v:2},
+      {m:66,d:1.5,l:"Lamb",v:0}, {m:64,d:1,l:"of",v:3}, {m:62,d:2,l:"God",v:3},
+      {m:0,d:1,l:"",v:0},
+      // "On England's pleasant pastures seen?"
+      {m:62,d:1,l:"On",v:3}, {m:64,d:1,l:"Eng-",v:1}, {m:66,d:1,l:"land's",v:0},
+      {m:67,d:1.5,l:"plea-",v:1}, {m:69,d:1,l:"sant",v:0},
+      {m:71,d:1.5,l:"pas-",v:0}, {m:69,d:1.5,l:"tures",v:1}, {m:67,d:3,l:"seen?",v:1},
+      {m:0,d:2,l:"",v:0},
+
+      // "And did the Countenance Divine"
+      {m:74,d:2,l:"And",v:0}, {m:74,d:1,l:"did",v:2}, {m:73,d:1,l:"the",v:1},
+      {m:71,d:2,l:"Coun-",v:3}, {m:71,d:1,l:"te-",v:1}, {m:69,d:1,l:"nance",v:0},
+      {m:71,d:2,l:"Di-",v:2}, {m:69,d:2,l:"vine",v:2},
+      {m:0,d:1,l:"",v:0},
+      // "Shine forth upon our clouded hills?"
+      {m:67,d:2,l:"Shine",v:2}, {m:69,d:1,l:"forth",v:3}, {m:71,d:1,l:"u-",v:4},
+      {m:74,d:2,l:"pon",v:3}, {m:71,d:1,l:"our",v:3},
+      {m:69,d:1.5,l:"cloud-",v:3}, {m:67,d:1,l:"ed",v:1}, {m:66,d:2.5,l:"hills?",v:2},
+      {m:0,d:1.5,l:"",v:0},
+      // "And was Jerusalem builded here"
+      {m:62,d:1.5,l:"And",v:0}, {m:64,d:1,l:"was",v:0}, {m:66,d:1.5,l:"Je-",v:1},
+      {m:69,d:1.5,l:"ru-",v:4}, {m:71,d:1.5,l:"sa-",v:0},
+      {m:74,d:2,l:"lem",v:1}, {m:73,d:1,l:"build-",v:2}, {m:71,d:1,l:"ed",v:1},
+      {m:69,d:2,l:"here",v:1},
+      {m:0,d:1,l:"",v:0},
+      // "Among these dark Satanic Mills?"
+      {m:71,d:1.5,l:"A-",v:0}, {m:69,d:1,l:"mong",v:3}, {m:67,d:1,l:"these",v:1},
+      {m:66,d:2,l:"dark",v:0}, {m:69,d:1.5,l:"Sa-",v:0},
+      {m:67,d:1,l:"tan-",v:0}, {m:66,d:1,l:"ic",v:2}, {m:62,d:4,l:"Mills?",v:2},
+      {m:0,d:2,l:"",v:0},
+
+      // CHORUS: "Bring me my bow of burning gold!"
+      {m:74,d:2,l:"Bring",v:2}, {m:74,d:1,l:"me",v:1}, {m:73,d:1,l:"my",v:2},
+      {m:74,d:2.5,l:"bow",v:3}, {m:71,d:1,l:"of",v:3},
+      {m:69,d:1.5,l:"burn-",v:4}, {m:71,d:1,l:"ing",v:2}, {m:74,d:3,l:"gold!",v:3},
+      {m:0,d:1,l:"",v:0},
+      // "Bring me my arrows of desire!"
+      {m:74,d:2,l:"Bring",v:2}, {m:73,d:1,l:"me",v:1}, {m:71,d:1,l:"my",v:2},
+      {m:69,d:2,l:"ar-",v:0}, {m:71,d:1,l:"rows",v:3},
+      {m:74,d:1.5,l:"of",v:3}, {m:73,d:1,l:"de-",v:1}, {m:71,d:3,l:"sire!",v:2},
+      {m:0,d:1,l:"",v:0},
+      // "Bring me my spear! O clouds, unfold!"
+      {m:67,d:2,l:"Bring",v:2}, {m:69,d:1,l:"me",v:1}, {m:71,d:1,l:"my",v:2},
+      {m:74,d:3,l:"spear!",v:1}, {m:0,d:.5,l:"",v:0},
+      {m:76,d:1,l:"O",v:3}, {m:74,d:1.5,l:"clouds,",v:3},
+      {m:73,d:1,l:"un-",v:4}, {m:71,d:3,l:"fold!",v:3},
+      {m:0,d:1,l:"",v:0},
+      // "Bring me my chariot of fire!"
+      {m:74,d:2,l:"Bring",v:2}, {m:76,d:2,l:"me",v:1}, {m:74,d:1,l:"my",v:2},
+      {m:73,d:1.5,l:"cha-",v:0}, {m:71,d:1,l:"ri-",v:2},
+      {m:69,d:1,l:"ot",v:3}, {m:71,d:1,l:"of",v:3}, {m:74,d:4,l:"fire!",v:2},
+      {m:0,d:3,l:"",v:0},
+    ]
+  },
+
+  amazing_grace: {
+    title: "Amazing Grace",
+    subtitle: "Newton / Traditional",
+    key: "G major",
+    defaultTempo: 72,
+    notes: [
+      // "Amazing Grace, how sweet the sound"
+      {m:62,d:1,l:"A-",v:0}, {m:67,d:2,l:"ma-",v:0}, {m:71,d:1,l:"zing",v:2},
+      {m:69,d:2,l:"Grace,",v:1}, {m:67,d:1,l:"how",v:3},
+      {m:69,d:2,l:"sweet",v:1}, {m:67,d:1,l:"the",v:1},  {m:64,d:2,l:"sound,",v:3},
+      {m:0,d:1,l:"",v:0},
+      // "That saved a wretch like me"
+      {m:62,d:1,l:"That",v:0}, {m:67,d:2,l:"saved",v:1}, {m:71,d:1,l:"a",v:0},
+      {m:69,d:2,l:"wretch",v:1}, {m:67,d:1,l:"like",v:2},
+      {m:71,d:4,l:"me.",v:1},
+      {m:0,d:1,l:"",v:0},
+      // "I once was lost, but now am found"
+      {m:71,d:1,l:"I",v:2}, {m:74,d:2,l:"once",v:3}, {m:71,d:1,l:"was",v:0},
+      {m:74,d:1.5,l:"lost,",v:3}, {m:71,d:1,l:"but",v:4},
+      {m:69,d:2,l:"now",v:3}, {m:67,d:1,l:"am",v:0}, {m:64,d:2,l:"found,",v:3},
+      {m:0,d:1,l:"",v:0},
+      // "Was blind, but now I see."
+      {m:62,d:1,l:"Was",v:0}, {m:67,d:2,l:"blind,",v:2}, {m:69,d:.5,l:"but",v:4},
+      {m:67,d:1.5,l:"now",v:3}, {m:64,d:1,l:"I",v:2},
+      {m:67,d:5,l:"see.",v:1},
+      {m:0,d:2,l:"",v:0},
+    ]
+  },
+
+  ave_verum: {
+    title: "Ave Verum Corpus",
+    subtitle: "Mozart K.618",
+    key: "D major",
+    defaultTempo: 66,
+    notes: [
+      // "Ave, ave verum corpus"
+      {m:62,d:2,l:"A-",v:0}, {m:66,d:2,l:"ve,",v:1},
+      {m:69,d:2,l:"a-",v:0}, {m:66,d:2,l:"ve",v:1},
+      {m:0,d:.5,l:"",v:0},
+      {m:67,d:1.5,l:"ve-",v:1}, {m:69,d:1.5,l:"rum",v:4},
+      {m:71,d:2,l:"cor-",v:3}, {m:69,d:2,l:"pus,",v:4},
+      {m:0,d:1,l:"",v:0},
+      // "natum de Maria Virgine"
+      {m:69,d:1.5,l:"na-",v:0}, {m:71,d:1.5,l:"tum",v:4},
+      {m:73,d:2,l:"de",v:1}, {m:71,d:1,l:"Ma-",v:0},
+      {m:69,d:1.5,l:"ri-",v:2}, {m:71,d:1.5,l:"a",v:0},
+      {m:69,d:2,l:"Vir-",v:2}, {m:67,d:1,l:"gi-",v:2},  {m:66,d:2.5,l:"ne:",v:1},
+      {m:0,d:2,l:"",v:0},
+      // "Vere passum, immolatum"
+      {m:66,d:2,l:"Ve-",v:1}, {m:67,d:2,l:"re",v:1},
+      {m:69,d:2,l:"pas-",v:0}, {m:67,d:1,l:"sum,",v:4},
+      {m:0,d:1,l:"",v:0},
+      {m:66,d:1.5,l:"im-",v:2}, {m:69,d:1.5,l:"mo-",v:3},
+      {m:71,d:2,l:"la-",v:0}, {m:69,d:2,l:"tum",v:4},
+      {m:0,d:1,l:"",v:0},
+      // "in cruce pro homine"
+      {m:67,d:2,l:"in",v:2}, {m:66,d:1.5,l:"cru-",v:4},
+      {m:64,d:1.5,l:"ce",v:1}, {m:66,d:1,l:"pro",v:3},
+      {m:67,d:1.5,l:"ho-",v:3}, {m:66,d:1,l:"mi-",v:2},
+      {m:62,d:4,l:"ne.",v:1},
+      {m:0,d:3,l:"",v:0},
+    ]
+  }
+};
+
+// §8.1 Song sequencer state
+let songState={
+  playing:false,
+  songKey:null,
+  noteIdx:0,
+  beatTimer:0,
+  currentDuration:0,
+  currentMidi:0,
+  activeSongNotes:new Set()
+};
+
+function selectSong(key){
+  stopSong();
+  songState.songKey=key;
+  const song=SONGS[key];
+  ctrl.tempo=song.defaultTempo;
+  document.getElementById('sl-tempo').value=song.defaultTempo;
+  document.getElementById('vl-tempo').textContent=song.defaultTempo;
+  document.querySelectorAll('.song-btn').forEach(b=>b.classList.toggle('playing',b.dataset.song===key));
+}
+
+function playSong(){
+  if(!songState.songKey) return;
+  stopSong();
+  songState.playing=true;
+  songState.noteIdx=0;
+  songState.beatTimer=0;
+  songState.currentDuration=0;
+  document.getElementById('btn-play').classList.add('active');
+}
+
+function stopSong(){
+  songState.playing=false;
+  // Release all song notes
+  for(const m of songState.activeSongNotes) noteOff(m);
+  songState.activeSongNotes.clear();
+  songState.noteIdx=0; songState.beatTimer=0;
+  document.getElementById('btn-play').classList.remove('active');
+  document.getElementById('lyrics-current').textContent='';
+  document.getElementById('lyrics-next').textContent='';
+  // Clear song-active styling
+  document.querySelectorAll('.key.song-active').forEach(k=>k.classList.remove('song-active'));
+}
+
+function updateSong(dt){
+  if(!songState.playing||!songState.songKey) return;
+  const song=SONGS[songState.songKey];
+  const notes=song.notes;
+  if(songState.noteIdx>=notes.length){stopSong();return}
+
+  // Beats per frame (at 60fps)
+  const bpf=(ctrl.tempo/60)*(dt/60);
+  songState.beatTimer+=bpf;
+
+  if(songState.beatTimer>=songState.currentDuration){
+    // Release previous note
+    if(songState.currentMidi>0){
+      noteOff(songState.currentMidi);
+      songState.activeSongNotes.delete(songState.currentMidi);
+    }
+
+    // Advance to next note
+    const n=notes[songState.noteIdx];
+    songState.currentDuration=n.d;
+    songState.currentMidi=n.m;
+    songState.beatTimer=0;
+
+    // Play note
+    if(n.m>0){
+      noteOn(n.m,true);
+      songState.activeSongNotes.add(n.m);
+    }
+
+    // Auto-morph vowel
+    if(n.v!==undefined){
+      ctrl.vowelPos=n.v;
+      document.getElementById('sl-vowel').value=n.v;
+      document.getElementById('vl-vowel').textContent=VOWELS[Math.floor(Math.min(4,n.v))];
+    }
+
+    // Update lyrics
+    updateLyrics(songState.noteIdx,notes);
+    songState.noteIdx++;
+  }
+}
+
+function updateLyrics(idx,notes){
+  const cur=document.getElementById('lyrics-current');
+  const nxt=document.getElementById('lyrics-next');
+
+  // Build current phrase (look back and ahead for context)
+  let phrase='';
+  let start=idx;
+  // Find phrase start (look back for recent text)
+  while(start>0&&idx-start<12){
+    if(notes[start-1].l===''&&notes[start-1].m===0) break;
+    start--;
+  }
+  for(let i=start;i<Math.min(notes.length,idx+8);i++){
+    if(notes[i].l){
+      const isActive=i===idx;
+      if(isActive) phrase+=`<span style="color:rgba(220,200,150,.95);text-shadow:0 0 12px rgba(200,170,80,.3)">${notes[i].l}</span> `;
+      else if(i<idx) phrase+=`<span style="opacity:.4">${notes[i].l}</span> `;
+      else phrase+=`<span style="opacity:.5">${notes[i].l}</span> `;
+    }
+  }
+  cur.innerHTML=phrase;
+
+  // Next phrase preview
+  let nextPhrase='';
+  let ni=idx+8;
+  while(ni<notes.length&&notes[ni].m===0) ni++;
+  for(let i=ni;i<Math.min(notes.length,ni+10);i++){
+    if(notes[i].l) nextPhrase+=notes[i].l+' ';
+  }
+  nxt.textContent=nextPhrase.trim();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §9 BUILD UI
+// ═══════════════════════════════════════════════════════════════
+function buildKeyboard(){
+  const kb=document.getElementById('keyboard'); kb.innerHTML='';
+  const mToK={}; for(const[k,m]of Object.entries(KEY_MAP)) mToK[m]=k;
+  for(const midi of ALL_MIDI){
+    const bl=isBlack(midi);
+    const div=document.createElement('div');
+    div.className=`key ${bl?'key-black':'key-white'}`;
+    div.dataset.midi=midi;
+    const glow=document.createElement('div'); glow.className='crr-glow'; div.appendChild(glow);
+    const dot=document.createElement('div'); dot.className='phase-dot'; div.appendChild(dot);
+    const lbl=document.createElement('div'); lbl.className='key-letter';
+    lbl.textContent=(mToK[midi]||'').toUpperCase(); div.appendChild(lbl);
+    div.addEventListener('mousedown',e=>{e.preventDefault();noteOn(midi);div._mh=true});
+    div.addEventListener('mouseup',()=>{if(div._mh){noteOff(midi);div._mh=false}});
+    div.addEventListener('mouseleave',()=>{if(div._mh){noteOff(midi);div._mh=false}});
+    div.addEventListener('touchstart',e=>{e.preventDefault();noteOn(midi)},{passive:false});
+    div.addEventListener('touchend',e=>{e.preventDefault();noteOff(midi)});
+    kb.appendChild(div);
+  }
+}
+
+function buildSongList(){
+  const el=document.getElementById('song-list');
+  for(const[key,song]of Object.entries(SONGS)){
+    const btn=document.createElement('button');
+    btn.className='song-btn'; btn.dataset.song=key;
+    btn.innerHTML=`<span>${song.title} <span style="opacity:.5;font-size:9px">${song.subtitle}</span></span><span class="song-key">${song.key}</span>`;
+    btn.addEventListener('click',()=>selectSong(key));
+    el.appendChild(btn);
+  }
+  document.getElementById('btn-play').addEventListener('click',playSong);
+  document.getElementById('btn-stop').addEventListener('click',stopSong);
+}
+
+function initControls(){
+  const sliders=[
+    {id:'sl-omega',vl:'vl-omega',key:'omega',fmt:v=>v.toFixed(2)},
+    {id:'sl-reverb',vl:'vl-reverb',key:'reverb',fmt:v=>v.toFixed(2)},
+    {id:'sl-volume',vl:'vl-volume',key:'volume',fmt:v=>v.toFixed(2)},
+    {id:'sl-bright',vl:'vl-bright',key:'brightness',fmt:v=>v.toFixed(2)},
+    {id:'sl-vowel',vl:'vl-vowel',key:'vowelPos',fmt:v=>VOWELS[Math.floor(Math.min(4,v))]},
+    {id:'sl-choirmix',vl:'vl-choirmix',key:'choirMix',fmt:v=>v.toFixed(2)},
+    {id:'sl-tempo',vl:'vl-tempo',key:'tempo',fmt:v=>Math.round(v)},
+  ];
+  for(const s of sliders){
+    const el=document.getElementById(s.id),vl=document.getElementById(s.vl);
+    el.addEventListener('input',()=>{
+      ctrl[s.key]=parseFloat(el.value); vl.textContent=s.fmt(ctrl[s.key]);
+      if(s.key==='volume'&&masterGain) masterGain.gain.value=ctrl.volume;
+      if(s.key==='reverb'){if(dryGain)dryGain.gain.value=1-ctrl.reverb;if(wetGain)wetGain.gain.value=ctrl.reverb}
+    });
+  }
+  document.querySelectorAll('#organ-stops .stop-btn').forEach(b=>b.addEventListener('click',()=>{
+    b.classList.toggle('active'); ctrl.stops[b.dataset.stop]=b.classList.contains('active');
+  }));
+  document.querySelectorAll('#choir-stops .stop-btn').forEach(b=>b.addEventListener('click',()=>{
+    b.classList.toggle('active'); ctrl.choir[b.dataset.choir]=b.classList.contains('active');
+  }));
+  document.querySelectorAll('.sym-btn').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.sym-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); ctrl.sym=b.dataset.sym;
+    for(const vs of voices.values()){
+      vs.agent.sym=ctrl.sym;
+      vs.agent.omegaBase=ctrl.sym==='Z2'?1/PI:ctrl.sym==='SO2'?1/TAU:1/(PI*PHI);
+    }
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §10 VISUALIZER
+// ═══════════════════════════════════════════════════════════════
+const canvas=document.getElementById('viz-canvas'), ctx=canvas.getContext('2d');
+let W=100,H=100;
+function resizeCanvas(){
+  const wr=document.getElementById('viz-panel'),r=window.devicePixelRatio||1;
+  W=wr.clientWidth;H=wr.clientHeight;
+  canvas.width=W*r;canvas.height=H*r;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx.setTransform(r,0,0,r,0,0);
+}
+
+function renderViz(t){
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2,cy=H/2,maxR=Math.min(W,H)*.42;
+
+  // Background
+  const bg=ctx.createRadialGradient(cx,cy,0,cx,cy,maxR*1.5);
+  bg.addColorStop(0,'rgba(12,10,8,1)');bg.addColorStop(1,'rgba(4,3,2,1)');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // Collective state
+  let totalC=0,maxExpCO=1,activeN=0;
+  for(const vs of voices.values()){if(!vs.alive)continue;totalC+=vs.agent.C;maxExpCO=Math.max(maxExpCO,vs.agent.expCO);activeN++}
+  const collC=activeN>0?totalC/activeN:0;
+  const glow=Math.tanh(collC*2);
+  const breathe=1+Math.sin(t*.001)*.02;
+
+  ctx.save(); ctx.translate(cx,cy);
+
+  // Rose window outer glow
+  if(glow>.01){
+    const rg=ctx.createRadialGradient(0,0,maxR*.2,0,0,maxR);
+    rg.addColorStop(0,`rgba(200,170,80,${.04*glow})`);
+    rg.addColorStop(.5,`rgba(160,120,50,${.025*glow})`);rg.addColorStop(1,'transparent');
+    ctx.fillStyle=rg;ctx.beginPath();ctx.arc(0,0,maxR,0,TAU);ctx.fill();
+  }
+
+  // Rose petals
+  const nPetals=12;
+  for(let p=0;p<nPetals;p++){
+    const a=(p/nPetals)*TAU+t*.0002;
+    const pR=maxR*(.15+.2*glow)*breathe;
+    ctx.save();ctx.rotate(a);
+    const pg=ctx.createRadialGradient(0,-pR*.5,0,0,-pR*.5,pR*.5);
+    const hasChoir=Object.values(ctrl.choir).some(v=>v);
+    if(hasChoir){
+      pg.addColorStop(0,`rgba(140,170,220,${.05+.1*glow})`);
+      pg.addColorStop(.6,`rgba(100,130,180,${.02+.04*glow})`);
+    } else {
+      pg.addColorStop(0,`rgba(200,170,80,${.05+.1*glow})`);
+      pg.addColorStop(.6,`rgba(160,120,50,${.02+.04*glow})`);
+    }
+    pg.addColorStop(1,'transparent');
+    ctx.fillStyle=pg;ctx.beginPath();ctx.ellipse(0,-pR*.5,pR*.12,pR*.4,0,0,TAU);ctx.fill();
+    ctx.restore();
+  }
+
+  // Inner rings
+  ctx.strokeStyle=`rgba(200,170,80,${.06+.12*glow})`;ctx.lineWidth=.5;
+  ctx.beginPath();ctx.arc(0,0,maxR*.12*breathe,0,TAU);ctx.stroke();
+  ctx.beginPath();ctx.arc(0,0,maxR*(.22+.08*glow)*breathe,0,TAU);ctx.stroke();
+
+  // Per-voice arcs
+  const va=Array.from(voices.values()).filter(v=>v.alive);
+  if(va.length>0){
+    const arcPer=TAU/Math.max(va.length,1);
+    for(let i=0;i<va.length;i++){
+      const vs=va[i],ag=vs.agent;
+      const sa=i*arcPer+t*.0003, ea=sa+arcPer*.85;
+      const r=maxR*(.28+.28*Math.tanh(ag.C*2));
+      const hasC=vs._choirRefs.length>0;
+      const hue=hasC?'140,170,220':'200,170,80';
+      let alpha;
+      if(ag.phase==='C') alpha=.12+.25*Math.tanh(ag.C);
+      else if(ag.phase==='delta') alpha=.6;
+      else if(ag.phase==='R') alpha=.08+.2*(1-ag.regenProg);
+      else alpha=.04;
+
+      ctx.strokeStyle=`rgba(${hue},${alpha})`;
+      ctx.lineWidth=2+Math.min(4,ag.expCO*.3);
+      ctx.beginPath();ctx.arc(0,0,r,sa,ea);ctx.stroke();
+
+      // Exp particles
+      const en=Math.min(1,Math.log(ag.expCO+1)/4);
+      if(en>.05){
+        const pc=Math.floor(en*5);
+        for(let j=0;j<pc;j++){
+          const pa=sa+(ea-sa)*(j/pc),pr=r+Math.sin(t*.003+j*2)*5;
+          ctx.fillStyle=`rgba(${hue},${en*.35})`;
+          ctx.beginPath();ctx.arc(Math.cos(pa)*pr,Math.sin(pa)*pr,1.5+en*2,0,TAU);ctx.fill();
+        }
+      }
+
+      // Note label
+      const ma=(sa+ea)/2,lr=r+13;
+      ctx.fillStyle=`rgba(${hue},${Math.min(.45,alpha+.08)})`;
+      ctx.font='9px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(midiToName(vs.midi),Math.cos(ma)*lr,Math.sin(ma)*lr);
+    }
+  }
+
+  // Center info
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  if(activeN>0){
+    ctx.fillStyle=`rgba(200,185,155,${.12+.1*glow})`;
+    ctx.font='300 11px "Cormorant Garamond",serif';
+    ctx.fillText(`C = ${collC.toFixed(3)}`,0,-8);
+    ctx.font='10px "JetBrains Mono",monospace';
+    ctx.fillStyle=`rgba(200,170,80,${.12+.15*glow})`;
+    ctx.fillText(`exp(C/Ω) = ${maxExpCO<999?maxExpCO.toFixed(2):'∞'}`,0,8);
+  } else {
+    ctx.fillStyle='rgba(200,185,155,.1)';ctx.font='300 11px "Cormorant Garamond",serif';
+    ctx.fillText('play to accumulate coherence',0,0);
+  }
+
+  // Vowel indicator
+  const vName=VOWELS[Math.floor(Math.min(4,ctrl.vowelPos))];
+  ctx.fillStyle=`rgba(140,170,220,${.06+.1*glow})`;
+  ctx.font='300 28px "Cormorant Garamond",serif';
+  ctx.fillText(vName,0,maxR*.55);
+  ctx.font='8px "JetBrains Mono",monospace';
+  ctx.fillStyle='rgba(140,170,220,.12)';
+  const fmt=getFormantBlend();
+  ctx.fillText(`F1:${Math.round(fmt.f1)} F2:${Math.round(fmt.f2)} F3:${Math.round(fmt.f3)}`,0,maxR*.55+18);
+
+  ctx.restore();
+
+  // Vignette
+  const vg=ctx.createRadialGradient(cx,cy,maxR*.3,cx,cy,maxR*1.2);
+  vg.addColorStop(0,'transparent');vg.addColorStop(.7,'rgba(4,3,2,.3)');vg.addColorStop(1,'rgba(4,3,2,.8)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §11 KEYBOARD & METRICS UI
+// ═══════════════════════════════════════════════════════════════
+function updateKeyboardUI(){
+  const keys=document.querySelectorAll('#keyboard .key');
+  for(const kEl of keys){
+    const midi=parseInt(kEl.dataset.midi);
+    const vs=voices.get(midi);
+    const glow=kEl.querySelector('.crr-glow');
+    const dot=kEl.querySelector('.phase-dot');
+    if(vs&&vs.alive){
+      kEl.classList.add(vs.isSongNote?'song-active':'pressed');
+      if(!vs.isSongNote) kEl.classList.remove('song-active'); else kEl.classList.remove('pressed');
+      const en=Math.min(1,Math.log(vs.agent.expCO+1)/3);
+      glow.style.opacity=.3+en*.7;
+      dot.style.opacity='.7';
+      dot.style.background=vs.agent.phase==='C'?'rgba(200,200,80,.7)':vs.agent.phase==='delta'?'rgba(255,150,50,.9)':vs.agent.phase==='R'?'rgba(120,170,220,.7)':'transparent';
+    } else {
+      kEl.classList.remove('pressed','song-active');
+      glow.style.opacity='0';dot.style.opacity='0';
+    }
+  }
+}
+
+function updateMetrics(){
+  let totalC=0,maxExp=1,regenN=0,activeN=0;const expVals=[];
+  for(const vs of voices.values()){
+    if(!vs.alive)continue;activeN++;totalC+=vs.agent.C;maxExp=Math.max(maxExp,vs.agent.expCO);
+    if(vs.agent.phase==='R')regenN++;expVals.push({name:midiToName(vs.midi),val:vs.agent.expCO});
+  }
+  const omD=ctrl.sym==='Z2'?1/PI:ctrl.sym==='SO2'?1/TAU:1/(PI*PHI);
+  document.getElementById('m-voices').textContent=activeN;
+  document.getElementById('m-totalC').textContent=totalC.toFixed(3);
+  document.getElementById('m-maxExp').textContent=maxExp<999?maxExp.toFixed(3):'∞';
+  document.getElementById('m-ruptures').textContent=totalRuptures;
+  document.getElementById('m-regen').textContent=regenN;
+  document.getElementById('m-omega').textContent=(omD*ctrl.omega).toFixed(4);
+  document.getElementById('eq-exp').textContent=maxExp<999?maxExp.toFixed(3):'∞';
+  document.getElementById('top-status').textContent=`C=${totalC.toFixed(3)} · Ω=${(omD*ctrl.omega).toFixed(3)} · voices: ${activeN}`;
+
+  const barsEl=document.getElementById('exp-mini-bars');barsEl.innerHTML='';
+  const maxB=Math.max(3,...expVals.map(v=>Math.log(v.val+1)));
+  for(const ev of expVals.slice(0,14)){
+    const col=document.createElement('div');col.className='exp-bar-col';
+    const bar=document.createElement('div');bar.className='exp-mini-bar';
+    const h=Math.min(100,(Math.log(ev.val+1)/maxB)*100);
+    bar.style.height=h+'%';bar.style.background=`rgba(200,170,80,${.2+h/100*.5})`;
+    col.appendChild(bar);
+    const lb=document.createElement('div');lb.style.cssText='font-size:6px;color:rgba(200,185,155,.2);margin-top:1px';
+    lb.textContent=ev.name;col.appendChild(lb);barsEl.appendChild(col);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §12 MAIN LOOP
+// ═══════════════════════════════════════════════════════════════
+let lastTime=0,frameCount=0;
+function mainLoop(ts){
+  const dt=lastTime?(ts-lastTime)/16.67:1; lastTime=ts; frameCount++;
+
+  // Update song sequencer
+  updateSong(dt);
+
+  // Update all voices
+  for(const[midi,vs]of voices){updateVoice(vs,dt);if(!vs.alive)voices.delete(midi)}
+
+  renderViz(ts);
+  updateKeyboardUI();
+  if(frameCount%3===0) updateMetrics();
+
+  requestAnimationFrame(mainLoop);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §13 INIT
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('splash').addEventListener('click',()=>{
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  setTimeout(()=>document.getElementById('splash').style.display='none',800);
+  initAudio(); buildKeyboard(); buildSongList(); initControls(); resizeCanvas();
+  new ResizeObserver(resizeCanvas).observe(document.getElementById('viz-panel'));
+  requestAnimationFrame(mainLoop);
+});
+</script>
+</body>
+</html>
