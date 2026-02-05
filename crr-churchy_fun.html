@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRR — Light Through Sacred Geometry</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --gold: rgba(200,185,155,0.7);
+    --gold-dim: rgba(200,185,155,0.5);
+    --gold-faint: rgba(200,185,155,0.35);
+    --gold-ghost: rgba(200,185,155,0.25);
+    --gold-border: rgba(160,130,70,0.25);
+    --gold-border-dim: rgba(160,130,70,0.08);
+    --bg-deep: #0a0908;
+    --panel-bg: rgba(14,12,10,0.98);
+    --ring-seed: #e8c832;
+    --ring-vesica: #d25050;
+    --ring-trefoil: #28a050;
+    --ring-golden: #c8a050;
+    --ring-lancet: #4070d0;
+  }
+
+  body {
+    background: #030204;
+    color: rgba(200,185,155,0.85);
+    font-family: 'Cormorant Garamond', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  /* ═══ SPLASH SCREEN ═══ */
+  #splash {
+    position: fixed; inset: 0; z-index: 100;
+    background: #030204;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.8s ease;
+  }
+  #splash.hidden { opacity: 0; pointer-events: none; }
+  #splash .inner { text-align: center; }
+  #splash .symbol {
+    font-size: 48px; opacity: 0.4; margin-bottom: 12px;
+    animation: pulse 3s ease-in-out infinite;
+  }
+  #splash h1 {
+    font-size: clamp(1.4rem, 3.5vw, 2.4rem);
+    font-weight: 300; letter-spacing: 0.12em; margin-bottom: 8px;
+    text-shadow: 0 0 30px rgba(180,150,100,0.15);
+  }
+  #splash p {
+    font-size: clamp(0.75rem, 1.6vw, 1rem);
+    font-weight: 300; opacity: 0.5; letter-spacing: 0.08em;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.05); }
+  }
+
+  /* ═══ MAIN LAYOUT ═══ */
+  #app {
+    display: none; flex-direction: column;
+    width: 100%; height: 100vh; overflow: hidden;
+    background: var(--bg-deep);
+  }
+  #app.active { display: flex; }
+
+  /* ═══ CANVAS AREA ═══ */
+  #canvas-wrap {
+    flex: 1; min-height: 0; position: relative; padding: 6px;
+  }
+  #border-frame {
+    position: absolute; inset: 0;
+    border: 2px solid var(--gold-border);
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.6), inset 0 0 3px rgba(160,130,70,0.12), 0 0 15px rgba(0,0,0,0.5);
+    pointer-events: none; z-index: 2;
+  }
+  .corner {
+    position: absolute; width: 18px; height: 18px;
+  }
+  .corner.tl { top: 0; left: 0; border-top: 2px solid rgba(200,170,80,0.35); border-left: 2px solid rgba(200,170,80,0.35); }
+  .corner.tr { top: 0; right: 0; border-top: 2px solid rgba(200,170,80,0.35); border-right: 2px solid rgba(200,170,80,0.35); }
+  .corner.bl { bottom: 0; left: 0; border-bottom: 2px solid rgba(200,170,80,0.35); border-left: 2px solid rgba(200,170,80,0.35); }
+  .corner.br { bottom: 0; right: 0; border-bottom: 2px solid rgba(200,170,80,0.35); border-right: 2px solid rgba(200,170,80,0.35); }
+  #title-plaque {
+    position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+    background: var(--bg-deep); padding: 2px 16px;
+    border-bottom: 1px solid rgba(160,130,70,0.2);
+    font-size: 10px; letter-spacing: 0.18em; color: var(--gold-dim); font-weight: 300;
+    white-space: nowrap;
+  }
+  #main-canvas { display: block; width: 100%; height: 100%; }
+
+  /* ═══ CONTROL PANEL ═══ */
+  #panel {
+    border-top: 1px solid rgba(160,130,70,0.2);
+    background: linear-gradient(180deg, var(--panel-bg), rgba(10,9,8,0.99));
+    max-height: 45vh;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  #panel.collapsed { max-height: 28px; }
+  #panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 14px; cursor: pointer;
+    border-bottom: 1px solid var(--gold-border-dim);
+    user-select: none;
+    flex-shrink: 0;
+  }
+  #panel-header .label {
+    font-size: 9px; letter-spacing: 0.15em; color: var(--gold-dim);
+  }
+  #panel-header .status {
+    display: flex; gap: 12px; align-items: center;
+  }
+  #panel-header .status-text {
+    font-size: 9px; color: var(--gold-faint); font-family: monospace;
+  }
+  #panel-header .arrow {
+    font-size: 11px; color: rgba(200,185,155,0.4);
+    transition: transform 0.3s;
+  }
+  #panel.collapsed #panel-header .arrow { transform: rotate(0deg); }
+  #panel:not(.collapsed) #panel-header .arrow { transform: rotate(180deg); }
+
+  #panel-body {
+    display: flex; gap: 0; padding: 6px 10px 10px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Custom scrollbar styling */
+  #panel-body::-webkit-scrollbar {
+    width: 6px;
+  }
+  #panel-body::-webkit-scrollbar-track {
+    background: rgba(14,12,10,0.5);
+  }
+  #panel-body::-webkit-scrollbar-thumb {
+    background: rgba(160,130,70,0.25);
+    border-radius: 3px;
+  }
+  #panel-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(160,130,70,0.4);
+  }
+  #panel-body {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(160,130,70,0.25) rgba(14,12,10,0.5);
+  }
+
+  /* Ring metrics */
+  #rings-col {
+    flex: 1.2; padding-right: 12px;
+    border-right: 1px solid var(--gold-border-dim);
+  }
+  .col-title {
+    font-size: 8px; letter-spacing: 0.12em; color: var(--gold-faint); margin-bottom: 6px;
+  }
+  .ring-card {
+    margin-bottom: 5px; padding: 4px 6px;
+    background: rgba(255,255,255,0.015); border-radius: 3px;
+    border-left: 2px solid transparent;
+  }
+  .ring-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;
+  }
+  .ring-name { font-size: 9px; opacity: 0.8; }
+  .ring-sym { opacity: 0.5; margin-left: 4px; font-size: 8px; }
+  .ring-freq { font-size: 8px; color: rgba(200,185,155,0.4); font-family: monospace; }
+  .ring-stats {
+    display: flex; gap: 8px; font-size: 8px; font-family: monospace; color: rgba(200,185,155,0.45);
+    flex-wrap: wrap;
+  }
+  .ring-stats .exp-val { opacity: 0.7; }
+  .ring-slider { width: 100%; height: 2px; cursor: pointer; margin-top: 2px; }
+
+  /* Global metrics */
+  #metrics-col {
+    flex: 0.6; padding: 0 12px;
+    border-right: 1px solid var(--gold-border-dim);
+  }
+  .metric-row {
+    display: flex; justify-content: space-between; padding: 1px 0;
+  }
+  .metric-label { font-size: 9px; color: var(--gold-dim); letter-spacing: 0.04em; }
+  .metric-val { font-size: 10px; font-family: monospace; letter-spacing: 0.02em; }
+
+  /* exp(C/Ω) bars */
+  #exp-bars {
+    display: flex; gap: 3px; height: 32px; align-items: flex-end; margin-top: 4px;
+  }
+  .exp-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .exp-bar {
+    width: 100%; border-radius: 2px 2px 0 0;
+    transition: height 0.15s ease;
+  }
+  .exp-bar-label { font-size: 7px; color: var(--gold-faint); margin-top: 1px; }
+
+  /* Sliders column */
+  #sliders-col { flex: 0.8; padding-left: 12px; }
+  .slider-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+  }
+  .slider-label {
+    width: 90px; font-size: 10px; color: rgba(200,185,155,0.7);
+    letter-spacing: 0.05em; flex-shrink: 0;
+  }
+  .slider-input { flex: 1; height: 3px; cursor: pointer; }
+  .slider-val {
+    width: 42px; font-size: 9px; color: var(--gold-dim);
+    text-align: right; font-family: monospace;
+  }
+  #equations {
+    font-size: 8px; color: var(--gold-ghost); font-family: monospace;
+    line-height: 1.6; padding: 3px 4px;
+    background: rgba(255,255,255,0.01); border-radius: 3px;
+    margin-top: 4px;
+  }
+  #equations .omega-line { color: rgba(200,170,80,0.3); }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    #panel { max-height: 60vh; }
+    #panel-body { flex-direction: column; gap: 8px; }
+    #rings-col, #metrics-col { border-right: none; border-bottom: 1px solid var(--gold-border-dim); padding-right: 0; padding-bottom: 8px; }
+    #metrics-col { padding-left: 0; }
+    #sliders-col { padding-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ SPLASH SCREEN ═══ -->
+<div id="splash">
+  <div class="inner">
+    <div class="symbol">✦</div>
+    <h1>Light Through Sacred Geometry</h1>
+    <p>click to enter the nave</p>
+  </div>
+</div>
+
+<!-- ═══ MAIN APP ═══ -->
+<div id="app">
+  <!-- Canvas area -->
+  <div id="canvas-wrap">
+    <div id="border-frame">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div id="title-plaque">CRR — LIGHT THROUGH SACRED GEOMETRY</div>
+    </div>
+    <canvas id="main-canvas"></canvas>
+  </div>
+
+  <!-- Control panel -->
+  <div id="panel">
+    <div id="panel-header">
+      <span class="label">CRR METRICS &amp; MODULATION</span>
+      <div class="status">
+        <span class="status-text" id="header-status">C=0.000 · Ω=0.000 · beams=0</span>
+        <span class="arrow">▾</span>
+      </div>
+    </div>
+    <div id="panel-body">
+
+      <!-- LEFT: Harmonic Rings -->
+      <div id="rings-col">
+        <div class="col-title">HARMONIC RINGS</div>
+        <div id="rings-container"></div>
+      </div>
+
+      <!-- MIDDLE: CRR State -->
+      <div id="metrics-col">
+        <div class="col-title">CRR STATE</div>
+        <div id="metrics-container"></div>
+        <div class="col-title" style="margin-top:8px;letter-spacing:0.08em">exp(C/Ω) PER RING</div>
+        <div id="exp-bars"></div>
+      </div>
+
+      <!-- RIGHT: Sliders -->
+      <div id="sliders-col">
+        <div class="col-title">MODULATION</div>
+        <div id="sliders-container"></div>
+        <div class="col-title" style="margin-top:8px;letter-spacing:0.08em">CRR EQUATIONS</div>
+        <div id="equations"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const PI = Math.PI, TAU = 2 * PI, PHI = (1 + Math.sqrt(5)) / 2;
+const GOLDEN_ANGLE = PI * (3 - Math.sqrt(5));
+
+// ═══════════════════════════════════════════════════════════
+// METRICS & CONTROLS STATE
+// ═══════════════════════════════════════════════════════════
+const metrics = {
+  cloudBreath: 0, spread: 0, bloomPulse: 0, t: 0,
+  rings: [
+    { name: "Seed of Life", sym: "Z₆", ratio: "1:1", freq: "130.8 Hz", gain: 0, C: 0, omega: 0, expCO: 0 },
+    { name: "Vesica Piscis", sym: "Z₂", ratio: "3:2", freq: "196.0 Hz", gain: 0, C: 0, omega: 0, expCO: 0 },
+    { name: "Trefoils", sym: "Z₃", ratio: "5:4", freq: "163.5 Hz", gain: 0, C: 0, omega: 0, expCO: 0 },
+    { name: "Golden Angle", sym: "φ", ratio: "φ:1", freq: "211.7 Hz", gain: 0, C: 0, omega: 0, expCO: 0 },
+    { name: "Lancets", sym: "Z₂₄", ratio: "8:1", freq: "1046 Hz", gain: 0, C: 0, omega: 0, expCO: 0 },
+  ],
+  moteCount: 350, activeBeams: 0, reverbTail: 0,
+};
+
+const ctrl = {
+  lightIntensity: 1.0,
+  omega: 1.0,
+  reverbMix: 0.75,
+  masterVolume: 0.18,
+  ringGains: [1, 1, 1, 1, 1],
+};
+
+const ringColors = ['#e8c832', '#d25050', '#28a050', '#c8a050', '#4070d0'];
+const ringSymbols = ['✦', '◇', '△', 'φ', '▲'];
+
+// ═══════════════════════════════════════════════════════════
+// DOM REFS
+// ═══════════════════════════════════════════════════════════
+const splash = document.getElementById('splash');
+const app = document.getElementById('app');
+const canvas = document.getElementById('main-canvas');
+const ctx = canvas.getContext('2d');
+const panel = document.getElementById('panel');
+const panelHeader = document.getElementById('panel-header');
+
+let W = 0, H = 0;
+let animId = null;
+let frameCount = 0;
+let metricsTimer = 0;
+let audio = null;
+let graniteCanvas = null;
+let graniteW = 0, graniteH = 0;
+
+// ═══════════════════════════════════════════════════════════
+// GLASS COLOURS
+// ═══════════════════════════════════════════════════════════
+const G = {
+  ruby:{glow:[220,40,30]}, cobalt:{glow:[30,50,220]}, emerald:{glow:[20,190,50]},
+  amber:{glow:[240,170,20]}, violet:{glow:[140,30,180]}, gold:{glow:[250,210,50]},
+  teal:{glow:[20,150,160]}, rose:{glow:[210,80,90]}, clear:{glow:[230,220,200]},
+  deepRuby:{glow:[160,20,30]}, skyBlue:{glow:[60,120,210]}, lime:{glow:[110,200,40]},
+};
+const bright = (c, f) => [Math.min(255, c[0]*f|0), Math.min(255, c[1]*f|0), Math.min(255, c[2]*f|0)];
+
+// ═══════════════════════════════════════════════════════════
+// DUST MOTES
+// ═══════════════════════════════════════════════════════════
+const motes = Array.from({ length: 350 }, () => ({
+  x: Math.random(), y: Math.random(),
+  vx: (Math.random() - 0.5) * 0.00014,
+  vy: -0.00003 - Math.random() * 0.00016,
+  sz: 0.4 + Math.random() * 2.2,
+  br: 0.3 + Math.random() * 0.7,
+  ph: Math.random() * TAU,
+}));
+
+// ═══════════════════════════════════════════════════════════
+// GRANITE TEXTURE
+// ═══════════════════════════════════════════════════════════
+function buildGranite(w, h) {
+  let _s = 42;
+  const sr = () => { _s = (_s * 16807) % 2147483647; return (_s - 1) / 2147483646; };
+  const gc2 = document.createElement('canvas');
+  gc2.width = w; gc2.height = h;
+  const gc = gc2.getContext('2d');
+  gc.fillStyle = '#1a1613'; gc.fillRect(0, 0, w, h);
+  for (let i = 0; i < 8; i++) {
+    const gx = sr() * w, gy = sr() * h;
+    const gr = gc.createRadialGradient(gx, gy, 0, gx, gy, 120 + sr() * 200);
+    gr.addColorStop(0, sr() > 0.5 ? 'rgba(35,28,22,0.12)' : 'rgba(22,24,28,0.10)');
+    gr.addColorStop(1, 'transparent'); gc.fillStyle = gr; gc.fillRect(0, 0, w, h);
+  }
+  const grains = [];
+  for (let i = 0; i < 2200; i++) {
+    const m = sr(); let col, sz, type, asp = 0.5 + sr() * 0.8, ang = sr() * TAU;
+    if (m < 0.40) { type='f'; const v=sr(); col = v<0.5?[42+sr()*18|0,33+sr()*12|0,28+sr()*10|0]:[38+sr()*15|0,30+sr()*14|0,26+sr()*10|0]; sz=3+sr()*6; }
+    else if (m < 0.72) { type='q'; const g2=28+sr()*16|0; col=[g2+sr()*5|0,g2+sr()*3|0,g2-2+sr()*4|0]; sz=2+sr()*4.5; }
+    else if (m < 0.88) { type='m'; col=[18+sr()*10|0,16+sr()*8|0,14+sr()*8|0]; sz=1+sr()*2.5; }
+    else { type='h'; col=[10+sr()*8|0,9+sr()*6|0,8+sr()*5|0]; sz=1.5+sr()*3; }
+    grains.push({ x: sr(), y: sr(), sz, col, type, ang, asp });
+  }
+  for (const g of grains) {
+    const gx = g.x * w, gy = g.y * h, s = g.sz * (Math.min(w, h) / 800);
+    gc.save(); gc.translate(gx, gy); gc.rotate(g.ang);
+    if (g.type === 'm') {
+      gc.fillStyle = `rgba(${g.col[0]},${g.col[1]},${g.col[2]},0.5)`;
+      gc.fillRect(-s * g.asp, -s * 0.3, s * g.asp * 2, s * 0.6);
+    } else {
+      gc.beginPath();
+      const sides = 4 + Math.floor(sr() * 3);
+      for (let j = 0; j < sides; j++) {
+        const a = j * TAU / sides + sr() * 0.4, r = s * (0.6 + sr() * 0.5) * (j % 2 === 0 ? 1 : g.asp);
+        if (j === 0) gc.moveTo(r * Math.cos(a), r * Math.sin(a));
+        else gc.lineTo(r * Math.cos(a), r * Math.sin(a));
+      }
+      gc.closePath();
+      const ig = gc.createRadialGradient(s * 0.15, -s * 0.1, 0, 0, 0, s);
+      ig.addColorStop(0, `rgba(${g.col[0]+12},${g.col[1]+10},${g.col[2]+8},0.6)`);
+      ig.addColorStop(0.6, `rgba(${g.col[0]},${g.col[1]},${g.col[2]},0.45)`);
+      ig.addColorStop(1, `rgba(${g.col[0]-5},${g.col[1]-5},${g.col[2]-4},0.25)`);
+      gc.fillStyle = ig; gc.fill();
+      gc.strokeStyle = 'rgba(8,7,5,0.2)'; gc.lineWidth = 0.4; gc.stroke();
+    }
+    gc.restore();
+  }
+  const id = gc.getImageData(0, 0, w, h); const px = id.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const n = (Math.random() - 0.5) * 6;
+    px[i] = Math.max(0, Math.min(255, px[i] + n));
+    px[i+1] = Math.max(0, Math.min(255, px[i+1] + n));
+    px[i+2] = Math.max(0, Math.min(255, px[i+2] + n));
+  }
+  gc.putImageData(id, 0, 0);
+  graniteCanvas = gc2;
+  graniteW = w; graniteH = h;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SACRED GEOMETRY DRAW FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+function drawVesica(cx, cy, r, angle, colour, alpha, t) {
+  const gc = G[colour]; const pulse = 0.85 + 0.15 * Math.sin(t * 0.7 + cx * 0.01 + cy * 0.01); const a = alpha * pulse;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle);
+  const d = r * 0.85; ctx.beginPath(); ctx.arc(-d/2, 0, r, -PI/3, PI/3); ctx.arc(d/2, 0, r, PI - PI/3, PI + PI/3); ctx.closePath();
+  const vg = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.7);
+  vg.addColorStop(0, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${a*0.8})`);
+  vg.addColorStop(0.6, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${a*0.5})`);
+  vg.addColorStop(1, `rgba(${gc.glow[0]*0.6|0},${gc.glow[1]*0.6|0},${gc.glow[2]*0.6|0},${a*0.15})`);
+  ctx.fillStyle = vg; ctx.fill(); ctx.strokeStyle = `rgba(25,22,18,${0.5*pulse})`; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore();
+}
+
+function drawTrefoil(cx, cy, r, angle, colour, alpha, t) {
+  const gc = G[colour]; const pulse = 0.82 + 0.18 * Math.sin(t * 0.6 + cx * 0.02); const a = alpha * pulse;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle);
+  const lR = r * 0.55, lD = r * 0.45; ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const la = i * TAU / 3 - PI / 2; const lx = lD * Math.cos(la), ly = lD * Math.sin(la);
+    if (i === 0) ctx.moveTo(lx + lR * Math.cos(la + PI - PI * 0.7), ly + lR * Math.sin(la + PI - PI * 0.7));
+    ctx.arc(lx, ly, lR, la + PI - PI * 0.7, la + PI + PI * 0.7);
+  }
+  ctx.closePath();
+  const tg = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+  tg.addColorStop(0, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${a*0.75})`);
+  tg.addColorStop(0.5, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${a*0.45})`);
+  tg.addColorStop(1, `rgba(${gc.glow[0]*0.5|0},${gc.glow[1]*0.5|0},${gc.glow[2]*0.5|0},${a*0.1})`);
+  ctx.fillStyle = tg; ctx.fill(); ctx.strokeStyle = `rgba(25,22,18,${0.45*pulse})`; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+}
+
+function drawQuatrefoil(cx, cy, r, angle, colour, alpha, t) {
+  const gc = G[colour]; const pulse = 0.85 + 0.15 * Math.sin(t * 0.65 + cy * 0.015); const a = alpha * pulse;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(angle);
+  const lR = r * 0.48, lD = r * 0.38; ctx.beginPath();
+  for (let i = 0; i < 4; i++) {
+    const la = i * TAU / 4; const lx = lD * Math.cos(la), ly = lD * Math.sin(la);
+    if (i === 0) ctx.moveTo(lx + lR * Math.cos(la + PI - PI * 0.6), ly + lR * Math.sin(la + PI - PI * 0.6));
+    ctx.arc(lx, ly, lR, la + PI - PI * 0.6, la + PI + PI * 0.6);
+  }
+  ctx.closePath();
+  const qg = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+  qg.addColorStop(0, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${a*0.7})`);
+  qg.addColorStop(0.5, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${a*0.4})`);
+  qg.addColorStop(1, `rgba(${gc.glow[0]*0.5|0},${gc.glow[1]*0.5|0},${gc.glow[2]*0.5|0},${a*0.1})`);
+  ctx.fillStyle = qg; ctx.fill(); ctx.strokeStyle = `rgba(25,22,18,${0.4*pulse})`; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+}
+
+function drawLancetShape(cx, cy, w, h, colour, alpha, t) {
+  const gc = G[colour]; const pulse = 0.83 + 0.17 * Math.sin(t * 0.55 + cx * 0.02 + cy * 0.01); const a = alpha * pulse;
+  ctx.save(); ctx.translate(cx, cy); const hw = w / 2;
+  ctx.beginPath(); ctx.moveTo(-hw, h/2); ctx.lineTo(-hw, -h*0.15);
+  ctx.quadraticCurveTo(-hw, -h/2, 0, -h/2 - hw*0.4);
+  ctx.quadraticCurveTo(hw, -h/2, hw, -h*0.15); ctx.lineTo(hw, h/2); ctx.closePath();
+  const lg = ctx.createLinearGradient(0, -h/2, 0, h/2);
+  lg.addColorStop(0, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${a*0.85})`);
+  lg.addColorStop(0.4, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${a*0.6})`);
+  lg.addColorStop(1, `rgba(${gc.glow[0]*0.7|0},${gc.glow[1]*0.7|0},${gc.glow[2]*0.7|0},${a*0.25})`);
+  ctx.fillStyle = lg; ctx.fill(); ctx.strokeStyle = `rgba(25,22,18,${0.5*pulse})`; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════
+// GENERATE WINDOW GEOMETRY
+// ═══════════════════════════════════════════════════════════
+function genWindow(winCX, winCY, R) {
+  const panes = [];
+  const seedR = R * 0.065, seedD = R * 0.09;
+
+  // Center seed
+  panes.push({ draw(t) {
+    const p = 0.9 + 0.1 * Math.sin(t * 0.4);
+    const g = ctx.createRadialGradient(winCX, winCY, 0, winCX, winCY, seedR * 1.1);
+    g.addColorStop(0, `rgba(255,250,230,${0.75*p})`); g.addColorStop(0.5, `rgba(230,220,200,${0.5*p})`);
+    g.addColorStop(1, `rgba(138,132,120,${0.15*p})`); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(winCX, winCY, seedR * 1.1, 0, TAU); ctx.fill();
+  }, colour: 'clear', cx: winCX, cy: winCY, r_approx: seedR, ring: 0 });
+
+  // Seed of Life circles
+  const seedC = ['ruby','amber','gold','emerald','cobalt','violet'];
+  for (let i = 0; i < 6; i++) {
+    const a = i * TAU / 6 - PI / 2, px = winCX + seedD * Math.cos(a), py = winCY + seedD * Math.sin(a), col = seedC[i];
+    panes.push({ draw(t) {
+      const gc = G[col]; const p = 0.85 + 0.15 * Math.sin(t * 0.7 + i * 1.1);
+      const g = ctx.createRadialGradient(px, py, 0, px, py, seedR);
+      g.addColorStop(0, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${0.75*p})`);
+      g.addColorStop(0.6, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${0.45*p})`);
+      g.addColorStop(1, `rgba(${gc.glow[0]*0.6|0},${gc.glow[1]*0.6|0},${gc.glow[2]*0.6|0},${0.1*p})`);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, seedR, 0, TAU); ctx.fill();
+    }, colour: col, cx: px, cy: py, r_approx: seedR, ring: 0 });
+  }
+
+  // Vesica Piscis ring
+  const vR1 = R * 0.19, vSz = R * 0.085;
+  const vC = ['rose','gold','teal','ruby','skyBlue','amber'];
+  for (let i = 0; i < 6; i++) {
+    const a = i * TAU / 6 - PI / 2 + TAU / 12, vx = winCX + vR1 * Math.cos(a), vy = winCY + vR1 * Math.sin(a), col = vC[i], ang = a + PI / 2;
+    panes.push({ draw(t) { drawVesica(vx, vy, vSz, ang, col, 0.7, t); }, colour: col, cx: vx, cy: vy, r_approx: vSz * 0.6, ring: 1 });
+  }
+
+  // Trefoil ring
+  const tR = R * 0.33, tSz = R * 0.062;
+  const tC = ['cobalt','ruby','emerald','gold','violet','amber','teal','rose','cobalt','ruby','emerald','gold'];
+  for (let i = 0; i < 12; i++) {
+    const a = i * TAU / 12 - PI / 2, tx = winCX + tR * Math.cos(a), ty = winCY + tR * Math.sin(a), col = tC[i];
+    panes.push({ draw(t) { drawTrefoil(tx, ty, tSz, a, col, 0.65, t); }, colour: col, cx: tx, cy: ty, r_approx: tSz * 0.7, ring: 2 });
+  }
+
+  // Golden Angle ring (quatrefoils)
+  const gB = R * 0.50, qSz = R * 0.052;
+  const gC = ['ruby','cobalt','emerald','amber','violet','gold','teal','rose','deepRuby','skyBlue','lime','amber','violet','gold','teal','rose','ruby','cobalt'];
+  for (let i = 0; i < 18; i++) {
+    const a = i * GOLDEN_ANGLE - PI / 2, rr = gB + R * 0.035 * Math.sin(i * 1.5), qx = winCX + rr * Math.cos(a), qy = winCY + rr * Math.sin(a), col = gC[i];
+    panes.push({ draw(t) { drawQuatrefoil(qx, qy, qSz, a * 0.5, col, 0.6, t); }, colour: col, cx: qx, cy: qy, r_approx: qSz * 0.65, ring: 3 });
+  }
+
+  // Lancet ring
+  const lR2 = R * 0.72, lW = R * 0.058, lH = R * 0.1;
+  const lC = ['cobalt','ruby','gold','emerald','violet','amber','teal','rose','cobalt','deepRuby','gold','emerald','violet','amber','skyBlue','rose','cobalt','ruby','gold','lime','violet','amber','teal','rose'];
+  for (let i = 0; i < 24; i++) {
+    const a = i * TAU / 24 - PI / 2, lx = winCX + lR2 * Math.cos(a), ly = winCY + lR2 * Math.sin(a), col = lC[i];
+    panes.push({ draw(t) { ctx.save(); ctx.translate(lx, ly); ctx.rotate(a + PI / 2); drawLancetShape(0, 0, lW, lH, col, 0.55, t); ctx.restore(); }, colour: col, cx: lx, cy: ly, r_approx: lH * 0.4, ring: 4 });
+  }
+
+  // Inner vesica ring
+  const iR = R * 0.84, iSz = R * 0.038;
+  for (let i = 0; i < 24; i++) {
+    const a = i * TAU / 24 - PI / 2 + TAU / 48, ix = winCX + iR * Math.cos(a), iy = winCY + iR * Math.sin(a), col = lC[(i + 3) % 24];
+    panes.push({ draw(t) { drawVesica(ix, iy, iSz, a + PI / 2, col, 0.45, t); }, colour: col, cx: ix, cy: iy, r_approx: iSz * 0.5, ring: 4 });
+  }
+
+  return panes;
+}
+
+// ═══════════════════════════════════════════════════════════
+// TRACERY
+// ═══════════════════════════════════════════════════════════
+function drawTracery(winCX, winCY, R, t) {
+  ctx.save();
+  const fR = R * 0.09, fA = 0.15 + 0.05 * Math.sin(t * 0.3);
+  ctx.strokeStyle = `rgba(45,40,30,${fA})`; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.arc(winCX, winCY, fR, 0, TAU); ctx.stroke();
+  for (let i = 0; i < 6; i++) { const a = i * TAU / 6; ctx.beginPath(); ctx.arc(winCX + fR * Math.cos(a), winCY + fR * Math.sin(a), fR, 0, TAU); ctx.stroke(); }
+  ctx.strokeStyle = `rgba(40,36,28,${fA*0.6})`; ctx.lineWidth = 0.5;
+  for (let i = 0; i < 6; i++) {
+    const a = i * TAU / 6;
+    ctx.beginPath(); ctx.arc(winCX + fR * 2 * Math.cos(a), winCY + fR * 2 * Math.sin(a), fR, 0, TAU); ctx.stroke();
+    const a2 = a + TAU / 12;
+    ctx.beginPath(); ctx.arc(winCX + fR * 1.73 * Math.cos(a2), winCY + fR * 1.73 * Math.sin(a2), fR, 0, TAU); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(30,27,20,0.55)'; ctx.lineWidth = 2.5;
+  for (let i = 0; i < 12; i++) { const a = i * TAU / 12 - PI / 2; ctx.beginPath(); ctx.moveTo(winCX + R * 0.12 * Math.cos(a), winCY + R * 0.12 * Math.sin(a)); ctx.lineTo(winCX + R * 0.93 * Math.cos(a), winCY + R * 0.93 * Math.sin(a)); ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(30,27,20,0.35)'; ctx.lineWidth = 1.2;
+  for (let i = 0; i < 24; i++) { const a = i * TAU / 24 - PI / 2; ctx.beginPath(); ctx.moveTo(winCX + R * 0.42 * Math.cos(a), winCY + R * 0.42 * Math.sin(a)); ctx.lineTo(winCX + R * 0.93 * Math.cos(a), winCY + R * 0.93 * Math.sin(a)); ctx.stroke(); }
+  [0.13, 0.25, 0.40, 0.57, 0.66, 0.80, 0.93].forEach((f, idx) => {
+    ctx.beginPath(); ctx.arc(winCX, winCY, R * f, 0, TAU);
+    ctx.strokeStyle = `rgba(30,27,20,${idx < 3 ? 0.45 : 0.35})`; ctx.lineWidth = idx === 0 || idx === 6 ? 2 : 1.3; ctx.stroke();
+  });
+  ctx.strokeStyle = `rgba(200,180,100,${0.06 + 0.03 * Math.sin(t * 0.2)})`; ctx.lineWidth = 1; ctx.beginPath();
+  for (let i = 0; i < 18; i++) {
+    const a = i * GOLDEN_ANGLE - PI / 2, rr = R * 0.50 + R * 0.035 * Math.sin(i * 1.5);
+    if (i === 0) ctx.moveTo(winCX + rr * Math.cos(a), winCY + rr * Math.sin(a));
+    else ctx.lineTo(winCX + rr * Math.cos(a), winCY + rr * Math.sin(a));
+  }
+  ctx.stroke(); ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUDIO SYSTEM
+// ═══════════════════════════════════════════════════════════
+function initAudio() {
+  const ac = new (window.AudioContext || window.webkitAudioContext)();
+  const sr = ac.sampleRate;
+  const irLen = sr * 5;
+  const irBuf = ac.createBuffer(2, irLen, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = irBuf.getChannelData(ch);
+    const tau = irLen / 6.91;
+    const earlyTimes = [0.018, 0.032, 0.047, 0.061, 0.078, 0.095, 0.112];
+    const earlyGains = [0.7, 0.55, 0.45, 0.38, 0.30, 0.25, 0.20];
+    for (let i = 0; i < earlyTimes.length; i++) {
+      const idx = Math.floor(earlyTimes[i] * sr);
+      if (idx < irLen) for (let j = -3; j <= 3; j++) {
+        const k = idx + j;
+        if (k >= 0 && k < irLen) data[k] += earlyGains[i] * 0.5 * Math.exp(-j * j / 4) * (ch === 0 ? 1 : -1) ** (i % 2);
+      }
+    }
+    for (let i = Math.floor(0.08 * sr); i < irLen; i++) {
+      const noise = (Math.random() * 2 - 1 + Math.random() * 2 - 1 + Math.random() * 2 - 1) / 3;
+      data[i] += noise * Math.exp(-i / tau) * 0.35;
+    }
+  }
+  const conv = ac.createConvolver();
+  conv.buffer = irBuf;
+  const master = ac.createGain();
+  master.gain.value = 0;
+  master.gain.linearRampToValueAtTime(0.18, ac.currentTime + 6);
+  const dry = ac.createGain(); dry.gain.value = 0.25;
+  const wet = ac.createGain(); wet.gain.value = 0.75;
+  master.connect(dry); dry.connect(ac.destination);
+  master.connect(conv); conv.connect(wet); wet.connect(ac.destination);
+
+  const f0 = 130.81;
+  const voiceDefs = [
+    { name: 'seed', freqs: [f0, f0*2, f0*3, f0*4, f0*5, f0*6], amps: [0.30,0.18,0.10,0.06,0.03,0.02], baseGain: 0.5 },
+    { name: 'vesica', freqs: [f0*3/2, f0*3, f0*9/2], amps: [0.22,0.08,0.04], baseGain: 0.35 },
+    { name: 'trefoil', freqs: [f0*5/4, f0*5/2, f0*15/4], amps: [0.18,0.07,0.03], baseGain: 0.30 },
+    { name: 'golden', freqs: [f0*PHI, f0*PHI*1.002, f0*PHI*2, f0*PHI*PHI], amps: [0.14,0.14,0.05,0.03], baseGain: 0.22 },
+    { name: 'lancet', freqs: [f0*8, f0*12, f0*16, f0*24], amps: [0.06,0.04,0.025,0.015], baseGain: 0.18 },
+  ];
+  const voices = [];
+  for (const vd of voiceDefs) {
+    const vg = ac.createGain(); vg.gain.value = 0; vg.connect(master);
+    const oscs = [];
+    for (let i = 0; i < vd.freqs.length; i++) {
+      const osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.value = vd.freqs[i];
+      const og = ac.createGain(); og.gain.value = vd.amps[i];
+      osc.connect(og); og.connect(vg); osc.start();
+      oscs.push({ osc, gain: og, baseAmp: vd.amps[i], baseFreq: vd.freqs[i] });
+    }
+    voices.push({ name: vd.name, gain: vg, oscs, baseGain: vd.baseGain });
+  }
+  audio = { ac, master, dry, wet, conv, voices, voiceCurrent: [0,0,0,0,0] };
+}
+
+function updateAudio(cloudBreath, t) {
+  if (!audio) return;
+  audio.master.gain.value = ctrl.masterVolume;
+  audio.dry.gain.value = 1 - ctrl.reverbMix;
+  audio.wet.gain.value = ctrl.reverbMix;
+  for (let i = 0; i < audio.voices.length; i++) {
+    const ringPhase = [0.08, 0.11, 0.14, 0.17, 0.21][i];
+    const ringBreath = 0.55 + 0.45 * Math.sin(t * ringPhase) * Math.sin(t * ringPhase * 0.37 + i * 1.1);
+    const target = audio.voices[i].baseGain * cloudBreath * ringBreath * ctrl.ringGains[i] * ctrl.lightIntensity;
+    audio.voiceCurrent[i] += (target - audio.voiceCurrent[i]) * 0.035;
+    audio.voices[i].gain.gain.value = audio.voiceCurrent[i];
+    metrics.rings[i].gain = audio.voiceCurrent[i];
+    for (const o of audio.voices[i].oscs) {
+      const drift = Math.sin(t * 0.3 + o.baseFreq * 0.001) * 0.15;
+      o.osc.frequency.value = o.baseFreq + drift;
+    }
+  }
+  metrics.reverbTail = ctrl.reverbMix;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RESIZE
+// ═══════════════════════════════════════════════════════════
+function resize() {
+  const wrap = document.getElementById('canvas-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  W = rect.width; H = rect.height;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (graniteW !== Math.round(W) || graniteH !== Math.round(H)) {
+    buildGranite(Math.round(W), Math.round(H));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN RENDER LOOP
+// ═══════════════════════════════════════════════════════════
+function render() {
+  frameCount++;
+  const t = frameCount * 0.016;
+
+  const winCX = W * 0.5, winCY = H * 0.34, winR = Math.min(W, H) * 0.30;
+  const panes = genWindow(winCX, winCY, winR);
+  const cloudBreath = (0.85 + 0.15 * Math.sin(t * 0.08) * Math.sin(t * 0.031 + 1.7)) * ctrl.lightIntensity;
+  const spread = (0.35 + 0.12 * Math.sin(t * 0.09)) * ctrl.omega;
+
+  updateAudio(cloudBreath, t);
+
+  // Update metrics
+  metrics.cloudBreath = cloudBreath; metrics.spread = spread; metrics.t = t;
+  metrics.bloomPulse = 0.85 + 0.15 * Math.sin(t * 0.35);
+  for (let i = 0; i < 5; i++) {
+    const ringPhase = [0.08, 0.11, 0.14, 0.17, 0.21][i];
+    const rb = 0.55 + 0.45 * Math.sin(t * ringPhase) * Math.sin(t * ringPhase * 0.37 + i * 1.1);
+    metrics.rings[i].C = cloudBreath * rb;
+    metrics.rings[i].omega = [1/PI, 1/PI, 1/PI, 1/(PI*PHI), 1/(2*PI)][i] * ctrl.omega;
+    metrics.rings[i].expCO = Math.exp(metrics.rings[i].C / Math.max(0.01, metrics.rings[i].omega));
+  }
+  let ab = 0;
+  for (const p of panes) { if (0.07 * (p.r_approx / (winR * 0.05)) * cloudBreath >= 0.004) ab++; }
+  metrics.activeBeams = ab;
+
+  // Push to DOM at ~10fps
+  metricsTimer++;
+  if (metricsTimer % 6 === 0) updatePanel();
+
+  // ─── GRANITE ───
+  if (graniteCanvas) ctx.drawImage(graniteCanvas, 0, 0, W, H);
+  const ambS = ctx.createRadialGradient(winCX, winCY, winR * 0.3, winCX, winCY, winR * 3);
+  ambS.addColorStop(0, `rgba(35,28,20,${0.12 * cloudBreath})`); ambS.addColorStop(0.3, `rgba(25,20,15,${0.06 * cloudBreath})`); ambS.addColorStop(1, 'transparent');
+  ctx.fillStyle = ambS; ctx.fillRect(0, 0, W, H);
+
+  // ─── GOTHIC ARCH ───
+  ctx.save();
+  const archW = winR * 2.5, archTop = winCY - winR * 1.35, archL = winCX - archW / 2, archRt = winCX + archW / 2;
+  ctx.beginPath(); ctx.moveTo(archL - 35, H); ctx.lineTo(archL - 35, archTop + winR * 0.3);
+  ctx.quadraticCurveTo(archL - 15, archTop - 30, winCX, archTop - 50);
+  ctx.quadraticCurveTo(archRt + 15, archTop - 30, archRt + 35, archTop + winR * 0.3);
+  ctx.lineTo(archRt + 35, H); ctx.lineTo(W, H); ctx.lineTo(W, 0); ctx.lineTo(0, 0); ctx.lineTo(0, H); ctx.closePath();
+  const archG = ctx.createRadialGradient(winCX, winCY, winR * 0.8, winCX, winCY, winR * 2.2);
+  archG.addColorStop(0, 'rgba(26,22,16,0.85)'); archG.addColorStop(0.3, 'rgba(20,17,13,0.7)'); archG.addColorStop(1, 'rgba(12,10,8,0.5)');
+  ctx.fillStyle = archG; ctx.fill();
+  for (let pass = 0; pass < 2; pass++) {
+    const off = pass * 5;
+    ctx.beginPath(); ctx.moveTo(archL + off, archTop + winR * 0.3);
+    ctx.quadraticCurveTo(archL + 10 + off, archTop - 5 + off, winCX, archTop - 35 + off);
+    ctx.quadraticCurveTo(archRt - 10 - off, archTop - 5 + off, archRt - off, archTop + winR * 0.3);
+    ctx.strokeStyle = pass === 0 ? 'rgba(55,50,38,0.35)' : 'rgba(38,34,26,0.5)'; ctx.lineWidth = pass === 0 ? 3 : 7; ctx.stroke();
+  }
+  ctx.restore();
+
+  // ─── SKY ───
+  const skyG = ctx.createRadialGradient(winCX, winCY, 0, winCX, winCY, winR);
+  skyG.addColorStop(0, `rgba(190,200,225,${0.18 * cloudBreath})`); skyG.addColorStop(0.4, `rgba(150,165,195,${0.10 * cloudBreath})`);
+  skyG.addColorStop(0.8, `rgba(110,130,160,${0.05 * cloudBreath})`); skyG.addColorStop(1, 'transparent');
+  ctx.fillStyle = skyG; ctx.beginPath(); ctx.arc(winCX, winCY, winR, 0, TAU); ctx.fill();
+
+  // ─── PANES ───
+  for (const p of panes) p.draw(t);
+  drawTracery(winCX, winCY, winR, t);
+  ctx.beginPath(); ctx.arc(winCX, winCY, winR, 0, TAU);
+  ctx.strokeStyle = 'rgba(40,35,25,0.8)'; ctx.lineWidth = 7; ctx.stroke();
+  ctx.strokeStyle = 'rgba(55,48,35,0.25)'; ctx.lineWidth = 12; ctx.stroke();
+
+  // ─── GOD-RAYS ───
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const sunShift = Math.sin(t * 0.04) * 0.015;
+  for (const p of panes) {
+    const gc = G[p.colour]; const bc = bright(gc.glow, 1.3); const pR = p.r_approx;
+    const shimmer = 0.5 + 0.5 * Math.sin(t * 0.6 + p.cx * 0.03 + p.cy * 0.02);
+    const intensity = (pR / (winR * 0.05)) * cloudBreath; const beamA = 0.07 * shimmer * intensity;
+    if (beamA < 0.004) continue;
+    const dx = (p.cx - winCX) * 0.0025 + sunShift, endX = p.cx + dx * (H - p.cy) * 1.2, endY = H + 20, beamW = pR * 0.8 + (H - p.cy) * 0.06;
+    const bG = ctx.createLinearGradient(p.cx, p.cy, endX, endY);
+    bG.addColorStop(0, `rgba(${bc[0]},${bc[1]},${bc[2]},${beamA*0.5})`); bG.addColorStop(0.15, `rgba(${bc[0]},${bc[1]},${bc[2]},${beamA*0.35})`);
+    bG.addColorStop(0.5, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${beamA*0.15})`); bG.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.moveTo(p.cx, p.cy); ctx.lineTo(endX, endY); ctx.strokeStyle = bG; ctx.lineWidth = beamW; ctx.stroke();
+    const cG = ctx.createLinearGradient(p.cx, p.cy, endX, endY);
+    cG.addColorStop(0, `rgba(${bc[0]},${bc[1]},${bc[2]},${beamA*0.8})`); cG.addColorStop(0.1, `rgba(${bc[0]},${bc[1]},${bc[2]},${beamA*0.4})`);
+    cG.addColorStop(0.4, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${beamA*0.1})`); cG.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.moveTo(p.cx, p.cy); ctx.lineTo(endX, endY); ctx.strokeStyle = cG; ctx.lineWidth = beamW * 0.3; ctx.stroke();
+  }
+
+  // Mie scatter
+  for (let pi = 0; pi < panes.length; pi += 2) {
+    const p = panes[pi]; const gc = G[p.colour]; const pR = p.r_approx;
+    const shimmer = 0.5 + 0.5 * Math.sin(t * 0.7 + p.cx * 0.04 + p.cy * 0.02);
+    const bLen = H - p.cy + 20; const dx = (p.cx - winCX) * 0.0025 + sunShift;
+    for (let d = 25; d < bLen; d += 14) {
+      const prog = d / bLen, bx = p.cx + dx * d * (1 + spread * prog), by = p.cy + 0.016 * d;
+      const w = pR * 0.3 + d * 0.04, ext = Math.exp(-prog * 1.6), vis = Math.sin(prog * PI) * 0.6 + 0.4 * ext;
+      const a = ext * vis * shimmer * 0.04 * (pR / (winR * 0.04)) * cloudBreath;
+      if (a < 0.003) continue;
+      const turb = Math.sin(d * 0.012 + t * 0.4 + p.cx * 0.06) * w * 0.15;
+      ctx.fillStyle = `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${a})`;
+      ctx.beginPath(); ctx.arc(bx + turb, by, w, 0, TAU); ctx.fill();
+    }
+  }
+
+  // Bloom + warm
+  const bP = 0.85 + 0.15 * Math.sin(t * 0.35);
+  const blG = ctx.createRadialGradient(winCX, winCY, winR * 0.3, winCX, winCY, winR * 1.6);
+  blG.addColorStop(0, `rgba(180,160,220,${0.05*bP*cloudBreath})`); blG.addColorStop(0.2, `rgba(140,120,180,${0.03*bP*cloudBreath})`);
+  blG.addColorStop(0.5, `rgba(100,80,140,${0.012*bP*cloudBreath})`); blG.addColorStop(1, 'transparent');
+  ctx.fillStyle = blG; ctx.fillRect(0, 0, W, H);
+  const wG = ctx.createRadialGradient(winCX, winCY, winR * 0.15, winCX, H * 0.5, H * 0.45);
+  wG.addColorStop(0, `rgba(200,170,130,${(0.04+0.01*Math.sin(t*0.3))*cloudBreath})`); wG.addColorStop(0.2, 'rgba(160,130,90,0.018)'); wG.addColorStop(1, 'transparent');
+  ctx.fillStyle = wG; ctx.fillRect(0, 0, W, H);
+
+  // Fringe
+  const fA = 0.025 * cloudBreath;
+  for (let a = 0; a < TAU; a += TAU / 36) {
+    const fx = winCX + winR * 0.96 * Math.cos(a), fy = winCY + winR * 0.96 * Math.sin(a);
+    const fdx = Math.cos(a) * winR * 0.05, fdy = Math.sin(a) * winR * 0.05;
+    ctx.fillStyle = `rgba(200,60,30,${fA})`; ctx.beginPath(); ctx.arc(fx + fdx * 1.2, fy + fdy * 1.2, 3, 0, TAU); ctx.fill();
+    ctx.fillStyle = `rgba(30,60,200,${fA})`; ctx.beginPath(); ctx.arc(fx + fdx * 0.6, fy + fdy * 0.6, 2.5, 0, TAU); ctx.fill();
+  }
+
+  // Floor pools
+  const floorY = H * 0.90;
+  for (const p of panes) {
+    const gc = G[p.colour]; const dF = floorY - p.cy;
+    const fx = p.cx + (p.cx - winCX) * 0.0025 * dF * (1 + spread * 0.5) + sunShift * dF;
+    const pR2 = p.r_approx * 0.5 + dF * 0.03, pa = 0.06 * (p.r_approx / (winR * 0.04)) * cloudBreath;
+    const fG = ctx.createRadialGradient(fx, floorY, 0, fx, floorY, pR2);
+    fG.addColorStop(0, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${pa})`);
+    fG.addColorStop(0.4, `rgba(${gc.glow[0]},${gc.glow[1]},${gc.glow[2]},${pa*0.25})`); fG.addColorStop(1, 'transparent');
+    ctx.fillStyle = fG; ctx.beginPath(); ctx.ellipse(fx, floorY, pR2, pR2 * 0.2, 0, 0, TAU); ctx.fill();
+  }
+
+  // Dust motes
+  for (const m of motes) {
+    m.x += m.vx + Math.sin(t * 0.2 + m.ph) * 0.00008; m.y += m.vy + Math.cos(t * 0.15 + m.ph) * 0.00004;
+    if (m.y < -0.03) { m.y = 1.03; m.x = Math.random(); } if (m.x < -0.03) m.x = 1.03; if (m.x > 1.03) m.x = -0.03;
+    const mx = m.x * W, my = m.y * H, twinkle = 0.2 + 0.8 * Math.pow(Math.sin(t * 1.8 + m.ph), 2);
+    let bestC = null, bestI = 0;
+    for (let ri = 0; ri < panes.length; ri += 3) {
+      const p = panes[ri]; if (my < p.cy) continue; const gc = G[p.colour]; const dP = my - p.cy;
+      const dx2 = (p.cx - winCX) * 0.0025 + sunShift, bCtr = p.cx + dx2 * dP * (1 + spread * (dP / (H - p.cy)));
+      const bW2 = p.r_approx * 0.5 + dP * 0.06, dist = Math.abs(mx - bCtr);
+      if (dist < bW2) {
+        const inB = 1 - dist / bW2, ext = Math.exp(-dP / (H * 0.5)), intens = inB * ext * p.r_approx / (winR * 0.06);
+        if (intens > bestI) { bestI = intens; bestC = gc; }
+      }
+    }
+    if (bestC && bestI > 0.04) {
+      const a2 = bestI * m.br * twinkle * 0.6 * cloudBreath, sz = m.sz * (0.7 + 0.5 * bestI);
+      const mG = ctx.createRadialGradient(mx, my, 0, mx, my, sz);
+      mG.addColorStop(0, `rgba(${bestC.glow[0]},${bestC.glow[1]},${bestC.glow[2]},${a2})`);
+      mG.addColorStop(0.3, `rgba(255,250,230,${a2*0.2})`); mG.addColorStop(1, 'transparent');
+      ctx.fillStyle = mG; ctx.beginPath(); ctx.arc(mx, my, sz, 0, TAU); ctx.fill();
+    } else {
+      const a2 = m.br * twinkle * 0.03;
+      if (a2 > 0.004) { ctx.fillStyle = `rgba(150,140,125,${a2})`; ctx.beginPath(); ctx.arc(mx, my, m.sz * 0.3, 0, TAU); ctx.fill(); }
+    }
+  }
+  ctx.restore();
+
+  // Ambient + floor + vignette
+  const aG = ctx.createRadialGradient(winCX, winCY, winR * 0.4, winCX, H * 0.65, H * 0.55);
+  aG.addColorStop(0, `rgba(200,180,140,${0.025*cloudBreath})`); aG.addColorStop(0.25, `rgba(180,160,130,${0.012*cloudBreath})`); aG.addColorStop(1, 'transparent');
+  ctx.fillStyle = aG; ctx.fillRect(0, 0, W, H);
+  ctx.beginPath(); ctx.moveTo(0, H * 0.92); ctx.lineTo(W, H * 0.92); ctx.strokeStyle = 'rgba(50,45,35,0.18)'; ctx.lineWidth = 1; ctx.stroke();
+  const flG = ctx.createLinearGradient(0, H * 0.87, 0, H);
+  flG.addColorStop(0, 'rgba(15,13,10,0.25)'); flG.addColorStop(1, 'rgba(10,9,7,0.55)');
+  ctx.fillStyle = flG; ctx.fillRect(0, H * 0.87, W, H * 0.13);
+  const vG = ctx.createRadialGradient(W / 2, H * 0.38, Math.min(W, H) * 0.28, W / 2, H * 0.5, Math.max(W, H) * 0.82);
+  vG.addColorStop(0, 'transparent'); vG.addColorStop(0.55, 'rgba(5,4,3,0.18)'); vG.addColorStop(1, 'rgba(5,4,3,0.65)');
+  ctx.fillStyle = vG; ctx.fillRect(0, 0, W, H);
+
+  animId = requestAnimationFrame(render);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PANEL UI BUILD & UPDATE
+// ═══════════════════════════════════════════════════════════
+function buildPanel() {
+  // Rings
+  const rc = document.getElementById('rings-container');
+  rc.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const r = metrics.rings[i];
+    const card = document.createElement('div');
+    card.className = 'ring-card';
+    card.style.borderLeftColor = ringColors[i] + '30';
+    card.id = `ring-card-${i}`;
+    card.innerHTML = `
+      <div class="ring-header">
+        <span class="ring-name" style="color:${ringColors[i]}">
+          <span style="margin-right:4px">${ringSymbols[i]}</span>${r.name}<span class="ring-sym">${r.sym}</span>
+        </span>
+        <span class="ring-freq">${r.freq}</span>
+      </div>
+      <div class="ring-stats" id="ring-stats-${i}">
+        <span>C<sub style="font-size:7px">ₕ</sub>=<span class="rs-c">0.000</span></span>
+        <span>Ω=<span class="rs-o">0.0000</span></span>
+        <span class="exp-val" style="color:${ringColors[i]}">e<sup>C/Ω</sup>=<span class="rs-e">0.0</span></span>
+        <span>gain=<span class="rs-g">0.000</span></span>
+      </div>
+      <input type="range" class="ring-slider" min="0" max="2" step="0.01" value="1"
+        style="accent-color:${ringColors[i]}" data-ring="${i}">
+    `;
+    rc.appendChild(card);
+  }
+  rc.addEventListener('input', e => {
+    if (e.target.dataset.ring !== undefined) {
+      ctrl.ringGains[parseInt(e.target.dataset.ring)] = parseFloat(e.target.value);
+    }
+  });
+
+  // Metrics
+  const mc = document.getElementById('metrics-container');
+  const metricDefs = [
+    { id: 'mc-cb', label: 'Cloud Breath (C)', color: 'rgba(230,220,200,0.7)' },
+    { id: 'mc-sp', label: 'Beam Spread (Ω)', color: 'rgba(200,170,80,0.7)' },
+    { id: 'mc-bp', label: 'Bloom Pulse', color: 'rgba(180,160,220,0.7)' },
+    { id: 'mc-ab', label: 'Active Beams', color: 'rgba(220,180,100,0.7)' },
+    { id: 'mc-dm', label: 'Dust Motes', color: 'rgba(200,185,155,0.6)' },
+    { id: 'mc-rv', label: 'Reverb Tail', color: 'rgba(160,180,200,0.7)' },
+    { id: 'mc-t', label: 'Time (t)', color: 'rgba(200,185,155,0.6)' },
+  ];
+  mc.innerHTML = '';
+  for (const md of metricDefs) {
+    mc.innerHTML += `<div class="metric-row"><span class="metric-label">${md.label}</span><span class="metric-val" id="${md.id}" style="color:${md.color}">—</span></div>`;
+  }
+
+  // Exp bars
+  const eb = document.getElementById('exp-bars');
+  eb.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    eb.innerHTML += `<div class="exp-bar-col"><div class="exp-bar" id="exp-bar-${i}" style="height:0;background:${ringColors[i]}60;box-shadow:0 0 4px ${ringColors[i]}20"></div><div class="exp-bar-label">${ringSymbols[i]}</div></div>`;
+  }
+
+  // Sliders
+  const sc = document.getElementById('sliders-container');
+  const sliderDefs = [
+    { key: 'lightIntensity', label: 'Solar Intensity', min: 0, max: 2, step: 0.01, color: '#e8c832' },
+    { key: 'omega', label: 'Ω (Precision)', min: 0.1, max: 3, step: 0.01, color: '#c8a050' },
+    { key: 'masterVolume', label: 'Master Volume', min: 0, max: 0.4, step: 0.01, color: '#70a0d0' },
+    { key: 'reverbMix', label: 'Reverb Mix', min: 0, max: 1, step: 0.01, color: '#a080c0' },
+  ];
+  sc.innerHTML = '';
+  for (const sd of sliderDefs) {
+    sc.innerHTML += `
+      <div class="slider-row">
+        <span class="slider-label">${sd.label}</span>
+        <input type="range" class="slider-input" min="${sd.min}" max="${sd.max}" step="${sd.step}" value="${ctrl[sd.key]}" data-key="${sd.key}" style="accent-color:${sd.color}">
+        <span class="slider-val" id="sv-${sd.key}">${ctrl[sd.key].toFixed(2)}</span>
+      </div>`;
+  }
+  sc.addEventListener('input', e => {
+    if (e.target.dataset.key) {
+      ctrl[e.target.dataset.key] = parseFloat(e.target.value);
+      document.getElementById('sv-' + e.target.dataset.key).textContent = parseFloat(e.target.value).toFixed(2);
+    }
+  });
+
+  // Equations
+  const eq = document.getElementById('equations');
+  eq.innerHTML = `
+    <div>C(x,t) = ∫L(x,τ)dτ</div>
+    <div>δ(now) — rupture</div>
+    <div>R = ∫φ·exp(C/Ω)·Θ dτ</div>
+    <div class="omega-line" style="margin-top:2px">Ω<sub>Z₂</sub> = 1/π ≈ ${(1/PI).toFixed(5)}</div>
+    <div class="omega-line">Ω<sub>SO(2)</sub> = 1/2π ≈ ${(1/TAU).toFixed(5)}</div>`;
+}
+
+function updatePanel() {
+  // Header status
+  document.getElementById('header-status').textContent =
+    `C=${metrics.cloudBreath.toFixed(3)} · Ω=${metrics.spread.toFixed(3)} · beams=${metrics.activeBeams}`;
+
+  // Ring stats
+  for (let i = 0; i < 5; i++) {
+    const rs = document.getElementById(`ring-stats-${i}`);
+    if (!rs) continue;
+    const r = metrics.rings[i];
+    rs.querySelector('.rs-c').textContent = r.C.toFixed(3);
+    rs.querySelector('.rs-o').textContent = r.omega.toFixed(4);
+    rs.querySelector('.rs-e').textContent = r.expCO < 1000 ? r.expCO.toFixed(1) : '∞';
+    rs.querySelector('.rs-g').textContent = r.gain.toFixed(3);
+  }
+
+  // Global metrics
+  document.getElementById('mc-cb').textContent = metrics.cloudBreath.toFixed(4);
+  document.getElementById('mc-sp').textContent = metrics.spread.toFixed(4);
+  document.getElementById('mc-bp').textContent = metrics.bloomPulse.toFixed(4);
+  document.getElementById('mc-ab').textContent = metrics.activeBeams;
+  document.getElementById('mc-dm').textContent = metrics.moteCount;
+  document.getElementById('mc-rv').textContent = (metrics.reverbTail * 100).toFixed(0) + '%';
+  document.getElementById('mc-t').textContent = metrics.t.toFixed(2) + 's';
+
+  // Exp bars
+  for (let i = 0; i < 5; i++) {
+    const bar = document.getElementById(`exp-bar-${i}`);
+    if (bar) {
+      const h = Math.min(1, Math.log(metrics.rings[i].expCO + 1) / 8) * 30;
+      bar.style.height = h + 'px';
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PANEL TOGGLE
+// ═══════════════════════════════════════════════════════════
+panelHeader.addEventListener('click', () => {
+  panel.classList.toggle('collapsed');
+});
+
+// ═══════════════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════════════
+splash.addEventListener('click', () => {
+  splash.classList.add('hidden');
+  app.classList.add('active');
+  setTimeout(() => { splash.style.display = 'none'; }, 800);
+
+  initAudio();
+  buildPanel();
+  resize();
+
+  const ro = new ResizeObserver(resize);
+  ro.observe(document.getElementById('canvas-wrap'));
+
+  animId = requestAnimationFrame(render);
+});
+</script>
+</body>
+</html>
