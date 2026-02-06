@@ -81,8 +81,14 @@ body{background:#030204;color:rgba(200,185,155,0.85);font-family:'Cormorant Gara
 #blake-bar .blake-source{font-size:clamp(7px,1vw,8.5px);color:rgba(200,185,155,.18);letter-spacing:.06em;font-style:normal;margin-left:8px}
 @media(max-width:700px){
   #panel{max-height:55vh}
-  #panel.collapsed{max-height:36px}
+  #panel.collapsed{max-height:44px;border-top:1px solid rgba(160,130,70,.3)}
   #panel-header{padding:8px 14px}
+  #panel.collapsed #panel-header{justify-content:center}
+  #panel.collapsed #panel-header .status-text{display:none}
+  #panel.collapsed #panel-header .arrow{font-size:16px;color:rgba(200,185,155,.6);animation:unfurl-pulse 2.5s ease-in-out infinite}
+  #panel.collapsed #panel-header .label::after{content:'  ·  tap to open';font-size:8px;color:rgba(200,185,155,.3);letter-spacing:.06em}
+  #panel:not(.collapsed) #panel-header .label::after{content:''}
+  @keyframes unfurl-pulse{0%,100%{opacity:.6;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}
   #panel-body{flex-direction:column;gap:8px;padding:8px 10px 14px}
   #rings-col,#metrics-col,#sliders-col{border-right:none;border-bottom:1px solid var(--gbd);padding-right:0;padding-bottom:8px}
   #metrics-col{padding-left:0}#sliders-col{padding-left:0}
@@ -1997,6 +2003,60 @@ const GEO_SHAPES=[
     { name: 'Flower of Aphrodite', desc: 'Venus rose - the goddess traces love every eight years' }
 ];
 
+// §GEO.Ω — CRR Constants (from symmetry → Ω derivation), used by both
+// geometry generators and particle dynamics. Defined here before first use.
+const OMEGA_Z2  = 1 / PI;          // 0.31831...
+const OMEGA_SO2 = 1 / TAU;         // 0.15915...
+const OMEGA_PHI = 1 / (PI * PHI);  // 0.19653...
+const CV_Z2     = OMEGA_Z2 / 2;    // 0.15915...
+const CV_SO2    = OMEGA_SO2 / 2;   // 0.07958...
+
+// §GEO.SYM — Symmetry class per geometry, determining Ω for particle dynamics.
+// Each shape's generator already uses the correct OMEGA_* constant for target
+// positions; this maps that same symmetry into the LIVE particle physics.
+const GEO_SYMMETRY = [
+  'Z2',  // 0  Flower of Life — Z₆ hexagonal ≡ Z₂ base
+  'SO2', // 1  Torus — SO(2)×SO(2) double rotation
+  'phi', // 2  Fibonacci Spiral — golden-angle packing
+  'Z2',  // 3  Metatron's Cube — Z₆ full connectivity
+  'Z2',  // 4  Double Helix — Z₂ phase-locked strands
+  'Z2',  // 5  Lemniscate — Z₂ bistable attractor
+  'Z2',  // 6  Vesica Piscis — Z₂ two-center overlap
+  'Z2',  // 7  Sri Yantra — Z₂ alternating triangles
+  'Z2',  // 8  Lorenz Attractor — Z₂ butterfly basins
+  'SO2', // 9  Klein Bottle — SO(2) no discrete boundary
+  'SO2', // 10 Hopf Fibration — SO(2) continuous fibers
+  'Z2',  // 11 Penrose Tiling — Z₅ aperiodic → Z₂ base
+  'phi', // 12 Nautilus Shell — φ-growth logarithmic spiral
+  'Z2',  // 13 Tree of Life — Z₂ pillar symmetry
+  'Z2',  // 14 Yin Yang — Z₂ complementary duality
+  'SO2', // 15 Ouroboros — SO(2) continuous cycle
+  'Z2',  // 16 Seed of Life — Z₆ ≡ Z₂ base
+  'Z2',  // 17 Fruit of Life — Z₆ × 2 rings
+  'Z2',  // 18 Merkaba — Z₂ counter-rotating tetrahedra
+  'phi', // 19 Icosahedron — I_h uses golden ratio
+  'phi', // 20 Dodecahedron — I_h dual, pentagonal φ-faces
+  'Z2',  // 21 Tetrahedron — T_d ≡ Z₂ alternating cube
+  'Z2',  // 22 Octahedron — O_h ≡ Z₂ axial symmetry
+  'Z2',  // 23 Cube — O_h ≡ Z₂ Hamming distance
+  'Z2',  // 24 64 Tetrahedron Grid — Z₂ close-packing
+  'Z2',  // 25 Enneagram — Z₉ ≡ Z₂ base
+  'Z2',  // 26 Labyrinth — Z₂ unicursal alternation
+  'SO2', // 27 Torus Knot — SO(2) wound trajectory
+  'phi', // 28 Rose (Rhodonea) — Z₅ pentagonal ≡ φ
+  'SO2', // 29 Gordian Knot — SO(2) coupled oscillators
+  'Z2',  // 30 Tesseract — Z₂ binary hypercube
+  'Z2',  // 31 Star of David — Z₃ × Z₂ interlocking
+  'Z2',  // 32 Ankh — Z₂ loop/axis structure
+  'Z2',  // 33 Caduceus — Z₂ phase-shifted serpents
+  'Z2',  // 34 Borromean Rings — Z₃ emergent ≡ Z₂ base
+  'SO2', // 35 Möbius Strip — SO(2) one-sided continuity
+  'Z2',  // 36 Apollonian Gasket — Z₂ recursive tangency
+  'Z2',  // 37 Mandelbrot — Z₂ escape/bounded boundary
+  'Z2',  // 38 Dragon Curve — Z₂ L-system folding
+  'phi'  // 39 Flower of Aphrodite — Venus φ-resonance
+];
+
 const GEO = {
   active: false,
   canvas: null,
@@ -2005,8 +2065,9 @@ const GEO = {
   // State arrays
   px: null, py: null, pvx: null, pvy: null,
   coh: null, phase: null, tx: null, ty: null, hasT: null,
-  // CRR parameters
-  OMEGA: 0.10, FORM: 1.0, DECAY: 0.99, IRID: 1.0,
+  // CRR parameters — now derived from symmetry class × ctrl.omega (precision slider)
+  // omegaBase set per-geometry from GEO_SYMMETRY; effective Ω = omegaBase × ctrl.omega
+  omegaBase: OMEGA_Z2, FORM: 1.0, IRID: 1.0,
   // Grid
   CELL: 50, gridW: 0, gridH: 0, grid: null, gridCounts: null, MAX_CELL: 25,
   // Shape state
@@ -2122,6 +2183,10 @@ const GEO = {
 
   setGeometry(idx) {
     this.currentShape = idx;
+    // §GEO.CRR.3 — Set omegaBase from geometry's symmetry class
+    // This flows through to the particle dynamics via OM = omegaBase × ctrl.omega
+    const sym = GEO_SYMMETRY[idx] || 'Z2';
+    this.omegaBase = sym === 'Z2' ? OMEGA_Z2 : sym === 'SO2' ? OMEGA_SO2 : OMEGA_PHI;
     const N = this.N, s = this.scale, cx = this.cx, cy = this.cy;
     let pts;
     switch(idx) {
@@ -2171,11 +2236,16 @@ const GEO = {
     const indices = Array.from({length:N},(_,i)=>i);
     for(let i=indices.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[indices[i],indices[j]]=[indices[j],indices[i]];}
     // Assign targets + partial rupture (δ)
+    // §GEO.CRR.4 — Rupture coherence drop derived from Ω:
+    // Low Ω (SO₂=0.159): deep rupture, more coherence lost → retention ≈ 0.60
+    // High Ω (Z₂=0.318): shallow rupture, less coherence lost → retention ≈ 0.69
+    // φ (0.197) lands at ≈ 0.62 — near 1/φ = 0.618 (a beautiful coincidence)
+    const ruptureRetain = 0.5 + 0.6 * this.omegaBase;
     for(let i=0;i<N;i++){
       const pi=indices[i]%pts.length;
       this.tx[i]=cx+pts[pi][0]; this.ty[i]=cy+pts[pi][1];
       this.hasT[i]=1;
-      this.coh[i]*=0.65; // rupture — coherence drops, must regenerate
+      this.coh[i]*=ruptureRetain; // rupture — coherence drops, must regenerate
     }
     this.freePlay = false;
     this.shapeName = GEO_SHAPES[idx] ? GEO_SHAPES[idx].name : '';
@@ -2207,12 +2277,38 @@ const GEO = {
     if(this.predActive){this.predDecay*=0.96;if(this.predDecay<0.01)this.predActive=false;}
     this.windAngle+=(Math.sin(this.time*0.08)*0.4-this.windAngle)*0.008;
     const windX=Math.cos(this.windAngle)*0.2,windY=Math.sin(this.windAngle)*0.2;
-    const N=this.N,OM=this.OMEGA,DK=this.DECAY,FA=this.FORM,C=this.CELL;
+    const N=this.N,FA=this.FORM,C=this.CELL;
+    // §GEO.CRR — Effective Ω = symmetry base × precision slider (ctrl.omega)
+    // This is the SAME ctrl.omega that modulates every other CRR agent in the church.
+    // Low Ω (peaked exp(C/Ω)): rigid memory → particles lock onto targets, resist neighbors
+    // High Ω (flat exp(C/Ω)): fluid memory → particles flow freely, align with collective
+    const OM=this.omegaBase*ctrl.omega;
+    // DECAY (coherence retention): derived from Ω via exp(-λ/Ω)
+    // Low Ω → peaked kernel → frequent micro-ruptures disrupt coherence → faster decay
+    // High Ω → flat kernel → coherence persists smoothly → slower decay
+    // λ=0.003 calibrated so Z₂ at slider=1 gives DK≈0.991 (matches original 0.99)
+    const DK=Math.max(0.90,Math.min(0.998,1-0.003/Math.max(0.01,OM)));
+    // §GEO.CRR.2 — Flocking weights derived from effective Ω
+    // These scale relative to Z₂ at slider=1 (OMEGA_Z2) as reference.
+    // Separation ∝ 1/Ω: low Ω → rigid Markov blanket → strong boundary repulsion
+    // Alignment ∝ Ω: high Ω → porous boundaries → align with collective flow
+    // cohBoost ∝ Ω: high Ω → faster coherence accumulation near targets (transformative)
+    const _omRef=OMEGA_Z2; // reference: Z₂ at slider=1
+    const sepW=0.06*_omRef/Math.max(0.03,OM);
+    const aliW=0.03*OM/_omRef;
+    const cohBoost=0.003*OM/_omRef;
     const gW=this.gridW,gH=this.gridH,MC=this.MAX_CELL;
+    // §GEO.OPT — Alternate-frame batching: only half the particles run the expensive
+    // O(neighbors) flocking search each frame. ALL particles still get target pull,
+    // wind, boundary, and velocity updates every frame. At 60fps the 1-frame flocking
+    // delay is imperceptible, but the neighbor search cost is halved.
+    const batch=Math.floor(this.time*60)&1;
     for(let i=0;i<N;i++){
       const ppx=this.px[i],ppy=this.py[i],ppvx=this.pvx[i],ppvy=this.pvy[i];
+      let nc=0,sepX=0,sepY=0,cohX=0,cohY=0,tcw=0,wvx=0,wvy=0;
+      if((i&1)===batch){
       const gx=Math.floor(ppx/C)+1,gy=Math.floor(ppy/C)+1;
-      let sumVx=0,sumVy=0,sepX=0,sepY=0,cohX=0,cohY=0,nc=0,tcw=0,wvx=0,wvy=0;
+      let sumVx=0,sumVy=0;
       for(let dy=-1;dy<=1;dy++){for(let dx=-1;dx<=1;dx++){
         const cxi=gx+dx,cyi=gy+dy;
         if(cxi<0||cxi>=gW||cyi<0||cyi>=gH)continue;
@@ -2237,22 +2333,27 @@ const GEO = {
         const dot=(ppvx*avx+ppvy*avy)/(sp*asp);
         this.coh[i]=this.coh[i]*DK+((dot+1)*0.5)*(1-DK);
       }
+      } // end batch check
       let ax=0,ay=0;
-      // Geometric regeneration: F = α·exp(C/Ω)·(target-pos)/|d|
+      // Geometric regeneration: F = α·exp((C−C_mid)/Ω)·(target-pos)/|d|
+      // Centered at C_mid=0.5: pull≈2.0 at mid-coherence regardless of Ω.
+      // Low Ω → peaked: only high-coherence particles pulled strongly (rigid reconstitution)
+      // High Ω → flat: all particles pulled uniformly (fluid transformation)
+      // This IS precision-weighting: deviation from expected coherence, scaled by 1/Ω.
       if(this.hasT[i]){
         const dx=this.tx[i]-ppx,dy=this.ty[i]-ppy;
         const d=Math.sqrt(dx*dx+dy*dy)+0.001;
-        const pull=FA*Math.exp(this.coh[i]/OM)*0.012;
+        const pull=FA*Math.exp(Math.min(8,(this.coh[i]-0.5)/OM))*2.0;
         const df=Math.min(d*0.008,1);
         ax+=dx/d*pull*df;ay+=dy/d*pull*df;
-        if(d<25)this.coh[i]=Math.min(1,this.coh[i]+0.003);
+        if(d<25)this.coh[i]=Math.min(1,this.coh[i]+cohBoost);
       }
       // Flocking
       if(nc>0){
         cohX/=nc;cohY/=nc;
         ax+=(cohX-ppx)*0.005;ay+=(cohY-ppy)*0.005;
-        if(tcw>0){wvx/=tcw;wvy/=tcw;ax+=(wvx-ppvx)*0.03;ay+=(wvy-ppvy)*0.03;}
-        ax+=sepX*0.06;ay+=sepY*0.06;
+        if(tcw>0){wvx/=tcw;wvy/=tcw;ax+=(wvx-ppvx)*aliW;ay+=(wvy-ppvy)*aliW;}
+        ax+=sepX*sepW;ay+=sepY*sepW;
       }
       // Wind
       const wf=this.hasT[i]?0.008:0.02;
@@ -2342,12 +2443,7 @@ const GEO = {
 //   SO(2) symmetry: Ω = 1/2π  (full-cycle phase to rupture)
 //   Golden (φ):     Ω = 1/πφ  (golden-ratio-modulated phase)
 //   CV = Ω/2        (coefficient of variation, matches empirical data to ~1%)
-
-const OMEGA_Z2  = 1 / PI;          // 0.31831...
-const OMEGA_SO2 = 1 / TAU;         // 0.15915...
-const OMEGA_PHI = 1 / (PI * PHI);  // 0.19653...
-const CV_Z2     = OMEGA_Z2 / 2;    // 0.15915...
-const CV_SO2    = OMEGA_SO2 / 2;   // 0.07958...
+// CRR Constants: see §GEO.Ω above (OMEGA_Z2, OMEGA_SO2, OMEGA_PHI, CV_Z2, CV_SO2)
 
 // ─── SHARED CRR PRIMITIVES ──────────────────────────────────────────────────
 
