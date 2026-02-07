@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRR String Dynamics</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #060810;
+    color: #c8d6e5;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #titleBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid rgba(100,140,200,0.1);
+    background: rgba(10,14,22,0.9);
+    z-index: 10;
+    flex-shrink: 0;
+  }
+
+  #titleBar .left { display: flex; align-items: center; gap: 12px; }
+
+  #phaseIndicator {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #6B7280;
+    transition: all 0.3s;
+  }
+
+  #titleBar .label {
+    font-size: 13px; font-weight: 600; letter-spacing: 1.5px;
+    text-transform: uppercase; color: #8899aa;
+  }
+
+  #titleBar .right { font-size: 11px; color: #556677; }
+
+  #canvasWrap {
+    flex: 1; position: relative; min-height: 0;
+  }
+
+  #mainCanvas {
+    width: 100%; height: 100%; display: block; cursor: crosshair;
+  }
+
+  #crrPanel {
+    position: absolute; top: 16px; left: 20px;
+    background: rgba(8,12,20,0.85);
+    border: 1px solid rgba(100,140,200,0.15);
+    border-radius: 8px; padding: 12px 16px;
+    font-size: 11px; line-height: 1.8;
+    backdrop-filter: blur(10px);
+  }
+
+  #crrPanel .panelTitle {
+    font-weight: 700; font-size: 10px; letter-spacing: 1.5px;
+    color: #667788; margin-bottom: 4px; text-transform: uppercase;
+  }
+
+  #crrPanel .row { display: flex; gap: 6px; }
+  #crrPanel .lbl { color: #778899; }
+  #crrPanel .val { color: #e8d5b5; }
+  #crrPanel .sub { color: #556; font-size: 10px; }
+  #crrPanel .eq {
+    margin-top: 6px; border-top: 1px solid rgba(100,140,200,0.1);
+    padding-top: 6px; color: #778899;
+  }
+
+  #legendPanel {
+    position: absolute; top: 16px; right: 20px;
+    background: rgba(8,12,20,0.85);
+    border: 1px solid rgba(100,140,200,0.15);
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 10px; backdrop-filter: blur(10px);
+    display: flex; flex-direction: column; gap: 5px;
+  }
+
+  #legendPanel .panelTitle {
+    font-weight: 700; font-size: 9px; letter-spacing: 1.5px;
+    color: #667788; text-transform: uppercase;
+  }
+
+  .legendItem { display: flex; align-items: center; gap: 8px; color: #99aabb; }
+
+  .legendDot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
+  #pluckHint {
+    position: absolute; left: 50%; transform: translate(-50%, 0);
+    color: rgba(180,200,220,0.3); font-size: 12px; letter-spacing: 1px;
+    pointer-events: none;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+  }
+
+  #controls {
+    padding: 12px 20px;
+    border-top: 1px solid rgba(100,140,200,0.1);
+    background: rgba(10,14,22,0.95);
+    display: flex; flex-direction: column; gap: 10px;
+    flex-shrink: 0;
+  }
+
+  #stringRow {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+
+  #stringRow .rowLabel {
+    font-size: 10px; color: #667788; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase; width: 60px;
+  }
+
+  .strBtn {
+    padding: 5px 10px; font-size: 11px; border-radius: 4px;
+    border: 1px solid rgba(100,140,200,0.15);
+    background: rgba(20,26,40,0.8);
+    color: #778899; cursor: pointer;
+    font-family: inherit; font-weight: 400;
+    transition: all 0.2s;
+  }
+
+  .strBtn.active { font-weight: 600; }
+
+  #slidersRow {
+    display: flex; gap: 24px; align-items: center; flex-wrap: wrap;
+  }
+
+  .sliderGroup {
+    display: flex; align-items: center; gap: 8px;
+    flex: 1; min-width: 180px;
+  }
+
+  .sliderGroup .sLabel {
+    font-size: 10px; color: #667788; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase; white-space: nowrap;
+  }
+
+  .sliderGroup input[type=range] {
+    flex: 1; height: 3px;
+    -webkit-appearance: none; appearance: none;
+    background: rgba(100,140,200,0.2);
+    border-radius: 2px; outline: none;
+  }
+
+  .sliderGroup input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #5B8DEF; cursor: pointer;
+  }
+
+  .sliderGroup .sVal {
+    font-size: 10px; color: #99aabb; text-align: right;
+  }
+
+  #toggleGroup { display: flex; gap: 12px; align-items: center; }
+
+  .togBtn {
+    padding: 4px 10px; font-size: 10px; border-radius: 4px;
+    border: 1px solid rgba(100,140,200,0.15);
+    background: rgba(20,26,40,0.6);
+    color: #556677; cursor: pointer;
+    font-family: inherit; font-weight: 600;
+    letter-spacing: 0.5px; transition: all 0.2s;
+  }
+
+  .togBtn.on { background: rgba(80,160,255,0.1); }
+
+  #pluckBtn {
+    padding: 6px 20px; font-size: 11px; border-radius: 4px;
+    border: 1px solid rgba(255,180,60,0.4);
+    background: linear-gradient(180deg, rgba(255,180,60,0.15), rgba(255,140,30,0.08));
+    color: #FFB43C; cursor: pointer;
+    font-family: inherit; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  #pluckBtn:hover { border-color: rgba(255,180,60,0.7); }
+</style>
+</head>
+<body>
+
+<div id="titleBar">
+  <div class="left">
+    <div id="phaseIndicator"></div>
+    <span class="label">CRR String Dynamics</span>
+  </div>
+  <div class="right" id="titleInfo">Ω = 0.105 | f₁ = 82.41 Hz | Wound 0.046"</div>
+</div>
+
+<div id="canvasWrap">
+  <canvas id="mainCanvas"></canvas>
+
+  <div id="crrPanel">
+    <div class="panelTitle">CRR State</div>
+    <div class="row"><span class="lbl">Phase:</span> <span id="phaseName" style="font-weight:600;color:#6B7280">Rest</span></div>
+    <div class="row"><span class="lbl">C(x,t):</span> <span class="val" id="cohVal">0.0000</span></div>
+    <div class="row"><span class="lbl">Ω:</span> <span class="val" id="omVal">0.1050</span> <span class="sub" id="symLabel">(Z₂)</span></div>
+    <div class="row"><span class="lbl">exp(C/Ω):</span> <span class="val" id="envVal">—</span></div>
+    <div class="row"><span class="lbl">f_diegetic:</span> <span class="val" id="diegFreq">—</span></div>
+    <div class="eq">R = ∫φ·exp(C/Ω)·Θ dτ</div>
+  </div>
+
+  <div id="legendPanel">
+    <div class="panelTitle">Phase Legend</div>
+    <div class="legendItem"><div class="legendDot" style="background:#3B82F6;box-shadow:0 0 4px #3B82F6"></div>C — Coherence (building)</div>
+    <div class="legendItem"><div class="legendDot" style="background:#EF4444;box-shadow:0 0 4px #EF4444"></div>δ — Rupture (zero-cross)</div>
+    <div class="legendItem"><div class="legendDot" style="background:#10B981;box-shadow:0 0 4px #10B981"></div>R — Regeneration</div>
+  </div>
+
+  <div id="pluckHint">Click anywhere to pluck</div>
+</div>
+
+<div id="controls">
+  <div id="stringRow">
+    <span class="rowLabel">String</span>
+  </div>
+  <div id="slidersRow">
+    <div class="sliderGroup">
+      <span class="sLabel">Slow-Mo</span>
+      <input type="range" id="slowSlider" min="0" max="100" value="50">
+      <span class="sVal" id="slowLabel" style="width:60px">100×</span>
+    </div>
+    <div class="sliderGroup">
+      <span class="sLabel">Pluck Pos</span>
+      <input type="range" id="pluckSlider" min="5" max="95" value="25">
+      <span class="sVal" id="pluckLabel" style="width:40px">25%</span>
+    </div>
+    <div class="sliderGroup">
+      <span class="sLabel" title="Virtual microphone position along string">🎤 Mic</span>
+      <input type="range" id="micSlider" min="10" max="90" value="68" style="accent-color:#E8815B">
+      <span class="sVal" id="micLabel" style="width:40px">68%</span>
+    </div>
+    <div id="toggleGroup">
+      <button class="togBtn on" id="togAir" data-key="air">Air</button>
+      <button class="togBtn on" id="togWaves" data-key="waves">Waves</button>
+      <button class="togBtn on" id="togCRR" data-key="crr">CRR</button>
+      <button class="togBtn on" id="togSound" data-key="sound" style="color:#F5A623;border-color:#F5A623">🔊</button>
+    </div>
+    <div class="sliderGroup" style="min-width:100px;flex:0.5">
+      <span class="sLabel">Vol</span>
+      <input type="range" id="volSlider" min="0" max="100" value="50" style="accent-color:#F5A623">
+    </div>
+    <button id="pluckBtn">▶ Pluck</button>
+  </div>
+</div>
+
+<script>
+const STRING_DATA = {
+  E2: { name: "E₂ (Low E)", freq: 82.41, gauge: 0.046, wound: true, omega: 0.105, color: "#d4a574", harmonics: 12, tension: 17.5 },
+  A2: { name: "A₂", freq: 110.0, gauge: 0.036, wound: true, omega: 0.135, color: "#c9a06c", harmonics: 10, tension: 15.4 },
+  D3: { name: "D₃", freq: 146.83, gauge: 0.026, wound: true, omega: 0.170, color: "#bfa070", harmonics: 9, tension: 15.8 },
+  G3: { name: "G₃", freq: 196.0, gauge: 0.017, wound: false, omega: 0.220, color: "#e8ddd0", harmonics: 8, tension: 14.7 },
+  B3: { name: "B₃", freq: 246.94, gauge: 0.013, wound: false, omega: 0.275, color: "#e5d8c8", harmonics: 7, tension: 12.1 },
+  E4: { name: "E₄ (High E)", freq: 329.63, gauge: 0.010, wound: false, omega: 0.318, color: "#f0e6da", harmonics: 6, tension: 11.9 },
+};
+
+const PARTICLES_COUNT = 280;
+const PRESSURE_RING_COUNT = 8;
+const SAMPLES = 200;
+
+let selectedString = "E2";
+let slowMotion = 50;
+let pluckPos = 0.25;
+let showParticles = true;
+let showPressure = true;
+let showCRR = true;
+
+let simTime = 0;
+let isPlucked = false;
+let pluckTime = 0;
+let particles = [];
+let pressureRings = [];
+
+const canvas = document.getElementById("mainCanvas");
+const ctx = canvas.getContext("2d");
+const dpr = window.devicePixelRatio || 1;
+
+function resize() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  initParticles();
+}
+
+function getStr() { return STRING_DATA[selectedString]; }
+function getStringRadius() { return Math.max(3, getStr().gauge * 260); }
+
+function initParticles() {
+  const W = canvas.width / dpr;
+  const H = canvas.height / dpr;
+  const cy = H / 2;
+  const R = getStringRadius();
+  particles = [];
+  for (let i = 0; i < PARTICLES_COUNT; i++) {
+    const x = Math.random() * W * 0.85 + W * 0.075;
+    let y;
+    do { y = cy + (Math.random() - 0.5) * H * 0.6; } while (Math.abs(y - cy) < R * 4);
+    particles.push({
+      x, y, baseX: x, baseY: y,
+      vx: 0, vy: 0,
+      size: 0.6 + Math.random() * 1.4,
+      opacity: 0.15 + Math.random() * 0.45,
+      phase: Math.random() * Math.PI * 2,
+    });
+  }
+}
+
+function computeCRR(x, t, plkT, strData, pPos) {
+  const dt = t - plkT;
+  if (dt <= 0) return { y: 0, phase: "rest", coherence: 0, localPhase: "rest", envelope: 0 };
+
+  const omega = strData.omega;
+  const kappa = 8.0; // universal CRR-string coupling constant (matches audio)
+  let y = 0, totalCoherence = 0;
+
+  for (let n = 1; n <= strData.harmonics; n++) {
+    const fn = n * strData.freq;
+    const Bn = (2 / (n * n * Math.PI * Math.PI * pPos * (1 - pPos))) * Math.sin(n * Math.PI * pPos);
+
+    // TEMPORAL coherence: C accumulates with time, Ω differentiates strings
+    // This is IDENTICAL to the diegetic audio equation
+    const memoryWeight = Math.exp(-dt * 0.001 * n * omega * kappa);
+
+    y += Bn * Math.sin(n * Math.PI * x) * Math.cos(2 * Math.PI * fn * dt * 0.001) * memoryWeight;
+    totalCoherence += Math.abs(Bn * memoryWeight);
+  }
+
+  const ampScale = 55 * (1 + strData.gauge * 8);
+  y *= ampScale;
+
+  const mainPhase = (2 * Math.PI * strData.freq * dt * 0.001) % (2 * Math.PI);
+  let localPhase;
+  if (mainPhase < Math.PI * 0.15 || mainPhase > Math.PI * 1.85) localPhase = "rupture";
+  else if (mainPhase < Math.PI) localPhase = "coherence";
+  else localPhase = "regeneration";
+
+  // Global envelope uses same temporal coherence model
+  const envelope = Math.exp(-dt * 0.001 * omega * kappa);
+  let phase;
+  if (envelope > 0.7) phase = "coherence";
+  else if (envelope > 0.15) phase = "regeneration";
+  else phase = "rest";
+
+  return { y, phase, coherence: totalCoherence, localPhase, envelope };
+}
+
+// ─── Diegetic CRR Audio Engine ───
+// The sound IS the string. No oscillators, no API tricks.
+// A ScriptProcessor samples CRR displacement at a listening point,
+// advancing at the SAME time rate as the visual simulation.
+// Slow motion = slow sound. That's reality.
+
+let audioCtx = null;
+let masterGain = null;
+let scriptNode = null;
+let audioVolume = 0.5;
+let audioSimTime = 0;       // envelope time cursor (syncs with visual sim-time)
+let audioOscTime = 0;       // oscillation time cursor (may run faster for audibility)
+let audioPluckTime = 0;
+let audioIsPlucked = false;
+let audioStr = null;
+let audioPluckPos = 0.25;
+let audioListenX = 0.68;    // microphone position along string (near bridge = brighter)
+
+// We also track a second "air microphone" slightly off the string
+// to capture the pressure wave CRR response
+let airMicDist = 0.02;      // normalized distance from string
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = audioVolume;
+
+  // Gentle limiter
+  const compressor = audioCtx.createDynamicsCompressor();
+  compressor.threshold.value = -6;
+  compressor.knee.value = 6;
+  compressor.ratio.value = 8;
+  compressor.attack.value = 0.001;
+  compressor.release.value = 0.05;
+  masterGain.connect(compressor);
+  compressor.connect(audioCtx.destination);
+
+  // ScriptProcessor: diegetic sample generation with CRR scale separation
+  // Each sample = CRR displacement of the string at the listening point
+  //
+  // CRR SCALE INVARIANCE PRINCIPLE:
+  // When we slow δ(now) sampling, we're changing observational scale.
+  // At any scale, the same C→δ→R process operates.
+  // - ENVELOPE (exp(C/Ω) decay): follows sim-time → stretches with slow-mo
+  // - OSCILLATION: the micro-CRR within each cycle can be observed at
+  //   whatever temporal resolution makes structure audible.
+  //
+  // This is NOT cheating — it's the same principle as sonification in physics:
+  // LIGO converts 35–250 Hz gravitational waves to audio by preserving
+  // relative temporal structure. We preserve the CRR waveform shape and
+  // harmonic content, re-mapping to audible temporal resolution.
+
+  const bufSize = 2048; // larger buffer = fewer underruns at extreme slowdowns
+  scriptNode = audioCtx.createScriptProcessor(bufSize, 0, 1);
+
+  // DC blocker state (removes sub-sonic drift that causes speaker rumble)
+  let dcX = 0, dcY = 0;
+  const dcAlpha = 0.997; // pole near z=1
+
+  // Minimum audible frequency threshold
+  const MIN_AUDIBLE_FREQ = 32; // Hz — low B₀, near hearing floor
+
+  scriptNode.onaudioprocess = function(e) {
+    const output = e.outputBuffer.getChannelData(0);
+    const sampleRate = audioCtx.sampleRate;
+
+    const speedFactor = Math.pow(10, -(slowMotion / 25));
+
+    // ─── CRR Temporal Scale Separation ───
+    // True diegetic frequency at current slow-mo:
+    const str = audioStr;
+    if (!audioIsPlucked || !str) {
+      for (let i = 0; i < output.length; i++) output[i] = 0;
+      return;
+    }
+
+    const trueDiegeticF1 = str.freq * speedFactor;
+
+    // Two time rates:
+    //   envelopeRate: always follows sim-time (controls CRR memory decay)
+    //   oscillationRate: follows sim-time when audible, otherwise scales
+    //                    up to maintain MIN_AUDIBLE_FREQ
+    //
+    // When trueDiegeticF1 >= MIN_AUDIBLE_FREQ: both rates identical (fully diegetic)
+    // When trueDiegeticF1 < MIN_AUDIBLE_FREQ: oscillation runs faster than envelope
+    //   → you hear the harmonic STRUCTURE at audible pitch
+    //   → the DECAY stretches with slow-mo (still diegetic envelope)
+    //
+    // The crossfade is smooth: oscRate = max(simRate, rateNeededForMinFreq)
+
+    const simTimePerSample = (speedFactor * 1000) / sampleRate;
+
+    // Rate needed so f1 maps to MIN_AUDIBLE_FREQ
+    const minOscRate = (MIN_AUDIBLE_FREQ / str.freq) * 1000 / sampleRate;
+    // Oscillation rate: the faster of diegetic or minimum-audible
+    const oscTimePerSample = Math.max(simTimePerSample, minOscRate);
+
+    // Track whether we're in scale-separated mode
+    const isScaleSeparated = trueDiegeticF1 < MIN_AUDIBLE_FREQ;
+    // Smooth gain ramp to avoid clicks at boundary
+    const boundaryGain = isScaleSeparated
+      ? Math.min(1, trueDiegeticF1 / MIN_AUDIBLE_FREQ + 0.3)
+      : 1.0;
+
+    const omega = str.omega;
+    const pPos = audioPluckPos;
+    const nH = str.harmonics;
+    const listenX = audioListenX;
+    const kappa = 8.0;
+
+    // We track two independent time cursors for this buffer
+    let envTime = audioSimTime;  // for envelope/decay
+    let oscTime = audioOscTime;  // for waveform oscillation
+
+    for (let i = 0; i < output.length; i++) {
+      envTime += simTimePerSample;    // envelope always at sim-rate
+      oscTime += oscTimePerSample;     // oscillation at audible rate
+
+      const dtEnv = envTime - audioPluckTime;   // for exp(C/Ω) decay
+      const dtOsc = oscTime - audioPluckTime;   // for cos(2πft) oscillation
+
+      if (dtEnv <= 0 || dtEnv > 200000) {
+        output[i] = 0;
+        continue;
+      }
+
+      // ─── CRR string displacement with scale separation ───
+      // memoryWeight uses dtEnv (true temporal coherence decay)
+      // cos() oscillation uses dtOsc (audible temporal resolution)
+      // Mode shape sin(nπx) is time-independent
+      let y = 0;
+      let totalEnergy = 0;
+
+      for (let n = 1; n <= nH; n++) {
+        const fn = n * str.freq;
+        const Bn = (2 / (n * n * Math.PI * Math.PI * pPos * (1 - pPos))) *
+          Math.sin(n * Math.PI * pPos);
+
+        // CRR memory weighting: ALWAYS uses envelope time (true slow-mo decay)
+        const memoryWeight = Math.exp(-dtEnv * 0.001 * n * omega * kappa);
+
+        const inharmonicity = 1 + 0.00012 * n * n * str.gauge;
+        const actualFn = fn * inharmonicity;
+
+        // Oscillation uses oscTime: audible at all slow-mo settings
+        const modeShape = Math.sin(n * Math.PI * listenX);
+        const timeOsc = Math.cos(2 * Math.PI * actualFn * dtOsc * 0.001);
+
+        y += Bn * modeShape * timeOsc * memoryWeight;
+        totalEnergy += Math.abs(Bn * memoryWeight);
+      }
+
+      // ─── Air pressure CRR (uses same scale separation) ───
+      const freqNorm = 1.0 / (str.freq * str.freq);
+      let pressure = 0;
+      for (let n = 1; n <= Math.min(nH, 8); n++) {
+        const fn = n * str.freq;
+        const Bn = (2 / (n * n * Math.PI * Math.PI * pPos * (1 - pPos))) *
+          Math.sin(n * Math.PI * pPos);
+        const memoryWeight = Math.exp(-dtEnv * 0.001 * n * omega * kappa);
+        const inharmonicity = 1 + 0.00012 * n * n * str.gauge;
+        const actualFn = fn * inharmonicity;
+        const angularF = 2 * Math.PI * actualFn * 0.001;
+
+        const accel = angularF * angularF * Bn *
+          Math.sin(n * Math.PI * listenX) *
+          Math.cos(2 * Math.PI * actualFn * dtOsc * 0.001) *
+          memoryWeight;
+
+        const airDecay = Math.exp(-airMicDist * n * 0.5);
+        pressure += accel * airDecay * freqNorm;
+      }
+
+      // Per-string gain + boundary smoothing
+      const gaugeGain = 0.8 + str.gauge * 12;
+      const stringComponent = y * 0.4 * gaugeGain;
+      const airComponent = pressure * 12.0 * gaugeGain;
+      let sample = (stringComponent + airComponent) * boundaryGain;
+
+      // Soft clip
+      sample = Math.tanh(sample * 1.5) * 0.75;
+
+      // ─── DC blocker (removes infrasonic drift) ───
+      // y[n] = x[n] - x[n-1] + α·y[n-1]
+      const dcIn = sample;
+      dcY = dcIn - dcX + dcAlpha * dcY;
+      dcX = dcIn;
+      sample = dcY;
+
+      // Check if sound has died
+      if (totalEnergy < 0.0001) {
+        audioIsPlucked = false;
+        sample = 0;
+      }
+
+      output[i] = sample;
+    }
+
+    // Save time cursors for next buffer
+    audioSimTime = envTime;
+    audioOscTime = oscTime;
+  };
+
+  scriptNode.connect(masterGain);
+}
+
+function startDiegeticSound(strData, pPos) {
+  if (!audioCtx) initAudio();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+
+  audioStr = strData;
+  audioPluckPos = pPos;
+  audioSimTime = simTime;
+  audioOscTime = simTime;  // oscillation time starts synced
+  audioPluckTime = simTime;
+  audioIsPlucked = true;
+}
+
+function doPluck() {
+  isPlucked = true;
+  pluckTime = simTime;
+  pressureRings = [];
+  document.getElementById("pluckHint").style.display = "none";
+  if (soundEnabled) startDiegeticSound(getStr(), pluckPos);
+}
+
+// Build string buttons
+(function buildButtons() {
+  const row = document.getElementById("stringRow");
+  for (const [key, s] of Object.entries(STRING_DATA)) {
+    const btn = document.createElement("button");
+    btn.className = "strBtn" + (key === selectedString ? " active" : "");
+    btn.textContent = s.name;
+    btn.dataset.key = key;
+    btn.addEventListener("click", () => {
+      selectedString = key;
+      isPlucked = false;
+      document.getElementById("pluckHint").style.display = "";
+      initParticles();
+      updateStringButtons();
+      updateTitleInfo();
+    });
+    row.appendChild(btn);
+  }
+})();
+
+function updateStringButtons() {
+  document.querySelectorAll(".strBtn").forEach(b => {
+    const k = b.dataset.key;
+    const s = STRING_DATA[k];
+    const active = k === selectedString;
+    b.className = "strBtn" + (active ? " active" : "");
+    b.style.borderColor = active ? s.color : "rgba(100,140,200,0.15)";
+    b.style.background = active ? `rgba(${s.wound ? "180,150,100" : "220,210,195"},0.12)` : "rgba(20,26,40,0.8)";
+    b.style.color = active ? s.color : "#778899";
+  });
+}
+
+function updateTitleInfo() {
+  const s = getStr();
+  document.getElementById("titleInfo").textContent =
+    `Ω = ${s.omega.toFixed(3)} | f₁ = ${s.freq} Hz | ${s.wound ? "Wound" : "Plain"} ${s.gauge}"`;
+  document.getElementById("omVal").textContent = s.omega.toFixed(4);
+  document.getElementById("symLabel").textContent =
+    selectedString.includes("2") ? "(Z₂)" : "(~SO(2))";
+}
+
+// Events
+document.getElementById("slowSlider").addEventListener("input", e => {
+  slowMotion = +e.target.value;
+  const lbl = slowMotion < 10 ? "~Real" : slowMotion < 40 ? "10×" : slowMotion < 60 ? "100×" : slowMotion < 80 ? "1000×" : "10000×";
+  document.getElementById("slowLabel").textContent = lbl;
+});
+
+document.getElementById("pluckSlider").addEventListener("input", e => {
+  pluckPos = +e.target.value / 100;
+  document.getElementById("pluckLabel").textContent = Math.round(pluckPos * 100) + "%";
+});
+
+document.getElementById("micSlider").addEventListener("input", e => {
+  audioListenX = +e.target.value / 100;
+  document.getElementById("micLabel").textContent = Math.round(audioListenX * 100) + "%";
+});
+
+document.querySelectorAll(".togBtn").forEach(b => {
+  b.addEventListener("click", () => {
+    const k = b.dataset.key;
+    if (k === "air") { showParticles = !showParticles; b.classList.toggle("on", showParticles); b.style.color = showParticles ? "#5BA8EF" : "#556677"; b.style.borderColor = showParticles ? "#5BA8EF" : "rgba(100,140,200,0.15)"; }
+    if (k === "waves") { showPressure = !showPressure; b.classList.toggle("on", showPressure); b.style.color = showPressure ? "#50A0FF" : "#556677"; b.style.borderColor = showPressure ? "#50A0FF" : "rgba(100,140,200,0.15)"; }
+    if (k === "crr") { showCRR = !showCRR; b.classList.toggle("on", showCRR); b.style.color = showCRR ? "#10B981" : "#556677"; b.style.borderColor = showCRR ? "#10B981" : "rgba(100,140,200,0.15)"; document.getElementById("legendPanel").style.display = showCRR ? "" : "none"; }
+  });
+});
+
+// Init toggle colors
+document.getElementById("togAir").style.color = "#5BA8EF";
+document.getElementById("togAir").style.borderColor = "#5BA8EF";
+document.getElementById("togWaves").style.color = "#50A0FF";
+document.getElementById("togWaves").style.borderColor = "#50A0FF";
+document.getElementById("togCRR").style.color = "#10B981";
+document.getElementById("togCRR").style.borderColor = "#10B981";
+
+document.getElementById("pluckBtn").addEventListener("click", doPluck);
+canvas.addEventListener("click", doPluck);
+
+let soundEnabled = true;
+document.getElementById("togSound").addEventListener("click", () => {
+  soundEnabled = !soundEnabled;
+  const b = document.getElementById("togSound");
+  b.classList.toggle("on", soundEnabled);
+  b.textContent = soundEnabled ? "🔊" : "🔇";
+  b.style.color = soundEnabled ? "#F5A623" : "#556677";
+  b.style.borderColor = soundEnabled ? "#F5A623" : "rgba(100,140,200,0.15)";
+  if (masterGain) masterGain.gain.value = soundEnabled ? audioVolume : 0;
+});
+
+document.getElementById("volSlider").addEventListener("input", e => {
+  audioVolume = +e.target.value / 100;
+  if (masterGain && soundEnabled) masterGain.gain.value = audioVolume;
+});
+
+window.addEventListener("resize", resize);
+resize();
+updateStringButtons();
+updateTitleInfo();
+
+// Render loop
+let lastT = performance.now();
+
+function render(now) {
+  const rawDt = (now - lastT) / 1000;
+  lastT = now;
+  const speedFactor = Math.pow(10, -(slowMotion / 25));
+  simTime += rawDt * speedFactor * 1000;
+
+  // ─── Diegetic audio sync ───
+  // Keep audio ENVELOPE time locked to visual sim-time.
+  // Oscillation time runs independently (may be faster for audibility)
+  // but we correct its drift proportionally.
+  if (audioIsPlucked) {
+    const drift = simTime - audioSimTime;
+    audioSimTime += drift * 0.15;
+    // Oscillation time: maintain its relationship to envelope time
+    if (typeof audioOscTime !== 'undefined') {
+      const oscOffset = audioOscTime - audioSimTime;
+      audioOscTime = audioSimTime + oscOffset + drift * 0.15;
+    }
+    audioStr = getStr();
+    audioPluckPos = pluckPos;
+  }
+  if (!isPlucked) {
+    audioIsPlucked = false;
+  }
+
+  const str = getStr();
+  const R = getStringRadius();
+  const W = canvas.width / dpr;
+  const H = canvas.height / dpr;
+  const cx = W / 2;
+  const cy = H / 2;
+  const sL = W * 0.06;
+  const sR = W * 0.94;
+  const sLen = sR - sL;
+
+  // Background
+  ctx.fillStyle = "#080a0e";
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = "rgba(40,55,80,0.08)";
+  ctx.lineWidth = 0.5;
+  for (let gx = 0; gx < W; gx += 30) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+  for (let gy = 0; gy < H; gy += 30) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+  const vGrad = ctx.createRadialGradient(cx, cy, H * 0.25, cx, cy, H * 0.85);
+  vGrad.addColorStop(0, "rgba(0,0,0,0)");
+  vGrad.addColorStop(1, "rgba(0,0,0,0.6)");
+  ctx.fillStyle = vGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Compute string
+  const pts = [];
+  let maxDisp = 0;
+  for (let i = 0; i <= SAMPLES; i++) {
+    const xN = i / SAMPLES;
+    const xPx = sL + xN * sLen;
+    let yD = 0, phase = "rest", lp = "rest", coh = 0, env = 0;
+    if (isPlucked) {
+      const r = computeCRR(xN, simTime, pluckTime, str, pluckPos);
+      yD = r.y; phase = r.phase; lp = r.localPhase; coh = r.coherence; env = r.envelope;
+      if (Math.abs(r.envelope) < 0.01 && i === SAMPLES) { isPlucked = false; }
+    }
+    maxDisp = Math.max(maxDisp, Math.abs(yD));
+    pts.push({ x: xPx, y: cy + yD, xN, yD, phase, lp, coh, env });
+  }
+
+  // Pressure rings
+  if (isPlucked && showPressure) {
+    const interval = 1.0 / str.freq * 500;
+    const tSince = simTime - pluckTime;
+    if (pressureRings.length === 0 || (tSince - pressureRings[pressureRings.length - 1].birth > interval && pressureRings.length < PRESSURE_RING_COUNT)) {
+      pressureRings.push({ x: sL + pluckPos * sLen, y: cy, birth: tSince, radius: 0 });
+    }
+    const sndSpd = 0.34;
+    pressureRings.forEach(ring => {
+      const age = tSince - ring.birth;
+      ring.radius = age * sndSpd;
+      const maxR = Math.max(W, H) * 0.7;
+      const op = Math.max(0, 0.25 * (1 - ring.radius / maxR));
+      if (op > 0.005) {
+        const g = ctx.createRadialGradient(ring.x, ring.y, Math.max(0, ring.radius - 4), ring.x, ring.y, ring.radius + 4);
+        g.addColorStop(0, `rgba(80,160,255,0)`);
+        g.addColorStop(0.4, `rgba(80,160,255,${op * 0.6})`);
+        g.addColorStop(0.5, `rgba(120,200,255,${op})`);
+        g.addColorStop(0.6, `rgba(80,160,255,${op * 0.6})`);
+        g.addColorStop(1, `rgba(80,160,255,0)`);
+        ctx.beginPath(); ctx.arc(ring.x, ring.y, ring.radius + 4, 0, Math.PI * 2);
+        ctx.fillStyle = g; ctx.fill();
+      }
+    });
+    pressureRings = pressureRings.filter(r => r.radius < Math.max(W, H) * 0.7);
+  }
+
+  // Air particles
+  if (showParticles) {
+    particles.forEach(p => {
+      let fx = 0, fy = 0;
+      if (isPlucked) {
+        const ni = Math.max(0, Math.min(SAMPLES, Math.round(((p.baseX - sL) / sLen) * SAMPLES)));
+        const sp = pts[ni];
+        if (sp) {
+          const dy = p.y - sp.y;
+          const dist = Math.abs(dy);
+          const inf = Math.max(0, 1 - dist / (H * 0.35));
+          if (dist > R * 1.5) {
+            const dir = dy > 0 ? 1 : -1;
+            const st = Math.abs(sp.yD) * 0.012;
+            fy = dir * st * inf * inf;
+            fx = (Math.random() - 0.5) * st * inf * 0.15;
+          }
+        }
+      }
+      p.vx += fx + (Math.random() - 0.5) * 0.02;
+      p.vy += fy + (Math.random() - 0.5) * 0.02;
+      p.vx *= 0.94; p.vy *= 0.94;
+      p.vx += (p.baseX - p.x) * 0.004;
+      p.vy += (p.baseY - p.y) * 0.004;
+      p.x += p.vx; p.y += p.vy;
+
+      const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      const br = Math.min(1, 0.3 + spd * 3);
+      const r2 = Math.round(120 + br * 100);
+      const g2 = Math.round(170 + br * 80);
+      const b2 = Math.round(220 + br * 35);
+      const a2 = p.opacity * (0.3 + br * 0.7);
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * (0.8 + br * 0.5), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r2},${g2},${b2},${a2})`;
+      ctx.fill();
+
+      if (br > 0.6) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r2},${g2},${b2},${a2 * 0.12})`;
+        ctx.fill();
+      }
+    });
+  }
+
+  // CRR phase overlay
+  if (showCRR && isPlucked) {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const sp = pts[i];
+      let pc;
+      if (sp.lp === "coherence") pc = "rgba(50,130,255,0.06)";
+      else if (sp.lp === "rupture") pc = "rgba(255,60,80,0.1)";
+      else pc = "rgba(50,220,120,0.06)";
+      const np = pts[i + 1];
+      const rH = Math.max(30, Math.abs(sp.yD) * 2.5 + 20);
+      ctx.fillStyle = pc;
+      ctx.fillRect(sp.x, sp.y - rH / 2, np.x - sp.x + 1, rH);
+    }
+  }
+
+  // String shadow
+  ctx.save();
+  ctx.filter = `blur(${R * 1.5}px)`;
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y + R * 2);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y + R * 2);
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
+  ctx.lineWidth = R * 2.5; ctx.stroke();
+  ctx.restore();
+
+  // String layers
+  for (let layer = 0; layer < 3; layer++) {
+    ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.lineCap = "round";
+    if (layer === 0) {
+      ctx.strokeStyle = "rgba(60,50,40,0.9)";
+      ctx.lineWidth = R * 2.2; ctx.stroke();
+    } else if (layer === 1) {
+      const gd = ctx.createLinearGradient(0, cy - R, 0, cy + R);
+      gd.addColorStop(0, "rgba(40,35,28,0.9)");
+      gd.addColorStop(0.2, str.color);
+      gd.addColorStop(0.4, "#fff8f0");
+      gd.addColorStop(0.55, str.color);
+      gd.addColorStop(0.8, "rgba(80,65,45,0.9)");
+      gd.addColorStop(1, "rgba(30,25,18,0.8)");
+      ctx.strokeStyle = gd;
+      ctx.lineWidth = R * 2; ctx.stroke();
+    } else {
+      ctx.strokeStyle = "rgba(255,255,240,0.08)";
+      ctx.lineWidth = R * 0.5; ctx.stroke();
+    }
+  }
+
+  // Wound texture
+  if (str.wound) {
+    const ws = Math.max(2, R * 0.8);
+    ctx.strokeStyle = "rgba(180,150,100,0.18)";
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (Math.floor(pts[i].x / ws) % 2 === 0) {
+        ctx.beginPath();
+        ctx.moveTo(pts[i].x, pts[i].y - R);
+        ctx.lineTo(pts[i].x + ws * 0.5, pts[i].y + R);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // CRR dots
+  if (showCRR && isPlucked) {
+    for (let i = 0; i < pts.length; i += 4) {
+      const sp = pts[i];
+      let dc;
+      if (sp.lp === "coherence") dc = "rgba(50,140,255,0.6)";
+      else if (sp.lp === "rupture") dc = "rgba(255,70,90,0.8)";
+      else dc = "rgba(60,230,140,0.6)";
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y - R * 1.8, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = dc; ctx.fill();
+    }
+  }
+
+  // Bridge / Nut
+  [sL, sR].forEach(bx => {
+    const bg = ctx.createLinearGradient(bx - 4, cy - 14, bx + 4, cy + 14);
+    bg.addColorStop(0, "#2a2520");
+    bg.addColorStop(0.3, "#8a7b6a");
+    bg.addColorStop(0.5, "#b5a692");
+    bg.addColorStop(0.7, "#8a7b6a");
+    bg.addColorStop(1, "#2a2520");
+    ctx.fillStyle = bg;
+    ctx.fillRect(bx - 3, cy - 14, 6, 28);
+  });
+
+  // Pluck marker
+  const pX = sL + pluckPos * sLen;
+  ctx.beginPath();
+  ctx.moveTo(pX, cy + R * 3 + 8);
+  ctx.lineTo(pX - 4, cy + R * 3 + 16);
+  ctx.lineTo(pX + 4, cy + R * 3 + 16);
+  ctx.closePath();
+  ctx.fillStyle = "rgba(255,180,60,0.5)";
+  ctx.fill();
+
+  // Microphone marker (below string, opposite side from pluck marker)
+  if (soundEnabled) {
+    const mX = sL + audioListenX * sLen;
+    // Mic icon - small circle with line
+    ctx.beginPath();
+    ctx.arc(mX, cy - R * 3 - 14, 4, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(232,129,91,0.6)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(mX, cy - R * 3 - 10);
+    ctx.lineTo(mX, cy - R * 3 - 4);
+    ctx.strokeStyle = "rgba(232,129,91,0.5)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Label
+    ctx.fillStyle = "rgba(232,129,91,0.35)";
+    ctx.font = "8px 'JetBrains Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("MIC", mX, cy - R * 3 - 21);
+    ctx.textAlign = "start";
+  }
+
+  // Update HUD
+  if (isPlucked) {
+    const mid = computeCRR(0.5, simTime, pluckTime, str, pluckPos);
+    const pc = mid.phase === "coherence" ? "#3B82F6" : mid.phase === "rupture" ? "#EF4444"
+      : mid.phase === "regeneration" ? "#10B981" : "#6B7280";
+    document.getElementById("phaseIndicator").style.background = pc;
+    document.getElementById("phaseIndicator").style.boxShadow = `0 0 8px ${pc}`;
+    document.getElementById("phaseName").textContent = mid.phase.charAt(0).toUpperCase() + mid.phase.slice(1);
+    document.getElementById("phaseName").style.color = pc;
+    document.getElementById("cohVal").textContent = Math.min(1, mid.coherence).toFixed(4);
+    document.getElementById("envVal").textContent = mid.envelope ? mid.envelope.toFixed(4) : "—";
+    // Diegetic frequency display
+    const speedFactor = Math.pow(10, -(slowMotion / 25));
+    const diegeticF = str.freq * speedFactor;
+    const MIN_AUD = 32;
+    const audibleF = Math.max(diegeticF, MIN_AUD);
+    const diegEl = document.getElementById("diegFreq");
+    const isScaleSep = diegeticF < MIN_AUD;
+
+    if (isScaleSep) {
+      // Scale-separated mode: show true freq + audible freq
+      let trueStr;
+      if (diegeticF >= 1) trueStr = diegeticF.toFixed(1) + "Hz";
+      else if (diegeticF >= 0.01) trueStr = (diegeticF * 1000).toFixed(0) + "mHz";
+      else trueStr = (diegeticF * 1000).toFixed(1) + "mHz";
+      diegEl.innerHTML = '<span style="color:#664433">' + trueStr +
+        '</span> <span style="color:#555;font-size:9px">→</span> <span style="color:#E8815B">' +
+        audibleF.toFixed(0) + 'Hz</span>';
+    } else {
+      diegEl.textContent = diegeticF.toFixed(1) + " Hz";
+      diegEl.style.color = "#e8d5b5";
+    }
+  } else {
+    document.getElementById("phaseIndicator").style.background = "#6B7280";
+    document.getElementById("phaseIndicator").style.boxShadow = "0 0 8px #6B7280";
+    document.getElementById("phaseName").textContent = "Rest";
+    document.getElementById("phaseName").style.color = "#6B7280";
+    document.getElementById("cohVal").textContent = "0.0000";
+    document.getElementById("envVal").textContent = "—";
+    document.getElementById("diegFreq").textContent = "—";
+  }
+
+  requestAnimationFrame(render);
+}
+
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
