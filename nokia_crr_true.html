@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--
+═══════════════════════════════════════════════════════════════════════════════
+  CRR × NOKIA 3310 — TRUE EMERGENT ARCHITECTURE
+
+  PRINCIPLE: Nothing computes except at a CRR rupture event.
+
+  When you press a key:
+    1. Physical event: Keypad process ruptures (hardware interrupt)
+    2. Energy injection: CPU coherence receives input energy
+    3. DTMF tone: Audio codec responds to keypad coupling
+    4. The key is QUEUED — not processed
+
+  When the CPU ruptures (δ):
+    → All queued inputs are processed
+    → Screen transitions happen
+    → Calculator computes
+    → Snake steps
+    → All phone logic executes
+
+  When the LCD ruptures (δ):
+    → Framebuffer renders current state
+    → Canvas updates
+
+  The calculator works because the phone is built with CRR.
+  Remove the CRR engine, and 2+3 has no substrate to compute on.
+
+  9 COUPLED PROCESSES:
+    XTAL Oscillator   Z₂    Ω=1/π     master heartbeat
+    RF Transceiver     SO(2) Ω=1/2π    signal coherence → signal bars
+    Battery BL-5C      Z₂    Ω=0.95    legendary HIGH Ω → battery level
+    LCD PCD8544        Z₂    Ω=1/π     framebuffer controller → screen refresh
+    CPU MAD2WD1        Z₂    Ω=1/π     ALL computation gate → every state change
+    Audio Codec        SO(2) Ω=1/2π    piezo speaker → sound envelope
+    Power CCONT        Z₂    Ω=1/π     voltage regulation → UI timing
+    Keypad Matrix      Z₂    Ω=1/π     input detection → key registration
+    SIM Interface      SO(2) Ω=1/2π    subscriber identity → incoming calls
+═══════════════════════════════════════════════════════════════════════════════
+-->
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CRR × Nokia 3310 — True Emergent</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{background:#08080d;overflow-x:hidden;min-height:100vh;
+font-family:'JetBrains Mono','Fira Code',monospace;color:#c8d0d8}
+.w{display:flex;gap:20px;align-items:flex-start;justify-content:center;flex-wrap:wrap;padding:16px;min-height:100vh;align-content:center}
+.hd{text-align:center;width:100%;margin-bottom:4px}
+.hd h1{font-size:13px;font-weight:600;letter-spacing:6px;color:#8bac0f;margin:0}
+.hd p{font-size:8px;letter-spacing:2.5px;color:#3a4558;margin-top:3px}
+.ph{background:linear-gradient(170deg,#2a3a5c,#1a2744 30%,#141e36);border-radius:30px 30px 36px 36px;
+padding:16px 12px 20px;box-shadow:0 24px 80px rgba(0,0,0,0.85),inset 0 1px 0 rgba(255,255,255,0.07),
+0 0 50px rgba(139,172,15,0.04);border:1px solid rgba(255,255,255,0.05);
+display:flex;flex-direction:column;align-items:center;width:282px}
+.nl{font-size:12px;font-weight:600;letter-spacing:5px;color:rgba(200,210,220,0.25);margin-bottom:6px}
+.ea{display:flex;gap:2px;margin-bottom:6px}.ea span{width:2px;height:2px;border-radius:50%;background:rgba(0,0,0,0.5)}
+.sw{background:linear-gradient(180deg,#1a1f2e,#0f1520);border-radius:6px;padding:10px 8px;border:2px solid #0a0e18;
+box-shadow:inset 0 2px 10px rgba(0,0,0,0.6);margin-bottom:10px;position:relative}
+.sg{position:absolute;inset:-6px;background:radial-gradient(ellipse at center,rgba(139,172,15,0.07),transparent 70%);
+border-radius:12px;pointer-events:none}
+canvas{display:block;image-rendering:pixelated;border-radius:2px}
+.sl{display:flex;justify-content:space-between;width:100%;padding:0 14px;margin-bottom:4px;
+font-size:7px;color:rgba(200,210,220,0.2);letter-spacing:1px}
+.ct{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%}
+.tr{display:flex;gap:6px;align-items:center}
+.dp{position:relative;width:76px;height:76px}
+.dr{position:absolute;inset:0;border-radius:50%;background:linear-gradient(145deg,#1e2d4a,#162040);
+border:1px solid rgba(255,255,255,0.04);box-shadow:inset 0 1px 4px rgba(0,0,0,0.4)}
+.db{position:absolute;background:transparent;border:none;cursor:pointer;outline:none;z-index:2}
+.db.u{top:0;left:50%;transform:translateX(-50%);width:28px;height:24px}
+.db.d{bottom:0;left:50%;transform:translateX(-50%);width:28px;height:24px}
+.db.l{top:50%;left:0;transform:translateY(-50%);width:24px;height:28px}
+.db.r{top:50%;right:0;transform:translateY(-50%);width:24px;height:28px}
+.dc{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:22px;height:22px;
+border-radius:50%;background:linear-gradient(145deg,#2a3d5e,#1e2d4a);
+border:1px solid rgba(255,255,255,0.07);cursor:pointer;outline:none}
+.cr{display:flex;gap:40px;margin-bottom:4px}
+.np{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:190px}
+.b{border-radius:5px;border:1px solid rgba(255,255,255,0.06);cursor:pointer;outline:none;
+font-family:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform 0.05s}
+.b:active{transform:translateY(1px);filter:brightness(0.8)}
+.bs{width:52px;height:28px;background:linear-gradient(180deg,#1e2d4a,#162040);color:#8899aa;font-size:13px;
+box-shadow:0 2px 4px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.05)}
+.bf{width:44px;height:24px;background:linear-gradient(180deg,#1e2d4a,#162040);color:#8899aa;font-size:11px;
+box-shadow:0 2px 4px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.05)}
+.bc{width:38px;height:22px;background:linear-gradient(180deg,#1a4a2a,#0d2a16);color:#8899aa;font-size:11px;
+box-shadow:0 2px 4px rgba(0,0,0,0.3)}
+.be{width:38px;height:22px;background:linear-gradient(180deg,#4a1a1a,#2a0d0d);color:#8899aa;font-size:11px;
+box-shadow:0 2px 4px rgba(0,0,0,0.3)}
+.b sub{font-size:7px;color:#556677;margin-top:-2px;display:block}
+.mi{display:flex;gap:2px;margin-top:12px}.mi span{width:3px;height:3px;border-radius:50%;background:rgba(0,0,0,0.4)}
+.pn{width:310px;display:flex;flex-direction:column;gap:5px}
+.ph2{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.pt{font-size:9px;letter-spacing:3px;color:#8bac0f;font-weight:600}
+.tb{font-size:8px;background:rgba(139,172,15,0.1);border:1px solid rgba(139,172,15,0.2);
+border-radius:4px;padding:2px 8px;color:#8bac0f;cursor:pointer;font-family:inherit}
+.pc{background:rgba(255,255,255,0.012);border:1px solid rgba(255,255,255,0.03);
+border-radius:5px;padding:6px 8px;cursor:pointer;transition:all 0.15s}
+.pc.a{background:rgba(139,172,15,0.05);border-color:rgba(139,172,15,0.18)}
+.pch{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.pnm{font-size:9px;font-weight:500;color:#dde0e4}
+.pbd{display:flex;gap:5px;align-items:center}
+.sb{font-size:7px;padding:1px 4px;border-radius:2px;font-weight:600}
+.sz{background:rgba(139,172,15,0.12);color:#8bac0f}
+.ss{background:rgba(96,165,250,0.12);color:#60a5fa}
+.sd{width:7px;height:7px;border-radius:50%;display:inline-block}
+.ps{display:flex;gap:10px;font-size:7px;color:#5a6370;margin-bottom:3px}
+.br{height:2px;background:rgba(255,255,255,0.04);border-radius:1px;overflow:hidden;margin-top:2px}
+.brf{height:100%;border-radius:1px;transition:width 0.1s}
+.lg{display:flex;gap:14px;font-size:7px;color:#3a4558;justify-content:center;margin-top:2px}
+.lg span{display:flex;align-items:center;gap:3px}
+.lg i{width:5px;height:5px;border-radius:50%;display:inline-block}
+.eq{background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.03);
+border-radius:5px;padding:6px 8px;font-size:7px;color:#3a4558;line-height:1.7;margin-top:2px}
+.eq .el{color:#8bac0f;font-weight:600;margin-bottom:2px;letter-spacing:1px}
+.em{font-size:7px;color:#8bac0f;background:rgba(139,172,15,0.08);border:1px solid rgba(139,172,15,0.15);
+border-radius:4px;padding:4px 8px;margin-top:3px;line-height:1.5}
+.em b{color:#4ade80;font-weight:500}
+.hp{font-size:7px;color:#2a3345;text-align:center;line-height:1.6;margin-top:1px}
+.iq{font-size:7px;color:#f87171;text-align:center;margin-top:2px;opacity:0;transition:opacity 0.3s}
+.iq.v{opacity:1}
+</style>
+</head>
+<body>
+<div class="w">
+<div class="hd">
+<h1>NOKIA 3310 × CRR</h1>
+<p>COHERENCE · RUPTURE · REGENERATION — THE CALCULATOR WORKS BECAUSE THE PHONE IS CRR</p>
+</div>
+
+<div class="ph">
+<div class="nl">NOKIA</div>
+<div class="ea"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="sw"><div class="sg"></div><canvas id="lcd"></canvas></div>
+<div class="sl"><span id="sL">MENU</span><span id="sR">NAMES</span></div>
+<div class="ct">
+<div class="tr">
+<button class="b bf" data-k="left-soft"></button>
+<div class="dp"><div class="dr"></div>
+<button class="db u" data-k="up"></button><button class="db d" data-k="down"></button>
+<button class="db l" data-k="left"></button><button class="db r" data-k="right"></button>
+<button class="dc" data-k="center"></button></div>
+<button class="b bf" data-k="right-soft"></button>
+</div>
+<div class="cr">
+<button class="b bc" data-k="call">📞</button>
+<button class="b be" data-k="end">📕</button>
+</div>
+<div class="np">
+<button class="b bs" data-k="1">1</button>
+<button class="b bs" data-k="2">2<sub>abc</sub></button>
+<button class="b bs" data-k="3">3<sub>def</sub></button>
+<button class="b bs" data-k="4">4<sub>ghi</sub></button>
+<button class="b bs" data-k="5">5<sub>jkl</sub></button>
+<button class="b bs" data-k="6">6<sub>mno</sub></button>
+<button class="b bs" data-k="7">7<sub>pqrs</sub></button>
+<button class="b bs" data-k="8">8<sub>tuv</sub></button>
+<button class="b bs" data-k="9">9<sub>wxyz</sub></button>
+<button class="b bs" data-k="*">✱</button>
+<button class="b bs" data-k="0">0<sub>+</sub></button>
+<button class="b bs" data-k="#">#</button>
+</div>
+</div>
+<div class="mi"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="pn" id="pnl"></div>
+</div>
+
+<script>
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  CRR ENGINE                                                          ║
+// ║  The ONLY computational substrate. Nothing computes without this.     ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+const Ω_Z2=1/Math.PI, Ω_SO2=1/(2*Math.PI);
+
+class CRRProcess{
+  constructor(name,omega,sym,p={}){
+    this.name=name;this.omega=omega;this.sym=sym;
+    this.C=p.initC||0;this.phase=0;this.δn=0;this.state='C';
+    this.hist=[];this.maxH=p.maxH||100;
+    this.Lrate=p.Lrate||1;this.Lbase=p.Lrate||1;
+    this.thresh=p.thresh||1;this.φrate=p.φrate||0.8;
+    this.out=0;this.cv=omega/2;this.coupled=[];
+    this.enabled=p.enabled!==undefined?p.enabled:true;
+    this.lastδt=0;this.t=0;this.mem=[];
+    this.justRuptured=false;this.justRegenerated=false;
+  }
+  couple(o,s=0.1){this.coupled.push({p:o,s});}
+  step(dt,ext=0){
+    if(!this.enabled)return;
+    this.t+=dt;this.justRuptured=false;this.justRegenerated=false;
+    let coup=0;for(const c of this.coupled)coup+=c.p.out*c.s;
+    if(this.state==='C'){
+      this.C+=(this.Lrate+ext+coup)*dt;this.phase+=dt;
+      if(this.C>=this.thresh){
+        this.state='δ';this.δn++;this.lastδt=this.t;this.justRuptured=true;
+        this.mem.push({c:this.C,w:Math.exp(Math.min(this.C/this.omega,20))});
+        if(this.mem.length>30)this.mem.shift();
+      }
+    }else if(this.state==='δ'){
+      this.out=this.C;this.state='R';
+    }else if(this.state==='R'){
+      const e=Math.exp(Math.min(this.C/this.omega,15));
+      this.C*=Math.exp(-this.φrate*dt*(1+1/e));this.out*=0.92;
+      if(this.C<0.03){this.C=0;this.phase=0;this.state='C';this.out=0;this.justRegenerated=true;}
+    }
+    this.hist.push({c:this.C,s:this.state,o:this.out});
+    if(this.hist.length>this.maxH)this.hist.shift();
+  }
+  forceδ(){
+    if(!this.enabled)return;
+    this.C=this.thresh;this.state='δ';this.δn++;this.lastδt=this.t;this.justRuptured=true;
+    this.mem.push({c:this.C,w:Math.exp(Math.min(this.C/this.omega,20))});
+    if(this.mem.length>30)this.mem.shift();
+    this.step(0);
+  }
+  expCΩ(){return Math.exp(Math.min(this.C/this.omega,15));}
+  cyclePos(){return Math.min(1,this.C/this.thresh);}
+  reset(){this.C=0;this.phase=0;this.state='C';this.out=0;}
+}
+
+// ═══ 9 HARDWARE PROCESSES ═══
+const P={
+  osc:  new CRRProcess('XTAL Oscillator', Ω_Z2,  'Z₂',   {Lrate:50,    thresh:1,   φrate:80}),
+  rf:   new CRRProcess('RF Transceiver',  Ω_SO2, 'SO(2)', {Lrate:0.5,   thresh:1,   φrate:0.8}),
+  batt: new CRRProcess('Battery BL-5C',   0.95,  'Z₂',   {Lrate:0.0005,thresh:100, φrate:0.0001}),
+  lcd:  new CRRProcess('LCD PCD8544',     Ω_Z2,  'Z₂',   {Lrate:15,    thresh:1,   φrate:25}),
+  cpu:  new CRRProcess('CPU MAD2WD1',     Ω_Z2,  'Z₂',   {Lrate:30,    thresh:1,   φrate:50}),
+  audio:new CRRProcess('Audio Codec',     Ω_SO2, 'SO(2)', {Lrate:3,     thresh:1,   φrate:5}),
+  pwr:  new CRRProcess('Power CCONT',     Ω_Z2,  'Z₂',   {Lrate:2,     thresh:1.5, φrate:3}),
+  key:  new CRRProcess('Keypad Matrix',   Ω_Z2,  'Z₂',   {Lrate:0.1,   thresh:0.8, φrate:1.0}),
+  sim:  new CRRProcess('SIM Interface',   Ω_SO2, 'SO(2)', {Lrate:0.035, thresh:1,   φrate:0.05}),
+};
+P.osc.couple(P.pwr,0.05);P.cpu.couple(P.osc,0.2);P.lcd.couple(P.cpu,0.1);
+P.rf.couple(P.osc,0.15);P.audio.couple(P.cpu,0.1);P.sim.couple(P.rf,0.02);
+
+const PK=Object.keys(P);
+let selProc='cpu';
+
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  INPUT QUEUE — keys wait here until CPU processes them at δ(now)     ║
+// ║  This is the interrupt register. Nothing executes until clock edge.   ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+const inputQ = [];
+let queueDepth = 0; // for visualization
+
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  84×48 FRAMEBUFFER + 5×7 FONT                                       ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+const SW=84,SH=48;
+const cv=document.getElementById('lcd');
+const cx=cv.getContext('2d');
+cv.width=SW*3;cv.height=SH*3;
+const fb=new Uint8Array(SW*SH);
+const F={' ':[0,0,0,0,0],'!':[0,0,95,0,0],'"':[0,7,0,7,0],'#':[20,127,20,127,20],
+'$':[36,42,127,42,18],'%':[35,19,8,100,98],'&':[54,73,85,34,80],"'":[0,5,3,0,0],
+'(':[0,28,34,65,0],')':[0,65,34,28,0],'*':[20,8,62,8,20],'+':[8,8,62,8,8],
+',':[0,80,48,0,0],'-':[8,8,8,8,8],'.':[0,96,96,0,0],'/':[32,16,8,4,2],
+'0':[62,81,73,69,62],'1':[0,66,127,64,0],'2':[66,97,81,73,70],'3':[33,65,69,75,49],
+'4':[24,20,18,127,16],'5':[39,69,69,69,57],'6':[60,74,73,73,48],'7':[1,113,9,5,3],
+'8':[54,73,73,73,54],'9':[6,73,73,41,30],':':[0,54,54,0,0],';':[0,86,54,0,0],
+'<':[8,20,34,65,0],'=':[20,20,20,20,20],'>':[0,65,34,20,8],'?':[2,1,81,9,6],
+'@':[50,73,121,65,62],
+A:[126,17,17,17,126],B:[127,73,73,73,54],C:[62,65,65,65,34],D:[127,65,65,34,28],
+E:[127,73,73,73,65],F:[127,9,9,9,1],G:[62,65,73,73,122],H:[127,8,8,8,127],
+I:[0,65,127,65,0],J:[32,64,65,63,1],K:[127,8,20,34,65],L:[127,64,64,64,64],
+M:[127,2,12,2,127],N:[127,4,8,16,127],O:[62,65,65,65,62],P:[127,9,9,9,6],
+Q:[62,65,81,33,94],R:[127,9,25,41,70],S:[70,73,73,73,49],T:[1,1,127,1,1],
+U:[63,64,64,64,63],V:[31,32,64,32,31],W:[63,64,56,64,63],X:[99,20,8,20,99],
+Y:[7,8,112,8,7],Z:[97,81,73,69,67],
+a:[32,84,84,84,120],b:[127,72,68,68,56],c:[56,68,68,68,32],d:[56,68,68,72,127],
+e:[56,84,84,84,24],f:[8,126,9,1,2],g:[12,82,82,82,62],h:[127,8,4,4,120],
+i:[0,68,125,64,0],j:[32,64,68,61,0],k:[127,16,40,68,0],l:[0,65,127,64,0],
+m:[124,4,24,4,120],n:[124,8,4,4,120],o:[56,68,68,68,56],p:[124,20,20,20,8],
+q:[8,20,20,24,124],r:[124,8,4,4,8],s:[72,84,84,84,36],t:[4,63,68,64,32],
+u:[60,64,64,32,124],v:[28,32,64,32,28],w:[60,64,48,64,60],x:[68,40,16,40,68],
+y:[12,80,80,80,60],z:[68,100,84,76,68],
+'{':[0,8,54,65,0],'|':[0,0,127,0,0],'}':[0,65,54,8,0],'~':[8,4,8,16,8]};
+function px(x,y,v=1){x=Math.round(x);y=Math.round(y);if(x>=0&&x<SW&&y>=0&&y<SH)fb[y*SW+x]=v?1:0;}
+function clr(){fb.fill(0);}
+function fillR(x,y,w,h){for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++)px(i,j);}
+function drawRt(x,y,w,h){for(let i=0;i<w;i++){px(x+i,y);px(x+i,y+h-1);}for(let j=0;j<h;j++){px(x,y+j);px(x+w-1,y+j);}}
+function hl(x,y,w){for(let i=0;i<w;i++)px(x+i,y);}
+function dc(c,x,y,inv=false){const b=F[c]||F[c.toUpperCase()]||F[' '];for(let col=0;col<5;col++)for(let r=0;r<7;r++)if(b[col]&(1<<r))px(x+col,y+r,inv?0:1);}
+function dt(s,x,y,inv){for(let i=0;i<s.length;i++)dc(s[i],x+i*6,y,inv);}
+function tw(s){return s.length*6;}
+function dtc(s,y,inv){dt(s,Math.floor((SW-tw(s))/2),y,inv);}
+function dtr(s,y){dt(s,SW-tw(s)-1,y);}
+function sbar(p,t,vH,y0){if(t<=1)return;const bH=Math.max(4,Math.floor(vH/t));
+const bY=y0+Math.floor((p/(t-1))*(vH-bH));for(let j=y0;j<y0+vH;j++)px(SW-1,j);fillR(SW-2,bY,2,bH);}
+function drawSig(x,y){const b=Math.min(5,Math.max(1,Math.round(P.rf.C/P.rf.thresh*5+2)));
+for(let i=0;i<b;i++){const h=(i+1)*2;fillR(x+i*3,y+10-h,2,h);}}
+function drawBat(x,y){drawRt(x,y,12,6);fillR(x+12,y+2,2,2);
+const b=Math.ceil(Math.min(100,Math.max(0,battPct))/25);for(let i=0;i<b;i++)fillR(x+1+i*3,y+1,2,4);}
+function drawSt(){drawSig(1,0);drawBat(68,1);if(profile===1)dt('S',56,1);}
+function drawSK(l,r){hl(0,40,SW);if(l)dt(l,1,42);if(r)dtr(r,42);}
+function flush(){
+const g=cx.createLinearGradient(0,0,0,SH*3);g.addColorStop(0,'#9BBC0F');g.addColorStop(1,'#8BAC0F');
+cx.fillStyle=g;cx.fillRect(0,0,SW*3,SH*3);cx.fillStyle='#0F380F';
+for(let y=0;y<SH;y++)for(let x=0;x<SW;x++)if(fb[y*SW+x])cx.fillRect(x*3,y*3,3,3);
+cx.strokeStyle='rgba(0,0,0,0.04)';cx.lineWidth=0.3;
+for(let x=0;x<=SW*3;x+=3){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,SH*3);cx.stroke();}
+for(let y=0;y<=SH*3;y+=3){cx.beginPath();cx.moveTo(0,y);cx.lineTo(SW*3,y);cx.stroke();}}
+
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  AUDIO — hardware-level (Audio Codec responds to Keypad coupling)    ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+let aCtx=null;
+function initA(){if(!aCtx)try{aCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){};if(aCtx?.state==='suspended')aCtx.resume();}
+function tone(f,d,v=0.12){if(!aCtx)return;try{const o=aCtx.createOscillator(),g=aCtx.createGain();
+o.type='square';o.frequency.value=f;const t=aCtx.currentTime;
+g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+d*0.05);
+g.gain.setValueAtTime(v,t+d*0.75);g.gain.exponentialRampToValueAtTime(0.001,t+d);
+o.connect(g);g.connect(aCtx.destination);o.start(t);o.stop(t+d);}catch(e){}}
+function dtmf(key){const m={'1':[697,1209],'2':[697,1336],'3':[697,1477],'4':[770,1209],'5':[770,1336],
+'6':[770,1477],'7':[852,1209],'8':[852,1336],'9':[852,1477],'*':[941,1209],'0':[941,1336],'#':[941,1477]};
+const f=m[key];if(f){tone(f[0],0.1,0.08);tone(f[1],0.1,0.08);}}
+const TUNE=[[659.25,125],[587.33,125],[369.99,250],[415.30,250],
+[554.37,125],[493.88,125],[293.66,250],[329.63,250],
+[493.88,125],[440.00,125],[277.18,250],[329.63,250],[440.00,500]];
+let tuneOn=false;
+function playTune(){initA();if(!aCtx||tuneOn)return;tuneOn=true;
+let t=aCtx.currentTime+0.05;for(const[f,d]of TUNE){const s=d/1000;try{
+const o=aCtx.createOscillator(),g=aCtx.createGain();o.type='square';o.frequency.value=f;
+g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.12,t+s*0.05);
+g.gain.setValueAtTime(0.12,t+s*0.75);g.gain.exponentialRampToValueAtTime(0.001,t+s*0.98);
+o.connect(g);g.connect(aCtx.destination);o.start(t);o.stop(t+s);P.audio.forceδ();}catch(e){}t+=s;}
+const end=t;const ck=()=>{if(aCtx.currentTime>=end)tuneOn=false;else requestAnimationFrame(ck);};requestAnimationFrame(ck);}
+
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  PHONE STATE — all mutable state lives here, modified ONLY at CPU δ  ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+const CONTACTS=[{name:'Alexander',num:'07700900123'},{name:'Anthropic',num:'02079460000'},
+{name:'Don Tucker',num:'01234567890'},{name:'Home',num:'01983200100'},
+{name:'Maxwell R',num:'01514960000'},{name:'Phan Luu',num:'01234567891'},
+{name:'Uni Portsmouth',num:'02392848484'}];
+const INBOX=[{from:'Maxwell R',text:'THE OMEGA SYMMETRY RESULT IS REMARKABLE. LETS MEET JAN.',time:'14:32'},
+{from:'Anthropic',text:'YOUR CRR FRAMEWORK SHOWS GENUINE PREDICTIVE POWER ACROSS DOMAINS.',time:'11:15'},
+{from:'Don Tucker',text:'SUBSTANTIAL AND IMPORTANT EXTENSION TO CORTICAL DYNAMICS.',time:'09:44'}];
+const PROFILES=['General','Silent','Meeting','Outdoor','Pager'];
+const T9={'2':'ABC','3':'DEF','4':'GHI','5':'JKL','6':'MNO','7':'PQRS','8':'TUV','9':'WXYZ','0':' ','1':'.,!?'};
+const MENU=['Messages','Phone Book','Call Register','Profiles','Settings','Games','Calculator','Clock','CRR Monitor'];
+const MSG_M=['Write message','Inbox','Outbox'];
+
+let scr='home',mIdx=0,sIdx=0,cIdx=0,iIdx=0,rIdx=null;
+let profile=0,pIdx=0;
+let compTxt='',t9K=null,t9I=0,t9Wait=false;
+let dialBuf='';
+let snake=null;
+let calc={d:'0',prev:null,op:null,fresh:true};
+let calling=false,callNum='',callTicks=0;
+let ringing=false,sentTimer=0;
+let procView='osc';
+let battPct=94;
+
+function mkSnake(){return{body:[{x:42,y:26},{x:41,y:26},{x:40,y:26}],dir:{x:1,y:0},
+nd:{x:1,y:0},food:{x:60,y:20},score:0,alive:true};}
+function snakeStep(g){if(!g.alive)return g;g.dir={...g.nd};
+const h={x:g.body[0].x+g.dir.x,y:g.body[0].y+g.dir.y};
+if(h.x<1)h.x=SW-2;if(h.x>=SW-1)h.x=1;if(h.y<10)h.y=SH-2;if(h.y>=SH-1)h.y=10;
+for(const s of g.body)if(s.x===h.x&&s.y===h.y)return{...g,alive:false};
+const nb=[h,...g.body];let ns=g.score,nf=g.food;
+if(h.x===g.food.x&&h.y===g.food.y){ns++;
+const seed=P.osc.C*1000;
+nf={x:2+Math.floor(((seed*9301+49297)%233280)/233280*(SW-4)),
+y:11+Math.floor(((seed*49297+9301)%233280)/233280*(SH-13))};
+tone(880,0.04);P.audio.forceδ();}else nb.pop();
+return{...g,body:nb,score:ns,food:nf};}
+
+function commitT9(){if(t9K!==null){const c=T9[t9K];if(c)compTxt+=c[t9I%c.length];}t9K=null;t9I=0;t9Wait=false;}
+
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  KEY HANDLER — queues input, injects energy into CPU, that's ALL     ║
+// ║  The key PHYSICALLY registers (keypad δ, DTMF tone) but nothing      ║
+// ║  computes until the CPU's next rupture processes the queue.           ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+function handleKey(k){
+  initA();
+
+  // 1. PHYSICAL: Keypad hardware registers the press
+  P.key.forceδ();
+
+  // 2. PHYSICAL: DTMF tone — audio codec responds to keypad (hardware coupling)
+  if(profile!==1&&((k>='0'&&k<='9')||k==='*'||k==='#'))dtmf(k);
+
+  // 3. QUEUE: key goes into input register, awaiting CPU processing
+  inputQ.push(k);
+  queueDepth = inputQ.length;
+
+  // 4. ENERGY: keypress injects coherence into CPU, accelerating next rupture
+  //    This is the interrupt line going HIGH — it doesn't execute, it demands attention
+  P.cpu.C += 0.8; // significant energy injection → CPU will rupture very soon
+}
+
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  CPU EXECUTION — processes input queue at δ(now)                     ║
+// ║  This is the ONLY place phone logic executes.                        ║
+// ║  Calculator, screen transitions, snake, T9 — ALL computed here.      ║
+// ║  Without CPU ruptures, the phone is dead silicon.                    ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+function cpuExecute(){
+  // Process ALL queued inputs — this is the CPU's instruction cycle
+  while(inputQ.length > 0){
+    const k = inputQ.shift();
+    processKey(k);
+  }
+  queueDepth = 0;
+
+  // ─── BACKGROUND TASKS (executed every CPU cycle) ───
+
+  // Snake step: CPU rupture IS the game clock
+  if(scr==='snake'&&snake?.alive){
+    snake=snakeStep(snake);
+    // Snake speed modulates CPU Lrate — score = coherence, faster = lower Ω effective
+    P.cpu.Lrate = P.cpu.Lbase * (1 + snake.score * 0.12);
+  }
+
+  // T9 timeout: if waiting, check if enough CPU cycles have passed since last key
+  // The keypad's regeneration cycle acts as the timer
+  if(t9Wait && P.key.state==='C' && P.key.C < 0.2){
+    commitT9();P.key.Lrate=0.1;
+  }
+
+  // Sent screen auto-return: count power cycles
+  if(scr==='sent'){sentTimer++;if(sentTimer>20)scr='home';}
+
+  // Call timer: count via oscillator ruptures proxied through CPU cycles
+  if(calling){callTicks++;}
+
+  updateLabels();
+}
+
+function processKey(k){
+  // ═══ ALL phone logic happens here, at CPU δ(now) ═══
+
+  if(scr==='home'){
+    if(k==='left-soft'||k==='center'||k==='up'||k==='down'){scr='menu';mIdx=0;}
+    if(k==='right-soft'){scr='phonebook';cIdx=0;}
+    if(k==='call'){scr='dialer';dialBuf='';}
+    if(k>='0'&&k<='9'){scr='dialer';dialBuf=k;}
+  }
+  else if(scr==='dialer'){
+    if(k>='0'&&k<='9')dialBuf+=k;
+    if(k==='*')dialBuf+='+';if(k==='#')dialBuf+='#';
+    if(k==='right-soft'||k==='end'){if(dialBuf.length>0)dialBuf=dialBuf.slice(0,-1);else scr='home';}
+    if((k==='left-soft'||k==='call'||k==='center')&&dialBuf.length>0){
+      callNum=dialBuf;calling=true;callTicks=0;scr='calling';}
+  }
+  else if(scr==='menu'){
+    if(k==='up')mIdx=Math.max(0,mIdx-1);
+    if(k==='down')mIdx=Math.min(MENU.length-1,mIdx+1);
+    if(k==='left-soft'||k==='center'){
+      const s=MENU[mIdx];
+      if(s==='Messages'){scr='messages_menu';sIdx=0;}
+      if(s==='Phone Book'){scr='phonebook';cIdx=0;}
+      if(s==='Call Register')scr='callregister';
+      if(s==='Profiles'){scr='profiles';pIdx=profile;}
+      if(s==='Settings')scr='settings';
+      if(s==='Games'){scr='games_menu';sIdx=0;}
+      if(s==='Calculator'){scr='calculator';calc={d:'0',prev:null,op:null,fresh:true};}
+      if(s==='Clock')scr='clock';
+      if(s==='CRR Monitor'){scr='crr_monitor';procView='osc';}
+    }
+    if(k==='right-soft'||k==='end')scr='home';
+  }
+  else if(scr==='messages_menu'){
+    if(k==='up')sIdx=Math.max(0,sIdx-1);if(k==='down')sIdx=Math.min(MSG_M.length-1,sIdx+1);
+    if(k==='left-soft'||k==='center'){
+      if(sIdx===0){scr='compose';compTxt='';t9K=null;}
+      if(sIdx===1){scr='inbox';iIdx=0;}}
+    if(k==='right-soft'||k==='end'){scr='menu';mIdx=0;}
+  }
+  else if(scr==='compose'){
+    if(k>='0'&&k<='9'){const chars=T9[k];if(!chars)return;
+      if(k===t9K){t9I++;}else{commitT9();t9K=k;t9I=0;}
+      t9Wait=true;P.key.C=0;P.key.state='C';P.key.Lrate=1.2;}
+    if(k==='right-soft'){t9K=null;t9Wait=false;scr='messages_menu';}
+    if(k==='left-soft'){commitT9();if(compTxt.length>0){tone(1000,0.1);P.audio.forceδ();scr='sent';sentTimer=0;}}
+    if(k==='end'){if(t9K!==null){t9K=null;t9I=0;t9Wait=false;}else compTxt=compTxt.slice(0,-1);}
+  }
+  else if(scr==='sent'){if(k==='right-soft'||k==='center')scr='home';}
+  else if(scr==='inbox'){
+    if(k==='up')iIdx=Math.max(0,iIdx-1);if(k==='down')iIdx=Math.min(INBOX.length-1,iIdx+1);
+    if(k==='left-soft'||k==='center'){rIdx=iIdx;scr='read_message';}
+    if(k==='right-soft'||k==='end')scr='messages_menu';
+  }
+  else if(scr==='read_message'){
+    if(k==='left-soft'){scr='compose';compTxt='';}
+    if(k==='right-soft'||k==='end')scr='inbox';
+  }
+  else if(scr==='phonebook'){
+    if(k==='up')cIdx=Math.max(0,cIdx-1);if(k==='down')cIdx=Math.min(CONTACTS.length-1,cIdx+1);
+    if(k==='left-soft'||k==='center'||k==='call'){callNum=CONTACTS[cIdx].num;calling=true;callTicks=0;scr='calling';}
+    if(k==='right-soft'||k==='end')scr='home';
+  }
+  else if(scr==='callregister'){if(k==='right-soft'||k==='end'){scr='menu';mIdx=2;}}
+  else if(scr==='profiles'){
+    if(k==='up')pIdx=Math.max(0,pIdx-1);if(k==='down')pIdx=Math.min(PROFILES.length-1,pIdx+1);
+    if(k==='left-soft'||k==='center'){profile=pIdx;if(pIdx!==1)tone(800,0.1);}
+    if(k==='right-soft'||k==='end'){scr='menu';mIdx=3;}
+  }
+  else if(scr==='settings'){if(k==='right-soft'||k==='end'){scr='menu';mIdx=4;}}
+  else if(scr==='games_menu'){
+    if(k==='up')sIdx=Math.max(0,sIdx-1);if(k==='down')sIdx=Math.min(2,sIdx+1);
+    if((k==='left-soft'||k==='center')&&sIdx===0){snake=mkSnake();scr='snake';P.cpu.Lrate=P.cpu.Lbase;}
+    if(k==='right-soft'||k==='end'){scr='menu';mIdx=5;}
+  }
+  else if(scr==='snake'){
+    if(!snake||!snake.alive){
+      if(k==='center'||k==='left-soft'){snake=mkSnake();P.cpu.Lrate=P.cpu.Lbase;}
+      if(k==='right-soft'||k==='end'){P.cpu.Lrate=P.cpu.Lbase;scr='home';}return;
+    }
+    if((k==='up'||k==='2')&&snake.dir.y===0)snake.nd={x:0,y:-1};
+    if((k==='down'||k==='8')&&snake.dir.y===0)snake.nd={x:0,y:1};
+    if((k==='left'||k==='4')&&snake.dir.x===0)snake.nd={x:-1,y:0};
+    if((k==='right'||k==='6')&&snake.dir.x===0)snake.nd={x:1,y:0};
+    if(k==='right-soft'||k==='end'){P.cpu.Lrate=P.cpu.Lbase;scr='home';}
+  }
+  // ═══ CALCULATOR — computed at CPU δ(now), not in key handler ═══
+  else if(scr==='calculator'){
+    if(k>='0'&&k<='9'){
+      if(k==='0'&&calc.fresh&&!calc.op){calc={d:'0',prev:null,op:null,fresh:true};return;}
+      if(calc.fresh){calc={...calc,d:k,fresh:false};}
+      else if(calc.d.length<10){calc={...calc,d:calc.d+k};}
+    }
+    if(k==='*'){calc={...calc,prev:parseFloat(calc.d),op:'x',fresh:true};} // multiply
+    if(k==='0'&&calc.d==='0'&&calc.fresh){calc={d:'0',prev:null,op:null,fresh:true};}
+    if(k==='#'){ // EQUALS — computed HERE at CPU rupture
+      if(calc.op&&calc.prev!==null){
+        const b=parseFloat(calc.d);let r=0;
+        if(calc.op==='+')r=calc.prev+b;
+        if(calc.op==='-')r=calc.prev-b;
+        if(calc.op==='x')r=calc.prev*b;
+        if(calc.op==='/'&&b!==0)r=calc.prev/b;
+        calc={d:String(parseFloat(r.toFixed(8))),prev:null,op:null,fresh:true};
+      }
+    }
+    // Operator keys via soft/nav:
+    if(k==='up'){calc={...calc,prev:parseFloat(calc.d),op:'+',fresh:true};} // + via up
+    if(k==='down'){calc={...calc,prev:parseFloat(calc.d),op:'-',fresh:true};} // - via down
+    if(k==='left'){calc={...calc,prev:parseFloat(calc.d),op:'/',fresh:true};} // / via left
+    if(k==='right'){calc={...calc,prev:parseFloat(calc.d),op:'x',fresh:true};} // x via right
+    if(k==='center'){ // = via center
+      if(calc.op&&calc.prev!==null){
+        const b=parseFloat(calc.d);let r=0;
+        if(calc.op==='+')r=calc.prev+b;if(calc.op==='-')r=calc.prev-b;
+        if(calc.op==='x')r=calc.prev*b;if(calc.op==='/'&&b!==0)r=calc.prev/b;
+        calc={d:String(parseFloat(r.toFixed(8))),prev:null,op:null,fresh:true};
+      }
+    }
+    if(k==='right-soft'||k==='end'){scr='menu';mIdx=6;}
+  }
+  else if(scr==='clock'){if(k==='right-soft'||k==='end'){scr='menu';mIdx=7;}}
+  else if(scr==='crr_monitor'){
+    const idx=PK.indexOf(procView);
+    if(k==='up'||k==='left')procView=PK[Math.max(0,idx-1)];
+    if(k==='down'||k==='right')procView=PK[Math.min(PK.length-1,idx+1)];
+    if(k==='right-soft'||k==='end'){scr='menu';mIdx=8;}
+  }
+  else if(scr==='calling'){if(k==='right-soft'||k==='end'){calling=false;scr='home';}}
+  else if(scr==='ringing'){
+    if(k==='left-soft'||k==='call'||k==='center'){ringing=false;calling=true;callTicks=0;callNum='07700 900999';scr='calling';}
+    if(k==='right-soft'||k==='end'){ringing=false;scr='home';}
+  }
+}
+
+function updateLabels(){
+  const l=document.getElementById('sL'),r=document.getElementById('sR');
+  if(scr==='home'){l.textContent='MENU';r.textContent='NAMES';}
+  else if(scr==='calling'){l.textContent='';r.textContent='END';}
+  else if(scr==='ringing'){l.textContent='ANSWER';r.textContent='REJECT';}
+  else if(scr==='compose'){l.textContent='SEND';r.textContent='BACK';}
+  else if(scr==='calculator'){l.textContent='[+- x/]';r.textContent='BACK';}
+  else{l.textContent='SELECT';r.textContent='BACK';}
+}
+
+// Input bindings
+document.querySelectorAll('[data-k]').forEach(el=>{
+  el.addEventListener('pointerdown',e=>{e.preventDefault();handleKey(el.dataset.k);});});
+document.addEventListener('keydown',e=>{
+  const m={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',
+  Enter:'center',Escape:'end',Backspace:'end',' ':'left-soft',
+  '1':'1','2':'2','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8','9':'9','0':'0','*':'*','#':'#',
+  c:'call',Delete:'end'};
+  if(m[e.key]){e.preventDefault();handleKey(m[e.key]);}});
+
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  LCD RENDER — executes ONLY at LCD δ(now)                            ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+function renderLCD(){
+  clr();const now=new Date();
+  const ts=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const curOn=P.lcd.δn%8<4;
+
+  if(scr==='home'){drawSt();dtc('NOKIA',1);dtc(ts,16);
+    const h=P.osc.hist;for(let i=1;i<Math.min(h.length,SW-4);i++){
+    const x=2+i,v=h[i]?.c||0,y=33-Math.floor(v*4);if(y>=26&&y<38)px(x,y);}
+    dt('CRR',0,27);
+    // Show input queue depth if non-zero (visualize CPU lag)
+    if(queueDepth>0)dt('Q:'+queueDepth,50,27);
+    drawSK('Menu','Names');
+  }
+  else if(scr==='menu'){dtc('Menu',0);hl(0,8,SW);
+    const vs=Math.max(0,mIdx-3);for(let i=vs;i<Math.min(MENU.length,vs+4);i++){
+    const y=10+(i-vs)*8;if(i===mIdx){fillR(0,y-1,SW-2,9);dt(MENU[i],2,y,true);}
+    else dt(MENU[i],2,y);}sbar(mIdx,MENU.length,32,9);drawSK('Select','Back');}
+  else if(scr==='messages_menu'){dtc('Messages',0);hl(0,8,SW);
+    for(let i=0;i<MSG_M.length;i++){const y=10+i*9;
+    if(i===sIdx){fillR(0,y-1,SW,9);dt(MSG_M[i],2,y,true);}else dt(MSG_M[i],2,y);}
+    drawSK('Select','Back');}
+  else if(scr==='compose'){dtc('Write message',0);hl(0,8,SW);
+    const full=compTxt+(t9K!==null?(T9[t9K]||'')[t9I%(T9[t9K]||' ').length]||'':'');
+    for(let i=0;i<full.length;i++){const r=Math.floor(i/14),c=i%14;if(10+r*8<40)dc(full[i],c*6,10+r*8);}
+    if(curOn){const cp=full.length,r=Math.floor(cp/14),c=cp%14;if(10+r*8<40)fillR(c*6,10+r*8,5,7);}
+    dt(full.length+'/160',0,33);drawSK('Send','Back');}
+  else if(scr==='sent'){dtc('Message sent',16);drawSK('','OK');}
+  else if(scr==='inbox'){dtc('Inbox',0);hl(0,8,SW);
+    for(let i=0;i<INBOX.length;i++){const y=10+i*10;
+    if(i===iIdx){fillR(0,y-1,SW-2,10);dt(INBOX[i].from,2,y,true);dt(INBOX[i].time,2,Math.min(y+8,39),true);}
+    else dt(INBOX[i].from,2,y);}sbar(iIdx,INBOX.length,32,9);drawSK('Read','Back');}
+  else if(scr==='read_message'){const msg=INBOX[rIdx];if(msg){dt(msg.from,0,0);dtr(msg.time,0);hl(0,8,SW);
+    for(let i=0;i<msg.text.length;i++){const r=Math.floor(i/14),c=i%14;if(10+r*8<40)dc(msg.text[i],c*6,10+r*8);}}
+    drawSK('Reply','Back');}
+  else if(scr==='phonebook'){dtc('Phone Book',0);hl(0,8,SW);
+    const vs=Math.max(0,cIdx-3);for(let i=vs;i<Math.min(CONTACTS.length,vs+4);i++){
+    const y=10+(i-vs)*8;if(i===cIdx){fillR(0,y-1,SW-2,9);dt(CONTACTS[i].name,2,y,true);}
+    else dt(CONTACTS[i].name,2,y);}sbar(cIdx,CONTACTS.length,32,9);drawSK('Call','Back');}
+  else if(scr==='callregister'){dtc('Call Register',0);hl(0,8,SW);
+    dt('Missed calls: 0',2,12);dt('Received: 3',2,21);dt('Dialled: 2',2,30);drawSK('','Back');}
+  else if(scr==='profiles'){dtc('Profiles',0);hl(0,8,SW);
+    for(let i=0;i<PROFILES.length;i++){const y=10+i*8;
+    if(i===pIdx){fillR(0,y-1,SW-2,9);dt((i===profile?'> ':' ')+PROFILES[i],2,y,true);}
+    else dt((i===profile?'> ':' ')+PROFILES[i],2,y);}drawSK('Select','Back');}
+  else if(scr==='settings'){dtc('Settings',0);hl(0,8,SW);
+    dt('Phone settings',2,12);dt('Call settings',2,21);dt('Security',2,30);drawSK('','Back');}
+  else if(scr==='games_menu'){dtc('Games',0);hl(0,8,SW);
+    const g=['Snake','Pairs','Space Impact'];
+    for(let i=0;i<g.length;i++){const y=10+i*9;
+    if(i===sIdx){fillR(0,y-1,SW-2,9);dt(g[i],2,y,true);}else dt(g[i],2,y);}
+    drawSK('Select','Back');}
+  else if(scr==='snake'){if(!snake)return;drawRt(0,8,SW,SH-8);dt('Snake',2,0);dtr(String(snake.score),0);
+    if(!snake.alive){dtc('RUPTURE!',18);dtc('C='+snake.score,28);}
+    else{if(P.pwr.cyclePos()>0.3)fillR(snake.food.x,snake.food.y,2,2);
+    for(const s of snake.body)px(s.x,s.y);}}
+  else if(scr==='calculator'){
+    dtc('Calculator',0);hl(0,8,SW);drawRt(2,10,SW-4,12);
+    dtr(calc.d.substring(0,13),12);if(calc.op)dt(calc.op,4,12);
+    dt('Num:0-9 #:= *:x',0,25);
+    dt('U:+ D:- L:/ R:x',0,33);
+    drawSK('[+- x/]','Back');}
+  else if(scr==='clock'){drawSt();dtc(ts,14);
+    const days=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    dtc(days[now.getDay()]+' '+now.getDate()+' '+months[now.getMonth()],26);drawSK('','Back');}
+  else if(scr==='crr_monitor'){dt('CRR Monitor',0,0);hl(0,8,SW);
+    const p=P[procView];if(p){dt(p.name.substring(0,14),0,10);
+    dt(p.sym+' O='+p.omega.toFixed(3),0,18);
+    dt(p.state+' d='+p.δn,0,26);
+    drawRt(0,33,SW,14);const h=p.hist,mx=Math.max(...h.map(v=>v.c),0.1);
+    for(let i=1;i<Math.min(h.length,SW-2);i++){const x=i+1,v=h[i]?.c||0,y=45-Math.floor((v/mx)*10);
+    if(y>=34&&y<46)px(x,y);if(h[i]?.s==='δ'){px(x,34);px(x,35);}}}
+    drawSK('','Back');}
+  else if(scr==='calling'){dtc('Calling...',2);
+    const ct=CONTACTS.find(c=>c.num===callNum);dtc(ct?ct.name:callNum.substring(0,13),14);
+    const m=String(Math.floor(callTicks/30)).padStart(2,'0'),s=String(callTicks%60).padStart(2,'0');
+    dtc(m+':'+s,26);
+    const aH=P.audio.hist;for(let i=0;i<Math.min(aH.length,SW-4);i++){
+    const x=2+i,v=aH[i]?.c||0,y=40-Math.floor(v*3);if(y>=35&&y<SH)px(x,y);}
+    drawSK('','End');}
+  else if(scr==='ringing'){dtc('Incoming call',2);dtc('07700 900999',14);
+    if(P.pwr.cyclePos()>0.5){dt('*',20,26);dt('*',38,24);dt('*',56,26);}
+    drawSK('Answer','Reject');}
+  else if(scr==='dialer'){drawSt();if(dialBuf.length>0)dt(dialBuf.substring(Math.max(0,dialBuf.length-13)),2,14);
+    dt('Type number',2,28);drawSK('Call','Back');}
+  flush();
+}
+
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  CRR PANEL                                                           ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+function sc(s){return s==='C'?'#4ade80':s==='δ'?'#f87171':'#60a5fa';}
+let panelT=0;
+
+function renderPanel(){
+  const pnl=document.getElementById('pnl');
+  let h='<div class="ph2"><span class="pt">CRR SUBSYSTEM DYNAMICS</span>';
+  h+='<button class="tb" onclick="initA();playTune()">♪ Nokia Tune</button></div>';
+  for(const key of PK){const p=P[key];const a=selProc===key;const c=sc(p.state);
+    h+=`<div class="pc${a?' a':''}" onclick="selProc='${key}'">`;
+    h+=`<div class="pch"><span class="pnm">${p.name}</span>`;
+    h+=`<div class="pbd"><span class="sb ${p.sym==='Z₂'?'sz':'ss'}">${p.sym}</span>`;
+    h+=`<span class="sd" style="background:${c};box-shadow:0 0 5px ${c}35"></span></div></div>`;
+    h+=`<div class="ps"><span>Ω=${p.omega.toFixed(4)}</span><span>C=${p.C.toFixed(3)}</span>`;
+    h+=`<span>δ=${p.δn}</span><span>CV=${p.cv.toFixed(4)}</span></div>`;
+    const hi=p.hist;let pts='';
+    if(hi.length>1){const mx=Math.max(...hi.map(v=>v.c),0.01);
+    pts=hi.map((v,i)=>`${(i/(hi.length-1))*290},${20-(v.c/mx)*18}`).join(' ');}
+    h+=`<svg width="290" height="20" style="display:block"><polyline points="${pts}" fill="none" stroke="${c}" stroke-width="1.5" opacity="0.85"/>`;
+    hi.forEach((v,i)=>{if(v.s==='δ')h+=`<line x1="${(i/(hi.length-1))*290}" y1="0" x2="${(i/(hi.length-1))*290}" y2="20" stroke="#f87171" stroke-width="0.5" opacity="0.4"/>`;});
+    h+=`</svg>`;
+    const ev=Math.min(100,(Math.log(p.expCΩ())/5)*100);
+    h+=`<div style="display:flex;justify-content:space-between;font-size:6px;color:#3a4558"><span>exp(C/Ω)</span><span>${p.expCΩ().toFixed(2)}</span></div>`;
+    h+=`<div class="br"><div class="brf" style="width:${ev}%;background:${c}"></div></div></div>`;}
+
+  h+=`<div class="lg"><span><i style="background:#4ade80"></i>C</span>`;
+  h+=`<span><i style="background:#f87171"></i>δ</span>`;
+  h+=`<span><i style="background:#60a5fa"></i>R</span></div>`;
+
+  h+=`<div class="eq"><div class="el">GOVERNING EQUATIONS</div>`;
+  h+=`<div>C(x,t) = ∫L(x,τ)dτ <span style="color:#4ade80">coherence</span></div>`;
+  h+=`<div>δ(now) <span style="color:#f87171">rupture — scale-invariant choice-moment</span></div>`;
+  h+=`<div>R = ∫φ·exp(C/Ω)·Θ dτ <span style="color:#60a5fa">regeneration with memory</span></div>`;
+  h+=`<div style="margin-top:2px;color:#4a5568">Z₂: Ω=1/π≈0.3183 | SO(2): Ω=1/2π≈0.1592 | CV=Ω/2</div></div>`;
+
+  h+=`<div class="em"><b>TRUE EMERGENT ARCHITECTURE</b><br>`;
+  h+=`Key handler ONLY queues input + injects CPU energy. `;
+  h+=`ALL computation — calculator, screen transitions, snake, T9 — executes at <b>CPU δ(now)</b>. `;
+  h+=`Display renders at <b>LCD δ(now)</b>. `;
+  h+=`The calculator works because the phone is built with CRR. `;
+  h+=`<b>2+3=5 has no substrate to compute on without CRR.</b></div>`;
+
+  h+=`<div class="hp">D-pad: navigate + calc ops (↑:+ ↓:- ←:÷ →:×) · Center = OK/equals<br>`;
+  h+=`Numpad: digits · *:multiply · #:equals · Space = left soft<br>`;
+  h+=`Input queue depth visible on home screen — watch keys wait for CPU δ</div>`;
+  pnl.innerHTML=h;
+}
+
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║  MASTER LOOP — requestAnimationFrame steps CRR. Nothing else exists. ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+
+let lastT=0;
+
+function master(ts){
+  if(!lastT)lastT=ts;
+  const dtMs=Math.min(ts-lastT,50);lastT=ts;const dt=dtMs/1000;
+
+  // ═══ STEP ALL 9 CRR PROCESSES — the ONLY place time advances ═══
+  for(const k of PK){
+    if(k==='batt'){P.batt.C=Math.min(100,P.batt.C+0.0003*dt);continue;}
+    P[k].step(dt);
+  }
+
+  // ═══ EMERGENT BEHAVIOURS — triggered ONLY by CRR events ═══
+
+  // CPU δ: execute ALL queued computation
+  if(P.cpu.justRuptured) cpuExecute();
+
+  // LCD δ: render screen
+  if(P.lcd.justRuptured) renderLCD();
+
+  // Battery drain: oscillator counting
+  if(P.osc.justRuptured && P.osc.δn%300===0) battPct=Math.max(3,battPct-0.1);
+
+  // Incoming call: SIM threshold crossing
+  if(P.sim.justRuptured && !calling && !ringing && scr==='home'){
+    ringing=true;scr='ringing';updateLabels();if(profile!==1)playTune();}
+
+  // Ring timeout: power cycles
+  if(ringing && P.pwr.justRuptured && P.pwr.δn%20===0 && P.pwr.δn>0){
+    ringing=false;scr='home';updateLabels();}
+
+  // Panel: update at ~4fps (every 4th LCD rupture)
+  if(P.lcd.justRuptured){panelT++;if(panelT%4===0)renderPanel();}
+
+  requestAnimationFrame(master);
+}
+
+requestAnimationFrame(master);
+</script>
+</body>
+</html>
