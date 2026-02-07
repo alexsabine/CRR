@@ -42,4 +42,4 @@ When exploring a new domain, ask:
  What regenerates (R)?
  What is the system’s symmetry (Z₂ or SO(2))?
  What is Ω, and what modulates it?
- Where is the temporal blanke
+ Where is the temporal blanket?
