@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Soma — The Music of the Human Body | CRR</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Mono:wght@400;700&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --arterial:#e53e3e;--venous:#3182ce;--neural:#dd6b20;
+  --vagal:#0bc5ea;--cortical:#9f7aea;--gamma-col:#ed64a6;
+  --coherence:#4fd1c5;--rupture:#fc8181;--regen:#68d391;
+  --omega:#f6ad55;--bioelec:#ffdd57;--chant:#c4b5fd;
+  --cream:rgba(220,215,225,0.85);--creamD:rgba(200,195,210,0.5);
+  --bg:#030408;--panel:rgba(8,10,18,0.97)
+}
+body{background:var(--bg);color:var(--cream);font-family:'Cormorant Garamond',Georgia,serif;
+overflow:hidden;width:100vw;height:100vh;position:fixed}
+
+/* ─── Splash ─── */
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;
+justify-content:center;cursor:pointer;transition:opacity 1.4s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:680px;padding:0 24px}
+#splash .pulse-bar{width:240px;height:2px;margin:0 auto 28px;border-radius:2px;
+background:linear-gradient(90deg,var(--venous),var(--vagal),var(--bioelec),var(--coherence),var(--regen),var(--arterial));
+animation:heartpulse 1.2s ease-in-out infinite}
+@keyframes heartpulse{0%,100%{opacity:.3;transform:scaleX(1)}15%{opacity:.9;transform:scaleX(1.08)}30%{opacity:.4;transform:scaleX(1)}45%{opacity:.7;transform:scaleX(1.04)}60%,100%{opacity:.3;transform:scaleX(1)}}
+#splash h1{font-size:clamp(2.2rem,5.5vw,3.8rem);font-weight:300;letter-spacing:.22em;
+margin-bottom:6px;background:linear-gradient(135deg,var(--arterial),var(--bioelec),var(--vagal),var(--chant),var(--coherence),var(--cortical));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#splash .sub{font-size:clamp(.78rem,1.4vw,1rem);font-weight:300;opacity:.4;
+letter-spacing:.04em;line-height:1.9;font-style:italic}
+#splash .eq{font-family:'Space Mono',monospace;font-size:clamp(.48rem,.8vw,.58rem);
+opacity:.16;margin-top:18px;letter-spacing:.02em;line-height:1.8}
+#splash .credit{font-size:.62rem;opacity:.18;margin-top:14px;letter-spacing:.06em}
+#splash .tap{font-size:.68rem;opacity:.18;margin-top:22px;letter-spacing:.12em;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.12}50%{opacity:.3}}
+
+/* ─── App ─── */
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#canvas-wrap{flex:1;min-height:0;position:relative}
+#viz{display:block;width:100%;height:100%;touch-action:none}
+
+/* ─── Info overlays ─── */
+#info-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+align-items:flex-start;padding:12px 18px;pointer-events:none;z-index:5}
+#piece-title{font-size:clamp(.9rem,1.6vw,1.2rem);font-weight:300;letter-spacing:.12em;
+color:rgba(180,160,210,0.45)}
+#piece-title .composer{font-size:.68em;font-weight:300;opacity:.5;font-style:italic;display:block;margin-top:3px}
+#crr-display{font-family:'Space Mono',monospace;font-size:clamp(.48rem,.8vw,.6rem);
+color:rgba(160,140,200,0.28);text-align:right;line-height:1.65}
+
+#section-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+text-align:center;pointer-events:none;z-index:4;font-size:clamp(1rem,2.2vw,1.6rem);
+font-weight:300;letter-spacing:.22em;font-style:italic;opacity:0;transition:opacity 1.4s ease;
+text-shadow:0 0 50px rgba(80,160,200,0.15)}
+
+#lyric-display{position:absolute;bottom:16%;left:0;right:0;text-align:center;pointer-events:none;z-index:5}
+#lyric-text{font-size:clamp(1rem,2.2vw,1.6rem);font-weight:300;letter-spacing:.15em;
+font-style:italic;opacity:0;transition:opacity .9s ease;text-shadow:0 0 40px rgba(80,180,200,0.15)}
+#lyric-text.visible{opacity:.55}
+
+/* ─── Chant text overlay ─── */
+#chant-display{position:absolute;bottom:22%;left:0;right:0;text-align:center;pointer-events:none;z-index:5}
+#chant-text{font-size:clamp(.78rem,1.5vw,1.1rem);font-weight:300;letter-spacing:.2em;
+font-style:italic;opacity:0;transition:opacity 1.2s ease;color:rgba(196,181,253,0.4);
+text-shadow:0 0 30px rgba(196,181,253,0.1);text-transform:lowercase}
+#chant-text.visible{opacity:1}
+
+/* ─── Body metrics overlay ─── */
+#body-metrics{position:absolute;bottom:12%;right:16px;pointer-events:none;z-index:5;
+font-family:'Space Mono',monospace;font-size:.52rem;color:rgba(160,180,200,0.25);
+text-align:right;line-height:1.7}
+
+/* ─── Timeline ─── */
+#timeline-wrap{height:26px;background:rgba(8,10,18,0.95);border-top:1px solid rgba(80,160,200,0.06);
+display:flex;align-items:center;padding:0 14px;gap:9px;flex-shrink:0}
+#timeline-bar{flex:1;height:5px;background:rgba(255,255,255,0.03);border-radius:3px;
+position:relative;overflow:hidden}
+#timeline-fill{height:100%;width:0%;border-radius:3px;transition:width 0.3s linear;
+background:linear-gradient(90deg,
+  rgba(229,62,62,0.5),rgba(255,221,87,0.5),rgba(246,173,85,0.5),rgba(79,209,197,0.5),
+  rgba(196,181,253,0.5),rgba(159,122,234,0.5),rgba(11,197,234,0.5),rgba(104,211,145,0.5))}
+#timeline-sections{position:absolute;inset:0;display:flex;pointer-events:none}
+.t-section{height:100%;border-right:1px solid rgba(255,255,255,0.05);position:relative}
+.t-section-label{position:absolute;top:-13px;left:2px;font-family:'Space Mono',monospace;
+font-size:6.5px;color:rgba(160,180,200,0.18);letter-spacing:.03em;white-space:nowrap}
+#timeline-time{font-family:'Space Mono',monospace;font-size:.52rem;color:rgba(160,180,200,0.22);
+min-width:62px;text-align:right}
+#timeline-crr{font-family:'Space Mono',monospace;font-size:.52rem;min-width:48px;
+background:linear-gradient(90deg,rgba(229,62,62,.35),rgba(255,221,87,.35),rgba(79,209,197,.35));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* ─── Controls ─── */
+#controls{border-top:1px solid rgba(80,160,200,0.08);background:var(--panel);
+padding:9px 14px 10px;display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.transport-row{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap}
+.transport-btn{font-family:'Cormorant Garamond',serif;font-size:clamp(.7rem,1vw,.85rem);
+padding:4px 18px;border:1px solid rgba(80,160,200,0.1);background:transparent;
+color:var(--creamD);cursor:pointer;border-radius:3px;letter-spacing:.06em;transition:all .25s}
+.transport-btn:hover{border-color:rgba(80,160,200,0.3);color:var(--cream)}
+.transport-btn.playing{border-color:rgba(104,211,145,0.4);color:rgba(140,220,170,.8);
+background:rgba(104,211,145,.03)}
+.slider-wrap{display:flex;align-items:center;gap:4px}
+.slider-wrap label{font-size:.56rem;color:rgba(160,180,200,.28);letter-spacing:.06em;width:36px}
+.slider-wrap input[type=range]{flex:1;max-width:72px;height:2px;cursor:pointer;accent-color:rgba(80,160,200,0.45)}
+.slider-wrap .val{font-family:'Space Mono',monospace;font-size:.48rem;color:rgba(160,180,200,.22);width:26px;text-align:right}
+#crr-footer{text-align:center;padding:2px;font-size:clamp(.38rem,.65vw,.48rem);
+font-family:'Space Mono',monospace;letter-spacing:.02em;
+background:linear-gradient(90deg,rgba(229,62,62,.1),rgba(255,221,87,.1),rgba(246,173,85,.1),rgba(79,209,197,.1),rgba(196,181,253,.1),rgba(159,122,234,.1),rgba(11,197,234,.1),rgba(104,211,145,.1));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+@media(max-width:600px){
+  #controls{padding:7px 9px 8px}
+  .transport-btn{padding:5px 12px;font-size:.76rem}
+  #info-bar{padding:7px 10px}
+  #timeline-wrap{padding:0 9px;height:22px}
+  .t-section-label{display:none}
+  #body-metrics{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="inner">
+<div class="pulse-bar"></div>
+<h1>SOMA</h1>
+<p class="sub">The music of the human body, composed entirely by Coherence, Rupture &amp; Regeneration.<br>
+Heart as rhythm. Breath as phrase. Brainwaves as harmony.<br>
+Bioelectric conduction as the spark of life. Gregorian chant as the contemplative voice.<br>
+At 72 BPM, twelve beats equal one coherent breath — π² ≈ 10 seconds.</p>
+<p class="eq">heart: Z₂ → Ω=1/π · breath: C→δ→R at π²s · conduction: SA→AV→His→Purkinje cascade<br>
+chant: Dorian mode = coherence basin · neume = C→δ→R phrase · drone = Ω reference<br>
+exp(C/Ω) = memory amplification · CV = Ω/2 · Ω = σ² = inverse precision</p>
+<p class="credit">CRR Framework — Alexander Sabine · temporalgrammar.ai</p>
+<p class="tap">tap to enter</p>
+</div></div>
+
+<div id="app">
+<div id="canvas-wrap">
+<canvas id="viz"></canvas>
+<div id="info-bar">
+  <div id="piece-title">Soma<span class="composer">CRR — the music of the human body</span></div>
+  <div id="crr-display"></div>
+</div>
+<div id="section-label"></div>
+<div id="chant-display"><span id="chant-text"></span></div>
+<div id="lyric-display"><span id="lyric-text"></span></div>
+<div id="body-metrics"></div>
+</div>
+
+<div id="timeline-wrap">
+  <div id="timeline-crr">C=0</div>
+  <div id="timeline-bar">
+    <div id="timeline-fill"></div>
+    <div id="timeline-sections"></div>
+  </div>
+  <div id="timeline-time">0:00 / 0:00</div>
+</div>
+
+<div id="controls">
+<div class="transport-row">
+  <button class="transport-btn" id="btn-play">▶ Play</button>
+  <button class="transport-btn" id="btn-stop">■ Stop</button>
+  <div class="slider-wrap"><label>Tempo</label>
+    <input type="range" id="tempo-slider" min="0.7" max="1.3" step="0.05" value="1">
+    <span class="val" id="tempo-val">1.0×</span></div>
+  <div class="slider-wrap"><label>Reverb</label>
+    <input type="range" id="reverb-slider" min="0" max="1" step="0.05" value="0.78">
+    <span class="val" id="reverb-val">0.78</span></div>
+  <div class="slider-wrap"><label>Choir</label>
+    <input type="range" id="choir-slider" min="0" max="1" step="0.05" value="0.6">
+    <span class="val" id="choir-val">0.60</span></div>
+  <div class="slider-wrap"><label>Body</label>
+    <input type="range" id="body-slider" min="0" max="1" step="0.05" value="0.7">
+    <span class="val" id="body-val">0.70</span></div>
+  <div class="slider-wrap"><label>Chant</label>
+    <input type="range" id="chant-slider" min="0" max="1" step="0.05" value="0.55">
+    <span class="val" id="chant-val">0.55</span></div>
+  <div class="slider-wrap"><label>Bioelec</label>
+    <input type="range" id="bioelec-slider" min="0" max="1" step="0.05" value="0.45">
+    <span class="val" id="bioelec-val">0.45</span></div>
+</div>
+<div id="crr-footer">
+  heart = Z₂ rhythm · SA→AV→His→Purkinje = CRR cascade · chant: Dorian neumes = C→δ→R phrases · drone = Ω reference · 72 BPM = resting pulse
+</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//
+//  S O M A  —  THE MUSIC OF THE HUMAN BODY (Enhanced)
+//
+//  Every sound emerges from CRR mathematics applied to physiology.
+//
+//  NEW: Bioelectric conduction — the cardiac electrical cascade
+//  SA node → AV node → Bundle of His → Purkinje fibers
+//  Each node is a CRR agent. The cascade IS coherence propagating
+//  through the conduction system. QRS = ventricular rupture.
+//
+//  NEW: Gregorian chant — CRR solves modal music theory
+//  Dorian mode on C = coherence basin. Each neume phrase follows
+//  breath: ascend (C), reach reciting tone (δ), descend to
+//  finalis (R). The drone IS the Ω reference frequency.
+//
+//  Alexander Sabine · CRR Framework · temporalgrammar.ai
+//
+// ═══════════════════════════════════════════════════════════════════
+
+const PI=Math.PI,TAU=2*PI,PHI=(1+Math.sqrt(5))/2;
+
+// ═══════════════════════════════════════════════════════════════════
+// §0  CRR ENGINE — Coherence, Rupture, Regeneration Agents
+// ═══════════════════════════════════════════════════════════════════
+class CRRAgent{
+  constructor(sym='Z2',s=1){
+    this.omegaBase=sym==='Z2'?1/PI:sym==='SO2'?1/TAU:1/(PI*PHI);
+    this.omegaScale=s;this.C=0;this.lastRC=0;this.ruptures=0;
+    this.sinceRupture=0;this.inRegen=false;this.regenProg=0;
+  }
+  get omega(){return this.omegaBase*this.omegaScale}
+  get expCO(){return Math.exp(Math.min(10,this.C/Math.max(.001,this.omega)))}
+  get normC(){return Math.min(1,(this.C-this.lastRC)/Math.max(.01,1/this.omega))}
+  acc(L,dt=1){this.C+=L*dt;this.sinceRupture++}
+  shouldRupture(){const th=1/this.omega,acc=this.C-this.lastRC,cv=this.omega/2;
+    return acc>=(th+(Math.random()-.5)*2*cv*th)}
+  doRupture(){this.lastRC=this.C;this.ruptures++;this.sinceRupture=0;this.inRegen=true;this.regenProg=0}
+  step(L,dt=1){if(this.inRegen){this.regenProg=Math.min(1,this.regenProg+.025);
+    if(this.regenProg>=1)this.inRegen=false;return{phase:'R',progress:this.regenProg}}
+    this.acc(L,dt);if(this.shouldRupture()){this.doRupture();return{phase:'delta'}}
+    return{phase:'C',value:this.C}}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §1  PHYSIOLOGICAL SYSTEMS — CRR-driven body state
+// ═══════════════════════════════════════════════════════════════════
+const BODY={
+  heart:{phase:0,bpm:72,systole:false,lastBeat:0,agent:new CRRAgent('Z2',1.2)},
+  breath:{phase:0,rate:12,period:5,amplitude:0,crrPhase:'C'},
+  brain:{
+    theta:{freq:6,phase:0,amp:0,agent:new CRRAgent('SO2',1.8)},
+    alpha:{freq:10,phase:0,amp:0,agent:new CRRAgent('Z2',1.5)},
+    beta:{freq:20,phase:0,amp:0,agent:new CRRAgent('Z2',1.3)},
+    gamma:{freq:40,phase:0,amp:0,agent:new CRRAgent('SO2',2.0)},
+    delta:{freq:2,phase:0,amp:0,agent:new CRRAgent('Z2',0.8)},
+  },
+  blood:{pressure:0,flow:0},
+  vagal:{tone:0.65,coupling:0},
+  // NEW: Bioelectric conduction system — each node is a CRR agent
+  // SA has slowest intrinsic rate (60-100bpm), AV delays (~120ms),
+  // His conducts fast, Purkinje spreads to ventricles
+  bioelectric:{
+    sa:{agent:new CRRAgent('Z2',0.6), fired:false, phase:0, lastFire:0,
+        pos:[52,31]}, // right atrium
+    av:{agent:new CRRAgent('Z2',0.8), fired:false, phase:0, lastFire:0,
+        delay:0.12, pos:[50,33]}, // AV junction
+    his:{agent:new CRRAgent('Z2',1.2), fired:false, phase:0, lastFire:0,
+         delay:0.06, pos:[50,35]}, // septum
+    purkinjeL:{agent:new CRRAgent('SO2',1.5), fired:false, phase:0, lastFire:0,
+               delay:0.04, pos:[45,38]}, // left ventricle
+    purkinjeR:{agent:new CRRAgent('SO2',1.5), fired:false, phase:0, lastFire:0,
+               delay:0.04, pos:[55,38]}, // right ventricle
+    // Current propagation state
+    propagation:0, // 0-1 through the cascade
+    depolarWave:[], // active depolarisation wavefronts
+    ecgPhase:'rest', // rest, P, PR, QRS, ST, T
+    ecgTime:0,
+  },
+  t:0
+};
+
+// Conduction pathway coordinates (body-space)
+const CONDUCT_PATH={
+  saToAv:[[52,31],[51,32],[50,33]],
+  avToHis:[[50,33],[50,34],[50,35]],
+  hisToLeft:[[50,35],[48,36],[46,37],[45,38],[43,40],[42,42]],
+  hisToRight:[[50,35],[52,36],[54,37],[55,38],[57,40],[58,42]],
+  purkinjeL:[[43,40],[41,43],[40,46],[39,48],[40,50]],
+  purkinjeR:[[57,40],[59,43],[60,46],[61,48],[60,50]],
+};
+
+function updateBody(dt,musicBeat){
+  BODY.t+=dt;
+  const t=BODY.t;
+  // Breath cycle
+  const breathNorm=(t/BODY.breath.period)%1;
+  BODY.breath.amplitude=breathNorm<0.4?Math.sin(breathNorm/0.4*PI/2):
+    breathNorm<0.5?1:Math.cos((breathNorm-0.5)/0.5*PI/2);
+  BODY.breath.crrPhase=breathNorm<0.4?'C':breathNorm<0.5?'delta':'R';
+  BODY.breath.phase=breathNorm;
+  // Heart
+  const rsaMod=1+BODY.breath.amplitude*0.08;
+  BODY.heart.phase+=dt*BODY.heart.bpm/60*rsaMod;
+  const hp=BODY.heart.phase%1;
+  BODY.heart.systole=hp<0.35;
+  if(hp<0.02&&BODY.heart.phase>0.5)BODY.heart.lastBeat=t;
+  BODY.heart.agent.step(hp<0.35?0.8:0.3,dt*0.01);
+
+  // Bioelectric conduction cascade
+  const bio=BODY.bioelectric;
+  bio.ecgTime+=dt;
+  // SA node fires with each heartbeat (phase < 0.05)
+  if(hp<0.03&&!bio.sa.fired){
+    bio.sa.fired=true; bio.sa.lastFire=t; bio.sa.phase=1;
+    bio.sa.agent.doRupture(); // SA firing IS a rupture event
+    bio.propagation=0; bio.ecgPhase='P'; bio.ecgTime=0;
+    // Add depolarisation wavefront
+    bio.depolarWave.push({pos:0,speed:0.8,birth:t,node:'sa'});
+  }
+  if(hp>0.1)bio.sa.fired=false;
+  // AV fires after delay from SA
+  if(bio.sa.phase>0&&(t-bio.sa.lastFire)>bio.av.delay&&!bio.av.fired){
+    bio.av.fired=true; bio.av.lastFire=t; bio.av.phase=1;
+    bio.av.agent.doRupture();
+    bio.ecgPhase='PR'; bio.propagation=0.25;
+    bio.depolarWave.push({pos:0.25,speed:1.5,birth:t,node:'av'});
+  }
+  if(hp>0.15)bio.av.fired=false;
+  // His bundle after AV
+  if(bio.av.phase>0&&(t-bio.av.lastFire)>bio.his.delay&&!bio.his.fired){
+    bio.his.fired=true; bio.his.lastFire=t; bio.his.phase=1;
+    bio.his.agent.doRupture();
+    bio.ecgPhase='QRS'; bio.propagation=0.5;
+    bio.depolarWave.push({pos:0.5,speed:2.5,birth:t,node:'his'});
+  }
+  if(hp>0.2)bio.his.fired=false;
+  // Purkinje fibers after His
+  if(bio.his.phase>0&&(t-bio.his.lastFire)>bio.purkinjeL.delay&&!bio.purkinjeL.fired){
+    bio.purkinjeL.fired=true; bio.purkinjeL.lastFire=t; bio.purkinjeL.phase=1;
+    bio.purkinjeR.fired=true; bio.purkinjeR.lastFire=t; bio.purkinjeR.phase=1;
+    bio.purkinjeL.agent.doRupture(); bio.purkinjeR.agent.doRupture();
+    bio.propagation=0.75;
+    bio.depolarWave.push({pos:0.75,speed:3,birth:t,node:'purkinje'});
+  }
+  if(hp>0.3){bio.purkinjeL.fired=false;bio.purkinjeR.fired=false;}
+  // Decay phases and update ECG
+  for(const node of [bio.sa,bio.av,bio.his,bio.purkinjeL,bio.purkinjeR]){
+    node.phase=Math.max(0,node.phase-dt*3);
+    node.agent.step(node.phase*0.5,dt*0.01);
+  }
+  if(hp>0.35&&hp<0.5)bio.ecgPhase='ST';
+  if(hp>0.5&&hp<0.7)bio.ecgPhase='T';
+  if(hp>0.7)bio.ecgPhase='rest';
+  bio.propagation=Math.max(0,bio.propagation-dt*0.5);
+  // Age wavefronts
+  bio.depolarWave=bio.depolarWave.filter(w=>(t-w.birth)<0.6);
+  for(const w of bio.depolarWave){w.pos+=w.speed*dt*0.3;}
+
+  // Brain waves
+  for(const[name,b]of Object.entries(BODY.brain)){
+    b.phase+=dt*b.freq;
+    b.amp=0.5+0.5*Math.sin(b.phase*TAU);
+    if(name==='gamma')b.amp*=0.5+0.5*BODY.brain.theta.amp;
+    b.agent.step(b.amp*0.2,dt*0.005);
+  }
+  // Blood
+  BODY.blood.pressure=0.5+0.5*Math.sin((BODY.heart.phase-0.1)*TAU);
+  BODY.blood.flow=0.3+0.7*BODY.blood.pressure;
+  // Vagal
+  BODY.vagal.tone=0.5+0.3*(BODY.breath.crrPhase==='R'?1:BODY.breath.crrPhase==='C'?0.3:0);
+  BODY.vagal.coupling=BODY.vagal.tone*BODY.brain.alpha.amp;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §2  AUDIO ENGINE — Synthesis from CRR first principles
+// ═══════════════════════════════════════════════════════════════════
+let ac=null,masterGain=null,reverbNode=null,dryGain=null,wetGain=null;
+let compressor=null,analyser=null,noiseBuf=null;
+let activeNotes=[];
+let reverbMix=0.78,choirMix=0.6,bodyMix=0.7,chantMix=0.55,bioelecMix=0.45;
+
+function midiToFreq(m){return 440*Math.pow(2,(m-69)/12)}
+
+function createNoiseBuf(ctx){
+  const b=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+  const d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  return b;
+}
+
+function createReverb(ctx){
+  const sr=ctx.sampleRate,len=sr*5|0;
+  const buf=ctx.createBuffer(2,len,sr);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);
+    for(let i=0;i<16;i++){const t=(0.005+i*0.012+Math.random()*0.008)*sr|0;
+      if(t<len)d[t]=0.3*Math.pow(0.7,i)*(0.6+Math.random()*0.5)}
+    for(let i=0;i<len;i++){const t=i/sr;
+      d[i]+=(Math.random()*2-1)*0.08*(Math.exp(-t*1.1)*0.6+Math.exp(-t*3.2)*0.4)}}
+  const conv=ctx.createConvolver();conv.buffer=buf;return conv;
+}
+
+let bodyGain=null,chantGain=null,bioelecGain=null;
+
+function initAudio(){
+  if(ac)return;
+  ac=new(window.AudioContext||window.webkitAudioContext)();
+  noiseBuf=createNoiseBuf(ac);
+  compressor=ac.createDynamicsCompressor();
+  compressor.threshold.value=-14;compressor.knee.value=14;
+  compressor.ratio.value=4;compressor.attack.value=0.005;compressor.release.value=0.2;
+  masterGain=ac.createGain();masterGain.gain.value=0.26;
+  bodyGain=ac.createGain();bodyGain.gain.value=bodyMix*0.4;
+  chantGain=ac.createGain();chantGain.gain.value=chantMix*0.35;
+  bioelecGain=ac.createGain();bioelecGain.gain.value=bioelecMix*0.25;
+  dryGain=ac.createGain();wetGain=ac.createGain();
+  reverbNode=createReverb(ac);
+  analyser=ac.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=0.85;
+  masterGain.connect(compressor);bodyGain.connect(compressor);
+  chantGain.connect(compressor);bioelecGain.connect(compressor);
+  compressor.connect(dryGain);compressor.connect(reverbNode);
+  reverbNode.connect(wetGain);dryGain.connect(analyser);wetGain.connect(analyser);
+  analyser.connect(ac.destination);
+  updateMixes();
+  initChoir();initChant();initBodySynths();
+}
+
+function updateMixes(){
+  if(!dryGain)return;
+  dryGain.gain.value=1-reverbMix*0.4;wetGain.gain.value=reverbMix;
+}
+
+// §2.1 CRR Piano
+function playNote(midi,velocity,duration,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime,freq=midiToFreq(midi);
+  const register=Math.max(0,Math.min(1,(midi-21)/87));
+  const omega=(1/PI)*(1+register*0.8);
+  const baseTau=0.6+(1-register)*5.5;
+  const tau=baseTau*(0.3+velocity*0.7);
+  const nH=Math.max(3,Math.min(12,Math.floor(3+(1-register)*9)));
+  const inharm=0.0001+register*0.0006;
+  const noteGain=ac.createGain();noteGain.gain.value=0;noteGain.connect(masterGain);
+  const noteInfo={midi,freq,velocity,startTime:now,tau,omega,register,alive:true,type:'piano'};
+  for(let h=1;h<=nH;h++){
+    const hF=freq*h*Math.sqrt(1+inharm*h*h);if(hF>17000)break;
+    const osc=ac.createOscillator();osc.type='sine';
+    osc.frequency.value=hF+(Math.random()-.5)*.25*h;
+    const hG=ac.createGain();const p=1.3+register*0.5;
+    const ba=velocity*(1/Math.pow(h,p));
+    const hTau=tau/(1+(h-1)*omega*1.8);
+    const att=0.001+(1-register)*0.003;
+    hG.gain.setValueAtTime(0,now);hG.gain.linearRampToValueAtTime(ba,now+att);
+    hG.gain.setTargetAtTime(ba*0.001,now+att,hTau/3);
+    osc.connect(hG);hG.connect(noteGain);osc.start(now);osc.stop(now+tau*3+.5);
+  }
+  const nDur=0.003+(1-register)*0.01;
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+  const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=1800+register*5000;nf.Q.value=1.5;
+  const ne=ac.createGain();ne.gain.setValueAtTime(0,now);
+  ne.gain.linearRampToValueAtTime(velocity*0.055,now+.001);
+  ne.gain.exponentialRampToValueAtTime(0.001,now+nDur);
+  ns.connect(nf);nf.connect(ne);ne.connect(noteGain);ns.start(now);ns.stop(now+.04);
+  noteGain.gain.setValueAtTime(0,now);noteGain.gain.linearRampToValueAtTime(1,now+.001);
+  noteGain.gain.setTargetAtTime(0.001,now+tau*2,tau*0.3);
+  setTimeout(()=>{noteInfo.alive=false;try{noteGain.disconnect()}catch(e){}},
+    (tau*3+1)*1000);
+  activeNotes.push(noteInfo);
+  if(activeNotes.length>120)activeNotes=activeNotes.filter(n=>n.alive);
+  return noteInfo;
+}
+
+// §2.2 Heartbeat synthesiser
+function playHeartbeat(time,intensity){
+  if(!ac)return;
+  const now=time||ac.currentTime;
+  const g=ac.createGain();g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(intensity*0.35,now+0.015);
+  g.gain.exponentialRampToValueAtTime(0.001,now+0.45);g.connect(bodyGain);
+  const o=ac.createOscillator();o.type='sine';
+  o.frequency.setValueAtTime(65,now);o.frequency.exponentialRampToValueAtTime(38,now+0.3);
+  o.connect(g);o.start(now);o.stop(now+0.5);
+  const o2=ac.createOscillator();o2.type='sine';
+  o2.frequency.setValueAtTime(130,now);o2.frequency.exponentialRampToValueAtTime(72,now+0.25);
+  const g2=ac.createGain();g2.gain.setValueAtTime(0,now);
+  g2.gain.linearRampToValueAtTime(intensity*0.12,now+0.01);
+  g2.gain.exponentialRampToValueAtTime(0.001,now+0.2);
+  o2.connect(g2);g2.connect(bodyGain);o2.start(now);o2.stop(now+0.3);
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+  const nf=ac.createBiquadFilter();nf.type='lowpass';nf.frequency.value=180;nf.Q.value=3;
+  const ng=ac.createGain();ng.gain.setValueAtTime(0,now);
+  ng.gain.linearRampToValueAtTime(intensity*0.06,now+0.005);
+  ng.gain.exponentialRampToValueAtTime(0.001,now+0.15);
+  ns.connect(nf);nf.connect(ng);ng.connect(bodyGain);ns.start(now);ns.stop(now+0.2);
+}
+
+// §2.3 Breath pad synthesiser
+let breathPad={oscs:[],gains:[],masterGain:null,active:false};
+function initBreathPad(){
+  if(!ac||breathPad.active)return;
+  breathPad.masterGain=ac.createGain();
+  breathPad.masterGain.gain.value=0;breathPad.masterGain.connect(bodyGain);
+  breathPad.active=true;
+}
+function setBreathPadChord(midis,gain,transTime){
+  if(!ac||!breathPad.active)return;
+  const t=ac.currentTime;const dur=transTime||0.8;
+  breathPad.oscs.forEach(o=>{try{o.osc.stop(t+dur+0.1);o.gain.gain.setTargetAtTime(0,t,dur*0.3)}catch(e){}});
+  breathPad.oscs=[];
+  breathPad.masterGain.gain.cancelScheduledValues(t);
+  breathPad.masterGain.gain.setValueAtTime(breathPad.masterGain.gain.value,t);
+  breathPad.masterGain.gain.linearRampToValueAtTime(gain,t+dur);
+  for(const midi of midis){
+    if(midi<=0)continue;
+    const freq=midiToFreq(midi);
+    for(let d=-1;d<=1;d+=2){
+      const osc=ac.createOscillator();osc.type='sine';
+      osc.frequency.value=freq+d*0.4;
+      const g=ac.createGain();g.gain.value=0.12;
+      osc.connect(g);g.connect(breathPad.masterGain);osc.start(t);
+      breathPad.oscs.push({osc,gain:g});
+    }
+    const osc2=ac.createOscillator();osc2.type='triangle';osc2.frequency.value=freq*2;
+    const g2=ac.createGain();g2.gain.value=0.03;
+    osc2.connect(g2);g2.connect(breathPad.masterGain);osc2.start(t);
+    breathPad.oscs.push({osc:osc2,gain:g2});
+  }
+}
+
+// §2.4 Gamma shimmer
+function playGammaShimmer(midi,velocity,time){
+  if(!ac)return;
+  const now=time||ac.currentTime;const freq=midiToFreq(midi);
+  const g=ac.createGain();g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(velocity*0.08,now+0.005);
+  g.gain.exponentialRampToValueAtTime(0.001,now+1.2);g.connect(bodyGain);
+  const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=freq;
+  const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq*3;
+  const g2=ac.createGain();g2.gain.value=0.15;
+  o1.connect(g);o2.connect(g2);g2.connect(g);
+  o1.start(now);o2.start(now);o1.stop(now+1.5);o2.stop(now+1.5);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §2.5 BIOELECTRIC SYNTH — the sound of conduction
+// ═══════════════════════════════════════════════════════════════════
+// Each conduction node produces a characteristic electrical sound:
+// SA = sharp click (pacemaker impulse)
+// AV = lower resonant tap (delayed gate)
+// His = fast downward sweep (rapid conduction)
+// Purkinje = wide crackling spread (ventricular depolarisation)
+function playBioelectricPulse(node,intensity,time){
+  if(!ac)return;
+  const now=time||ac.currentTime;
+  const g=ac.createGain();g.connect(bioelecGain);
+  if(node==='sa'){
+    // Sharp high-frequency click — the pacemaker spark
+    g.gain.setValueAtTime(0,now);
+    g.gain.linearRampToValueAtTime(intensity*0.5,now+0.001);
+    g.gain.exponentialRampToValueAtTime(0.001,now+0.06);
+    const o=ac.createOscillator();o.type='square';
+    o.frequency.setValueAtTime(2200,now);
+    o.frequency.exponentialRampToValueAtTime(800,now+0.04);
+    const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=1800;f.Q.value=3;
+    o.connect(f);f.connect(g);o.start(now);o.stop(now+0.08);
+    // Tiny noise burst
+    const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+    const nf=ac.createBiquadFilter();nf.type='highpass';nf.frequency.value=3000;
+    const ng=ac.createGain();ng.gain.setValueAtTime(intensity*0.15,now);
+    ng.gain.exponentialRampToValueAtTime(0.001,now+0.02);
+    ns.connect(nf);nf.connect(ng);ng.connect(bioelecGain);
+    ns.start(now);ns.stop(now+0.03);
+  } else if(node==='av'){
+    // Lower resonant tap — the AV gate opening
+    g.gain.setValueAtTime(0,now);
+    g.gain.linearRampToValueAtTime(intensity*0.35,now+0.003);
+    g.gain.exponentialRampToValueAtTime(0.001,now+0.1);
+    const o=ac.createOscillator();o.type='triangle';
+    o.frequency.setValueAtTime(600,now);
+    o.frequency.exponentialRampToValueAtTime(300,now+0.08);
+    o.connect(g);o.start(now);o.stop(now+0.12);
+  } else if(node==='his'){
+    // Fast downward sweep — rapid conduction through the bundle
+    g.gain.setValueAtTime(0,now);
+    g.gain.linearRampToValueAtTime(intensity*0.4,now+0.002);
+    g.gain.exponentialRampToValueAtTime(0.001,now+0.15);
+    const o=ac.createOscillator();o.type='sawtooth';
+    o.frequency.setValueAtTime(1400,now);
+    o.frequency.exponentialRampToValueAtTime(180,now+0.12);
+    const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=2000;f.Q.value=2;
+    o.connect(f);f.connect(g);o.start(now);o.stop(now+0.18);
+  } else if(node==='purkinje'){
+    // Wide crackling spread — ventricular depolarisation wave
+    g.gain.setValueAtTime(0,now);
+    g.gain.linearRampToValueAtTime(intensity*0.3,now+0.005);
+    g.gain.setTargetAtTime(0.001,now+0.01,0.08);
+    // Multiple detuned noise bursts for spread effect
+    for(let i=0;i<3;i++){
+      const d=i*0.015;
+      const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+      const nf=ac.createBiquadFilter();nf.type='bandpass';
+      nf.frequency.value=400+i*300;nf.Q.value=2;
+      const ng=ac.createGain();ng.gain.setValueAtTime(0,now+d);
+      ng.gain.linearRampToValueAtTime(intensity*0.18,now+d+0.003);
+      ng.gain.exponentialRampToValueAtTime(0.001,now+d+0.12);
+      ns.connect(nf);nf.connect(ng);ng.connect(bioelecGain);
+      ns.start(now+d);ns.stop(now+d+0.15);
+    }
+    // Low thump for ventricular contraction
+    const o2=ac.createOscillator();o2.type='sine';
+    o2.frequency.setValueAtTime(90,now);
+    o2.frequency.exponentialRampToValueAtTime(40,now+0.2);
+    const g2=ac.createGain();g2.gain.setValueAtTime(0,now);
+    g2.gain.linearRampToValueAtTime(intensity*0.2,now+0.01);
+    g2.gain.exponentialRampToValueAtTime(0.001,now+0.25);
+    o2.connect(g2);g2.connect(bioelecGain);o2.start(now);o2.stop(now+0.3);
+  }
+}
+
+// Full conduction cascade sound — triggered once per heartbeat
+function playConduction(time,intensity){
+  if(!ac)return;
+  const now=time||ac.currentTime;
+  playBioelectricPulse('sa',intensity,now);
+  playBioelectricPulse('av',intensity*0.8,now+0.12);
+  playBioelectricPulse('his',intensity*0.9,now+0.18);
+  playBioelectricPulse('purkinje',intensity*0.85,now+0.22);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §3  PERSISTENT CHOIR — Vagal voice, SATB as CRR agents
+// ═══════════════════════════════════════════════════════════════════
+const FORMANTS={
+  aa:{f:[730,1090,2440], db:[16,10,6], q:[8,9,10]},
+  eh:{f:[530,1840,2480], db:[16,10,5], q:[7,10,10]},
+  iy:{f:[270,2290,3010], db:[16,8,5],  q:[6,12,12]},
+  oh:{f:[570,840,2410],  db:[16,11,5], q:[8,8,10]},
+  uw:{f:[300,920,2240],  db:[16,8,5],  q:[7,8,10]},
+  mm:{f:[250,1000,2800], db:[10,4,2],  q:[4,5,6]},
+};
+
+const VOICE_DEFS=[
+  {name:'Bass',   sym:'Z2', baseHz:82.41, vibRate:4.5,vibD:0.5},
+  {name:'Tenor',  sym:'phi',baseHz:130.81,vibRate:5.2,vibD:0.7},
+  {name:'Alto',   sym:'SO2',baseHz:196.00,vibRate:5.6,vibD:0.9},
+  {name:'Soprano',sym:'SO2',baseHz:329.63,vibRate:6.0,vibD:1.1},
+];
+
+let choirVoices=[],choirMaster=null;
+
+function initChoir(){
+  if(!ac)return;
+  choirMaster=ac.createGain();choirMaster.gain.value=choirMix*0.6;
+  choirMaster.connect(masterGain);
+  choirVoices=[];
+  for(const def of VOICE_DEFS){
+    const agent=new CRRAgent(def.sym,1);
+    const vGain=ac.createGain();vGain.gain.value=0;
+    vGain.connect(choirMaster);
+    // Sawtooth excitation (glottal buzz — energy at ALL harmonics)
+    const saw1=ac.createOscillator();saw1.type='sawtooth';
+    saw1.frequency.value=def.baseHz;
+    const saw2=ac.createOscillator();saw2.type='sawtooth';
+    saw2.frequency.value=def.baseHz*1.004;
+    const sawMix=ac.createGain();sawMix.gain.value=0.45;
+    saw1.connect(sawMix);saw2.connect(sawMix);
+    // Breath noise
+    const breathSrc=ac.createBufferSource();breathSrc.buffer=noiseBuf;breathSrc.loop=true;
+    const breathGain=ac.createGain();breathGain.gain.value=0.015;
+    breathSrc.connect(breathGain);breathSrc.start();
+    // Vibrato LFO
+    const vibLFO=ac.createOscillator();vibLFO.type='sine';
+    vibLFO.frequency.value=def.vibRate;
+    const vibGain=ac.createGain();vibGain.gain.value=0;
+    vibLFO.connect(vibGain);
+    vibGain.connect(saw1.frequency);vibGain.connect(saw2.frequency);
+    vibLFO.start();
+    // Lowpass to soften sawtooth
+    const lp=ac.createBiquadFilter();lp.type='lowpass';
+    lp.frequency.value=4000+def.baseHz*2;lp.Q.value=0.4;
+    sawMix.connect(lp);breathGain.connect(lp);
+    // SERIES formant filters: lp → f1 → f2 → f3 → vGain
+    const fmtDef=FORMANTS.aa;
+    const filters=[];let prevNode=lp;
+    for(let fi=0;fi<3;fi++){
+      const f=ac.createBiquadFilter();f.type='peaking';
+      f.frequency.value=fmtDef.f[fi];f.Q.value=fmtDef.q[fi];
+      f.gain.value=fmtDef.db[fi];
+      prevNode.connect(f);prevNode=f;filters.push(f);
+    }
+    prevNode.connect(vGain);
+    saw1.start();saw2.start();
+    choirVoices.push({def,agent,vGain,saw1,saw2,sawMix,lp,filters,vibLFO,vibGain,breathGain,
+      currentGain:0,targetGain:0,currentNote:0,targetNote:0,currentVowel:'aa'});
+  }
+}
+
+function initBodySynths(){initBreathPad();}
+
+function setChoirNote(voiceIdx,midi,gain,vowel,transTime){
+  if(!ac||voiceIdx>=choirVoices.length)return;
+  const v=choirVoices[voiceIdx];const t=ac.currentTime;const dur=transTime||0.14;
+  if(midi>0){
+    const freq=midiToFreq(midi);
+    v.saw1.frequency.cancelScheduledValues(t);v.saw1.frequency.setValueAtTime(v.saw1.frequency.value,t);
+    v.saw1.frequency.linearRampToValueAtTime(freq,t+dur*0.8);
+    v.saw2.frequency.cancelScheduledValues(t);v.saw2.frequency.setValueAtTime(v.saw2.frequency.value,t);
+    v.saw2.frequency.linearRampToValueAtTime(freq*1.004,t+dur*0.8);
+    v.lp.frequency.cancelScheduledValues(t);v.lp.frequency.setValueAtTime(v.lp.frequency.value,t);
+    v.lp.frequency.linearRampToValueAtTime(4000+freq*2,t+dur);
+    const vibD=v.def.vibD*Math.min(3,v.agent.expCO*0.15);
+    v.vibGain.gain.cancelScheduledValues(t);v.vibGain.gain.setValueAtTime(v.vibGain.gain.value,t);
+    v.vibGain.gain.linearRampToValueAtTime(freq*0.005*vibD,t+0.3);
+    v.targetGain=gain;v.vGain.gain.cancelScheduledValues(t);
+    v.vGain.gain.setValueAtTime(v.vGain.gain.value,t);v.vGain.gain.linearRampToValueAtTime(gain,t+dur);
+    v.breathGain.gain.cancelScheduledValues(t);v.breathGain.gain.setValueAtTime(v.breathGain.gain.value,t);
+    v.breathGain.gain.linearRampToValueAtTime(0.01+gain*0.02,t+dur);
+    v.currentNote=midi;
+  }else{
+    v.targetGain=0;v.vGain.gain.cancelScheduledValues(t);
+    v.vGain.gain.setValueAtTime(v.vGain.gain.value,t);v.vGain.gain.linearRampToValueAtTime(0,t+dur*2);
+    v.breathGain.gain.cancelScheduledValues(t);v.breathGain.gain.setValueAtTime(v.breathGain.gain.value,t);
+    v.breathGain.gain.linearRampToValueAtTime(0.003,t+dur*2);
+  }
+  if(vowel){const fm=FORMANTS[vowel]||FORMANTS.aa;
+    for(let fi=0;fi<3;fi++){const f=v.filters[fi];
+      f.frequency.cancelScheduledValues(t);f.frequency.setValueAtTime(f.frequency.value,t);
+      f.frequency.linearRampToValueAtTime(fm.f[fi],t+dur*1.2);
+      f.Q.value=fm.q[fi];f.gain.value=fm.db[fi];}
+    v.currentVowel=vowel;
+  }
+  v.agent.step(gain*0.3,0.01);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §3.5 GREGORIAN CHANT — CRR solves modal music theory
+// ═══════════════════════════════════════════════════════════════════
+//
+// Mathematical basis:
+// - Dorian mode on C = {C, D, Eb, F, G, Ab, Bb} — the body's coherence basin
+// - Finalis (C) = resting state = minimum free energy
+// - Tenor/reciting tone (G) = maximum coherence before rupture
+// - Each neume phrase: ascend from finalis (C building) → reach tenor (δ) → descend (R)
+// - The drone IS the Ω reference — the precision against which melody fluctuates
+// - Melismatic ornament = high coherence flowing
+// - Cadence = rupture returning to finalis
+//
+// Formants: More nasal, hollow quality (characteristic of plainchant)
+const CHANT_FORMANTS={
+  aa:{f:[700,1200,2600], db:[16,10,5], q:[7,8,9]},
+  eh:{f:[500,1900,2600], db:[16,10,5], q:[6,8,9]},
+  oh:{f:[550,900,2500],  db:[16,11,5], q:[7,8,9]},
+  uw:{f:[310,950,2300],  db:[16,8,5],  q:[6,7,8]},
+  mm:{f:[280,1100,2900], db:[10,4,2],  q:[4,5,6]},
+};
+
+// Dorian scale on C (MIDI): C3=48, D3=50, Eb3=51, F3=53, G3=55, Ab3=56, Bb3=58, C4=60
+const DORIAN_C=[48,50,51,53,55,56,58,60,62,63,65,67]; // two octaves
+const FINALIS=48; // C3
+const TENOR=55;   // G3 — a fifth above, the reciting tone
+
+// Chant melody agent — CRR generates the contour
+const chantAgent=new CRRAgent('SO2',1.6);
+
+// Latin-esque syllables for each phrase (evokes sacred text)
+const CHANT_TEXTS=[
+  'lu — men cor — dis',           // light of the heart
+  'spi — ri — tus vi — vens',     // living spirit
+  'cor — pus lu — cis',           // body of light
+  'in prin — ci — pi — o',        // in the beginning
+  'pax in — te — ri — or',        // inner peace
+  'om — ni — a co — hae — rent',  // all things cohere
+  'vi — ta ae — ter — na',        // eternal life
+  're — sur — rec — ti — o',      // resurrection
+  'cre — do in u — num',          // I believe in one
+  'a — men',                       // amen
+];
+
+// Persistent chant voice (monophonic + drone)
+let chantVoice=null, chantDrone=null;
+
+function initChant(){
+  if(!ac)return;
+  // Drone — the Ω reference: held C2+G2 fifth
+  chantDrone={oscs:[],masterGain:ac.createGain()};
+  chantDrone.masterGain.gain.value=0;
+  chantDrone.masterGain.connect(chantGain);
+  // C2 drone (deep, organ-like)
+  for(const [freq,vol] of [[65.41,0.2],[130.81,0.12],[196.0,0.05]]){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const g=ac.createGain();g.gain.value=vol;
+    o.connect(g);g.connect(chantDrone.masterGain);o.start();
+    chantDrone.oscs.push(o);
+  }
+  // G2 drone (fifth)
+  for(const [freq,vol] of [[98.0,0.1],[196.0,0.06]]){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const g=ac.createGain();g.gain.value=vol;
+    o.connect(g);g.connect(chantDrone.masterGain);o.start();
+    chantDrone.oscs.push(o);
+  }
+  // Add breath noise to drone (organ bellows)
+  const dNs=ac.createBufferSource();dNs.buffer=noiseBuf;dNs.loop=true;
+  const dNf=ac.createBiquadFilter();dNf.type='lowpass';dNf.frequency.value=200;dNf.Q.value=0.5;
+  const dNg=ac.createGain();dNg.gain.value=0.015;
+  dNs.connect(dNf);dNf.connect(dNg);dNg.connect(chantDrone.masterGain);dNs.start();
+
+  // Chant melody voice — sawtooth + series formant (same fix as choir)
+  chantVoice={
+    saw1:null, saw2:null, sawMix:null, lp:null, filters:[],
+    masterGain:ac.createGain(),
+    vibLFO:null, vibGain:null, breathGain:null,
+    currentMidi:0, targetGain:0
+  };
+  chantVoice.masterGain.gain.value=0;
+  chantVoice.masterGain.connect(chantGain);
+  // Sawtooth excitation
+  chantVoice.saw1=ac.createOscillator();chantVoice.saw1.type='sawtooth';
+  chantVoice.saw1.frequency.value=midiToFreq(FINALIS);
+  chantVoice.saw2=ac.createOscillator();chantVoice.saw2.type='sawtooth';
+  chantVoice.saw2.frequency.value=midiToFreq(FINALIS)*1.003;
+  chantVoice.sawMix=ac.createGain();chantVoice.sawMix.gain.value=0.5;
+  chantVoice.saw1.connect(chantVoice.sawMix);
+  chantVoice.saw2.connect(chantVoice.sawMix);
+  // Lowpass
+  chantVoice.lp=ac.createBiquadFilter();chantVoice.lp.type='lowpass';
+  chantVoice.lp.frequency.value=3500;chantVoice.lp.Q.value=0.4;
+  chantVoice.sawMix.connect(chantVoice.lp);
+  // Breath noise
+  const bSrc=ac.createBufferSource();bSrc.buffer=noiseBuf;bSrc.loop=true;
+  const bGain=ac.createGain();bGain.gain.value=0;
+  bSrc.connect(bGain);bGain.connect(chantVoice.lp);bSrc.start();
+  chantVoice.breathGain=bGain;
+  // Series formant filters
+  const cfm=CHANT_FORMANTS.oh;
+  let prevN=chantVoice.lp;
+  for(let fi=0;fi<3;fi++){
+    const f=ac.createBiquadFilter();f.type='peaking';
+    f.frequency.value=cfm.f[fi];f.Q.value=cfm.q[fi];f.gain.value=cfm.db[fi];
+    prevN.connect(f);prevN=f;chantVoice.filters.push(f);
+  }
+  prevN.connect(chantVoice.masterGain);
+  // Slow vibrato
+  const vib=ac.createOscillator();vib.type='sine';vib.frequency.value=4.2;
+  const vibG=ac.createGain();vibG.gain.value=0;
+  vib.connect(vibG);
+  vibG.connect(chantVoice.saw1.frequency);vibG.connect(chantVoice.saw2.frequency);
+  vib.start();
+  chantVoice.vibLFO=vib;chantVoice.vibGain=vibG;
+  chantVoice.saw1.start();chantVoice.saw2.start();
+}
+
+function setChantNote(midi,gain,vowel,transTime){
+  if(!ac||!chantVoice)return;
+  const t=ac.currentTime;const dur=transTime||0.2;
+  if(midi>0){
+    const freq=midiToFreq(midi);
+    chantVoice.saw1.frequency.cancelScheduledValues(t);
+    chantVoice.saw1.frequency.setValueAtTime(chantVoice.saw1.frequency.value,t);
+    chantVoice.saw1.frequency.linearRampToValueAtTime(freq,t+dur);
+    chantVoice.saw2.frequency.cancelScheduledValues(t);
+    chantVoice.saw2.frequency.setValueAtTime(chantVoice.saw2.frequency.value,t);
+    chantVoice.saw2.frequency.linearRampToValueAtTime(freq*1.003,t+dur);
+    chantVoice.lp.frequency.cancelScheduledValues(t);
+    chantVoice.lp.frequency.setValueAtTime(chantVoice.lp.frequency.value,t);
+    chantVoice.lp.frequency.linearRampToValueAtTime(3500+freq*2,t+dur);
+    // Subtle vibrato
+    chantVoice.vibGain.gain.cancelScheduledValues(t);
+    chantVoice.vibGain.gain.setValueAtTime(chantVoice.vibGain.gain.value,t);
+    chantVoice.vibGain.gain.linearRampToValueAtTime(freq*0.003,t+0.5);
+    // Gain
+    chantVoice.masterGain.gain.cancelScheduledValues(t);
+    chantVoice.masterGain.gain.setValueAtTime(chantVoice.masterGain.gain.value,t);
+    chantVoice.masterGain.gain.linearRampToValueAtTime(gain,t+dur);
+    // Breath noise (increases on higher notes)
+    const breathAmt=0.008+0.012*Math.max(0,(midi-48)/12);
+    chantVoice.breathGain.gain.cancelScheduledValues(t);
+    chantVoice.breathGain.gain.setValueAtTime(chantVoice.breathGain.gain.value,t);
+    chantVoice.breathGain.gain.linearRampToValueAtTime(breathAmt*gain,t+dur);
+    chantVoice.currentMidi=midi;
+  }else{
+    chantVoice.masterGain.gain.cancelScheduledValues(t);
+    chantVoice.masterGain.gain.setValueAtTime(chantVoice.masterGain.gain.value,t);
+    chantVoice.masterGain.gain.linearRampToValueAtTime(0,t+dur*2);
+  }
+  if(vowel){
+    const fm=CHANT_FORMANTS[vowel]||CHANT_FORMANTS.oh;
+    for(let fi=0;fi<3;fi++){
+      const f=chantVoice.filters[fi];
+      f.frequency.cancelScheduledValues(t);f.frequency.setValueAtTime(f.frequency.value,t);
+      f.frequency.linearRampToValueAtTime(fm.f[fi],t+dur);
+      f.Q.value=fm.q[fi];f.gain.value=fm.db[fi];
+    }
+  }
+  chantVoice.targetGain=gain;
+  chantAgent.step(gain*0.4,0.01);
+}
+
+function setChantDrone(gain,transTime){
+  if(!chantDrone)return;
+  const t=ac.currentTime;const dur=transTime||1.5;
+  chantDrone.masterGain.gain.cancelScheduledValues(t);
+  chantDrone.masterGain.gain.setValueAtTime(chantDrone.masterGain.gain.value,t);
+  chantDrone.masterGain.gain.linearRampToValueAtTime(gain,t+dur);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §4  COMPOSITION — "Soma" — the body's song
+// ═══════════════════════════════════════════════════════════════════
+
+const SECTIONS=[
+  {name:'SILENCE',       start:0,   end:0,   label:'· · ·'},
+  {name:'AWAKENING',     start:0,   end:24,  label:'the first heartbeat'},
+  {name:'COHERENCE',     start:24,  end:72,  label:'systems aligning'},
+  {name:'BREATH',        start:72,  end:96,  label:'breath deepening'},
+  {name:'RESONANCE I',   start:96,  end:132, label:'the body sings'},
+  {name:'RESONANCE II',  start:132, end:156, label:'full harmony'},
+  {name:'CLIMAX',        start:156, end:180, label:'exp(C/Ω) → maximum'},
+  {name:'RUPTURE',       start:180, end:192, label:'δ(now)'},
+  {name:'REGENERATION',  start:192, end:228, label:'R(memory)'},
+  {name:'CODA',          start:228, end:252, label:'return to rest'},
+];
+const TOTAL_BEATS=252;
+
+function buildSomaSequence(){
+  const E=[];
+  let beat=0;
+
+  // Chord voicings
+  const Cm  =[36,48,55,60,63,67];
+  const Ab  =[32,44,51,56,60,63];
+  const Eb  =[39,51,55,58,63,67];
+  const Bb  =[34,46,53,58,62,65];
+  const Fm  =[29,41,48,53,56,60];
+  const G7  =[31,43,47,55,59,67];
+  const Db  =[37,49,53,56,61,65];
+  const Bbm =[34,46,53,58,61,65];
+  const EbM7=[39,51,55,58,62,67];
+  const Csus=[36,48,55,60,65,67];
+  const Fmaj=[29,41,48,53,57,60];
+
+  const padCm =[48,55,60,67];
+  const padAb =[44,56,60,63];
+  const padEb =[51,55,58,67];
+  const padBb =[46,53,58,65];
+  const padFm =[41,48,53,60];
+
+  // Helper functions
+  function arp(ch,b,pat,v,d){
+    for(let i=0;i<pat.length;i++){
+      const ni=pat[i];if(ni<0)continue;
+      E.push({beat:b+i*0.5,midi:ch[ni%ch.length],velocity:v*(i===0?1.06:0.8+Math.random()*0.2),
+        duration:d,type:'piano'});
+    }
+  }
+  function bass(ch,b,v,d){E.push({beat:b,midi:ch[0],velocity:v,duration:d,type:'piano'})}
+  function deepBass(ch,b,v,d){E.push({beat:b,midi:ch[0]-12,velocity:v*0.5,duration:d,type:'piano'})}
+  function heartbeat(b,v){E.push({beat:b,type:'heartbeat',velocity:v})}
+  function breathPadE(b,midis,g,d){E.push({beat:b,type:'breathPad',padNotes:midis,padGain:g,duration:d})}
+  function gamma(b,midi,v){E.push({beat:b,midi,type:'gamma',velocity:v})}
+  function choir(b,notes,vowel,gain,dur,lyric){
+    E.push({beat:b,choirNotes:notes,vowel,choirGain:gain,duration:dur,type:'choir',lyric:lyric||''});
+  }
+  // NEW: Bioelectric conduction event
+  function bioelec(b,v){E.push({beat:b,type:'bioelectric',velocity:v})}
+  // NEW: Gregorian chant events
+  function chant(b,midi,gain,vowel,dur,text){
+    E.push({beat:b,type:'chant',midi,chantGain:gain,vowel:vowel||'oh',duration:dur,chantText:text||''});
+  }
+  function drone(b,gain,dur){E.push({beat:b,type:'drone',droneGain:gain,duration:dur})}
+
+  // ════════════════════════════════════════════════════════════════
+  // AWAKENING (beats 0-23): From silence to first systems
+  // The bioelectric spark fires first. Then the heart responds.
+  // ════════════════════════════════════════════════════════════════
+
+  // First 12 beats: heartbeat + bioelectric cascade
+  for(let i=0;i<12;i++){
+    heartbeat(beat+i, 0.15+i*0.03);
+    // Bioelectric conduction fires with each heartbeat
+    bioelec(beat+i, 0.1+i*0.04);
+  }
+  beat=12;
+  // Beats 12-23: heartbeat + breath + bioelectric + drone creeps in
+  for(let i=0;i<12;i++){
+    heartbeat(beat+i, 0.45+i*0.015);
+    bioelec(beat+i, 0.3+i*0.01);
+  }
+  breathPadE(12, padCm, 0.06, 11);
+  // Drone enters — the Ω reference, barely audible
+  drone(14, 0.04, 20);
+  // Theta arpeggios
+  const thetaP1=[3,5,-1,4,-1,-1,-1,-1];
+  arp(Cm, 16, thetaP1, 0.1, 3);
+  arp(Ab, 20, thetaP1, 0.09, 3);
+  beat=24;
+
+  // ════════════════════════════════════════════════════════════════
+  // FIRST COHERENCE (beats 24-71): All systems building
+  // Bioelectric becomes steady rhythm. Chant begins — first neume.
+  // ════════════════════════════════════════════════════════════════
+
+  const thetaFlow=[0,2,3,4,5,4,3,2];
+  const v1Chords=[Cm,Ab,Eb,Bb, Cm,Ab,Fm,G7, Cm,Ab,EbM7,Bb];
+  const v1Pads=  [padCm,padAb,padEb,padBb, padCm,padAb,padFm,padCm, padCm,padAb,padEb,padBb];
+  const alphaMel=[0,0, 67,65, 63,60, 63,65, 67,0, 63,65];
+
+  // Gregorian chant neumes — CRR melodic contour
+  // Each phrase: ascend to tenor (C), hold/ornament (δ), descend to finalis (R)
+  // Neume 1: "lumen cordis" — simple ascending phrase
+  const chantMel1=[
+    {b:0,m:48,v:'oh',d:3},   // C3 (finalis) — lu-
+    {b:3,m:50,v:'uw',d:2},   // D3 — -men
+    {b:5,m:51,v:'oh',d:2},   // Eb3 — cor-
+    {b:7,m:53,v:'eh',d:3},   // F3 — -dis
+    {b:10,m:55,v:'aa',d:4},  // G3 (tenor) — held
+    {b:14,m:53,v:'oh',d:2},  // F3 descending
+    {b:16,m:51,v:'mm',d:2},  // Eb3
+    {b:18,m:48,v:'mm',d:4},  // C3 (finalis) — cadence
+  ];
+  // Neume 2: "spiritus vivens" — more ornate
+  const chantMel2=[
+    {b:0,m:48,v:'oh',d:2},   // C3
+    {b:2,m:50,v:'iy',d:1.5}, // D3
+    {b:3.5,m:53,v:'eh',d:2}, // F3
+    {b:5.5,m:55,v:'aa',d:3}, // G3 (tenor)
+    {b:8.5,m:56,v:'oh',d:1.5},// Ab3 — melismatic rise
+    {b:10,m:55,v:'aa',d:2},  // G3 — back to tenor
+    {b:12,m:53,v:'eh',d:1.5},// F3
+    {b:13.5,m:51,v:'oh',d:2},// Eb3
+    {b:15.5,m:50,v:'mm',d:2},// D3
+    {b:17.5,m:48,v:'mm',d:4},// C3 (finalis)
+  ];
+
+  // Drone strengthens
+  drone(24, 0.08, 48);
+
+  for(let i=0;i<12;i++){
+    const d=0.16+0.06*Math.sin(i/12*PI);
+    for(let h=0;h<4;h++){
+      heartbeat(beat+h, 0.5+d*0.3);
+      bioelec(beat+h, 0.3+d*0.15);
+    }
+    arp(v1Chords[i],beat,thetaFlow,d*0.85,1.8);
+    bass(v1Chords[i],beat,d*0.9,3.5);
+    if(i%3===0) breathPadE(beat, v1Pads[i], 0.08+i*0.005, 11);
+    if(i>=2 && alphaMel[i]>0){
+      E.push({beat:beat+1.5, midi:alphaMel[i], velocity:d*0.6, duration:2.5, type:'piano'});
+    }
+    if(i>=4 && i%2===0) gamma(beat+2, 84+Math.floor(Math.random()*5)*2, 0.15+d);
+    beat+=4;
+  }
+
+  // First chant phrase during coherence (starts at beat 36)
+  const chantStart1=36;
+  for(const n of chantMel1){
+    chant(chantStart1+n.b, n.m, 0.12, n.v, n.d, n.b===0?CHANT_TEXTS[0]:'');
+  }
+  // Second chant phrase (starts at beat 58)
+  const chantStart2=58;
+  for(const n of chantMel2){
+    chant(chantStart2+n.b, n.m, 0.15, n.v, n.d, n.b===0?CHANT_TEXTS[1]:'');
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // BREATH DEEPENS (beats 72-95): Coherent breathing
+  // Chant flows more freely. Bioelectric becomes rhythmic texture.
+  // ════════════════════════════════════════════════════════════════
+
+  const breathChords=[Ab,Eb,Fm,Cm, Ab,EbM7];
+  const breathPads2= [padAb,padEb,padFm,padCm, padAb,padEb];
+  const breathAlpha= [68,67,65,63, 67,68];
+  const breathTheta= [[0,3,5,-1,4,-1,3,-1],[0,2,-1,4,-1,5,-1,3],
+                       [0,3,-1,-1,5,-1,-1,4],[0,2,3,-1,5,-1,4,-1],
+                       [0,3,5,-1,4,-1,3,-1],[0,2,-1,4,-1,5,-1,3]];
+
+  // Neume 3: "corpus lucis" — longer, more contemplative
+  const chantMel3=[
+    {b:0,m:48,v:'oh',d:3},
+    {b:3,m:51,v:'oh',d:2},
+    {b:5,m:53,v:'uw',d:3},
+    {b:8,m:55,v:'aa',d:4},   // tenor — held long
+    {b:12,m:58,v:'iy',d:2},  // Bb3 — higher reach
+    {b:14,m:55,v:'aa',d:2},  // back to tenor
+    {b:16,m:53,v:'oh',d:2},
+    {b:18,m:50,v:'eh',d:2},
+    {b:20,m:48,v:'mm',d:4},  // finalis
+  ];
+
+  drone(72, 0.12, 24);
+
+  for(let i=0;i<6;i++){
+    const d=0.24+0.05*Math.sin(i/6*PI);
+    for(let h=0;h<4;h++){
+      heartbeat(beat+h, 0.55);
+      bioelec(beat+h, 0.35);
+    }
+    arp(breathChords[i],beat,breathTheta[i],d*0.7,2.2);
+    bass(breathChords[i],beat,d*0.85,3.5);
+    if(i%2===0) breathPadE(beat, breathPads2[i], 0.12, 7.5);
+    E.push({beat:beat+1, midi:breathAlpha[i], velocity:d*0.5, duration:3, type:'piano'});
+    if(i%2===1) gamma(beat+2.5, 86+i*2, 0.18);
+    if(i>=3) choir(beat+0.5,[0,0,60,0],'uw',0.08,3.5);
+    beat+=4;
+  }
+
+  // Chant phrase 3 during breath section
+  for(const n of chantMel3){
+    chant(76+n.b, n.m, 0.18, n.v, n.d, n.b===0?CHANT_TEXTS[2]:'');
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // FULL RESONANCE I (beats 96-131): The body sings
+  // Chant becomes fuller. Bioelectric pulses with musical purpose.
+  // ════════════════════════════════════════════════════════════════
+
+  const resChords= [Ab,Eb,Cm,Bb, Ab,EbM7,Fm,G7, Cm,Ab];
+  const resPads=   [padAb,padEb,padCm,padBb, padAb,padEb,padFm,padCm, padCm,padAb];
+  const resS=      [72,75,72,67, 75,77,75,72, 67,72];
+  const resA=      [60,63,60,58, 60,63,60,59, 60,60];
+  const resT=      [0,0,55,53,  0,55,53,55,  55,0];
+  const resB=      [0,0,48,46,  0,51,41,43,  48,0];
+  const resVow=    ['aa','oh','uw','eh','aa','iy','oh','aa','oh','mm'];
+  const resLyr=    ['Ah','Oh','Oo','','Ah','Ee','Oh','Ah','Oh','Mm'];
+  const fullArp=   [0,2,3,4,5,3,4,5];
+
+  // Neume 4: "in principio" — soaring phrase reaching highest notes
+  const chantMel4=[
+    {b:0,m:53,v:'oh',d:2},   // F3 — starting higher
+    {b:2,m:55,v:'aa',d:3},   // G3 (tenor)
+    {b:5,m:58,v:'iy',d:2},   // Bb3
+    {b:7,m:60,v:'aa',d:4},   // C4 — octave above finalis!
+    {b:11,m:58,v:'oh',d:2},  // Bb3
+    {b:13,m:55,v:'eh',d:2},  // G3
+    {b:15,m:53,v:'oh',d:2},  // F3
+    {b:17,m:51,v:'uw',d:2},  // Eb3
+    {b:19,m:48,v:'mm',d:4},  // C3 (finalis)
+  ];
+
+  // Neume 5: "pax interior" — peaceful, flowing
+  const chantMel5=[
+    {b:0,m:48,v:'aa',d:2},
+    {b:2,m:50,v:'oh',d:1.5},
+    {b:3.5,m:53,v:'iy',d:2},
+    {b:5.5,m:55,v:'aa',d:3},
+    {b:8.5,m:53,v:'oh',d:1.5},
+    {b:10,m:55,v:'aa',d:2},
+    {b:12,m:56,v:'oh',d:1.5},
+    {b:13.5,m:55,v:'eh',d:2},
+    {b:15.5,m:53,v:'oh',d:2},
+    {b:17.5,m:50,v:'mm',d:2},
+    {b:19.5,m:48,v:'mm',d:4},
+  ];
+
+  drone(96, 0.16, 36);
+
+  for(let i=0;i<10;i++){
+    const grow=1+i*0.04;
+    const d=0.26+0.08*Math.sin(i/10*PI);
+    for(let h=0;h<4;h++){
+      heartbeat(beat+h, 0.55+i*0.015);
+      bioelec(beat+h, 0.35+i*0.015);
+    }
+    arp(resChords[i%resChords.length],beat,fullArp,d*grow*0.65,1.5);
+    bass(resChords[i%resChords.length],beat,d*grow*0.85,3.5);
+    deepBass(resChords[i%resChords.length],beat,d*grow,3.8);
+    if(i%2===0) breathPadE(beat, resPads[i], 0.14*grow, 7);
+    choir(beat+0.2,[resB[i],resT[i],resA[i],resS[i]],resVow[i],
+      0.18*grow+0.04*Math.sin(i/10*PI),3.5,resLyr[i]);
+    if(resS[i]>0){
+      const alphaNote=resS[i]-12;
+      E.push({beat:beat+2, midi:alphaNote, velocity:d*0.35, duration:1.8, type:'piano'});
+    }
+    if(i>=3) gamma(beat+1+Math.random()*2, 84+i, 0.2+i*0.02);
+    if(i>=6) gamma(beat+3, 88+i, 0.15+i*0.02);
+    beat+=4;
+  }
+
+  // Chant phrases during resonance
+  for(const n of chantMel4){
+    chant(100+n.b, n.m, 0.22, n.v, n.d, n.b===0?CHANT_TEXTS[3]:'');
+  }
+  for(const n of chantMel5){
+    chant(124+n.b, n.m, 0.2, n.v, n.d, n.b===0?CHANT_TEXTS[4]:'');
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // FULL RESONANCE II (beats 132-155): Deep synchrony
+  // ════════════════════════════════════════════════════════════════
+
+  const res2Chords=[Ab,Eb,Cm,Bb, Ab,EbM7];
+  const res2S=     [75,77,79,77, 80,82];
+  const res2A=     [63,63,63,62, 63,67];
+  const res2T=     [55,55,55,53, 56,58];
+  const res2B=     [44,51,48,46, 44,51];
+  const res2V=     ['aa','oh','iy','eh','aa','iy'];
+  const res2L=     ['Ah','Oh','Ee','','Ah','Ee'];
+
+  // Neume 6: "omnia cohaerent" — the most ornate phrase, matching climax build
+  const chantMel6=[
+    {b:0,m:55,v:'oh',d:2},   // G3 (starts on tenor)
+    {b:2,m:58,v:'aa',d:2},   // Bb3
+    {b:4,m:60,v:'iy',d:3},   // C4 — octave
+    {b:7,m:62,v:'aa',d:3},   // D4 — highest note!
+    {b:10,m:60,v:'oh',d:2},  // C4
+    {b:12,m:58,v:'aa',d:1.5},// Bb3
+    {b:13.5,m:55,v:'eh',d:2},// G3
+    {b:15.5,m:53,v:'oh',d:2},// F3
+    {b:17.5,m:51,v:'uw',d:2},// Eb3
+    {b:19.5,m:50,v:'mm',d:2},// D3
+    {b:21.5,m:48,v:'mm',d:4},// C3 (finalis)
+  ];
+
+  drone(132, 0.2, 24);
+
+  for(let i=0;i<6;i++){
+    const grow=1+i*0.08;
+    const d=0.3+0.12*Math.sin(i/6*PI);
+    for(let h=0;h<4;h++){
+      heartbeat(beat+h, 0.6+i*0.02);
+      bioelec(beat+h, 0.4+i*0.02);
+    }
+    arp(res2Chords[i],beat,fullArp,d*grow*0.7,1.4);
+    bass(res2Chords[i],beat,d*grow,3.5);
+    deepBass(res2Chords[i],beat,d*grow,3.8);
+    if(i%2===0) breathPadE(beat, [res2A[i],res2T[i],res2S[i]-12], 0.16*grow, 7);
+    choir(beat+0.15,[res2B[i],res2T[i],res2A[i],res2S[i]],res2V[i],
+      0.26*grow,3.5,res2L[i]);
+    gamma(beat+0.5, 86+i*2, 0.25*grow);
+    gamma(beat+2.5, 90+i, 0.2*grow);
+    beat+=4;
+  }
+
+  for(const n of chantMel6){
+    chant(132+n.b, n.m, 0.26, n.v, n.d, n.b===0?CHANT_TEXTS[5]:'');
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // CLIMAX (beats 156-179): Maximum exp(C/Ω)
+  // ════════════════════════════════════════════════════════════════
+
+  const clChords=[Ab,Eb,Csus,Cm, Ab,Eb];
+  const clS=     [80,84,84,82, 80,84];
+  const clA=     [68,67,67,67, 68,67];
+  const clT=     [60,58,60,60, 60,58];
+  const clB=     [44,51,48,48, 44,51];
+  const clV=     ['aa','iy','aa','oh','aa','iy'];
+  const clL=     ['AH!','EE!','AH!','OH','AH!',''];
+  const denseArp=[0,3,5,4,2,5,4,3];
+
+  // Neume 7: "vita aeterna" — climactic, sustained at highest pitch
+  const chantMel7=[
+    {b:0,m:55,v:'aa',d:2},
+    {b:2,m:60,v:'iy',d:2},
+    {b:4,m:62,v:'aa',d:4},   // D4 — sustained
+    {b:8,m:63,v:'aa',d:4},   // Eb4 — highest!
+    {b:12,m:62,v:'oh',d:2},
+    {b:14,m:60,v:'aa',d:2},
+    {b:16,m:58,v:'eh',d:2},
+    {b:18,m:55,v:'oh',d:2},
+    {b:20,m:53,v:'mm',d:2},
+    {b:22,m:48,v:'mm',d:3},  // finalis
+  ];
+
+  drone(156, 0.24, 24);
+
+  for(let i=0;i<6;i++){
+    const fff=0.48+0.06*i;
+    for(let h=0;h<4;h++){
+      heartbeat(beat+h, 0.75+i*0.015);
+      bioelec(beat+h, 0.5+i*0.02);
+    }
+    arp(clChords[i],beat,denseArp,fff*0.85,1.2);
+    for(const n of [clChords[i][0],clChords[i][0]-12])
+      E.push({beat,midi:n,velocity:fff,duration:3.5,type:'piano'});
+    bass(clChords[i],beat,fff,3.8);
+    deepBass(clChords[i],beat,fff,4);
+    breathPadE(beat, [clA[i],clT[i],clS[i]-12], 0.2+i*0.02, 3.5);
+    choir(beat,[clB[i],clT[i],clA[i],clS[i]],clV[i],fff*0.8,3.8,clL[i]);
+    for(let g=0;g<3;g++) gamma(beat+g*1.2, 84+g*4+i*2, 0.3+i*0.03);
+    beat+=4;
+  }
+
+  for(const n of chantMel7){
+    chant(156+n.b, n.m, 0.3, n.v, n.d, n.b===0?CHANT_TEXTS[6]:'');
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // RUPTURE δ(now) (beats 180-191): Phase transition
+  // Bioelectric goes chaotic. Chant silences abruptly. Drone wavers.
+  // ════════════════════════════════════════════════════════════════
+
+  choir(beat,[0,0,0,0],'mm',0,1);
+  breathPadE(beat,[],0,2);
+  chant(beat, 0, 0, 'mm', 2); // silence the chant
+  drone(beat, 0.04, 4); // drone drops to whisper
+
+  const rupChords=[Db,Bbm,Fm];
+  const rupPat=[0,-1,4,-1,-1,5,-1,-1];
+  for(let i=0;i<3;i++){
+    for(let h=0;h<4;h++){
+      heartbeat(beat+h, 0.35-i*0.05);
+      // Bioelectric becomes irregular — arrhythmic
+      if(Math.random()>0.3) bioelec(beat+h, 0.2-i*0.04);
+    }
+    const d=0.1+0.03*i;
+    arp(rupChords[i],beat,rupPat,d,2.5);
+    if(i===1) gamma(beat+2, 88, 0.08);
+    if(i===0) choir(beat+2,[0,0,61,0],'mm',0.06,3);
+    beat+=4;
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // REGENERATION R(memory) (beats 192-227): Rebuilding
+  // Chant returns with "resurrectio". Bioelectric re-establishes rhythm.
+  // ════════════════════════════════════════════════════════════════
+
+  const regChords=[Cm,Ab,Eb,Bb, Ab,EbM7,Fm,Cm, Cm];
+  const regPads=  [padCm,padAb,padEb,padBb, padAb,padEb,padFm,padCm, padCm];
+  const regS=     [72,75,77,75, 72,75,72,67, 63];
+  const regA=     [60,63,63,62, 63,63,60,60, 60];
+  const regT=     [55,55,55,53, 56,55,53,55, 55];
+  const regB=     [48,44,51,46, 44,51,41,48, 48];
+  const regV=     ['oh','aa','iy','oh','aa','eh','uw','mm','mm'];
+  const regL=     ['Oh','Ah','Ee','Oh','Ah','','Oo','Mm',''];
+
+  // Neume 8: "resurrectio" — transformed, memory-weighted
+  // exp(C/Ω) selects only the most coherent moments — returns simpler, purer
+  const chantMel8=[
+    {b:0,m:48,v:'oh',d:4},   // C3 — long held finalis
+    {b:4,m:50,v:'eh',d:3},   // D3 — gentle rise
+    {b:7,m:53,v:'aa',d:4},   // F3 — reaches only to subdominant
+    {b:11,m:55,v:'oh',d:3},  // G3 (tenor) — but transformed
+    {b:14,m:53,v:'eh',d:2},
+    {b:16,m:50,v:'uw',d:3},
+    {b:19,m:48,v:'mm',d:6},  // Long held finalis
+  ];
+
+  // Neume 9: "credo in unum" — final affirmation
+  const chantMel9=[
+    {b:0,m:48,v:'oh',d:3},
+    {b:3,m:53,v:'aa',d:3},
+    {b:6,m:55,v:'oh',d:4},
+    {b:10,m:53,v:'mm',d:3},
+    {b:13,m:50,v:'mm',d:3},
+    {b:16,m:48,v:'mm',d:6},
+  ];
+
+  drone(196, 0.1, 32);
+
+  for(let i=0;i<9;i++){
+    const fade=1-i*0.05;
+    const d=0.24+0.06*Math.sin(i/9*PI);
+    for(let h=0;h<4;h++){
+      heartbeat(beat+h, 0.4+fade*0.15);
+      bioelec(beat+h, 0.25+fade*0.1);
+    }
+    arp(regChords[i],beat,thetaFlow,d*fade*0.6,1.8);
+    bass(regChords[i],beat,d*fade*0.8,3.5);
+    if(i<7) deepBass(regChords[i],beat,d*fade,3.8);
+    if(i%2===0) breathPadE(beat, regPads[i], 0.1*fade, 7);
+    const cG=Math.max(0.03, 0.2*fade-i*0.012);
+    if(i>=1) choir(beat+0.2,[regB[i],regT[i],regA[i],regS[i]],regV[i],cG,3.5,regL[i]);
+    if(i%3===0 && i<7) gamma(beat+2, 84+i, 0.12*fade);
+    beat+=4;
+  }
+
+  for(const n of chantMel8){
+    chant(196+n.b, n.m, 0.18, n.v, n.d, n.b===0?CHANT_TEXTS[7]:'');
+  }
+  for(const n of chantMel9){
+    chant(216+n.b, n.m, 0.14, n.v, n.d, n.b===0?CHANT_TEXTS[8]:'');
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // CODA (beats 228-251): Return to rest
+  // Final chant: "amen". Drone and heartbeat alone.
+  // ════════════════════════════════════════════════════════════════
+
+  choir(beat,[0,0,60,0],'mm',0.03,4);
+
+  const codaChords=[Ab,Eb,Cm,Cm,Cm,Cm];
+  const codaPat=[1,-1,3,-1,-1,-1,-1,-1];
+
+  // Neume 10: "amen" — simplest phrase, return to finalis
+  const chantAmen=[
+    {b:0,m:53,v:'aa',d:4},   // F3 — a-
+    {b:4,m:50,v:'eh',d:3},   // D3 — -men
+    {b:7,m:48,v:'mm',d:8},   // C3 — held long
+  ];
+
+  drone(230, 0.06, 14);
+
+  for(let i=0;i<6;i++){
+    const d=Math.max(0.01, 0.14*(1-i*0.18));
+    for(let h=0;h<4;h++){
+      heartbeat(beat+h, Math.max(0.12, 0.4-i*0.06));
+      if(i<4) bioelec(beat+h, Math.max(0.05, 0.2-i*0.04));
+    }
+    if(d>0.02) arp(codaChords[i],beat,codaPat,d,3.5);
+    if(i===0){
+      bass(codaChords[i],beat,d*0.6,4);
+      breathPadE(beat, padAb, 0.04, 10);
+    }
+    if(i===2){
+      for(const n of [48,55,60,63,67])
+        E.push({beat:beat+1,midi:n,velocity:0.1,duration:8,type:'piano'});
+      choir(beat+1,[48,55,60,67],'oh',0.03,7,'oh');
+    }
+    if(i===4){
+      breathPadE(beat,[],0,3);
+      choir(beat,[0,0,0,0],'mm',0,2);
+      chant(beat,0,0,'mm',2); // final silence
+      drone(beat,0,4);
+    }
+    beat+=4;
+  }
+
+  // Amen in the coda
+  for(const n of chantAmen){
+    chant(232+n.b, n.m, 0.1, n.v, n.d, n.b===0?CHANT_TEXTS[9]:'');
+  }
+
+  return E;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §5  SEQUENCER
+// ═══════════════════════════════════════════════════════════════════
+let seq={
+  playing:false,events:[],nextIdx:0,startTime:0,tempo:72,tempoScale:1,
+  phraseAgent:new CRRAgent('SO2',1.5),pieceAgent:new CRRAgent('phi',2),
+  currentLyric:'',lyricTime:0,currentChant:'',chantTime:0,currentSection:'',
+  bodyTime:0
+};
+
+function getSection(beat){
+  for(let i=SECTIONS.length-1;i>=0;i--){if(beat>=SECTIONS[i].start)return SECTIONS[i];}
+  return SECTIONS[0];
+}
+
+function startPlayback(){
+  if(seq.playing)return;
+  initAudio();if(ac.state==='suspended')ac.resume();
+  seq.playing=true;seq.events=buildSomaSequence();
+  seq.events.sort((a,b)=>a.beat-b.beat);
+  seq.nextIdx=0;
+  seq.startTime=ac.currentTime+0.15;seq.bodyTime=0;
+  seq.phraseAgent=new CRRAgent('SO2',1.5);
+  seq.pieceAgent=new CRRAgent('phi',2);
+  activeNotes=[];seq.currentLyric='';seq.currentChant='';seq.currentSection='';
+  BODY.t=0;BODY.heart.phase=0;BODY.breath.phase=0;
+  for(const b of Object.values(BODY.brain))b.phase=0;
+  // Reset bioelectric
+  for(const node of [BODY.bioelectric.sa,BODY.bioelectric.av,BODY.bioelectric.his,
+    BODY.bioelectric.purkinjeL,BODY.bioelectric.purkinjeR]){
+    node.fired=false;node.phase=0;node.lastFire=0;
+  }
+  BODY.bioelectric.depolarWave=[];BODY.bioelectric.propagation=0;
+  document.getElementById('btn-play').classList.add('playing');
+  document.getElementById('btn-play').textContent='▶ Playing';
+  buildTimelineSections();
+  scheduleNotes();
+}
+
+function stopPlayback(){
+  seq.playing=false;seq.nextIdx=0;
+  document.getElementById('btn-play').classList.remove('playing');
+  document.getElementById('btn-play').textContent='▶ Play';
+  document.getElementById('lyric-text').classList.remove('visible');
+  document.getElementById('chant-text').classList.remove('visible');
+  if(choirVoices.length){for(let i=0;i<4;i++)setChoirNote(i,0,0,'mm',0.5);}
+  if(chantVoice)setChantNote(0,0,'mm',0.5);
+  if(chantDrone)setChantDrone(0,0.5);
+  if(breathPad.active){breathPad.masterGain.gain.linearRampToValueAtTime(0,ac.currentTime+0.5);}
+  document.getElementById('timeline-fill').style.width='0%';
+  document.getElementById('section-label').style.opacity=0;
+}
+
+function scheduleNotes(){
+  if(!seq.playing)return;
+  const bps=(seq.tempo*seq.tempoScale)/60;
+  const currentBeat=(ac.currentTime-seq.startTime)*bps;
+  const lookAhead=0.15*bps;
+  const bodyDt=0.05;
+  updateBody(bodyDt, currentBeat);
+
+  while(seq.nextIdx<seq.events.length){
+    const evt=seq.events[seq.nextIdx];
+    if(evt.beat>currentBeat+lookAhead)break;
+    const evtTime=seq.startTime+evt.beat/bps;
+    if(evtTime<ac.currentTime-0.05){seq.nextIdx++;continue;}
+    const durSec=evt.duration?evt.duration/bps:1;
+
+    const pR=seq.phraseAgent.step((evt.velocity||evt.choirGain||evt.chantGain||evt.padGain||0.3)*0.5,0.01);
+    let dynMod=1;
+    if(pR.phase==='delta')dynMod=0.72;
+    else if(pR.phase==='R')dynMod=0.82+0.18*pR.progress;
+    else dynMod=0.87+0.13*Math.tanh(seq.phraseAgent.normC*2);
+
+    seq.pieceAgent.step((evt.velocity||evt.choirGain||evt.chantGain||0.2)*0.2,0.005);
+
+    const breathMod=0.85+0.15*BODY.breath.amplitude;
+
+    if(evt.type==='choir'&&evt.choirNotes){
+      const g=evt.choirGain*dynMod*breathMod;
+      for(let vi=0;vi<4;vi++)setChoirNote(vi,evt.choirNotes[vi],g,evt.vowel,0.14);
+      if(evt.lyric){seq.currentLyric=evt.lyric;seq.lyricTime=ac.currentTime;}
+    }else if(evt.type==='heartbeat'){
+      playHeartbeat(evtTime,evt.velocity*dynMod);
+    }else if(evt.type==='breathPad'){
+      setBreathPadChord(evt.padNotes||[],evt.padGain*dynMod*breathMod,0.8);
+    }else if(evt.type==='gamma'){
+      playGammaShimmer(evt.midi,evt.velocity*dynMod*breathMod,evtTime);
+    }else if(evt.type==='bioelectric'){
+      playConduction(evtTime,evt.velocity*dynMod);
+    }else if(evt.type==='chant'){
+      setChantNote(evt.midi,evt.chantGain*dynMod*breathMod,evt.vowel,0.2);
+      if(evt.chantText){seq.currentChant=evt.chantText;seq.chantTime=ac.currentTime;}
+    }else if(evt.type==='drone'){
+      setChantDrone(evt.droneGain*dynMod,1.5);
+    }else{
+      playNote(evt.midi,evt.velocity*dynMod*breathMod,durSec,evtTime);
+    }
+    seq.nextIdx++;
+  }
+  if(seq.nextIdx>=seq.events.length)setTimeout(()=>stopPlayback(),5000);
+  if(seq.playing)setTimeout(scheduleNotes,50);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §6  TIMELINE BAR
+// ═══════════════════════════════════════════════════════════════════
+function buildTimelineSections(){
+  const container=document.getElementById('timeline-sections');container.innerHTML='';
+  for(let i=1;i<SECTIONS.length;i++){
+    const s=SECTIONS[i];const pct=(s.end-s.start)/TOTAL_BEATS*100;
+    const div=document.createElement('div');div.className='t-section';div.style.width=pct+'%';
+    div.innerHTML=`<span class="t-section-label">${s.name}</span>`;
+    container.appendChild(div);
+  }
+}
+
+function updateTimeline(currentBeat){
+  const pct=Math.min(100,currentBeat/TOTAL_BEATS*100);
+  document.getElementById('timeline-fill').style.width=pct+'%';
+  const bps=(seq.tempo*seq.tempoScale)/60;
+  const elapsed=currentBeat/bps;const total=TOTAL_BEATS/bps;
+  const fmt=s=>{const m=Math.floor(s/60);return m+':'+(Math.floor(s%60)+'').padStart(2,'0')};
+  document.getElementById('timeline-time').textContent=fmt(elapsed)+' / '+fmt(total);
+  const cVal=Math.min(99,seq.pieceAgent.C);
+  document.getElementById('timeline-crr').textContent='C='+cVal.toFixed(1);
+  const sec=getSection(currentBeat);
+  const sl=document.getElementById('section-label');
+  if(sec.name!==seq.currentSection){
+    seq.currentSection=sec.name;sl.textContent=sec.label;sl.style.opacity=0;
+    const secIdx=SECTIONS.indexOf(sec);
+    const hue=secIdx<5?180+secIdx*25:secIdx<7?0+secIdx*10:120+secIdx*15;
+    sl.style.color=`hsla(${hue},50%,60%,0.3)`;
+    setTimeout(()=>{sl.style.opacity=1},50);
+    setTimeout(()=>{sl.style.opacity=0},2800);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §7  VISUALIZATION — The Living Body
+// ═══════════════════════════════════════════════════════════════════
+const canvas=document.getElementById('viz');
+const ctx2=canvas.getContext('2d');
+let W=0,H=0,animId=null,freqData=null,timeData=null;
+
+const BODY_SVG={
+  head:{cx:50,cy:13,rx:8.5,ry:10},
+  neck:{x:46,y:22,w:8,h:4},
+  heart:{cx:50,cy:34,r:3.5},
+  lungL:{cx:42,cy:30,rx:5,ry:4.5},
+  lungR:{cx:58,cy:30,rx:5,ry:4.5},
+  brain:{cx:50,cy:10,rx:7.5,ry:7},
+};
+
+const ARTERIES=[
+  [[50,34],[50,37],[50,42],[50,48],[50,55]],
+  [[50,34],[47,28],[45,24],[46,18],[48,13]],
+  [[50,34],[53,28],[55,24],[54,18],[52,13]],
+  [[48,28],[40,28],[32,32],[26,42],[22,54]],
+  [[52,28],[60,28],[68,32],[74,42],[78,54]],
+  [[50,55],[45,58],[42,64],[40,74],[39,88]],
+  [[50,55],[55,58],[58,64],[60,74],[61,88]],
+];
+const VEINS=[
+  [[52,13],[52,18],[52,24],[52,28],[52,34]],
+  [[22,58],[28,46],[36,34],[44,28]],
+  [[78,58],[72,46],[64,34],[56,28]],
+  [[39,92],[40,78],[42,68],[46,58],[50,55]],
+  [[61,92],[60,78],[58,68],[54,58],[50,55]],
+];
+
+const BRAIN_VIZ=[
+  {name:'θ',pos:[50,8],color:'#9f7aea',key:'theta'},
+  {name:'α',pos:[44,11],color:'#38a169',key:'alpha'},
+  {name:'α',pos:[56,11],color:'#38a169',key:'alpha'},
+  {name:'β',pos:[44,9],color:'#dd6b20',key:'beta'},
+  {name:'β',pos:[56,9],color:'#dd6b20',key:'beta'},
+  {name:'γ',pos:[50,14],color:'#ed64a6',key:'gamma'},
+  {name:'δ',pos:[50,17],color:'#ecc94b',key:'delta'},
+];
+
+let bloodParts=[];
+function initBloodParts(){
+  bloodParts=[];
+  for(let i=0;i<40;i++){
+    const pathIdx=Math.floor(Math.random()*ARTERIES.length);
+    const isArtery=Math.random()>0.4;
+    bloodParts.push({
+      path:isArtery?ARTERIES[pathIdx%ARTERIES.length]:VEINS[pathIdx%VEINS.length],
+      progress:Math.random(),speed:0.003+Math.random()*0.004,
+      isArtery,size:0.6+Math.random()*0.8
+    });
+  }
+}
+
+let neuroParts=[];
+function initNeuroParts(){
+  neuroParts=[];
+  for(let i=0;i<15;i++){
+    neuroParts.push({progress:Math.random(),speed:0.008+Math.random()*0.006,
+      path:Math.random()>0.5?'vagus':'sympathetic',size:0.5+Math.random()*0.5});
+  }
+}
+
+// Bioelectric conduction particles
+let conductParts=[];
+function initConductParts(){
+  conductParts=[];
+  for(let i=0;i<20;i++){
+    conductParts.push({
+      progress:Math.random(),speed:0.015+Math.random()*0.01,
+      branch:Math.random()>0.5?'left':'right',
+      size:0.4+Math.random()*0.6,phase:Math.random()*TAU
+    });
+  }
+}
+
+const NP=100;let particles=[];
+function initParticles(){particles=[];for(let i=0;i<NP;i++){
+  particles.push({x:Math.random(),y:Math.random(),vx:0,vy:0,
+    size:0.3+Math.random()*1.5,brightness:0.04+Math.random()*0.15,
+    hue:Math.random(),phase:Math.random()*TAU,drift:0.0002+Math.random()*0.0006});}}
+
+function resize(){
+  const wrap=document.getElementById('canvas-wrap');
+  W=wrap.clientWidth;H=wrap.clientHeight;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx2.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function bx(x){return W*0.3+x*(W*0.4)/100}
+function by(y){return H*0.05+y*(H*0.88)/100}
+function bs(s){return s*Math.min(W*0.4,H*0.88)/100}
+
+function interpPath(path,t){
+  const n=path.length-1;
+  const idx=Math.min(n-1,Math.floor(t*n));
+  const frac=t*n-idx;
+  const p0=path[idx],p1=path[Math.min(idx+1,n)];
+  return[p0[0]+(p1[0]-p0[0])*frac, p0[1]+(p1[1]-p0[1])*frac];
+}
+
+function render(t){
+  animId=requestAnimationFrame(render);
+  const ts=t*0.001;
+  ctx2.fillStyle='#030408';ctx2.fillRect(0,0,W,H);
+
+  let hasAudio=false,energy=0;
+  if(analyser&&seq.playing){
+    if(!freqData){freqData=new Uint8Array(analyser.frequencyBinCount);
+      timeData=new Uint8Array(analyser.fftSize)}
+    analyser.getByteFrequencyData(freqData);analyser.getByteTimeDomainData(timeData);
+    hasAudio=true;
+    for(let i=0;i<freqData.length;i++)energy+=freqData[i];
+    energy/=freqData.length*255;
+  }
+
+  // ─── Body outline ───
+  ctx2.strokeStyle=`rgba(60,90,140,${0.08+energy*0.08})`;
+  ctx2.lineWidth=bs(0.3);ctx2.lineCap='round';
+
+  ctx2.beginPath();
+  ctx2.ellipse(bx(BODY_SVG.head.cx),by(BODY_SVG.head.cy),bs(BODY_SVG.head.rx),bs(BODY_SVG.head.ry),0,0,TAU);
+  ctx2.stroke();
+  ctx2.strokeRect(bx(BODY_SVG.neck.x),by(BODY_SVG.neck.y),bs(BODY_SVG.neck.w),bs(BODY_SVG.neck.h));
+  ctx2.beginPath();
+  ctx2.moveTo(bx(34),by(26));ctx2.quadraticCurveTo(bx(31),by(33),bx(31),by(45));
+  ctx2.quadraticCurveTo(bx(31),by(57),bx(36),by(64));ctx2.lineTo(bx(45),by(67));
+  ctx2.lineTo(bx(55),by(67));ctx2.lineTo(bx(64),by(64));
+  ctx2.quadraticCurveTo(bx(69),by(57),bx(69),by(45));
+  ctx2.quadraticCurveTo(bx(69),by(33),bx(66),by(26));ctx2.closePath();ctx2.stroke();
+  ctx2.beginPath();ctx2.moveTo(bx(31),by(28));ctx2.quadraticCurveTo(bx(23),by(32),bx(19),by(44));
+  ctx2.quadraticCurveTo(bx(16),by(54),bx(19),by(61));ctx2.stroke();
+  ctx2.beginPath();ctx2.moveTo(bx(69),by(28));ctx2.quadraticCurveTo(bx(77),by(32),bx(81),by(44));
+  ctx2.quadraticCurveTo(bx(84),by(54),bx(81),by(61));ctx2.stroke();
+  ctx2.beginPath();ctx2.ellipse(bx(19),by(63),bs(3.5),bs(4),0,0,TAU);ctx2.stroke();
+  ctx2.beginPath();ctx2.ellipse(bx(81),by(63),bs(3.5),bs(4),0,0,TAU);ctx2.stroke();
+  ctx2.lineWidth=bs(0.35);
+  ctx2.beginPath();ctx2.moveTo(bx(43),by(67));ctx2.lineTo(bx(41),by(79));ctx2.lineTo(bx(39),by(94));ctx2.stroke();
+  ctx2.beginPath();ctx2.moveTo(bx(57),by(67));ctx2.lineTo(bx(59),by(79));ctx2.lineTo(bx(61),by(94));ctx2.stroke();
+
+  // ─── Lungs ───
+  const breathAmp=BODY.breath.amplitude;
+  const lungScale=1+breathAmp*0.25;
+  const lungOp=0.08+breathAmp*0.2;
+  let lungCol;
+  if(BODY.breath.crrPhase==='C')lungCol=`rgba(79,209,197,${lungOp})`;
+  else if(BODY.breath.crrPhase==='delta')lungCol=`rgba(252,129,129,${lungOp})`;
+  else lungCol=`rgba(104,211,145,${lungOp})`;
+  for(const lung of [{cx:42,cy:30},{cx:58,cy:30}]){
+    const lg=ctx2.createRadialGradient(bx(lung.cx),by(lung.cy),0,bx(lung.cx),by(lung.cy),bs(6*lungScale));
+    lg.addColorStop(0,lungCol);lg.addColorStop(1,'transparent');
+    ctx2.fillStyle=lg;ctx2.beginPath();
+    ctx2.ellipse(bx(lung.cx),by(lung.cy),bs(5*lungScale),bs(4.5*lungScale),0,0,TAU);ctx2.fill();
+    ctx2.strokeStyle=lungCol;ctx2.lineWidth=bs(0.2);
+    ctx2.setLineDash([bs(0.8),bs(0.8)]);ctx2.beginPath();
+    ctx2.ellipse(bx(lung.cx),by(lung.cy),bs(5*lungScale),bs(4.5*lungScale),0,0,TAU);ctx2.stroke();
+    ctx2.setLineDash([]);
+  }
+
+  // ─── Bioelectric Conduction System ───
+  const bio=BODY.bioelectric;
+  const bioActive=seq.playing;
+
+  // Draw conduction pathways
+  function drawCondPath(path,opacity,width){
+    ctx2.beginPath();
+    for(let i=0;i<path.length;i++){
+      if(i===0)ctx2.moveTo(bx(path[i][0]),by(path[i][1]));
+      else ctx2.lineTo(bx(path[i][0]),by(path[i][1]));
+    }
+    ctx2.strokeStyle=`rgba(255,221,87,${opacity})`;
+    ctx2.lineWidth=bs(width);ctx2.lineCap='round';ctx2.stroke();
+  }
+
+  // Base pathways (always visible when playing, dim)
+  if(bioActive){
+    const baseBioOp=0.04+energy*0.06;
+    drawCondPath(CONDUCT_PATH.saToAv,baseBioOp,0.15);
+    drawCondPath(CONDUCT_PATH.avToHis,baseBioOp,0.15);
+    drawCondPath(CONDUCT_PATH.hisToLeft,baseBioOp,0.12);
+    drawCondPath(CONDUCT_PATH.hisToRight,baseBioOp,0.12);
+    drawCondPath(CONDUCT_PATH.purkinjeL,baseBioOp,0.1);
+    drawCondPath(CONDUCT_PATH.purkinjeR,baseBioOp,0.1);
+  }
+
+  // Node flashes when fired
+  const nodeFlash=(node,x,y,r)=>{
+    if(node.phase>0.01){
+      const fl=node.phase;
+      const ng=ctx2.createRadialGradient(bx(x),by(y),0,bx(x),by(y),bs(r*(1+fl*2)));
+      ng.addColorStop(0,`rgba(255,238,130,${fl*0.8})`);
+      ng.addColorStop(0.4,`rgba(255,221,87,${fl*0.4})`);
+      ng.addColorStop(1,'transparent');
+      ctx2.fillStyle=ng;ctx2.beginPath();ctx2.arc(bx(x),by(y),bs(r*(1+fl*2)),0,TAU);ctx2.fill();
+      // Bright core
+      ctx2.fillStyle=`rgba(255,255,220,${fl*0.9})`;
+      ctx2.beginPath();ctx2.arc(bx(x),by(y),bs(r*0.5),0,TAU);ctx2.fill();
+    }
+  };
+  nodeFlash(bio.sa,52,31,1.5);
+  nodeFlash(bio.av,50,33,1.2);
+  nodeFlash(bio.his,50,35,1);
+  nodeFlash(bio.purkinjeL,45,38,0.8);
+  nodeFlash(bio.purkinjeR,55,38,0.8);
+
+  // Depolarisation wavefronts traveling along pathways
+  for(const w of bio.depolarWave){
+    const age=BODY.t-w.birth;
+    const brightness=Math.max(0,1-age*2.5);
+    if(brightness<0.01)continue;
+    const paths=w.node==='purkinje'?
+      [CONDUCT_PATH.purkinjeL,CONDUCT_PATH.purkinjeR]:
+      w.node==='his'?[CONDUCT_PATH.hisToLeft,CONDUCT_PATH.hisToRight]:
+      w.node==='av'?[CONDUCT_PATH.avToHis]:
+      [CONDUCT_PATH.saToAv];
+    for(const path of paths){
+      const prog=Math.min(1,(age*4));
+      const[px,py]=interpPath(path,prog);
+      const wr=bs(0.8+brightness*1.5);
+      const wg=ctx2.createRadialGradient(bx(px),by(py),0,bx(px),by(py),wr);
+      wg.addColorStop(0,`rgba(255,238,130,${brightness*0.7})`);
+      wg.addColorStop(1,'transparent');
+      ctx2.fillStyle=wg;ctx2.beginPath();ctx2.arc(bx(px),by(py),wr,0,TAU);ctx2.fill();
+    }
+  }
+
+  // Conduction particles flowing through pathways
+  for(const cp of conductParts){
+    const bioEnergy=bio.sa.phase+bio.av.phase+bio.his.phase;
+    cp.progress+=cp.speed*(0.3+bioEnergy*0.5+energy*0.3);
+    cp.phase+=0.05;
+    if(cp.progress>=1)cp.progress-=1;
+    const allPaths=cp.branch==='left'?
+      [...CONDUCT_PATH.saToAv,...CONDUCT_PATH.avToHis,...CONDUCT_PATH.hisToLeft,...CONDUCT_PATH.purkinjeL]:
+      [...CONDUCT_PATH.saToAv,...CONDUCT_PATH.avToHis,...CONDUCT_PATH.hisToRight,...CONDUCT_PATH.purkinjeR];
+    const segIdx=Math.min(allPaths.length-2,Math.floor(cp.progress*(allPaths.length-1)));
+    const segFrac=cp.progress*(allPaths.length-1)-segIdx;
+    const p0=allPaths[segIdx],p1=allPaths[Math.min(segIdx+1,allPaths.length-1)];
+    const px=p0[0]+(p1[0]-p0[0])*segFrac;
+    const py=p0[1]+(p1[1]-p0[1])*segFrac;
+    const flicker=0.3+0.7*(0.5+0.5*Math.sin(cp.phase));
+    ctx2.fillStyle=`rgba(255,221,87,${(0.15+energy*0.25+bioEnergy*0.15)*flicker})`;
+    ctx2.beginPath();ctx2.arc(bx(px),by(py),bs(cp.size*(0.5+bioEnergy*0.3)),0,TAU);ctx2.fill();
+  }
+
+  // ─── Heart ───
+  const heartBeat=BODY.heart.systole?1:0;
+  const heartScale=1+heartBeat*0.3+energy*0.15;
+  const heartOp=0.3+heartBeat*0.5+energy*0.2;
+  const hg=ctx2.createRadialGradient(bx(50),by(34),0,bx(50),by(34),bs(5*heartScale));
+  hg.addColorStop(0,`rgba(229,62,62,${heartOp*0.7})`);hg.addColorStop(1,'transparent');
+  ctx2.fillStyle=hg;ctx2.beginPath();ctx2.arc(bx(50),by(34),bs(5*heartScale),0,TAU);ctx2.fill();
+  ctx2.fillStyle=`rgba(229,62,62,${0.5+heartBeat*0.4})`;
+  ctx2.beginPath();ctx2.arc(bx(50),by(34),bs(3.5*heartScale),0,TAU);ctx2.fill();
+
+  // ─── Blood vessels ───
+  ctx2.lineWidth=bs(0.2);
+  const flowMod=BODY.blood.flow;
+  for(const path of ARTERIES){
+    ctx2.beginPath();
+    for(let i=0;i<path.length;i++){
+      if(i===0)ctx2.moveTo(bx(path[i][0]),by(path[i][1]));else ctx2.lineTo(bx(path[i][0]),by(path[i][1]));
+    }
+    ctx2.strokeStyle=`rgba(229,62,62,${0.08+flowMod*0.12+energy*0.1})`;ctx2.stroke();
+  }
+  for(const path of VEINS){
+    ctx2.beginPath();
+    for(let i=0;i<path.length;i++){
+      if(i===0)ctx2.moveTo(bx(path[i][0]),by(path[i][1]));else ctx2.lineTo(bx(path[i][0]),by(path[i][1]));
+    }
+    ctx2.strokeStyle=`rgba(49,130,206,${0.06+flowMod*0.08})`;ctx2.stroke();
+  }
+
+  // ─── Blood particles ───
+  for(const bp of bloodParts){
+    bp.progress+=bp.speed*(0.5+flowMod*0.8+heartBeat*0.3);
+    if(bp.progress>=1)bp.progress-=1;
+    const[px,py]=interpPath(bp.path,bp.progress);
+    const col=bp.isArtery?`rgba(252,129,129,${0.3+energy*0.3})`:`rgba(99,179,237,${0.25+energy*0.2})`;
+    ctx2.fillStyle=col;ctx2.beginPath();ctx2.arc(bx(px),by(py),bs(bp.size),0,TAU);ctx2.fill();
+  }
+
+  // ─── Brain ───
+  const brainEnergy=BODY.brain.alpha.amp*0.3+BODY.brain.theta.amp*0.2+energy*0.3;
+  const bg2=ctx2.createRadialGradient(bx(50),by(10),0,bx(50),by(10),bs(9));
+  bg2.addColorStop(0,`rgba(236,201,75,${brainEnergy*0.2})`);bg2.addColorStop(1,'transparent');
+  ctx2.fillStyle=bg2;ctx2.beginPath();ctx2.ellipse(bx(50),by(10),bs(8),bs(7.5),0,0,TAU);ctx2.fill();
+
+  for(const br of BRAIN_VIZ){
+    const band=BODY.brain[br.key];if(!band)continue;
+    const amp=band.amp;const r=bs(1.2+amp*1.2);const op=0.15+amp*0.5;
+    const brg=ctx2.createRadialGradient(bx(br.pos[0]),by(br.pos[1]),0,bx(br.pos[0]),by(br.pos[1]),r*2);
+    brg.addColorStop(0,br.color.replace(')',`,${op*0.6})`).replace('rgb','rgba'));
+    brg.addColorStop(1,'transparent');
+    ctx2.fillStyle=brg;ctx2.fillRect(bx(br.pos[0])-r*2,by(br.pos[1])-r*2,r*4,r*4);
+    ctx2.fillStyle=br.color.replace(')',`,${op})`).replace('rgb','rgba');
+    ctx2.beginPath();ctx2.arc(bx(br.pos[0]),by(br.pos[1]),r,0,TAU);ctx2.fill();
+  }
+
+  // ─── Vagus nerve ───
+  const vagalOp=0.06+BODY.vagal.tone*0.15+energy*0.1;
+  ctx2.strokeStyle=`rgba(11,197,234,${vagalOp})`;ctx2.lineWidth=bs(0.25);
+  ctx2.beginPath();ctx2.moveTo(bx(50),by(17));ctx2.quadraticCurveTo(bx(48),by(24),bx(50),by(34));ctx2.stroke();
+  ctx2.beginPath();ctx2.moveTo(bx(50),by(34));ctx2.quadraticCurveTo(bx(48),by(42),bx(46),by(50));ctx2.stroke();
+
+  // ─── Neural particles ───
+  const vagusPath=[[50,17],[50,20],[50,24],[50,28],[50,34]];
+  for(const np of neuroParts){
+    np.progress+=np.speed*(0.5+BODY.vagal.tone*0.5);
+    if(np.progress>=1)np.progress-=1;
+    const[px,py]=interpPath(vagusPath,np.progress);
+    ctx2.fillStyle=np.path==='vagus'?`rgba(11,197,234,${0.3+energy*0.3})`:`rgba(236,201,75,${0.25+energy*0.2})`;
+    ctx2.beginPath();ctx2.arc(bx(px),by(py),bs(np.size),0,TAU);ctx2.fill();
+  }
+
+  // ─── Chant glow — throat/chest resonance ───
+  if(chantVoice && chantVoice.targetGain > 0.01){
+    const cg=chantVoice.targetGain;
+    // Throat glow (voice emanating)
+    const tGlow=ctx2.createRadialGradient(bx(50),by(24),0,bx(50),by(24),bs(5+cg*8));
+    tGlow.addColorStop(0,`rgba(196,181,253,${cg*0.35})`);
+    tGlow.addColorStop(0.5,`rgba(196,181,253,${cg*0.1})`);
+    tGlow.addColorStop(1,'transparent');
+    ctx2.fillStyle=tGlow;ctx2.beginPath();ctx2.arc(bx(50),by(24),bs(5+cg*8),0,TAU);ctx2.fill();
+    // Emanating arcs from throat (sound waves)
+    for(let i=0;i<3;i++){
+      const r=bs(4+i*3+Math.sin(ts*3+i)*1.5)*cg;
+      const arcOp=cg*0.15*(1-i*0.3);
+      if(arcOp<0.01)continue;
+      ctx2.beginPath();
+      ctx2.arc(bx(50),by(24),r,-0.8,-0.8+1.6);
+      ctx2.strokeStyle=`rgba(196,181,253,${arcOp})`;ctx2.lineWidth=bs(0.15);ctx2.stroke();
+    }
+  }
+
+  // ─── Drone glow — chest cavity resonance ───
+  if(chantDrone && chantDrone.masterGain){
+    const dg=chantDrone.masterGain.gain.value;
+    if(dg>0.01){
+      const droneGlow=ctx2.createRadialGradient(bx(50),by(44),0,bx(50),by(44),bs(12+dg*20));
+      droneGlow.addColorStop(0,`rgba(196,181,253,${dg*0.06})`);
+      droneGlow.addColorStop(1,'transparent');
+      ctx2.fillStyle=droneGlow;ctx2.beginPath();ctx2.arc(bx(50),by(44),bs(12+dg*20),0,TAU);ctx2.fill();
+    }
+  }
+
+  // ─── Spectrum arcs ───
+  if(hasAudio&&freqData){
+    const nArcs=5;
+    const arcCx=bx(50),arcCy=by(45);
+    const maxArcR=Math.min(W,H)*0.42;
+    for(let a=0;a<nArcs;a++){
+      const t_=a/(nArcs-1);
+      const bs2=Math.floor(t_*freqData.length*0.35);
+      const be=Math.floor((t_+1/nArcs)*freqData.length*0.35);
+      let bE=0;for(let i=bs2;i<Math.min(be,freqData.length);i++)bE+=freqData[i];
+      bE/=Math.max(1,(be-bs2))*255;
+      if(bE<0.02)continue;
+      const arcR=maxArcR*0.35+a*maxArcR*0.14;
+      const arcW=maxArcR*0.05*bE+1;
+      const sa=-PI*0.6+a*0.08;
+      const sw=PI*0.3+bE*PI*0.6;
+      const cols=['rgba(229,62,62,','rgba(255,221,87,','rgba(79,209,197,','rgba(196,181,253,','rgba(11,197,234,'];
+      ctx2.beginPath();ctx2.arc(arcCx,arcCy,arcR,sa+ts*0.08,sa+sw+ts*0.08);
+      ctx2.strokeStyle=cols[a]+(0.06+bE*0.25)+')';ctx2.lineWidth=arcW;ctx2.lineCap='round';ctx2.stroke();
+    }
+  }
+
+  // ─── Ambient particles ───
+  for(const p of particles){
+    p.phase+=p.drift;
+    p.x+=Math.sin(p.phase*3.7+p.hue*TAU)*0.00018;
+    p.y+=Math.cos(p.phase*2.3+p.hue*TAU)*0.00018-0.00004;
+    if(hasAudio&&energy>0.03){
+      const dx=0.5-p.x,dy=0.5-p.y;p.vx+=dx*energy*0.00025;p.vy+=dy*energy*0.00025;
+    }
+    p.x+=p.vx;p.y+=p.vy;p.vx*=0.98;p.vy*=0.98;
+    if(p.x<-.1)p.x=1.1;if(p.x>1.1)p.x=-.1;if(p.y<-.1)p.y=1.1;if(p.y>1.1)p.y=-.1;
+    const px2=p.x*W,py2=p.y*H;
+    const br=p.brightness*(0.3+energy*1.2);
+    ctx2.beginPath();ctx2.arc(px2,py2,p.size*(0.7+energy*0.4),0,TAU);
+    const hue=p.hue<0.15?0:p.hue<0.3?50:p.hue<0.45?175:p.hue<0.6?260:p.hue<0.8?270:320;
+    ctx2.fillStyle=`hsla(${hue},45%,55%,${br*0.2})`;ctx2.fill();
+  }
+
+  // ─── Waveform ring ───
+  if(hasAudio&&timeData){
+    ctx2.beginPath();const wR=bs(6);
+    const hcx=bx(50),hcy=by(34);
+    for(let i=0;i<timeData.length;i++){
+      const a=(i/timeData.length)*TAU-PI/2;
+      const v=(timeData[i]-128)/128;
+      const r=wR+v*bs(3);
+      const x=hcx+Math.cos(a)*r,y=hcy+Math.sin(a)*r;
+      if(i===0)ctx2.moveTo(x,y);else ctx2.lineTo(x,y);
+    }
+    ctx2.closePath();
+    ctx2.strokeStyle=`hsla(0,55%,55%,${0.06+energy*0.15})`;
+    ctx2.lineWidth=0.8;ctx2.stroke();
+  }
+
+  // ─── Active notes & choir voice indicators ───
+  if(seq.playing){
+    const now=ac?ac.currentTime:0;
+    for(const note of activeNotes){
+      if(!note.alive)continue;
+      const age=now-note.startTime;
+      const maxAge=note.tau?note.tau*3:3;
+      if(age<0||age>maxAge)continue;
+      const pc=note.midi%12;
+      const angle=(pc/12)*TAU-PI/2;
+      const noteR=bs(12);
+      const nx=bx(50)+Math.cos(angle)*noteR,ny=by(10)+Math.sin(angle)*noteR;
+      const decay=note.tau?Math.exp(-age/note.tau):Math.max(0,1-age/maxAge);
+      const br2=note.velocity*decay;
+      const baseHue=pc/12*300;
+      const nGlow=ctx2.createRadialGradient(nx,ny,0,nx,ny,3+br2*8);
+      nGlow.addColorStop(0,`hsla(${baseHue},55%,55%,${br2*0.35})`);
+      nGlow.addColorStop(1,'transparent');
+      ctx2.fillStyle=nGlow;ctx2.fillRect(nx-14,ny-14,28,28);
+      ctx2.beginPath();ctx2.arc(nx,ny,1+br2*2,0,TAU);
+      ctx2.fillStyle=`hsla(${baseHue},60%,60%,${br2*0.5})`;ctx2.fill();
+    }
+
+    for(let vi=0;vi<choirVoices.length;vi++){
+      const v=choirVoices[vi];
+      if(v.targetGain<0.01||!v.currentNote)continue;
+      const pc=v.currentNote%12;
+      const angle=(pc/12)*TAU-PI/2;
+      const vR=bs(18+vi*3);
+      const nx=bx(50)+Math.cos(angle)*vR,ny=by(40)+Math.sin(angle)*vR;
+      const br2=v.targetGain;
+      const baseHue=pc/12*300;
+      const pulseR=3+br2*14+Math.sin(ts*8+vi)*br2*2;
+      const vGlow=ctx2.createRadialGradient(nx,ny,0,nx,ny,pulseR);
+      vGlow.addColorStop(0,`hsla(${baseHue},60%,60%,${br2*0.4})`);
+      vGlow.addColorStop(0.5,`hsla(${baseHue},50%,48%,${br2*0.15})`);
+      vGlow.addColorStop(1,'transparent');
+      ctx2.fillStyle=vGlow;ctx2.fillRect(nx-25,ny-25,50,50);
+      ctx2.beginPath();ctx2.arc(nx,ny,1.5+br2*3.5,0,TAU);
+      ctx2.fillStyle=`hsla(${baseHue},65%,65%,${br2*0.55})`;ctx2.fill();
+    }
+  }
+
+  // ─── Chant text display ───
+  if(seq.playing&&seq.currentChant&&ac){
+    const ca=ac.currentTime-(seq.chantTime||0);
+    const ce=document.getElementById('chant-text');
+    if(ca<5){ce.textContent=seq.currentChant;ce.classList.add('visible');}
+    else{ce.classList.remove('visible');}
+  }
+
+  // ─── Lyric display ───
+  if(seq.playing&&seq.currentLyric&&ac){
+    const la=ac.currentTime-(seq.lyricTime||0);
+    const le=document.getElementById('lyric-text');
+    if(la<3.5){le.textContent=seq.currentLyric;
+      const lhue=(ts*0.06)%1*300;
+      le.style.color=`hsla(${lhue},40%,65%,0.5)`;
+      le.classList.add('visible');}else{le.classList.remove('visible');}
+  }
+
+  // ─── CRR metrics ───
+  if(seq.playing&&ac){
+    const bps=(seq.tempo*seq.tempoScale)/60;
+    const currentBeat=Math.max(0,(ac.currentTime-seq.startTime)*bps);
+    updateTimeline(currentBeat);
+
+    const crrDisp=document.getElementById('crr-display');
+    const pA=seq.phraseAgent;
+    const sec=getSection(currentBeat);
+    crrDisp.innerHTML=
+      `${sec.name}<br>`+
+      `C = ${pA.C.toFixed(3)}<br>`+
+      `Ω = ${pA.omega.toFixed(4)}<br>`+
+      `exp(C/Ω) = ${Math.min(999,pA.expCO).toFixed(1)}<br>`+
+      `δ = ${pA.ruptures}<br>`+
+      `<span style="opacity:.3;font-size:.85em">${sec.label}</span>`;
+
+    const bm=document.getElementById('body-metrics');
+    const ecg=BODY.bioelectric.ecgPhase;
+    bm.innerHTML=
+      `♡ ${BODY.heart.bpm} BPM · ${BODY.heart.systole?'SYS':'DIA'}<br>`+
+      `⚡ ${ecg.toUpperCase()} · SA→AV→His→PF<br>`+
+      `☁ ${BODY.breath.crrPhase==='C'?'inhale':BODY.breath.crrPhase==='delta'?'peak':'exhale'}<br>`+
+      `θ ${BODY.brain.theta.amp.toFixed(2)} · α ${BODY.brain.alpha.amp.toFixed(2)} · vagal ${BODY.vagal.tone.toFixed(2)}`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §8  UI & BOOT
+// ═══════════════════════════════════════════════════════════════════
+document.getElementById('btn-play').addEventListener('click',()=>{
+  if(seq.playing)stopPlayback();else startPlayback();});
+document.getElementById('btn-stop').addEventListener('click',stopPlayback);
+document.getElementById('tempo-slider').addEventListener('input',e=>{
+  seq.tempoScale=parseFloat(e.target.value);
+  document.getElementById('tempo-val').textContent=seq.tempoScale.toFixed(2)+'×';});
+document.getElementById('reverb-slider').addEventListener('input',e=>{
+  reverbMix=parseFloat(e.target.value);updateMixes();
+  document.getElementById('reverb-val').textContent=reverbMix.toFixed(2);});
+document.getElementById('choir-slider').addEventListener('input',e=>{
+  choirMix=parseFloat(e.target.value);
+  if(choirMaster)choirMaster.gain.value=choirMix*0.6;
+  document.getElementById('choir-val').textContent=choirMix.toFixed(2);});
+document.getElementById('body-slider').addEventListener('input',e=>{
+  bodyMix=parseFloat(e.target.value);
+  if(bodyGain)bodyGain.gain.value=bodyMix*0.4;
+  document.getElementById('body-val').textContent=bodyMix.toFixed(2);});
+document.getElementById('chant-slider').addEventListener('input',e=>{
+  chantMix=parseFloat(e.target.value);
+  if(chantGain)chantGain.gain.value=chantMix*0.35;
+  document.getElementById('chant-val').textContent=chantMix.toFixed(2);});
+document.getElementById('bioelec-slider').addEventListener('input',e=>{
+  bioelecMix=parseFloat(e.target.value);
+  if(bioelecGain)bioelecGain.gain.value=bioelecMix*0.25;
+  document.getElementById('bioelec-val').textContent=bioelecMix.toFixed(2);});
+
+function startApp(){
+  if(startApp._done)return;startApp._done=true;
+  const splash=document.getElementById('splash');
+  splash.classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  setTimeout(()=>splash.style.display='none',1400);
+  resize();initParticles();initBloodParts();initNeuroParts();initConductParts();
+  new ResizeObserver(resize).observe(document.getElementById('canvas-wrap'));
+  animId=requestAnimationFrame(render);
+}
+document.getElementById('splash').addEventListener('click',startApp);
+document.getElementById('splash').addEventListener('touchend',e=>{e.preventDefault();startApp()});
+window.addEventListener('resize',()=>{if(startApp._done)resize()});
+window.addEventListener('orientationchange',()=>setTimeout(resize,150));
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault();if(seq.playing)stopPlayback();else startPlayback();}});
+</script>
+</body>
+</html>
