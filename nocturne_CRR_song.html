@@ -1,0 +1,3698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nocturne — CRR Post-Rock | The Song of the Stars</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Space+Mono:wght@400&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --night:#0a0c18;--deep:#141833;--moon:#c8cce8;
+  --ember:#d45a2a;--flame:#f0a030;--star:#e8e4ff;
+  --cream:rgba(200,204,232,0.85);--creamD:rgba(180,184,212,0.5);
+  --bg:#030408;--panel:rgba(6,8,16,0.97)
+}
+body{background:var(--bg);color:var(--cream);font-family:'Cormorant Garamond',Georgia,serif;
+overflow:hidden;width:100vw;height:100vh;position:fixed}
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;
+justify-content:center;cursor:pointer;transition:opacity 1.8s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:700px;padding:0 24px}
+#splash .wave-bar{width:min(280px,70vw);height:2px;margin:0 auto 32px;border-radius:2px;
+background:linear-gradient(90deg,var(--ember),var(--flame),var(--moon),var(--star),var(--ember));
+animation:moonpulse 8s ease-in-out infinite}
+@keyframes moonpulse{0%,100%{opacity:.15;transform:scaleX(.8)}50%{opacity:.45;transform:scaleX(1.1)}}
+#splash h1{font-size:clamp(2rem,5vw,3.4rem);font-weight:300;letter-spacing:.28em;
+margin-bottom:8px;background:linear-gradient(135deg,var(--moon),var(--star),var(--flame),var(--ember));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#splash .sub{font-size:clamp(.76rem,1.3vw,.95rem);font-weight:300;opacity:.4;
+letter-spacing:.04em;line-height:1.9;font-style:italic}
+#splash .eq{font-family:'Space Mono',monospace;font-size:clamp(.44rem,.75vw,.54rem);
+opacity:.14;margin-top:20px;letter-spacing:.02em;line-height:1.8}
+#splash .credit{font-size:.58rem;opacity:.16;margin-top:14px;letter-spacing:.06em}
+#splash .tap{font-size:.66rem;opacity:.16;margin-top:24px;letter-spacing:.14em;animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.1}50%{opacity:.28}}
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#canvas-wrap{flex:1;min-height:0;position:relative}
+#viz{display:block;width:100%;height:100%}
+#info-bar{display:flex;justify-content:space-between;
+align-items:center;padding:4px 18px;pointer-events:none;
+background:rgba(6,8,16,0.95);border-top:1px solid rgba(200,160,48,0.06);flex-shrink:0}
+#piece-title{font-size:clamp(.72rem,1.3vw,.95rem);font-weight:300;letter-spacing:.14em;
+color:rgba(200,204,232,0.6)}
+#piece-title .composer{font-size:.66em;font-weight:300;opacity:.5;font-style:italic;display:inline;margin-left:8px}
+#crr-display{font-family:'Space Mono',monospace;font-size:clamp(.42rem,.7vw,.52rem);
+color:rgba(200,204,232,0.45);text-align:right;line-height:1.5}
+#section-label{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+text-align:center;pointer-events:none;z-index:4;font-size:clamp(.9rem,2vw,1.5rem);
+font-weight:300;letter-spacing:.24em;font-style:italic;opacity:0;transition:opacity 2s ease;
+color:rgba(200,204,232,0.45);text-shadow:0 1px 8px rgba(0,0,0,0.6)}
+#timeline-wrap{height:26px;background:rgba(6,8,16,0.95);border-top:1px solid rgba(200,160,48,0.06);
+display:flex;align-items:center;padding:0 14px;gap:9px;flex-shrink:0}
+#timeline-bar{flex:1;height:4px;background:rgba(255,255,255,0.03);border-radius:3px;
+position:relative;overflow:hidden}
+#timeline-fill{height:100%;width:0%;border-radius:3px;transition:width 0.3s linear;
+background:linear-gradient(90deg,rgba(200,204,232,.3),rgba(212,90,42,.4),rgba(240,160,48,.4),rgba(200,204,232,.3),rgba(232,228,255,.3))}
+#timeline-sections{position:absolute;inset:0;display:flex;pointer-events:none}
+.t-section{height:100%;border-right:1px solid rgba(255,255,255,0.04);position:relative}
+.t-section-label{position:absolute;top:-12px;left:2px;font-family:'Space Mono',monospace;
+font-size:6px;color:rgba(255,255,255,0.45);letter-spacing:.03em;white-space:nowrap}
+#timeline-time{font-family:'Space Mono',monospace;font-size:.5rem;color:rgba(255,255,255,0.55);
+min-width:62px;text-align:right}
+#controls{border-top:1px solid rgba(200,160,48,0.08);background:var(--panel);
+padding:8px 14px 10px;display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.transport-row{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap}
+.transport-btn{font-family:'Cormorant Garamond',serif;font-size:clamp(.68rem,.95vw,.82rem);
+padding:4px 16px;border:1px solid rgba(200,160,48,0.1);background:transparent;
+color:var(--creamD);cursor:pointer;border-radius:3px;letter-spacing:.06em;transition:all .25s;
+touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.transport-btn:hover{border-color:rgba(200,160,48,0.3);color:var(--cream)}
+.transport-btn.playing{border-color:rgba(200,204,232,0.4);color:rgba(180,184,220,.8);
+background:rgba(200,204,232,.03)}
+.slider-wrap{display:flex;align-items:center;gap:4px}
+.slider-wrap label{font-size:.54rem;color:rgba(255,255,255,.75);letter-spacing:.06em;width:38px;flex-shrink:0}
+.slider-wrap input[type=range]{flex:1;max-width:70px;height:2px;cursor:pointer;
+accent-color:rgba(212,90,42,0.45);touch-action:manipulation;min-height:20px}
+.slider-wrap .val{font-family:'Space Mono',monospace;font-size:.46rem;color:rgba(255,255,255,.6);width:26px;text-align:right;flex-shrink:0}
+#crr-footer{text-align:center;padding:2px;font-size:clamp(.36rem,.6vw,.46rem);
+font-family:'Space Mono',monospace;letter-spacing:.02em;
+background:linear-gradient(90deg,rgba(200,204,232,.15),rgba(212,90,42,.15),rgba(240,160,48,.15),rgba(232,228,255,.15));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@media(max-width:600px){
+  #controls{padding:6px 8px calc(8px + env(safe-area-inset-bottom,0px));gap:3px}
+  .transport-row{flex-wrap:wrap;gap:3px;justify-content:flex-start}
+  .transport-btn{padding:8px 18px;font-size:.82rem;min-height:36px;flex-shrink:0}
+  .slider-wrap{flex:1 1 calc(50% - 4px);min-width:140px;max-width:50%}
+  .slider-wrap label{width:38px;font-size:.5rem}
+  .slider-wrap input[type=range]{max-width:none;height:6px;min-height:28px}
+  .slider-wrap .val{font-size:.44rem;width:26px}
+  #info-bar{padding:3px 10px}
+  #piece-title{font-size:.68rem;letter-spacing:.08em}
+  #piece-title .composer{display:none}
+  #crr-display{font-size:.4rem;line-height:1.35}
+  #timeline-wrap{padding:0 9px;height:24px}
+  .t-section-label{display:none}
+  #crr-footer{font-size:.38rem;padding:3px 6px;line-height:1.4}
+  #section-label{font-size:clamp(.85rem,4vw,1.3rem)}
+}
+@media(max-width:380px){
+  #controls{padding:5px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+  .transport-btn{padding:7px 12px;font-size:.74rem}
+  .slider-wrap{flex:1 1 calc(50% - 3px);min-width:120px}
+  .slider-wrap label{width:30px;font-size:.44rem}
+  .slider-wrap .val{width:22px;font-size:.4rem}
+  #info-bar{padding:2px 8px}
+  #piece-title{font-size:.6rem}
+  #crr-display{font-size:.36rem}
+  #crr-footer{display:none}
+}
+@media(max-height:500px){
+  #controls{padding:3px 10px 4px;gap:2px}
+  .transport-btn{padding:3px 12px;font-size:.7rem;min-height:28px}
+  #info-bar{padding:2px 14px}
+  #timeline-wrap{height:20px}
+  #crr-footer{display:none}
+}
+@media(min-width:601px) and (max-width:1024px){
+  .slider-wrap input[type=range]{max-width:80px}
+  .transport-btn{padding:5px 18px}
+}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="inner">
+<div class="wave-bar"></div>
+<h1>NOCTURNE</h1>
+<p class="sub">A post-rock composition where every sound emerges from the night world.<br>
+The moon sings its reflected light. Bats voice the echolocation. The owl ruptures.<br>
+Distant conversation and laughter drift from the fire — noise shaped by CRR formants.<br>
+Voices chant "Ah" in harmony, triangle waves following the chord progression.<br>
+A shooting star blasts across the sky at δ(now), its harmonics tuned to φ and π.<br>
+A 22° lunar halo shimmers around the moon — ice crystals dispersing moonlight into spectral song.<br>
+All governed by Coherence, Rupture &amp; Regeneration.</p>
+<p class="eq">moon: SO(2) → Ω=1/2π reflected drone · bats: Z₂ echolocation · k=7 topology<br>
+owl: δ(dive) = rupture · fire: CRR plasma percussion · stars: λ→formant choir<br>
+murmur: noise→formant-shaped speech · laughter = δ-bursts · words emerge from babble<br>
+chant: triangle waves + Ah formants · voices follow chords · C(shared) = Σ harmonic overlap<br>
+lunar halo: n(λ) = A + B/λ² through ice → Ω(λ) = 1/n(λ) · 7 spectral tones from Cauchy dispersion<br>
+guitar: tremolo = exp(C/Ω) · delay = memory · reverb = regeneration field<br>
+meteor: ½mv²→δ(Kármán)→hν · whoosh + φ-harmonics · sparks = micro-ruptures</p>
+<p class="credit">CRR Framework — Alexander Sabine · temporalgrammar.ai</p>
+<p class="tap">tap to enter</p>
+</div></div>
+
+<div id="app">
+<div id="canvas-wrap">
+<canvas id="viz"></canvas>
+<div id="section-label"></div>
+</div>
+<div id="info-bar">
+  <div id="piece-title">Nocturne<span class="composer">CRR — the song of the stars</span></div>
+  <div id="crr-display"></div>
+</div>
+<div id="timeline-wrap">
+  <div id="timeline-bar">
+    <div id="timeline-fill"></div>
+    <div id="timeline-sections"></div>
+  </div>
+  <div id="timeline-time">0:00 / 0:00</div>
+</div>
+<div id="controls">
+<div class="transport-row">
+  <button class="transport-btn" id="btn-play">▶ Play</button>
+  <button class="transport-btn" id="btn-stop">■ Stop</button>
+  <div class="slider-wrap"><label>Tempo</label>
+    <input type="range" id="tempo-slider" min="0.7" max="1.3" step="0.05" value="1">
+    <span class="val" id="tempo-val">1.0×</span></div>
+  <div class="slider-wrap"><label>Reverb</label>
+    <input type="range" id="reverb-slider" min="0" max="1" step="0.05" value="0.75">
+    <span class="val" id="reverb-val">0.75</span></div>
+  <div class="slider-wrap"><label>Guitar</label>
+    <input type="range" id="guitar-slider" min="0" max="1" step="0.05" value="0.6">
+    <span class="val" id="guitar-val">0.60</span></div>
+  <div class="slider-wrap"><label>Night</label>
+    <input type="range" id="nature-slider" min="0" max="1" step="0.05" value="0.65">
+    <span class="val" id="nature-val">0.65</span></div>
+  <div class="slider-wrap"><label>Chatter</label>
+    <input type="range" id="chatter-slider" min="0" max="2" step="0.05" value="0.5">
+    <span class="val" id="chatter-val">0.50</span></div>
+  <div class="slider-wrap"><label>People</label>
+    <input type="range" id="people-slider" min="5" max="1000" step="1" value="6">
+    <span class="val" id="people-val">6</span></div>
+</div>
+<div id="crr-footer">
+  moon = SO(2) reflected drone · bats = Z₂ echolocation melody · owl = δ(rupture) · fire = CRR plasma drops · murmur = noise→formant speech + laughter δ-bursts · chant = triangle Ah voices following chords · lunar halo = 22° ice crystal dispersion n(λ)→spectral shimmer · meteor = ½mv²→δ→hν whoosh + φ-harmonics · stars = stellar choir · guitar: tremolo·delay·reverb = C·δ·R
+</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//
+//  N O C T U R N E  —  THE SONG OF THE STARS
+//
+//  A post-rock composition where every sound emerges from CRR
+//  mathematics applied to the physics and biology of the night.
+//
+//  ┌─────────────────────────────────────────────────────────────┐
+//  │  CRR Framework: C(x,t) = ∫L(x,τ)dτ  →  δ(now)  →  R(memory)  │
+//  │                                                             │
+//  │  CRR → NIGHT WORLD MAPPING:                                │
+//  │  Moon: SO(2) reflected light  → Ω=1/2π, albedo modulation  │
+//  │  Stars: CRR scintillation     → atmospheric turbulence     │
+//  │    Intensity I(t) = I₀(1 + Ω·sin(2πft/r₀)) × Airy disk   │
+//  │    Twinkling = CRR micro-ruptures of atmospheric coherence │
+//  │  Bats: Z₂ echolocation        → emit/receive, Ω=1/π       │
+//  │  Owl: Hunt CRR                → stalk→strike→recover       │
+//  │  Fire: CRR plasma dynamics    → blackbody T→colour mapping │
+//  │    Flame = coherent combustion→turbulent burst→re-form     │
+//  │  Human choir: Z₂ vocal folds  → gathered around fire       │
+//  └─────────────────────────────────────────────────────────────┘
+//
+//  Musical inspiration: Radiohead · Florence + The Machine ·
+//  Bat for Lashes · post-rock · the mathematics of beauty.
+//
+//  CRR explains why music moves us: exp(C/Ω) memory weighting
+//  means crescendos are accumulated coherence, silences are
+//  regeneration, and the moments that pierce us are δ(now) —
+//  ruptures where past coherence exceeds what we can hold.
+//
+//  Alexander Sabine · CRR Framework · temporalgrammar.ai
+//
+// ═══════════════════════════════════════════════════════════════════
+
+const PI=Math.PI,TAU=2*PI,PHI=(1+Math.sqrt(5))/2;
+const{sin,cos,sqrt,abs,floor,max,min,random,atan2,exp,pow,log}=Math;
+const PI2=TAU;
+const OMEGA_Z2=1/PI,OMEGA_SO2=1/TAU;
+
+// ═══════════════════════════════════════════════════════════════════
+// §0  CRR ENGINE
+// ═══════════════════════════════════════════════════════════════════
+class CRR{
+  constructor(omega,lr=0.1){this.omega=omega;this.lr=lr;this.C=0;this.st=0;this.amp=0;this.smoothAmp=0}
+  update(dt,attn=1){
+    if(this.st===0){this.C+=this.lr*attn*dt;this.amp=min(1,this.C/this.omega);if(this.C>=this.omega)this.st=1}
+    else if(this.st===1){this.amp=1;this.st=2}
+    else{const decay=1.5*exp(-min(this.C/this.omega,4)*0.5);this.C*=exp(-decay*dt);this.amp=this.C/this.omega;if(this.C<0.01*this.omega){this.C=0;this.st=0}}
+    this.smoothAmp+=(this.amp-this.smoothAmp)*min(1,dt*8);return this.smoothAmp}
+  mem(){return exp(min(this.C/this.omega,4))}
+  rupture(){if(this.st===0&&this.C>0.05*this.omega)this.st=1}
+  stateName(){return['coh','RUP','reg'][this.st]}
+}
+
+class CRRAgent{
+  constructor(sym='Z2',s=1){
+    this.omegaBase=sym==='Z2'?1/PI:sym==='SO2'?1/TAU:1/(PI*PHI);
+    this.omegaScale=s;this.C=0;this.lastRC=0;this.ruptures=0;this.sinceRupture=0;this.inRegen=false;this.regenProg=0}
+  get omega(){return this.omegaBase*this.omegaScale}
+  get expCO(){return exp(min(10,this.C/max(.001,this.omega)))}
+  get normC(){return min(1,(this.C-this.lastRC)/max(.01,1/this.omega))}
+  acc(L,dt=1){this.C+=L*dt;this.sinceRupture++}
+  shouldRupture(){const th=1/this.omega,acc=this.C-this.lastRC,cv=this.omega/2;return acc>=(th+(random()-.5)*2*cv*th)}
+  doRupture(){this.lastRC=this.C;this.ruptures++;this.sinceRupture=0;this.inRegen=true;this.regenProg=0}
+  step(L,dt=1){if(this.inRegen){this.regenProg=min(1,this.regenProg+.025);if(this.regenProg>=1)this.inRegen=false;return{phase:'R',progress:this.regenProg}}
+    this.acc(L,dt);if(this.shouldRupture()){this.doRupture();return{phase:'delta'}}return{phase:'C',value:this.C}}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §1  WORLD STATE
+// ═══════════════════════════════════════════════════════════════════
+//
+//   Entity      │ Ω        │ lr    │ CRR Role
+//   ────────────┼──────────┼───────┼──────────────────────────────
+//   Moon        │ SO(2)×1.5│ —     │ Reflected light cycle
+//   Fire        │ 0.8      │ 0.15  │ Plasma combustion CRR
+//   Flock(bats) │ 0.6      │ 0.22  │ Collective echolocation
+//   Predator    │ 0.4      │ 0.12  │ Owl patrol CRR
+//   Hunt        │ 0.4      │ 0.08  │ Owl stalk→dive→recover
+//   Each bat    │ ~0.08    │ 1.0   │ Individual micro-CRR
+//   Stars       │ 0.3      │ 0.25  │ Scintillation pattern
+//   Tree        │ 1.5      │ 0.03  │ Wind gust sway
+//
+const WORLD={
+  moon:{phase:0,x:0.5,y:0.88,agent:new CRRAgent('SO2',1.5)},
+  fire:{intensity:0,targetIntensity:0,crr:new CRR(0.8,0.15),embers:[]},
+  flock:{crr:new CRR(0.6,0.22),st:0,turnDir:{x:0,y:0},angMom:0,moveTime:0,currentMove:'vortex'},
+  pred:{huntPhase:0,crr:new CRR(0.4,0.12),huntCRR:new CRR(0.4,0.08)},
+  starSong:{visible:0},
+  t:0,beat:0
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// §2  AUDIO ENGINE
+// ═══════════════════════════════════════════════════════════════════
+let ac=null,masterGain=null,reverbNode=null,dryGain=null,wetGain=null;
+let compressor=null,analyser=null,noiseBuf=null;
+let guitarGain=null,natureGain=null,droneGain=null;
+let reverbMix=0.75,guitarMix=0.6,natureMix=0.65;
+
+function midiToFreq(m){return 440*pow(2,(m-69)/12)}
+
+function createNoiseBuf(ctx){
+  const b=ctx.createBuffer(2,ctx.sampleRate*2,ctx.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<d.length;i++)d[i]=random()*2-1}
+  return b;
+}
+
+function createReverb(ctx){
+  // Longer, darker reverb for nocturnal atmosphere
+  const sr=ctx.sampleRate,len=sr*8|0;
+  const buf=ctx.createBuffer(2,len,sr);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);
+    for(let i=0;i<30;i++){const t=(0.005+i*0.015+random()*0.01)*sr|0;
+      if(t<len)d[t]=0.2*pow(0.7,i)*(0.5+random()*0.5)}
+    for(let i=0;i<len;i++){const t=i/sr;
+      d[i]+=(random()*2-1)*0.05*(exp(-t*0.6)*0.5+exp(-t*2)*0.5)}}
+  const conv=ctx.createConvolver();conv.buffer=buf;return conv;
+}
+
+function initAudio(){
+  if(ac)return;
+  ac=new(window.AudioContext||window.webkitAudioContext)();
+  noiseBuf=createNoiseBuf(ac);
+  compressor=ac.createDynamicsCompressor();
+  compressor.threshold.value=-14;compressor.knee.value=14;
+  compressor.ratio.value=3;compressor.attack.value=0.005;compressor.release.value=0.3;
+  masterGain=ac.createGain();masterGain.gain.value=0.26;
+  guitarGain=ac.createGain();guitarGain.gain.value=guitarMix*0.5;
+  natureGain=ac.createGain();natureGain.gain.value=natureMix*0.4;
+  droneGain=ac.createGain();droneGain.gain.value=0.3;
+  dryGain=ac.createGain();wetGain=ac.createGain();
+  reverbNode=createReverb(ac);
+  analyser=ac.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=0.88;
+  masterGain.connect(compressor);guitarGain.connect(compressor);
+  natureGain.connect(compressor);droneGain.connect(compressor);
+  compressor.connect(dryGain);compressor.connect(reverbNode);
+  reverbNode.connect(wetGain);dryGain.connect(analyser);wetGain.connect(analyser);
+  analyser.connect(ac.destination);
+  updateMixes();
+  initLunarDrone();initNightWind();initFireNoise();
+}
+function updateMixes(){if(!dryGain)return;dryGain.gain.value=1-reverbMix*0.35;wetGain.gain.value=reverbMix}
+
+// ───────────────────────────────────────────────────────────────
+// §2.1 LUNAR DRONE — The Moon's Song (SO(2) reflected light)
+// ───────────────────────────────────────────────────────────────
+//
+// CRR: The moon IS reflected coherence — SO(2) like the sun but
+// filtered through albedo (0.12). The moon doesn't generate light;
+// it regenerates solar coherence through reflection.
+//
+// PHYSICS: Lunar albedo = 0.12, meaning 88% of solar coherence is
+// lost in reflection. This creates a quieter, more contemplative
+// drone. The fundamental is B1 (61.7Hz) — a darker root than the
+// sun's E1, pitched to B minor for the nocturnal key.
+//
+// The phase-locked nature of the moon (always showing one face)
+// IS a permanent Z₂ symmetry breaking — the moon's rotation has
+// been captured by tidal locking, a CRR process where rotational
+// coherence was ruptured by gravitational coupling.
+//
+let lunarDrone={oscs:[],masterGain:null,active:false,lfo:null};
+
+function initLunarDrone(){
+  if(!ac)return;
+  lunarDrone.masterGain=ac.createGain();
+  lunarDrone.masterGain.gain.value=0;
+  lunarDrone.masterGain.connect(droneGain);
+  // B1 = 61.7Hz fundamental — the lunar base frequency
+  // Albedo filtering: softer harmonics than stellar drone
+  const harmonics=[[61.7,0.2],[123.5,0.12],[185.2,0.06],[246.9,0.04],[92.5,0.08],[46.2,0.1]];
+  for(const[freq,vol]of harmonics){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const g=ac.createGain();g.gain.value=vol;
+    o.connect(g);g.connect(lunarDrone.masterGain);o.start();
+    lunarDrone.oscs.push({osc:o,gain:g,baseFreq:freq});
+  }
+  // Very slow LFO — tidal breathing (~15s period)
+  const lfo=ac.createOscillator();lfo.type='sine';lfo.frequency.value=0.065;
+  const lfoG=ac.createGain();lfoG.gain.value=1.5;
+  lfo.connect(lfoG);
+  for(const h of lunarDrone.oscs)lfoG.connect(h.osc.frequency);
+  lfo.start();lunarDrone.lfo=lfo;
+  // Lunar wind — filtered noise, very subtle
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;ns.loop=true;
+  const nf=ac.createBiquadFilter();nf.type='lowpass';nf.frequency.value=90;nf.Q.value=0.4;
+  const ng=ac.createGain();ng.gain.value=0.015;
+  ns.connect(nf);nf.connect(ng);ng.connect(lunarDrone.masterGain);ns.start();
+  lunarDrone.active=true;
+}
+
+function setLunarDrone(gain,moonPhase,trans){
+  if(!lunarDrone.active)return;
+  const t=ac.currentTime;const dur=trans||2;
+  const pitchMod=1+moonPhase*0.02;
+  for(const h of lunarDrone.oscs){
+    h.osc.frequency.cancelScheduledValues(t);
+    h.osc.frequency.setValueAtTime(h.osc.frequency.value,t);
+    h.osc.frequency.linearRampToValueAtTime(h.baseFreq*pitchMod,t+dur);
+  }
+  lunarDrone.masterGain.gain.cancelScheduledValues(t);
+  lunarDrone.masterGain.gain.setValueAtTime(lunarDrone.masterGain.gain.value,t);
+  lunarDrone.masterGain.gain.linearRampToValueAtTime(gain,t+dur);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.2 TREMOLO GUITAR — Nocturnal post-rock voice
+// ───────────────────────────────────────────────────────────────
+// Darker tone than daytime — lower lowpass, more reverb character.
+// Inspired by Radiohead's glacial textures, Mogwai's walls of sound.
+function playTremoloGuitar(midi,velocity,duration,startTime,tremoloRate){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const freq=midiToFreq(midi);
+  const tRate=tremoloRate||5;
+  const noteG=ac.createGain();noteG.gain.value=0;noteG.connect(guitarGain);
+  const o1=ac.createOscillator();o1.type='sawtooth';o1.frequency.value=freq*0.999;
+  const o2=ac.createOscillator();o2.type='sawtooth';o2.frequency.value=freq*1.001;
+  const o3=ac.createOscillator();o3.type='triangle';o3.frequency.value=freq;
+  const mix=ac.createGain();mix.gain.value=0.3;
+  const triMix=ac.createGain();triMix.gain.value=0.18;
+  o1.connect(mix);o2.connect(mix);o3.connect(triMix);
+  // Darker lowpass — nocturnal warmth
+  const lp=ac.createBiquadFilter();lp.type='lowpass';
+  lp.frequency.value=1800+freq*0.6;lp.Q.value=0.8;
+  mix.connect(lp);triMix.connect(lp);
+  const trem=ac.createOscillator();trem.type='sine';trem.frequency.value=tRate;
+  const tremG=ac.createGain();tremG.gain.value=velocity*0.16;
+  trem.connect(tremG);tremG.connect(noteG.gain);
+  lp.connect(noteG);
+  const att=0.05;
+  noteG.gain.setValueAtTime(0,now);
+  noteG.gain.linearRampToValueAtTime(velocity*0.32,now+att);
+  noteG.gain.setValueAtTime(velocity*0.28,now+att+0.1);
+  noteG.gain.setTargetAtTime(0.001,now+duration,duration*0.45);
+  o1.start(now);o2.start(now);o3.start(now);trem.start(now);
+  const stop=now+duration*3+1;
+  o1.stop(stop);o2.stop(stop);o3.stop(stop);trem.stop(stop);
+  setTimeout(()=>{try{noteG.disconnect()}catch(e){}},((stop-now)+0.5)*1000);
+}
+
+// §2.3 CLEAN GUITAR — Nocturnal arpeggios, Radiohead-like harmonics
+function playCleanGuitar(midi,velocity,duration,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const freq=midiToFreq(midi);
+  const noteG=ac.createGain();noteG.connect(guitarGain);
+  const nH=6;
+  for(let h=1;h<=nH;h++){
+    const hF=freq*h;if(hF>9000)break;
+    const o=ac.createOscillator();o.type=h<=2?'triangle':'sine';
+    o.frequency.value=hF+(random()-.5)*0.3;
+    const hG=ac.createGain();
+    const ba=velocity*(1/pow(h,1.5));
+    const tau=duration*(1/(1+(h-1)*0.4));
+    hG.gain.setValueAtTime(0,now);
+    hG.gain.linearRampToValueAtTime(ba,now+0.003);
+    hG.gain.setTargetAtTime(0.001,now+0.01,tau*0.35);
+    o.connect(hG);hG.connect(noteG);o.start(now);o.stop(now+tau*3+.5);
+  }
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+  const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=1800;nf.Q.value=2;
+  const ng=ac.createGain();ng.gain.setValueAtTime(velocity*0.03,now);
+  ng.gain.exponentialRampToValueAtTime(0.001,now+0.008);
+  ns.connect(nf);nf.connect(ng);ng.connect(noteG);ns.start(now);ns.stop(now+0.02);
+  noteG.gain.setValueAtTime(1,now);
+  noteG.gain.setTargetAtTime(0.001,now+duration*2,duration*0.35);
+  setTimeout(()=>{try{noteG.disconnect()}catch(e){}},(duration*3+1)*1000);
+}
+
+// §2.4 BASS — Sub-Ω foundation in B
+function playBass(midi,velocity,duration,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const freq=midiToFreq(midi);
+  const g=ac.createGain();g.connect(guitarGain);
+  const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=freq;
+  const o2=ac.createOscillator();o2.type='triangle';o2.frequency.value=freq;
+  const m1=ac.createGain();m1.gain.value=velocity*0.4;
+  const m2=ac.createGain();m2.gain.value=velocity*0.12;
+  o1.connect(m1);o2.connect(m2);
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=freq*2.5;lp.Q.value=1;
+  m1.connect(lp);m2.connect(lp);lp.connect(g);
+  g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(1,now+0.02);
+  g.gain.setTargetAtTime(0.001,now+0.05,duration*0.4);
+  o1.start(now);o2.start(now);o1.stop(now+duration*3);o2.stop(now+duration*3);
+  setTimeout(()=>{try{g.disconnect()}catch(e){}},(duration*3+1)*1000);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.5 BAT VOICES — Z₂ echolocation chirps
+// ───────────────────────────────────────────────────────────────
+//
+// CRR: Each echolocation pulse IS a Z₂ micro-CRR cycle.
+// Bats emit ultrasonic pulses (20-120kHz) and listen for returns.
+// The emit→silence→receive→process is a pure Z₂ oscillation.
+//
+// We map these to the B minor pentatonic (B-D-E-F#-A) in a
+// higher register, using frequency sweeps that mirror the
+// characteristic FM (frequency-modulated) chirps of real bats.
+// The downward sweep (high→low) over ~2-5ms IS the bat's
+// coherence accumulating as distance information.
+//
+function playBatChirp(intensity,startTime,pitchClass){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  // B minor pentatonic, high register — bat echolocation mapped to music
+  const scale=[71,74,76,78,81,83,86,88,90,93]; // B4-A6
+  const midi=scale[pitchClass%scale.length];
+  const freq=midiToFreq(midi);
+  const g=ac.createGain();g.connect(natureGain);
+  const o=ac.createOscillator();o.type='sine';
+  // FM chirp: high→low sweep (like real bat echolocation)
+  const chirpDur=0.03+random()*0.06;
+  o.frequency.setValueAtTime(freq*1.8,now);
+  o.frequency.exponentialRampToValueAtTime(freq*0.6,now+chirpDur);
+  // Second harmonic — bat calls are rich in harmonics
+  const o2=ac.createOscillator();o2.type='sine';
+  o2.frequency.setValueAtTime(freq*3.5,now);
+  o2.frequency.exponentialRampToValueAtTime(freq*1.2,now+chirpDur);
+  const g2=ac.createGain();g2.gain.value=0.15;
+  o.connect(g);o2.connect(g2);g2.connect(g);
+  g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(intensity*0.08,now+0.002);
+  g.gain.exponentialRampToValueAtTime(0.001,now+chirpDur+0.03);
+  o.start(now);o2.start(now);o.stop(now+chirpDur+0.05);o2.stop(now+chirpDur+0.05);
+}
+
+function playBatChorus(intensity,count,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  for(let i=0;i<count;i++){
+    const delay=random()*0.12;
+    playBatChirp(intensity*(0.5+random()*0.5),now+delay,floor(random()*10));
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.6 OWL CRY — δ(now) of the night
+// ───────────────────────────────────────────────────────────────
+//
+// The owl IS the nocturnal rupture operator. Its cry is a low,
+// resonant hoot (300-700Hz) — the opposite of the falcon's
+// descending scream. The owl's call is a RISING coherence
+// that HOLDS before rupture — like Radiohead's sustained tension.
+//
+function playOwlCry(intensity,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const g=ac.createGain();g.connect(natureGain);
+  const o=ac.createOscillator();o.type='sine';
+  // Low resonant hoot — rising then dropping
+  o.frequency.setValueAtTime(280,now);
+  o.frequency.linearRampToValueAtTime(420,now+0.3);
+  o.frequency.linearRampToValueAtTime(350,now+0.8);
+  o.frequency.linearRampToValueAtTime(280,now+1.2);
+  // Formant filter — owl's resonant throat cavity
+  const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=380;f.Q.value=4;
+  const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=700;f2.Q.value=3;
+  const fMix=ac.createGain();fMix.gain.value=0.6;
+  o.connect(f);o.connect(f2);f.connect(g);f2.connect(fMix);fMix.connect(g);
+  // Breath noise
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+  const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=400;nf.Q.value=1.5;
+  const ng=ac.createGain();ng.gain.value=intensity*0.02;
+  ns.connect(nf);nf.connect(ng);ng.connect(g);ns.start(now);ns.stop(now+1.5);
+  g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(intensity*0.18,now+0.05);
+  g.gain.setValueAtTime(intensity*0.15,now+0.4);
+  g.gain.exponentialRampToValueAtTime(0.001,now+1.3);
+  o.start(now);o.stop(now+1.4);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.7 NIGHT WIND & CRR FIRE — Plasma-driven harmonic combustion
+// ───────────────────────────────────────────────────────────────
+//
+// FIRE CRR: Combustion IS a CRR process at the molecular scale.
+//   Coherence: fuel molecules accumulate thermal energy
+//   Rupture: ignition threshold — molecular bonds break (δ fires)
+//   Regeneration: energy release, new molecular bonds form
+//
+// FIRE SOUND:
+//   CRR agent (Ω=0.3, lr=0.2) drives crackle patterns:
+//     C phase: quiet hiss (steady combustion)
+//     δ phase: CRACK/POP (pocket of gas ruptures)
+//     R phase: settling hiss (flame stabilises)
+//
+//   The crackle IS the sound of micro-ruptures in the plasma.
+//   Blackbody radiation T→colour maps to T→frequency:
+//     Low T (red embers): low tones, B2-D3 range
+//     Mid T (orange flames): mid tones, B3-D4 range
+//     High T (yellow tips): high tones, B4-F#5 range
+//     Plasma core (white-blue): shimmer, B5+ range
+//
+//   Mapped to B minor pentatonic (B-D-E-F#-A) for harmonic unity.
+//
+let nightWind={gain:null,filter:null};
+let fireSounds={
+  bed:{gains:[],masterGain:null},
+  crackleGain:null,
+  reverbSend:null,
+  crr:new CRR(0.3,0.2),
+  pattern:[],
+  patternPos:0,
+  lastPattern:[],
+  beatAccum:0,
+  active:false
+};
+
+// B minor pentatonic across 4 octaves — the fire's palette
+const FIRE_NOTES={
+  embers:[35,38,40,42,45],   // B1,D2,E2,F#2,A2
+  flame:[47,50,52,54,57],    // B2,D3,E3,F#3,A3
+  blaze:[59,62,64,66,69],    // B3,D4,E4,F#4,A4
+  plasma:[71,74,76,78,81]    // B4,D5,E5,F#5,A5
+};
+
+// Harmonic series of B for the fire bed
+const FIRE_BED_FREQS=[61.7,123.5,185.2,246.9,311.1,370,440,493.9,587.3,659.3];
+
+function initNightWind(){
+  if(!ac)return;
+  nightWind.gain=ac.createGain();nightWind.gain.gain.value=0;
+  nightWind.filter=ac.createBiquadFilter();nightWind.filter.type='lowpass';
+  nightWind.filter.frequency.value=300;nightWind.filter.Q.value=0.6;
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;ns.loop=true;
+  ns.connect(nightWind.filter);nightWind.filter.connect(nightWind.gain);
+  nightWind.gain.connect(natureGain);ns.start();
+}
+
+function initFireNoise(){
+  if(!ac||fireSounds.active)return;
+  fireSounds.bed.masterGain=ac.createGain();
+  fireSounds.bed.masterGain.gain.value=0;
+  fireSounds.bed.masterGain.connect(natureGain);
+  const bedNoise=ac.createBufferSource();bedNoise.buffer=noiseBuf;bedNoise.loop=true;
+  for(const freq of FIRE_BED_FREQS){
+    const bp=ac.createBiquadFilter();bp.type='bandpass';
+    bp.frequency.value=freq;bp.Q.value=20+freq*0.015;
+    const g=ac.createGain();
+    g.gain.value=0.06*pow(61.7/freq,0.25);
+    bedNoise.connect(bp);bp.connect(g);
+    g.connect(fireSounds.bed.masterGain);
+    fireSounds.bed.gains.push({filter:bp,gain:g,freq});
+  }
+  bedNoise.start();
+  fireSounds.crackleGain=ac.createGain();
+  fireSounds.crackleGain.gain.value=0.5;
+  fireSounds.crackleGain.connect(natureGain);
+  if(reverbNode){
+    fireSounds.reverbSend=ac.createGain();
+    fireSounds.reverbSend.gain.value=0.25;
+    fireSounds.crackleGain.connect(fireSounds.reverbSend);
+    fireSounds.reverbSend.connect(reverbNode);
+  }
+  fireSounds.pattern=generateFirePattern(0.5);
+  fireSounds.active=true;
+}
+
+function generateFirePattern(coherence){
+  const len=6+floor(random()*10);
+  const pat=[];
+  const root=floor(random()*5);
+  const fifth=(root+3)%5;
+  for(let i=0;i<len;i++){
+    let noteIdx;
+    if(coherence>0.5&&i%3===0)noteIdx=root;
+    else if(coherence>0.3&&i%3===1)noteIdx=fifth;
+    else noteIdx=floor(random()*5);
+    let pool;const r=random();
+    if(r<0.2)pool='embers';
+    else if(r<0.5)pool='flame';
+    else if(r<0.85)pool='blaze';
+    else pool='plasma';
+    let vel=0.25+random()*0.35;
+    if(coherence>0.4&&i%3===0)vel=0.5+random()*0.3;
+    pat.push({noteIdx,pool,vel});
+  }
+  return pat;
+}
+
+function playFireCrackle(pool,noteIdx,velocity,startTime){
+  if(!ac||!fireSounds.active)return;
+  const now=startTime||ac.currentTime;
+  const notes=FIRE_NOTES[pool];
+  const midi=notes[noteIdx%notes.length];
+  const freq=midiToFreq(midi);
+  if(pool==='embers'){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const g=ac.createGain();const v=velocity*0.06;
+    g.gain.setValueAtTime(v,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.2);
+    o.connect(g);g.connect(fireSounds.crackleGain);
+    o.start(now);o.stop(now+0.25);
+  } else if(pool==='flame'){
+    // Noise burst + tone — crackling wood
+    const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+    const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=freq*2;nf.Q.value=3;
+    const ng=ac.createGain();ng.gain.setValueAtTime(velocity*0.04,now);
+    ng.gain.exponentialRampToValueAtTime(0.001,now+0.04);
+    ns.connect(nf);nf.connect(ng);ng.connect(fireSounds.crackleGain);
+    ns.start(now);ns.stop(now+0.06);
+    const o=ac.createOscillator();o.type='triangle';o.frequency.value=freq;
+    const g=ac.createGain();g.gain.setValueAtTime(velocity*0.05,now);
+    g.gain.exponentialRampToValueAtTime(0.001,now+0.1);
+    o.connect(g);g.connect(fireSounds.crackleGain);
+    o.start(now);o.stop(now+0.12);
+  } else if(pool==='blaze'){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const g=ac.createGain();g.gain.setValueAtTime(velocity*0.035,now);
+    g.gain.exponentialRampToValueAtTime(0.001,now+0.04);
+    o.connect(g);g.connect(fireSounds.crackleGain);
+    o.start(now);o.stop(now+0.06);
+  } else {
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const g=ac.createGain();g.gain.setValueAtTime(velocity*0.015,now);
+    g.gain.exponentialRampToValueAtTime(0.001,now+0.02);
+    o.connect(g);g.connect(fireSounds.crackleGain);
+    o.start(now);o.stop(now+0.03);
+  }
+}
+
+function updateFireSound(dt,intensity){
+  if(!fireSounds.active||intensity<0.02)return;
+  fireSounds.crr.update(dt,intensity);
+  const mem=fireSounds.crr.mem();
+  const crrState=fireSounds.crr.st;
+  if(crrState===1){
+    fireSounds.lastPattern=fireSounds.pattern.slice();
+    fireSounds.pattern=generateFirePattern(0.3+intensity*0.5);
+    const memWeight=min(0.7,mem/10);
+    for(let i=0;i<min(fireSounds.pattern.length,fireSounds.lastPattern.length);i++){
+      if(random()<memWeight)fireSounds.pattern[i].noteIdx=fireSounds.lastPattern[i].noteIdx;
+    }
+    fireSounds.patternPos=0;
+  }
+  const bedTarget=intensity*0.15;
+  const t=ac.currentTime;
+  fireSounds.bed.masterGain.gain.setTargetAtTime(bedTarget,t,0.3);
+  const qMod=1+fireSounds.crr.smoothAmp*0.4;
+  for(const r of fireSounds.bed.gains){r.filter.Q.value=(20+r.freq*0.015)*qMod}
+  const cracklesPerSec=intensity*intensity*20+intensity*4;
+  fireSounds.beatAccum+=dt*cracklesPerSec;
+  while(fireSounds.beatAccum>=1){
+    fireSounds.beatAccum-=1;
+    const pat=fireSounds.pattern;if(pat.length===0)continue;
+    const step=pat[fireSounds.patternPos%pat.length];
+    fireSounds.patternPos++;
+    const jitter=random()*0.02;
+    const vel=step.vel*intensity;
+    const regenFade=crrState===2?0.6+fireSounds.crr.smoothAmp*0.4:1;
+    playFireCrackle(step.pool,step.noteIdx,vel*regenFade,t+jitter);
+    if(intensity>0.5&&random()<intensity*0.12){
+      playFireCrackle('flame',(step.noteIdx+2)%5,vel*0.4*regenFade,t+jitter+0.01);
+    }
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.8 STAR SONG CHOIR — Humans around fire, singing the stars
+// ───────────────────────────────────────────────────────────────
+//
+// CRR: The human choir IS regeneration made communal.
+// Where the rainbow choir separated light into spectrum,
+// the star choir GATHERS humans around fire — a reversal:
+// individual voices creating COLLECTIVE coherence.
+//
+// Each voice maps to a star colour temperature:
+//   Red giant (3000K)  → B2  (low bass)     → "Ah" (open, warm)
+//   Orange (4000K)     → D3  (baritone)      → "Oh" (round)
+//   Yellow (5500K)     → F#3 (tenor)         → "Eh" (bright)
+//   White (7500K)      → A3  (high tenor)    → "Ah" (warm)
+//   Blue-white(10000K) → B3  (countertenor)  → "Oo" (closed)
+//   Blue (15000K)      → D4  (alto)          → "Mm" (humming)
+//   Violet (25000K)    → F#4 (soprano)       → "Ee" (bright)
+//
+// Mixed choir — not all female like the rainbow — because fire
+// gathering IS inclusive, communal. Deeper voices for the night.
+//
+let starChoir={voices:[],masterGain:null,reverbSend:null,active:false};
+
+const VOWELS={
+  Ah:{f:[800,1150,2800],q:[12,10,8]},
+  Oh:{f:[400,750,2400],q:[12,10,8]},
+  Eh:{f:[550,1900,2600],q:[11,10,9]},
+  Oo:{f:[300,625,2500],q:[13,11,8]},
+  Ee:{f:[280,2300,3000],q:[12,11,9]},
+  Mm:{f:[250,850,2200],q:[8,6,5]},
+};
+
+const STAR_VOICES=[
+  {colour:'red',     midi:47, vowel:'Ah', detune:-4,  vibratoRate:4.5, vibratoDepth:3.5}, // B2 bass
+  {colour:'orange',  midi:50, vowel:'Oh', detune:2,   vibratoRate:4.8, vibratoDepth:3},   // D3 baritone
+  {colour:'yellow',  midi:54, vowel:'Eh', detune:-1,  vibratoRate:5.1, vibratoDepth:2.8}, // F#3 tenor
+  {colour:'white',   midi:57, vowel:'Ah', detune:3,   vibratoRate:5.0, vibratoDepth:3.2}, // A3 tenor
+  {colour:'blueW',   midi:59, vowel:'Oo', detune:-2,  vibratoRate:5.4, vibratoDepth:2.6}, // B3 countertenor
+  {colour:'blue',    midi:62, vowel:'Mm', detune:1,   vibratoRate:5.2, vibratoDepth:3.0}, // D4 alto
+  {colour:'violet',  midi:66, vowel:'Ee', detune:-2,  vibratoRate:5.6, vibratoDepth:2.4}, // F#4 soprano
+];
+
+function initStarChoir(){
+  if(!ac||starChoir.active)return;
+  starChoir.masterGain=ac.createGain();
+  starChoir.masterGain.gain.value=0;
+  starChoir.masterGain.connect(natureGain);
+  if(reverbNode){
+    starChoir.reverbSend=ac.createGain();
+    starChoir.reverbSend.gain.value=0.45;
+    starChoir.masterGain.connect(starChoir.reverbSend);
+    starChoir.reverbSend.connect(reverbNode);
+  }
+  for(const v of STAR_VOICES){
+    const freq=midiToFreq(v.midi);
+    const vw=VOWELS[v.vowel];
+    const src=ac.createOscillator();src.type='sawtooth';
+    src.frequency.value=freq;src.detune.value=v.detune;
+    const src2=ac.createOscillator();src2.type='sawtooth';
+    src2.frequency.value=freq;src2.detune.value=v.detune+5;
+    const vib=ac.createOscillator();vib.type='sine';
+    vib.frequency.value=v.vibratoRate;
+    const vibGain=ac.createGain();vibGain.gain.value=v.vibratoDepth;
+    vib.connect(vibGain);vibGain.connect(src.frequency);vibGain.connect(src2.frequency);
+    const breathLen=ac.sampleRate*2;
+    const breathBuf=ac.createBuffer(1,breathLen,ac.sampleRate);
+    const breathData=breathBuf.getChannelData(0);
+    for(let i=0;i<breathLen;i++)breathData[i]=(random()-0.5)*0.12;
+    const breathSrc=ac.createBufferSource();breathSrc.buffer=breathBuf;breathSrc.loop=true;
+    const breathFilter=ac.createBiquadFilter();breathFilter.type='bandpass';
+    breathFilter.frequency.value=freq*3;breathFilter.Q.value=2;
+    breathSrc.connect(breathFilter);
+    const formantGains=[];
+    const voiceSum=ac.createGain();voiceSum.gain.value=0.35;
+    for(let fi=0;fi<3;fi++){
+      const bp=ac.createBiquadFilter();bp.type='bandpass';
+      bp.frequency.value=vw.f[fi];bp.Q.value=vw.q[fi]*0.5;
+      const bp2=ac.createBiquadFilter();bp2.type='bandpass';
+      bp2.frequency.value=vw.f[fi];bp2.Q.value=vw.q[fi]*0.5;
+      const fGain=ac.createGain();
+      fGain.gain.value=fi===0?1.2:fi===1?0.9:0.5;
+      formantGains.push({filter:bp,filter2:bp2,gain:fGain});
+      src.connect(bp);bp.connect(fGain);
+      src2.connect(bp2);bp2.connect(fGain);
+      breathFilter.connect(bp);
+      fGain.connect(voiceSum);
+    }
+    const directLP=ac.createBiquadFilter();directLP.type='lowpass';
+    directLP.frequency.value=freq*4;directLP.Q.value=0.7;
+    const directGain=ac.createGain();directGain.gain.value=0.15;
+    src.connect(directLP);src2.connect(directLP);
+    directLP.connect(directGain);directGain.connect(voiceSum);
+    voiceSum.connect(starChoir.masterGain);
+    src.start();src2.start();vib.start();breathSrc.start();
+    starChoir.voices.push({
+      src,src2,vib,vibGain,breathSrc,breathFilter,
+      formantGains,voiceSum,freq,
+      vowel:v.vowel,colour:v.colour,midi:v.midi
+    });
+  }
+  starChoir.active=true;
+}
+
+function morphStarVoice(voiceIdx,newVowel,duration){
+  if(!starChoir.active||voiceIdx>=starChoir.voices.length)return;
+  const voice=starChoir.voices[voiceIdx];
+  const vw=VOWELS[newVowel];if(!vw)return;
+  const t=ac.currentTime;const dur=duration||2;
+  for(let fi=0;fi<3;fi++){
+    const fg=voice.formantGains[fi];
+    fg.filter.frequency.cancelScheduledValues(t);
+    fg.filter.frequency.setValueAtTime(fg.filter.frequency.value,t);
+    fg.filter.frequency.linearRampToValueAtTime(vw.f[fi],t+dur);
+    fg.filter2.frequency.cancelScheduledValues(t);
+    fg.filter2.frequency.setValueAtTime(fg.filter2.frequency.value,t);
+    fg.filter2.frequency.linearRampToValueAtTime(vw.f[fi],t+dur);
+  }
+  voice.vowel=newVowel;
+}
+
+function setStarChoir(gain,trans){
+  if(!starChoir.active)return;
+  const t=ac.currentTime;const dur=trans||2;
+  starChoir.masterGain.gain.cancelScheduledValues(t);
+  starChoir.masterGain.gain.setValueAtTime(starChoir.masterGain.gain.value,t);
+  starChoir.masterGain.gain.linearRampToValueAtTime(gain,t+dur);
+}
+
+function buildStarChoir(startGain,duration){
+  if(!starChoir.active)return;
+  const t=ac.currentTime;
+  for(let i=0;i<starChoir.voices.length;i++){
+    const voice=starChoir.voices[i];
+    const delay=i*(duration/starChoir.voices.length);
+    voice.voiceSum.gain.cancelScheduledValues(t);
+    voice.voiceSum.gain.setValueAtTime(0,t);
+    voice.voiceSum.gain.setValueAtTime(0,t+delay);
+    voice.voiceSum.gain.linearRampToValueAtTime(0.4,t+delay+1.5);
+    voice.vibGain.gain.cancelScheduledValues(t);
+    voice.vibGain.gain.setValueAtTime(0.5,t+delay);
+    voice.vibGain.gain.linearRampToValueAtTime(voice.vibGain.gain.value||3,t+delay+2);
+  }
+  starChoir.masterGain.gain.cancelScheduledValues(t);
+  starChoir.masterGain.gain.setValueAtTime(0,t);
+  starChoir.masterGain.gain.linearRampToValueAtTime(startGain,t+duration*0.4);
+}
+
+function choirMorphSequence(vowelSeq,totalDuration){
+  if(!starChoir.active)return;
+  const stepDur=totalDuration/vowelSeq.length;
+  for(let s=0;s<vowelSeq.length;s++){
+    setTimeout(()=>{
+      const vowel=vowelSeq[s];
+      for(let i=0;i<starChoir.voices.length;i++){
+        setTimeout(()=>morphStarVoice(i,vowel,stepDur*0.8),i*120);
+      }
+    },s*stepDur*1000);
+  }
+}
+
+function dissolveStarChoir(totalDuration){
+  if(!starChoir.active)return;
+  const t=ac.currentTime;
+  const n=starChoir.voices.length;
+  const stagger=totalDuration*0.7/n;
+  for(let i=0;i<n;i++){
+    const delay=i*0.8;
+    setTimeout(()=>morphStarVoice(i,'Mm',3),delay*1000);
+  }
+  for(let i=n-1;i>=0;i--){
+    const exitOrder=n-1-i;
+    const exitTime=exitOrder*stagger;
+    const voice=starChoir.voices[i];
+    voice.vibGain.gain.setTargetAtTime(0.5,t+exitTime,1.5);
+    voice.vib.frequency.setTargetAtTime(3,t+exitTime,2);
+    voice.voiceSum.gain.setTargetAtTime(0.01,t+exitTime,stagger*0.5);
+    if(i===0){
+      voice.voiceSum.gain.cancelScheduledValues(t+exitTime);
+      voice.voiceSum.gain.setValueAtTime(voice.voiceSum.gain.value,t+exitTime);
+      voice.voiceSum.gain.setTargetAtTime(0.15,t+exitTime,1);
+      const lastFadeStart=t+totalDuration*0.75;
+      voice.voiceSum.gain.setTargetAtTime(0.001,lastFadeStart,totalDuration*0.12);
+    }
+  }
+  starChoir.masterGain.gain.setTargetAtTime(0.05,t+totalDuration*0.3,totalDuration*0.25);
+  starChoir.masterGain.gain.setTargetAtTime(0.001,t+totalDuration*0.7,totalDuration*0.15);
+}
+
+// §2.9 PAD SYNTH — nocturnal coherence field
+let padVoices={oscs:[],masterGain:null,active:false};
+
+// ───────────────────────────────────────────────────────────────
+// §2.10 DISTANT CONVERSATION — Humans murmuring around fire
+// ───────────────────────────────────────────────────────────────
+//
+// CRR: Conversation IS collective coherence at the social scale.
+//   C = flowing talk (connected syllable streams)
+//   δ = laughter (rupture of speech coherence — surprise)
+//   R = pause, breath, the silence between words
+//
+// SOUND DESIGN (why noise, not oscillators):
+//   Real distant conversation heard across 30+ metres IS
+//   noise shaped by the vocal tract. You can't hear pitch —
+//   you hear the RHYTHM and FORMANT CONTOUR of speech.
+//   The brain resolves this as "people talking" from:
+//     1. Syllable-rate amplitude modulation (~3-5 Hz)
+//     2. Vowel formant bands drifting through F1/F2 space
+//     3. Occasional louder bursts (laughter, emphasis)
+//     4. Multiple overlapping streams (cocktail party)
+//
+//   CRR maps perfectly:
+//     Syllable rhythm = micro-CRR cycles (Ω ≈ 0.2s)
+//     Laughter = rapid δ-bursts (5-8 Ha's in 1-2 seconds)
+//     Words: "moon"="Oo", "night"="Ah→Ee", "star"="Ah"
+//     These emerge when formant filters briefly lock to
+//     recognisable vowel positions — like hearing your name
+//     across a crowded room. CRR: recognition IS rupture
+//     of the noise-coherence when a meaningful pattern matches.
+//
+let fireMurmur={
+  masterGain:null,
+  speakers:[],    // independent noise-voice streams (pool of up to 10)
+  active:false,
+  crr:new CRR(0.35,0.18), // conversation-scale CRR
+  laughTimer:0,
+  wordTimer:0,
+};
+let murmurVolumeMultiplier=0.5; // slider: 0-2
+let murmurPeopleCount=6;        // slider: 5-1000
+
+// Formant targets for recognisable "words" that emerge from murmur
+const MURMUR_WORDS={
+  moon: {f1:300,f2:625,dur:0.6,q:8},    // "Oo" — round, closed
+  night:{f1:700,f2:1800,dur:0.5,q:6},   // "Ah-ee" sweep
+  star: {f1:800,f2:1150,dur:0.55,q:7},  // "Ah" — open
+};
+
+function initFireMurmur(){
+  if(!ac||fireMurmur.active)return;
+  fireMurmur.masterGain=ac.createGain();
+  fireMurmur.masterGain.gain.value=0;
+  fireMurmur.masterGain.connect(natureGain);
+  // Heavy reverb — night air, distance
+  if(reverbNode){
+    const revSend=ac.createGain();
+    revSend.gain.value=0.65;
+    fireMurmur.masterGain.connect(revSend);
+    revSend.connect(reverbNode);
+  }
+
+  // 10 "speakers" — a pool. Active count scales with People slider.
+  // CRR: more people = more overlapping coherence streams
+  // Each stream IS a voice — noise shaped by formant filters
+  // We can't create 1000 real streams, but perceptually:
+  //   log₂(people) active streams + density/rate scaling
+  //   5 people → 2 streams, slow, sparse laughter
+  //   50 people → 5 streams, moderate overlap
+  //   200 people → 7 streams, dense, frequent laughter
+  //   1000 people → 10 streams, wall of sound, constant murmur
+  const speakerConfigs=[
+    {f1Base:320, f2Base:850,  ampRate:2.8, pan:-0.4},  // deep male, far left
+    {f1Base:380, f2Base:1000, ampRate:3.3, pan:-0.15},  // low male, left
+    {f1Base:420, f2Base:1100, ampRate:3.6, pan:0.1},    // mid male, centre-right
+    {f1Base:460, f2Base:1250, ampRate:3.9, pan:-0.05},  // mid voice, centre
+    {f1Base:500, f2Base:1400, ampRate:4.2, pan:0.2},    // higher voice, right
+    {f1Base:540, f2Base:1550, ampRate:4.5, pan:-0.25},  // light voice, left
+    {f1Base:580, f2Base:1700, ampRate:4.8, pan:0.3},    // female, right
+    {f1Base:360, f2Base:950,  ampRate:3.1, pan:0.35},   // low male 2, far right
+    {f1Base:520, f2Base:1480, ampRate:4.4, pan:-0.35},  // mid-high, far left
+    {f1Base:600, f2Base:1800, ampRate:5.0, pan:0.0},    // bright female, centre
+  ];
+
+  for(const cfg of speakerConfigs){
+    // Noise source — the raw material of distant speech
+    const ns=ac.createBufferSource();
+    ns.buffer=noiseBuf;ns.loop=true;
+
+    // Distance filter — heavy lowpass (>30m away, air absorbs highs)
+    // CRR: atmospheric absorption IS coherence loss of high frequencies
+    const distLP=ac.createBiquadFilter();
+    distLP.type='lowpass';distLP.frequency.value=1800;distLP.Q.value=0.5;
+
+    // F1 formant (vowel height: open/closed jaw)
+    const f1=ac.createBiquadFilter();
+    f1.type='bandpass';f1.frequency.value=cfg.f1Base;f1.Q.value=5;
+    // F2 formant (vowel frontness: tongue position)
+    const f2=ac.createBiquadFilter();
+    f2.type='bandpass';f2.frequency.value=cfg.f2Base;f2.Q.value=4;
+    // F3 (voice character/brightness)
+    const f3=ac.createBiquadFilter();
+    f3.type='bandpass';f3.frequency.value=2500+random()*500;f3.Q.value=3;
+
+    const f1g=ac.createGain();f1g.gain.value=1.0;
+    const f2g=ac.createGain();f2g.gain.value=0.7;
+    const f3g=ac.createGain();f3g.gain.value=0.25;
+
+    // Amplitude modulation at syllable rate — THIS creates "speech"
+    // CRR: each syllable is a micro-coherence cycle
+    const ampMod=ac.createOscillator();
+    // Mix sine + noise for irregular rhythm (real speech isn't periodic)
+    ampMod.type='sine';
+    ampMod.frequency.value=cfg.ampRate;
+
+    const ampModGain=ac.createGain();
+    ampModGain.gain.value=0.5; // modulation depth
+
+    const speakerGain=ac.createGain();
+    speakerGain.gain.value=0;
+
+    // Voice output summing — kept low, real volume comes from updateMurmur
+    const voiceSum=ac.createGain();
+    voiceSum.gain.value=0.18;
+
+    ns.connect(distLP);
+    distLP.connect(f1);distLP.connect(f2);distLP.connect(f3);
+    f1.connect(f1g);f2.connect(f2g);f3.connect(f3g);
+    f1g.connect(voiceSum);f2g.connect(voiceSum);f3g.connect(voiceSum);
+
+    // Apply syllable-rate amplitude modulation
+    ampMod.connect(ampModGain);
+    ampModGain.connect(speakerGain.gain);
+
+    voiceSum.connect(speakerGain);
+    speakerGain.connect(fireMurmur.masterGain);
+
+    ns.start();ampMod.start();
+
+    fireMurmur.speakers.push({
+      ns,distLP,f1,f2,f3,f1g,f2g,f3g,
+      ampMod,ampModGain,speakerGain,voiceSum,
+      cfg,
+      // Per-speaker conversation CRR
+      crr:new CRR(0.15+random()*0.1, 0.8+random()*0.4),
+      speaking:true,
+      silenceTimer:0,
+    });
+  }
+  fireMurmur.active=true;
+}
+
+function setMurmurGain(gain,trans){
+  if(!fireMurmur.active)return;
+  const t=ac.currentTime;const dur=trans||2;
+  fireMurmur.masterGain.gain.cancelScheduledValues(t);
+  fireMurmur.masterGain.gain.setValueAtTime(fireMurmur.masterGain.gain.value,t);
+  fireMurmur.masterGain.gain.linearRampToValueAtTime(gain*murmurVolumeMultiplier,t+dur);
+}
+
+function updateMurmur(dt,intensity){
+  if(!fireMurmur.active||intensity<0.01)return;
+  const t=ac.currentTime;
+
+  // CRR crowd scaling from People slider
+  const nPeople=murmurPeopleCount;
+  const logPeople=Math.log2(max(5,nPeople));
+  const activeSpeakers=clamp(floor(logPeople),2,fireMurmur.speakers.length);
+
+  // Volume scaling: sqrt(n/6) so 5 people ≈ 0.9×, 50 ≈ 2.9×, 1000 ≈ 12.9×
+  // But we compress it with log to avoid blowing out at high counts
+  // 5→0.15, 20→0.3, 100→0.55, 500→0.8, 1000→1.0
+  const crowdVolScale=clamp(Math.log10(nPeople)/3, 0.15, 1.0);
+  // Density for laughter/word frequency (linear, clamped)
+  const crowdDensity=clamp(nPeople/6,0.8,80);
+
+  fireMurmur.crr.update(dt,intensity);
+
+  for(let si=0;si<fireMurmur.speakers.length;si++){
+    const sp=fireMurmur.speakers[si];
+    const isActive=si<activeSpeakers;
+    sp.crr.update(dt,intensity);
+
+    const drift1=sp.cfg.f1Base*(1+0.35*fsin(simTime*0.7+sp.cfg.ampRate+si*0.9));
+    const drift2=sp.cfg.f2Base*(1+0.25*fsin(simTime*0.5+sp.cfg.pan*3+si*1.1));
+    sp.f1.frequency.setTargetAtTime(clamp(drift1,200,800),t,0.15);
+    sp.f2.frequency.setTargetAtTime(clamp(drift2,600,2200),t,0.15);
+
+    // Volume: base × crowd volume scale × slider multiplier
+    // At 5 people: intensity*0.12*0.15*volMult ≈ very quiet
+    // At 1000: intensity*0.12*1.0*volMult ≈ full
+    const vol=isActive ? intensity*0.12*(0.5+sp.crr.smoothAmp*0.5)*crowdVolScale*murmurVolumeMultiplier : 0;
+    sp.speakerGain.gain.setTargetAtTime(vol,t,isActive?0.1:0.5);
+
+    // Syllable rate: more people → faster overlap
+    const densityRate=1+Math.log10(max(1,crowdDensity))*0.15;
+    const rate=sp.cfg.ampRate*densityRate*(sp.crr.st===0?1:sp.crr.st===2?0.6:1.5);
+    sp.ampMod.frequency.setTargetAtTime(rate,t,0.2);
+
+    // Distance filter: more people → brighter (closer)
+    const lpFreq=1400+Math.log10(max(1,crowdDensity))*500;
+    sp.distLP.frequency.setTargetAtTime(min(3200,lpFreq),t,0.3);
+  }
+
+  // LAUGHTER — at 5 people: every 10-20s (rare, intimate)
+  // at 1000: near-constant overlapping
+  const laughBase=nPeople<10?14:nPeople<50?8:nPeople<200?4:1.5;
+  fireMurmur.laughTimer-=dt;
+  if(fireMurmur.crr.st===1||(fireMurmur.laughTimer<=0&&random()<0.02*intensity)){
+    fireMurmur.laughTimer=laughBase*(0.5+random());
+    const nLaughs=nPeople<10?1:nPeople<100?clamp(floor(random()*2+1),1,2):clamp(floor(Math.log10(nPeople)),1,4);
+    for(let i=0;i<nLaughs;i++){
+      setTimeout(()=>playLaughter(intensity*murmurVolumeMultiplier*crowdVolScale),i*300*random());
+    }
+  }
+
+  // RECOGNISABLE WORDS — rarer at small groups, more frequent in crowds
+  const wordBase=nPeople<10?15:nPeople<50?8:4;
+  fireMurmur.wordTimer-=dt;
+  if(fireMurmur.wordTimer<=0&&random()<0.005*intensity){
+    fireMurmur.wordTimer=wordBase*(0.5+random());
+    const words=['moon','night','star'];
+    const word=words[floor(random()*words.length)];
+    playMurmurWord(word,intensity*murmurVolumeMultiplier*min(1,crowdVolScale*1.5));
+  }
+}
+
+function playLaughter(intensity){
+  if(!ac||!fireMurmur.active)return;
+  const now=ac.currentTime;
+  // Laughter = rapid staccato amplitude bursts
+  // CRR: δ-chain — each "ha" is a micro-rupture
+  // Real laughter formants are HIGHER than speech:
+  //   F1: 900-1300Hz (wide-open mouth), F2: 2200-3200Hz (bright)
+  //   The "brightness" and staccato is what makes it recognisable
+  const nBursts=4+floor(random()*4);
+
+  // Use a dedicated noise source for the laugh
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+
+  // HIGH formants — this is what makes it sound like laughter, not speech
+  const f1=ac.createBiquadFilter();f1.type='bandpass';
+  f1.frequency.value=950+random()*350; // 950-1300Hz — high F1 (open jaw)
+  f1.Q.value=6;
+  const f2=ac.createBiquadFilter();f2.type='bandpass';
+  f2.frequency.value=2400+random()*800; // 2400-3200Hz — bright F2
+  f2.Q.value=4;
+  // F3 for breathiness/air — gives it the "ha" quality
+  const f3=ac.createBiquadFilter();f3.type='bandpass';
+  f3.frequency.value=3500+random()*1000; // 3500-4500Hz — breathy air
+  f3.Q.value=3;
+
+  const lp=ac.createBiquadFilter();lp.type='lowpass';
+  lp.frequency.value=4500;lp.Q.value=0.5;
+
+  const g=ac.createGain();g.gain.value=0;
+
+  ns.connect(lp);
+  lp.connect(f1);lp.connect(f2);lp.connect(f3);
+  const sum=ac.createGain();sum.gain.value=0.6;
+  f1.connect(sum);f2.connect(sum);f3.connect(sum);
+  sum.connect(g);g.connect(fireMurmur.masterGain);
+
+  ns.start(now);
+
+  // Staccato burst envelope — each "ha"
+  // Sharper attacks and shorter decays = more recognisably laughter
+  for(let i=0;i<nBursts;i++){
+    const burstGap=0.12+random()*0.05; // slight irregularity
+    const t0=now+i*burstGap;
+    // Volume arc: rises then falls over the laugh
+    const arc=i<nBursts*0.4?(i+1)/(nBursts*0.4):(nBursts-i)/(nBursts*0.6);
+    const amp=clamp(intensity*0.55*arc,0.001,0.5);
+    g.gain.setValueAtTime(0.001,t0);
+    g.gain.linearRampToValueAtTime(amp,t0+0.015); // very sharp attack
+    g.gain.exponentialRampToValueAtTime(0.001,t0+0.08); // quick decay
+    // Pitch rises through each burst (characteristic of real laughter)
+    f1.frequency.setValueAtTime(950+i*40,t0);
+    f2.frequency.setValueAtTime(2400+i*60,t0);
+  }
+  const endT=now+nBursts*0.15+0.3;
+  ns.stop(endT);
+  setTimeout(()=>{try{g.disconnect()}catch(e){}},((endT-now)+0.5)*1000);
+}
+
+function playMurmurWord(word,intensity){
+  if(!ac||!fireMurmur.active)return;
+  const now=ac.currentTime;
+  const w=MURMUR_WORDS[word];if(!w)return;
+  // Brief formant lock — one speaker's filters snap to the word's vowel
+  // This creates the perception of hearing a word in the babble
+  const spIdx=floor(random()*fireMurmur.speakers.length);
+  const sp=fireMurmur.speakers[spIdx];
+  // Briefly sharpen Q and move to target formants
+  sp.f1.frequency.cancelScheduledValues(now);
+  sp.f1.frequency.setValueAtTime(sp.f1.frequency.value,now);
+  sp.f1.frequency.linearRampToValueAtTime(w.f1,now+0.08);
+  sp.f1.Q.setValueAtTime(w.q,now+0.05);
+  sp.f2.frequency.cancelScheduledValues(now);
+  sp.f2.frequency.setValueAtTime(sp.f2.frequency.value,now);
+  sp.f2.frequency.linearRampToValueAtTime(w.f2,now+0.08);
+  sp.f2.Q.setValueAtTime(w.q-1,now+0.05);
+  // Brief volume bump — the word stands out
+  sp.speakerGain.gain.cancelScheduledValues(now);
+  sp.speakerGain.gain.setValueAtTime(sp.speakerGain.gain.value,now);
+  sp.speakerGain.gain.linearRampToValueAtTime(intensity*0.6,now+0.06);
+  sp.speakerGain.gain.setTargetAtTime(intensity*0.3,now+w.dur*0.5,0.2);
+  // For "night" — sweep F2 upward (ah→ee transition)
+  if(word==='night'){
+    sp.f2.frequency.linearRampToValueAtTime(2300,now+w.dur*0.7);
+  }
+  // Return to normal wandering after the word
+  setTimeout(()=>{
+    if(!ac)return;
+    const t=ac.currentTime;
+    sp.f1.Q.setTargetAtTime(5,t,0.3);
+    sp.f2.Q.setTargetAtTime(4,t,0.3);
+  },w.dur*1000);
+}
+
+function silenceMurmur(duration){
+  if(!fireMurmur.active)return;
+  const t=ac.currentTime;const dur=duration||2;
+  fireMurmur.masterGain.gain.cancelScheduledValues(t);
+  fireMurmur.masterGain.gain.setValueAtTime(fireMurmur.masterGain.gain.value,t);
+  fireMurmur.masterGain.gain.linearRampToValueAtTime(0,t+dur);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.11 SHOOTING STAR — CRR meteoroid: ½mv² → δ(Kármán) → hν
+// ───────────────────────────────────────────────────────────────
+//
+// A meteoroid IS a coherence packet: C = ½mv².
+// Millions of years of orbital mechanics stored as velocity.
+//
+// ENTRY PHYSICS (all CRR):
+//   v_entry ≈ 20-72 km/s. At this speed: air can't move aside.
+//   Shock front forms. T_shock = 10,000-25,000 K.
+//   The meteoroid doesn't burn — it SUBLIMES. Crystal → plasma.
+//   THIS IS δ(now): ordered solid → disordered plasma.
+//   Ω_meteor = 1/π (Z₂: solid/ablated).
+//
+//   Ablation rate: dm/dt = -C_H × ρ_air × v³ × A / (2 × Q)
+//   where Q = heat of ablation. CRR: C accumulates as ½mv²,
+//   ruptures when C/Ω > threshold, regenerates as photons.
+//
+//   LIGHT = REGENERATION: plasma cools by emitting photons.
+//   Wien's law: λ_max = 2898/T μm → colour from temperature.
+//   Trail = spectral line emission (Na:589nm, Mg:500nm, Fe:440nm)
+//   Trail IS R(memory) — the meteor's coherence made visible.
+//
+// VISUAL: Must cross the ENTIRE sky in ~1 second.
+//   Real meteors subtend 20-80° of arc in 0.3-2 seconds.
+//   At peak: absolute magnitude -1 to -6 (bolide class).
+//   Fragmentation creates secondary sparks behind the head.
+//
+// SOUND (CRR harmonic resonance):
+//   The "voice" of atmospheric rupture:
+//   - Whoosh: filtered noise sweep (shock compression of air)
+//   - Harmonic flash: φ-spaced overtones from plasma emission
+//   - Sub-bass: infrasonic atmospheric shock (T < 20 Hz felt)
+//   - Decay: exp(C/Ω) envelope — bright → dark in R-curve
+//
+let shootingStar={
+  active:false,
+  x:0,y:0,vx:0,vy:0,
+  trail:[],
+  sparks:[],
+  life:0,maxLife:0,
+  brightness:0,temp:0,
+  startX:0,startY:0,endX:0,endY:0,
+  peakBrightness:0,
+};
+
+function launchShootingStar(){
+  if(!ac)return;
+  const ss=shootingStar;
+  ss.active=true;
+  // Trajectory: upper-right to lower-left, crossing ~70% of sky
+  // Geometry: entry angle 20-35° from horizontal (realistic)
+  const angle=PI+0.25+random()*0.35; // ~205-225° (upper-right→lower-left)
+  const speed=W*0.9; // Cross most of sky in ~1 second
+  ss.startX=W*0.82+random()*W*0.12;
+  ss.startY=H*0.15+random()*H*0.12; // mid-sky, not top edge
+  ss.x=ss.startX;ss.y=ss.startY;
+  ss.vx=cos(angle)*speed;
+  ss.vy=sin(angle)*speed;
+  ss.endX=ss.x+ss.vx*1.4;
+  ss.endY=ss.y+ss.vy*1.4;
+  ss.trail=[];
+  ss.sparks=[];
+  ss.life=0;
+  ss.maxLife=1.0+random()*0.4; // 1.0-1.4 seconds — FAST
+  ss.brightness=0;
+  ss.temp=5000;
+  ss.peakBrightness=0.85+random()*0.15;
+
+  playMeteorSound();
+}
+
+function playMeteorSound(){
+  if(!ac)return;
+  const now=ac.currentTime;
+  const dur=shootingStar.maxLife;
+
+  // 1. WHOOSH — atmospheric shock compression
+  // CRR: the air itself ruptures as the meteor compresses it
+  // Filtered noise sweep: high→low (Doppler + shock dissipation)
+  const whooshNs=ac.createBufferSource();whooshNs.buffer=noiseBuf;
+  const whooshBP=ac.createBiquadFilter();whooshBP.type='bandpass';
+  whooshBP.frequency.value=4000;whooshBP.Q.value=1.5;
+  // Sweep from high to low — the sound of air being TORN
+  whooshBP.frequency.setValueAtTime(5000,now);
+  whooshBP.frequency.exponentialRampToValueAtTime(200,now+dur*1.5);
+  const whooshG=ac.createGain();
+  // Envelope: fast attack, sustain, exp decay — CRR R-curve
+  whooshG.gain.setValueAtTime(0,now);
+  whooshG.gain.linearRampToValueAtTime(0.12,now+0.04);  // instant rupture
+  whooshG.gain.setValueAtTime(0.1,now+0.08);
+  whooshG.gain.setTargetAtTime(0.001,now+dur*0.3,dur*0.35);
+  whooshNs.connect(whooshBP);whooshBP.connect(whooshG);
+  whooshG.connect(natureGain);
+  if(reverbNode){const rs=ac.createGain();rs.gain.value=0.5;whooshG.connect(rs);rs.connect(reverbNode)}
+  whooshNs.start(now);whooshNs.stop(now+dur*2+1);
+
+  // 2. HARMONIC FLASH — φ-spaced overtone burst at moment of peak brightness
+  // These fire slightly after entry (~0.1s) when ablation peaks
+  const flashDelay=0.08;
+  const f0=midiToFreq(83); // B5 ≈ 987.8Hz — in key, from π²×100
+  const nH=8;
+  for(let n=0;n<nH;n++){
+    const freq=f0*pow(PHI,n/3); // Golden-ratio spacing
+    if(freq>10000)break;
+    const amp=0.06*exp(-n/PHI);
+    const hDur=0.8*exp(-n*0.18);
+    const o=ac.createOscillator();o.type='sine';
+    o.frequency.value=freq;o.detune.value=(random()-0.5)*6;
+    // Descending pitch — cooling plasma (Wien shift)
+    o.frequency.setValueAtTime(freq,now+flashDelay);
+    o.frequency.exponentialRampToValueAtTime(freq*0.8,now+flashDelay+hDur);
+    const g=ac.createGain();
+    g.gain.setValueAtTime(0,now+flashDelay);
+    g.gain.linearRampToValueAtTime(amp,now+flashDelay+0.015);
+    g.gain.setTargetAtTime(0.001,now+flashDelay+0.06+n*0.04,hDur*0.3);
+    o.connect(g);g.connect(natureGain);
+    if(reverbNode){const rs=ac.createGain();rs.gain.value=0.65;g.connect(rs);rs.connect(reverbNode)}
+    o.start(now+flashDelay);o.stop(now+flashDelay+hDur+1);
+  }
+
+  // 3. SUB-BASS THUMP — atmospheric shock wave felt in the chest
+  const subO=ac.createOscillator();subO.type='sine';
+  subO.frequency.value=45; // ~45Hz — felt more than heard
+  const subG=ac.createGain();
+  subG.gain.setValueAtTime(0,now);
+  subG.gain.linearRampToValueAtTime(0.06,now+0.03);
+  subG.gain.setTargetAtTime(0.001,now+0.15,0.5);
+  subO.connect(subG);subG.connect(natureGain);
+  subO.start(now);subO.stop(now+2.5);
+
+  // 4. SPECTRAL SHIMMER — Na D-line emission (589nm → 880Hz analogue)
+  // Two close frequencies beating = the characteristic meteor shimmer
+  const shA=ac.createOscillator();shA.type='sine';shA.frequency.value=880;
+  const shB=ac.createOscillator();shB.type='sine';shB.frequency.value=883;
+  const shG=ac.createGain();
+  shG.gain.setValueAtTime(0,now+0.15);
+  shG.gain.linearRampToValueAtTime(0.02,now+0.25);
+  shG.gain.setTargetAtTime(0.001,now+0.5,0.4);
+  shA.connect(shG);shB.connect(shG);shG.connect(natureGain);
+  if(reverbNode){const rs=ac.createGain();rs.gain.value=0.7;shG.connect(rs);rs.connect(reverbNode)}
+  shA.start(now+0.15);shB.start(now+0.15);
+  shA.stop(now+2.5);shB.stop(now+2.5);
+}
+
+function updateShootingStar(dt){
+  if(!shootingStar.active&&shootingStar.trail.length===0&&shootingStar.sparks.length===0)return;
+  const ss=shootingStar;
+
+  if(ss.active){
+    ss.life+=dt;
+    const progress=ss.life/ss.maxLife;
+
+    if(progress>=1){
+      ss.active=false;
+    } else {
+      // Position — FAST, minimal drag (real meteors barely slow down visually)
+      // Only slight deceleration in final 30%
+      const dragFactor=progress>0.7?1-dt*0.5:1;
+      ss.vx*=dragFactor;
+      ss.vy*=dragFactor;
+      ss.x+=ss.vx*dt;
+      ss.y+=ss.vy*dt;
+
+      // Temperature: rapid heat → peak → cooling
+      // Wien's law: T governs colour through Planck spectrum
+      if(progress<0.08){
+        ss.temp=lerp(5000,22000,progress/0.08);
+      } else if(progress<0.4){
+        ss.temp=lerp(22000,18000,(progress-0.08)/0.32);
+      } else {
+        ss.temp=18000*exp(-(progress-0.4)*4);
+      }
+
+      // Brightness: CRR exp(C/Ω) curve
+      // Ultra-fast rise, sustained peak, then exp decay
+      if(progress<0.05){
+        ss.brightness=ss.peakBrightness*(progress/0.05);
+      } else if(progress<0.45){
+        ss.brightness=ss.peakBrightness*(1-0.1*(progress-0.05)/0.4);
+      } else {
+        ss.brightness=ss.peakBrightness*0.9*exp(-(progress-0.45)*5);
+      }
+
+      // Deposit trail points — more densely near the head
+      const nPoints=max(1,floor(3+ss.brightness*4));
+      for(let i=0;i<nPoints;i++){
+        const frac=i/nPoints;
+        ss.trail.push({
+          x:ss.x-ss.vx*dt*frac+((random()-0.5)*1.5),
+          y:ss.y-ss.vy*dt*frac+((random()-0.5)*1.5),
+          brightness:ss.brightness*(1-frac*0.2),
+          temp:ss.temp*(1-frac*0.05),
+          age:0,
+          size:1.5+ss.brightness*2*(1-frac*0.5),
+        });
+      }
+
+      // FRAGMENTATION SPARKS — chunks breaking off
+      // CRR: material stress exceeds Ω → micro-ruptures shed mass
+      if(ss.brightness>0.3&&random()<0.4){
+        const sparkAngle=atan2(ss.vy,ss.vx)+PI+(random()-0.5)*0.8;
+        const sparkSpeed=30+random()*80;
+        ss.sparks.push({
+          x:ss.x,y:ss.y,
+          vx:cos(sparkAngle)*sparkSpeed+ss.vx*0.15,
+          vy:sin(sparkAngle)*sparkSpeed+ss.vy*0.15+random()*20,
+          life:0.2+random()*0.5,
+          age:0,
+          brightness:ss.brightness*0.4*(0.3+random()*0.7),
+          temp:ss.temp*(0.5+random()*0.3),
+        });
+      }
+    }
+  }
+
+  // Age trail — exponential fade (CRR R-memory decay)
+  for(let i=ss.trail.length-1;i>=0;i--){
+    ss.trail[i].age+=dt;
+    ss.trail[i].brightness*=exp(-dt*4);
+    if(ss.trail[i].brightness<0.003||ss.trail[i].age>2)ss.trail.splice(i,1);
+  }
+
+  // Update sparks
+  for(let i=ss.sparks.length-1;i>=0;i--){
+    const sp=ss.sparks[i];
+    sp.age+=dt;
+    sp.x+=sp.vx*dt;sp.y+=sp.vy*dt;
+    sp.vy+=120*dt; // gravity on fragments
+    sp.brightness*=exp(-dt*5);
+    if(sp.age>=sp.life||sp.brightness<0.003)ss.sparks.splice(i,1);
+  }
+}
+
+function drawShootingStar(){
+  const ss=shootingStar;
+  if(!ss.active&&ss.trail.length===0&&ss.sparks.length===0)return;
+
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+
+  // Helper: blackbody temperature → RGB
+  function tempToRGB(T){
+    let r,g,b;
+    if(T>15000){r=210;g=220;b=255}
+    else if(T>10000){const t=(T-10000)/5000;r=lerp(240,210,t);g=lerp(235,220,t);b=255}
+    else if(T>6000){const t=(T-6000)/4000;r=255;g=lerp(210,235,t);b=lerp(160,255,t)}
+    else if(T>3500){const t=(T-3500)/2500;r=255;g=lerp(140,210,t);b=lerp(40,160,t)}
+    else{const t=max(0,T/3500);r=255;g=lerp(60,140,t);b=lerp(5,40,t)}
+    return{r,g,b};
+  }
+
+  // 1. TRAIL — long luminous streak
+  // Draw from oldest (faintest) to newest (brightest)
+  for(const pt of ss.trail){
+    const c=tempToRGB(pt.temp);
+    const a=min(1,pt.brightness*1.2);
+    if(a<0.005)continue;
+    const sz=pt.size*(0.3+pt.brightness*0.7);
+
+    // Core
+    ctx.fillStyle=`rgba(${c.r|0},${c.g|0},${c.b|0},${a*0.85})`;
+    ctx.beginPath();ctx.arc(pt.x,pt.y,max(0.4,sz),0,PI2);ctx.fill();
+
+    // Glow envelope
+    if(pt.brightness>0.08){
+      const glR=sz*5;
+      const gg=ctx.createRadialGradient(pt.x,pt.y,sz*0.2,pt.x,pt.y,glR);
+      gg.addColorStop(0,`rgba(${c.r|0},${c.g|0},${c.b|0},${a*0.18})`);
+      gg.addColorStop(1,'transparent');
+      ctx.fillStyle=gg;ctx.beginPath();ctx.arc(pt.x,pt.y,glR,0,PI2);ctx.fill();
+    }
+  }
+
+  // 2. FRAGMENTATION SPARKS
+  for(const sp of ss.sparks){
+    const c=tempToRGB(sp.temp);
+    const a=sp.brightness;
+    ctx.fillStyle=`rgba(${c.r|0},${min(255,c.g+40)|0},${c.b|0},${a})`;
+    ctx.beginPath();ctx.arc(sp.x,sp.y,0.8+a*1.5,0,PI2);ctx.fill();
+  }
+
+  // 3. HEAD — the brilliant point source
+  if(ss.active&&ss.brightness>0.03){
+    const c=tempToRGB(ss.temp);
+    const a=ss.brightness;
+    const headSz=2.5+a*4;
+
+    // Incandescent core — near-white
+    ctx.fillStyle=`rgba(255,${min(255,c.g+30)|0},${min(255,c.b+20)|0},${a})`;
+    ctx.beginPath();ctx.arc(ss.x,ss.y,headSz,0,PI2);ctx.fill();
+
+    // Inner glow
+    const g1=ctx.createRadialGradient(ss.x,ss.y,headSz*0.3,ss.x,ss.y,headSz*6);
+    g1.addColorStop(0,`rgba(255,${min(255,c.g+20)|0},${c.b|0},${a*0.35})`);
+    g1.addColorStop(1,'transparent');
+    ctx.fillStyle=g1;ctx.beginPath();ctx.arc(ss.x,ss.y,headSz*6,0,PI2);ctx.fill();
+
+    // Wide atmospheric scatter — lights up a region of sky
+    const g2=ctx.createRadialGradient(ss.x,ss.y,headSz*2,ss.x,ss.y,headSz*25);
+    g2.addColorStop(0,`rgba(${c.r|0},${c.g|0},255,${a*0.06})`);
+    g2.addColorStop(0.4,`rgba(${c.r|0},${c.g|0},255,${a*0.02})`);
+    g2.addColorStop(1,'transparent');
+    ctx.fillStyle=g2;ctx.beginPath();ctx.arc(ss.x,ss.y,headSz*25,0,PI2);ctx.fill();
+
+    // Motion streak — connects head to recent trail
+    if(ss.trail.length>2){
+      const recent=ss.trail[ss.trail.length-1];
+      const streakG=ctx.createLinearGradient(ss.x,ss.y,recent.x,recent.y);
+      streakG.addColorStop(0,`rgba(255,250,255,${a*0.3})`);
+      streakG.addColorStop(1,'transparent');
+      ctx.strokeStyle=streakG;
+      ctx.lineWidth=headSz*1.2;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(ss.x,ss.y);ctx.lineTo(recent.x,recent.y);ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.12 CAMPFIRE CHANT — "Ah" in harmony with the song
+// ───────────────────────────────────────────────────────────────
+//
+// CRR HARMONIC RESONANCE — why these intervals feel warm:
+//
+//   When two voices sing, their harmonic series overlap.
+//   Voice at f₁ produces: f₁, 2f₁, 3f₁, 4f₁, ...
+//   Voice at f₂ produces: f₂, 2f₂, 3f₂, 4f₂, ...
+//
+//   Shared harmonics create CONSTRUCTIVE COHERENCE.
+//   CRR: C(shared) = Σ overlap(H_i, H_j) for all harmonic pairs.
+//
+//   Perfect 5th (f₂/f₁ = 3/2):
+//     3f₁ = 2f₂ → shared every 2nd/3rd harmonic
+//     C(5th) = HIGH → strong coherence → warm, stable
+//
+//   Minor 3rd (f₂/f₁ = 6/5):
+//     6f₁ = 5f₂ → shared every 5th/6th harmonic
+//     C(m3) = LOWER → less overlap → darker, more tension
+//     This IS why B minor feels nocturnal.
+//
+//   The "Ah" vowel (F1:800, F2:1150) acts as a COHERENCE FILTER:
+//     It amplifies harmonics near 800Hz and 1150Hz,
+//     which for B2 (123.5Hz) means the 6th-7th and 9th-10th
+//     harmonics are loudest. These are the harmonics that
+//     OVERLAP between chord tones — the vowel literally
+//     selects for maximum shared coherence.
+//
+//   CRR prediction: exp(C/Ω) for the "Ah" vowel on a minor
+//   chord will peak when voices are spaced at root, 5th, octave
+//   — exactly the voicing humans naturally gravitate to when
+//   singing around a fire. The theory predicts the practice.
+//
+// WHY TRIANGLE WAVE (not sawtooth):
+//   Sawtooth: all harmonics at 1/n amplitude → harsh, buzzy, synthetic
+//   Triangle: odd harmonics only at 1/n² → softer rolloff, warmer
+//   CRR: triangle's steeper harmonic decay means exp(C/Ω) is
+//   dominated by lower harmonics where chord coherence is strongest.
+//   The ear hears HARMONY rather than TIMBRE. Less "synth choir",
+//   more "voices humming across a field at night".
+//
+// VOICE MOVEMENT:
+//   Voices RETUNE to follow the chord progression.
+//   This is what the previous chant lacked — static pitches drone,
+//   moving pitches SING. The glide between chords IS the CRR
+//   regeneration: old coherence basin → rupture (chord change) →
+//   new coherence basin. Glide time = Ω (how quickly the voice
+//   finds its new home).
+//
+
+let fireChant={
+  masterGain:null,
+  voices:[],      // 5 pitched voices with formant filters
+  active:false,
+  currentChord:null,
+};
+
+// 5 voices: root, minor 3rd, 5th, octave, high 5th
+// These are RELATIVE intervals — they retune when the chord changes
+// CRR: this voicing maximises exp(C/Ω) for the shared harmonic series
+const CHANT_VOICE_OFFSETS=[
+  {interval:0,  octave:2, vowel:'Ah', vibRate:4.5, vibDepth:3.5, detune:-5, gain:1.0},   // root low
+  {interval:0,  octave:3, vowel:'Ah', vibRate:4.8, vibDepth:3.0, detune:3,  gain:0.85},  // root high
+  {interval:3,  octave:3, vowel:'Ah', vibRate:5.0, vibDepth:2.8, detune:-2, gain:0.7},   // minor 3rd
+  {interval:7,  octave:3, vowel:'Oh', vibRate:5.2, vibDepth:3.2, detune:4,  gain:0.75},  // 5th (Oh for depth)
+  {interval:7,  octave:2, vowel:'Ah', vibRate:4.6, vibDepth:3.8, detune:-3, gain:0.9},   // 5th low
+];
+
+function initFireChant(){
+  if(!ac||fireChant.active)return;
+  fireChant.masterGain=ac.createGain();
+  fireChant.masterGain.gain.value=0;
+  fireChant.masterGain.connect(natureGain);
+  // Warm reverb — night air, intimacy
+  if(reverbNode){
+    const revSend=ac.createGain();
+    revSend.gain.value=0.55;
+    fireChant.masterGain.connect(revSend);
+    revSend.connect(reverbNode);
+  }
+
+  for(const vc of CHANT_VOICE_OFFSETS){
+    // Start on B minor root — will retune with chord changes
+    const baseMidi=23+vc.octave*12+vc.interval; // B + octave + interval
+    const freq=midiToFreq(baseMidi);
+    const vw=VOWELS[vc.vowel];
+
+    // TRIANGLE wave — warmer than sawtooth, fewer harsh overtones
+    // CRR: 1/n² harmonic decay → coherence dominated by fundamentals
+    const src=ac.createOscillator();src.type='triangle';
+    src.frequency.value=freq;src.detune.value=vc.detune;
+    // Second oscillator detuned for warmth/chorus — wider than choir (folk rough)
+    const src2=ac.createOscillator();src2.type='triangle';
+    src2.frequency.value=freq;src2.detune.value=vc.detune+8;
+
+    // Human vibrato — slightly slower and wider than star choir
+    const vib=ac.createOscillator();vib.type='sine';
+    vib.frequency.value=vc.vibRate;
+    const vibGain=ac.createGain();vibGain.gain.value=vc.vibDepth;
+    vib.connect(vibGain);
+    vibGain.connect(src.frequency);vibGain.connect(src2.frequency);
+
+    // Breath noise — generous, human, intimate
+    const breathSrc=ac.createBufferSource();
+    breathSrc.buffer=noiseBuf;breathSrc.loop=true;
+    const breathFilter=ac.createBiquadFilter();breathFilter.type='bandpass';
+    breathFilter.frequency.value=freq*2.5;breathFilter.Q.value=1.2;
+    breathSrc.connect(breathFilter);
+
+    // Formant filters — "Ah" vowel, LOWER Q than star choir (warmer)
+    const formantGains=[];
+    const voiceSum=ac.createGain();voiceSum.gain.value=0;
+    for(let fi=0;fi<3;fi++){
+      const bp=ac.createBiquadFilter();bp.type='bandpass';
+      bp.frequency.value=vw.f[fi];bp.Q.value=vw.q[fi]*0.35; // lower Q = warmer
+      const bp2=ac.createBiquadFilter();bp2.type='bandpass';
+      bp2.frequency.value=vw.f[fi];bp2.Q.value=vw.q[fi]*0.35;
+      const fGain=ac.createGain();
+      fGain.gain.value=fi===0?1.3:fi===1?0.8:0.35;
+      formantGains.push({filter:bp,filter2:bp2,gain:fGain});
+      src.connect(bp);bp.connect(fGain);
+      src2.connect(bp2);bp2.connect(fGain);
+      breathFilter.connect(bp);
+      fGain.connect(voiceSum);
+    }
+
+    // Direct low-pass — warmth, body, less synthetic
+    const directLP=ac.createBiquadFilter();directLP.type='lowpass';
+    directLP.frequency.value=freq*3;directLP.Q.value=0.4;
+    const directGain=ac.createGain();directGain.gain.value=0.1;
+    src.connect(directLP);src2.connect(directLP);
+    directLP.connect(directGain);directGain.connect(voiceSum);
+
+    voiceSum.connect(fireChant.masterGain);
+    src.start();src2.start();vib.start();breathSrc.start();
+
+    fireChant.voices.push({
+      src,src2,vib,vibGain,breathSrc,breathFilter,
+      formantGains,directLP,directGain,voiceSum,
+      baseMidi,freq,vowel:vc.vowel,cfg:vc,
+    });
+  }
+  fireChant.active=true;
+}
+
+function setChantChord(chordMidis,gain,trans){
+  // Retune chant voices to follow the song's chord progression
+  // CRR: each chord change IS a micro-rupture — voices glide
+  // from old coherence basin to new one. Glide time ≈ Ω.
+  if(!fireChant.active||!ac)return;
+  const t=ac.currentTime;
+  const dur=trans||1.5;
+
+  // Extract chord root and quality from the midi array
+  // chordMidis[0] is the lowest note (root in bass octave)
+  // We use the upper chord tones [2],[3],[4] for voice targets
+  // These are already in the right octave range for singing
+  const root=chordMidis[0]%12; // root pitch class
+
+  for(let vi=0;vi<fireChant.voices.length;vi++){
+    const v=fireChant.voices[vi];
+    const vc=v.cfg;
+    // Calculate target MIDI: root pitch class + voice octave + voice interval
+    const targetMidi=root+vc.octave*12+vc.interval;
+    const targetFreq=midiToFreq(targetMidi);
+
+    // Smooth glide — CRR regeneration curve into new coherence basin
+    // ~1.5 beat glide feels like a singer finding the note
+    v.src.frequency.cancelScheduledValues(t);
+    v.src.frequency.setValueAtTime(v.src.frequency.value,t);
+    v.src.frequency.exponentialRampToValueAtTime(targetFreq,t+dur);
+    v.src2.frequency.cancelScheduledValues(t);
+    v.src2.frequency.setValueAtTime(v.src2.frequency.value,t);
+    v.src2.frequency.exponentialRampToValueAtTime(targetFreq,t+dur);
+
+    // Update breath filter to track new pitch
+    v.breathFilter.frequency.setTargetAtTime(targetFreq*2.5,t,dur*0.5);
+    v.directLP.frequency.setTargetAtTime(targetFreq*3,t,dur*0.5);
+
+    v.freq=targetFreq;
+    v.baseMidi=targetMidi;
+  }
+
+  // Set gain — voices build across sections
+  fireChant.masterGain.gain.cancelScheduledValues(t);
+  fireChant.masterGain.gain.setValueAtTime(fireChant.masterGain.gain.value,t);
+  fireChant.masterGain.gain.linearRampToValueAtTime(gain,t+dur);
+
+  fireChant.currentChord=chordMidis;
+}
+
+function setChantVoiceCount(count,trans){
+  // Activate/deactivate voices — builds from 1 to 5
+  // CRR: more voices = higher shared C = richer coherence
+  if(!fireChant.active)return;
+  const t=ac.currentTime;const dur=trans||2;
+  for(let vi=0;vi<fireChant.voices.length;vi++){
+    const v=fireChant.voices[vi];
+    const target=vi<count?v.cfg.gain*0.4:0;
+    v.voiceSum.gain.cancelScheduledValues(t);
+    v.voiceSum.gain.setValueAtTime(v.voiceSum.gain.value,t);
+    v.voiceSum.gain.linearRampToValueAtTime(target,t+dur);
+  }
+}
+
+function silenceChant(duration){
+  if(!fireChant.active)return;
+  const t=ac.currentTime;const dur=duration||2;
+  for(const v of fireChant.voices){
+    v.voiceSum.gain.cancelScheduledValues(t);
+    v.voiceSum.gain.setValueAtTime(v.voiceSum.gain.value,t);
+    v.voiceSum.gain.linearRampToValueAtTime(0,t+dur);
+  }
+  fireChant.masterGain.gain.cancelScheduledValues(t);
+  fireChant.masterGain.gain.setValueAtTime(fireChant.masterGain.gain.value,t);
+  fireChant.masterGain.gain.linearRampToValueAtTime(0,t+dur);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.13 LUNAR HALO — CRR ice crystal dispersion at 22°
+// ───────────────────────────────────────────────────────────────
+//
+// A 22° lunar halo IS a CRR dispersion event through ice:
+//
+// PHYSICS:
+//   Moonlight = reflected sunlight (continuous spectrum, 5778K blackbody)
+//   passes through HEXAGONAL ice crystals in high cirrostratus clouds.
+//
+//   Crystal geometry: Z₆ symmetry — hexagonal prism.
+//   Light enters one face, refracts, crosses the crystal interior,
+//   exits an alternate face at 60° to the entry face.
+//
+//   Minimum deviation through a 60° prism:
+//     D_min = 2 × arcsin(n_ice × sin(A/2)) - A
+//   where A = 60° (prism angle of hexagonal face pair)
+//   and n_ice = 1.31 (refractive index of ice at λ=589nm)
+//
+//     D_min = 2 × arcsin(1.31 × sin(30°)) - 60°
+//     D_min = 2 × arcsin(1.31 × 0.5) - 60°
+//     D_min = 2 × arcsin(0.655) - 60°
+//     D_min = 2 × 40.92° - 60°
+//     D_min = 81.84° - 60° = 21.84° ≈ 22°
+//
+//   This is WHY the halo appears at exactly 22° from the moon.
+//
+//   CRR MAPPING:
+//     C(moonlight) = coherent white light entering crystal
+//     δ(crystal) = the hexagonal prism ruptures wavelength coherence
+//     Ω(λ) = 1/n_ice(λ) — each wavelength has its own precision
+//
+//   DISPERSION in ice (Cauchy for ice):
+//     n_ice(λ) = A_ice + B_ice/λ²
+//     A_ice ≈ 1.3049, B_ice ≈ 0.00316 μm²
+//
+//     Red (700nm):   n=1.3114 → D_min = 21.54° (INNER edge)
+//     Violet(420nm): n=1.3228 → D_min = 22.37° (OUTER edge)
+//     Spread: 22.37° - 21.54° = 0.83° — MUCH narrower than rainbow (1.8°)
+//
+//   KEY DIFFERENCE from rainbow:
+//     Rainbow: red OUTSIDE, violet INSIDE (42° → 40.6°)
+//     Halo: red INSIDE, blue OUTSIDE (21.5° → 22.4°)
+//     Because halo = minimum deviation (no internal reflection),
+//     while rainbow = internal reflection reverses the order.
+//
+//   R(halo) = exp(C/Ω) per wavelength — the spectral memory of
+//   white moonlight, now ordered by ice crystal geometry.
+//
+//   To naked eye: appears as a thin white ring with faint reddish
+//   inner edge. Colour is subtle because ice dispersion is narrow.
+//   In our simulation: we render the spectral bands faintly.
+//
+// HARMONIC SOUND — ice crystal resonance:
+//   Same mapping as before: f(λ) = f₀ × (1 + (n-n_min)/(n_max-n_min) × spread)
+//   But ice has NARROWER dispersion than water → tighter frequency cluster
+//   → more luminous, crystalline shimmer. Like glass harmonics.
+//
+//   The Z₆ symmetry of ice adds a structural resonance:
+//   6-fold symmetry → we include 6th harmonic emphasis.
+//
+// TIMING: Appears during STARLIGHT (208-239).
+//   As the night deepens and temperature drops, high-altitude moisture
+//   freezes into cirrostratus ice crystal sheets. The moon's light,
+//   now high and bright, refracts through this ice veil.
+//   CRR: cooling (C diminishing in atmosphere) → crystallisation (δ) →
+//   ordered ice structure (R) → halo as visible regeneration.
+//
+
+let moonbow={
+  active:false,
+  visibility:0,
+  targetVisibility:0,
+};
+
+// Cauchy dispersion for ICE (not water)
+const ICE_A=1.3049;
+const ICE_B=0.00316; // μm²
+
+function iceN(lambda_um){
+  return ICE_A+ICE_B/(lambda_um*lambda_um);
+}
+
+// 7 spectral bands with ice refractive indices
+const HALO_BANDS=[
+  {lambda:0.700, r:255, g:60,  b:40,  name:'red'},     // inner edge
+  {lambda:0.600, r:255, g:160, b:60,  name:'orange'},
+  {lambda:0.580, r:240, g:230, b:80,  name:'yellow'},
+  {lambda:0.530, r:140, g:220, b:120, name:'green'},
+  {lambda:0.470, r:100, g:160, b:255, name:'blue'},
+  {lambda:0.440, r:120, g:100, b:230, name:'indigo'},
+  {lambda:0.420, r:160, g:120, b:255, name:'violet'},   // outer edge
+];
+for(const b of HALO_BANDS){
+  b.n=iceN(b.lambda);
+  // Minimum deviation: D = 2×arcsin(n×sin(30°)) - 60°
+  const Drad=2*Math.asin(b.n*0.5)-PI/3;
+  b.deviation=Drad; // radians (~0.376-0.390)
+  b.deviationDeg=Drad*180/PI; // degrees (~21.5-22.4)
+  b.omega=1/b.n;
+}
+
+function triggerMoonbow(gain,duration){
+  moonbow.targetVisibility=gain;
+  if(gain>0.01&&ac)playHaloSound(gain,duration);
+}
+
+function playHaloSound(gain,dur){
+  if(!ac)return;
+  const now=ac.currentTime;
+  const fadeDur=dur||12;
+
+  // Base frequency: B3 (246.94Hz) — in key, one octave below star choir
+  const fBase=midiToFreq(59); // B3
+
+  const nMin=HALO_BANDS[0].n;
+  const nMax=HALO_BANDS[HALO_BANDS.length-1].n;
+  // Ice dispersion is NARROWER than water → tighter cluster
+  // spread ≈ φ/5 ≈ 0.324 — a narrower interval = more crystalline shimmer
+  const spread=PHI*0.2;
+
+  for(let i=0;i<HALO_BANDS.length;i++){
+    const band=HALO_BANDS[i];
+    const nFrac=(band.n-nMin)/(nMax-nMin);
+    const freq=fBase*(1+nFrac*spread);
+
+    const o=ac.createOscillator();o.type='sine'; // pure — light IS pure
+    o.frequency.value=freq;
+    // Tighter beating than rainbow — ice is more ordered
+    o.detune.value=(i-3)*1.2;
+
+    const g=ac.createGain();
+    const amp=gain*0.012*(1-abs(i-3)/5.5);
+    g.gain.setValueAtTime(0,now);
+    g.gain.linearRampToValueAtTime(amp,now+fadeDur*0.3);
+    g.gain.setValueAtTime(amp,now+fadeDur*0.7);
+    g.gain.linearRampToValueAtTime(0,now+fadeDur);
+
+    o.connect(g);g.connect(natureGain);
+    if(reverbNode){
+      const rs=ac.createGain();rs.gain.value=0.85;
+      g.connect(rs);rs.connect(reverbNode);
+    }
+    o.start(now);o.stop(now+fadeDur+2);
+  }
+
+  // Z₆ structural resonance — 6th harmonic of the base
+  // The hexagonal crystal symmetry creates this emphasis
+  const hexO=ac.createOscillator();hexO.type='sine';
+  hexO.frequency.value=fBase*6; // 6th harmonic ≈ 1481Hz (Z₆)
+  const hexG=ac.createGain();
+  hexG.gain.setValueAtTime(0,now);
+  hexG.gain.linearRampToValueAtTime(gain*0.004,now+fadeDur*0.35);
+  hexG.gain.linearRampToValueAtTime(0,now+fadeDur);
+  hexO.connect(hexG);hexG.connect(natureGain);
+  if(reverbNode){const rs=ac.createGain();rs.gain.value=0.9;hexG.connect(rs);rs.connect(reverbNode)}
+  hexO.start(now);hexO.stop(now+fadeDur+2);
+
+  // Sub-fifth drone
+  const droneO=ac.createOscillator();droneO.type='sine';
+  droneO.frequency.value=midiToFreq(54); // F#3
+  const droneG=ac.createGain();
+  droneG.gain.setValueAtTime(0,now);
+  droneG.gain.linearRampToValueAtTime(gain*0.006,now+fadeDur*0.4);
+  droneG.gain.linearRampToValueAtTime(0,now+fadeDur);
+  droneO.connect(droneG);droneG.connect(natureGain);
+  if(reverbNode){const rs=ac.createGain();rs.gain.value=0.9;droneG.connect(rs);rs.connect(reverbNode)}
+  droneO.start(now);droneO.stop(now+fadeDur+2);
+}
+
+function drawMoonbow(moonPos,moonPhase){
+  if(moonbow.visibility<0.005)return;
+
+  const vis=moonbow.visibility;
+  const mcx=moonPos.cx,mcy=moonPos.cy;
+
+  // 22° halo: ring CENTERED on the moon
+  // Angular radius of 22° maps to a screen radius.
+  // At our moon size (H*0.065), 22° ≈ the moon subtends ~0.5°
+  // so 22° ≈ 44× the moon's apparent radius
+  // But that would be enormous on screen — we scale for visual beauty:
+  // halo radius ≈ 5-7× moon radius (visually accurate to photographs)
+  const moonR=H*0.065;
+  const haloR=moonR*6;
+
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+
+  // Draw spectral bands as concentric rings around the moon
+  // RED on INNER edge (21.5°), VIOLET on OUTER edge (22.4°)
+  // — opposite to a rainbow! Because: no internal reflection.
+  const bandWidth=haloR*0.06; // total spectral spread (narrow for ice)
+
+  for(let i=0;i<HALO_BANDS.length;i++){
+    const band=HALO_BANDS[i];
+    // Red (i=0) at innermost, violet (i=6) at outermost
+    const bandFrac=i/(HALO_BANDS.length-1);
+    const r=haloR-bandWidth*0.5+bandWidth*bandFrac;
+
+    // Very subtle colour — halo is mostly white with faint colour fringe
+    const colourStrength=vis*moonPhase*0.04*(i===0||i===HALO_BANDS.length-1?1.2:0.6);
+    if(colourStrength<0.002)continue;
+
+    // Full ring around the moon
+    ctx.strokeStyle=`rgba(${band.r},${band.g},${band.b},${colourStrength})`;
+    ctx.lineWidth=2+vis;
+    ctx.beginPath();
+    ctx.arc(mcx,mcy,r,0,PI2);
+    ctx.stroke();
+
+    // Soft glow per band
+    if(colourStrength>0.004){
+      ctx.strokeStyle=`rgba(${band.r},${band.g},${band.b},${colourStrength*0.25})`;
+      ctx.lineWidth=6+vis*3;
+      ctx.beginPath();
+      ctx.arc(mcx,mcy,r,0,PI2);
+      ctx.stroke();
+    }
+  }
+
+  // Primary white ring — what the eye actually sees
+  // The halo appears as a thin white circle with a sharp inner edge
+  const whiteAlpha=vis*moonPhase*0.04;
+  // Sharp inner edge (red-tinted)
+  const innerG=ctx.createRadialGradient(mcx,mcy,haloR-bandWidth,mcx,mcy,haloR+bandWidth*2);
+  innerG.addColorStop(0,'transparent');
+  innerG.addColorStop(0.2,`rgba(255,230,210,${whiteAlpha*0.3})`); // reddish inner
+  innerG.addColorStop(0.4,`rgba(230,235,255,${whiteAlpha})`);      // white peak
+  innerG.addColorStop(0.6,`rgba(200,210,240,${whiteAlpha*0.6})`);  // slight blue
+  innerG.addColorStop(1,'transparent');
+  ctx.strokeStyle=innerG;
+  ctx.lineWidth=bandWidth*4;
+  ctx.beginPath();
+  ctx.arc(mcx,mcy,haloR,0,PI2);
+  ctx.stroke();
+
+  // Broader atmospheric glow — scattered light around the halo
+  const outerGlow=ctx.createRadialGradient(mcx,mcy,haloR*0.6,mcx,mcy,haloR*1.5);
+  outerGlow.addColorStop(0,'transparent');
+  outerGlow.addColorStop(0.5,`rgba(180,190,220,${whiteAlpha*0.08})`);
+  outerGlow.addColorStop(0.7,`rgba(180,190,220,${whiteAlpha*0.04})`);
+  outerGlow.addColorStop(1,'transparent');
+  ctx.fillStyle=outerGlow;
+  ctx.beginPath();
+  ctx.arc(mcx,mcy,haloR*1.5,0,PI2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.14 CHANT RESONANCE GLOW — sound made visible above the crowd
+// ───────────────────────────────────────────────────────────────
+//
+// CRR: When multiple voices share coherence, the shared C
+// manifests as a standing wave pattern. In the real world this
+// is purely acoustic, but we render it as visible warmth — 
+// the "felt" coherence of group singing made into light.
+//
+// Physics analogy: cymatics. When a vibrating plate accumulates
+// sufficient amplitude (C > Ω), powder arranges into nodal patterns.
+// Our glow is the same: vocal coherence → visible resonance pattern.
+//
+// Visual: a soft elliptical halo above the group of humans,
+// with gentle pulsing at the syllable rate of the chant.
+// Colour shifts from warm amber (low coherence) to near-white
+// (maximum shared coherence before rupture).
+//
+
+function drawChantGlow(fireIntensity){
+  // Only show when chant is active and audible
+  if(!fireChant.active||!fireChant.masterGain)return;
+  const chantLevel=fireChant.masterGain.gain.value;
+  if(chantLevel<0.01||fireIntensity<0.05)return;
+
+  const fx=W*FIRE_X_FRAC, fy=H*0.86;
+  const fi=fireIntensity;
+
+  // Glow intensity tracks chant level — more voices = brighter
+  const intensity=clamp(chantLevel*3,0,1);
+
+  // Pulsation at ~breath rate — the CRR cycle of inhale/exhale
+  // ~4-5 Hz syllable modulation visible as subtle brightness oscillation
+  const breathPulse=0.7+0.3*fsin(simTime*4.2);
+  const slowPulse=0.85+0.15*fsin(simTime*0.8); // slower macro-breathing
+
+  const alpha=intensity*fi*breathPulse*slowPulse*0.08;
+  if(alpha<0.003)return;
+
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+
+  // Spread of the glow depends on people count — larger group = wider halo
+  const nPeople=murmurPeopleCount;
+  const spreadW=W*(0.06+min(nPeople,200)*0.0003);
+  const spreadH=H*0.04;
+  const glowY=fy-H*0.07; // above the heads
+
+  // Inner warm glow — amber/gold
+  const innerG=ctx.createRadialGradient(fx,glowY,0,fx,glowY,spreadW);
+  // Colour shifts with intensity: amber → gold → near-white at peak
+  const r=lerp(220,240,intensity);
+  const g=lerp(140,200,intensity);
+  const b=lerp(50,140,intensity);
+  innerG.addColorStop(0,`rgba(${r|0},${g|0},${b|0},${alpha*1.5})`);
+  innerG.addColorStop(0.3,`rgba(${r|0},${g|0},${b|0},${alpha*0.7})`);
+  innerG.addColorStop(0.7,`rgba(${r|0},${(g-20)|0},${(b-20)|0},${alpha*0.2})`);
+  innerG.addColorStop(1,'transparent');
+  ctx.fillStyle=innerG;
+  ctx.beginPath();
+  ctx.ellipse(fx,glowY,spreadW,spreadH*(1+intensity*0.5),0,0,PI2);
+  ctx.fill();
+
+  // Outer halo — wider, cooler, representing the acoustic field edge
+  const outerAlpha=alpha*0.3;
+  const outerG=ctx.createRadialGradient(fx,glowY,spreadW*0.3,fx,glowY,spreadW*1.8);
+  outerG.addColorStop(0,`rgba(200,180,140,${outerAlpha})`);
+  outerG.addColorStop(1,'transparent');
+  ctx.fillStyle=outerG;
+  ctx.beginPath();
+  ctx.ellipse(fx,glowY,spreadW*1.8,spreadH*1.5,0,0,PI2);
+  ctx.fill();
+
+  // Standing wave nodes — subtle brightness variations along the arc
+  // CRR: these are the nodal patterns of shared coherence
+  if(intensity>0.3){
+    const nNodes=3+floor(intensity*4);
+    for(let i=0;i<nNodes;i++){
+      const nodeAngle=PI+PI*(i/(nNodes-1)); // semicircle above fire
+      const nodeR=spreadW*0.7;
+      const nx=fx+cos(nodeAngle)*nodeR;
+      const ny=glowY+sin(nodeAngle)*nodeR*0.4;
+      const nodeAlpha=alpha*0.5*abs(fsin(simTime*3+i*PHI));
+      const nodeSz=3+intensity*4;
+      const ng=ctx.createRadialGradient(nx,ny,0,nx,ny,nodeSz*3);
+      ng.addColorStop(0,`rgba(255,220,160,${nodeAlpha})`);
+      ng.addColorStop(1,'transparent');
+      ctx.fillStyle=ng;
+      ctx.beginPath();ctx.arc(nx,ny,nodeSz*3,0,PI2);ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
+function initPad(){
+  if(!ac||padVoices.active)return;
+  padVoices.masterGain=ac.createGain();padVoices.masterGain.gain.value=0;
+  padVoices.masterGain.connect(guitarGain);padVoices.active=true;
+}
+function setPadChord(midis,gain,trans){
+  if(!ac)return;
+  if(!padVoices.active)initPad();
+  const t=ac.currentTime;const dur=trans||1.5;
+  for(const v of padVoices.oscs){try{v.o1.stop(t+dur+0.1);v.o2.stop(t+dur+0.1);v.g.gain.setTargetAtTime(0,t,dur*0.3)}catch(e){}}
+  padVoices.oscs=[];
+  padVoices.masterGain.gain.cancelScheduledValues(t);
+  padVoices.masterGain.gain.setValueAtTime(padVoices.masterGain.gain.value,t);
+  padVoices.masterGain.gain.linearRampToValueAtTime(gain,t+dur);
+  for(const midi of midis){
+    if(midi<=0)continue;
+    const freq=midiToFreq(midi);
+    const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=freq-0.25;
+    const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq+0.25;
+    const g=ac.createGain();g.gain.value=0.07;
+    o1.connect(g);o2.connect(g);g.connect(padVoices.masterGain);
+    o1.start(t);o2.start(t);
+    padVoices.oscs.push({o1,o2,g});
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §3  COMPOSITION — "Nocturne" — key of B minor
+// ═══════════════════════════════════════════════════════════════════
+//
+// Musical DNA: Radiohead (tension, texture, delayed release) ×
+// Florence (soaring dynamics, primal) × Bat for Lashes (dark beauty,
+// nocturnal) × post-rock (crescendo, tremolo, walls of sound).
+//
+// THE MACRO CRR CYCLE:
+//   TWILIGHT (0-31)     │ Last light dying. C ≈ 0.
+//   EMERGENCE (32-63)   │ Stars appear. Bats emerge. C begins.
+//   GATHERING (64-111)  │ Night deepens. Humans at fire. C builds.
+//   ASCENT (112-159)    │ Fire blazes. Bats swarm. C → Ω.
+//   BLAZE (160-191)     │ Maximum fire. Cosmic awareness. C ≈ Ω.
+//   RUPTURE (192-207)   │ δ(now). Owl strikes. Everything breaks.
+//   STARLIGHT (208-239) │ Stars sing. Human choir. R begins.
+//   EMBERS (240-279)    │ R(memory). Fire dies. Stars persist.
+//   STILLNESS (280-312) │ Pre-dawn. R → 0. Cycle complete.
+
+// Key of B minor — darker, more nocturnal
+const Bm  =[23,35,47,54,59,66]; // B0,B1,B2,F#3,B3,F#4
+const G   =[19,31,43,55,59,67]; // G0,G1,G2,G3,B3,G4
+const D   =[26,38,50,54,57,62]; // D1,D2,D3,F#3,A3,D4
+const A   =[21,33,45,52,57,61]; // A0,A1,A2,E3,A3,C#4
+const Em  =[28,40,52,55,59,64]; // E1,E2,E3,G3,B3,E4
+const F_s =[30,42,54,57,61,66]; // F#1,F#2,F#3,A3,C#4,F#4
+const Gm7 =[19,31,43,50,55,65]; // G,G,G,D,G,F
+const Bm7 =[23,35,47,54,57,66]; // Bm add A
+const Gmaj7=[19,31,43,55,59,66]; // G add F#
+const Em7 =[28,40,52,55,59,62]; // Em add D
+
+const padBm=[47,54,59,66];
+const padG=[43,55,59,67];
+const padD=[50,54,57,62];
+const padA=[45,52,57,61];
+const padEm=[52,55,59,64];
+const padFs=[54,57,61,66];
+const padGm7=[43,50,55,65];
+
+const SECTIONS=[
+  {name:'SILENCE',    start:0,   end:0,   label:'· · ·'},
+  {name:'TWILIGHT',   start:0,   end:32,  label:'last light'},
+  {name:'EMERGENCE',  start:32,  end:64,  label:'the bats stir'},
+  {name:'GATHERING',  start:64,  end:112, label:'around the fire'},
+  {name:'ASCENT',     start:112, end:160, label:'walls of night'},
+  {name:'BLAZE',      start:160, end:192, label:'the fire'},
+  {name:'RUPTURE',    start:192, end:208, label:'δ(now)'},
+  {name:'STARLIGHT',  start:208, end:240, label:'the stars sing'},
+  {name:'EMBERS',     start:240, end:280, label:'R(memory)'},
+  {name:'STILLNESS',  start:280, end:312, label:'return to silence'},
+];
+const TOTAL_BEATS=312;
+
+function buildSequence(){
+  const E=[];let beat=0;
+  function trem(ch,b,v,d,rate){for(const m of[ch[2],ch[3],ch[4]]){E.push({beat:b,midi:m,velocity:v,duration:d,type:'tremolo',rate:rate||5})}}
+  function clean(ch,b,pat,v,d){for(let i=0;i<pat.length;i++){const ni=pat[i];if(ni<0)continue;E.push({beat:b+i*0.5,midi:ch[ni%ch.length],velocity:v*(i===0?1:0.8+random()*0.2),duration:d,type:'clean'})}}
+  function bass(ch,b,v,d){E.push({beat:b,midi:ch[0],velocity:v,duration:d,type:'bass'})}
+  function deepBass(ch,b,v,d){E.push({beat:b,midi:ch[0]-12,velocity:v*0.4,duration:d,type:'bass'})}
+  function pad(notes,b,g,d){E.push({beat:b,type:'pad',padNotes:notes,padGain:g,duration:d})}
+  function drone(b,g,moon,d){E.push({beat:b,type:'drone',droneGain:g,moonPhase:moon,duration:d})}
+  function bats(b,v,count){E.push({beat:b,type:'bats',velocity:v,count:count||3})}
+  function owl(b,v){E.push({beat:b,type:'owl',velocity:v})}
+  function stars(b,g,d){E.push({beat:b,type:'stars',starGain:g,duration:d})}
+  function section(b,name){E.push({beat:b,type:'section',sectionName:name})}
+  function fire(b,v){E.push({beat:b,type:'fire',velocity:v})}
+  function murmur(b,g,d){E.push({beat:b,type:'murmur',murmurGain:g,duration:d})}
+  function murmurSilence(b,d){E.push({beat:b,type:'murmurSilence',duration:d})}
+  function meteor(b){E.push({beat:b,type:'meteor'})}
+  function chant(b,chord,gain,voices,dur){E.push({beat:b,type:'chant',chantChord:chord,chantGain:gain,chantVoices:voices,duration:dur||4})}
+  function chantSilence(b,d){E.push({beat:b,type:'chantSilence',duration:d})}
+  function moonbowEv(b,g,d){E.push({beat:b,type:'moonbow',moonbowGain:g,duration:d})}
+
+  // ═══ TWILIGHT (0-31): Last light fading ═══
+  section(0,'last light');
+  drone(0, 0.02, 0.05, 32);
+  for(let i=0;i<8;i++){
+    E.push({beat:i*4,midi:Bm[4+floor(random()*2)],velocity:0.05+i*0.007,duration:6,type:'clean'});
+    if(i>2)E.push({beat:i*4+2,midi:Bm[3],velocity:0.03+i*0.004,duration:4,type:'clean'});
+  }
+  bats(10, 0.08, 1);
+  bats(18, 0.1, 1);
+  bats(26, 0.12, 2);
+  E.push({beat:0,type:'wind',velocity:0.04});
+
+  beat=32;
+  // ═══ EMERGENCE (32-63): Stars appear, bats emerge ═══
+  section(32,'the bats stir');
+  drone(32, 0.06, 0.2, 32);
+  const emergeChords=[Bm,G,D,Bm, Em,G,Bm,G];
+  const emergePads=[padBm,padG,padD,padBm, padEm,padG,padBm,padG];
+  for(let i=0;i<8;i++){
+    const v=0.07+i*0.01;
+    clean(emergeChords[i],beat,[2,3,4,-1,3,-1,-1,-1],v,3);
+    if(i%2===0)pad(emergePads[i],beat,0.04+i*0.005,7);
+    bass(emergeChords[i],beat,v*0.5,3.5);
+    bats(beat+1+random()*2, 0.1+i*0.01, 1+floor(i/3));
+    if(i>=4)fire(beat, 0.05+i*0.02);
+    beat+=4;
+  }
+  E.push({beat:32,type:'wind',velocity:0.06});
+
+  beat=64;
+  // ═══ GATHERING (64-111): Night deepens, around the fire ═══
+  section(64,'around the fire');
+  drone(64, 0.12, 0.4, 48);
+  fire(64, 0.2);
+  // Distant conversation begins — murmur of humans warming by fire
+  murmur(64, 0.08, 8);  // quiet at first, distant talk
+  murmur(80, 0.14, 6);  // growing warmer as fire builds
+  // Chant begins — one voice hums "Ah", then a second joins
+  // CRR: shared vocal coherence begins building C
+  chant(72, Bm, 0.06, 1, 3);    // solo voice finds the root
+  chant(80, G,  0.08, 2, 3);    // second voice joins on G
+  chant(88, D,  0.09, 2, 3);    // two voices, growing confidence
+  chant(96, Em, 0.10, 2, 3);    // warmer
+  chant(104,Bm, 0.11, 3, 3);   // third voice — the circle grows
+  const gathChords=[Bm,G,D,A, Em,G,Bm7,D, Bm,Gmaj7,D,A];
+  const gathPads=[padBm,padG,padD,padA, padEm,padG,padBm,padD, padBm,padG,padD,padA];
+  for(let i=0;i<12;i++){
+    const grow=0.1+i*0.014;
+    if(i>=2){trem(gathChords[i],beat,grow*0.55,5,4.5+i*0.15)}
+    else{clean(gathChords[i],beat,[2,4,3,5,4,-1,3,-1],grow*0.85,2)}
+    bass(gathChords[i],beat,grow*0.75,3.5);
+    if(i>=4)deepBass(gathChords[i],beat,grow,3.8);
+    if(i%2===0)pad(gathPads[i],beat,0.05+i*0.004,7);
+    bats(beat+random()*3, 0.13+i*0.008, 2+floor(i/4));
+    if(i>6&&i%2===0)bats(beat+2, 0.1, 3);
+    fire(beat, 0.2+i*0.03);
+    beat+=4;
+  }
+  E.push({beat:64,type:'wind',velocity:0.08});
+
+  beat=112;
+  // ═══ ASCENT (112-159): Fire blazes, bats swarm, walls of night ═══
+  section(112,'walls of night');
+  drone(112, 0.2, 0.7, 48);
+  fire(112, 0.5);
+  // Conversation grows — more animated, laughter, voices overlap
+  murmur(112, 0.2, 8);
+  murmur(140, 0.26, 6);
+  // Chant swells — 3 then 4 voices, following the chord progression
+  // CRR: C(shared) increases with each voice joining
+  chant(112, Bm, 0.14, 3, 3);
+  chant(120, G,  0.16, 3, 3);
+  chant(128, D,  0.18, 4, 3);   // 4th voice joins — richer harmony
+  chant(136, Em, 0.20, 4, 3);
+  chant(144, D,  0.22, 4, 3);
+  chant(152, A,  0.24, 4, 3);   // building toward blaze
+  const ascChords=[Bm,G,D,Em, Bm,G,D,A, Em,F_s,G,A];
+  const ascPads=[padBm,padG,padD,padEm, padBm,padG,padD,padA, padEm,padFs,padG,padA];
+  for(let i=0;i<12;i++){
+    const grow=0.22+i*0.022;
+    trem(ascChords[i],beat,grow*0.65,5.5,5.5+i*0.12);
+    if(i>=4){const ch2=ascChords[i].map(m=>m+12);trem(ch2,beat+0.1,grow*0.25,4.5,6.5)}
+    bass(ascChords[i],beat,grow*0.85,3.5);
+    deepBass(ascChords[i],beat,grow*0.65,4);
+    pad(ascPads[i],beat,0.07+i*0.005,7);
+    bats(beat+random()*2, 0.16+i*0.007, 3+floor(i/3));
+    if(i%3===0)bats(beat+1, 0.13, 4);
+    fire(beat, 0.5+i*0.03);
+    if(i>=8){E.push({beat:beat,type:'wind',velocity:0.08+((i-8)/4)*0.04})}
+    beat+=4;
+  }
+  E.push({beat:112,type:'wind',velocity:0.05});
+  E.push({beat:140,type:'wind',velocity:0.1});
+
+  beat=160;
+  // ═══ BLAZE (160-191): Maximum fire, cosmic awareness ═══
+  section(160,'the fire');
+  drone(160, 0.18, 0.6, 32);
+  fire(160, 0.7);
+  // Conversation at its warmest — fire-lit faces, easy laughter
+  murmur(160, 0.3, 6);
+  murmur(180, 0.25, 4); // begins to quiet — awe builds
+  // Full chant — all 5 voices, maximum shared coherence
+  // CRR: C approaches Ω — the group becomes one voice
+  chant(160, Em,  0.28, 5, 3);  // all voices, full warmth
+  chant(168, F_s, 0.30, 5, 3);  // tension — F# minor feel
+  chant(176, G,   0.28, 5, 3);  // release
+  chant(184, Bm,  0.25, 5, 4);  // sustained root — pre-rupture. Holding breath.
+  const blazeChords=[Em,F_s,G,Bm, Em7,F_s,Bm,F_s];
+  for(let i=0;i<8;i++){
+    const v=0.32-i*0.004;
+    const fireBuild=0.7+i*0.04;
+    trem(blazeChords[i],beat,v*0.6,5,6.5+i*0.15);
+    bass(blazeChords[i],beat,v*0.8,3.5);
+    deepBass(blazeChords[i],beat,v*0.6,4);
+    pad([blazeChords[i][2],blazeChords[i][3],blazeChords[i][4]],beat,0.1,7);
+    fire(beat, fireBuild);
+    if(i<5)bats(beat+2, 0.08-i*0.01, 2);
+    if(i%2===0)E.push({beat:beat,type:'wind',velocity:0.12+i*0.015});
+    beat+=4;
+  }
+  E.push({beat:160,type:'wind',velocity:0.12});
+
+  beat=192;
+  // ═══ RUPTURE (192-207): δ(now) — the owl strikes ═══
+  section(192,'δ(now)');
+  // CONVERSATION STOPS — δ is silence. Everyone looks up.
+  murmurSilence(192, 0.15); // instant hush — the sky tears open
+  chantSilence(192, 0.2);   // chant cuts — breath catches
+  // SHOOTING STAR — CRR meteoroid BLASTS across the sky
+  meteor(192);
+  owl(192, 0.9);
+  for(const m of Bm)E.push({beat:192,midi:m,velocity:0.45,duration:8,type:'tremolo',rate:8});
+  for(const m of Bm.map(n=>n+12))E.push({beat:192,midi:m,velocity:0.28,duration:6,type:'tremolo',rate:9});
+  deepBass(Bm,192,0.55,8);
+  bass(Bm,192,0.45,8);
+  bats(192.5, 0.22, 8);
+  bats(193, 0.18, 6);
+  bats(194, 0.15, 4);
+  fire(192, 0.95);
+  E.push({beat:192,type:'wind',velocity:0.25});
+  for(let i=0;i<4;i++){
+    trem(Bm,192+i*4,(0.38-i*0.09),5.5-i,8);
+    fire(192+i*4, 0.95-i*0.15);
+  }
+  stars(200, 0.15, 6);
+  E.push({beat:200,type:'choirBuild',gain:0.3,duration:14});
+  fire(204, 0.5);
+  beat=208;
+
+  // ═══ STARLIGHT (208-239): The stars sing through human voices ═══
+  section(208,'the stars sing');
+  drone(208, 0.2, 0.75, 32);
+  stars(208, 0.4, 8);
+  fire(208, 0.4);
+  const starChords=[G,D,Em,Bm, G,D,A,Bm];
+  const starPads=[padG,padD,padEm,padBm, padG,padD,padA,padBm];
+  E.push({beat:210,type:'choirMorph',vowels:['Mm','Oo','Ah','Eh','Ah'],duration:26});
+  for(let i=0;i<8;i++){
+    const v=0.14+i*0.01;
+    clean(starChords[i],beat,[3,4,5,4,3,5,4,-1],v*0.75,3);
+    if(i>=3)trem(starChords[i],beat,v*0.3,5,3.5);
+    bass(starChords[i],beat,v*0.45,3.5);
+    pad(starPads[i],beat,0.09+i*0.004,7);
+    stars(beat, 0.38+i*0.012, 4);
+    bats(beat+1, 0.12+i*0.004, 2+floor(i/3));
+    fire(beat, max(0.15, 0.4-i*0.03));
+    beat+=4;
+  }
+  E.push({beat:208,type:'wind',velocity:0.06});
+  // Lunar halo appears — high-altitude ice crystals catch the moon's light
+  // CRR: atmospheric cooling (C) → crystallisation (δ) →
+  // ordered ice lattice (R) → 22° halo as visible spectral regeneration
+  moonbowEv(214, 0.8, 20);  // slow ethereal fade in
+  moonbowEv(234, 0, 6);     // fades as cirrus thins
+
+  beat=240;
+  // ═══ EMBERS (240-279): R(memory) — fire fading, stars persist ═══
+  section(240,'R(memory)');
+  drone(240, 0.12, 0.6, 40);
+  stars(240, 0.16, 10);
+  E.push({beat:240,type:'choirMorph',vowels:['Ah','Oh','Oo','Mm'],duration:30});
+  stars(250, 0.1, 8);
+  stars(260, 0.05, 10);
+  stars(270, 0.02, 10);
+  const embChords=[Bm,G,D,Bm, Em,G,D,A, Bm,G];
+  const embPads=[padBm,padG,padD,padBm, padEm,padG,padD,padA, padBm,padG];
+  for(let i=0;i<10;i++){
+    const fade=0.2-i*0.012;
+    if(i<6)trem(embChords[i],beat,fade*0.45,5,4.5);
+    clean(embChords[i],beat,[2,4,3,-1,5,-1,4,-1],fade*0.65,2.5);
+    bass(embChords[i],beat,fade*0.55,3.5);
+    if(i%2===0)pad(embPads[i],beat,0.05,7);
+    bats(beat+1+random()*2, 0.08+random()*0.04, 1+floor(random()*2));
+    fire(beat, max(0.05, 0.15-i*0.01));
+    beat+=4;
+  }
+  E.push({beat:240,type:'wind',velocity:0.04});
+
+  beat=280;
+  // ═══ STILLNESS (280-311): Pre-dawn, return to silence ═══
+  section(280,'return to silence');
+  drone(280, 0.04, 0.2, 32);
+  E.push({beat:278,type:'choirDissolve',duration:30});
+  for(let i=0;i<8;i++){
+    const fade=0.1-i*0.01;
+    const ch=[Bm,G,D,Bm, Em,G,Bm,Bm][i];
+    clean(ch,beat,[2,4,-1,3,-1,-1,-1,-1],max(0.02,fade),4);
+    if(i<4)bass(ch,beat,fade*0.35,3.5);
+    if(i<2)pad([ch[2],ch[3],ch[4]],beat,0.025,7);
+    if(i<5)bats(beat+2, max(0.02, 0.06-i*0.012), 1);
+    fire(beat, max(0.01, 0.05-i*0.006));
+    beat+=4;
+  }
+  drone(308, 0.01, 0.05, 4);
+  E.push({beat:280,type:'wind',velocity:0.02});
+  E.push({beat:308,type:'wind',velocity:0.005});
+
+  E.sort((a,b)=>a.beat-b.beat);
+  return E;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §4  VISUAL SCENE — Canvas rendering
+// ═══════════════════════════════════════════════════════════════════
+const canvas=document.getElementById('viz');
+const ctx=canvas.getContext('2d');
+let W,H;
+
+const TN=512;
+const ST=new Float32Array(TN),CT=new Float32Array(TN);
+for(let i=0;i<TN;i++){const a=i/TN*PI2;ST[i]=sin(a);CT[i]=cos(a)}
+const fsin=a=>ST[((a%PI2+PI2)%PI2)/PI2*TN|0];
+const fcos=a=>CT[((a%PI2+PI2)%PI2)/PI2*TN|0];
+const lerp=(a,b,t)=>a+(b-a)*t;
+const clamp=(v,a,b)=>max(a,min(b,v));
+
+let simTime=0;
+
+const CELL=45;
+let hash=new Map();
+const hkey=(x,y)=>((x/CELL|0)*10000+(y/CELL|0));
+function buildHash(bs){
+  hash.clear();
+  for(let i=0;i<bs.length;i++){
+    const b=bs[i];if(b.st!==0)continue;
+    const k=hkey(b.x,b.y);let arr=hash.get(k);
+    if(!arr){arr=[];hash.set(k,arr)}arr.push(i);
+  }
+}
+const _cands=new Int16Array(1024);
+let _candLen=0;
+function getCandidates(x,y){
+  _candLen=0;
+  const cx=x/CELL|0,cy=y/CELL|0;
+  for(let dx=-2;dx<=2;dx++){for(let dy=-2;dy<=2;dy++){
+    const arr=hash.get((cx+dx)*10000+(cy+dy));
+    if(arr)for(let i=0;i<arr.length;i++){if(_candLen<1024)_cands[_candLen++]=arr[i]}
+  }}
+}
+
+// ── NIGHT ATMOSPHERE ──
+// CRR: The night sky IS coherence made visible — atmospheric
+// scattering removes blue light, leaving deep indigo/black.
+// The sky gradient shows the depth of night through colour temperature.
+function drawAtmosphere(moonPhase,fireI){
+  const t=moonPhase;
+  // Night sky — deep blues transitioning through moon rise
+  const deepTop={r:3,g:4,b:12},deepMid={r:6,g:8,b:22},deepHor={r:12,g:14,b:30};
+  const moonTop={r:8,g:12,b:35},moonMid={r:14,g:18,b:45},moonHor={r:25,g:28,b:55};
+  const fullTop={r:12,g:18,b:48},fullMid={r:20,g:28,b:60},fullHor={r:35,g:38,b:65};
+  const lc=(a,b,t)=>({r:lerp(a.r,b.r,t),g:lerp(a.g,b.g,t),b:lerp(a.b,b.b,t)});
+  let bT,bM,bH;
+  if(t<0.3){const p=t/0.3,s=p*p*(3-2*p);bT=lc(deepTop,moonTop,s);bM=lc(deepMid,moonMid,s);bH=lc(deepHor,moonHor,s)}
+  else{const p=(t-0.3)/0.7,s=p*p*(3-2*p);bT=lc(moonTop,fullTop,s);bM=lc(moonMid,fullMid,s);bH=lc(moonHor,fullHor,s)}
+  // Fire glow on horizon
+  const fG=fireI*0.3;
+  const top=bT,mid=bM;
+  const hor={r:bH.r+fG*40,g:bH.g+fG*15,b:bH.b-fG*5};
+  const g=ctx.createLinearGradient(0,0,0,H*0.88);
+  g.addColorStop(0,`rgb(${top.r|0},${top.g|0},${top.b|0})`);
+  g.addColorStop(0.35,`rgb(${mid.r|0},${mid.g|0},${mid.b|0})`);
+  g.addColorStop(0.7,`rgb(${hor.r|0},${hor.g|0},${hor.b|0})`);
+  g.addColorStop(1,`rgb(${max(0,hor.r*.9)|0},${max(0,hor.g*.85)|0},${max(0,hor.b*.8)|0})`);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+}
+
+// ── STARS ──
+// CRR: Each star twinkles through atmospheric scintillation —
+// a CRR process where atmospheric coherence cells (Fried parameter r₀)
+// cause phase fluctuations in starlight.
+//
+// PHYSICS SOLVED BY CRR:
+//   Stellar intensity: I(t) = I₀ × (1 + σ_I × sin(2πf_s × t + φ))
+//   where σ_I = scintillation index ∝ D^(7/6) / r₀^(7/6)
+//   f_s = characteristic frequency ∝ v_wind / r₀ (~10-100Hz)
+//   For human eye integration time (~50ms), we perceive:
+//     I_perceived = <I(t)>_50ms modulated by CRR micro-ruptures
+//
+//   Bright stars: low σ_I → gentle twinkle (Ω large, rare ruptures)
+//   Faint stars: high σ_I → rapid flicker (Ω small, frequent ruptures)
+//   Colour: chromatic scintillation → red/blue flashes as atmosphere
+//     acts as weak prism. CRR predicts colour changes correlate
+//     with scintillation phase: C phase = bluish, R phase = reddish.
+//
+//   The Airy disk of each star (diffraction pattern from pupil)
+//   has angular radius θ = 1.22λ/D where D = pupil diameter (~7mm dark).
+//   Stars appear as POINT SOURCES with diffraction spikes from
+//   the eye's own structure — this creates the "twinkle" geometry.
+//
+let stars_arr=[];
+function initStars(){
+  stars_arr=[];
+  // Generate stars with CRR-governed properties
+  // Stellar magnitude → apparent brightness → scintillation behaviour
+  for(let i=0;i<280;i++){
+    const x=random()*W;
+    const y=random()*H*0.78; // Above horizon
+    // Magnitude: brighter stars are rarer
+    const mag=random()<0.02?0.5+random():random()<0.1?1+random()*1.5:2+random()*3;
+    // Brightness from magnitude: I = 10^(-0.4*mag) relative
+    const brightness=pow(10,-0.4*mag);
+    // Base size: brighter = slightly larger (diffraction limit)
+    const baseSize=max(0.4, 2.5-mag*0.35);
+    // Colour temperature (Kelvin) → RGB
+    const temp=3000+random()*25000; // 3000K (red) to 28000K (blue-violet)
+    let sr,sg,sb;
+    if(temp<5000){sr=255;sg=lerp(120,230,temp/5000);sb=lerp(60,200,temp/5000)}
+    else if(temp<8000){sr=lerp(255,220,(temp-5000)/3000);sg=lerp(230,240,(temp-5000)/3000);sb=lerp(200,255,(temp-5000)/3000)}
+    else{sr=lerp(220,180,(temp-8000)/20000);sg=lerp(240,210,(temp-8000)/20000);sb=255}
+    // CRR scintillation: Ω scales with brightness
+    // Bright stars = large Ω = slow gentle twinkle
+    // Faint stars = small Ω = rapid flickering
+    const scintOmega=0.3+brightness*2;
+    const scintFreq=2+random()*8; // Hz
+    stars_arr.push({
+      x,y,mag,brightness,baseSize,
+      r:sr,g:sg,b:sb,temp,
+      omega:scintOmega,freq:scintFreq,
+      phase:random()*TAU,
+      crr:new CRR(scintOmega,0.8+random()*0.4),
+      // Diffraction spike angle (from eye structure)
+      spikeAngle:random()*PI,
+      spikeCount:random()<0.3?6:4
+    });
+  }
+  // Sort by brightness so we draw faint ones first
+  stars_arr.sort((a,b)=>a.brightness-b.brightness);
+}
+
+function drawStars(moonPhase){
+  const moonDim=1-moonPhase*0.15; // Bright moon dims faint stars
+  const t=simTime;
+  for(const s of stars_arr){
+    // CRR scintillation
+    s.crr.update(0.016,0.5+random()*0.5);
+    // Atmospheric scintillation: intensity modulation
+    // σ_I increases for fainter stars (smaller coherence area)
+    const sigma=0.15/(s.brightness+0.1);
+    const scintMod=1+sigma*sin(t*s.freq*TAU+s.phase)*s.crr.smoothAmp;
+    const intensity=clamp(s.brightness*scintMod*moonDim,0,1);
+    if(intensity<0.005)continue;
+    // Chromatic scintillation: colour shifts with CRR phase
+    // C phase: slightly blue shift. R phase: slightly red shift.
+    const crrPhase=s.crr.st;
+    let cr=s.r,cg=s.g,cb=s.b;
+    if(crrPhase===0){cb=min(255,cb+15);cr=max(0,cr-8)} // coherence = blue
+    else if(crrPhase===2){cr=min(255,cr+15);cb=max(0,cb-8)} // regen = red
+
+    const alpha=min(1,intensity*2.5);
+    const sz=s.baseSize*(0.7+scintMod*0.3);
+
+    // Core point
+    ctx.globalAlpha=alpha*0.9;
+    ctx.fillStyle=`rgb(${cr|0},${cg|0},${cb|0})`;
+    ctx.beginPath();ctx.arc(s.x,s.y,sz,0,PI2);ctx.fill();
+
+    // Glow (Airy disk first ring)
+    if(s.brightness>0.15){
+      const glowR=sz*3;
+      const gg=ctx.createRadialGradient(s.x,s.y,sz*0.5,s.x,s.y,glowR);
+      gg.addColorStop(0,`rgba(${cr|0},${cg|0},${cb|0},${alpha*0.25})`);
+      gg.addColorStop(1,'transparent');
+      ctx.fillStyle=gg;ctx.beginPath();ctx.arc(s.x,s.y,glowR,0,PI2);ctx.fill();
+    }
+
+    // Diffraction spikes for bright stars
+    if(s.brightness>0.5&&intensity>0.2){
+      ctx.globalAlpha=alpha*0.15;
+      ctx.strokeStyle=`rgba(${cr|0},${cg|0},${cb|0},${alpha*0.2})`;
+      ctx.lineWidth=0.5;
+      const spikeLen=sz*(4+s.brightness*6);
+      for(let sp=0;sp<s.spikeCount;sp++){
+        const a=s.spikeAngle+sp*PI/s.spikeCount*2;
+        ctx.beginPath();
+        ctx.moveTo(s.x-cos(a)*spikeLen,s.y-sin(a)*spikeLen);
+        ctx.lineTo(s.x+cos(a)*spikeLen,s.y+sin(a)*spikeLen);
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.globalAlpha=1;
+}
+
+// ── MOON ──
+// CRR: Moon luminance solved from first principles.
+//
+// PHYSICS:
+//   Lunar apparent magnitude: m_V ≈ -12.7 (full moon)
+//   Illuminance at Earth: 0.05-0.3 lux
+//   Albedo: 0.12 (geometric), varies with lunar maria/highlands
+//   Colour: slightly warm (yellowish-white) from Rayleigh scattering
+//     of reflected sunlight through Earth's atmosphere
+//
+//   CRR governs lunar surface brightness variation:
+//     Maria (dark basalt) = LOW coherence regions (low albedo ~0.07)
+//     Highlands (lighter) = HIGH coherence regions (albedo ~0.15)
+//     The maria/highland boundary IS a geological CRR rupture:
+//     basaltic lava flows (δ events) that ruptured the crust
+//
+//   Earthshine: the dark side faintly visible from sunlight
+//   reflected off Earth → reflected off Moon → back to observer.
+//   Double reflection = double CRR filtering (albedo_Earth × albedo_Moon)
+//
+function drawMoon(moonPhase){
+  const cx=W*0.22+fsin(moonPhase*0.2)*W*0.02;
+  const cy=H*(0.82-moonPhase*0.55);
+  const r=H*0.065;
+  const int=(0.5+moonPhase*0.5);
+
+  ctx.save();
+
+  // 1. Atmospheric glow BEHIND the moon disk (lighter mode)
+  ctx.globalCompositeOperation='lighter';
+  for(let i=2;i>=0;i--){
+    const gr=ctx.createRadialGradient(cx,cy,r*0.3,cx,cy,r*(2+i*3));
+    const a=0.025*int/(i+1);
+    gr.addColorStop(0,`rgba(180,190,220,${a})`);
+    gr.addColorStop(0.3,`rgba(140,150,200,${a*0.5})`);
+    gr.addColorStop(1,'transparent');
+    ctx.fillStyle=gr;
+    ctx.fillRect(cx-r*8,cy-r*8,r*16,r*16);
+  }
+
+  // 2. OPAQUE disk — source-over to COVER stars behind the moon
+  // CRR: the moon IS a coherent body — it occludes, not blends
+  ctx.globalCompositeOperation='source-over';
+  // Dark base fills the entire moon circle opaquely
+  ctx.fillStyle=`rgba(10,12,24,${min(1,int*1.2)})`;
+  ctx.beginPath();ctx.arc(cx,cy,r,0,PI2);ctx.fill();
+  // Lunar surface on top
+  const cg=ctx.createRadialGradient(cx-r*0.15,cy-r*0.1,0,cx,cy,r);
+  cg.addColorStop(0,`rgba(220,225,235,${0.9*int})`);
+  cg.addColorStop(0.3,`rgba(200,205,218,${0.75*int})`);
+  cg.addColorStop(0.7,`rgba(160,165,185,${0.5*int})`);
+  cg.addColorStop(1,`rgba(100,105,130,${0.15*int})`);
+  ctx.fillStyle=cg;ctx.beginPath();ctx.arc(cx,cy,r,0,PI2);ctx.fill();
+
+  // 3. Maria (dark regions) — geological CRR rupture scars
+  ctx.globalCompositeOperation='multiply';
+  const mariaData=[
+    {x:-0.2,y:-0.15,r:0.25},  // Mare Imbrium
+    {x:0.1,y:0.05,r:0.18},    // Mare Serenitatis
+    {x:0.05,y:0.2,r:0.22},    // Mare Tranquillitatis
+    {x:-0.1,y:0.25,r:0.15},   // Mare Nectaris
+    {x:-0.3,y:0.05,r:0.12},   // Oceanus Procellarum
+    {x:0.15,y:-0.25,r:0.1},   // Mare Frigoris
+  ];
+  for(const m of mariaData){
+    const mx=cx+m.x*r*1.8,my=cy+m.y*r*1.8,mr=m.r*r*1.5;
+    const mg=ctx.createRadialGradient(mx,my,0,mx,my,mr);
+    mg.addColorStop(0,`rgba(90,95,110,${0.6*int})`);
+    mg.addColorStop(1,`rgba(140,145,165,${0.3*int})`);
+    ctx.fillStyle=mg;ctx.beginPath();ctx.arc(mx,my,mr,0,PI2);ctx.fill();
+  }
+
+  // 4. Earthshine — faint illumination of dark side
+  ctx.globalCompositeOperation='lighter';
+  const esg=ctx.createRadialGradient(cx+r*0.3,cy,r*0.2,cx,cy,r);
+  esg.addColorStop(0,'transparent');
+  esg.addColorStop(0.7,`rgba(40,50,80,${0.015*int})`);
+  esg.addColorStop(1,`rgba(30,40,70,${0.008*int})`);
+  ctx.fillStyle=esg;ctx.beginPath();ctx.arc(cx,cy,r,0,PI2);ctx.fill();
+
+  ctx.restore();
+  return{cx,cy};
+}
+
+// ── CLOUDS (thin night clouds) ──
+let clouds=[];
+function initClouds(){
+  clouds=[];
+  const cfgs=[{x:.15,y:.12,s:.1},{x:.5,y:.08,s:.07},{x:.78,y:.15,s:.11},{x:.35,y:.2,s:.06}];
+  for(const c of cfgs){
+    const pts=[];for(let i=0;i<8;i++){const a=i/8*PI2;pts.push({x:cos(a)*(0.4+random()*0.3),y:sin(a)*(0.4+random()*0.3)*0.3})}
+    clouds.push({x:c.x,y:c.y,s:c.s,pts,spd:0.00002+random()*0.00002,baseOp:0.06+random()*0.04});
+  }
+}
+function drawClouds(moonPhase){
+  for(const c of clouds){
+    c.x+=c.spd*16;if(c.x>1.25)c.x=-0.25;
+    const op=c.baseOp*(0.3+moonPhase*0.4);
+    if(op<0.01)continue;
+    ctx.save();ctx.translate(W*c.x,H*c.y);ctx.scale(W*c.s,W*c.s);
+    ctx.beginPath();ctx.moveTo(c.pts[0].x,c.pts[0].y);
+    for(let i=1;i<=c.pts.length;i++){const p=c.pts[i-1],q=c.pts[i%c.pts.length];ctx.quadraticCurveTo(p.x,p.y,(p.x+q.x)/2,(p.y+q.y)/2)}
+    ctx.closePath();
+    ctx.fillStyle=`rgba(30,35,55,${op})`;ctx.fill();ctx.restore();
+  }
+}
+
+// ── FIRE ──
+// CRR PLASMA PHYSICS:
+// Fire IS a CRR process: fuel molecules accumulate thermal energy (C),
+// reach ignition threshold (δ), release energy as photons (R).
+//
+// Blackbody radiation: T → colour via Planck's law
+//   Base embers: ~800K → deep red-orange
+//   Flames: ~1200-1500K → orange-yellow
+//   Hot tips: ~1800K → yellow-white
+//
+// Flame shape: turbulent convection creates coherent upward flow
+// that periodically ruptures into eddies. The CRR agent drives
+// these turbulence cycles, making the flame dance.
+//
+let fireParticles=[];
+const FIRE_X_FRAC=0.35; // Fire position (left-center of scene)
+function drawFire(fireIntensity){
+  if(fireIntensity<0.01)return;
+  const fx=W*FIRE_X_FRAC, fy=H*0.86;
+  const fW=W*0.06*fireIntensity, fH=H*0.12*fireIntensity;
+  const fi=fireIntensity;
+
+  // Fire glow on ground
+  const groundGlow=ctx.createRadialGradient(fx,fy,0,fx,fy,fW*4);
+  groundGlow.addColorStop(0,`rgba(212,90,42,${fi*0.08})`);
+  groundGlow.addColorStop(0.4,`rgba(180,60,20,${fi*0.03})`);
+  groundGlow.addColorStop(1,'transparent');
+  ctx.fillStyle=groundGlow;ctx.fillRect(fx-fW*4,fy-fH*2,fW*8,fH*4);
+
+  // Atmospheric glow
+  const atmoGlow=ctx.createRadialGradient(fx,fy-fH*0.5,0,fx,fy-fH*0.5,fW*8);
+  atmoGlow.addColorStop(0,`rgba(240,160,48,${fi*0.04})`);
+  atmoGlow.addColorStop(0.3,`rgba(212,90,42,${fi*0.015})`);
+  atmoGlow.addColorStop(1,'transparent');
+  ctx.fillStyle=atmoGlow;ctx.fillRect(0,0,W,H);
+
+  // Flame tongues — CRR-driven turbulent shapes
+  const nTongues=8+floor(fi*12);
+  for(let i=0;i<nTongues;i++){
+    const t=i/nTongues;
+    const xOff=(t-0.5)*fW*2;
+    // Turbulent displacement from CRR
+    const turbX=fsin(simTime*3+i*1.7)*fW*0.4*fi;
+    const turbY=fsin(simTime*2.3+i*2.1)*fH*0.2;
+    const tongueH=fH*(0.3+random()*0.7)*fi;
+    const tx=fx+xOff+turbX;
+    const ty=fy;
+
+    // Blackbody colour: base=red, tip=yellow-white
+    const heightFrac=tongueH/fH;
+    const r_c=lerp(200,255,heightFrac);
+    const g_c=lerp(40,220,heightFrac*heightFrac);
+    const b_c=lerp(10,120,heightFrac*heightFrac*heightFrac);
+
+    const tg=ctx.createLinearGradient(tx,ty,tx,ty-tongueH);
+    tg.addColorStop(0,`rgba(${r_c|0},${g_c|0},${b_c|0},${fi*0.4})`);
+    tg.addColorStop(0.5,`rgba(${r_c|0},${min(255,g_c+30)|0},${b_c|0},${fi*0.25})`);
+    tg.addColorStop(1,'transparent');
+    ctx.fillStyle=tg;
+    ctx.beginPath();
+    const w=fW*0.15*(0.5+random()*0.5);
+    ctx.moveTo(tx-w,ty);
+    ctx.quadraticCurveTo(tx-w*0.5+turbX*0.3,ty-tongueH*0.5,tx+turbX*0.5,ty-tongueH+turbY);
+    ctx.quadraticCurveTo(tx+w*0.5+turbX*0.3,ty-tongueH*0.5,tx+w,ty);
+    ctx.fill();
+  }
+
+  // Ember core (hot coals)
+  const coreGrad=ctx.createRadialGradient(fx,fy+2,0,fx,fy+2,fW*1.2);
+  coreGrad.addColorStop(0,`rgba(255,180,60,${fi*0.5})`);
+  coreGrad.addColorStop(0.4,`rgba(200,80,20,${fi*0.3})`);
+  coreGrad.addColorStop(1,'transparent');
+  ctx.fillStyle=coreGrad;ctx.beginPath();ctx.ellipse(fx,fy+2,fW*1.2,fW*0.3,0,0,PI2);ctx.fill();
+
+  // Sparks (ember particles rising)
+  if(fi>0.2){
+    for(let i=0;i<floor(fi*6);i++){
+      const sx=fx+(random()-0.5)*fW*2;
+      const sy=fy-random()*fH*1.5;
+      const sparkSize=0.5+random()*1.5;
+      const sparkAlpha=fi*(0.3+random()*0.5)*(1-(fy-sy)/(fH*1.5));
+      ctx.fillStyle=`rgba(255,${150+random()*100|0},${20+random()*40|0},${sparkAlpha})`;
+      ctx.beginPath();ctx.arc(sx,sy,sparkSize,0,PI2);ctx.fill();
+    }
+  }
+}
+
+// ── HUMANS AROUND FIRE ──
+// Figures gathered around the fire — larger, more present
+// CRR: Humans are the regenerative agents — they metabolise
+// the night's coherence through song and shared warmth.
+function drawHumans(fireIntensity){
+  if(fireIntensity<0.05)return;
+  const fx=W*FIRE_X_FRAC, fy=H*0.86;
+  const fi=fireIntensity;
+  const nPeople=murmurPeopleCount;
+
+  // Sway
+  const choirActive=starChoir.active&&starChoir.masterGain&&starChoir.masterGain.gain.value>0.01;
+  const murmurActive=fireMurmur.active&&fireMurmur.masterGain&&fireMurmur.masterGain.gain.value>0.01;
+  const chantActive=fireChant.active&&fireChant.masterGain&&fireChant.masterGain.gain.value>0.01;
+  const chantSway=(choirActive||murmurActive||chantActive)?fsin(simTime*1.2)*0.003:0;
+
+  const baseSize=H*0.055;
+
+  // People sit in concentric arcs AROUND the fire.
+  // Arc center: PI/2 (below fire = toward viewer in top-down→perspective).
+  // This spreads people LEFT and RIGHT of the fire at ground level.
+  // Minimum radius clears the fire flame area.
+  for(let i=0;i<nPeople;i++){
+    const row=i<8?0:i<22?1:i<50?2:i<120?3:4;
+    const rowStart=[0,8,22,50,120][row];
+    const rowCount=[8,14,28,70,880][row];
+    const idxInRow=i-rowStart;
+    const nInThisRow=min(rowCount,nPeople-rowStart);
+    if(nInThisRow<=0)break;
+
+    // For small groups: wider angular spread so they visibly surround the fire
+    // 5 people in row 0 should span ~180° (PI radians)
+    // More people per row → wider arc
+    const baseSpread=min(nInThisRow,8)<4?PI*0.7:PI*0.85;
+    const angleSpread=[baseSpread,PI*0.95,PI*1.05,PI*1.1,PI*1.15][row];
+    // Center angle: PI/2 = pointing down (toward viewer)
+    // So arc goes from roughly left to right of fire
+    const angle=PI*0.5-angleSpread*0.5 + angleSpread*(idxInRow+0.5)/nInThisRow;
+
+    // Radius: must clear the fire! Fire is ~W*0.06 wide.
+    // Row 0 minimum radius = W*0.09 (well clear of flames)
+    const minRadius=W*0.09;
+    const radius=minRadius+row*W*0.025;
+    const pseudoRand=fsin(i*137.508+row*42.1)*0.5+0.5;
+    const pseudoRand2=fsin(i*97.3+row*13.7)*0.5+0.5;
+    const jitterR=radius*(0.93+pseudoRand*0.14);
+    const jitterA=angle+(pseudoRand2-0.5)*0.06;
+
+    // Position: cos gives horizontal spread, sin gives vertical (perspective-flattened)
+    const hx=fx+cos(jitterA)*jitterR;
+    // Flatten Y heavily — we're looking at this from an angle
+    // Positive sin = below fire = closer to viewer = slightly lower on screen
+    const hy=fy+sin(jitterA)*jitterR*0.25+row*H*0.008;
+    const facing=hx<fx?1:-1;
+
+    const depthScale=[1.0,0.82,0.65,0.5,0.38][row];
+    const sizeVariation=0.85+pseudoRand*0.3;
+    const sz=baseSize*depthScale*sizeVariation;
+    const rowAlpha=row>2?max(0.3,1-row*0.15):1;
+    const isDetailed=i<50;
+
+    const sway=chantSway*(1+fsin(simTime*0.7+i*1.3)*0.5);
+    const swayX=sway*W*facing;
+
+    if(isDetailed){
+      ctx.fillStyle=`rgba(8,6,4,${0.88*fi*rowAlpha})`;
+      ctx.beginPath();
+      ctx.ellipse(hx+swayX,hy-sz*0.28,sz*0.28,sz*0.52,sway*3,0,PI2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(hx+facing*sz*0.04+swayX*1.3,hy-sz*0.88,sz*0.19,0,PI2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(hx+swayX,hy-sz*0.55,sz*0.35,sz*0.12,sway*2,0,PI);
+      ctx.fill();
+      const litSide=facing>0?-1:1;
+      ctx.fillStyle=`rgba(210,105,35,${fi*0.08*rowAlpha})`;
+      ctx.beginPath();
+      ctx.arc(hx+litSide*sz*0.12+swayX,hy-sz*0.45,sz*0.28,0,PI2);
+      ctx.fill();
+      ctx.fillStyle=`rgba(220,130,50,${fi*0.035*rowAlpha})`;
+      ctx.beginPath();
+      ctx.arc(hx+litSide*sz*0.06+swayX*1.3,hy-sz*0.85,sz*0.12,0,PI2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle=`rgba(8,6,4,${0.6*fi*rowAlpha})`;
+      ctx.beginPath();
+      ctx.ellipse(hx+swayX,hy-sz*0.4,sz*0.25,sz*0.55,sway*2,0,PI2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(hx+swayX,hy-sz*0.85,sz*0.14,0,PI2);
+      ctx.fill();
+      ctx.fillStyle=`rgba(210,105,35,${fi*0.04*rowAlpha})`;
+      ctx.beginPath();
+      ctx.arc(hx+swayX,hy-sz*0.4,sz*0.2,0,PI2);
+      ctx.fill();
+    }
+  }
+}
+
+// ── SONG OF THE STARS ── (replaces rainbow)
+// When the choir sings, stars pulse in harmony — visible resonance
+// CRR: stellar oscillation modes become visible as the human
+// choir creates sympathetic coherence with stellar frequencies.
+function drawStarSong(visibility){
+  if(visibility<0.01)return;
+  // Gentle connecting lines between bright stars — constellation-like
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const bright=stars_arr.filter(s=>s.brightness>0.3);
+  ctx.strokeStyle=`rgba(180,190,255,${visibility*0.04})`;
+  ctx.lineWidth=0.5;
+  for(let i=0;i<min(bright.length-1,15);i++){
+    const a=bright[i],b=bright[i+1];
+    const d=sqrt((a.x-b.x)**2+(a.y-b.y)**2);
+    if(d<W*0.25){
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    }
+  }
+  // Pulsing glow on brightest stars
+  for(const s of bright){
+    const pulse=0.5+0.5*sin(simTime*s.freq*0.3+s.phase);
+    const glowR=s.baseSize*(6+pulse*4)*visibility;
+    const sg=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,glowR);
+    sg.addColorStop(0,`rgba(${s.r|0},${s.g|0},${s.b|0},${visibility*pulse*0.06})`);
+    sg.addColorStop(1,'transparent');
+    ctx.fillStyle=sg;ctx.beginPath();ctx.arc(s.x,s.y,glowR,0,PI2);ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ── TREE ── (same architecture, darker colours for night)
+let treeBranches=[];let treePerches=[];let treeBase={x:0,y:0,h:0};
+function initTree(){
+  treeBranches=[];treePerches=[];
+  const bx=W*0.82,by=H*0.88,h=H*0.42;
+  treeBase={x:bx,y:by,h:h};
+  let idx=0;
+  const add=(x1,y1,x2,y2,d,maxD,parentIdx)=>{
+    if(d>maxD)return;
+    const cx=(x1+x2)/2+(random()-0.5)*abs(y2-y1)*0.25;
+    const cy=(y1+y2)/2;
+    const myIdx=idx++;
+    treeBranches.push({x1,y1,x2,y2,cx,cy,d,parent:parentIdx,phase:random()*PI2,children:[]});
+    if(parentIdx>=0)treeBranches[parentIdx].children.push(myIdx);
+    if(d>=1&&d<=6){
+      const nPerch=d<=2?3:d<=4?4:2;
+      for(let t=0;t<nPerch;t++){
+        const frac=0.3+t*0.5/nPerch+(random()-0.5)*0.1;
+        const mt=1-frac;
+        const px=mt*mt*x1+2*mt*frac*cx+frac*frac*x2;
+        const py=mt*mt*y1+2*mt*frac*cy+frac*frac*y2;
+        treePerches.push({x:px+(random()-0.5)*3,y:py+(random()-0.5)*2,occ:false,branchIdx:myIdx});
+      }
+    }
+    if(d>=3)treePerches.push({x:x2+(random()-0.5)*4,y:y2+(random()-0.5)*3,occ:false,branchIdx:myIdx});
+    if(d<maxD){
+      const len=sqrt((x2-x1)**2+(y2-y1)**2)*(0.58+random()*0.12);
+      const baseA=atan2(y2-y1,x2-x1);
+      for(let s=-1;s<=1;s+=2){
+        const a=baseA+s*(0.25+random()*0.5);
+        add(x2,y2,x2+cos(a)*len,y2+sin(a)*len,d+1,maxD,myIdx);
+      }
+      if(d<3&&random()>0.4){
+        const a=baseA+(random()-0.5)*0.7;
+        add(x2,y2,x2+cos(a)*len*0.7,y2+sin(a)*len*0.7,d+1,maxD,myIdx);
+      }
+    }
+  };
+  const trunkTop=by-h*0.15;
+  [[-0.15,0.5],[0,0.58],[0.15,0.48]].forEach(([ao,lm])=>{
+    const a=-PI/2+ao;const len=h*lm;
+    add(bx,trunkTop,bx+cos(a)*len,trunkTop+sin(a)*len,0,7,-1);
+  });
+  for(let i=0;i<6;i++){
+    const ty=by-h*(0.1+i*0.13);
+    const side=i%2===0?-1:1;
+    const bl=h*(0.08+random()*0.1);
+    const a=-PI/2+side*(0.4+random()*0.5);
+    add(bx,ty,bx+cos(a)*bl,ty+sin(a)*bl,1,6,-1);
+  }
+}
+let branchSwayCache=[];
+function computeTreeSway(){
+  branchSwayCache=new Array(treeBranches.length);
+  for(let i=0;i<treeBranches.length;i++){
+    const b=treeBranches[i];
+    const depthFactor=(7-b.d)/7;
+    const ownSway=fsin(simTime*0.15+b.phase+b.d*0.3)*0.002*depthFactor;
+    let parentSway=0;
+    if(b.parent>=0&&branchSwayCache[b.parent]!==undefined)parentSway=branchSwayCache[b.parent];
+    branchSwayCache[i]=parentSway+ownSway;
+  }
+  for(const p of treePerches){
+    if(p.branchIdx>=0){const sw=branchSwayCache[p.branchIdx]||0;p.drawX=p.x+sw*60;p.drawY=p.y}
+  }
+}
+function drawTree(){
+  ctx.lineCap='round';
+  const trunkSway=fsin(simTime*0.15)*0.0008;
+  // Darker tree for night
+  ctx.strokeStyle='rgba(6,4,2,0.95)';ctx.lineWidth=18;
+  ctx.beginPath();
+  ctx.moveTo(treeBase.x,treeBase.y+15);
+  ctx.quadraticCurveTo(treeBase.x+trunkSway*15,treeBase.y-treeBase.h*0.08,treeBase.x+trunkSway*30,treeBase.y-treeBase.h*0.15);
+  ctx.stroke();
+  const byD={};for(let i=0;i<treeBranches.length;i++){const b=treeBranches[i];(byD[b.d]||(byD[b.d]=[])).push(i)}
+  for(const d in byD){
+    const idxs=byD[d],fade=pow(0.68,d),w=max(1.2,4.5*fade);
+    ctx.strokeStyle=`rgba(6,5,3,${0.55*fade})`;ctx.lineWidth=w*3.2;ctx.beginPath();
+    for(const i of idxs){
+      const b=treeBranches[i];
+      const parentSw=b.parent>=0?(branchSwayCache[b.parent]||0):trunkSway;
+      const mySw=branchSwayCache[i]||0;
+      ctx.moveTo(b.x1+parentSw*60,b.y1);
+      ctx.quadraticCurveTo(b.cx+(parentSw+mySw)*30,b.cy,b.x2+mySw*60,b.y2);
+    }
+    ctx.stroke();
+    ctx.strokeStyle=`rgba(12,10,6,${0.85*fade})`;ctx.lineWidth=w;ctx.beginPath();
+    for(const i of idxs){
+      const b=treeBranches[i];
+      const parentSw=b.parent>=0?(branchSwayCache[b.parent]||0):trunkSway;
+      const mySw=branchSwayCache[i]||0;
+      ctx.moveTo(b.x1+parentSw*60,b.y1);
+      ctx.quadraticCurveTo(b.cx+(parentSw+mySw)*30,b.cy,b.x2+mySw*60,b.y2);
+    }
+    ctx.stroke();
+  }
+}
+
+// ── GRASS (night) ──
+let grassStems=[];
+function initGrass(){
+  grassStems=[];const gy=H*0.88;
+  for(let i=0;i<120;i++){
+    const x=(i/120)*W*1.1-W*0.05;
+    if(abs(x-W*0.82)<W*0.08)continue;
+    grassStems.push({x:x+(random()-0.5)*6,h:H*(0.02+random()*0.04),lean:(random()-0.5)*0.35,phase:random()*PI2,seed:random()>0.4});
+  }
+}
+function drawGrass(){
+  const gy=H*0.88;
+  ctx.fillStyle='#040404';ctx.beginPath();ctx.moveTo(0,gy);
+  for(let x=0;x<=W;x+=15)ctx.lineTo(x,gy-fsin(x*0.01+simTime*0.04)*2-1);
+  ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#060606';ctx.lineCap='round';
+  ctx.lineWidth=0.7;ctx.beginPath();
+  for(const s of grassStems){
+    if(s.seed)continue;
+    const sw=fsin(simTime*0.7+s.phase)*0.008;
+    const tx=s.x+s.lean*s.h+sw*W,ty=gy-s.h;
+    ctx.moveTo(s.x,gy);
+    ctx.quadraticCurveTo(s.x+s.lean*s.h*0.5+sw*W*0.6,(gy+ty)/2,tx,ty);
+  }
+  ctx.stroke();
+  ctx.lineWidth=1.1;ctx.beginPath();
+  for(const s of grassStems){
+    if(!s.seed)continue;
+    const sw=fsin(simTime*0.7+s.phase)*0.008;
+    const tx=s.x+s.lean*s.h+sw*W,ty=gy-s.h;
+    ctx.moveTo(s.x,gy);
+    ctx.quadraticCurveTo(s.x+s.lean*s.h*0.5+sw*W*0.6,(gy+ty)/2,tx,ty);
+  }
+  ctx.stroke();
+}
+
+// ── BATS ── (replace birds)
+// CRR: Bat echolocation IS a Z₂ process: emit→receive.
+// Flight patterns are more erratic than starlings — bats use
+// rapid turns and loops for insect hunting, which maps to
+// LOW Ω (frequent micro-ruptures in flight path coherence).
+let batArr=[];
+const BAT_COUNT=180;
+const K=7;
+const _nbD2=new Float64Array(K);
+const _nbIdx=new Int16Array(K);
+const MOVES=['vortex','wave','split','breathe','ribbon','column','sweep','tornado'];
+let currentMove='vortex',moveDuration=5,moveTimer=0;
+let flockAngMom=0,flockTurnDir=null;
+
+function initBats(){
+  batArr=[];
+  for(let i=0;i<BAT_COUNT;i++){
+    const perch=i<treePerches.length?treePerches[i]:null;
+    if(perch){
+      perch.occ=true;
+      batArr.push({
+        x:perch.x, y:perch.y,
+        vx:0, vy:0, tvx:0, tvy:0,
+        size:0.8+random()*0.3, wph:random()*PI2, wsp:15+random()*8,
+        st:2, perch:perch, perchT:0, timer:0,
+        react:0.85+random()*0.3, angMom:0, localDensity:0,
+        crr:new CRR(0.05+random()*0.04,1.2),
+        wakeOrder:random(),
+        roosting:false
+      });
+    } else {
+      const tx=W*0.82+(random()-0.5)*40;
+      const ty=H*0.5+random()*80;
+      batArr.push({
+        x:tx, y:ty,
+        vx:0, vy:0, tvx:0, tvy:0,
+        size:0.8+random()*0.3, wph:random()*PI2, wsp:15+random()*8,
+        st:2, perch:null, perchT:0, timer:0,
+        react:0.85+random()*0.3, angMom:0, localDensity:0,
+        crr:new CRR(0.05+random()*0.04,1.2),
+        wakeOrder:random(),
+        roosting:false
+      });
+    }
+  }
+}
+let batPhase='sleep';
+
+function updateBats(dt,predX,predY,predHunt){
+  buildHash(batArr);
+  WORLD.flock.crr.update(dt,0.5);
+  if(WORLD.flock.crr.st===1&&WORLD.flock.st===0){
+    currentMove=MOVES[floor(random()*MOVES.length)];
+    moveTimer=0;moveDuration=3+random()*4;
+    const sign=random()>0.5?1:-1;
+    flockAngMom=sign*(1.8+random()*2.5);
+    flockTurnDir={x:cos(random()*PI2)*30,y:sin(random()*PI2)*20};
+  }
+  WORLD.flock.st=WORLD.flock.crr.st;
+  moveTimer+=dt;
+  const mt=min(1,moveTimer/moveDuration);
+  let cohMult=1,angM=0,sepMult=1;
+  if(currentMove==='vortex'){angM=2.5*(1-mt);cohMult=1.3}
+  else if(currentMove==='breathe'){cohMult=0.8+0.4*fsin(mt*PI2*2);sepMult=1+0.3*fsin(mt*PI2*2+PI)}
+  else if(currentMove==='wave'){angM=fsin(mt*PI2*3)*1.5}
+  else if(currentMove==='tornado'){angM=3*(1-mt);cohMult=1.8}
+  else if(currentMove==='sweep'){flockTurnDir={x:40*(mt<0.5?1:-1),y:0}}
+  else if(currentMove==='column'){flockTurnDir={x:0,y:-20}}
+  else if(currentMove==='ribbon'){angM=fsin(mt*PI2*2)*2;cohMult=1.2}
+  let fcx=0,fcy=0,fc=0;
+  for(const b of batArr)if(b.st===0){fcx+=b.x;fcy+=b.y;fc++}
+  if(fc>0){fcx/=fc;fcy/=fc}else{fcx=W*0.5;fcy=H*0.35}
+  const atX=W*0.4+fsin(simTime*0.18)*W*0.18,atY=H*0.3+fsin(simTime*0.14+1)*H*0.1;
+  const bxL=W*0.06,bxR=W*0.94,byT=H*0.05,byB=H*0.75;
+  const predActive=predHunt>0&&predHunt<4;
+  const fm=min(WORLD.flock.crr.mem()/4,2);
+  const fmA=fm*0.12,fmC=fm*0.03;
+  for(const b of batArr){
+    b.timer+=dt;b.wph+=b.wsp*dt;
+    if(b.st===2){
+      b.perchT+=dt;
+      if(b.perch&&b.perch.drawX!==undefined){b.x=b.perch.drawX;b.y=b.perch.drawY}
+      if(b.timer>0.4){b.timer=0;
+        if(batPhase==='sleep'||batPhase==='settled')continue;
+        if(batPhase==='waking'){
+          const wakeProgress=(musicBeat-20)/50;
+          if(b.wakeOrder>wakeProgress)continue;
+          b.st=3;b.vy=-30-random()*20;b.vx=(random()-0.5)*30-12;
+          if(b.perch){b.perch.occ=false;b.perch=null}
+          continue;
+        }
+        if(batPhase==='roosting'){continue}
+        const predNear=predActive&&((b.x-predX)**2+(b.y-predY)**2)<32400;
+        const minRest=2+b.react*3;
+        const restless=b.perchT>minRest&&random()<0.04;
+        if(predNear||restless||WORLD.flock.crr.st===1){
+          b.st=3;b.vy=-30-random()*20;b.vx=(random()-0.5)*30-12;
+          if(b.perch){b.perch.occ=false;b.perch=null}
+        }
+      }
+      continue;
+    }
+    b.crr.update(dt,b.st===0?1:0.3);
+    if(b.st===3){b.vy-=45*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;if(b.timer>0.3)b.st=0;continue}
+    if(b.st===1){
+      if(!b.perch){b.st=0;continue}
+      const dx=b.perch.x-b.x,dy=b.perch.y-b.y,d=sqrt(dx*dx+dy*dy);
+      if(d<3){b.st=2;b.x=b.perch.x;b.y=b.perch.y;b.vx=b.vy=0;b.perchT=0}
+      else{const ls=min(d*2.5,65);b.vx=dx/d*ls;b.vy=dy/d*ls;b.x+=b.vx*dt;b.y+=b.vy*dt}
+      continue;
+    }
+    getCandidates(b.x,b.y);
+    let nCount=0;
+    for(let ci=0;ci<_candLen;ci++){
+      const idx=_cands[ci];const o=batArr[idx];if(o===b||o.st!==0)continue;
+      const dx=o.x-b.x,dy=o.y-b.y,d2=dx*dx+dy*dy;
+      if(d2<10000){
+        if(nCount<K){_nbD2[nCount]=d2;_nbIdx[nCount]=idx;nCount++}
+        else if(d2<_nbD2[K-1]){_nbD2[K-1]=d2;_nbIdx[K-1]=idx}
+        else continue;
+        for(let j=min(nCount,K)-1;j>0&&_nbD2[j]<_nbD2[j-1];j--){
+          let t=_nbD2[j];_nbD2[j]=_nbD2[j-1];_nbD2[j-1]=t;
+          t=_nbIdx[j];_nbIdx[j]=_nbIdx[j-1];_nbIdx[j-1]=t;
+        }
+      }
+    }
+    const kCount=min(nCount,K);
+    b.localDensity=kCount>0?K/(sqrt(_nbD2[kCount-1])||30):0;
+    let sx=0,sy=0,ax=0,ay=0,cx=0,cy=0,nc=0;
+    for(let ni=0;ni<kCount;ni++){
+      const o=batArr[_nbIdx[ni]];
+      const dx=o.x-b.x,dy=o.y-b.y,d=sqrt(_nbD2[ni]);
+      if(d<10*sepMult&&d>0){const f=(10*sepMult-d)/(10*sepMult)/(b.crr.omega*5);sx-=dx/d*f;sy-=dy/d*f}
+      ax+=o.vx;ay+=o.vy;cx+=o.x;cy+=o.y;nc++;
+    }
+    if(nc<4){b.tvx+=(fcx-b.x)*0.015*(4-nc);b.tvy+=(fcy-b.y)*0.015*(4-nc)}
+    if(nc>0){
+      b.tvx+=sx*1.8*b.react;b.tvy+=sy*1.8*b.react;
+      b.tvx+=(ax/nc-b.vx)*(0.14+fmA)*b.react;b.tvy+=(ay/nc-b.vy)*(0.14+fmA)*b.react;
+      b.tvx+=(cx/nc-b.x)*(0.035+fmC)*b.react*cohMult;b.tvy+=(cy/nc-b.y)*(0.035+fmC)*b.react*cohMult;
+      b.angMom=lerp(b.angMom,angM*0.3,0.12);
+    }else{b.tvx+=(fcx-b.x)*0.05;b.tvy+=(fcy-b.y)*0.05}
+    if(abs(b.angMom)>0.01){const spd2=b.vx*b.vx+b.vy*b.vy;if(spd2>25){const invS=1/sqrt(spd2);b.tvx+=(-b.vy*invS)*b.angMom*0.8;b.tvy+=(b.vx*invS)*b.angMom*0.8}}
+    if(flockTurnDir&&WORLD.flock.crr.st>0){b.tvx+=flockTurnDir.x*0.02;b.tvy+=flockTurnDir.y*0.02}
+    if(predActive){const pdx=b.x-predX,pdy=b.y-predY,pd2=pdx*pdx+pdy*pdy;
+      if(pd2<40000&&pd2>0){const pd=sqrt(pd2);const f=3*(200-pd)/200;b.tvx+=pdx/pd*f;b.tvy+=pdy/pd*f}}
+    b.tvx+=(atX-b.x)*0.002;b.tvy+=(atY-b.y)*0.002;
+    // More erratic flight than birds — bat micro-ruptures
+    b.tvx+=(random()-0.5)*8;b.tvy+=(random()-0.5)*6;
+    const sm=min(1,dt*7);
+    b.vx=lerp(b.vx,b.tvx,sm);b.vy=lerp(b.vy,b.tvy,sm);
+    b.tvx=b.vx;b.tvy=b.vy;b.angMom*=0.97;
+    if(b.x<bxL)b.vx+=9*(1-b.x/bxL);if(b.x>bxR)b.vx-=9*(1-(W-b.x)/bxL);
+    if(b.y<byT)b.vy+=9*(1-b.y/byT);if(b.y>byB)b.vy-=9*(1-(H*0.88-b.y)/(H*0.13));
+    const spd2=b.vx*b.vx+b.vy*b.vy;
+    if(spd2>6400){const invS=80/sqrt(spd2);b.vx*=invS;b.vy*=invS}
+    else if(spd2<400&&spd2>0){const invS=20/sqrt(spd2);b.vx*=invS;b.vy*=invS}
+    b.x+=b.vx*dt;b.y+=b.vy*dt;
+    const nearTree=b.x>W*0.6;const vNear=b.x>W*0.72&&b.y>H*0.45;
+    let pc=0;
+    if(batPhase==='roosting'){
+      pc=0.025;
+      const dx=W*0.82-b.x,dy=H*0.6-b.y;
+      const d2=dx*dx+dy*dy;
+      if(d2>900){const invD=1/sqrt(d2);b.vx+=dx*invD*15*dt;b.vy+=dy*invD*12*dt}
+      if(vNear)pc=0.07;
+    } else {if(vNear)pc=0.001;else if(nearTree)pc=0.0005}
+    if(random()<pc){
+      const maxD2=batPhase==='roosting'?62500:vNear?6400:14400;
+      let best=null,bestD2=maxD2;
+      for(const p of treePerches){if(p.occ)continue;const dx=b.x-p.x,dy=b.y-p.y,d2=dx*dx+dy*dy;if(d2<bestD2){bestD2=d2;best=p}}
+      if(best){b.st=1;b.perch=best;best.occ=true;b.timer=0;b.roosting=batPhase==='roosting'}
+    }
+  }
+}
+
+function drawBats(){
+  // Bats are dark silhouettes against the night — but NOT invisible
+  // Moonlight catches their wings briefly
+  ctx.fillStyle='rgba(12,10,18,0.88)';
+  // Perched bats — hanging upside down (unlike perched birds)
+  ctx.beginPath();
+  for(const b of batArr){
+    if(b.st!==2)continue;
+    const s=b.size;
+    ctx.moveTo(b.x+s*0.8,b.y);ctx.arc(b.x,b.y,s*0.8,0,PI2);
+  }
+  ctx.fill();
+  // Flying bats — wider wingspan, more angular
+  for(const b of batArr){
+    if(b.st===2)continue;
+    const angle=atan2(b.vy,b.vx);
+    const flapMult=b.st===3?1.6:b.st===1?0.8:1.2;
+    const flap=fsin(b.wph*flapMult)*0.5;
+    const cosA=cos(angle),sinA=sin(angle);
+    ctx.setTransform(cosA,sinA,-sinA,cosA,b.x,b.y);
+    const s=b.size;
+    // Bat body — smaller than bird body
+    ctx.beginPath();ctx.ellipse(0,0,s*1.0,s*0.35,0,0,PI2);ctx.fill();
+    // Bat wings — angular, membrane-like
+    const ws=s*3.5,wL=0.45+flap*0.4;
+    ctx.beginPath();
+    ctx.moveTo(-s*0.2,0);
+    // Upper wing — angular joints
+    ctx.lineTo(0,-ws*wL*0.3);
+    ctx.lineTo(s*0.5,-ws*wL);
+    ctx.lineTo(s*0.3,-ws*wL*0.4);
+    ctx.lineTo(s*0.15,0);
+    // Lower wing
+    ctx.lineTo(s*0.3,ws*wL*0.4);
+    ctx.lineTo(s*0.5,ws*wL);
+    ctx.lineTo(0,ws*wL*0.3);
+    ctx.closePath();ctx.fill();
+  }
+  ctx.setTransform(1,0,0,1,0,0);
+}
+
+// ── PREDATOR (OWL) ──
+let pred={x:0,y:0,vx:12,vy:0,huntPhase:0,wingPhase:0,size:4,wingSpan:14,bank:0,
+  crr:new CRR(0.4,0.12),huntCRR:new CRR(0.4,0.08),patrolR:200,patrolX:0,patrolY:0,flightTimer:0};
+function initPred(){pred.x=W*0.3;pred.y=H*0.15;pred.patrolX=W*0.3;pred.patrolY=H*0.15}
+function updatePred(dt){
+  pred.crr.update(dt,0.5);pred.wingPhase+=3*dt*(0.5+pred.crr.smoothAmp*0.3);
+  pred.flightTimer+=dt;
+  if(pred.huntPhase===0){
+    pred.huntCRR.update(dt,0.3);
+    const pa=simTime*0.25;
+    const tx=pred.patrolX+cos(pa)*pred.patrolR,ty=pred.patrolY+sin(pa)*pred.patrolR*0.4;
+    pred.vx=lerp(pred.vx,(tx-pred.x)*0.5,dt*2);pred.vy=lerp(pred.vy,(ty-pred.y)*0.5,dt*2);
+    let nearD=Infinity,nearB=null;
+    for(const b of batArr){if(b.st===0){const d=sqrt((b.x-pred.x)**2+(b.y-pred.y)**2);if(d<nearD){nearD=d;nearB=b}}}
+    if(nearB&&nearD<400&&pred.huntCRR.C>pred.huntCRR.omega*0.3){pred.huntPhase=1;pred.target=nearB}
+    if(pred.flightTimer>20){pred.huntPhase=0;pred.flightTimer=0;pred.x=W*0.3;pred.y=H*0.12}
+  }else if(pred.huntPhase===1){
+    pred.huntCRR.update(dt,1.5);
+    if(pred.target&&pred.target.st===0){
+      const dx=pred.target.x-pred.x,dy=pred.target.y-pred.y,d=sqrt(dx*dx+dy*dy);
+      const circOff=(1-pred.huntCRR.smoothAmp)*0.8;
+      const a=atan2(dy,dx)+sin(simTime*3)*circOff;
+      const spd=35+pred.huntCRR.smoothAmp*25;
+      pred.vx=lerp(pred.vx,cos(a)*spd,dt*3);pred.vy=lerp(pred.vy,sin(a)*spd,dt*3);
+      if(d<150)WORLD.flock.crr.rupture();
+      if(pred.huntCRR.st===1)pred.huntPhase=2;
+      if(d>500){pred.huntPhase=0;pred.target=null}
+    }else{pred.huntPhase=0;pred.target=null}
+  }else if(pred.huntPhase===2){
+    pred.huntCRR.update(dt,0.3);
+    if(pred.target){
+      const dx=pred.target.x-pred.x,dy=pred.target.y-pred.y,d=sqrt(dx*dx+dy*dy);
+      const spd=100+pred.huntCRR.smoothAmp*50;
+      const a=atan2(dy,dx);pred.vx=cos(a)*spd;pred.vy=sin(a)*spd;
+      if(d<25||pred.huntCRR.st===2){pred.huntPhase=3;pred.target=null}
+    }else{pred.huntPhase=3}
+  }else if(pred.huntPhase===3){
+    pred.vx*=0.95;pred.vy=lerp(pred.vy,-15,dt*2);
+    if(pred.flightTimer>0.5){pred.flightTimer=0;pred.huntPhase=0}
+  }
+  pred.x+=pred.vx*dt;pred.y+=pred.vy*dt;
+  pred.bank=lerp(pred.bank,clamp(pred.vx*0.01,-0.5,0.5),dt*5);
+  if(pred.x<50)pred.vx+=3;if(pred.x>W-50)pred.vx-=3;
+  if(pred.y<30)pred.vy+=3;if(pred.y>H*0.8)pred.vy-=3;
+}
+function drawPred(){
+  ctx.save();ctx.translate(pred.x,pred.y);ctx.rotate(atan2(pred.vy,pred.vx));
+  ctx.scale(1,1-abs(pred.bank)*0.3);
+  const spd=sqrt(pred.vx*pred.vx+pred.vy*pred.vy);
+  const stretch=min(spd/50,1.8);
+  const flap=fsin(pred.wingPhase)*0.35*(1-pred.huntCRR.smoothAmp*0.5);
+  ctx.fillStyle='rgba(20,15,10,0.9)';
+  // Owl body — rounder than falcon
+  ctx.beginPath();ctx.ellipse(0,0,pred.size*stretch*1.1,pred.size*0.6,0,0,PI2);ctx.fill();
+  // Owl wings — broader, rounder
+  const ws=pred.wingSpan;
+  ctx.beginPath();ctx.moveTo(-pred.size*0.2,0);
+  ctx.quadraticCurveTo(-pred.size*0.3,-ws*0.4*(1+flap),0,-ws*(0.75+flap*0.15));
+  ctx.quadraticCurveTo(pred.size*0.4,-ws*0.3*(1+flap),pred.size*0.3,0);
+  ctx.quadraticCurveTo(pred.size*0.4,ws*0.3*(1+flap),0,ws*(0.75+flap*0.15));
+  ctx.quadraticCurveTo(-pred.size*0.3,ws*0.4*(1+flap),-pred.size*0.2,0);
+  ctx.fill();
+  // Owl head disc
+  ctx.beginPath();ctx.arc(pred.size*stretch*0.8,0,pred.size*0.4,0,PI2);ctx.fill();
+  // Eyes — glowing in moonlight
+  ctx.fillStyle='rgba(220,180,60,0.6)';
+  ctx.beginPath();ctx.arc(pred.size*stretch*0.9,-pred.size*0.15,pred.size*0.08,0,PI2);ctx.fill();
+  ctx.beginPath();ctx.arc(pred.size*stretch*0.9,pred.size*0.15,pred.size*0.08,0,PI2);ctx.fill();
+  ctx.restore();
+}
+
+// ── WAVEFORM DISPLAY ──
+let _waveBuf=null;
+function drawWaveform(){
+  if(!analyser)return;
+  if(!_waveBuf||_waveBuf.length!==analyser.frequencyBinCount)_waveBuf=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteTimeDomainData(_waveBuf);
+  ctx.strokeStyle='rgba(200,160,48,0.06)';ctx.lineWidth=1;
+  ctx.beginPath();
+  const len=_waveBuf.length;const step=max(1,(len/256)|0);
+  const sliceW=W*step/len;
+  for(let i=0;i<len;i+=step){
+    const v=_waveBuf[i]/128;const y=H*0.88+v*H*0.06-H*0.03;
+    if(i===0)ctx.moveTo(0,y);else ctx.lineTo((i/step)*sliceW,y);
+  }
+  ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §5  PLAYBACK ENGINE
+// ═══════════════════════════════════════════════════════════════════
+const _dom={};
+function cacheDom(){
+  _dom.fill=document.getElementById('timeline-fill');
+  _dom.time=document.getElementById('timeline-time');
+  _dom.crr=document.getElementById('crr-display');
+  _dom.sl=document.getElementById('section-label');
+}
+let _uiFrame=0;
+let sequence=[];let seqIdx=0;let playing=false;
+let musicBeat=0;let tempoMult=1;let beatDuration=60/68; // Slightly slower: 68bpm
+let currentSection='';let sectionFadeTimer=0;
+
+function startPlayback(){
+  if(!ac)initAudio();
+  if(ac.state==='suspended')ac.resume();
+  if(!starChoir.active)initStarChoir();
+  if(!fireMurmur.active)initFireMurmur();
+  if(!fireChant.active)initFireChant();
+  sequence=buildSequence();seqIdx=0;musicBeat=0;playing=true;
+  currentSection='';
+  WORLD.moon.phase=0;WORLD.fire.intensity=0;WORLD.starSong.visible=0;
+  batPhase='sleep';
+  for(const b of batArr){if(b.perch)b.perch.occ=false;b.perch=null;b.st=0}
+  let pIdx=0;
+  for(const b of batArr){
+    if(pIdx<treePerches.length){
+      const p=treePerches[pIdx++];
+      p.occ=true;b.perch=p;b.st=2;b.perchT=0;
+      b.x=p.x;b.y=p.y;b.vx=0;b.vy=0;
+    }
+  }
+  document.getElementById('btn-play').classList.add('playing');
+  const sc=document.getElementById('timeline-sections');sc.innerHTML='';
+  for(const s of SECTIONS){
+    if(s.start===s.end)continue;
+    const div=document.createElement('div');div.className='t-section';
+    div.style.width=((s.end-s.start)/TOTAL_BEATS*100)+'%';
+    const lbl=document.createElement('span');lbl.className='t-section-label';lbl.textContent=s.name;
+    div.appendChild(lbl);sc.appendChild(div);
+  }
+}
+
+function stopPlayback(){
+  playing=false;
+  document.getElementById('btn-play').classList.remove('playing');
+  if(ac){
+    setLunarDrone(0,0,2);setStarChoir(0,2);
+    silenceMurmur(2);silenceChant(2);
+    moonbow.targetVisibility=0;moonbow.visibility=0;
+    if(nightWind.gain)nightWind.gain.gain.linearRampToValueAtTime(0,ac.currentTime+1);
+    if(fireSounds.bed.masterGain)fireSounds.bed.masterGain.gain.linearRampToValueAtTime(0,ac.currentTime+1);
+  }
+}
+
+function processMusic(dt){
+  if(!playing||!ac)return;
+  musicBeat+=dt/beatDuration*tempoMult;
+  if(musicBeat>=TOTAL_BEATS){stopPlayback();return}
+
+  // Moon phase follows composition arc (rises through night)
+  const moonTarget=musicBeat<160?musicBeat/160:
+    musicBeat<240?1-(musicBeat-160)/80*0.2:
+    musicBeat<280?0.8+(musicBeat-240)/40*0.1:
+    0.9-(musicBeat-280)/32*0.9;
+  WORLD.moon.phase=lerp(WORLD.moon.phase,clamp(moonTarget,0,1),dt*2);
+  WORLD.moon.agent.step(WORLD.moon.phase*0.3,dt*0.01);
+
+  // Bat phase management
+  if(musicBeat<20)batPhase='sleep';
+  else if(musicBeat<70)batPhase='waking';
+  else if(musicBeat<275)batPhase='flying';
+  else if(musicBeat<308)batPhase='roosting';
+  else batPhase='settled';
+
+  // Fire intensity from composition
+  let targetFire=0;
+  if(musicBeat>=45&&musicBeat<64)targetFire=(musicBeat-45)/19*0.2;
+  else if(musicBeat>=64&&musicBeat<112)targetFire=0.2+(musicBeat-64)/48*0.4;
+  else if(musicBeat>=112&&musicBeat<160)targetFire=0.6+(musicBeat-112)/48*0.3;
+  else if(musicBeat>=160&&musicBeat<192)targetFire=0.9+(musicBeat-160)/32*0.1;
+  else if(musicBeat>=192&&musicBeat<208)targetFire=1.0;
+  else if(musicBeat>=208&&musicBeat<280)targetFire=max(0.1,1.0-(musicBeat-208)/72*0.85);
+  else if(musicBeat>=280)targetFire=max(0,WORLD.fire.intensity-dt*0.06);
+  WORLD.fire.intensity=lerp(WORLD.fire.intensity,targetFire,dt*1.5);
+
+  // Star song visibility (replaces rainbow)
+  const inStarSong=musicBeat>=198&&musicBeat<=255;
+  const ssTarget=inStarSong?min(1,musicBeat<210?(musicBeat-198)/12:
+    musicBeat<240?1:
+    1-(musicBeat-240)/15):0;
+  WORLD.starSong.visible=lerp(WORLD.starSong.visible,ssTarget,dt*2.5);
+
+  // Moonbow visibility — smooth fade
+  moonbow.visibility=lerp(moonbow.visibility,moonbow.targetVisibility,dt*0.8);
+
+  // Process events
+  while(seqIdx<sequence.length&&sequence[seqIdx].beat<=musicBeat){
+    const ev=sequence[seqIdx++];
+    const now=ac.currentTime;
+    switch(ev.type){
+      case'tremolo':playTremoloGuitar(ev.midi,ev.velocity,ev.duration*beatDuration/tempoMult,now,ev.rate);break;
+      case'clean':playCleanGuitar(ev.midi,ev.velocity,ev.duration*beatDuration/tempoMult,now);break;
+      case'bass':playBass(ev.midi,ev.velocity,ev.duration*beatDuration/tempoMult,now);break;
+      case'pad':setPadChord(ev.padNotes,ev.padGain,ev.duration*beatDuration/tempoMult*0.5);break;
+      case'drone':setLunarDrone(ev.droneGain,ev.moonPhase||WORLD.moon.phase,ev.duration*beatDuration/tempoMult*0.5);break;
+      case'bats':playBatChorus(ev.velocity,ev.count,now);break;
+      case'owl':playOwlCry(ev.velocity,now);break;
+      case'stars':setStarChoir(ev.starGain,ev.duration*beatDuration/tempoMult*0.5);break;
+      case'choirBuild':buildStarChoir(ev.gain,ev.duration*beatDuration/tempoMult);break;
+      case'choirMorph':choirMorphSequence(ev.vowels,ev.duration*beatDuration/tempoMult);break;
+      case'choirDissolve':dissolveStarChoir(ev.duration*beatDuration/tempoMult);break;
+      case'fire':
+        if(fireSounds.active){
+          fireSounds.bed.masterGain.gain.setTargetAtTime(ev.velocity*0.18,now,0.5);
+        }
+        break;
+      case'wind':
+        if(nightWind.gain)nightWind.gain.gain.linearRampToValueAtTime(ev.velocity,now+1);
+        break;
+      case'murmur':
+        setMurmurGain(ev.murmurGain,ev.duration*beatDuration/tempoMult);
+        break;
+      case'murmurSilence':
+        silenceMurmur(ev.duration*beatDuration/tempoMult);
+        break;
+      case'chant':
+        setChantChord(ev.chantChord,ev.chantGain,ev.duration*beatDuration/tempoMult);
+        setChantVoiceCount(ev.chantVoices,ev.duration*beatDuration/tempoMult*0.6);
+        break;
+      case'chantSilence':
+        silenceChant(ev.duration*beatDuration/tempoMult);
+        break;
+      case'moonbow':
+        triggerMoonbow(ev.moonbowGain,ev.duration*beatDuration/tempoMult);
+        break;
+      case'meteor':
+        launchShootingStar();
+        break;
+      case'section':
+        currentSection=ev.sectionName;sectionFadeTimer=4;
+        _dom.sl.textContent=ev.sectionName;_dom.sl.style.opacity=0.55;_dom.sl.style.color='rgba(200,204,232,0.7)';
+        break;
+    }
+  }
+
+  // Real-time bat echolocation chirps
+  if(random()<0.008*WORLD.moon.phase){
+    playBatChirp(0.06+WORLD.moon.phase*0.04,ac.currentTime,floor(random()*10));
+  }
+  // Fire sounds
+  updateFireSound(dt,WORLD.fire.intensity);
+  // Conversation murmur — CRR-driven distant voices
+  updateMurmur(dt,WORLD.fire.intensity);
+  // Shooting star physics
+  updateShootingStar(dt);
+
+  _dom.fill.style.width=(musicBeat/TOTAL_BEATS*100).toFixed(1)+'%';
+  _uiFrame++;
+  if(_uiFrame&3){}else{
+    const totalSec=TOTAL_BEATS*beatDuration/tempoMult;
+    const curSec=musicBeat*beatDuration/tempoMult;
+    _dom.time.textContent=
+      `${floor(curSec/60)}:${(floor(curSec)%60+'').padStart(2,'0')} / ${floor(totalSec/60)}:${(floor(totalSec)%60+'').padStart(2,'0')}`;
+    const fc=WORLD.flock.crr;
+    _dom.crr.innerHTML=
+      `C=${fc.C.toFixed(2)} Ω=${fc.omega.toFixed(2)}<br>${fc.stateName()} · exp(C/Ω)=${fc.mem().toFixed(1)}<br>move: ${currentMove} · flock: ${batPhase}<br>moon: ${WORLD.moon.phase.toFixed(2)} · fire: ${(WORLD.fire.intensity*100).toFixed(0)}% · ${fireSounds.crr.stateName()}`;
+  }
+  if(sectionFadeTimer>0){sectionFadeTimer-=dt;if(sectionFadeTimer<=1)_dom.sl.style.opacity=max(0,sectionFadeTimer)*0.55}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §6  MAIN LOOP
+// ═══════════════════════════════════════════════════════════════════
+function resize(){
+  W=canvas.width=canvas.parentElement.clientWidth;
+  H=canvas.height=canvas.parentElement.clientHeight;
+}
+
+function init(){
+  resize();initClouds();initTree();initGrass();initStars();initBats();initPred();
+}
+
+let lastFrameTime=0;
+function frame(timestamp){
+  const dt=min(0.05,(timestamp-lastFrameTime)/1000);
+  lastFrameTime=timestamp;
+  simTime+=dt;
+
+  processMusic(dt);
+
+  const mp=WORLD.moon.phase;const fi=WORLD.fire.intensity;
+  const sv=WORLD.starSong.visible;
+
+  computeTreeSway();
+  updateBats(dt,pred.x,pred.y,pred.huntPhase);
+  if(batPhase==='flying')updatePred(dt);
+  else{pred.x=-200;pred.y=-200;pred.huntPhase=0}
+
+  // Draw
+  drawAtmosphere(mp,fi);
+  drawStars(mp);
+  const moonPos=drawMoon(mp);
+  drawClouds(mp);
+  drawMoonbow(moonPos,mp);
+  drawStarSong(sv);
+  drawShootingStar();
+  drawFire(fi);
+  drawChantGlow(fi);
+  drawHumans(fi);
+  drawTree();
+  drawBats();
+  drawPred();
+  drawGrass();
+  drawWaveform();
+
+  requestAnimationFrame(frame);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §7  UI EVENTS
+// ═══════════════════════════════════════════════════════════════════
+document.getElementById('splash').addEventListener('click',()=>{
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  cacheDom();
+  init();
+  requestAnimationFrame(frame);
+});
+document.getElementById('btn-play').addEventListener('click',()=>{if(!playing)startPlayback();});
+document.getElementById('btn-stop').addEventListener('click',stopPlayback);
+
+document.getElementById('tempo-slider').addEventListener('input',e=>{
+  tempoMult=parseFloat(e.target.value);
+  document.getElementById('tempo-val').textContent=tempoMult.toFixed(1)+'×';
+});
+document.getElementById('reverb-slider').addEventListener('input',e=>{
+  reverbMix=parseFloat(e.target.value);updateMixes();
+  document.getElementById('reverb-val').textContent=reverbMix.toFixed(2);
+});
+document.getElementById('guitar-slider').addEventListener('input',e=>{
+  guitarMix=parseFloat(e.target.value);
+  if(guitarGain)guitarGain.gain.value=guitarMix*0.5;
+  document.getElementById('guitar-val').textContent=guitarMix.toFixed(2);
+});
+document.getElementById('nature-slider').addEventListener('input',e=>{
+  natureMix=parseFloat(e.target.value);
+  if(natureGain)natureGain.gain.value=natureMix*0.4;
+  document.getElementById('nature-val').textContent=natureMix.toFixed(2);
+});
+document.getElementById('chatter-slider').addEventListener('input',e=>{
+  murmurVolumeMultiplier=parseFloat(e.target.value);
+  // Live-update the master gain if active
+  if(fireMurmur.active&&fireMurmur.masterGain){
+    const t=ac?ac.currentTime:0;
+    fireMurmur.masterGain.gain.setTargetAtTime(
+      fireMurmur.masterGain.gain.value>0.001?
+        WORLD.fire.intensity*0.3*murmurVolumeMultiplier:0,t,0.3);
+  }
+  document.getElementById('chatter-val').textContent=murmurVolumeMultiplier.toFixed(2);
+});
+document.getElementById('people-slider').addEventListener('input',e=>{
+  murmurPeopleCount=parseInt(e.target.value);
+  document.getElementById('people-val').textContent=murmurPeopleCount;
+});
+
+window.addEventListener('resize',()=>{resize();initGrass();initStars()});
+window.addEventListener('orientationchange',()=>{setTimeout(()=>{resize();initGrass();initStars()},200)});
+
+canvas.addEventListener('click',e=>{
+  WORLD.flock.crr.rupture();
+  if(ac&&playing)playBatChorus(0.2,6,ac.currentTime);
+});
+canvas.addEventListener('touchmove',e=>{e.preventDefault()},{passive:false});
+
+</script>
+</body>
+</html>
