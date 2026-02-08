@@ -1818,21 +1818,28 @@ const clamp=(v,a,b)=>max(a,min(b,v));
 
 let simTime=0;
 
-// Spatial hash
+// Spatial hash — Map for O(1) lookup, avoids object key coercion
 const CELL=45;
-let hash={};
+let hash=new Map();
 const hkey=(x,y)=>((x/CELL|0)*10000+(y/CELL|0));
-function buildHash(birds){
-  hash={};
-  for(let i=0;i<birds.length;i++){
-    const b=birds[i];if(b.st!==0)continue;
-    const k=hkey(b.x,b.y);(hash[k]||(hash[k]=[])).push(i);
+function buildHash(bs){
+  hash.clear();
+  for(let i=0;i<bs.length;i++){
+    const b=bs[i];if(b.st!==0)continue;
+    const k=hkey(b.x,b.y);let arr=hash.get(k);
+    if(!arr){arr=[];hash.set(k,arr)}arr.push(i);
   }
 }
+// Reusable array to avoid GC from getCandidates
+const _cands=new Int16Array(1024);
+let _candLen=0;
 function getCandidates(x,y){
-  const r=[],cx=x/CELL|0,cy=y/CELL|0;
-  for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){const k=(cx+dx)*10000+(cy+dy);if(hash[k])r.push(...hash[k])}
-  return r;
+  _candLen=0;
+  const cx=x/CELL|0,cy=y/CELL|0;
+  for(let dx=-2;dx<=2;dx++){for(let dy=-2;dy<=2;dy++){
+    const arr=hash.get((cx+dx)*10000+(cy+dy));
+    if(arr)for(let i=0;i<arr.length;i++){if(_candLen<1024)_cands[_candLen++]=arr[i]}
+  }}
 }
 
 // ── ATMOSPHERE ──
@@ -1870,15 +1877,16 @@ function drawSun(sunPhase,rainI){
   const r=H*0.1;
   const dim=1-rainI*0.4;
   const int=(0.7+sunPhase*0.3)*dim;
-  // Glow
+  // Glow — reduced to 2 layers, draw only in bounding box
   ctx.save();ctx.globalCompositeOperation='lighter';
-  for(let i=3;i>=0;i--){
-    const gr=ctx.createRadialGradient(cx,cy,r*0.5,cx,cy,r*(2+i*2));
-    const a=0.04*int/(i+1);
+  const glowR=r*8;const gx=cx-glowR,gy2=cy-glowR,gs=glowR*2;
+  for(let i=1;i>=0;i--){
+    const gr=ctx.createRadialGradient(cx,cy,r*0.5,cx,cy,r*(3+i*4));
+    const a=0.05*int/(i+1);
     gr.addColorStop(0,`rgba(255,220,160,${a})`);
     gr.addColorStop(0.3,`rgba(255,180,100,${a*0.5})`);
     gr.addColorStop(1,'transparent');
-    ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=gr;ctx.fillRect(gx,gy2,gs,gs);
   }
   // Core
   const cg=ctx.createRadialGradient(cx,cy,0,cx,cy,r);
@@ -1887,23 +1895,23 @@ function drawSun(sunPhase,rainI){
   cg.addColorStop(0.8,`rgba(255,160,80,${0.2*int})`);
   cg.addColorStop(1,'transparent');
   ctx.fillStyle=cg;ctx.beginPath();ctx.arc(cx,cy,r,0,PI2);ctx.fill();
-  // Rays
-  if(sunPhase>0.05){
+  // Rays — skip when dim
+  if(sunPhase>0.05&&int>0.1){
     for(let i=0;i<16;i++){
       const a=i/16*PI2+simTime*0.02;
       const pulse=0.8+0.2*fsin(simTime*0.3+i);
       const rLen=r*(2+fsin(simTime*0.1+i*0.7)*0.5)*pulse;
       const alpha=0.008*int*pulse;
-      if(alpha<0.002)continue;
-      const ex=cx+cos(a)*rLen,ey=cy+sin(a)*rLen;
+      if(alpha<0.003)continue;
+      const cosA=cos(a),sinA=sin(a);
+      const ex=cx+cosA*rLen,ey=cy+sinA*rLen;
       const rg=ctx.createLinearGradient(cx,cy,ex,ey);
       rg.addColorStop(0,`rgba(255,200,120,${alpha})`);
       rg.addColorStop(0.5,`rgba(255,160,80,${alpha*0.3})`);
       rg.addColorStop(1,'transparent');
       ctx.fillStyle=rg;ctx.beginPath();
-      ctx.moveTo(cx,cy);
-      ctx.lineTo(ex+cos(a-PI/2)*r*0.03,ey+sin(a-PI/2)*r*0.03);
-      ctx.lineTo(ex+cos(a+PI/2)*r*0.03,ey+sin(a+PI/2)*r*0.03);
+      const perpX=-sinA*r*0.03,perpY=cosA*r*0.03;
+      ctx.moveTo(cx,cy);ctx.lineTo(ex+perpX,ey+perpY);ctx.lineTo(ex-perpX,ey-perpY);
       ctx.fill();
     }
   }
@@ -2065,7 +2073,7 @@ function computeTreeSway(){
   }
 }
 function drawTree(){
-  computeTreeSway();
+  // computeTreeSway already called in frame() before this
   ctx.lineCap='round';
   // Draw trunk
   const trunkSway=fsin(simTime*0.2)*0.001;
@@ -2122,12 +2130,25 @@ function drawGrass(rainI){
   ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
   const rw=1+rainI*1.5;
   ctx.strokeStyle='#0a0a0a';ctx.lineCap='round';
+  // Batch into two paths by lineWidth to minimize state changes
+  ctx.lineWidth=0.7;ctx.beginPath();
   for(const s of grassStems){
+    if(s.seed)continue;
     const sw=fsin(simTime*0.9+s.phase)*0.01*rw;
     const tx=s.x+s.lean*s.h+sw*W,ty=gy-s.h;
-    ctx.lineWidth=s.seed?1.1:0.7;ctx.beginPath();ctx.moveTo(s.x,gy);
-    ctx.quadraticCurveTo(s.x+s.lean*s.h*0.5+sw*W*0.6,(gy+ty)/2,tx,ty);ctx.stroke();
+    ctx.moveTo(s.x,gy);
+    ctx.quadraticCurveTo(s.x+s.lean*s.h*0.5+sw*W*0.6,(gy+ty)/2,tx,ty);
   }
+  ctx.stroke();
+  ctx.lineWidth=1.1;ctx.beginPath();
+  for(const s of grassStems){
+    if(!s.seed)continue;
+    const sw=fsin(simTime*0.9+s.phase)*0.01*rw;
+    const tx=s.x+s.lean*s.h+sw*W,ty=gy-s.h;
+    ctx.moveTo(s.x,gy);
+    ctx.quadraticCurveTo(s.x+s.lean*s.h*0.5+sw*W*0.6,(gy+ty)/2,tx,ty);
+  }
+  ctx.stroke();
 }
 
 // ── RAIN ──
@@ -2143,20 +2164,29 @@ function updateRain(dt,intensity){
     if(random()<0.7)raindrops.push({x:random()*W*1.2-W*0.1,y:-10-random()*50,
       vx:-15-random()*10,vy:200+random()*150,len:8+random()*12,alpha:0.15+random()*0.2});
   }
-  for(let i=raindrops.length-1;i>=0;i--){
+  const groundY=H*0.88+10;
+  // Swap-and-pop: O(1) per removal instead of O(n) splice
+  let i=0;
+  while(i<raindrops.length){
     const d=raindrops[i];d.x+=d.vx*dt;d.y+=d.vy*dt;
-    if(d.y>H*0.88+10)raindrops.splice(i,1);
+    if(d.y>groundY){raindrops[i]=raindrops[raindrops.length-1];raindrops.pop()}
+    else i++;
   }
-  if(raindrops.length>800)raindrops.splice(0,raindrops.length-800);
+  if(raindrops.length>800)raindrops.length=800;
 }
 function drawRain(intensity){
-  if(intensity<0.01)return;
+  if(intensity<0.01||raindrops.length===0)return;
+  // All raindrops have similar angle — use average, not per-drop atan2
+  const avgCos=-0.1,avgSin=0.995; // ~96° — nearly vertical with slight wind
+  const baseAlpha=intensity*0.35;
   ctx.lineWidth=1.5;ctx.lineCap='round';
-  for(const d of raindrops){
-    const a=atan2(d.vy,d.vx);
-    ctx.strokeStyle=`rgba(180,200,220,${intensity*0.35*d.alpha})`;
-    ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.x+cos(a)*d.len,d.y+sin(a)*d.len);ctx.stroke();
+  ctx.strokeStyle=`rgba(180,200,220,${baseAlpha*0.22})`;
+  ctx.beginPath();
+  for(let i=0;i<raindrops.length;i++){
+    const d=raindrops[i];
+    ctx.moveTo(d.x,d.y);ctx.lineTo(d.x+avgCos*d.len,d.y+avgSin*d.len);
   }
+  ctx.stroke();
 }
 
 // ── BIRDS ──
@@ -2187,6 +2217,9 @@ function drawRain(intensity){
 let birds=[];
 const BIRD_COUNT=250;
 const K=7;
+// Preallocated neighbor buffers — avoids creating arrays per bird per frame
+const _nbD2=new Float64Array(K);
+const _nbIdx=new Int16Array(K);
 const MOVES=['vortex','wave','split','breathe','ribbon','column','sweep','tornado'];
 let currentMove='vortex',moveDuration=5,moveTimer=0;
 let flockAngMom=0,flockTurnDir=null;
@@ -2261,6 +2294,13 @@ function updateBirds(dt,predX,predY,predHunt){
 
   const rainI=WORLD.weather.rainIntensity;
 
+  // Hoist loop-invariant computations
+  const atX=W*0.4+fsin(simTime*0.15)*W*0.15,atY=H*0.35+fsin(simTime*0.12+1)*H*0.08;
+  const bxL=W*0.08,bxR=W*0.92,byT=H*0.08,byB=H*0.75;
+  const predActive=predHunt>0&&predHunt<4;
+  const fm=min(WORLD.flock.crr.mem()/4,2);
+  const fmA=fm*0.12,fmC=fm*0.03;
+
   for(const b of birds){
     b.timer+=dt;b.wph+=b.wsp*dt;
     // PERCHED
@@ -2282,7 +2322,7 @@ function updateBirds(dt,predX,predY,predHunt){
         // During roosting phase, birds stay perched once they land
         if(birdPhase==='roosting'){continue}
         // Normal flying phase
-        const predNear=predHunt<4&&sqrt((b.x-predX)**2+(b.y-predY)**2)<180;
+        const predNear=predActive&&((b.x-predX)**2+(b.y-predY)**2)<32400; // 180²
         const minRest=3+b.react*4;
         const restless=b.perchT>minRest&&random()<0.03;
         const rainStop=rainI<0.2&&b.perchT>2;
@@ -2304,64 +2344,77 @@ function updateBirds(dt,predX,predY,predHunt){
       else{const ls=min(d*2.5,60);b.vx=dx/d*ls;b.vy=dy/d*ls;b.x+=b.vx*dt;b.y+=b.vy*dt}
       continue;
     }
-    // FLYING — topological neighbors
-    const cands=getCandidates(b.x,b.y);
-    const neighbors=[];
-    for(const i of cands){const o=birds[i];if(o===b||o.st!==0)continue;
+    // FLYING — topological neighbors (k=7)
+    getCandidates(b.x,b.y);
+    // Sort candidates by squared distance, pick k-nearest
+    // Use preallocated arrays to avoid GC
+    let nCount=0;
+    for(let ci=0;ci<_candLen;ci++){
+      const idx=_cands[ci];const o=birds[idx];if(o===b||o.st!==0)continue;
       const dx=o.x-b.x,dy=o.y-b.y,d2=dx*dx+dy*dy;
-      if(d2<10000)neighbors.push({bird:o,d2,dx,dy,d:sqrt(d2)})}
-    neighbors.sort((a,c)=>a.d2-c.d2);
-    const kN=neighbors.slice(0,K);
-    b.localDensity=kN.length>0?K/(kN[kN.length-1]?.d||30):0;
+      if(d2<10000){
+        // Insert sorted by d2 into _nb (small K so insertion sort is fine)
+        if(nCount<K){_nbD2[nCount]=d2;_nbIdx[nCount]=idx;nCount++}
+        else if(d2<_nbD2[K-1]){_nbD2[K-1]=d2;_nbIdx[K-1]=idx}
+        else continue;
+        // Bubble into position
+        for(let j=min(nCount,K)-1;j>0&&_nbD2[j]<_nbD2[j-1];j--){
+          let t=_nbD2[j];_nbD2[j]=_nbD2[j-1];_nbD2[j-1]=t;
+          t=_nbIdx[j];_nbIdx[j]=_nbIdx[j-1];_nbIdx[j-1]=t;
+        }
+      }
+    }
+    const kCount=min(nCount,K);
+    b.localDensity=kCount>0?K/(sqrt(_nbD2[kCount-1])||30):0;
     let sx=0,sy=0,ax=0,ay=0,cx=0,cy=0,nc=0;
-    for(const n of kN){
-      const{bird:o,d,dx,dy}=n;
+    for(let ni=0;ni<kCount;ni++){
+      const o=birds[_nbIdx[ni]];
+      const dx=o.x-b.x,dy=o.y-b.y,d=sqrt(_nbD2[ni]);
       if(d<12*sepMult&&d>0){const f=(12*sepMult-d)/(12*sepMult)/(b.crr.omega*5);sx-=dx/d*f;sy-=dy/d*f}
       ax+=o.vx;ay+=o.vy;cx+=o.x;cy+=o.y;nc++;
     }
     if(nc<4){b.tvx+=(fcx-b.x)*0.015*(4-nc);b.tvy+=(fcy-b.y)*0.015*(4-nc)}
     if(nc>0){
-      const fm=min(WORLD.flock.crr.mem()/4,2);
       b.tvx+=sx*1.6*b.react;b.tvy+=sy*1.6*b.react;
-      b.tvx+=(ax/nc-b.vx)*(0.14+fm*0.12)*b.react;b.tvy+=(ay/nc-b.vy)*(0.14+fm*0.12)*b.react;
-      b.tvx+=(cx/nc-b.x)*(0.035+fm*0.03)*b.react*cohMult;b.tvy+=(cy/nc-b.y)*(0.035+fm*0.03)*b.react*cohMult;
-      b.angMom=lerp(b.angMom,(nc>0?0:0)+angM*0.3,0.12);
+      b.tvx+=(ax/nc-b.vx)*(0.14+fmA)*b.react;b.tvy+=(ay/nc-b.vy)*(0.14+fmA)*b.react;
+      b.tvx+=(cx/nc-b.x)*(0.035+fmC)*b.react*cohMult;b.tvy+=(cy/nc-b.y)*(0.035+fmC)*b.react*cohMult;
+      b.angMom=lerp(b.angMom,angM*0.3,0.12);
     }else{b.tvx+=(fcx-b.x)*0.05;b.tvy+=(fcy-b.y)*0.05}
-    if(abs(b.angMom)>0.01){const spd=sqrt(b.vx*b.vx+b.vy*b.vy);if(spd>5){b.tvx+=(-b.vy/spd)*b.angMom*0.8;b.tvy+=(b.vx/spd)*b.angMom*0.8}}
+    if(abs(b.angMom)>0.01){const spd2=b.vx*b.vx+b.vy*b.vy;if(spd2>25){const invS=1/sqrt(spd2);b.tvx+=(-b.vy*invS)*b.angMom*0.8;b.tvy+=(b.vx*invS)*b.angMom*0.8}}
     if(flockTurnDir&&WORLD.flock.crr.st>0){b.tvx+=flockTurnDir.x*0.02;b.tvy+=flockTurnDir.y*0.02}
-    // Predator avoidance
-    if(predHunt>0&&predHunt<4){const pdx=b.x-predX,pdy=b.y-predY,pd=sqrt(pdx*pdx+pdy*pdy);
-      if(pd<200&&pd>0){const f=3*(200-pd)/200;b.tvx+=pdx/pd*f;b.tvy+=pdy/pd*f}}
-    // Attractor
-    const atX=W*0.4+fsin(simTime*0.15)*W*0.15,atY=H*0.35+fsin(simTime*0.12+1)*H*0.08;
+    // Predator avoidance — squared distance check avoids sqrt when far
+    if(predActive){const pdx=b.x-predX,pdy=b.y-predY,pd2=pdx*pdx+pdy*pdy;
+      if(pd2<40000&&pd2>0){const pd=sqrt(pd2);const f=3*(200-pd)/200;b.tvx+=pdx/pd*f;b.tvy+=pdy/pd*f}}
+    // Attractor (hoisted out of loop)
     b.tvx+=(atX-b.x)*0.002;b.tvy+=(atY-b.y)*0.002;
     // Smooth
-    b.vx=lerp(b.vx,b.tvx,min(1,dt*6));b.vy=lerp(b.vy,b.tvy,min(1,dt*6));
+    const sm=min(1,dt*6);
+    b.vx=lerp(b.vx,b.tvx,sm);b.vy=lerp(b.vy,b.tvy,sm);
     b.tvx=b.vx;b.tvy=b.vy;b.angMom*=0.98;
     // Boundaries
-    const m=0.08,bf=8;
-    if(b.x<W*m)b.vx+=bf*(1-b.x/(W*m));if(b.x>W*(1-m))b.vx-=bf*(1-(W-b.x)/(W*m));
-    if(b.y<H*m)b.vy+=bf*(1-b.y/(H*m));if(b.y>H*0.75)b.vy-=bf*(1-(H*0.88-b.y)/(H*0.13));
-    const spd=sqrt(b.vx*b.vx+b.vy*b.vy);
-    if(spd>75){b.vx=b.vx/spd*75;b.vy=b.vy/spd*75}else if(spd<18&&spd>0){b.vx=b.vx/spd*18;b.vy=b.vy/spd*18}
+    if(b.x<bxL)b.vx+=8*(1-b.x/bxL);if(b.x>bxR)b.vx-=8*(1-(W-b.x)/bxL);
+    if(b.y<byT)b.vy+=8*(1-b.y/byT);if(b.y>byB)b.vy-=8*(1-(H*0.88-b.y)/(H*0.13));
+    // Speed clamping — squared comparison avoids sqrt in common case
+    const spd2=b.vx*b.vx+b.vy*b.vy;
+    if(spd2>5625){const invS=75/sqrt(spd2);b.vx*=invS;b.vy*=invS}
+    else if(spd2<324&&spd2>0){const invS=18/sqrt(spd2);b.vx*=invS;b.vy*=invS}
     b.x+=b.vx*dt;b.y+=b.vy*dt;
     // Perching
     const nearTree=b.x>W*0.6;const vNear=b.x>W*0.72&&b.y>H*0.45;
     let pc=0;
     if(birdPhase==='roosting'){
-      // Strong roost drive — all birds head for tree
-      pc=0.02; // Very high perching probability
-      // Also steer toward tree
+      pc=0.02;
       const dx=W*0.82-b.x,dy=H*0.6-b.y;
-      const d=sqrt(dx*dx+dy*dy);
-      if(d>30){b.vx+=dx/d*15*dt;b.vy+=dy/d*12*dt}
+      const d2=dx*dx+dy*dy;
+      if(d2>900){const invD=1/sqrt(d2);b.vx+=dx*invD*15*dt;b.vy+=dy*invD*12*dt}
       if(vNear)pc=0.06;
     } else {
       if(vNear){pc=rainI>0.4?0.004:0.001}else if(nearTree&&rainI>0.4){pc=0.0015}
     }
     if(random()<pc){
-      let best=null,bestD=birdPhase==='roosting'?250:vNear?80:120;
-      for(const p of treePerches){if(p.occ)continue;const d=sqrt((b.x-p.x)**2+(b.y-p.y)**2);if(d<bestD){bestD=d;best=p}}
+      const maxD2=birdPhase==='roosting'?62500:vNear?6400:14400; // 250²/80²/120²
+      let best=null,bestD2=maxD2;
+      for(const p of treePerches){if(p.occ)continue;const dx=b.x-p.x,dy=b.y-p.y,d2=dx*dx+dy*dy;if(d2<bestD2){bestD2=d2;best=p}}
       if(best){b.st=1;b.perch=best;best.occ=true;b.timer=0;b.roosting=birdPhase==='roosting'}
     }
   }
@@ -2369,28 +2422,40 @@ function updateBirds(dt,predX,predY,predHunt){
 
 function drawBirds(){
   ctx.fillStyle='rgba(18,18,24,0.9)';
+  // Batch ALL perched birds into a single path (no transform needed)
+  ctx.beginPath();
   for(const b of birds){
-    if(b.st===2){
-      ctx.save();ctx.translate(b.x,b.y);
-      ctx.beginPath();ctx.ellipse(0,0,b.size*1.1,b.size*0.9,0,0,PI2);ctx.fill();
-      ctx.beginPath();ctx.ellipse(b.size*0.2,0,b.size*0.8,b.size*0.5,0.2,0,PI2);ctx.fill();
-      ctx.restore();continue;
-    }
-    const angle=atan2(b.vy,b.vx);
-    let flapMult=b.st===3?1.4:b.st===1?0.7:1;
-    const flap=fsin(b.wph*flapMult)*0.45;
-    ctx.save();ctx.translate(b.x,b.y);ctx.rotate(angle);
-    const spd=sqrt(b.vx*b.vx+b.vy*b.vy);const stretch=1+min(spd/120,0.35);
-    ctx.beginPath();ctx.ellipse(0,0,b.size*1.35*stretch,b.size*0.5,0,0,PI2);ctx.fill();
-    const ws=b.size*2.6,wL=0.42+flap*0.38;
-    ctx.beginPath();
-    ctx.moveTo(-b.size*0.25,0);
-    ctx.quadraticCurveTo(-b.size*0.05,-ws*wL*0.55,b.size*0.35,-ws*wL);
-    ctx.quadraticCurveTo(b.size*0.18,-ws*wL*0.25,b.size*0.12,0);
-    ctx.quadraticCurveTo(b.size*0.18,ws*wL*0.25,b.size*0.35,ws*wL);
-    ctx.quadraticCurveTo(-b.size*0.05,ws*wL*0.55,-b.size*0.25,0);
-    ctx.fill();ctx.restore();
+    if(b.st!==2)continue;
+    // Simple circle for perched — no save/restore/transform
+    const s=b.size;
+    ctx.moveTo(b.x+s*1.1,b.y);ctx.arc(b.x,b.y,s*1.1,0,PI2);
+    ctx.moveTo(b.x+s*0.2+s*0.8,b.y);ctx.arc(b.x+s*0.2,b.y,s*0.7,0,PI2);
   }
+  ctx.fill();
+  // Flying birds — use setTransform to avoid save/restore stack
+  for(const b of birds){
+    if(b.st===2)continue;
+    const angle=atan2(b.vy,b.vx);
+    const flapMult=b.st===3?1.4:b.st===1?0.7:1;
+    const flap=fsin(b.wph*flapMult)*0.45;
+    const cosA=cos(angle),sinA=sin(angle);
+    // setTransform(a,b,c,d,e,f) = translate+rotate in one call
+    ctx.setTransform(cosA,sinA,-sinA,cosA,b.x,b.y);
+    const vx2vy2=b.vx*b.vx+b.vy*b.vy;
+    const stretch=1+min(vx2vy2/14400,0.35); // avoid sqrt: 120²=14400
+    const s=b.size;
+    ctx.beginPath();ctx.ellipse(0,0,s*1.35*stretch,s*0.5,0,0,PI2);ctx.fill();
+    const ws=s*2.6,wL=0.42+flap*0.38;
+    ctx.beginPath();
+    ctx.moveTo(-s*0.25,0);
+    ctx.quadraticCurveTo(-s*0.05,-ws*wL*0.55,s*0.35,-ws*wL);
+    ctx.quadraticCurveTo(s*0.18,-ws*wL*0.25,s*0.12,0);
+    ctx.quadraticCurveTo(s*0.18,ws*wL*0.25,s*0.35,ws*wL);
+    ctx.quadraticCurveTo(-s*0.05,ws*wL*0.55,-s*0.25,0);
+    ctx.fill();
+  }
+  // Reset transform
+  ctx.setTransform(1,0,0,1,0,0);
 }
 
 // ── PREDATOR ──
@@ -2484,16 +2549,18 @@ function drawPred(){
 // Amplitude = instantaneous coherence level. The visual shows
 // how all CRR agents' sonic outputs superpose into a single
 // time-domain signal — the integral of all coherence made visible.
+let _waveBuf=null;
 function drawWaveform(){
   if(!analyser)return;
-  const buf=new Uint8Array(analyser.frequencyBinCount);
-  analyser.getByteTimeDomainData(buf);
+  if(!_waveBuf||_waveBuf.length!==analyser.frequencyBinCount)_waveBuf=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteTimeDomainData(_waveBuf);
   ctx.strokeStyle='rgba(212,165,74,0.08)';ctx.lineWidth=1;
   ctx.beginPath();
-  const sliceW=W/buf.length;
-  for(let i=0;i<buf.length;i++){
-    const v=buf[i]/128;const y=H*0.88+v*H*0.06-H*0.03;
-    if(i===0)ctx.moveTo(0,y);else ctx.lineTo(i*sliceW,y);
+  const len=_waveBuf.length;const step=max(1,(len/256)|0); // Downsample to ~256 points
+  const sliceW=W*step/len;
+  for(let i=0;i<len;i+=step){
+    const v=_waveBuf[i]/128;const y=H*0.88+v*H*0.06-H*0.03;
+    if(i===0)ctx.moveTo(0,y);else ctx.lineTo((i/step)*sliceW,y);
   }
   ctx.stroke();
 }
@@ -2518,6 +2585,15 @@ function drawWaveform(){
 //   - Rainbow visibility (R phase progress)
 //   - Real-time bird chirps (stochastic Z₂ micro-events)
 //   - Musical rain updates (CRR pattern engine stepping)
+// Cached DOM elements for per-frame updates
+const _dom={};
+function cacheDom(){
+  _dom.fill=document.getElementById('timeline-fill');
+  _dom.time=document.getElementById('timeline-time');
+  _dom.crr=document.getElementById('crr-display');
+  _dom.sl=document.getElementById('section-label');
+}
+let _uiFrame=0;
 let sequence=[];let seqIdx=0;let playing=false;
 let musicBeat=0;let tempoMult=1;let beatDuration=60/72;
 let currentSection='';let sectionFadeTimer=0;
@@ -2628,8 +2704,7 @@ function processMusic(dt){
         break;
       case'section':
         currentSection=ev.sectionName;sectionFadeTimer=4;
-        const sl=document.getElementById('section-label');
-        sl.textContent=ev.sectionName;sl.style.opacity=0.55;sl.style.color='rgba(212,165,74,0.7)';
+        _dom.sl.textContent=ev.sectionName;_dom.sl.style.opacity=0.55;_dom.sl.style.color='rgba(212,165,74,0.7)';
         break;
     }
   }
@@ -2641,19 +2716,20 @@ function processMusic(dt){
   // Musical rain — CRR-driven harmonic drops
   updateMusicalRain(dt,WORLD.weather.rainIntensity);
 
-  // Update UI
-  const pct=(musicBeat/TOTAL_BEATS*100).toFixed(1);
-  document.getElementById('timeline-fill').style.width=pct+'%';
-  const totalSec=TOTAL_BEATS*beatDuration/tempoMult;
-  const curSec=musicBeat*beatDuration/tempoMult;
-  document.getElementById('timeline-time').textContent=
-    `${floor(curSec/60)}:${(floor(curSec)%60+'').padStart(2,'0')} / ${floor(totalSec/60)}:${(floor(totalSec)%60+'').padStart(2,'0')}`;
-  // CRR display
-  const fc=WORLD.flock.crr;
-  document.getElementById('crr-display').innerHTML=
-    `C=${fc.C.toFixed(2)} Ω=${fc.omega.toFixed(2)}<br>${fc.stateName()} · exp(C/Ω)=${fc.mem().toFixed(1)}<br>move: ${currentMove} · flock: ${birdPhase}<br>sun: ${WORLD.sun.phase.toFixed(2)} · rain: ${(WORLD.weather.rainIntensity*100).toFixed(0)}% · ${musicalRain.crr.stateName()}`;
+  // Update UI (timeline every frame, CRR display throttled)
+  _dom.fill.style.width=(musicBeat/TOTAL_BEATS*100).toFixed(1)+'%';
+  _uiFrame++;
+  if(_uiFrame&3){}else{ // Every 4th frame for text updates
+    const totalSec=TOTAL_BEATS*beatDuration/tempoMult;
+    const curSec=musicBeat*beatDuration/tempoMult;
+    _dom.time.textContent=
+      `${floor(curSec/60)}:${(floor(curSec)%60+'').padStart(2,'0')} / ${floor(totalSec/60)}:${(floor(totalSec)%60+'').padStart(2,'0')}`;
+    const fc=WORLD.flock.crr;
+    _dom.crr.innerHTML=
+      `C=${fc.C.toFixed(2)} Ω=${fc.omega.toFixed(2)}<br>${fc.stateName()} · exp(C/Ω)=${fc.mem().toFixed(1)}<br>move: ${currentMove} · flock: ${birdPhase}<br>sun: ${WORLD.sun.phase.toFixed(2)} · rain: ${(WORLD.weather.rainIntensity*100).toFixed(0)}% · ${musicalRain.crr.stateName()}`;
+  }
   // Section label fade
-  if(sectionFadeTimer>0){sectionFadeTimer-=dt;if(sectionFadeTimer<=1)document.getElementById('section-label').style.opacity=max(0,sectionFadeTimer)*0.55}
+  if(sectionFadeTimer>0){sectionFadeTimer-=dt;if(sectionFadeTimer<=1)_dom.sl.style.opacity=max(0,sectionFadeTimer)*0.55}
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -2729,6 +2805,7 @@ function frame(timestamp){
 document.getElementById('splash').addEventListener('click',()=>{
   document.getElementById('splash').classList.add('hidden');
   document.getElementById('app').classList.add('active');
+  cacheDom();
   init();
   requestAnimationFrame(frame);
 });
