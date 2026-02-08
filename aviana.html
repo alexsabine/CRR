@@ -1,0 +1,2158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Aviana — The Music of the Flock Body | CRR</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Mono:wght@400;700&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --predawn:#0c1023;--dawn:#2d1b4e;--sky:#1a6fa0;--noon:#4da6db;
+  --dusk:#8b3a62;--gold:#e8a838;--coral:#e87461;
+  --feather:#f0e6d3;--wing:#1a1a2e;--silhouette:#0d0d1a;
+  --song:#f0c040;--thermal:#e8783a;--airstream:#7ec8e3;
+  --coherence:#4fd1c5;--rupture:#fc8181;--regen:#68d391;--omega:#f6ad55;
+  --foam:rgba(240,230,211,0.85);--foamD:rgba(200,190,170,0.5);
+  --bg:#0c1023;--panel:rgba(12,16,35,0.97)
+}
+body{background:var(--bg);color:var(--foam);font-family:'Cormorant Garamond',Georgia,serif;
+overflow:hidden;width:100vw;height:100vh;position:fixed}
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;
+justify-content:center;cursor:pointer;transition:opacity 1.4s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:680px;padding:0 24px}
+#splash .wave-bar{width:260px;height:2px;margin:0 auto 28px;border-radius:2px;
+background:linear-gradient(90deg,var(--predawn),var(--dawn),var(--gold),var(--coral),var(--sky));
+animation:wavepulse 2.4s ease-in-out infinite}
+@keyframes wavepulse{0%,100%{opacity:.25;transform:scaleX(1)}30%{opacity:.7;transform:scaleX(1.08)}60%{opacity:.35;transform:scaleX(0.97)}}
+#splash h1{font-size:clamp(2.2rem,5.5vw,3.8rem);font-weight:300;letter-spacing:.32em;
+margin-bottom:6px;background:linear-gradient(135deg,var(--gold),var(--coral),var(--dawn),var(--sky));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#splash .sub{font-size:clamp(.82rem,1.5vw,1.05rem);font-weight:300;opacity:.4;
+letter-spacing:.04em;line-height:1.9;font-style:italic}
+#splash .eq{font-family:'Space Mono',monospace;font-size:clamp(.5rem,.85vw,.62rem);
+opacity:.16;margin-top:18px;letter-spacing:.02em;line-height:1.8}
+#splash .credit{font-size:.62rem;opacity:.18;margin-top:14px;letter-spacing:.06em}
+#splash .tap{font-size:.68rem;opacity:.18;margin-top:22px;letter-spacing:.12em;animation:pulse 2.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.1}50%{opacity:.28}}
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#tab-bar{height:32px;min-height:32px;background:var(--panel);display:flex;align-items:center;
+padding:0 14px;gap:2px;border-bottom:1px solid rgba(232,168,56,.08)}
+.tab-btn{background:transparent;border:1px solid rgba(232,168,56,.08);border-bottom:none;
+border-radius:4px 4px 0 0;color:var(--foamD);font-family:'Space Mono',monospace;
+font-size:.55rem;letter-spacing:.08em;padding:5px 16px;cursor:pointer;transition:all .2s;opacity:.4}
+.tab-btn.active{opacity:.8;color:var(--foam);background:rgba(232,168,56,.04);
+border-color:rgba(232,168,56,.15)}
+.tab-btn:hover{opacity:.7}
+#tab-bar .spacer{flex:1}
+#tab-bar .title-sm{font-size:.5rem;opacity:.2;letter-spacing:.15em;font-family:'Space Mono',monospace}
+#canvas-wrap{flex:1;min-height:0;position:relative}
+#viz{display:block;width:100%;height:100%;touch-action:none}
+#info-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+align-items:flex-start;padding:8px 18px;pointer-events:none;z-index:5}
+.info-col{display:flex;flex-direction:column;gap:2px}
+.info-col.right{align-items:flex-end}
+.info-label{font-family:'Space Mono',monospace;font-size:.5rem;letter-spacing:.08em;opacity:.3}
+.info-val{font-family:'Space Mono',monospace;font-size:.56rem;letter-spacing:.02em;opacity:.5}
+
+/* ─── Telemetry Panel (right side) ─── */
+#telem-toggle{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:12;
+width:20px;height:70px;background:rgba(12,16,35,.92);border:1px solid rgba(232,168,56,.2);
+border-right:none;border-radius:6px 0 0 6px;cursor:pointer;display:flex;align-items:center;
+justify-content:center;color:var(--gold);font-size:.45rem;font-family:'Space Mono',monospace;
+opacity:.4;transition:all .25s;pointer-events:auto;writing-mode:vertical-rl}
+#telem-toggle:hover{opacity:.7}
+#telem-panel{position:absolute;right:0;top:0;bottom:0;width:260px;z-index:11;
+background:rgba(6,10,20,.96);border-left:1px solid rgba(232,168,56,.1);
+transform:translateX(100%);transition:transform .35s ease;overflow-y:auto;
+pointer-events:auto;padding:8px 10px 60px}
+#telem-panel.open{transform:translateX(0)}
+#telem-panel.open~#telem-toggle{right:260px}
+.tg{margin-bottom:6px}
+.tg-title{font-family:'Space Mono',monospace;font-size:.42rem;letter-spacing:.1em;
+opacity:.35;display:flex;justify-content:space-between;margin-bottom:2px}
+.tg-title .tv{opacity:.55;letter-spacing:.02em}
+.tg canvas{width:100%;border-radius:2px;background:rgba(232,168,56,.02);display:block}
+.tg canvas.tall{height:60px}.tg canvas.med{height:42px}.tg canvas.short{height:30px}
+.tg-legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:1px}
+.tg-legend span{font-family:'Space Mono',monospace;font-size:.36rem;opacity:.4;
+padding-left:8px;position:relative}
+.tg-legend span::before{content:'';position:absolute;left:0;top:50%;width:5px;height:2px;
+border-radius:1px;background:var(--c,var(--foam));transform:translateY(-50%)}
+
+/* ─── CRR Panel (left) ─── */
+#crr-toggle{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:12;
+width:20px;height:60px;background:rgba(12,16,35,.92);border:1px solid rgba(79,209,197,.2);
+border-left:none;border-radius:0 6px 6px 0;cursor:pointer;display:flex;align-items:center;
+justify-content:center;color:var(--coherence);font-size:.5rem;font-family:'Space Mono',monospace;
+opacity:.4;transition:all .25s;pointer-events:auto;writing-mode:vertical-rl}
+#crr-toggle:hover{opacity:.7}
+#crr-panel{position:absolute;left:0;top:0;bottom:0;width:270px;z-index:11;
+background:rgba(6,10,20,.96);border-right:1px solid rgba(79,209,197,.1);
+transform:translateX(-100%);transition:transform .35s ease;overflow-y:auto;
+pointer-events:auto;padding:10px 12px 60px}
+#crr-panel.open{transform:translateX(0)}
+#crr-panel.open~#crr-toggle{left:270px}
+.crr-section{margin-bottom:10px;border-bottom:1px solid rgba(79,209,197,.05);padding-bottom:8px}
+.crr-head{font-family:'Space Mono',monospace;font-size:.48rem;letter-spacing:.08em;
+color:var(--coherence);opacity:.55;margin-bottom:3px;cursor:pointer;display:flex;
+justify-content:space-between;align-items:center}
+.crr-head .arrow{font-size:.38rem;transition:transform .2s}
+.crr-head .arrow.open{transform:rotate(90deg)}
+.crr-body{overflow:hidden;transition:max-height .3s ease;max-height:0}
+.crr-body.open{max-height:500px}
+.crr-eq{font-family:'Space Mono',monospace;font-size:.4rem;opacity:.2;margin:2px 0;letter-spacing:.01em;line-height:1.5}
+.crr-row{display:flex;justify-content:space-between;align-items:center;margin:1px 0}
+.crr-label{font-family:'Space Mono',monospace;font-size:.42rem;opacity:.35}
+.crr-val{font-family:'Space Mono',monospace;font-size:.44rem;opacity:.55}
+.crr-bar-wrap{width:55px;height:3px;background:rgba(232,168,56,.06);border-radius:2px;overflow:hidden}
+.crr-bar{height:100%;border-radius:2px;transition:width .15s,background .3s}
+.crr-desc{font-size:.48rem;opacity:.2;font-style:italic;margin:2px 0;line-height:1.35}
+
+/* ─── Monitor bar ─── */
+#monitor-bar{position:absolute;bottom:0;left:0;right:0;display:flex;gap:1px;
+padding:4px 8px;pointer-events:none;z-index:5;justify-content:center;flex-wrap:wrap}
+.mon-panel{background:rgba(8,10,22,.82);border:1px solid rgba(232,168,56,.1);border-radius:3px;
+padding:3px 6px;font-family:'Space Mono',monospace;font-size:.44rem;letter-spacing:.02em;
+opacity:.55;min-width:90px;max-width:160px}
+.mon-title{font-size:.38rem;letter-spacing:.1em;opacity:.35;margin-bottom:1px;text-transform:uppercase}
+.mon-row{display:flex;justify-content:space-between;gap:5px;line-height:1.35}
+
+/* ─── Timeline ─── */
+#timeline{height:34px;min-height:34px;background:var(--panel);display:flex;align-items:center;
+padding:0 14px;gap:10px;border-top:1px solid rgba(232,168,56,.08);user-select:none}
+#play-btn{width:24px;height:24px;border:1px solid rgba(232,168,56,.2);border-radius:50%;
+background:transparent;color:var(--foam);cursor:pointer;display:flex;align-items:center;
+justify-content:center;font-size:.6rem;opacity:.5;transition:opacity .2s}
+#play-btn:hover{opacity:.8}
+#track-wrap{flex:1;height:16px;position:relative;cursor:pointer}
+#track-bg{position:absolute;inset:0;height:2px;top:7px;background:rgba(232,168,56,.08);border-radius:1px}
+#track-fill{position:absolute;left:0;top:7px;height:2px;width:0;
+background:linear-gradient(90deg,var(--dawn),var(--gold),var(--coral),var(--sky));border-radius:1px;transition:width .1s linear}
+#track-sections{position:absolute;inset:0;display:flex}
+.track-sec{flex:1;position:relative;border-right:1px solid rgba(232,168,56,.04)}
+.track-sec-label{position:absolute;bottom:0;left:2px;font-family:'Space Mono',monospace;
+font-size:.3rem;opacity:.18;letter-spacing:.03em;white-space:nowrap}
+#time-display{font-family:'Space Mono',monospace;font-size:.5rem;opacity:.3;min-width:48px;text-align:right}
+#crr-panel::-webkit-scrollbar,#telem-panel::-webkit-scrollbar{width:3px}
+#crr-panel::-webkit-scrollbar-track,#telem-panel::-webkit-scrollbar-track{background:transparent}
+#crr-panel::-webkit-scrollbar-thumb,#telem-panel::-webkit-scrollbar-thumb{background:rgba(79,209,197,.12);border-radius:2px}
+</style>
+</head>
+<body>
+<div id="splash">
+<div class="inner">
+<div class="wave-bar"></div>
+<h1>AVIANA</h1>
+<div class="sub">The Music of the Flock Body<br>
+<span style="font-size:.78em;opacity:.6">syrinx · air sacs · murmuration</span></div>
+<div class="eq">
+C(x,t) = ∫ L(x,τ) dτ&emsp;·&emsp;δ(now)&emsp;·&emsp;R = ∫ φ exp(C/Ω) Θ dτ<br>
+Ω<sub>Z₂</sub> = 1/π&emsp;·&emsp;Ω<sub>SO(2)</sub> = 1/2π&emsp;·&emsp;syrinx = dual Z₂
+</div>
+<div class="credit">A. Sabine · Cohere Research · CRR Framework · temporalgrammar.ai</div>
+<div class="tap">tap anywhere to begin</div>
+</div>
+</div>
+
+<div id="app">
+<div id="tab-bar">
+<button class="tab-btn active" data-mode="chorus">DAWN CHORUS</button>
+<button class="tab-btn" data-mode="flock">MURMURATION</button>
+<div class="spacer"></div>
+<span class="title-sm">AVIANA</span>
+</div>
+<div id="canvas-wrap">
+<canvas id="viz"></canvas>
+<div id="info-bar">
+<div class="info-col">
+<div><span class="info-label">SECTION </span><span class="info-val" id="iSection">—</span></div>
+<div><span class="info-label">BEAT </span><span class="info-val" id="iBeat">0</span></div>
+</div>
+<div class="info-col right">
+<div><span class="info-val" id="iCRR">C=0 Ω=0.318</span><span class="info-label"> CRR</span></div>
+<div><span class="info-val" id="iExpCO">exp=1.00</span><span class="info-label"> MEMORY</span></div>
+</div>
+</div>
+
+<!-- CRR Biology Panel (left) -->
+<div id="crr-panel"></div>
+<div id="crr-toggle">CRR</div>
+
+<!-- Telemetry Graphs Panel (right) -->
+<div id="telem-panel">
+  <div class="tg"><div class="tg-title"><span>SYRINX · DUAL Z₂</span><span class="tv" id="tv-syr">—</span></div>
+    <canvas id="tc-syr" class="med"></canvas>
+    <div class="tg-legend"><span style="--c:var(--gold)">L</span><span style="--c:var(--coral)">R</span><span style="--c:var(--song)">tension</span></div></div>
+  <div class="tg"><div class="tg-title"><span>AIR SACS · SO(2)</span><span class="tv" id="tv-air">—</span></div>
+    <canvas id="tc-air" class="short"></canvas>
+    <div class="tg-legend"><span style="--c:var(--airstream)">volume</span><span style="--c:var(--coherence)">O₂</span></div></div>
+  <div class="tg"><div class="tg-title"><span>HEART · Z₂</span><span class="tv" id="tv-heart">—</span></div>
+    <canvas id="tc-heart" class="med"></canvas>
+    <div class="tg-legend"><span style="--c:var(--rupture)">ECG</span><span style="--c:var(--coral)">BPM</span></div></div>
+  <div class="tg"><div class="tg-title"><span>WING · Z₂</span><span class="tv" id="tv-wing">—</span></div>
+    <canvas id="tc-wing" class="short"></canvas>
+    <div class="tg-legend"><span style="--c:var(--thermal)">lift</span><span style="--c:var(--omega)">phase</span></div></div>
+  <div class="tg"><div class="tg-title"><span>FLOCK DYNAMICS</span><span class="tv" id="tv-flock">—</span></div>
+    <canvas id="tc-flock" class="tall"></canvas>
+    <div class="tg-legend"><span style="--c:var(--coherence)">cohesion</span><span style="--c:var(--omega)">alignment</span><span style="--c:var(--rupture)">separation</span></div></div>
+  <div class="tg"><div class="tg-title"><span>CRR DYNAMICS</span><span class="tv" id="tv-crr">—</span></div>
+    <canvas id="tc-crr" class="tall"></canvas>
+    <div class="tg-legend"><span style="--c:var(--coherence)">C</span><span style="--c:var(--omega)">Ω</span><span style="--c:var(--regen)">exp(C/Ω)</span><span style="--c:var(--rupture)">δ</span></div></div>
+  <div class="tg"><div class="tg-title"><span>THERMOREGULATION</span><span class="tv" id="tv-thermo">—</span></div>
+    <canvas id="tc-thermo" class="short"></canvas>
+    <div class="tg-legend"><span style="--c:var(--thermal)">core T</span><span style="--c:var(--airstream)">metabolic</span></div></div>
+  <div class="tg"><div class="tg-title"><span>SONG ACTIVITY</span><span class="tv" id="tv-song">—</span></div>
+    <canvas id="tc-song" class="med"></canvas>
+    <div class="tg-legend"><span style="--c:var(--gold)">blackbird</span><span style="--c:var(--coral)">nightingale</span><span style="--c:var(--airstream)">skylark</span><span style="--c:var(--thermal)">robin</span></div></div>
+</div>
+<div id="telem-toggle">BIO</div>
+
+<div id="monitor-bar">
+<div class="mon-panel">
+<div class="mon-title">BODY</div>
+<div class="mon-row"><span>syrinx</span><span id="mSyrinx">—</span></div>
+<div class="mon-row"><span>air sacs</span><span id="mAir">C</span></div>
+<div class="mon-row"><span>heart</span><span id="mHeart">0 BPM</span></div>
+<div class="mon-row"><span>wing</span><span id="mWing">—</span></div>
+<div class="mon-row"><span>temp</span><span id="mTemp">41.0°</span></div>
+</div>
+<div class="mon-panel">
+<div class="mon-title">SONG</div>
+<div class="mon-row"><span style="color:var(--gold)">blackbird</span><span id="mSBlack">—</span></div>
+<div class="mon-row"><span style="color:var(--coral)">nightingale</span><span id="mSNight">—</span></div>
+<div class="mon-row"><span style="color:var(--airstream)">skylark</span><span id="mSLark">—</span></div>
+<div class="mon-row"><span style="color:var(--thermal)">robin</span><span id="mSRobin">—</span></div>
+</div>
+<div class="mon-panel">
+<div class="mon-title">FLOCK</div>
+<div class="mon-row"><span>cohesion</span><span id="mCohesion">0.00</span></div>
+<div class="mon-row"><span>alignment</span><span id="mAlign">0.00</span></div>
+<div class="mon-row"><span>birds</span><span id="mBirds">0</span></div>
+<div class="mon-row"><span>predator</span><span id="mPredator">—</span></div>
+</div>
+</div>
+</div>
+<div id="timeline">
+<button id="play-btn">▶</button>
+<div id="track-wrap"><div id="track-bg"></div><div id="track-fill"></div><div id="track-sections"></div></div>
+<div id="time-display">0:00</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  A V I A N A  — The Music of the Flock Body (Enhanced)
+//
+//  Syrinx = dual Z₂ (left/right bronchi, independent oscillation)
+//  Air sacs = SO(2) (9 sacs, continuous unidirectional flow)
+//  Heart = Z₂ (400-1000 BPM, systole/diastole)
+//  Wing = Z₂ (downstroke power / upstroke recovery)
+//  Magnetoreception = SO(2) (continuous field sensing)
+//  Thermoregulation = SO(2) (40.5-42°C homeostasis)
+//  Crop/Gizzard = Z₂ (ingest/grind)
+//
+//  Murmuration: TOPOLOGICAL neighbors (7 nearest, not metric)
+//  + wave propagation + CRR-weighted boid rules
+//
+//  Predator: Visible raptor entity triggers δ(now) rupture
+//
+//  Alexander Sabine · Cohere Research · temporalgrammar.ai
+// ═══════════════════════════════════════════════════════════════════
+const TAU=Math.PI*2,PI=Math.PI;
+let MODE='chorus';
+
+// §0 CRR ENGINE
+class CRRAgent{
+  constructor(omega=1/PI,name=''){
+    this.omega=omega;this.C=0;this.phase='coherence';
+    this.ruptures=0;this.lastRupture=0;this.peakC=0;
+    this.memory=1;this.name=name;this.L=0;
+  }
+  step(L,dt=1){
+    this.L=L;
+    if(this.phase==='coherence'){this.C+=L*dt;this.peakC=Math.max(this.peakC,this.C);}
+    else if(this.phase==='regeneration'){this.C+=(.3+.7*(1-Math.exp(-this.C*.5)))*this.memory*.01*dt;}
+    this.memory=Math.exp(Math.min(this.C/this.omega,12));return this;
+  }
+  rupture(){
+    this.phase='rupture';this.ruptures++;this.lastRupture=this.C;
+    this.memory=Math.exp(Math.min(this.C/this.omega,12));
+    this.C*=0.15;this.phase='regeneration';return this;
+  }
+  reset(){this.C=0;this.phase='coherence';this.ruptures=0;this.peakC=0;this.memory=1;}
+  get expCO(){return Math.exp(Math.min(this.C/this.omega,12))}
+  get normC(){return Math.min(this.C/Math.max(this.peakC,.01),1)}
+}
+
+// §1 BIRD PHYSIOLOGY
+const SPECIES={
+  blackbird:{size:1.0,color:'#1a1a2e',accent:'#f0c040',wingSpan:1.1,
+    heartBPM:600,wingHz:5.5,songRange:[62,79],songStyle:'flute',shape:'songbird',syrinxMod:1.2},
+  nightingale:{size:.75,color:'#5c3a1e',accent:'#e8a838',wingSpan:.9,
+    heartBPM:700,wingHz:6,songRange:[66,90],songStyle:'virtuoso',shape:'songbird',syrinxMod:2.0},
+  skylark:{size:.7,color:'#6b5b45',accent:'#c8b080',wingSpan:.85,
+    heartBPM:650,wingHz:7,songRange:[64,88],songStyle:'ascending',shape:'songbird',syrinxMod:1.5},
+  robin:{size:.6,color:'#5a3a2a',accent:'#e87461',wingSpan:.8,
+    heartBPM:550,wingHz:6.5,songRange:[60,76],songStyle:'melancholy',shape:'songbird',syrinxMod:1.0},
+  wren:{size:.4,color:'#6b4a30',accent:'#c8a060',wingSpan:.6,
+    heartBPM:800,wingHz:9,songRange:[72,90],songStyle:'trill',shape:'tiny',syrinxMod:1.8},
+  swift:{size:.85,color:'#1a1a2e',accent:'#3a3a5e',wingSpan:1.4,
+    heartBPM:500,wingHz:4,songRange:[74,82],songStyle:'scream',shape:'swift',syrinxMod:.5},
+  starling:{size:.8,color:'#2a2a3e',accent:'#7bed9f',wingSpan:1.0,
+    heartBPM:600,wingHz:5.8,songRange:[62,84],songStyle:'mimic',shape:'pointed',syrinxMod:1.6},
+  sparrowhawk:{size:1.6,color:'#3a2a1a',accent:'#8a6a4a',wingSpan:2.2,
+    heartBPM:350,wingHz:3,songRange:[],songStyle:'silent',shape:'raptor',syrinxMod:0}
+};
+
+function makeBird(id,species){
+  const sp=SPECIES[species]||SPECIES.starling;
+  return{
+    id,species,
+    // Syrinx — dual Z₂
+    syrinxL:{freq:0,amp:0,phase:0},syrinxR:{freq:0,amp:0,phase:0},
+    syrinxTension:.5,syrinxPressure:0,
+    // Air sacs — SO(2) continuous unidirectional flow
+    airPhase:Math.random(),airRate:sp.wingHz*.35,airVolume:.7,
+    airO2:.95,inspiration:false,
+    // Heart — Z₂ fast
+    heartPhase:Math.random(),heartBPM:sp.heartBPM,systole:false,
+    heartStress:0,
+    // Wing — Z₂
+    wingPhase:Math.random()*TAU,wingHz:sp.wingHz,wingAmp:.5,
+    downstroke:false,liftForce:0,
+    // Magnetoreception — SO(2)
+    magHeading:Math.random()*TAU,
+    // Thermoregulation — SO(2) homeostasis
+    coreTemp:41.0,metabolicRate:.5,ptiloerection:0, // feather fluffing
+    // Crop/Gizzard — Z₂
+    cropFull:.3,gizzardActive:false,
+    // Movement — velocity in screen-units/s (0-1), matching CRR World convention
+    x:.5,y:.5,vx:0,vy:0,tvx:0,tvy:0,angle:0,speed:0,
+    targetX:.5,targetY:.4,prevAngle:0,turnRate:0,
+    react:.85+Math.random()*.3, // Individual reaction speed
+    localDensity:0,angMom:0,    // Angular momentum for swirling
+    // Perching state: 0=flying, 1=landing, 2=perched
+    birdState:0,perchTarget:null,perchTimer:0,
+    // Flock — topological neighbors
+    neighbors:[],neighborDists:[],
+    flockIdx:-1,singing:false,songCooldown:0,
+    stressRuffle:0,plumeDisplay:0,
+    // CRR
+    crr:new CRRAgent(1/PI,'bird_'+species+'_'+id),
+    // Species
+    size:sp.size,wingSpan:sp.wingSpan,baseColor:sp.color,
+    accentColor:sp.accent,shape:sp.shape,songStyle:sp.songStyle,
+    syrinxMod:sp.syrinxMod
+  };
+}
+
+function updateBirdPhysiology(bird,dt,t,section){
+  const isAlarm=section&&(section.name.includes('RAPTOR')||section.name==='SCATTER');
+  const stressFactor=isAlarm?1.4:1;
+
+  // Air sac cycle — SO(2): 9 sacs, continuous flow, no dead space
+  // Air rate couples to wingbeat in flight (respiratory-locomotor coupling)
+  const flightCoupling=bird.speed>0.0005?bird.wingHz*.3:bird.airRate;
+  bird.airPhase=(bird.airPhase+dt*flightCoupling*stressFactor)%1;
+  bird.inspiration=bird.airPhase<.5;
+  bird.airVolume=.5+.3*Math.sin(bird.airPhase*TAU);
+  // O₂: cross-current gas exchange, 10x efficiency of mammals
+  bird.airO2=.85+bird.airVolume*.12*(bird.inspiration?.8:1);
+  // Syrinx pressure = air sac pressure, drives vocalization
+  bird.syrinxPressure=Math.max(0,.3+.5*Math.sin((bird.airPhase-.1)*TAU));
+  bird.syrinxTension=.35+bird.syrinxPressure*.35+bird.crr.normC*.15;
+  // Birds sing during BOTH inhalation and exhalation (unidirectional flow)
+  bird.syrinxL.amp=bird.syrinxPressure*bird.syrinxMod*.5;
+  bird.syrinxR.amp=bird.syrinxPressure*bird.syrinxMod*.4;
+
+  // Heart — Z₂: very rapid, stress-responsive
+  // Heart rate couples to wingbeat during sustained flight
+  const baseHR=SPECIES[bird.species].heartBPM;
+  const stressHR=isAlarm?baseHR*1.3:baseHR;
+  const flightHR=bird.speed>0.0005?baseHR*1.15:baseHR;
+  bird.heartBPM=Math.round(Math.max(stressHR,flightHR));
+  bird.heartPhase=(bird.heartPhase+dt*bird.heartBPM/60)%1;
+  bird.systole=bird.heartPhase<.35;
+  bird.heartStress=isAlarm?Math.min(1,bird.heartStress+dt*2):Math.max(0,bird.heartStress-dt*.5);
+
+  // Wing — Z₂: downstroke/upstroke
+  bird.wingPhase+=dt*bird.wingHz*TAU*stressFactor;
+  const wp=Math.sin(bird.wingPhase);
+  bird.downstroke=wp>0;
+  bird.liftForce=bird.downstroke?wp*bird.wingAmp:wp*bird.wingAmp*.3;
+
+  // Thermoregulation — SO(2) homeostasis around 41°C
+  // Metabolic rate increases with flight and stress
+  bird.metabolicRate=.3+(bird.speed>0.0005?.4:0)+(isAlarm?.2:0);
+  const heatGen=bird.metabolicRate*.02;
+  const heatLoss=.015+(bird.ptiloerection>.5?.005:0); // feather position modulates
+  bird.coreTemp+=(heatGen-heatLoss)*dt*10;
+  bird.coreTemp=Math.max(39,Math.min(43,bird.coreTemp));
+  // Ptiloerection: feathers erect when cold or displaying
+  bird.ptiloerection=bird.coreTemp<40.5?.5+(.5*(40.5-bird.coreTemp)):
+    bird.plumeDisplay>0?bird.plumeDisplay:Math.max(0,bird.ptiloerection-.5*dt);
+
+  // Crop/Gizzard — Z₂
+  if(!isAlarm&&Math.random()<.001)bird.gizzardActive=!bird.gizzardActive;
+  if(bird.gizzardActive)bird.cropFull=Math.max(0,bird.cropFull-.01*dt);
+
+  // Stress response
+  bird.stressRuffle*=.94;bird.plumeDisplay*=.97;
+  if(bird.songCooldown>0)bird.songCooldown-=dt;
+
+  // Track turn rate for wave propagation
+  const da=bird.angle-bird.prevAngle;
+  bird.turnRate=Math.atan2(Math.sin(da),Math.cos(da))/Math.max(dt,.001);
+  bird.prevAngle=bird.angle;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §2 PREDATOR
+// ═══════════════════════════════════════════════════════════════════
+const PREDATOR={
+  active:false,species:'sparrowhawk',
+  x:-.1,y:.2,vx:.003,vy:0,angle:0,speed:.003,
+  wingPhase:0,size:2,
+  huntPhase:'approach', // approach, dive, retreat
+  targetBird:null,shadowRadius:.15,
+  crr:new CRRAgent(1/PI,'raptor')
+};
+
+function updatePredator(dt,section,birdList){
+  if(!section)return;
+  const shouldBeActive=section.name.includes('RAPTOR')||section.name==='SCATTER';
+  if(shouldBeActive&&!PREDATOR.active){
+    // Enter from edge
+    PREDATOR.active=true;PREDATOR.huntPhase='approach';
+    PREDATOR.x=-.05;PREDATOR.y=.15+Math.random()*.2;
+    PREDATOR.vx=.0025;PREDATOR.vy=.0003;
+    // Pick a target in the middle of the flock
+    if(birdList.length){
+      let cx2=0,cy2=0;birdList.forEach(b=>{cx2+=b.x;cy2+=b.y;});
+      cx2/=birdList.length;cy2/=birdList.length;
+      PREDATOR.targetBird={x:cx2,y:cy2};
+    }
+  }
+  if(!PREDATOR.active)return;
+
+  PREDATOR.wingPhase+=dt*3*TAU;
+  PREDATOR.crr.step(.1,dt);
+
+  if(PREDATOR.huntPhase==='approach'){
+    // Fly toward flock center
+    if(PREDATOR.targetBird){
+      const dx=PREDATOR.targetBird.x-PREDATOR.x;
+      const dy=PREDATOR.targetBird.y-PREDATOR.y;
+      PREDATOR.vx+=dx*.0001;PREDATOR.vy+=dy*.00005;
+    }
+    PREDATOR.vx*=.995;PREDATOR.vy*=.995;
+    if(PREDATOR.x>.4)PREDATOR.huntPhase='dive';
+  }else if(PREDATOR.huntPhase==='dive'){
+    // Acceleration through flock
+    PREDATOR.vx*=1.005;
+    if(PREDATOR.x>.85)PREDATOR.huntPhase='retreat';
+  }else{
+    // Exit
+    PREDATOR.vx=Math.abs(PREDATOR.vx)*1.01;
+    if(PREDATOR.x>1.15){PREDATOR.active=false;}
+  }
+
+  PREDATOR.x+=PREDATOR.vx*dt*60;
+  PREDATOR.y+=PREDATOR.vy*dt*60;
+  PREDATOR.speed=Math.hypot(PREDATOR.vx,PREDATOR.vy);
+  if(PREDATOR.speed>.0001)PREDATOR.angle=Math.atan2(PREDATOR.vy,PREDATOR.vx);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §3 AUDIO ENGINE
+// ═══════════════════════════════════════════════════════════════════
+let ac,masterGain,songGain,bodyGain,windGain,compressor,reverbNode,dryGain,wetGain,analyser,freqData;
+let windOscs=[],windGains=[];let noiseBuf;
+const songMonitor={blackbird:0,nightingale:0,skylark:0,robin:0,wren:0,swift:0,starling:0};
+let flockMetrics={cohesion:0,alignment:0,separation:0};
+
+function midiToFreq(m){return 440*Math.pow(2,(m-69)/12)}
+function createNoiseBuf(c,dur=2){const len=c.sampleRate*dur,buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;return buf;}
+function createReverb(c){
+  const len=c.sampleRate*2.5,buf=c.createBuffer(2,len,c.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++){
+    const t=i/c.sampleRate;d[i]=(Math.random()*2-1)*Math.exp(-t*2.2)*(1+.3*Math.sin(t*6));
+  }}const conv=c.createConvolver();conv.buffer=buf;return conv;
+}
+
+function initAudio(){
+  ac=new(window.AudioContext||window.webkitAudioContext)();
+  noiseBuf=createNoiseBuf(ac);analyser=ac.createAnalyser();analyser.fftSize=512;
+  freqData=new Uint8Array(analyser.frequencyBinCount);
+  compressor=ac.createDynamicsCompressor();compressor.threshold.value=-18;compressor.knee.value=12;compressor.ratio.value=3;
+  reverbNode=createReverb(ac);
+  dryGain=ac.createGain();dryGain.gain.value=.6;
+  wetGain=ac.createGain();wetGain.gain.value=.4;
+  masterGain=ac.createGain();masterGain.gain.value=.6;
+  songGain=ac.createGain();songGain.gain.value=.5;
+  bodyGain=ac.createGain();bodyGain.gain.value=.35;
+  windGain=ac.createGain();windGain.gain.value=.45;
+  [masterGain,songGain,bodyGain,windGain].forEach(g=>g.connect(compressor));
+  compressor.connect(dryGain);compressor.connect(reverbNode);reverbNode.connect(wetGain);
+  dryGain.connect(analyser);wetGain.connect(analyser);analyser.connect(ac.destination);
+  initWindPad();
+}
+
+// ─── Syrinx FM Synthesis ───
+function playSyrinxNote(freq,gain,duration,time,modRatio,modIndex){
+  if(!ac||gain<.005)return;
+  const t=time||ac.currentTime,v=gain*.22,mr=modRatio||3,mi=modIndex||2;
+  const car=ac.createOscillator(),cg=ac.createGain();car.type='sine';car.frequency.value=freq;
+  const mod=ac.createOscillator(),mg=ac.createGain();
+  mod.type='sine';mod.frequency.value=freq*mr;mg.gain.value=freq*mi;
+  mod.connect(mg);mg.connect(car.frequency);
+  cg.gain.setValueAtTime(0,t);cg.gain.linearRampToValueAtTime(v,t+.008);
+  cg.gain.setValueAtTime(v*.85,t+duration*.3);
+  cg.gain.exponentialRampToValueAtTime(.001,t+duration);
+  car.connect(cg);cg.connect(songGain);
+  car.start(t);mod.start(t);car.stop(t+duration+.01);mod.stop(t+duration+.01);
+}
+
+// ─── Dawn Melody — original ascending pastoral theme ───
+// Inspired by the tradition of musical sunrise: gentle pentatonic
+// ascending motif, 6/8 feel, played through syrinx for bird-like timbre
+function playDawnMelody(gain,time,crrMod){
+  if(!ac)return;const t=time||ac.currentTime,g=gain*.7,m=crrMod||1;
+  // Original ascending pentatonic phrase in D major
+  // Each sub-phrase rises higher, like light filling the sky
+  const phrases=[
+    // First light — tentative, low register
+    {notes:[62,64,66],durs:[.4,.3,.5],gap:.15},
+    // Growing — rises through the scale
+    {notes:[66,69,71,74],durs:[.3,.25,.3,.45],gap:.1},
+    // Brightness — high, sustained
+    {notes:[74,76,78,74,71],durs:[.35,.2,.4,.3,.55],gap:.08},
+  ];
+  let offset=0;
+  phrases.forEach(ph=>{
+    ph.notes.forEach((n,i)=>{
+      // Dual syrinx: left slightly detuned from right for natural bird sound
+      playSyrinxNote(midiToFreq(n),g*(.6+i*.06),ph.durs[i]*m,t+offset,2,1.2);
+      playSyrinxNote(midiToFreq(n+.15),g*.3,ph.durs[i]*m*.9,t+offset+.01,2.5,1);
+      offset+=ph.durs[i]*.75*m;
+    });
+    offset+=ph.gap*m;
+  });
+}
+
+// ─── Species songs ───
+function playBlackbirdPhrase(gain,time,crrMod){
+  if(!ac)return;const t=time||ac.currentTime,g=gain*.9,m=crrMod||1;
+  const notes=[74,71,69,66,62];const durs=[.3,.25,.3,.35,.5];let off=0;
+  notes.forEach((n,i)=>{
+    playSyrinxNote(midiToFreq(n+Math.random()*.5),g*(.8+i*.04),durs[i]*m,t+off,2.5,1.5);
+    off+=durs[i]*.8*m;});
+  songMonitor.blackbird=gain;setTimeout(()=>{songMonitor.blackbird*=.3},1800);
+}
+function playNightingalePhrase(gain,time,crrMod){
+  if(!ac)return;const t=time||ac.currentTime,g=gain*.8,m=crrMod||1;
+  const run=[66,69,71,74,78,81,83,86];let off=0;
+  run.forEach(n=>{playSyrinxNote(midiToFreq(n),g*.7,.08*m,t+off,4,2.5);off+=.06*m;});
+  for(let i=0;i<6;i++){playSyrinxNote(midiToFreq(83+((i%2)*3)),g*.6,.06*m,t+off,3,3);off+=.05*m;}
+  [81,78,74,71].forEach(n=>{playSyrinxNote(midiToFreq(n),g*.5,.15*m,t+off,2,1.5);off+=.12*m;});
+  songMonitor.nightingale=gain;setTimeout(()=>{songMonitor.nightingale*=.3},2000);
+}
+function playSkylarkPhrase(gain,time,crrMod){
+  if(!ac)return;const t=time||ac.currentTime,g=gain*.7,m=crrMod||1;let off=0;
+  for(let i=0;i<12;i++){const n=64+i*2+Math.floor(Math.random()*3),dur=.08+Math.random()*.06;
+    playSyrinxNote(midiToFreq(Math.min(n,88)),g*(.5+i*.03),dur*m,t+off,3.5,1.8+i*.1);off+=dur*.7*m;}
+  songMonitor.skylark=gain;setTimeout(()=>{songMonitor.skylark*=.3},1500);
+}
+function playRobinPhrase(gain,time,crrMod){
+  if(!ac)return;const t=time||ac.currentTime,g=gain*.85,m=crrMod||1;
+  const ph=[62,64,66,67,66,64,62,60,59],durs=[.2,.15,.18,.25,.2,.22,.3,.35,.5];let off=0;
+  ph.forEach((n,i)=>{playSyrinxNote(midiToFreq(n),g*(.6+Math.sin(i*.7)*.2),durs[i]*m,t+off,2,1.2);off+=durs[i]*.85*m;});
+  songMonitor.robin=gain;setTimeout(()=>{songMonitor.robin*=.3},2200);
+}
+function playWrenTrill(gain,time,crrMod){
+  if(!ac)return;const t=time||ac.currentTime,g=gain*.65,m=crrMod||1;
+  for(let i=0;i<16;i++){playSyrinxNote(midiToFreq(78+(i%2)*4+Math.floor(Math.random()*2)),g*.6,.04*m,t+i*.035*m,5,3);}
+  songMonitor.wren=gain;setTimeout(()=>{songMonitor.wren*=.3},800);
+}
+function playSwiftScream(gain,time){
+  if(!ac)return;const t=time||ac.currentTime,v=gain*.15;
+  const o=ac.createOscillator(),g2=ac.createGain();o.type='sawtooth';
+  o.frequency.setValueAtTime(midiToFreq(80),t);o.frequency.exponentialRampToValueAtTime(midiToFreq(74),t+.3);
+  const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=3000;f.Q.value=3;
+  g2.gain.setValueAtTime(v,t);g2.gain.exponentialRampToValueAtTime(.001,t+.35);
+  o.connect(f);f.connect(g2);g2.connect(songGain);o.start(t);o.stop(t+.4);
+  songMonitor.swift=gain;setTimeout(()=>{songMonitor.swift*=.3},400);
+}
+function playAlarmCall(time,intensity){
+  if(!ac)return;const t=time||ac.currentTime,v=intensity*.2;
+  const n=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();
+  n.buffer=noiseBuf;f.type='bandpass';f.frequency.value=4000;f.Q.value=8;
+  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.08);
+  n.connect(f);f.connect(g);g.connect(songGain);n.start(t);n.stop(t+.1);
+}
+function playWingFlap(time,intensity){
+  if(!ac)return;const t=time||ac.currentTime,v=intensity*.06;
+  const n=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();
+  n.buffer=noiseBuf;f.type='lowpass';f.frequency.value=600;f.Q.value=1;
+  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+.15);
+  n.connect(f);f.connect(g);g.connect(bodyGain);n.start(t);n.stop(t+.2);
+}
+function playNote(midi,velocity,duration,startTime){
+  if(!ac)return;const t=startTime||ac.currentTime,freq=midiToFreq(midi),v=velocity*.2;
+  const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=freq;
+  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(v*.4,t+.1);
+  g.gain.exponentialRampToValueAtTime(.001,t+duration*.9);
+  o.connect(g);g.connect(masterGain);o.start(t);o.stop(t+duration);
+}
+function initWindPad(){
+  if(!ac)return;[38,45,50,57].forEach(m=>{
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type='sine';o.frequency.value=midiToFreq(m);g.gain.value=0;
+    o.connect(g);g.connect(windGain);o.start();windOscs.push(o);windGains.push(g);});
+}
+function setWindPad(midis,gain,trans){
+  if(!ac)return;const t=ac.currentTime,tr=trans||.5;
+  midis.forEach((m,i)=>{if(windOscs[i])windOscs[i].frequency.linearRampToValueAtTime(midiToFreq(m),t+tr);
+    if(windGains[i])windGains[i].gain.linearRampToValueAtTime(gain*.05,t+tr);});
+}
+
+// §4 THERMAL ENGINE
+class ThermalEngine{
+  constructor(){
+    this.scale=[0,2,4,7,9];this.baseOctave=4;this.octaves=3;this.pitches=[];
+    this.field=null;this.particles=[];this.strength=0;this.lift=.5;this.turbulence=.5;this.activity=0;
+    this._build();this.field=new Float32Array(this.pitches.length);
+    this.particles=[{pos:Math.floor(this.pitches.length/3),lastPos:-1},{pos:Math.floor(this.pitches.length*2/3),lastPos:-1}];
+  }
+  _build(){for(let o=0;o<this.octaves;o++)for(const s of this.scale){const m=(this.baseOctave+o)*12+s;if(m>=48&&m<=84)this.pitches.push(m);}}
+  step(crrMem){
+    if(this.activity<.01)return[];const notes=[];
+    for(const p of this.particles){
+      if(Math.random()>this.activity)continue;
+      const cands=[];for(let d=-3;d<=3;d++){const ni=p.pos+d;if(ni>=0&&ni<this.pitches.length)cands.push(ni);}
+      if(!cands.length)continue;
+      const w=cands.map(n=>{const c=Math.pow(Math.max(this.field[n],.01),1.5);
+        return c*(1-this.turbulence)+this.turbulence*(Math.random()*.5+.5)+(this.lift>.5&&n>p.pos?.2:0);});
+      const tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot,ch=cands[0];
+      for(let i=0;i<w.length;i++){r-=w[i];if(r<=0){ch=cands[i];break;}}
+      p.lastPos=p.pos;p.pos=ch;
+      this.field[ch]+=.12*(1+Math.log(Math.max(crrMem,1))*.2);notes.push(this.pitches[ch]);}
+    for(let i=0;i<this.field.length;i++)this.field[i]*=.96;
+    this.strength=0;for(let i=0;i<this.field.length;i++)this.strength+=this.field[i];
+    this.strength/=this.pitches.length;return notes;
+  }
+  collapse(){for(let i=0;i<this.field.length;i++)this.field[i]*=.1;this.particles.forEach(a=>{a.pos=Math.floor(Math.random()*this.pitches.length)});}
+  reset(){this.field.fill(0);this.activity=0;this.turbulence=.5;this.strength=0;this.lift=.5;}
+}
+const thermalEngine=new ThermalEngine();
+function playThermalNote(midi,vel,dur,time){
+  if(!ac)return;const t=time||ac.currentTime,freq=midiToFreq(midi),v=vel*.12;
+  const o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.value=freq;
+  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(g);g.connect(windGain);o.start(t);o.stop(t+dur+.01);
+}
+
+// §5 CRR AGENTS & SECTIONS
+const BPM=92,BEAT_S=60/BPM;
+const crrGlobal=new CRRAgent(1/PI,'Composition');
+const crrSyrinx=new CRRAgent(1/PI,'Syrinx Z₂');
+const crrAirSac=new CRRAgent(1/(2*PI),'Air Sacs SO(2)');
+const crrHeart=new CRRAgent(1/PI,'Heart Z₂');
+const crrWing=new CRRAgent(1/PI,'Wing Z₂');
+const crrMagneto=new CRRAgent(1/(2*PI),'Magneto SO(2)');
+const crrFlock=new CRRAgent(1/(2*PI),'Flock SO(2)');
+const crrThermo=new CRRAgent(1/(2*PI),'Thermo SO(2)');
+const ALL_CRR=[crrGlobal,crrSyrinx,crrAirSac,crrHeart,crrWing,crrMagneto,crrFlock,crrThermo];
+
+const CHORUS_SECTIONS=[
+  {name:'PRE-DAWN',start:0,end:31},{name:'FIRST LIGHT',start:32,end:63},
+  {name:'FIRST ROBIN',start:64,end:95},{name:'DAWN CHORUS',start:96,end:143},
+  {name:'FIRST FLIGHT',start:144,end:175},{name:'THERMAL RISING',start:176,end:215},
+  {name:'FULL FLOCK',start:216,end:255},{name:'RAPTOR δ(now)',start:256,end:275},
+  {name:'SCATTER',start:276,end:295},{name:'REFORMATION',start:296,end:343},
+  {name:'EVENING SONG',start:344,end:375},{name:'ROOST',start:376,end:407}
+];
+const CHORUS_BEATS=408;
+
+const FLOCK_SECTIONS=[
+  {name:'LONE STARLING',start:0,end:31},{name:'GATHERING',start:32,end:79},
+  {name:'FORMATION',start:80,end:127},{name:'MURMURATION',start:128,end:191},
+  {name:'FULL FLOCK',start:192,end:239},{name:'RAPTOR δ(now)',start:240,end:263},
+  {name:'SCATTER',start:264,end:287},{name:'REFORMATION',start:288,end:335},
+  {name:'NEW FLOCK',start:336,end:383},{name:'ROOST',start:384,end:415}
+];
+const FLOCK_BEATS=416;
+
+function getSection(beat){
+  const secs=MODE==='flock'?FLOCK_SECTIONS:CHORUS_SECTIONS;
+  for(const s of secs)if(beat>=s.start&&beat<=s.end)return s;return secs[0];
+}
+
+// §6 BIRDS, FLOCKING & ROOSTING
+// Velocity in screen-units/s (0-1 range). Position update: x += vx * dt.
+// All force coefficients match CRR World divided by 1000 (scale-invariant).
+const CHORUS_BIRDS=[],FLOCK_BIRDS=[];
+const TOPO_K=7; // Topological neighborhood (Ballerini 2008)
+
+// ─── Spatial Hash for O(1) neighbor finding ───
+const HASH_CELL=0.045; // ~45px equivalent
+let spatialHash={};
+function hkey(x,y){return((x/HASH_CELL|0)*10000+(y/HASH_CELL|0))}
+function buildSpatialHash(birds){
+  spatialHash={};
+  for(let i=0;i<birds.length;i++){
+    const b=birds[i];if(b.birdState===2)continue; // skip perched
+    const k=hkey(b.x,b.y);
+    (spatialHash[k]||(spatialHash[k]=[])).push(i);
+  }
+}
+function getSpatialCandidates(x,y){
+  const r=[],cx2=x/HASH_CELL|0,cy2=y/HASH_CELL|0;
+  for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){
+    const k=(cx2+dx)*10000+(cy2+dy);
+    if(spatialHash[k])r.push(...spatialHash[k]);
+  }
+  return r;
+}
+
+// ─── Trees with Perch Points ───
+const TREES=[
+  {x:.83,trunkBase:.83,h:.2,w:.16,branches:[],type:'oak'},
+  {x:.14,trunkBase:.84,h:.12,w:.09,branches:[],type:'elm'},
+  {x:.56,trunkBase:.85,h:.08,w:.06,branches:[],type:'birch'}
+];
+const PERCHES=[];
+function initTrees(){
+  PERCHES.length=0;
+  TREES.forEach((tree,ti)=>{
+    tree.branches=[];
+    const nb=ti===0?14:ti===1?8:5;
+    for(let i=0;i<nb;i++){
+      const t=i/nb;
+      const bx=tree.x+(Math.random()-.5)*tree.w*.85;
+      const by=tree.trunkBase-tree.h*.15-t*tree.h*.75+(Math.random()-.5)*.015;
+      const len=.01+Math.random()*.025*(1-t*.5); // longer branches lower
+      const dir=bx>tree.x?1:-1;
+      tree.branches.push({x:bx,y:by,len,dir,sway:Math.random()*TAU});
+      // Perch at end of each branch
+      PERCHES.push({x:bx+dir*len,y:by,occ:false,tree:ti});
+      // Also a perch mid-branch for smaller birds
+      if(Math.random()<.5)PERCHES.push({x:bx+dir*len*.6,y:by+.003,occ:false,tree:ti});
+    }
+  });
+}
+initTrees();
+
+let roosting=false,roostStartTime=0;
+
+// ─── Murmuration Choreographer ───
+const Choreographer={
+  moves:['vortex','wave','split','breathe','ribbon','column','sweep','tornado'],
+  currentMove:'vortex',moveIndex:0,moveTime:0,moveDuration:5,
+  vortexSign:1,splitPhase:0,breathePhase:0,ribbonPhase:0,sweepDir:1,
+  init(){
+    this.moveIndex=Math.floor(Math.random()*this.moves.length);
+    this.currentMove=this.moves[this.moveIndex];
+    this.moveTime=0;this.moveDuration=4+Math.random()*4;
+    this.vortexSign=Math.random()>.5?1:-1;
+  },
+  onRupture(){
+    if(Math.random()<.3)this.moveIndex=Math.floor(Math.random()*this.moves.length);
+    else this.moveIndex=(this.moveIndex+1)%this.moves.length;
+    this.currentMove=this.moves[this.moveIndex];
+    this.moveTime=0;this.moveDuration=4+Math.random()*5;
+    this.vortexSign=Math.random()>.5?1:-1;
+    this.splitPhase=0;this.breathePhase=0;
+    this.sweepDir=Math.random()>.5?1:-1;
+  },
+  // All positions 0-1, angular momentum in screen/s
+  update(dt){
+    this.moveTime+=dt;const t=this.moveTime;
+    const bx=.5,by=.38;
+    switch(this.currentMove){
+      case'vortex':return{angMom:this.vortexSign*.0025,
+        targetX:bx+Math.cos(t*.3)*.08,targetY:by+Math.sin(t*.4)*.04,
+        cohMult:1.3,sepMult:1,name:'Vortex'};
+      case'wave':return{angMom:Math.sin(t*2)*.0015,
+        targetX:bx+Math.sin(t*.5)*.14,targetY:by+Math.sin(t*1.5)*.06,
+        cohMult:1.2,sepMult:1,name:'Wave'};
+      case'split':
+        this.splitPhase=Math.sin(t*.8);
+        return{angMom:0,
+          targetX:bx,targetY:by,
+          splitMode:true,splitDist:Math.abs(this.splitPhase)*.11,
+          cohMult:1+Math.abs(this.splitPhase)*.3,sepMult:1,name:'Split'};
+      case'breathe':
+        this.breathePhase=Math.sin(t*1.2);
+        return{angMom:this.breathePhase*.0008,targetX:bx,targetY:by,
+          cohMult:.7+(1+this.breathePhase)*.5,
+          sepMult:1.5-this.breathePhase*.4,name:'Breathe'};
+      case'ribbon':
+        this.ribbonPhase=t*.6;
+        return{angMom:Math.cos(this.ribbonPhase*2)*.002,
+          targetX:bx+Math.sin(this.ribbonPhase)*.16,
+          targetY:by+Math.sin(this.ribbonPhase*2)*.07,
+          cohMult:1.4,sepMult:1,name:'Ribbon'};
+      case'column':
+        return{angMom:Math.sin(t*3)*.0005,
+          targetX:bx+Math.sin(t*.4)*.06,targetY:.35+Math.sin(t*.7)*.1,
+          cohMult:1.5,sepMult:1,vBias:Math.cos(t*.7)*.0012,name:'Column'};
+      case'sweep':
+        return{angMom:-this.sweepDir*Math.cos(t*.4)*.0015,
+          targetX:.5+Math.sin(t*.4)*.32,targetY:by+Math.cos(t*.8)*.04,
+          cohMult:1.3,sepMult:1,name:'Sweep'};
+      case'tornado':
+        return{angMom:this.vortexSign*.004,
+          targetX:bx+Math.cos(t*.2)*.04,targetY:by+Math.sin(t*.5)*.08,
+          cohMult:1.8,sepMult:1,name:'Tornado'};
+      default:return{angMom:0,targetX:bx,targetY:by,cohMult:1,sepMult:1,name:'—'};
+    }
+  }
+};
+
+// ─── Flock Collective CRR ───
+class FlockCollective{
+  constructor(){
+    this.crr=new CRRAgent(0.6,'FlockCollective');
+    this.crr.omega=0.6;
+    this.turnDir={x:0,y:0};this.angMom=0;
+    this.lastRuptureTime=0;this.choreo=null;
+    this.cx=.5;this.cy=.4;
+  }
+  update(dt,birds,now){
+    this.crr.step(.11,dt);
+    let cx2=0,cy2=0,n=0,avx=0,avy=0;
+    for(const b of birds){if(b.birdState===2)continue;
+      cx2+=b.x;cy2+=b.y;avx+=b.vx;avy+=b.vy;n++;}
+    if(n>0){this.cx=cx2/n;this.cy=cy2/n;avx/=n;avy/=n;}
+    // Check for rupture
+    if(this.crr.C>=this.crr.omega&&this.crr.phase==='coherence'){
+      this.crr.rupture();Choreographer.onRupture();
+      const ts=Math.random()>.5?1:-1;
+      const ta=ts*(PI/3+Math.random()*PI/4);
+      const mag=Math.hypot(avx,avy);
+      const ba=Math.atan2(avy,avx);
+      this.turnDir.x=Math.cos(ba+ta)*mag*.5;
+      this.turnDir.y=Math.sin(ba+ta)*mag*.5;
+      this.angMom=ts*(.0015+Math.random()*.002);
+      this.lastRuptureTime=now;
+    }
+    this.choreo=Choreographer.update(dt);
+    if(this.choreo)this.angMom+=(this.choreo.angMom-this.angMom)*dt*2;
+    if(now-this.lastRuptureTime>.4){this.turnDir.x*=.94;this.turnDir.y*=.94;}
+  }
+  getTurnDir(){return Math.hypot(this.turnDir.x,this.turnDir.y)>.00001?this.turnDir:null}
+  getChoreo(){return this.choreo}
+  get mem(){return Math.exp(Math.min(this.crr.C/this.crr.omega,4))}
+}
+const flockCollective=new FlockCollective();
+
+function initChorus(){
+  CHORUS_BIRDS.length=0;
+  ['robin','blackbird','nightingale','skylark','wren','swift','starling',
+   'robin','blackbird','starling'].forEach((sp,i)=>{
+    const b=makeBird(i,sp);
+    b.x=.15+Math.random()*.7;b.y=.2+Math.random()*.4;
+    b.vx=(Math.random()-.5)*.01;b.vy=(Math.random()-.5)*.008;
+    b.tvx=b.vx;b.tvy=b.vy;
+    b.angle=Math.atan2(b.vy,b.vx);b.speed=Math.hypot(b.vx,b.vy);
+    b.targetX=b.x;b.targetY=b.y;
+    b.birdState=0;b.perchTarget=null;b.perchTimer=0;
+    CHORUS_BIRDS.push(b);
+  });
+  PERCHES.forEach(p=>p.occ=false);roosting=false;
+}
+
+function initFlock(){
+  FLOCK_BIRDS.length=0;Choreographer.init();
+  for(let i=0;i<55;i++){
+    const b=makeBird(i,'starling');
+    b.x=.42+Math.random()*.16;b.y=.28+Math.random()*.14;
+    b.vx=(Math.random()-.5)*.025;b.vy=(Math.random()-.5)*.015;
+    b.tvx=b.vx;b.tvy=b.vy;
+    b.angle=Math.atan2(b.vy,b.vx);b.speed=Math.hypot(b.vx,b.vy);
+    b.flockIdx=i;
+    b.crr=new CRRAgent(1/(2*PI),'flock_'+i);
+    b.birdState=0;b.perchTarget=null;b.perchTimer=0;
+    FLOCK_BIRDS.push(b);
+  }
+  flockCollective.crr.reset();
+  PERCHES.forEach(p=>p.occ=false);roosting=false;
+}
+
+// ─── Try to land on a tree perch ───
+function tryPerch(bird){
+  let best=null,bestD=.12;
+  for(const p of PERCHES){
+    if(p.occ)continue;
+    const d=Math.hypot(bird.x-p.x,bird.y-p.y);
+    if(d<bestD){bestD=d;best=p;}
+  }
+  if(best){best.occ=true;bird.perchTarget=best;bird.birdState=1;return true;}
+  // No perch — drift down gently
+  bird.perchTarget={x:bird.x+(Math.random()-.5)*.05,y:.78+Math.random()*.04};
+  bird.birdState=1;return true;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CRR-BOIDS: Murmuration mode
+// Velocity in screen/s (0-1). Position update: x += vx * dt.
+// Force coefficients from CRR World (÷1000 for pixel→screen).
+// tvx reset each frame prevents accumulation. Proper lerp rate.
+// ═══════════════════════════════════════════════════════════
+function updateFlockMovement(bird,dt,allBirds,section){
+  const isAlarm=section&&(section.name.includes('RAPTOR')||section.name==='SCATTER');
+  const isRoost=section&&section.name==='ROOST';
+
+  // ── PERCHED: sit still ──
+  if(bird.birdState===2){bird.vx=0;bird.vy=0;bird.speed=0;return;}
+
+  // ── LANDING: fly to perch ──
+  if(bird.birdState===1&&bird.perchTarget){
+    const dx=bird.perchTarget.x-bird.x,dy=bird.perchTarget.y-bird.y;
+    const d=Math.hypot(dx,dy);
+    if(d<.004){
+      bird.x=bird.perchTarget.x;bird.y=bird.perchTarget.y;
+      bird.vx=0;bird.vy=0;bird.speed=0;bird.birdState=2;return;
+    }
+    const ls=Math.min(d*2.5,.06);
+    bird.vx=dx/d*ls;bird.vy=dy/d*ls;
+    bird.x+=bird.vx*dt;bird.y+=bird.vy*dt;
+    bird.speed=ls;if(ls>.001)bird.angle=Math.atan2(bird.vy,bird.vx);
+    return;
+  }
+
+  // ── ROOST: trigger landing ──
+  if(isRoost&&bird.birdState===0){
+    bird.perchTimer+=dt;
+    if(bird.perchTimer>(.3+Math.random()*4)*bird.react){tryPerch(bird);return;}
+  }
+
+  // ══ RESET tvx to vx — KEY: prevents force accumulation ══
+  bird.tvx=bird.vx;
+  bird.tvy=bird.vy;
+
+  const choreo=flockCollective.getChoreo();
+  const cohMult=choreo?choreo.cohMult:1;
+  const sepMult=choreo&&choreo.sepMult?choreo.sepMult:1;
+  const fm=Math.min(flockCollective.mem/4,2);
+
+  // ── Topological k=7 nearest via spatial hash ──
+  const cands=getSpatialCandidates(bird.x,bird.y);
+  const nbs=[];
+  for(const idx of cands){
+    const o=allBirds[idx];if(o===bird||o.birdState!==0)continue;
+    const dx=o.x-bird.x,dy=o.y-bird.y,d2=dx*dx+dy*dy;
+    if(d2<.1*.1)nbs.push({b:o,d2,dx,dy,d:Math.sqrt(d2)});
+  }
+  nbs.sort((a,b)=>a.d2-b.d2);
+  const kN=nbs.slice(0,TOPO_K);
+  const nc=kN.length;
+  // Density in pixel-equivalent for lerp calculation
+  bird.localDensity=nc>0?nc/((kN[nc-1]?.d||.03)*1000):0;
+  bird.neighbors=kN.map(n=>allBirds.indexOf(n.b));
+  bird.neighborDists=kN.map(n=>n.d);
+
+  // ── Flocking forces (CRR World coefficients, screen/s) ──
+  let sx=0,sy=0,ax=0,ay=0,cx2=0,cy2=0,angS=0;
+
+  for(const n of kN){
+    const{b:o,d,dx,dy}=n;
+    // Separation: 12px → .012 screen
+    const sepR=.012*sepMult;
+    if(d<sepR&&d>.0001){
+      const f=(sepR-d)/sepR/(bird.crr.omega*5);
+      sx-=dx/d*f;sy-=dy/d*f;
+    }
+    ax+=o.vx;ay+=o.vy;
+    cx2+=o.x;cy2+=o.y;
+    angS+=(o.angMom||0);
+  }
+
+  // Global pull for isolated birds → 0.015/s rate
+  if(nc<4){
+    const pull=(4-nc)*.015;
+    bird.tvx+=(flockCollective.cx-bird.x)*pull;
+    bird.tvy+=(flockCollective.cy-bird.y)*pull;
+  }
+
+  if(nc>0){
+    // Separation → 1.6 px/s = .0016 screen/s max
+    bird.tvx+=sx*.0016*bird.react;
+    bird.tvy+=sy*.0016*bird.react;
+    // Alignment → af=0.14 rate (dimensionless, same in any coord system)
+    const af=(.14+fm*.12)*bird.react;
+    bird.tvx+=(ax/nc-bird.vx)*af;
+    bird.tvy+=(ay/nc-bird.vy)*af;
+    // Cohesion → cf=0.035 rate (1/s, scale-invariant)
+    const cf=(.035+fm*.03)*bird.react*cohMult;
+    bird.tvx+=(cx2/nc-bird.x)*cf;
+    bird.tvy+=(cy2/nc-bird.y)*cf;
+    // Angular momentum from neighbors + choreography
+    const chA=choreo?choreo.angMom*.3:0;
+    bird.angMom+=(angS/nc+chA-bird.angMom)*.12;
+  }else{
+    // No neighbors — strong pull to flock center
+    bird.tvx+=(flockCollective.cx-bird.x)*.05;
+    bird.tvy+=(flockCollective.cy-bird.y)*.05;
+  }
+
+  // Angular momentum → perpendicular velocity
+  if(Math.abs(bird.angMom)>.0001){
+    const spd2=Math.hypot(bird.vx,bird.vy);
+    if(spd2>.005){
+      bird.tvx+=(-bird.vy/spd2)*bird.angMom*.8;
+      bird.tvy+=(bird.vx/spd2)*bird.angMom*.8;
+    }
+  }
+
+  // Collective turn on rupture
+  const td=flockCollective.getTurnDir();
+  if(td&&flockCollective.crr.phase!=='coherence'){
+    bird.tvx+=td.x*.18*bird.react;
+    bird.tvy+=td.y*.18*bird.react;
+    bird.angMom+=flockCollective.angMom*.3;
+  }
+
+  // Choreography gravity → pull toward pattern target
+  let tX=.5,tY=.38;
+  if(choreo){
+    tX=choreo.targetX;tY=choreo.targetY;
+    if(choreo.splitMode&&choreo.splitDist>.02)tX=.5+(bird.x>.5?1:-1)*choreo.splitDist;
+    if(choreo.vBias)bird.tvy+=choreo.vBias;
+  }
+  const tcx=tX-bird.x,tcy=tY-bird.y;
+  const dC=Math.hypot(tcx,tcy)||.001;
+  // Gravity: 0.08+0.28*(dist-.06)/.2 in px/s → ÷1000 for screen/s
+  const grav=.00008+.00028*Math.max(0,(dC-.06)/.2);
+  bird.tvx+=tcx/dC*grav;bird.tvy+=tcy/dC*grav;
+
+  // Predator avoidance → 120px/s flee → .12 screen/s
+  if(PREDATOR.active){
+    const pdx=bird.x-PREDATOR.x,pdy=bird.y-PREDATOR.y;
+    const pd=Math.hypot(pdx,pdy);
+    if(pd<.2&&pd>.001){
+      const flee=(.2-pd)/.2*.12;
+      bird.tvx+=pdx/pd*flee;bird.tvy+=pdy/pd*flee;
+      bird.stressRuffle=1;
+      if(pd<.1)bird.angMom+=(Math.random()>.5?1:-1)*.002;
+      if(pd<.08)bird.crr.rupture();
+    }
+  }
+  if(isAlarm){bird.tvx+=(Math.random()-.5)*.01;bird.tvy+=(Math.random()-.5)*.01;}
+
+  // ── Smooth turning wave — proper lerp rate from CRR World ──
+  const tL=Math.min(1,dt*(10+bird.localDensity*3));
+  bird.vx+=(bird.tvx-bird.vx)*tL;
+  bird.vy+=(bird.tvy-bird.vy)*tL;
+
+  bird.angMom*=.98;
+
+  // ── Boundary forces (applied to vx, 8px/s→.008 screen/s) ──
+  const M=.08,bF=.008;
+  if(bird.x<M)bird.vx+=bF*(1-bird.x/M);
+  if(bird.x>1-M)bird.vx-=bF*(1-(1-bird.x)/M);
+  if(bird.y<M)bird.vy+=bF*(1-bird.y/M);
+  if(bird.y>.75)bird.vy-=bF*(1-(.88-bird.y)/.13);
+
+  // Speed limits (18-75 px/s → .018-.075 screen/s)
+  const spd3=Math.hypot(bird.vx,bird.vy);
+  const maxS=isAlarm?.09:.075,minS=.018;
+  if(spd3>maxS){bird.vx=bird.vx/spd3*maxS;bird.vy=bird.vy/spd3*maxS;}
+  else if(spd3<minS&&spd3>.001){bird.vx=bird.vx/spd3*minS;bird.vy=bird.vy/spd3*minS;}
+
+  // Position update: x += vx * dt (CRR World convention)
+  bird.x+=bird.vx*dt;bird.y+=bird.vy*dt;
+  bird.x=Math.max(.03,Math.min(.97,bird.x));
+  bird.y=Math.max(.04,Math.min(.78,bird.y));
+  bird.speed=Math.hypot(bird.vx,bird.vy);
+  if(bird.speed>.001)bird.angle=Math.atan2(bird.vy,bird.vx);
+}
+
+// ═══════════════════════════════════════════════════════════
+// Chorus mode: gentle wandering + CRR-driven escape flocking
+// ═══════════════════════════════════════════════════════════
+function updateChorusMovement(bird,dt,allBirds,section){
+  const isAlarm=section&&(section.name.includes('RAPTOR')||section.name==='SCATTER');
+  const isEvening=section&&(section.name==='EVENING SONG'||section.name==='ROOST');
+
+  // Perched: sit still
+  if(bird.birdState===2){bird.vx=0;bird.vy=0;bird.speed=0;return;}
+  // Landing
+  if(bird.birdState===1&&bird.perchTarget){
+    const dx=bird.perchTarget.x-bird.x,dy=bird.perchTarget.y-bird.y;
+    const d=Math.hypot(dx,dy);
+    if(d<.004){bird.x=bird.perchTarget.x;bird.y=bird.perchTarget.y;
+      bird.vx=0;bird.vy=0;bird.speed=0;bird.birdState=2;return;}
+    const ls=Math.min(d*2,.04);
+    bird.vx=dx/d*ls;bird.vy=dy/d*ls;
+    bird.x+=bird.vx*dt;bird.y+=bird.vy*dt;
+    bird.speed=ls;if(ls>.001)bird.angle=Math.atan2(bird.vy,bird.vx);
+    return;
+  }
+
+  // Evening roosting
+  if(isEvening&&bird.birdState===0){
+    bird.perchTimer+=dt;
+    if(bird.perchTimer>(.5+Math.random()*6)*bird.react){tryPerch(bird);return;}
+  }
+
+  bird.tvx=bird.vx;bird.tvy=bird.vy;
+
+  if(isAlarm){
+    // ── ALARM: CRR-driven escape flocking ──
+    // Chorus birds form coherent escape group instead of scattering randomly
+    buildSpatialHash(allBirds);
+    const cands=getSpatialCandidates(bird.x,bird.y);
+    let ax=0,ay=0,cx2=0,cy2=0,nc=0;
+    for(const idx of cands){
+      const o=allBirds[idx];if(o===bird||o.birdState!==0)continue;
+      const d=Math.hypot(o.x-bird.x,o.y-bird.y);
+      if(d<.15){
+        ax+=o.vx;ay+=o.vy;cx2+=o.x;cy2+=o.y;nc++;
+        if(d<.02&&d>.001){
+          bird.tvx-=(o.x-bird.x)/d*.001;bird.tvy-=(o.y-bird.y)/d*.001;
+        }
+      }
+    }
+    if(nc>0){
+      // Alignment — birds escape TOGETHER
+      bird.tvx+=(ax/nc-bird.vx)*.1;bird.tvy+=(ay/nc-bird.vy)*.1;
+      // Cohesion — stay grouped
+      bird.tvx+=(cx2/nc-bird.x)*.02;bird.tvy+=(cy2/nc-bird.y)*.02;
+    }
+    // Predator flee
+    if(PREDATOR.active){
+      const pdx=bird.x-PREDATOR.x,pdy=bird.y-PREDATOR.y;
+      const pd=Math.hypot(pdx,pdy);
+      if(pd<.25&&pd>.001){
+        const flee=(.25-pd)/.25*.1;
+        bird.tvx+=pdx/pd*flee;bird.tvy+=pdy/pd*flee;
+        bird.stressRuffle=1;
+      }
+    }
+    bird.tvx+=(Math.random()-.5)*.008;bird.tvy-=.003; // jitter + upward bias
+  }else{
+    // ── Normal: gentle wandering toward random targets ──
+    if(Math.random()<.005||Math.hypot(bird.x-bird.targetX,bird.y-bird.targetY)<.03){
+      bird.targetX=.08+Math.random()*.84;bird.targetY=.15+Math.random()*.5;
+    }
+    bird.tvx+=(bird.targetX-bird.x)*.003;
+    bird.tvy+=(bird.targetY-bird.y)*.003;
+  }
+
+  // Turning wave
+  const tL=Math.min(1,dt*8);
+  bird.vx+=(bird.tvx-bird.vx)*tL;bird.vy+=(bird.tvy-bird.vy)*tL;
+
+  // Boundary
+  if(bird.x<.06)bird.vx+=.004;if(bird.x>.94)bird.vx-=.004;
+  if(bird.y<.06)bird.vy+=.004;if(bird.y>.75)bird.vy-=.004;
+
+  // Speed limits (chorus birds are slower)
+  const spd=Math.hypot(bird.vx,bird.vy);
+  const maxS=isAlarm?.06:.02;
+  if(spd>maxS){bird.vx=bird.vx/spd*maxS;bird.vy=bird.vy/spd*maxS;}
+
+  bird.vx*=.98;bird.vy*=.98;
+  bird.x+=bird.vx*dt;bird.y+=bird.vy*dt;
+  bird.x=Math.max(.03,Math.min(.97,bird.x));
+  bird.y=Math.max(.04,Math.min(.78,bird.y));
+  bird.speed=Math.hypot(bird.vx,bird.vy);
+  if(bird.speed>.001)bird.angle=Math.atan2(bird.vy,bird.vx);
+}
+
+// ─── Flock Metrics ───
+function measureFlockMetrics(birdList){
+  const n=birdList.length;if(!n)return;
+  let cx2=0,cy2=0,ax=0,ay=0,flying=0;
+  birdList.forEach(b=>{if(b.birdState===2)return;cx2+=b.x;cy2+=b.y;
+    ax+=Math.cos(b.angle);ay+=Math.sin(b.angle);flying++;});
+  if(!flying){flockMetrics.cohesion=1;flockMetrics.alignment=1;return;}
+  cx2/=flying;cy2/=flying;
+  const avgDist=birdList.reduce((s,b)=>b.birdState===2?s:s+Math.hypot(b.x-cx2,b.y-cy2),0)/flying;
+  flockMetrics.cohesion=Math.max(0,1-avgDist*5);
+  flockMetrics.alignment=Math.hypot(ax,ay)/flying;
+  const avgNND=birdList.reduce((s,b)=>s+(b.neighborDists&&b.neighborDists[0]||0),0)/n;
+  flockMetrics.separation=avgNND;
+}
+
+// §7 COMPOSITIONS
+function buildChorusSequence(){
+  const E=[];
+  const D=[50,57,62,66],G=[43,50,55,62],A=[45,52,57,64],Bm=[47,54,59,66],
+        Em=[52,59,64,67],F_m=[54,61,66,69];
+  const ch=[D,G,A,Bm,Em,D,G,A,D,F_m,Bm,Em,G,A,D,Bm];
+  function pad(b,m,g,d){E.push({beat:b,type:'windPad',padNotes:m,padGain:g,duration:d})}
+  function song(b,sp,g){E.push({beat:b,type:'song',species:sp,gain:g})}
+  function wing(b,v){E.push({beat:b,type:'wing',velocity:v})}
+  function alarm(b,v){E.push({beat:b,type:'alarm',velocity:v})}
+  function therm(b,s,v,d){E.push({beat:b,type:'thermal',steps:s||1,velocity:v||.5,duration:d||.5})}
+  function thermCfg(b,c){E.push({beat:b,type:'thermalConfig',...c})}
+  function dawn(b,g){E.push({beat:b,type:'dawn',gain:g})}
+
+  // I. PRE-DAWN (0-31)
+  thermCfg(0,{activity:.03,turbulence:.85,lift:.3});
+  pad(0,[38,45,50,57],.06,28);
+  for(let b=4;b<32;b+=8)therm(b,1,.04,.8);
+
+  // II. FIRST LIGHT (32-63) — original dawn melody rises
+  thermCfg(32,{activity:.08,turbulence:.7,lift:.4});
+  pad(32,D,.1,28);
+  dawn(34,.12);dawn(46,.16);dawn(56,.2); // Dawn melody plays three times, growing
+  for(let b=32;b<64;b+=6)therm(b,1,.08,.6);
+
+  // III. FIRST ROBIN (64-95)
+  thermCfg(64,{activity:.15,turbulence:.6,lift:.45});
+  for(let b=64;b<96;b++){const l=b-64;
+    if(l===0||l===8||l===18||l===26)song(b,'robin',.12+l*.003);
+    if(l>=16&&l%6===0)song(b,'blackbird',.06);
+    if(l%8===0)pad(b,ch[Math.floor(l/8)%16],.15,7);
+    if(l%4===0)therm(b,1,.12,.5);
+  }
+
+  // IV. DAWN CHORUS (96-143)
+  thermCfg(96,{activity:.35,turbulence:.45,lift:.55});
+  for(let b=96;b<144;b++){const l=b-96;
+    const c2=ch[Math.floor(l/4)%16];
+    if(l%8===0)pad(b,c2,.22,7);
+    if(l%6===0)song(b,'robin',.2);
+    if(l>=8&&l%5===0)song(b,'blackbird',.18);
+    if(l>=16&&l%7===0)song(b,'wren',.14);
+    if(l>=24&&l%6===2)song(b,'skylark',.12);
+    if(l>=32&&l%8===0)song(b,'nightingale',.14);
+    if(l%3===0)therm(b,1,.18+l*.002,.45);
+    if(l%8===4)wing(b,.08);
+    if(l%4===0){E.push({beat:b,midi:c2[0],velocity:.12+l*.002,duration:1.2,type:'note'});}
+  }
+
+  // V. FIRST FLIGHT (144-175)
+  thermCfg(144,{activity:.5,turbulence:.35,lift:.6});
+  for(let b=144;b<176;b++){const l=b-144;
+    const c2=ch[Math.floor(l/4)%16];
+    if(l%4===0){E.push({beat:b,midi:c2[0],velocity:.25,duration:1,type:'note'});
+      [0,2,1,3].forEach((p,i)=>E.push({beat:b+i*.25,midi:c2[p%c2.length],velocity:.1,duration:.28,type:'note'}));}
+    if(l%8===0)pad(b,c2,.28,7);
+    if(l%4===0)song(b,'robin',.22);if(l%5===0)song(b,'blackbird',.25);
+    if(l%6===0)song(b,'wren',.16);if(l%7===0)song(b,'skylark',.18);
+    if(l%8===2)song(b,'nightingale',.15);if(l>=16&&l%6===0)song(b,'swift',.1);
+    if(l%2===0)wing(b,.12+l*.003);therm(b,1,.3,.4);
+  }
+
+  // VI. THERMAL RISING (176-215)
+  thermCfg(176,{activity:.7,turbulence:.25,lift:.75});
+  for(let b=176;b<216;b++){const l=b-176;
+    const c2=ch[Math.floor(l/4)%16];
+    if(l%2===0){E.push({beat:b,midi:c2[0],velocity:.35,duration:.9,type:'note'});
+      [0,2,1,3].forEach((p,i)=>E.push({beat:b+i*.25,midi:c2[p%c2.length],velocity:.14,duration:.22,type:'note'}));}
+    if(l%8===0)pad(b,c2,.35,7);
+    if(l%3===0)song(b,'blackbird',.3);if(l%4===0)song(b,'robin',.25);
+    if(l%5===0)song(b,'skylark',.25);if(l%6===0)song(b,'nightingale',.2);
+    if(l%4===2)song(b,'wren',.18);if(l%5===1)song(b,'swift',.12);
+    therm(b,Math.random()>.5?2:1,.4,.35);if(l%3===0)wing(b,.15);
+  }
+
+  // VII. FULL FLOCK (216-255)
+  thermCfg(216,{activity:.9,turbulence:.12,lift:.85});
+  for(let b=216;b<256;b++){const l=b-216;
+    const c2=ch[Math.floor(l/4)%16];
+    if(l%2===0){E.push({beat:b,midi:c2[0],velocity:.45,duration:.7,type:'note'});
+      [3,1,2,0].forEach((p,i)=>E.push({beat:b+i*.25,midi:c2[p%c2.length],velocity:.2,duration:.18,type:'note'}));}
+    if(l%8===0)pad(b,c2,.4,7);
+    song(b,'blackbird',.35);if(l%2===0)song(b,'robin',.3);
+    if(l%3===0)song(b,'nightingale',.28);song(b,'skylark',.25);
+    if(l%2===1)song(b,'wren',.22);if(l%4===0)song(b,'swift',.15);
+    therm(b,2,.5,.28);wing(b,.18);
+  }
+
+  // VIII. RAPTOR δ(now) (256-275) — sparrowhawk attacks
+  E.push({beat:256,type:'thermalCollapse'});thermCfg(256,{activity:.05,turbulence:.95,lift:.2});
+  for(let b=256;b<276;b++){const l=b-256;
+    if(l<3){alarm(b,.6-l*.12);wing(b,.4-l*.08);}
+    if(l<5)song(b,'swift',.3-l*.04);
+    if(l===0)pad(b,[47,54,58,63],.4,5);
+    if(l===8)pad(b,D,.06,12);if(l>=10&&l%4===0)wing(b,.06);
+  }
+
+  // IX. SCATTER (276-295)
+  for(let b=276;b<296;b++){const l=b-276;
+    if(l%6===0)wing(b,.04);if(l%8===0&&l>=8)therm(b,1,.03,.7);
+  }
+
+  // X. REFORMATION (296-343)
+  thermCfg(296,{activity:.1,turbulence:.6,lift:.4});
+  for(let b=296;b<344;b++){const l=b-296,r=l/48;
+    if(l>=4&&l%6===0)song(b,'robin',.04+r*.15);
+    if(l>=12&&l%5===0)song(b,'blackbird',.03+r*.18);
+    if(l>=20&&l%6===0)song(b,'skylark',.03+r*.12);
+    if(l>=28&&l%8===0)song(b,'nightingale',.03+r*.1);
+    const c2=ch[Math.floor(l/4)%16];
+    if(l>=8&&l%4===0)E.push({beat:b,midi:c2[0],velocity:.06+r*.2,duration:1.3,type:'note'});
+    if(l%12===0)pad(b,c2,.06+r*.2,10);
+    if(l%2===0)therm(b,1,.06+r*.2,.45);if(l>=10&&l%3===0)wing(b,.04+r*.1);
+  }
+
+  // XI. EVENING SONG (344-375)
+  thermCfg(344,{activity:.15,turbulence:.5,lift:.3});
+  for(let b=344;b<376;b++){const l=b-344,f=1-l/32;
+    if(l%4===0)song(b,'robin',.2*f);if(l%6===0&&f>.3)song(b,'blackbird',.15*f);
+    if(l%8===0)pad(b,D,.12*f,8);if(l%4===0)therm(b,1,.08*f,.5);
+  }
+
+  // XII. ROOST (376-407)
+  thermCfg(376,{activity:.02,turbulence:.8,lift:.2});
+  pad(376,D,.06,28);
+  E.push({beat:380,type:'song',species:'robin',gain:.05});
+  E.push({beat:390,type:'song',species:'blackbird',gain:.03});
+
+  E.sort((a,b)=>a.beat-b.beat);return E;
+}
+
+function buildFlockSequence(){
+  const E=[];
+  const D=[50,57,62,66],G=[43,50,55,62],A=[45,52,57,64],Bm=[47,54,59,66],
+        Em=[52,59,64,67];
+  const ch=[D,G,A,Bm,Em,D,G,A,D,Bm,Em,G,A,D,Bm,Em];
+
+  // I. LONE STARLING (0-31)
+  E.push({beat:0,type:'thermalConfig',activity:.05,turbulence:.85,lift:.3});
+  E.push({beat:0,type:'windPad',padNotes:D,padGain:.08,duration:28});
+  for(let b=0;b<32;b+=8)E.push({beat:b,type:'song',species:'starling',gain:.08});
+
+  // II-V: Build to full murmuration (same structure as before but starlings only)
+  [[32,80,.2,.6,.15],[80,128,.5,.35,.3],[128,192,.8,.18,.42],[192,240,.95,.1,.5]].forEach(([start,end,act,turb,vel],si)=>{
+    E.push({beat:start,type:'thermalConfig',activity:act,turbulence:turb,lift:.3+si*.15});
+    for(let b=start;b<end;b++){const l=b-start;
+      if(l%Math.max(1,5-si)===0)E.push({beat:b,type:'song',species:'starling',gain:.1+si*.06});
+      const c2=ch[Math.floor(l/4)%16];
+      if(l%(4-Math.min(si,2))===0){E.push({beat:b,midi:c2[0],velocity:.1+si*.1,duration:1.2-si*.2,type:'note'});
+        if(si>=1)[0,2,1,3].forEach((p,i)=>E.push({beat:b+i*.25,midi:c2[p%c2.length],velocity:.06+si*.04,duration:.3-si*.04,type:'note'}));}
+      if(l%8===0)E.push({beat:b,type:'windPad',padNotes:c2,padGain:.1+si*.08,duration:7});
+      E.push({beat:b,type:'thermal',steps:si>=2?2:1,velocity:vel,duration:.45-si*.05});
+      if(l%(3-Math.min(si,1))===0)E.push({beat:b,type:'wing',velocity:.06+si*.03});
+    }
+  });
+
+  // VI. RAPTOR (240-263)
+  E.push({beat:240,type:'thermalCollapse'});
+  E.push({beat:240,type:'thermalConfig',activity:.04,turbulence:.95,lift:.15});
+  for(let b=240;b<264;b++){const l=b-240;
+    if(l<4)E.push({beat:b,type:'alarm',velocity:.5-l*.08});
+    if(l<6)E.push({beat:b,type:'wing',velocity:.4-l*.04});
+    if(l===0)E.push({beat:b,type:'windPad',padNotes:[47,54,58,63],padGain:.4,duration:5});
+    if(l===8)E.push({beat:b,type:'windPad',padNotes:D,padGain:.05,duration:12});
+  }
+
+  // VII. SCATTER (264-287)
+  for(let b=264;b<288;b++){if((b-264)%6===0)E.push({beat:b,type:'wing',velocity:.05});}
+
+  // VIII. REFORMATION (288-335)
+  E.push({beat:288,type:'thermalConfig',activity:.1,turbulence:.6,lift:.4});
+  for(let b=288;b<336;b++){const l=b-288,r=l/48;
+    if(l%6===0)E.push({beat:b,type:'song',species:'starling',gain:.04+r*.2});
+    const c2=ch[Math.floor(l/4)%16];
+    if(l>=12&&l%4===0)E.push({beat:b,midi:c2[0],velocity:.06+r*.2,duration:1.2,type:'note'});
+    if(l%12===0)E.push({beat:b,type:'windPad',padNotes:c2,padGain:.06+r*.18,duration:10});
+    if(l%2===0)E.push({beat:b,type:'thermal',steps:1,velocity:.06+r*.22,duration:.42});
+    if(l%3===0)E.push({beat:b,type:'wing',velocity:.04+r*.1});
+  }
+
+  // IX. NEW FLOCK (336-383)
+  E.push({beat:336,type:'thermalConfig',activity:.6,turbulence:.3,lift:.6});
+  for(let b=336;b<384;b++){const l=b-336;
+    if(l%4===0)E.push({beat:b,type:'song',species:'starling',gain:.25});
+    const c2=ch[Math.floor(l/4)%16];
+    if(l%4===0){E.push({beat:b,midi:c2[0],velocity:.35,duration:1,type:'note'});
+      [0,2,1,3].forEach((p,i)=>E.push({beat:b+i*.25,midi:c2[p%c2.length],velocity:.12,duration:.22,type:'note'}));}
+    if(l%8===0)E.push({beat:b,type:'windPad',padNotes:c2,padGain:.3,duration:7});
+    E.push({beat:b,type:'thermal',steps:1,velocity:.35,duration:.35});
+    if(l%2===0)E.push({beat:b,type:'wing',velocity:.12});
+  }
+
+  // X. ROOST (384-415)
+  E.push({beat:384,type:'thermalConfig',activity:.03,turbulence:.8,lift:.2});
+  E.push({beat:384,type:'windPad',padNotes:D,padGain:.06,duration:28});
+  E.push({beat:390,type:'song',species:'starling',gain:.04});
+
+  E.sort((a,b)=>a.beat-b.beat);return E;
+}
+
+// §8 SEQUENCER
+let sequence=[],seqIdx=0,playing=false,startTime=0,currentBeat=0;
+
+function startPlayback(){
+  if(!ac)initAudio();if(ac.state==='suspended')ac.resume();
+  sequence=MODE==='flock'?buildFlockSequence():buildChorusSequence();
+  seqIdx=0;currentBeat=0;startTime=ac.currentTime;playing=true;
+  ALL_CRR.forEach(c=>c.reset());thermalEngine.reset();PREDATOR.active=false;
+  if(MODE==='chorus')initChorus();else initFlock();
+  flockCollective.crr.reset();flockCollective.angMom=0;
+  flockCollective.turnDir={x:0,y:0};flockCollective.choreo=null;
+  roosting=false;masterFade=1;
+  document.getElementById('play-btn').textContent='■';scheduleLoop();
+}
+function stopPlayback(){playing=false;document.getElementById('play-btn').textContent='▶';}
+function togglePlayback(){playing?stopPlayback():startPlayback();}
+
+let masterFade=1; // For end-of-song fadeout
+
+function scheduleLoop(){
+  if(!playing)return;const now=ac.currentTime;currentBeat=(now-startTime)/BEAT_S;
+  const totalB=MODE==='flock'?FLOCK_BEATS:CHORUS_BEATS;
+  if(currentBeat>=totalB){stopPlayback();return;}
+
+  const section=getSection(Math.floor(currentBeat));
+  const secs=MODE==='flock'?FLOCK_SECTIONS:CHORUS_SECTIONS;
+  const sIdx=secs.indexOf(section);
+  const L=.012+sIdx*.007;
+  ALL_CRR.forEach(c=>c.step(L*(c===crrFlock?1.2:c===crrSyrinx?.9:.7),.016));
+
+  if(section.name.includes('RAPTOR')&&crrGlobal.phase==='coherence'){
+    ALL_CRR.forEach(c=>c.rupture());
+    if(MODE==='flock')flockCollective.crr.rupture();
+  }
+  if(section.name==='REFORMATION'&&crrGlobal.phase==='regeneration'&&crrGlobal.C>crrGlobal.lastRupture*.4)
+    ALL_CRR.forEach(c=>{c.phase='coherence';});
+
+  const birdList=MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS;
+
+  // Build spatial hash for flocking
+  buildSpatialHash(birdList);
+
+  // Update flock collective (murmuration mode)
+  if(MODE==='flock')flockCollective.update(.016,birdList,currentBeat*BEAT_S);
+
+  // Update predator
+  updatePredator(.016,section,birdList);
+
+  // Roosting check — final sections trigger birds going to trees
+  const isRoost=section.name==='ROOST';
+  if(isRoost&&!roosting){roosting=true;roostStartTime=currentBeat*BEAT_S;}
+
+  // Master fadeout during last ~20% of ROOST section
+  if(isRoost){
+    const roostProgress=(currentBeat-section.start)/(section.end-section.start);
+    if(roostProgress>.3)masterFade=Math.max(0,1-(roostProgress-.3)/.7);
+    if(masterGain)masterGain.gain.setTargetAtTime(masterFade*.7,ac.currentTime,.5);
+  }
+
+  birdList.forEach(f=>{
+    updateBirdPhysiology(f,.016,currentBeat/2,section);
+    f.crr.step(L*.6,.016);
+    if(section.name.includes('RAPTOR')&&f.crr.phase==='coherence')f.crr.rupture();
+    if(section.name==='REFORMATION'&&f.crr.phase==='regeneration'&&f.crr.C>f.crr.lastRupture*.3)f.crr.phase='coherence';
+    if(MODE==='flock')updateFlockMovement(f,.016,birdList,section);
+    else updateChorusMovement(f,.016,birdList,section);
+  });
+  measureFlockMetrics(birdList);
+
+  // Schedule audio events
+  const schedH=currentBeat+.15/BEAT_S;
+  while(seqIdx<sequence.length&&sequence[seqIdx].beat<=schedH){
+    const ev=sequence[seqIdx],evTime=startTime+ev.beat*BEAT_S;
+    const crrMod=Math.min(crrGlobal.expCO/5,3);
+    if(ev.type==='note')playNote(ev.midi,ev.velocity*crrMod,ev.duration*BEAT_S,evTime);
+    else if(ev.type==='dawn')playDawnMelody(ev.gain*crrMod,evTime,crrMod);
+    else if(ev.type==='song'){
+      const g=ev.gain*Math.min(crrMod,2);
+      if(ev.species==='blackbird')playBlackbirdPhrase(g,evTime,crrMod);
+      else if(ev.species==='nightingale')playNightingalePhrase(g,evTime,crrMod);
+      else if(ev.species==='skylark')playSkylarkPhrase(g,evTime,crrMod);
+      else if(ev.species==='robin')playRobinPhrase(g,evTime,crrMod);
+      else if(ev.species==='wren')playWrenTrill(g,evTime,crrMod);
+      else if(ev.species==='swift')playSwiftScream(g,evTime);
+      else if(ev.species==='starling'){
+        const pick=['blackbird','robin','skylark','wren'][Math.floor(Math.random()*4)];
+        if(pick==='blackbird')playBlackbirdPhrase(g*.7,evTime,crrMod);
+        else if(pick==='robin')playRobinPhrase(g*.7,evTime,crrMod);
+        else if(pick==='skylark')playSkylarkPhrase(g*.6,evTime,crrMod);
+        else playWrenTrill(g*.5,evTime,crrMod);
+      }
+      songMonitor[ev.species]=ev.gain;
+    }
+    else if(ev.type==='wing')playWingFlap(evTime,ev.velocity);
+    else if(ev.type==='alarm')playAlarmCall(evTime,ev.velocity);
+    else if(ev.type==='windPad')setWindPad(ev.padNotes,ev.padGain,ev.duration*BEAT_S*.3);
+    else if(ev.type==='thermal'){for(let s=0;s<(ev.steps||1);s++){const notes=thermalEngine.step(crrGlobal.expCO);notes.forEach((m,i)=>playThermalNote(m,ev.velocity,ev.duration*BEAT_S,evTime+i*.05));}}
+    else if(ev.type==='thermalCollapse')thermalEngine.collapse();
+    else if(ev.type==='thermalConfig'){if(ev.activity!==undefined)thermalEngine.activity=ev.activity;if(ev.turbulence!==undefined)thermalEngine.turbulence=ev.turbulence;if(ev.lift!==undefined)thermalEngine.lift=ev.lift;}
+    seqIdx++;
+  }
+  requestAnimationFrame(scheduleLoop);
+}
+
+// §9 TELEMETRY SYSTEM
+const TELEM_BUF=180;let telemIdx=0,telemLastTime=0;
+const TD={
+  syrinxL:new Float32Array(TELEM_BUF),syrinxR:new Float32Array(TELEM_BUF),
+  syrinxTension:new Float32Array(TELEM_BUF),
+  airVol:new Float32Array(TELEM_BUF),airO2:new Float32Array(TELEM_BUF),
+  heartECG:new Float32Array(TELEM_BUF),heartBPM:new Float32Array(TELEM_BUF),
+  wingLift:new Float32Array(TELEM_BUF),wingPhase:new Float32Array(TELEM_BUF),
+  flockCoh:new Float32Array(TELEM_BUF),flockAli:new Float32Array(TELEM_BUF),
+  flockSep:new Float32Array(TELEM_BUF),
+  crrC:new Float32Array(TELEM_BUF),crrOmega:new Float32Array(TELEM_BUF),
+  crrExpCO:new Float32Array(TELEM_BUF),crrRupture:new Float32Array(TELEM_BUF),
+  coreTemp:new Float32Array(TELEM_BUF),metabolic:new Float32Array(TELEM_BUF),
+  songBlack:new Float32Array(TELEM_BUF),songNight:new Float32Array(TELEM_BUF),
+  songLark:new Float32Array(TELEM_BUF),songRobin:new Float32Array(TELEM_BUF)
+};
+let telemCtxs={},telemCanvases={};
+
+function initTelemCanvases(){
+  ['syr','air','heart','wing','flock','crr','thermo','song'].forEach(id=>{
+    const c=document.getElementById('tc-'+id);if(!c)return;
+    const dpr=devicePixelRatio||1;c.width=c.clientWidth*dpr;c.height=c.clientHeight*dpr;
+    const ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+    telemCtxs[id]=ctx;telemCanvases[id]=c;
+  });
+}
+
+function sampleTelemetry(){
+  const now=performance.now();if(now-telemLastTime<50)return;telemLastTime=now;
+  const i=telemIdx%TELEM_BUF;
+  const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0];
+  if(b0){
+    TD.syrinxL[i]=b0.syrinxL.amp;TD.syrinxR[i]=b0.syrinxR.amp;
+    TD.syrinxTension[i]=b0.syrinxTension;
+    TD.airVol[i]=b0.airVolume;TD.airO2[i]=b0.airO2;
+    // Synthetic ECG from heart phase
+    const hp=b0.heartPhase;
+    TD.heartECG[i]=hp<.05?.8:hp<.1?-.2:hp<.15?1:hp<.25?-.1:hp<.35?.3:hp<.5?.15:0;
+    TD.heartBPM[i]=b0.heartBPM/1000;
+    TD.wingLift[i]=b0.liftForce;TD.wingPhase[i]=b0.downstroke?1:0;
+    TD.coreTemp[i]=(b0.coreTemp-39)/4;TD.metabolic[i]=b0.metabolicRate;
+  }
+  TD.flockCoh[i]=flockMetrics.cohesion;TD.flockAli[i]=flockMetrics.alignment;
+  TD.flockSep[i]=Math.min(flockMetrics.separation*20,1);
+  TD.crrC[i]=Math.min(crrGlobal.C/3,1);TD.crrOmega[i]=crrGlobal.omega;
+  TD.crrExpCO[i]=Math.min(Math.log(crrGlobal.expCO)/12,1);
+  TD.crrRupture[i]=crrGlobal.phase==='rupture'||crrGlobal.phase==='regeneration'?1:0;
+  TD.songBlack[i]=songMonitor.blackbird;TD.songNight[i]=songMonitor.nightingale;
+  TD.songLark[i]=songMonitor.skylark;TD.songRobin[i]=songMonitor.robin;
+  telemIdx++;
+}
+
+function drawTelemLine(ctx,data,w,h,color,alpha,yMin,yMax,filled){
+  const n=Math.min(telemIdx,TELEM_BUF),start=telemIdx>=TELEM_BUF?telemIdx%TELEM_BUF:0;
+  if(n<2)return;ctx.beginPath();
+  for(let j=0;j<n;j++){
+    const di=(start+j)%TELEM_BUF,x=(j/(TELEM_BUF-1))*w;
+    const y=h-(data[di]-yMin)/(yMax-yMin)*h;
+    j===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  if(filled){
+    ctx.lineTo(((n-1)/(TELEM_BUF-1))*w,h);ctx.lineTo(0,h);ctx.closePath();
+    ctx.fillStyle=color+alpha+')';ctx.fill();
+  }else{ctx.strokeStyle=color+alpha+')';ctx.lineWidth=1;ctx.stroke();}
+}
+
+function renderTelemetry(){
+  if(!telemCtxs.syr)return;
+  const drawGrid=(ctx,w,h,rows)=>{ctx.strokeStyle='rgba(232,168,56,.04)';ctx.lineWidth=.5;
+    for(let r=1;r<rows;r++){const y=r*h/rows;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}};
+
+  // Syrinx
+  {const ctx=telemCtxs.syr,c=telemCanvases.syr,w=c.clientWidth,h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,3);
+    drawTelemLine(ctx,TD.syrinxL,w,h,'rgba(232,168,56,','.5',0,1.2,true);
+    drawTelemLine(ctx,TD.syrinxR,w,h,'rgba(232,116,97,','.4',0,1.2,true);
+    drawTelemLine(ctx,TD.syrinxTension,w,h,'rgba(240,192,64,','.6',0,1,false);
+    const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0];
+    if(b0)document.getElementById('tv-syr').textContent=b0.syrinxTension.toFixed(2);}
+
+  // Air sacs
+  {const ctx=telemCtxs.air,c=telemCanvases.air,w=c.clientWidth,h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,2);
+    drawTelemLine(ctx,TD.airVol,w,h,'rgba(126,200,227,','.5',0,1.1,true);
+    drawTelemLine(ctx,TD.airO2,w,h,'rgba(79,209,197,','.5',.8,1,false);
+    const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0];
+    if(b0)document.getElementById('tv-air').textContent=b0.inspiration?'IN':'EX';}
+
+  // Heart
+  {const ctx=telemCtxs.heart,c=telemCanvases.heart,w=c.clientWidth,h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,3);
+    drawTelemLine(ctx,TD.heartECG,w,h,'rgba(252,129,129,','.6',-.3,1.2,false);
+    drawTelemLine(ctx,TD.heartBPM,w,h,'rgba(232,116,97,','.3',0,1,true);
+    const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0];
+    if(b0)document.getElementById('tv-heart').textContent=b0.heartBPM+' BPM';}
+
+  // Wing
+  {const ctx=telemCtxs.wing,c=telemCanvases.wing,w=c.clientWidth,h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,2);
+    drawTelemLine(ctx,TD.wingLift,w,h,'rgba(232,120,58,','.5',-.6,.6,false);
+    drawTelemLine(ctx,TD.wingPhase,w,h,'rgba(246,173,85,','.2',0,1.1,true);}
+
+  // Flock
+  {const ctx=telemCtxs.flock,c=telemCanvases.flock,w=c.clientWidth,h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,4);
+    drawTelemLine(ctx,TD.flockCoh,w,h,'rgba(79,209,197,','.5',0,1.1,true);
+    drawTelemLine(ctx,TD.flockAli,w,h,'rgba(246,173,85,','.5',0,1.1,false);
+    drawTelemLine(ctx,TD.flockSep,w,h,'rgba(252,129,129,','.3',0,1.1,false);
+    document.getElementById('tv-flock').textContent='coh:'+flockMetrics.cohesion.toFixed(2);}
+
+  // CRR
+  {const ctx=telemCtxs.crr,c=telemCanvases.crr,w=c.clientWidth,h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,4);
+    drawTelemLine(ctx,TD.crrC,w,h,'rgba(79,209,197,','.5',0,1.1,true);
+    drawTelemLine(ctx,TD.crrOmega,w,h,'rgba(246,173,85,','.5',0,.5,false);
+    drawTelemLine(ctx,TD.crrExpCO,w,h,'rgba(104,211,145,','.5',0,1.1,true);
+    // Rupture markers
+    const n=Math.min(telemIdx,TELEM_BUF),start=telemIdx>=TELEM_BUF?telemIdx%TELEM_BUF:0;
+    for(let j=0;j<n;j++){const di=(start+j)%TELEM_BUF;
+      if(TD.crrRupture[di]>.5){const x=(j/(TELEM_BUF-1))*w;
+        ctx.strokeStyle='rgba(252,129,129,.35)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}}
+    document.getElementById('tv-crr').textContent='C:'+crrGlobal.C.toFixed(2);}
+
+  // Thermo
+  {const ctx=telemCtxs.thermo,c=telemCanvases.thermo,w=c.clientWidth,h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,2);
+    drawTelemLine(ctx,TD.coreTemp,w,h,'rgba(232,120,58,','.5',0,1.1,true);
+    drawTelemLine(ctx,TD.metabolic,w,h,'rgba(126,200,227,','.4',0,1,false);
+    const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0];
+    if(b0)document.getElementById('tv-thermo').textContent=b0.coreTemp.toFixed(1)+'°';}
+
+  // Song activity
+  {const ctx=telemCtxs.song,c=telemCanvases.song,w=c.clientWidth,h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,3);
+    drawTelemLine(ctx,TD.songBlack,w,h,'rgba(232,168,56,','.5',0,.6,true);
+    drawTelemLine(ctx,TD.songNight,w,h,'rgba(232,116,97,','.4',0,.6,true);
+    drawTelemLine(ctx,TD.songLark,w,h,'rgba(126,200,227,','.4',0,.6,true);
+    drawTelemLine(ctx,TD.songRobin,w,h,'rgba(232,120,58,','.4',0,.6,true);}
+}
+
+// §10 CRR BIOLOGY PANEL
+const CRR_DEFS=[
+  {id:'syrinx',title:'SYRINX · DUAL Z₂',agent:crrSyrinx,color:'var(--gold)',
+   eq:'C = ∫ syrinx_coherence dτ',
+   desc:'Dual-source vocal organ at tracheal bifurcation. L/R bronchi = independent Z₂ oscillators. Birds sing two notes simultaneously. Membrane tension driven by air sac pressure. Respiratory-syrinx coupling: unidirectional flow means singing during IN and EX.',
+   fields:()=>{const b=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{syrinxTension:.5,syrinxPressure:0};
+     return{'Tension':b.syrinxTension.toFixed(3),'Pressure':b.syrinxPressure.toFixed(2),'Symmetry':'dual Z₂',
+     'C':crrSyrinx.C.toFixed(3),'exp(C/Ω)':crrSyrinx.expCO.toFixed(2)};}},
+  {id:'airsac',title:'AIR SACS · SO(2)',agent:crrAirSac,color:'var(--airstream)',
+   eq:'C = ∫ ventilation_flow dτ',
+   desc:'9 air sacs, unidirectional flow through rigid parabronchi. No dead space. Cross-current gas exchange 10× mammalian efficiency. SO(2) continuous rotation. Couples to wingbeat: respiratory-locomotor locking during flight.',
+   fields:()=>{const b=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{airPhase:0,airVolume:.5,airO2:.9};
+     return{'Phase':b.inspiration?'inspiration':'expiration','Volume':b.airVolume.toFixed(2),'O₂':Math.round(b.airO2*100)+'%',
+     'C':crrAirSac.C.toFixed(3),'Ω':'1/2π = '+crrAirSac.omega.toFixed(4)};}},
+  {id:'heart',title:'AVIAN HEART · Z₂',agent:crrHeart,color:'var(--coral)',
+   eq:'C = ∫ cardiac_coherence dτ',
+   desc:'4-chambered, 400-1000 BPM. Larger relative to body than mammalian. Systole/diastole = Z₂. Heart rate locks to wingbeat during flight (cardiovascular-locomotor coupling). Stress response: BPM increases 30% on predator detection.',
+   fields:()=>{const b=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{heartBPM:600,systole:false,heartStress:0};
+     return{'BPM':b.heartBPM,'Phase':b.systole?'systole':'diastole','Stress':b.heartStress.toFixed(2),
+     'C':crrHeart.C.toFixed(3),'exp(C/Ω)':crrHeart.expCO.toFixed(2)};}},
+  {id:'wing',title:'WING · Z₂',agent:crrWing,color:'var(--thermal)',
+   eq:'C = ∫ flight_coherence dτ',
+   desc:'Downstroke = power (pectoralis major, 15-25% body mass). Upstroke = recovery via triosseal canal. Z₂ binary power/recovery. Vortex wake carries coherence information for following birds — why flocking works.',
+   fields:()=>{const b=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{downstroke:false,liftForce:0,wingHz:5};
+     return{'Phase':b.downstroke?'downstroke↓':'upstroke↑','Lift':b.liftForce.toFixed(2),'Hz':b.wingHz.toFixed(1),
+     'C':crrWing.C.toFixed(3),'exp(C/Ω)':crrWing.expCO.toFixed(2)};}},
+  {id:'thermo',title:'THERMOREGULATION · SO(2)',agent:crrThermo,color:'var(--thermal)',
+   eq:'C = ∫ homeostasis dτ',
+   desc:'Core temp 40.5-42°C. Higher than mammals. Metabolic rate scales with flight and stress. Ptiloerection (feather position) modulates heat loss. Gular flutter (throat vibration) for cooling. SO(2) continuous regulation.',
+   fields:()=>{const b=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{coreTemp:41,metabolicRate:.5};
+     return{'Core':b.coreTemp.toFixed(1)+'°C','Metabolic':b.metabolicRate.toFixed(2),
+     'C':crrThermo.C.toFixed(3),'Ω':'1/2π = '+crrThermo.omega.toFixed(4)};}},
+  {id:'flock',title:'FLOCK · CRR-BOIDS',agent:crrFlock,color:'var(--omega)',
+   eq:'weights = f(C, Ω, exp(C/Ω))',
+   desc:'TOPOLOGICAL k=7 (Ballerini 2008) via spatial hash. FlockCollective CRR triggers Choreographer ruptures → 8 emergent patterns (vortex, wave, split, breathe, ribbon, column, sweep, tornado). Angular momentum creates swirling. Strong boundaries prevent edge scatter. Birds roost in CRR trees at dusk.',
+   fields:()=>{const ch=flockCollective.choreo;return{
+     'Cohesion':flockMetrics.cohesion.toFixed(3),'Alignment':flockMetrics.alignment.toFixed(3),
+     'Move':ch?ch.name:'—','Collective C':flockCollective.crr.C.toFixed(3),
+     'Predator':PREDATOR.active?PREDATOR.huntPhase:'—',
+     'Phase':crrFlock.phase,'C':crrFlock.C.toFixed(3),'exp(C/Ω)':crrFlock.expCO.toFixed(2)}}},
+  {id:'global',title:'COMPOSITION · Z₂',agent:crrGlobal,color:'var(--coherence)',
+   eq:'R = ∫ φ(x,τ) · exp(C/Ω) · Θ dτ',
+   desc:'Dawn-to-dusk arc. Coherence builds through the chorus. Raptor = δ(now). Reformation weighted by exp(C/Ω) — flock memory determines which birds return first.',
+   fields:()=>({'Phase':crrGlobal.phase,'Ruptures':crrGlobal.ruptures,
+     'C':crrGlobal.C.toFixed(3),'Ω':'1/π ≈ '+crrGlobal.omega.toFixed(4),
+     'exp(C/Ω)':crrGlobal.expCO.toFixed(2)})}
+];
+
+function buildCRRPanel(){
+  const panel=document.getElementById('crr-panel');
+  let html=`<div style="font-family:'Space Mono',monospace;font-size:.44rem;letter-spacing:.1em;opacity:.3;margin-bottom:8px">CRR AVIAN BIOLOGY</div>`;
+  CRR_DEFS.forEach(s=>{
+    html+=`<div class="crr-section"><div class="crr-head" onclick="toggleCRR('${s.id}')"><span style="color:${s.color}">${s.title}</span><span class="arrow" id="arrow-${s.id}">▸</span></div>`;
+    html+=`<div class="crr-body" id="body-${s.id}"><div class="crr-eq">${s.eq}</div><div class="crr-desc">${s.desc}</div>`;
+    html+=`<div class="crr-row"><span class="crr-label">Phase</span><span id="phase-${s.id}" style="display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:3px"></span><span class="crr-val" id="phaseVal-${s.id}">—</span></div>`;
+    html+=`<div class="crr-row"><span class="crr-label">exp(C/Ω)</span><div class="crr-bar-wrap"><div class="crr-bar" id="bar-${s.id}" style="width:0;background:${s.color}"></div></div></div>`;
+    html+=`<div id="fields-${s.id}"></div></div></div>`;
+  });panel.innerHTML=html;
+}
+function toggleCRR(id){document.getElementById('body-'+id).classList.toggle('open');document.getElementById('arrow-'+id).classList.toggle('open');}
+function updateCRRPanel(){
+  CRR_DEFS.forEach(s=>{
+    const a=s.agent,pe=document.getElementById('phase-'+s.id);if(!pe)return;
+    pe.style.background=a.phase==='coherence'?'var(--coherence)':a.phase==='rupture'?'var(--rupture)':'var(--regen)';
+    document.getElementById('phaseVal-'+s.id).textContent=a.phase;
+    document.getElementById('bar-'+s.id).style.width=Math.min(Math.log(a.expCO)/12*100,100)+'%';
+    const f=s.fields();let fh='';Object.entries(f).forEach(([k,v])=>{fh+=`<div class="crr-row"><span class="crr-label">${k}</span><span class="crr-val">${v}</span></div>`;});
+    document.getElementById('fields-'+s.id).innerHTML=fh;
+  });
+}
+
+// §11 TIMELINE & MONITORS
+function buildTimeline(){
+  const cont=document.getElementById('track-sections');cont.innerHTML='';
+  const secs=MODE==='flock'?FLOCK_SECTIONS:CHORUS_SECTIONS;
+  const total=MODE==='flock'?FLOCK_BEATS:CHORUS_BEATS;
+  secs.forEach(s=>{const d=document.createElement('div');d.className='track-sec';
+    d.style.flex=(s.end-s.start+1)/total;
+    d.innerHTML=`<span class="track-sec-label">${s.name}</span>`;cont.appendChild(d);});
+}
+function updateTimeline(){
+  const total=MODE==='flock'?FLOCK_BEATS:CHORUS_BEATS;
+  document.getElementById('track-fill').style.width=Math.min(currentBeat/total*100,100)+'%';
+  const secs=currentBeat*BEAT_S;const m=Math.floor(secs/60),s=Math.floor(secs%60);
+  document.getElementById('time-display').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+}
+function updateMonitors(){
+  const sec=getSection(Math.floor(currentBeat));
+  document.getElementById('iSection').textContent=sec.name;
+  document.getElementById('iBeat').textContent=Math.floor(currentBeat);
+  document.getElementById('iCRR').textContent=`C=${crrGlobal.C.toFixed(2)} Ω=${crrGlobal.omega.toFixed(3)}`;
+  document.getElementById('iExpCO').textContent=`exp=${crrGlobal.expCO.toFixed(2)}`;
+  const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{syrinxTension:.5,inspiration:false,heartBPM:600,downstroke:false,coreTemp:41};
+  document.getElementById('mSyrinx').textContent=b0.syrinxTension.toFixed(2);
+  document.getElementById('mAir').textContent=b0.inspiration?'IN':'EX';
+  document.getElementById('mHeart').textContent=b0.heartBPM+' BPM';
+  document.getElementById('mWing').textContent=b0.downstroke?'DOWN↓':'UP↑';
+  document.getElementById('mTemp').textContent=b0.coreTemp.toFixed(1)+'°';
+  document.getElementById('mSBlack').textContent=songMonitor.blackbird>.01?songMonitor.blackbird.toFixed(2):'—';
+  document.getElementById('mSNight').textContent=songMonitor.nightingale>.01?songMonitor.nightingale.toFixed(2):'—';
+  document.getElementById('mSLark').textContent=songMonitor.skylark>.01?songMonitor.skylark.toFixed(2):'—';
+  document.getElementById('mSRobin').textContent=songMonitor.robin>.01?songMonitor.robin.toFixed(2):'—';
+  document.getElementById('mCohesion').textContent=flockMetrics.cohesion.toFixed(2);
+  document.getElementById('mAlign').textContent=flockMetrics.alignment.toFixed(2);
+  document.getElementById('mBirds').textContent=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS).length;
+  document.getElementById('mPredator').textContent=PREDATOR.active?'⚠ '+PREDATOR.huntPhase:
+    (MODE==='flock'&&flockCollective.choreo?'♫ '+flockCollective.choreo.name:'—');
+  updateCRRPanel();
+}
+
+// §12 VISUALIZATION
+const canvas=document.getElementById('viz'),cx=canvas.getContext('2d');let W,H;
+function resize(){
+  const wrap=document.getElementById('canvas-wrap');
+  W=canvas.width=wrap.clientWidth*devicePixelRatio;H=canvas.height=wrap.clientHeight*devicePixelRatio;
+  cx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  setTimeout(initTelemCanvases,100);
+}
+function hexToRgb(hex){return`${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)}`}
+function getSkyPhase(){if(!playing)return 0;return Math.min(currentBeat/(MODE==='flock'?FLOCK_BEATS:CHORUS_BEATS),1);}
+
+function drawSky(w,h){
+  const p=getSkyPhase(),grad=cx.createLinearGradient(0,0,0,h);
+  if(p<.1){grad.addColorStop(0,'rgb(8,10,28)');grad.addColorStop(.5,'rgb(12,16,35)');grad.addColorStop(1,'rgb(18,22,42)');}
+  else if(p<.3){const d=(p-.1)/.2;
+    grad.addColorStop(0,`rgb(${8+d*40|0},${10+d*20|0},${28+d*30|0})`);
+    grad.addColorStop(.6,`rgb(${10+d*50|0},${15+d*30|0},${36+d*40|0})`);
+    grad.addColorStop(1,`rgb(${12+d*180|0},${16+d*100|0},${35+d*40|0})`);}
+  else if(p<.7){const d=(p-.3)/.4;
+    grad.addColorStop(0,`rgb(${40+d*30|0},${80+d*60|0},${150+d*50|0})`);
+    grad.addColorStop(.6,`rgb(${80+d*40|0},${140+d*40|0},${200+d*20|0})`);
+    grad.addColorStop(1,`rgb(${160+d*40|0},${180+d*30|0},${210+d*20|0})`);}
+  else{const d=(p-.7)/.3;
+    grad.addColorStop(0,`rgb(${Math.max(70-d*50,15)|0},${Math.max(140-d*100,15)|0},${Math.max(200-d*150,30)|0})`);
+    grad.addColorStop(.5,`rgb(${100+d*60|0},${60+d*20|0},${80+d*30|0})`);
+    grad.addColorStop(1,`rgb(${180-d*120|0},${100-d*60|0},${60+d*20|0})`);}
+  cx.fillStyle=grad;cx.fillRect(0,0,w,h);
+}
+
+// ─── Heat Haze Bands ───
+const heatHaze={
+  bands:[],ok:false,
+  init(){this.bands=[];
+    for(let i=0;i<8;i++){const t=i/8;
+      this.bands.push({baseY:.88-t*t*t*.25,y:0,
+        wf:.002+Math.random()*.002,wa:1.5+(1-t)*3,ws:.4+Math.random()*.3,
+        ph:Math.random()*TAU,th:2+(1-t)*4,ba:.008+(1-t)*.012,
+        ds:.15+Math.random()*.2,da:.001+Math.random()*.002,dp:Math.random()*TAU,
+        w2f:.006+Math.random()*.004,w2a:.8+Math.random()*1.2,w2s:.6+Math.random()*.4,
+        shm:0});}
+    this.ok=true;},
+  draw(w,h,p){if(!this.ok||p<.05)return;
+    let I;if(p<.1)I=p/.1;else if(p<.4)I=1;else if(p<.65)I=1-(p-.4)/.25;else I=0;
+    if(I<.01)return;const t=performance.now()*.001;
+    cx.save();cx.globalCompositeOperation='lighter';
+    for(const b of this.bands){
+      b.shm=.5+.5*Math.sin(t*b.ws+b.ph);
+      b.y=b.baseY+Math.sin(t*b.ds+b.dp)*b.da;
+      const a=b.ba*I*(.6+b.shm*.4),hd=(h*.88-b.y*h)/(h*.3),fa=a*Math.max(0,1-hd);
+      if(fa<.001)continue;const by=b.y*h;
+      cx.beginPath();
+      for(let i=0;i<=60;i++){const fr=i/60,px=fr*w;
+        const wy=Math.sin(px*b.wf+t*b.ws+b.ph)*b.wa*b.shm+Math.sin(px*b.w2f+t*b.w2s+b.ph*1.5)*b.w2a*b.shm;
+        i===0?cx.moveTo(px,by+wy-b.th*.5):cx.lineTo(px,by+wy-b.th*.5);}
+      for(let i=60;i>=0;i--){const fr=i/60,px=fr*w;
+        const wy=Math.sin(px*b.wf+t*b.ws+b.ph+.2)*b.wa*b.shm*.9+Math.sin(px*b.w2f+t*b.w2s+b.ph*1.5+.15)*b.w2a*b.shm;
+        cx.lineTo(px,by+wy+b.th*.5);}
+      cx.closePath();const gr=cx.createLinearGradient(0,by-b.th,0,by+b.th);
+      gr.addColorStop(0,'transparent');gr.addColorStop(.3,`rgba(255,250,240,${fa*.5})`);
+      gr.addColorStop(.5,`rgba(255,250,240,${fa})`);gr.addColorStop(.7,`rgba(255,250,240,${fa*.5})`);
+      gr.addColorStop(1,'transparent');cx.fillStyle=gr;cx.fill();}
+    cx.restore();}
+};
+const sunRays=[],sunRayL=[];
+function initSunRays(){sunRays.length=0;sunRayL.length=0;
+  for(let i=0;i<24;i++)sunRays.push({a:(i/24)*TAU+(Math.random()-.5)*.15,
+    l:.6+Math.random()*.8,w:.012+Math.random()*.018,sp:.02+Math.random()*.04,
+    ph:Math.random()*TAU,int:.3+Math.random()*.4,ds:.005+Math.random()*.01,da:.02+Math.random()*.03});
+  for(let i=0;i<8;i++)sunRayL.push({a:(i/8)*TAU+Math.random()*.3,
+    l:1.2+Math.random()*.6,w:.04+Math.random()*.06,sp:.008+Math.random()*.012,
+    ph:Math.random()*TAU,int:.15+Math.random()*.15});}
+initSunRays();heatHaze.init();
+
+function drawSun(w,h){
+  const p=getSkyPhase();if(p<.08||p>.95)return;
+  const t=performance.now()*.001;
+  const sx=w*(.1+p*.8),sy=h*(.85-Math.sin(p*PI)*.7),sr=h*.11;
+  const int=.7+p*.3;
+
+  heatHaze.draw(w,h,p);
+
+  // ── God Rays ──
+  if(p>.05){cx.save();cx.globalCompositeOperation='lighter';
+    const hF=Math.max(0,1-(h*.88-sy)/(h*.5)),atD=.3+hF*.5;
+    // Layer rays
+    for(const r of sunRayL){const dr=Math.sin(t*r.sp*.5+r.ph)*.02,ca=r.a+dr;
+      const pl=.7+.3*Math.sin(t*r.sp*.3+r.ph);if(Math.sin(ca)>.3)continue;
+      const ra=.008*int*pl*r.int*atD;if(ra<.001)continue;
+      const rl=sr*(4+r.l*6),rw=sr*r.w*(1.5+pl*.2);
+      const ex=sx+Math.cos(ca)*rl,ey=sy+Math.sin(ca)*rl;
+      const gr=cx.createLinearGradient(sx,sy,ex,ey);
+      gr.addColorStop(0,`rgba(255,230,180,${ra*1.2})`);gr.addColorStop(.15,`rgba(255,200,140,${ra})`);
+      gr.addColorStop(.4,`rgba(255,170,100,${ra*.5})`);gr.addColorStop(.7,`rgba(255,140,70,${ra*.2})`);
+      gr.addColorStop(1,'transparent');cx.fillStyle=gr;cx.beginPath();cx.moveTo(sx,sy);
+      const hw=rw*.5,cd=rl*.4;
+      cx.quadraticCurveTo(sx+Math.cos(ca-hw*.5)*cd,sy+Math.sin(ca-hw*.5)*cd,
+        ex+Math.cos(ca-PI/2)*rw*rl*.02,ey+Math.sin(ca-PI/2)*rw*rl*.02);
+      cx.quadraticCurveTo(sx+Math.cos(ca+hw*.5)*cd,sy+Math.sin(ca+hw*.5)*cd,sx,sy);
+      cx.closePath();cx.fill();}
+    // Individual rays
+    for(const r of sunRays){const dr=Math.sin(t*r.ds+r.ph)*r.da,ca=r.a+dr;
+      const br=.85+.15*Math.sin(t*r.sp+r.ph),sh=.95+.05*Math.sin(t*r.sp*3+r.ph*2);
+      if(Math.sin(ca)>.4)continue;const lb=1+(1-p)*.5;
+      const ra=.012*int*br*sh*r.int*lb;if(ra<.002)continue;
+      const rl=sr*(2.5+r.l*4),bw=sr*r.w;
+      const ex=sx+Math.cos(ca)*rl,ey=sy+Math.sin(ca)*rl;
+      const px=-Math.sin(ca),py=Math.cos(ca);
+      const gr=cx.createLinearGradient(sx,sy,ex,ey);
+      const wG=200+p*40,wB=120+p*80;
+      gr.addColorStop(0,`rgba(255,${wG},${wB},${ra*.8})`);gr.addColorStop(.1,`rgba(255,${wG-20},${wB-30},${ra})`);
+      gr.addColorStop(.3,`rgba(255,${wG-40},${wB-50},${ra*.7})`);gr.addColorStop(.6,`rgba(255,${wG-60},${wB-70},${ra*.3})`);
+      gr.addColorStop(1,'transparent');cx.fillStyle=gr;cx.beginPath();
+      cx.moveTo(sx+px*bw*1.2,sy+py*bw*1.2);cx.lineTo(ex+px*bw*.3,ey+py*bw*.3);
+      cx.lineTo(ex-px*bw*.3,ey-py*bw*.3);cx.lineTo(sx-px*bw*1.2,sy-py*bw*1.2);
+      cx.closePath();cx.fill();}
+    // Near glow
+    const glG=cx.createRadialGradient(sx,sy,sr*.9,sx,sy,sr*2);
+    glG.addColorStop(0,`rgba(255,220,160,${.015*int*atD})`);
+    glG.addColorStop(.5,`rgba(255,180,100,${.006*int*atD})`);
+    glG.addColorStop(1,'transparent');cx.fillStyle=glG;cx.beginPath();cx.arc(sx,sy,sr*2,0,TAU);cx.fill();
+    cx.restore();}
+
+  // ── Corona ──
+  const hGl=1+(1-p)*.8;
+  for(let i=5;i>=0;i--){const gr=sr*(1.5+i*.5)*hGl,a=(.06-i*.008)*int;
+    const g=cx.createRadialGradient(sx,sy,sr*.8,sx,sy,gr);
+    g.addColorStop(0,`rgba(255,${200+p*50|0},${120+p*80|0},${a})`);
+    g.addColorStop(.4,`rgba(255,${150+p*50|0},${60+p*50|0},${a*.5})`);
+    g.addColorStop(.7,`rgba(255,${100+p*40|0},${30+p*30|0},${a*.2})`);
+    g.addColorStop(1,'transparent');cx.fillStyle=g;cx.beginPath();cx.arc(sx,sy,gr,0,TAU);cx.fill();}
+  const ic=cx.createRadialGradient(sx,sy,sr*.95,sx,sy,sr*1.4);
+  ic.addColorStop(0,`rgba(255,255,240,${.4*int})`);ic.addColorStop(.3,`rgba(255,250,200,${.2*int})`);
+  ic.addColorStop(1,'transparent');cx.fillStyle=ic;cx.beginPath();cx.arc(sx,sy,sr*1.4,0,TAU);cx.fill();
+
+  // ── Sun disc with heat wobble ──
+  let hzD=0;if(p<.1)hzD=p/.1;else if(p<.4)hzD=1;else if(p<.65)hzD=1-(p-.4)/.25;
+  const disc=cx.createRadialGradient(sx,sy,0,sx,sy,sr);
+  disc.addColorStop(0,`rgba(255,255,${250+p*5|0},${int})`);
+  disc.addColorStop(.3,`rgba(255,253,${235+p*15|0},${int})`);
+  disc.addColorStop(.6,`rgba(255,${248+p*7|0},${210+p*25|0},${int})`);
+  disc.addColorStop(.95,`rgba(255,${200+p*30|0},${100+p*40|0},${int*.85})`);
+  disc.addColorStop(1,`rgba(255,${170+p*30|0},${70+p*30|0},${int*.7})`);
+  cx.fillStyle=disc;cx.beginPath();
+  if(hzD>.01){for(let i=0;i<=64;i++){const a=(i/64)*TAU;
+    const wb=1+Math.sin(a*3+t*2.4)*.0075*hzD+Math.sin(a*5+t*1.6+1)*.005*hzD+Math.sin(a*8+t*3.6+2)*.003*hzD;
+    const px2=sx+Math.cos(a)*sr*wb,py2=sy+Math.sin(a)*sr*wb*(1+Math.sin(t)*.006*hzD);
+    i===0?cx.moveTo(px2,py2):cx.lineTo(px2,py2);}cx.closePath();}
+  else cx.arc(sx,sy,sr,0,TAU);cx.fill();
+
+  // Solar granulation
+  cx.save();cx.globalCompositeOperation='overlay';cx.globalAlpha=.08*int;
+  for(let i=0;i<8;i++){const sa=(i/8)*TAU+t*.01,sd=sr*(.3+(i%3)*.2);
+    const spX=sx+Math.cos(sa)*sd,spY=sy+Math.sin(sa)*sd*.8,spR=sr*(.1+(i%2)*.05);
+    const sg=cx.createRadialGradient(spX,spY,0,spX,spY,spR);
+    sg.addColorStop(0,'rgba(255,250,230,.3)');sg.addColorStop(1,'transparent');
+    cx.fillStyle=sg;cx.beginPath();cx.arc(spX,spY,spR,0,TAU);cx.fill();}
+  cx.restore();
+
+  // ── Lens Flare ──
+  let fI;if(p<.1)fI=p/.1*.5;else if(p<.35)fI=.5+(p-.1)/.25*.5;
+  else if(p<.6)fI=1;else if(p<.85)fI=1-(p-.6)/.25;else fI=0;
+  if(fI>.02){cx.save();cx.globalCompositeOperation='lighter';
+    const stL=w*1.2,stG=cx.createLinearGradient(sx-stL/2,sy,sx+stL/2,sy),stA=.025*fI;
+    stG.addColorStop(0,'transparent');stG.addColorStop(.15,`rgba(180,220,255,${stA*.2})`);
+    stG.addColorStop(.5,`rgba(230,245,255,${stA})`);stG.addColorStop(.85,`rgba(180,220,255,${stA*.2})`);
+    stG.addColorStop(1,'transparent');cx.strokeStyle=stG;cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(sx-stL/2,sy);cx.lineTo(sx+stL/2,sy);cx.stroke();
+    const cX=w*.5,cY=h*.5,axA=Math.atan2(cY-sy,cX-sx),axD=Math.hypot(cX-sx,cY-sy);
+    [{pos:.25,sz:.04,a:.06,c:[255,200,150]},{pos:.45,sz:.025,a:.05,c:[200,255,200]},
+     {pos:.7,sz:.06,a:.04,c:[180,220,255]},{pos:1,sz:.035,a:.05,c:[255,180,220]},
+     {pos:1.3,sz:.05,a:.04,c:[220,200,255]},{pos:1.6,sz:.02,a:.06,c:[255,240,200]}
+    ].forEach(gh=>{const gx=sx+Math.cos(axA)*axD*gh.pos,gy=sy+Math.sin(axA)*axD*gh.pos;
+      const gr2=h*gh.sz,ga=gh.a*fI;if(ga<.005)return;
+      const gg=cx.createRadialGradient(gx,gy,0,gx,gy,gr2);
+      gg.addColorStop(0,`rgba(${gh.c},${ga})`);gg.addColorStop(.5,`rgba(${gh.c},${ga*.5})`);
+      gg.addColorStop(1,'transparent');cx.fillStyle=gg;cx.beginPath();cx.arc(gx,gy,gr2,0,TAU);cx.fill();});
+    const hzY=h*.88,hzH=h*.2,hzA=.06*fI;
+    const hzG=cx.createLinearGradient(0,hzY,0,hzY-hzH);
+    hzG.addColorStop(0,`rgba(255,180,100,${hzA})`);hzG.addColorStop(.4,`rgba(255,160,80,${hzA*.4})`);
+    hzG.addColorStop(1,'transparent');cx.fillStyle=hzG;cx.fillRect(0,hzY-hzH,w,hzH);
+    cx.restore();}
+}
+
+const CLOUDS=Array.from({length:6},()=>({x:Math.random(),y:.1+Math.random()*.3,w:60+Math.random()*100,h:15+Math.random()*20,speed:.00002+Math.random()*.00003,alpha:.08+Math.random()*.1}));
+function drawClouds(w,h){CLOUDS.forEach(c=>{c.x+=c.speed;if(c.x>1.2)c.x=-.2;const px=c.x*w,py=c.y*h;cx.fillStyle=`rgba(220,230,240,${c.alpha})`;
+  cx.beginPath();cx.ellipse(px,py,c.w,c.h,0,0,TAU);cx.fill();
+  cx.beginPath();cx.ellipse(px-c.w*.3,py+c.h*.2,c.w*.5,c.h*.7,0,0,TAU);cx.fill();
+  cx.beginPath();cx.ellipse(px+c.w*.35,py+c.h*.15,c.w*.4,c.h*.6,0,0,TAU);cx.fill();});}
+
+const STARS=Array.from({length:60},()=>({x:Math.random(),y:Math.random()*.6,size:.3+Math.random(),tw:Math.random()*TAU}));
+function drawStars(w,h){const p=getSkyPhase(),vis=p<.15?1-p/.15:p>.85?(p-.85)/.15:0;if(vis<.02)return;
+  STARS.forEach(s=>{s.tw+=.02;cx.fillStyle=`rgba(255,248,220,${vis*(.2+.3*Math.sin(s.tw))})`;
+  cx.beginPath();cx.arc(s.x*w,s.y*h,s.size,0,TAU);cx.fill();});}
+
+function drawLandscape(w,h){
+  const p=getSkyPhase(),t=performance.now()*.001;
+  // Rolling hills
+  cx.fillStyle=`rgba(15,20,10,${.3+p*.2})`;cx.beginPath();cx.moveTo(0,h*.82);
+  for(let x=0;x<=w;x+=4)cx.lineTo(x,h*.82-3-Math.abs(Math.sin(x*.02))*12-Math.abs(Math.sin(x*.007))*8);
+  cx.lineTo(w,h);cx.lineTo(0,h);cx.closePath();cx.fill();
+  const gGrad=cx.createLinearGradient(0,h*.82,0,h);
+  gGrad.addColorStop(0,'rgba(20,30,15,.4)');gGrad.addColorStop(1,'rgba(15,20,10,.6)');
+  cx.fillStyle=gGrad;cx.fillRect(0,h*.82,w,h*.18);
+
+  // ── CRR Emergent Trees ──
+  const windSway=Math.sin(t*.6)*.012;
+  for(const tree of TREES){
+    const tx=tree.x*w,tBase=tree.trunkBase*h,tTop=tBase-tree.h*h,tw=tree.w*w;
+
+    // Trunk
+    cx.strokeStyle=`rgba(35,28,18,${.5+p*.2})`;
+    cx.lineWidth=tree.type==='oak'?4:tree.type==='elm'?3:2;
+    cx.beginPath();cx.moveTo(tx,tBase);
+    cx.quadraticCurveTo(tx+windSway*30,(tBase+tTop)/2,tx+windSway*50,tTop);
+    cx.stroke();
+
+    // Branches with wind sway
+    for(const br of tree.branches){
+      const bx=br.x*w,by=br.y*h;
+      const sw=Math.sin(t*.8+br.sway)*windSway*w*.5;
+      const endX=bx+br.dir*br.len*w+sw;
+      const endY=by-Math.abs(br.len)*h*.03+Math.sin(t*.5+br.sway)*.5;
+
+      cx.strokeStyle=`rgba(40,32,20,${.35+p*.15})`;
+      cx.lineWidth=1.5;cx.beginPath();cx.moveTo(bx,by);
+      cx.quadraticCurveTo(bx+br.dir*br.len*w*.5+sw*.3,by-2,endX,endY);cx.stroke();
+
+      // Leaf cluster at branch tip
+      const lR=4+br.len*w*.15;
+      const lg=cx.createRadialGradient(endX,endY-lR*.3,0,endX,endY,lR);
+      const leafG=tree.type==='birch'?'40,55,30':'25,40,20';
+      lg.addColorStop(0,`rgba(${leafG},${.4+p*.15})`);
+      lg.addColorStop(.6,`rgba(${leafG},${.25+p*.1})`);
+      lg.addColorStop(1,'transparent');
+      cx.fillStyle=lg;cx.beginPath();cx.arc(endX,endY-lR*.2,lR,0,TAU);cx.fill();
+    }
+
+    // Main canopy blobs for oak
+    if(tree.type==='oak'){
+      for(let i=0;i<5;i++){
+        const ccx=tx+(i-2)*tw*.2+Math.sin(t*.3+i)*3;
+        const ccy=tTop+tw*.1+i*tw*.06;
+        const cr=tw*(.25+Math.sin(i*1.7)*.08);
+        const cg=cx.createRadialGradient(ccx,ccy-cr*.2,0,ccx,ccy,cr);
+        cg.addColorStop(0,`rgba(30,45,20,${.4+p*.15})`);
+        cg.addColorStop(.7,`rgba(25,38,18,${.25+p*.1})`);
+        cg.addColorStop(1,'transparent');
+        cx.fillStyle=cg;cx.beginPath();cx.arc(ccx,ccy,cr,0,TAU);cx.fill();
+      }
+    }
+  }
+}
+
+function drawPerchBird(bird,w,h){
+  const bx=bird.x*w,by=bird.y*h,s=bird.size*4;
+  cx.save();cx.translate(bx,by);
+  const dir=bird.id%2===0?1:-1;cx.scale(dir,1);
+  const col=hexToRgb(bird.baseColor),acc=hexToRgb(bird.accentColor);
+  const a=.6+(bird.crr?Math.min(bird.crr.expCO*.01,.15):0);
+  cx.fillStyle=`rgba(${col},${a})`;
+  cx.beginPath();cx.ellipse(0,-s*.3,s*.7,s*.5,0,0,TAU);cx.fill();
+  cx.beginPath();cx.arc(s*.5,-s*.7,s*.3,0,TAU);cx.fill();
+  cx.fillStyle=`rgba(${acc},${a*.5})`;
+  cx.beginPath();cx.arc(s*.1,-s*.2,s*.25,0,TAU);cx.fill();
+  cx.fillStyle='rgba(255,255,255,.5)';cx.beginPath();cx.arc(s*.6,-s*.8,s*.08,0,TAU);cx.fill();
+  cx.fillStyle='rgba(0,0,0,.7)';cx.beginPath();cx.arc(s*.62,-s*.8,s*.04,0,TAU);cx.fill();
+  cx.fillStyle=`rgba(${col},${a*.6})`;
+  cx.beginPath();cx.moveTo(-s*.5,-s*.2);cx.lineTo(-s*1.2,0);cx.lineTo(-s*1.2,-s*.15);cx.closePath();cx.fill();
+  cx.restore();
+}
+
+function drawBird(bird,w,h){
+  const bx=bird.x*w,by=bird.y*h,s=bird.size*6;
+  cx.save();cx.translate(bx,by);cx.rotate(bird.angle);
+  const wa=Math.sin(bird.wingPhase)*bird.wingAmp*.8;
+  const col=hexToRgb(bird.baseColor),accCol=hexToRgb(bird.accentColor);
+  const memGlow=bird.crr?Math.min(bird.crr.expCO*.012,.3):0;
+
+  if(bird.crr&&bird.crr.expCO>1.5){const gr=cx.createRadialGradient(0,0,s,0,0,s*4);
+    gr.addColorStop(0,`rgba(${accCol},${memGlow*.15})`);gr.addColorStop(1,'rgba(0,0,0,0)');
+    cx.fillStyle=gr;cx.beginPath();cx.arc(0,0,s*4,0,TAU);cx.fill();}
+
+  if(songMonitor[bird.species]>.05){const sa=Math.min(songMonitor[bird.species],.2);
+    cx.strokeStyle=`rgba(${accCol},${sa})`;cx.lineWidth=.5;
+    for(let i=1;i<=3;i++){cx.beginPath();cx.arc(s*.5,0,s*2*i,-.3,.3);cx.stroke();}}
+
+  const alpha=.75+memGlow;
+  if(bird.shape==='raptor'){
+    // Raptor: large, broad wings, hooked beak
+    cx.fillStyle=`rgba(${col},${alpha})`;
+    cx.beginPath();cx.ellipse(0,0,s*1.8,s*.6,0,0,TAU);cx.fill();
+    // Broad wings
+    cx.fillStyle=`rgba(${col},${alpha*.85})`;
+    cx.beginPath();cx.moveTo(s*.3,0);cx.quadraticCurveTo(-s*.5,-s*(2+wa),-s*2.5,-s*(.6+wa));
+    cx.quadraticCurveTo(-s*1.5,-s*(.2+wa*.3),s*.3,0);cx.fill();
+    cx.beginPath();cx.moveTo(s*.3,0);cx.quadraticCurveTo(-s*.5,s*(2+wa),-s*2.5,s*(.6+wa));
+    cx.quadraticCurveTo(-s*1.5,s*(.2+wa*.3),s*.3,0);cx.fill();
+    // Tail fan
+    cx.beginPath();cx.moveTo(-s*1.6,0);cx.lineTo(-s*3,-s*.5);cx.lineTo(-s*3,s*.5);cx.closePath();cx.fill();
+    // Hooked beak
+    cx.fillStyle=`rgba(180,160,100,${alpha})`;
+    cx.beginPath();cx.moveTo(s*1.6,0);cx.lineTo(s*2.2,-s*.08);cx.lineTo(s*2,s*.1);cx.closePath();cx.fill();
+    // Predator eye — piercing
+    cx.fillStyle='rgba(255,200,0,.8)';cx.beginPath();cx.arc(s*1.2,-s*.1,s*.15,0,TAU);cx.fill();
+    cx.fillStyle='rgba(0,0,0,.9)';cx.beginPath();cx.arc(s*1.22,-s*.1,s*.07,0,TAU);cx.fill();
+  }else if(bird.shape==='swift'){
+    cx.fillStyle=`rgba(${col},.85)`;
+    cx.beginPath();cx.ellipse(0,0,s*1.2,s*.25,0,0,TAU);cx.fill();
+    cx.beginPath();cx.moveTo(-s*.3,0);cx.quadraticCurveTo(-s*.8,-s*(1.5+wa),-s*2,-s*(.8+wa*1.5));
+    cx.quadraticCurveTo(-s*1.2,-s*(.5+wa*.5),-s*.3,0);cx.fill();
+    cx.beginPath();cx.moveTo(-s*.3,0);cx.quadraticCurveTo(-s*.8,s*(1.5+wa),-s*2,s*(.8+wa*1.5));
+    cx.quadraticCurveTo(-s*1.2,s*(.5+wa*.5),-s*.3,0);cx.fill();
+    cx.beginPath();cx.moveTo(-s*1.2,0);cx.lineTo(-s*2.2,-s*.3);cx.lineTo(-s*1.6,0);
+    cx.lineTo(-s*2.2,s*.3);cx.closePath();cx.fill();
+  }else{
+    // Songbird
+    cx.fillStyle=`rgba(${col},${alpha*.7})`;
+    cx.beginPath();cx.moveTo(-s,0);cx.lineTo(-s*2,-s*.3);cx.lineTo(-s*2,s*.3);cx.closePath();cx.fill();
+    cx.fillStyle=`rgba(${col},${alpha})`;cx.beginPath();cx.ellipse(0,0,s*1.1,s*.5,0,0,TAU);cx.fill();
+    cx.fillStyle=`rgba(${col},${alpha*.8})`;
+    cx.beginPath();cx.moveTo(s*.2,0);cx.quadraticCurveTo(-s*.2,-s*(1.2+wa),-s*.8,-s*(.5+wa));
+    cx.quadraticCurveTo(-s*.6,-s*.2,s*.2,0);cx.fill();
+    cx.beginPath();cx.moveTo(s*.2,0);cx.quadraticCurveTo(-s*.2,s*(1.2+wa),-s*.8,s*(.5+wa));
+    cx.quadraticCurveTo(-s*.6,s*.2,s*.2,0);cx.fill();
+    cx.fillStyle=`rgba(${col},${alpha})`;cx.beginPath();cx.arc(s*.8,0,s*.4,0,TAU);cx.fill();
+    cx.fillStyle=`rgba(${accCol},${alpha*.5})`;cx.beginPath();cx.arc(s*.6,s*.05,s*.25,0,TAU);cx.fill();
+    cx.fillStyle='rgba(255,255,255,.7)';cx.beginPath();cx.arc(s*.9,-s*.08,s*.1,0,TAU);cx.fill();
+    cx.fillStyle='rgba(0,0,0,.9)';cx.beginPath();cx.arc(s*.92,-s*.08,s*.05,0,TAU);cx.fill();
+    cx.fillStyle=`rgba(${accCol},${alpha*.8})`;
+    cx.beginPath();cx.moveTo(s*1.1,0);cx.lineTo(s*1.5,-s*.06);cx.lineTo(s*1.5,s*.06);cx.closePath();cx.fill();
+  }
+
+  if(bird.stressRuffle>.1){cx.strokeStyle=`rgba(${col},${bird.stressRuffle*.3})`;cx.lineWidth=.5;
+    for(let i=0;i<4;i++){const a=Math.random()*TAU,r=s*(1+Math.random());
+      cx.beginPath();cx.moveTo(Math.cos(a)*r*.5,Math.sin(a)*r*.5);cx.lineTo(Math.cos(a)*r,Math.sin(a)*r);cx.stroke();}}
+  cx.restore();
+}
+
+// ─── Draw predator with shadow ───
+function drawPredator(w,h){
+  if(!PREDATOR.active)return;
+  // Shadow on the ground
+  const sx=PREDATOR.x*w,sy=h*.83;
+  const shadowSize=PREDATOR.shadowRadius*w*.4;
+  cx.fillStyle='rgba(0,0,0,.08)';cx.beginPath();cx.ellipse(sx,sy,shadowSize,shadowSize*.3,0,0,TAU);cx.fill();
+  // Draw the raptor bird
+  const raptor={...makeBird(99,'sparrowhawk'),
+    x:PREDATOR.x,y:PREDATOR.y,angle:PREDATOR.angle,
+    wingPhase:PREDATOR.wingPhase,wingAmp:.7,speed:PREDATOR.speed,
+    crr:PREDATOR.crr,stressRuffle:0,shape:'raptor',
+    size:SPECIES.sparrowhawk.size,baseColor:SPECIES.sparrowhawk.color,
+    accentColor:SPECIES.sparrowhawk.accent};
+  drawBird(raptor,w,h);
+}
+
+function drawThermalBar(w,h){
+  const n=thermalEngine.pitches.length;if(!n)return;
+  const barH=5,barY=h-45,segW=w*.6/n,sX=w*.2;
+  for(let i=0;i<n;i++){const st=Math.min(thermalEngine.field[i]*2.5,1);if(st<.01)continue;
+    cx.fillStyle=`rgba(232,120,58,${st*.4})`;cx.fillRect(sX+i*segW,barY,segW-.5,barH);}
+  thermalEngine.particles.forEach((a,i)=>{cx.fillStyle=i?'rgba(126,200,227,.7)':'rgba(232,168,56,.7)';
+    cx.beginPath();cx.arc(sX+a.pos*segW+segW/2,barY-2,2.5,0,TAU);cx.fill();});
+}
+
+function drawSpectrum(w,h,sx,sy,r){
+  if(!analyser)return;analyser.getByteFrequencyData(freqData);
+  const cols=['232,168,56','232,116,97','126,200,227','79,209,197','246,173,85'];
+  for(let arc=0;arc<5;arc++){const bS=Math.floor(arc*freqData.length/5),bE=Math.floor((arc+1)*freqData.length/5);
+    let sum=0;for(let i=bS;i<bE;i++)sum+=freqData[i];const avg=sum/(bE-bS)/255;if(avg<.02)continue;
+    cx.strokeStyle=`rgba(${cols[arc]},${avg*.2})`;cx.lineWidth=1.5;cx.beginPath();cx.arc(sx,sy,r+arc*6+avg*12,0,TAU);cx.stroke();}
+}
+
+// §13 RENDER
+function render(){
+  const w=W/devicePixelRatio,h=H/devicePixelRatio;cx.clearRect(0,0,w,h);
+  drawSky(w,h);drawStars(w,h);drawSun(w,h);drawClouds(w,h);drawLandscape(w,h);
+  const birds=MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS;
+  birds.forEach(b=>{
+    if(b.birdState===2)drawPerchBird(b,w,h);
+    else drawBird(b,w,h);
+  });
+  drawPredator(w,h);
+  // Night overlay during roost fadeout
+  if(masterFade<.95){
+    cx.fillStyle=`rgba(5,8,15,${(1-masterFade)*.7})`;
+    cx.fillRect(0,0,w,h);
+  }
+  drawThermalBar(w,h);drawSpectrum(w,h,w-40,40,15);
+  sampleTelemetry();renderTelemetry();
+  if(playing){updateTimeline();updateMonitors();}
+  requestAnimationFrame(render);
+}
+
+function switchMode(mode){const was=playing;if(was)stopPlayback();MODE=mode;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+  buildTimeline();if(was)startPlayback();}
+
+function boot(){
+  initChorus();resize();buildTimeline();buildCRRPanel();render();
+  document.getElementById('splash').addEventListener('click',()=>{
+    document.getElementById('splash').classList.add('hidden');
+    document.getElementById('app').classList.add('active');
+    setTimeout(()=>{resize();initTelemCanvases();startPlayback();},600);
+  });
+  document.getElementById('play-btn').addEventListener('click',togglePlayback);
+  document.getElementById('track-wrap').addEventListener('click',e=>{
+    if(!playing)return;const rect=e.currentTarget.getBoundingClientRect();
+    const pct=(e.clientX-rect.left)/rect.width;
+    const total=MODE==='flock'?FLOCK_BEATS:CHORUS_BEATS,tb=pct*total;
+    startTime=ac.currentTime-tb*BEAT_S;seqIdx=sequence.findIndex(ev=>ev.beat>=tb);if(seqIdx<0)seqIdx=sequence.length;
+  });
+  document.getElementById('crr-toggle').addEventListener('click',()=>document.getElementById('crr-panel').classList.toggle('open'));
+  document.getElementById('telem-toggle').addEventListener('click',()=>{
+    document.getElementById('telem-panel').classList.toggle('open');setTimeout(initTelemCanvases,400);});
+  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchMode(b.dataset.mode)));
+  window.addEventListener('resize',()=>{resize();setTimeout(initTelemCanvases,200);});
+}
+boot();
+</script>
+</body>
+</html>
