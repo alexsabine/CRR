@@ -1,0 +1,2771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Murmuration — CRR Post-Rock | The Song of the Living World</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Space+Mono:wght@400&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --dawn:#e8a87c;--sky:#6b9bc3;--gold:#d4a54a;
+  --storm:#4a5568;--rainbow:#a78bfa;--grass:#2d3b2d;
+  --cream:rgba(220,215,210,0.85);--creamD:rgba(200,195,190,0.5);
+  --bg:#050608;--panel:rgba(8,10,14,0.97)
+}
+body{background:var(--bg);color:var(--cream);font-family:'Cormorant Garamond',Georgia,serif;
+overflow:hidden;width:100vw;height:100vh;position:fixed}
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;
+justify-content:center;cursor:pointer;transition:opacity 1.8s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:700px;padding:0 24px}
+#splash .wave-bar{width:min(280px,70vw);height:2px;margin:0 auto 32px;border-radius:2px;
+background:linear-gradient(90deg,var(--dawn),var(--gold),var(--sky),var(--rainbow),var(--dawn));
+animation:sunpulse 6s ease-in-out infinite}
+@keyframes sunpulse{0%,100%{opacity:.2;transform:scaleX(.8)}50%{opacity:.6;transform:scaleX(1.1)}}
+#splash h1{font-size:clamp(2rem,5vw,3.4rem);font-weight:300;letter-spacing:.28em;
+margin-bottom:8px;background:linear-gradient(135deg,var(--dawn),var(--gold),var(--sky),var(--rainbow));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#splash .sub{font-size:clamp(.76rem,1.3vw,.95rem);font-weight:300;opacity:.4;
+letter-spacing:.04em;line-height:1.9;font-style:italic}
+#splash .eq{font-family:'Space Mono',monospace;font-size:clamp(.44rem,.75vw,.54rem);
+opacity:.14;margin-top:20px;letter-spacing:.02em;line-height:1.8}
+#splash .credit{font-size:.58rem;opacity:.16;margin-top:14px;letter-spacing:.06em}
+#splash .tap{font-size:.66rem;opacity:.16;margin-top:24px;letter-spacing:.14em;animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.1}50%{opacity:.28}}
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#canvas-wrap{flex:1;min-height:0;position:relative}
+#viz{display:block;width:100%;height:100%}
+#info-bar{display:flex;justify-content:space-between;
+align-items:center;padding:4px 18px;pointer-events:none;
+background:rgba(8,10,14,0.95);border-top:1px solid rgba(212,165,74,0.06);flex-shrink:0}
+#piece-title{font-size:clamp(.72rem,1.3vw,.95rem);font-weight:300;letter-spacing:.14em;
+color:rgba(220,215,210,0.6)}
+#piece-title .composer{font-size:.66em;font-weight:300;opacity:.5;font-style:italic;display:inline;margin-left:8px}
+#crr-display{font-family:'Space Mono',monospace;font-size:clamp(.42rem,.7vw,.52rem);
+color:rgba(220,215,210,0.45);text-align:right;line-height:1.5}
+#section-label{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+text-align:center;pointer-events:none;z-index:4;font-size:clamp(.9rem,2vw,1.5rem);
+font-weight:300;letter-spacing:.24em;font-style:italic;opacity:0;transition:opacity 2s ease;
+color:rgba(220,210,200,0.45);text-shadow:0 1px 8px rgba(0,0,0,0.6)}
+#timeline-wrap{height:26px;background:rgba(8,10,14,0.95);border-top:1px solid rgba(212,165,74,0.06);
+display:flex;align-items:center;padding:0 14px;gap:9px;flex-shrink:0}
+#timeline-bar{flex:1;height:4px;background:rgba(255,255,255,0.03);border-radius:3px;
+position:relative;overflow:hidden}
+#timeline-fill{height:100%;width:0%;border-radius:3px;transition:width 0.3s linear;
+background:linear-gradient(90deg,rgba(232,168,124,.5),rgba(212,165,74,.5),rgba(107,155,195,.5),rgba(167,139,250,.5),rgba(212,165,74,.3))}
+#timeline-sections{position:absolute;inset:0;display:flex;pointer-events:none}
+.t-section{height:100%;border-right:1px solid rgba(255,255,255,0.04);position:relative}
+.t-section-label{position:absolute;top:-12px;left:2px;font-family:'Space Mono',monospace;
+font-size:6px;color:rgba(255,255,255,0.45);letter-spacing:.03em;white-space:nowrap}
+#timeline-time{font-family:'Space Mono',monospace;font-size:.5rem;color:rgba(255,255,255,0.55);
+min-width:62px;text-align:right}
+#controls{border-top:1px solid rgba(212,165,74,0.08);background:var(--panel);
+padding:8px 14px 10px;display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.transport-row{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap}
+.transport-btn{font-family:'Cormorant Garamond',serif;font-size:clamp(.68rem,.95vw,.82rem);
+padding:4px 16px;border:1px solid rgba(212,165,74,0.1);background:transparent;
+color:var(--creamD);cursor:pointer;border-radius:3px;letter-spacing:.06em;transition:all .25s;
+touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.transport-btn:hover{border-color:rgba(212,165,74,0.3);color:var(--cream)}
+.transport-btn.playing{border-color:rgba(104,211,145,0.4);color:rgba(140,220,170,.8);
+background:rgba(104,211,145,.03)}
+.slider-wrap{display:flex;align-items:center;gap:4px}
+.slider-wrap label{font-size:.54rem;color:rgba(255,255,255,.75);letter-spacing:.06em;width:38px}
+.slider-wrap input[type=range]{flex:1;max-width:70px;height:2px;cursor:pointer;
+accent-color:rgba(212,165,74,0.45);touch-action:manipulation}
+.slider-wrap .val{font-family:'Space Mono',monospace;font-size:.46rem;color:rgba(255,255,255,.6);width:26px;text-align:right}
+#crr-footer{text-align:center;padding:2px;font-size:clamp(.36rem,.6vw,.46rem);
+font-family:'Space Mono',monospace;letter-spacing:.02em;
+background:linear-gradient(90deg,rgba(232,168,124,.15),rgba(212,165,74,.15),rgba(107,155,195,.15),rgba(167,139,250,.15));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+/* ── MOBILE / SMALL SCREENS ── */
+@media(max-width:600px){
+  /* Controls: stack vertically */
+  #controls{padding:6px 8px 8px;gap:4px}
+  .transport-row{flex-wrap:wrap;gap:4px}
+  .transport-btn{padding:8px 18px;font-size:.82rem;min-height:36px}
+  /* Sliders: 2-column grid on mobile */
+  .slider-wrap{flex:1;min-width:120px}
+  .slider-wrap label{width:34px;font-size:.52rem}
+  .slider-wrap input[type=range]{max-width:none;height:4px}
+  .slider-wrap .val{font-size:.44rem;width:24px}
+  /* Info bar: compact */
+  #info-bar{padding:3px 10px}
+  #piece-title{font-size:.68rem;letter-spacing:.08em}
+  #piece-title .composer{display:none}
+  #crr-display{font-size:.4rem;line-height:1.35}
+  /* Timeline: taller touch target */
+  #timeline-wrap{padding:0 9px;height:24px}
+  .t-section-label{display:none}
+  /* Footer: readable */
+  #crr-footer{font-size:.38rem;padding:3px 6px;line-height:1.4}
+  /* Section label */
+  #section-label{font-size:clamp(.85rem,4vw,1.3rem)}
+}
+
+/* ── VERY SMALL SCREENS (iPhone SE etc) ── */
+@media(max-width:380px){
+  #controls{padding:5px 6px 6px}
+  .transport-btn{padding:7px 12px;font-size:.74rem}
+  .slider-wrap label{width:28px;font-size:.46rem}
+  #info-bar{padding:2px 8px}
+  #piece-title{font-size:.6rem}
+  #crr-display{font-size:.36rem}
+  #crr-footer{display:none}
+}
+
+/* ── LANDSCAPE MOBILE ── */
+@media(max-height:500px){
+  #controls{padding:3px 10px 4px;gap:2px}
+  .transport-btn{padding:3px 12px;font-size:.7rem;min-height:28px}
+  #info-bar{padding:2px 14px}
+  #timeline-wrap{height:20px}
+  #crr-footer{display:none}
+}
+
+/* ── TABLET ── */
+@media(min-width:601px) and (max-width:1024px){
+  .slider-wrap input[type=range]{max-width:80px}
+  .transport-btn{padding:5px 18px}
+}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="inner">
+<div class="wave-bar"></div>
+<h1>MURMURATION</h1>
+<p class="sub">A post-rock composition where every sound emerges from the living world.<br>
+The sun sings its stellar oscillation. Starlings voice the melody. The falcon ruptures.<br>
+Rain plays the pentatonic scale. The rainbow sings its spectrum through a woman's choir. All governed by Coherence, Rupture &amp; Regeneration.</p>
+<p class="eq">sun: SO(2) → Ω=1/2π drone · starlings: Z₂ chirp · k=7 topological harmony<br>
+falcon: δ(dive) = rupture · rain: Em pentatonic percussion · rainbow: λ→formant choir<br>
+guitar: tremolo = exp(C/Ω) · delay = memory · reverb = regeneration field</p>
+<p class="credit">CRR Framework — Alexander Sabine · temporalgrammar.ai</p>
+<p class="tap">tap to enter</p>
+</div></div>
+
+<div id="app">
+<div id="canvas-wrap">
+<canvas id="viz"></canvas>
+<div id="section-label"></div>
+</div>
+<div id="info-bar">
+  <div id="piece-title">Murmuration<span class="composer">CRR — the song of the living world</span></div>
+  <div id="crr-display"></div>
+</div>
+<div id="timeline-wrap">
+  <div id="timeline-bar">
+    <div id="timeline-fill"></div>
+    <div id="timeline-sections"></div>
+  </div>
+  <div id="timeline-time">0:00 / 0:00</div>
+</div>
+<div id="controls">
+<div class="transport-row">
+  <button class="transport-btn" id="btn-play">▶ Play</button>
+  <button class="transport-btn" id="btn-stop">■ Stop</button>
+  <div class="slider-wrap"><label>Tempo</label>
+    <input type="range" id="tempo-slider" min="0.7" max="1.3" step="0.05" value="1">
+    <span class="val" id="tempo-val">1.0×</span></div>
+  <div class="slider-wrap"><label>Reverb</label>
+    <input type="range" id="reverb-slider" min="0" max="1" step="0.05" value="0.7">
+    <span class="val" id="reverb-val">0.70</span></div>
+  <div class="slider-wrap"><label>Guitar</label>
+    <input type="range" id="guitar-slider" min="0" max="1" step="0.05" value="0.65">
+    <span class="val" id="guitar-val">0.65</span></div>
+  <div class="slider-wrap"><label>Nature</label>
+    <input type="range" id="nature-slider" min="0" max="1" step="0.05" value="0.6">
+    <span class="val" id="nature-val">0.60</span></div>
+</div>
+<div id="crr-footer">
+  sun = SO(2) stellar drone · starlings = Z₂ chirp melody · falcon = δ(rupture) · rain = CRR harmonic drops · rainbow = formant choir · guitar: tremolo·delay·reverb = C·δ·R
+</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//
+//  M U R M U R A T I O N  —  THE SONG OF THE LIVING WORLD
+//
+//  A post-rock composition where every sound emerges from CRR
+//  mathematics applied to the biology and physics of the scene.
+//
+//  ┌─────────────────────────────────────────────────────────────┐
+//  │  CRR Framework: C(x,t) = ∫L(x,τ)dτ  →  δ(now)  →  R(memory)  │
+//  │                                                             │
+//  │  Coherence accumulates through attention L over time.       │
+//  │  At threshold C ≥ Ω, rupture δ(now) fires — a scale-free   │
+//  │  choice-moment where past is metabolised into future.       │
+//  │  Regeneration R weights history by exp(C/Ω) — high C/Ω     │
+//  │  means only peak coherence moments are accessible;          │
+//  │  low C/Ω means all history contributes equally.             │
+//  │                                                             │
+//  │  Ω = 1/φ where φ = phase to rupture:                       │
+//  │    Z₂ symmetry  → half-cycle → Ω = 1/π  (vocal folds,     │
+//  │                     heartbeat, binary oscillators)           │
+//  │    SO(2) symmetry → full-cycle → Ω = 1/2π (orbits,         │
+//  │                     continuous rotation, stellar oscillation)│
+//  │                                                             │
+//  │  CV = Ω/2 predicts variability of natural rhythms           │
+//  │  exp(C/Ω) = memory amplification = how strongly the past    │
+//  │             shapes regeneration                              │
+//  └─────────────────────────────────────────────────────────────┘
+//
+//  CRR → POST-ROCK MAPPING:
+//    Coherence (C)     = layered instrumentation building intensity
+//    Tremolo picking   = exp(C/Ω) exponential amplification pulsing
+//    Wall-of-sound     = maximum C approaching Ω threshold
+//    Rupture δ(now)    = dramatic break, falcon dive, chord crash
+//    Regeneration R    = memory-weighted return of earlier themes
+//    Delay effect      = temporal memory (past signals persisting)
+//    Reverb field      = spatial regeneration (sound reconstructing)
+//    Quiet→Loud→Quiet  = one full CRR cycle made audible
+//
+//  CRR → BIOLOGY/PHYSICS MAPPING:
+//    Sun: SO(2) stellar drone     → continuous oscillation, Ω=1/2π
+//    Starlings: Z₂ vocal folds    → binary chirps, Ω=1/π
+//    Falcon: hunt CRR cycle       → stalk(C) → dive(δ) → recover(R)
+//    Rain: CRR pattern engine     → coherent rhythm → scatter → reform
+//    Rainbow: spectral separation → choir voices = wavelength→frequency
+//    Flock: collective CRR        → choreography ruptures → new moves
+//    Tree: CRR wind gusts         → sway coherence builds/breaks
+//    Weather: slow CRR cycle      → rain onset = rupture, clearing = R
+//
+//  Alexander Sabine · CRR Framework · temporalgrammar.ai
+//
+// ═══════════════════════════════════════════════════════════════════
+
+// ─── MATHEMATICAL CONSTANTS ──────────────────────────────────────
+// π and 2π appear throughout because Ω = 1/π (Z₂) or 1/2π (SO(2))
+// φ (golden ratio) appears in CRRAgent as an alternative symmetry class
+const PI=Math.PI,TAU=2*PI,PHI=(1+Math.sqrt(5))/2;
+const{sin,cos,sqrt,abs,floor,max,min,random,atan2,exp,pow}=Math;
+const PI2=TAU;
+// CRR Ω values derived from symmetry group phase-to-rupture:
+// Z₂ (half-cycle oscillators like vocal folds): Ω = 1/π ≈ 0.318
+// SO(2) (full-cycle rotators like stellar oscillation): Ω = 1/2π ≈ 0.159
+const OMEGA_Z2=1/PI,OMEGA_SO2=1/TAU;
+
+// ═══════════════════════════════════════════════════════════════════
+// §0  CRR ENGINE — The Three Operators
+// ═══════════════════════════════════════════════════════════════════
+//
+// CRR models all temporal processes as three-phase cycles:
+//
+//   C(x,t) = ∫L(x,τ)dτ     Coherence accumulates through attention
+//   δ(now)                   Rupture fires at threshold C ≥ Ω
+//   R = ∫φ·exp(C/Ω)·Θ dτ   Regeneration weights history by memory
+//
+// This class implements a lightweight CRR oscillator used by every
+// entity in the scene: birds, flock, predator, weather, tree, rain.
+// Each has its own Ω (rupture threshold) and learning rate,
+// producing different temporal rhythms from the same mathematics.
+//
+// ─── STATE MACHINE ───
+//   st=0 (coherence): C accumulates via lr*attn*dt
+//   st=1 (rupture):   δ fires, single frame, triggers state change
+//   st=2 (regeneration): C decays as exp(-decay*dt), with decay
+//        itself modulated by exp(-C/Ω) — high coherence decays
+//        slower (strong memories persist longer)
+//
+// ─── KEY METHODS ───
+//   mem() = exp(C/Ω) — the memory amplification factor
+//     This is the heart of CRR regeneration. When C/Ω is large,
+//     exp(C/Ω) is huge → only peak coherence moments dominate.
+//     When C/Ω is small, exp(C/Ω) ≈ 1 → all history equal.
+//     This single function explains muscle memory, habit formation,
+//     and why post-rock crescendos feel like accumulated memory.
+//
+class CRR{
+  constructor(omega,lr=0.1){this.omega=omega;this.lr=lr;this.C=0;this.st=0;this.amp=0;this.smoothAmp=0}
+  update(dt,attn=1){
+    // COHERENCE PHASE: C(t) += L(attention) * dt — the integral ∫L·dτ
+    if(this.st===0){this.C+=this.lr*attn*dt;this.amp=min(1,this.C/this.omega);if(this.C>=this.omega)this.st=1}
+    // RUPTURE: δ(now) — instantaneous, scale-free choice-moment
+    else if(this.st===1){this.amp=1;this.st=2}
+    // REGENERATION: R — C decays with rate modulated by exp(-C/Ω)
+    // High C/Ω = slow decay (strong coherence persists in memory)
+    // Low C/Ω = fast decay (weak patterns forgotten quickly)
+    else{const decay=1.5*exp(-min(this.C/this.omega,4)*0.5);this.C*=exp(-decay*dt);this.amp=this.C/this.omega;if(this.C<0.01*this.omega){this.C=0;this.st=0}}
+    this.smoothAmp+=(this.amp-this.smoothAmp)*min(1,dt*8);return this.smoothAmp}
+  // exp(C/Ω) — the memory amplification function
+  // This is what makes CRR different from simple oscillators:
+  // it weights the past exponentially by coherence level
+  mem(){return exp(min(this.C/this.omega,4))}
+  // Manual rupture trigger (used for click-to-startle interaction)
+  rupture(){if(this.st===0&&this.C>0.05*this.omega)this.st=1}
+  stateName(){return['coh','RUP','reg'][this.st]}
+}
+
+// CRRAgent — Extended CRR with symmetry-class awareness
+// Used for entities whose Ω is determined by their symmetry group:
+//   Z₂ (binary oscillation): Ω_base = 1/π  — vocal folds, heartbeat
+//   SO(2) (continuous rotation): Ω_base = 1/2π — orbits, stellar modes
+// The shouldRupture() method includes CV = Ω/2 stochastic threshold,
+// meaning rupture timing has natural variability proportional to Ω —
+// this matches empirical data on biological rhythm variability.
+//
+class CRRAgent{
+  constructor(sym='Z2',s=1){
+    // Ω determined by symmetry: Z₂→1/π, SO(2)→1/2π, mixed→1/(π·φ)
+    this.omegaBase=sym==='Z2'?1/PI:sym==='SO2'?1/TAU:1/(PI*PHI);
+    this.omegaScale=s;this.C=0;this.lastRC=0;this.ruptures=0;this.sinceRupture=0;this.inRegen=false;this.regenProg=0}
+  get omega(){return this.omegaBase*this.omegaScale}
+  // exp(C/Ω) — memory amplification, identical to CRR.mem()
+  get expCO(){return exp(min(10,this.C/max(.001,this.omega)))}
+  get normC(){return min(1,(this.C-this.lastRC)/max(.01,1/this.omega))}
+  // C(t) += L·dt — coherence accumulation (the integral)
+  acc(L,dt=1){this.C+=L*dt;this.sinceRupture++}
+  // Stochastic rupture threshold with CV = Ω/2
+  // This is a key CRR prediction: variability of rupture timing
+  // is proportional to Ω, matching empirical biological data
+  shouldRupture(){const th=1/this.omega,acc=this.C-this.lastRC,cv=this.omega/2;return acc>=(th+(random()-.5)*2*cv*th)}
+  doRupture(){this.lastRC=this.C;this.ruptures++;this.sinceRupture=0;this.inRegen=true;this.regenProg=0}
+  step(L,dt=1){if(this.inRegen){this.regenProg=min(1,this.regenProg+.025);if(this.regenProg>=1)this.inRegen=false;return{phase:'R',progress:this.regenProg}}
+    this.acc(L,dt);if(this.shouldRupture()){this.doRupture();return{phase:'delta'}}return{phase:'C',value:this.C}}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §1  WORLD STATE — Every entity has its own CRR agent
+// ═══════════════════════════════════════════════════════════════════
+//
+// Each element of the scene carries a CRR oscillator with parameters
+// tuned to its natural timescale and symmetry:
+//
+//   Entity     │ Ω       │ lr    │ CRR Role
+//   ───────────┼─────────┼───────┼──────────────────────────────────
+//   Sun        │ SO(2)×1.5│ —    │ Stellar p-mode oscillation cycle
+//   Weather    │ 1.2     │ 0.025 │ Slow macro rain onset/clearing
+//   Flock      │ 0.6     │ 0.22  │ Collective choreography changes
+//   Predator   │ 0.4     │ 0.12  │ Soar/patrol CRR cycle
+//   Hunt       │ 0.4     │ 0.08  │ Stalk→dive→recover attack cycle
+//   Each bird  │ ~0.08   │ 1.0   │ Individual micro-coherence
+//   Rain       │ 0.3     │ 0.25  │ Rhythmic pattern generation
+//   Tree       │ 1.5     │ 0.03  │ Wind gust sway cycles
+//
+// Low Ω = frequent ruptures (rigid, repetitive) — e.g. individual birds
+// High Ω = rare ruptures (flexible, transformative) — e.g. weather
+//
+const WORLD={
+  // Sun: SO(2) symmetry — continuous rotation, Ω = 1/2π × 1.5
+  // Solar p-mode oscillations are SO(2) because they complete full cycles
+  sun:{phase:0,x:0.5,y:0.88,agent:new CRRAgent('SO2',1.5)},
+  // Weather: high Ω = slow CRR cycle. Rain onset IS a rupture event;
+  // clearing IS regeneration. The long timescale (lr=0.025) means
+  // weather coherence builds slowly before dramatic state changes.
+  weather:{state:0,rainIntensity:0,targetRain:0,rainbowVisible:0,crr:new CRR(1.2,0.025)},
+  // Flock: collective CRR drives choreography. When flock.crr ruptures,
+  // the murmuration changes its current move (vortex→wave→tornado etc).
+  // Ω=0.6 means moderate cycle time; lr=0.22 means fairly responsive.
+  // This is the flock's GROUP Ω — distinct from individual bird Ω.
+  flock:{crr:new CRR(0.6,0.22),st:0,turnDir:{x:0,y:0},angMom:0,moveTime:0,currentMove:'vortex'},
+  // Predator: TWO CRR agents — one for patrol cycle, one for hunt.
+  // Hunt CRR: stalk(C building) → dive(δ rupture) → recover(R)
+  // The lower lr=0.08 on hunt means attacks build more slowly than patrol.
+  pred:{huntPhase:0,crr:new CRR(0.4,0.12),huntCRR:new CRR(0.4,0.08)},
+  t:0,beat:0
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// §2  AUDIO ENGINE — CRR-driven synthesis
+// ═══════════════════════════════════════════════════════════════════
+//
+// Audio routing mirrors CRR's three-phase structure:
+//
+//   DRY signal path  = Coherence (C) — the immediate, present sound
+//   REVERB path      = Regeneration (R) — past sound persisting in space
+//   COMPRESSOR       = Ω threshold — prevents amplitude from exceeding
+//                      the system's capacity (just as Ω bounds coherence)
+//
+//   guitarGain  → compressor → dry/wet → analyser → speakers
+//   natureGain  → compressor    ↕ reverb
+//   droneGain   → compressor
+//
+// Each instrument maps to a CRR element:
+//   Drone    → SO(2) continuous C — always accumulating, never rupturing
+//   Tremolo  → exp(C/Ω) pulsing — amplitude modulation IS memory
+//   Clean    → low-C quiet moments — sparse coherence
+//   Bass     → felt sub-Ω foundation — below the rupture threshold
+//   Birds    → Z₂ micro-CRR chirps — rapid coherence/rupture cycles
+//   Falcon   → δ(now) event — the rupture made audible
+//   Rain     → CRR pattern engine — rhythmic coherence with scatter
+//   Choir    → spectral R — regeneration as harmonic light
+//
+let ac=null,masterGain=null,reverbNode=null,dryGain=null,wetGain=null;
+let compressor=null,analyser=null,noiseBuf=null;
+let guitarGain=null,natureGain=null,droneGain=null;
+let reverbMix=0.7,guitarMix=0.65,natureMix=0.6;
+
+function midiToFreq(m){return 440*pow(2,(m-69)/12)}
+
+function createNoiseBuf(ctx){
+  const b=ctx.createBuffer(2,ctx.sampleRate*2,ctx.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<d.length;i++)d[i]=random()*2-1}
+  return b;
+}
+
+function createReverb(ctx){
+  const sr=ctx.sampleRate,len=sr*6|0;
+  const buf=ctx.createBuffer(2,len,sr);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);
+    for(let i=0;i<24;i++){const t=(0.003+i*0.01+random()*0.006)*sr|0;
+      if(t<len)d[t]=0.25*pow(0.72,i)*(0.5+random()*0.5)}
+    for(let i=0;i<len;i++){const t=i/sr;
+      d[i]+=(random()*2-1)*0.06*(exp(-t*0.8)*0.5+exp(-t*2.5)*0.5)}}
+  const conv=ctx.createConvolver();conv.buffer=buf;return conv;
+}
+
+function initAudio(){
+  if(ac)return;
+  ac=new(window.AudioContext||window.webkitAudioContext)();
+  noiseBuf=createNoiseBuf(ac);
+  compressor=ac.createDynamicsCompressor();
+  compressor.threshold.value=-12;compressor.knee.value=12;
+  compressor.ratio.value=3;compressor.attack.value=0.005;compressor.release.value=0.25;
+  masterGain=ac.createGain();masterGain.gain.value=0.28;
+  guitarGain=ac.createGain();guitarGain.gain.value=guitarMix*0.5;
+  natureGain=ac.createGain();natureGain.gain.value=natureMix*0.4;
+  droneGain=ac.createGain();droneGain.gain.value=0.35;
+  dryGain=ac.createGain();wetGain=ac.createGain();
+  reverbNode=createReverb(ac);
+  analyser=ac.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=0.88;
+  masterGain.connect(compressor);guitarGain.connect(compressor);
+  natureGain.connect(compressor);droneGain.connect(compressor);
+  compressor.connect(dryGain);compressor.connect(reverbNode);
+  reverbNode.connect(wetGain);dryGain.connect(analyser);wetGain.connect(analyser);
+  analyser.connect(ac.destination);
+  updateMixes();
+  initStellarDrone();initWindNoise();initRainNoise();
+}
+function updateMixes(){if(!dryGain)return;dryGain.gain.value=1-reverbMix*0.35;wetGain.gain.value=reverbMix}
+
+// ───────────────────────────────────────────────────────────────
+// §2.1 STELLAR DRONE — The Sun's Song (SO(2) continuous oscillation)
+// ───────────────────────────────────────────────────────────────
+//
+// CRR MAPPING: The sun is an SO(2) system — continuous rotation
+// with Ω = 1/2π. Its sound is a drone because SO(2) coherence
+// never fully ruptures; it's the reference frequency against
+// which all other CRR cycles fluctuate.
+//
+// PHYSICS: Solar p-mode oscillations (sound waves bouncing inside
+// the sun) have a fundamental period of ~5 minutes. We map this to
+// E1 (41.2Hz) — felt more than heard, like the hum of existence.
+//
+// SYNTHESIS:
+//   Fundamental E1 (41.2Hz) = sawtooth (rich harmonics like stellar plasma)
+//   Harmonics at 2f, 3f, 5f = sine waves (p-mode overtone series)
+//   Slow LFO (0.08Hz) = the sun's own CRR breathing — pitch wobbles
+//     on a ~12s cycle, matching the breath period π² ≈ 10s
+//   Sun altitude modulates pitch = Doppler-like shift as sun traverses
+//
+// The drone is ALWAYS present (C never reaches Ω for SO(2) at this
+// scale), embodying continuous coherence — the ground of being.
+//
+// The drone IS the Ω reference — precision against which all fluctuates
+// ───────────────────────────────────────────────────────────────
+let stellarDrone={oscs:[],masterGain:null,active:false,lfo:null};
+
+function initStellarDrone(){
+  if(!ac)return;
+  stellarDrone.masterGain=ac.createGain();
+  stellarDrone.masterGain.gain.value=0;
+  stellarDrone.masterGain.connect(droneGain);
+  // E1 = 41.2Hz fundamental — the stellar base frequency
+  // Harmonics at perfect intervals representing p-mode ratios
+  const harmonics=[[41.2,0.25],[82.4,0.15],[123.5,0.08],[164.8,0.05],[61.7,0.1],[92.5,0.06]];
+  for(const[freq,vol]of harmonics){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const g=ac.createGain();g.gain.value=vol;
+    o.connect(g);g.connect(stellarDrone.masterGain);o.start();
+    stellarDrone.oscs.push({osc:o,gain:g,baseFreq:freq});
+  }
+  // Slow breath-like LFO on the drone
+  const lfo=ac.createOscillator();lfo.type='sine';lfo.frequency.value=0.08;
+  const lfoG=ac.createGain();lfoG.gain.value=2;
+  lfo.connect(lfoG);
+  for(const h of stellarDrone.oscs)lfoG.connect(h.osc.frequency);
+  lfo.start();stellarDrone.lfo=lfo;
+  // Breath noise (stellar wind)
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;ns.loop=true;
+  const nf=ac.createBiquadFilter();nf.type='lowpass';nf.frequency.value=120;nf.Q.value=0.5;
+  const ng=ac.createGain();ng.gain.value=0.02;
+  ns.connect(nf);nf.connect(ng);ng.connect(stellarDrone.masterGain);ns.start();
+  stellarDrone.active=true;
+}
+
+function setStellarDrone(gain,sunPhase,trans){
+  if(!stellarDrone.active)return;
+  const t=ac.currentTime;const dur=trans||1.5;
+  // Pitch shifts slightly with sun altitude (Doppler-like)
+  const pitchMod=1+sunPhase*0.03;
+  for(const h of stellarDrone.oscs){
+    h.osc.frequency.cancelScheduledValues(t);
+    h.osc.frequency.setValueAtTime(h.osc.frequency.value,t);
+    h.osc.frequency.linearRampToValueAtTime(h.baseFreq*pitchMod,t+dur);
+  }
+  stellarDrone.masterGain.gain.cancelScheduledValues(t);
+  stellarDrone.masterGain.gain.setValueAtTime(stellarDrone.masterGain.gain.value,t);
+  stellarDrone.masterGain.gain.linearRampToValueAtTime(gain,t+dur);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.2 TREMOLO GUITAR — The post-rock voice
+// ───────────────────────────────────────────────────────────────
+//
+// CRR MAPPING: Tremolo picking IS exp(C/Ω) made audible.
+//
+// The amplitude modulation (6-10Hz tremolo) represents the
+// exponential memory weighting function pulsing. As the
+// composition's coherence builds toward rupture, tremolo rate
+// increases (higher rate = system approaching Ω threshold).
+//
+// SYNTHESIS:
+//   Two detuned sawtooths (×0.999, ×1.001) = Z₂ string vibration
+//   Triangle wave body = resonant cavity
+//   AM at tremoloRate Hz = exp(C/Ω) pulsing
+//   Lowpass filter = physical string filtering
+//
+// DELAY (0.37s) = TEMPORAL MEMORY — past notes persist in the
+//   present, exactly as C(x,t) = ∫L(x,τ)dτ integrates the past.
+//   Feedback 0.3 = memory decay rate (like CRR regeneration decay)
+//
+// REVERB = REGENERATION FIELD — the spatial R(memory), where
+//   sound reconstructs itself from reflections. The reverb tail
+//   IS the regeneration phase: past coherence persisting as the
+//   new cycle begins.
+// Detuned sawtooths + tremolo + delay = exp(C/Ω) memory
+// ───────────────────────────────────────────────────────────────
+function playTremoloGuitar(midi,velocity,duration,startTime,tremoloRate){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const freq=midiToFreq(midi);
+  const tRate=tremoloRate||6;
+  const noteG=ac.createGain();noteG.gain.value=0;noteG.connect(guitarGain);
+  // Two detuned sawtooths (like a chorus/doubletracked guitar)
+  const o1=ac.createOscillator();o1.type='sawtooth';o1.frequency.value=freq*0.999;
+  const o2=ac.createOscillator();o2.type='sawtooth';o2.frequency.value=freq*1.001;
+  const o3=ac.createOscillator();o3.type='triangle';o3.frequency.value=freq;
+  const mix=ac.createGain();mix.gain.value=0.35;
+  const triMix=ac.createGain();triMix.gain.value=0.15;
+  o1.connect(mix);o2.connect(mix);o3.connect(triMix);
+  // Lowpass — warmer guitar tone
+  const lp=ac.createBiquadFilter();lp.type='lowpass';
+  lp.frequency.value=2200+freq*0.8;lp.Q.value=0.7;
+  mix.connect(lp);triMix.connect(lp);
+  // Tremolo (amplitude modulation) — the signature post-rock pulsing
+  const trem=ac.createOscillator();trem.type='sine';trem.frequency.value=tRate;
+  const tremG=ac.createGain();tremG.gain.value=velocity*0.18;
+  const tremOffset=ac.createGain();tremOffset.gain.value=velocity*0.2;
+  trem.connect(tremG);tremG.connect(noteG.gain);
+  // Note envelope — long sustain, gentle attack
+  lp.connect(noteG);
+  const att=0.04;
+  noteG.gain.setValueAtTime(0,now);
+  noteG.gain.linearRampToValueAtTime(velocity*0.35,now+att);
+  noteG.gain.setValueAtTime(velocity*0.3,now+att+0.1);
+  noteG.gain.setTargetAtTime(0.001,now+duration,duration*0.4);
+  o1.start(now);o2.start(now);o3.start(now);trem.start(now);
+  const stop=now+duration*3+1;
+  o1.stop(stop);o2.stop(stop);o3.stop(stop);trem.stop(stop);
+  setTimeout(()=>{try{noteG.disconnect()}catch(e){}},((stop-now)+0.5)*1000);
+}
+
+// §2.3 CLEAN GUITAR — Low-coherence moments
+// CRR MAPPING: Clean guitar represents states of LOW C/Ω —
+// the system at rest or in early coherence accumulation.
+// No tremolo = no exp(C/Ω) pulsing. Sparse harmonics = the
+// quiet before coherence has built. Used in DAWN and DUSK
+// when the scene is in regeneration or pre-coherence states.
+// Single sine + triangle blend = simple, unprocessed presence.
+function playCleanGuitar(midi,velocity,duration,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const freq=midiToFreq(midi);
+  const noteG=ac.createGain();noteG.connect(guitarGain);
+  // Harmonics — like harmonics on a guitar string
+  const nH=6;
+  for(let h=1;h<=nH;h++){
+    const hF=freq*h;if(hF>10000)break;
+    const o=ac.createOscillator();o.type=h<=2?'triangle':'sine';
+    o.frequency.value=hF+(random()-.5)*0.3;
+    const hG=ac.createGain();
+    const ba=velocity*(1/pow(h,1.4));
+    const tau=duration*(1/(1+(h-1)*0.4));
+    hG.gain.setValueAtTime(0,now);
+    hG.gain.linearRampToValueAtTime(ba,now+0.003);
+    hG.gain.setTargetAtTime(0.001,now+0.01,tau*0.3);
+    o.connect(hG);hG.connect(noteG);o.start(now);o.stop(now+tau*3+.5);
+  }
+  // Attack transient
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+  const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=2000;nf.Q.value=2;
+  const ng=ac.createGain();ng.gain.setValueAtTime(velocity*0.04,now);
+  ng.gain.exponentialRampToValueAtTime(0.001,now+0.008);
+  ns.connect(nf);nf.connect(ng);ng.connect(noteG);ns.start(now);ns.stop(now+0.02);
+  noteG.gain.setValueAtTime(1,now);
+  noteG.gain.setTargetAtTime(0.001,now+duration*2,duration*0.3);
+  setTimeout(()=>{try{noteG.disconnect()}catch(e){}},(duration*3+1)*1000);
+}
+
+// §2.4 BASS — Sub-Ω foundation
+// CRR MAPPING: Bass frequencies sit BELOW the Ω threshold —
+// they are the continuous ground that never ruptures, felt more
+// than heard. Like the SO(2) drone but in the harmonic domain
+// rather than the timbral domain. The sine + triangle blend
+// creates a warm, dark tone that supports without asserting —
+// the way deep coherence underlies conscious experience.
+function playBass(midi,velocity,duration,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const freq=midiToFreq(midi);
+  const g=ac.createGain();g.connect(guitarGain);
+  const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=freq;
+  const o2=ac.createOscillator();o2.type='triangle';o2.frequency.value=freq;
+  const m1=ac.createGain();m1.gain.value=velocity*0.4;
+  const m2=ac.createGain();m2.gain.value=velocity*0.15;
+  o1.connect(m1);o2.connect(m2);
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=freq*3;lp.Q.value=1;
+  m1.connect(lp);m2.connect(lp);lp.connect(g);
+  g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(1,now+0.02);
+  g.gain.setTargetAtTime(0.001,now+0.05,duration*0.4);
+  o1.start(now);o2.start(now);o1.stop(now+duration*3);o2.stop(now+duration*3);
+  setTimeout(()=>{try{g.disconnect()}catch(e){}},(duration*3+1)*1000);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.5 STARLING VOICES — Z₂ birdsong from vocal fold oscillation
+// ───────────────────────────────────────────────────────────────
+//
+// CRR MAPPING: Each chirp IS a complete micro-CRR cycle.
+//
+// Avian syrinx uses Z₂ symmetry — two membranes oscillating in
+// anti-phase, Ω = 1/π. Each chirp traces one full C→δ→R:
+//   Frequency RISES 1.5× (coherence C accumulating over ~50ms)
+//   Reaches PEAK (C ≥ Ω, rupture δ fires)
+//   Frequency FALLS back (regeneration R, memory-weighted decay)
+//
+// Mapped to E minor pentatonic (E-G-A-B-D) so individual Z₂
+// micro-ruptures create melodic fragments harmonising with the
+// SO(2) stellar drone — multi-scale CRR nesting in action.
+//
+// Flock chorus = COLLECTIVE CRR synchronisation: when many birds
+// chirp together, their individual CRR cycles briefly align,
+// creating emergent harmonic coherence (the "dawn chorus" effect).
+//
+// ───────────────────────────────────────────────────────────────
+function playStarlingChirp(intensity,startTime,pitchClass){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  // Bird vocal folds are Z₂ oscillators
+  // Map pitch class to pentatonic scale for musical coherence
+  const scale=[64,67,69,71,72,74,76,79,81,83]; // E minor pentatonic, high register
+  const midi=scale[pitchClass%scale.length]+(random()>0.5?0:12);
+  const freq=midiToFreq(midi);
+  const g=ac.createGain();g.connect(natureGain);
+  const o=ac.createOscillator();o.type='sine';
+  // CRR chirp envelope: rise→peak→fall
+  const chirpDur=0.06+random()*0.12;
+  o.frequency.setValueAtTime(freq*0.85,now);
+  o.frequency.exponentialRampToValueAtTime(freq*1.15,now+chirpDur*0.4);
+  o.frequency.exponentialRampToValueAtTime(freq*0.7,now+chirpDur);
+  // Second harmonic (overtone singing)
+  const o2=ac.createOscillator();o2.type='sine';
+  o2.frequency.setValueAtTime(freq*2.02,now);
+  o2.frequency.exponentialRampToValueAtTime(freq*2.3,now+chirpDur*0.4);
+  o2.frequency.exponentialRampToValueAtTime(freq*1.8,now+chirpDur);
+  const g2=ac.createGain();g2.gain.value=0.25;
+  o.connect(g);o2.connect(g2);g2.connect(g);
+  g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(intensity*0.12,now+0.005);
+  g.gain.exponentialRampToValueAtTime(0.001,now+chirpDur+0.05);
+  o.start(now);o2.start(now);o.stop(now+chirpDur+0.1);o2.stop(now+chirpDur+0.1);
+}
+
+// Flock chorus — multiple chirps creating harmonic texture
+function playFlockChorus(intensity,count,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  for(let i=0;i<count;i++){
+    const delay=random()*0.15;
+    playStarlingChirp(intensity*(0.6+random()*0.4),now+delay,floor(random()*10));
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.6 FALCON CRY — δ(now) made audible
+// ───────────────────────────────────────────────────────────────
+//
+// CRR MAPPING: The falcon IS the rupture operator δ(now).
+//
+// Its cry is a descending sawtooth sweep (1800→700Hz) — the
+// sound of coherence SHATTERING. The sawtooth waveform represents
+// the harsh, non-linear break of the delta function (compared to
+// the smooth sines of coherence). The downward sweep mirrors
+// the flock's sudden loss of collective coherence.
+//
+// In the composition, the falcon cry triggers:
+//   1. Flock CRR rupture (birds scatter)
+//   2. Massive Em chord crash (harmonic rupture)
+//   3. Rain peaks (weather rupture)
+//   4. The moment where coherence dies and regeneration begins
+//
+// The falcon's own behaviour follows CRR: stalk(C) → dive(δ) → recover(R)
+//
+function playFalconCry(intensity,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const g=ac.createGain();g.connect(natureGain);
+  const o=ac.createOscillator();o.type='sawtooth';
+  o.frequency.setValueAtTime(1800,now);
+  o.frequency.exponentialRampToValueAtTime(1200,now+0.3);
+  o.frequency.exponentialRampToValueAtTime(700,now+0.7);
+  const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=1200;f.Q.value=2;
+  o.connect(f);f.connect(g);
+  g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(intensity*0.15,now+0.03);
+  g.gain.setValueAtTime(intensity*0.12,now+0.3);
+  g.gain.exponentialRampToValueAtTime(0.001,now+0.8);
+  o.start(now);o.stop(now+0.9);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.7 WIND & MUSICAL RAIN — CRR-driven harmonic precipitation
+// ───────────────────────────────────────────────────────────────
+//
+// CRR MAPPING: Rain has its OWN dedicated CRR agent (Ω=0.3, lr=0.25)
+// driving a rhythmic pattern engine. This creates rain that is
+// not random noise but COHERENT musical percussion that cycles
+// through its own C→δ→R phases:
+//
+//   COHERENCE: Drops cluster into structured patterns — root notes
+//     on downbeats, fifths on weak beats, accents on grid positions.
+//     Higher rain intensity → more coherent patterns (tighter Ω).
+//
+//   RUPTURE: Pattern scrambles. A new rhythmic cell is generated.
+//     But exp(C/Ω) MEMORY persists — high-coherence patterns leave
+//     traces in the new pattern (note choices carry over weighted
+//     by the memory amplification function).
+//
+//   REGENERATION: Drops play softer as the pattern rebuilds.
+//     The CRR smoothAmp modulates rain bed resonator Q values —
+//     more coherent rain = more tonal resonance.
+//
+// HARMONIC STRUCTURE:
+//   All drops tuned to Em pentatonic (E-G-A-B-D) across 4 octaves:
+//     Low (E2-D3):  Puddle drops — sine + sub-harmonic, long decay
+//     Mid (E3-D4):  Surface drops — detuned triangle pair
+//     High (E4-D5): Small drops — pure sine pings
+//     Mist (E5-D6): Shimmer — barely audible ethereal tones
+//
+//   Rain BED = noise through 10 harmonic resonators tuned to
+//   E minor harmonic series. This creates a shimmering tonal wash
+//   (like rain on resonant glass), with Q modulated by CRR amplitude.
+//
+//   Drop clusters = harmonic intervals (thirds, fifths) triggered
+//   simultaneously during high intensity — like a gust across chimes.
+//
+// ───────────────────────────────────────────────────────────────
+let windNoise={gain:null,filter:null};
+let musicalRain={
+  bed:{gains:[],masterGain:null},  // Resonant harmonic bed
+  dropGain:null,                    // Individual drop output
+  reverbSend:null,
+  crr:new CRR(0.3,0.25),           // Fast CRR for rain rhythm
+  pattern:[],                       // Current rhythmic pattern (note indices)
+  patternPos:0,                     // Position in pattern
+  lastPattern:[],                   // Previous pattern for memory
+  beatAccum:0,                      // Fractional beat accumulator
+  active:false
+};
+
+// E minor pentatonic across 4 octaves — the rain's palette
+const RAIN_NOTES={
+  // Puddle drops: deep resonance, large drops
+  low:[40,43,45,47,50],  // E2,G2,A2,B2,D3
+  // Surface drops: mid-range taps
+  mid:[52,55,57,59,62],  // E3,G3,A3,B3,D4
+  // Small drops: bright tinks
+  high:[64,67,69,71,74], // E4,G4,A4,B4,D5
+  // Mist: ethereal shimmer
+  mist:[76,79,81,83,86]  // E5,G5,A5,B5,D6
+};
+
+// Harmonic series of E for the resonant bed
+const RAIN_BED_FREQS=[82.4,123.5,164.8,196,220,247,293.7,329.6,392,440];
+
+function initWindNoise(){
+  if(!ac)return;
+  windNoise.gain=ac.createGain();windNoise.gain.gain.value=0;
+  windNoise.filter=ac.createBiquadFilter();windNoise.filter.type='lowpass';
+  windNoise.filter.frequency.value=400;windNoise.filter.Q.value=0.8;
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;ns.loop=true;
+  ns.connect(windNoise.filter);windNoise.filter.connect(windNoise.gain);
+  windNoise.gain.connect(natureGain);ns.start();
+}
+
+function initMusicalRain(){
+  if(!ac||musicalRain.active)return;
+
+  // === RESONANT RAIN BED ===
+  // Noise → bank of high-Q resonators tuned to E minor harmonics
+  // Like rain falling on a resonant surface (glass, metal, wooden deck)
+  musicalRain.bed.masterGain=ac.createGain();
+  musicalRain.bed.masterGain.gain.value=0;
+  musicalRain.bed.masterGain.connect(natureGain);
+
+  const bedNoise=ac.createBufferSource();bedNoise.buffer=noiseBuf;bedNoise.loop=true;
+  for(const freq of RAIN_BED_FREQS){
+    const bp=ac.createBiquadFilter();bp.type='bandpass';
+    bp.frequency.value=freq;bp.Q.value=25+freq*0.02; // Higher Q = more tonal
+    const g=ac.createGain();
+    // Higher frequencies quieter (natural spectral rolloff)
+    g.gain.value=0.08*pow(82.4/freq,0.3);
+    bedNoise.connect(bp);bp.connect(g);
+    g.connect(musicalRain.bed.masterGain);
+    musicalRain.bed.gains.push({filter:bp,gain:g,freq});
+  }
+  bedNoise.start();
+
+  // === DROP OUTPUT ===
+  musicalRain.dropGain=ac.createGain();
+  musicalRain.dropGain.gain.value=0.6;
+  musicalRain.dropGain.connect(natureGain);
+  // Reverb send for drops — they ring in the space
+  if(reverbNode){
+    musicalRain.reverbSend=ac.createGain();
+    musicalRain.reverbSend.gain.value=0.35;
+    musicalRain.dropGain.connect(musicalRain.reverbSend);
+    musicalRain.reverbSend.connect(reverbNode);
+  }
+
+  // Initial pattern
+  musicalRain.pattern=generateRainPattern(0.5);
+  musicalRain.active=true;
+}
+
+// Generate a rhythmic rain pattern — array of {notePool, octave, velocity, timing}
+// coherence: 0=chaotic, 1=highly patterned
+function generateRainPattern(coherence){
+  const len=8+floor(random()*8); // 8-16 step pattern
+  const pat=[];
+  // Pick a "mode" — which notes of the pentatonic to favor
+  const root=floor(random()*5);
+  const fifth=(root+3)%5; // Pentatonic "fifth"
+  const third=(root+2)%5;
+
+  for(let i=0;i<len;i++){
+    // Higher coherence = more structured intervals
+    let noteIdx;
+    if(coherence>0.6&&i%4===0)noteIdx=root;        // Root on downbeats
+    else if(coherence>0.4&&i%4===2)noteIdx=fifth;   // Fifth on weak beats
+    else if(coherence>0.3&&i%2===0)noteIdx=third;   // Third on even steps
+    else noteIdx=floor(random()*5);                  // Random
+
+    // Octave distribution: more low drops when coherent, more scatter when chaotic
+    let pool;
+    const r=random();
+    if(r<0.15)pool='low';
+    else if(r<0.45)pool='mid';
+    else if(r<0.8)pool='high';
+    else pool='mist';
+
+    // Velocity varies with position — accents on pattern points
+    let vel=0.3+random()*0.4;
+    if(coherence>0.5&&i%4===0)vel=0.6+random()*0.3; // Accent
+
+    // Timing: subdivisions. High coherence = snapped to grid
+    const grid=coherence>0.5?0.25:coherence>0.3?0.125:0;
+    const timing=grid>0?floor(random()/grid)*grid:random();
+
+    pat.push({noteIdx,pool,vel,timing});
+  }
+  return pat;
+}
+
+// Play a single musical raindrop
+function playMusicalDrop(pool,noteIdx,velocity,startTime){
+  if(!ac||!musicalRain.active)return;
+  const now=startTime||ac.currentTime;
+  const notes=RAIN_NOTES[pool];
+  const midi=notes[noteIdx%notes.length];
+  const freq=midiToFreq(midi);
+
+  // Different synthesis per drop size
+  if(pool==='low'){
+    // Puddle: sine + sub-harmonic, long decay, warm
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const o2=ac.createOscillator();o2.type='triangle';o2.frequency.value=freq*0.5;
+    const g=ac.createGain();const g2=ac.createGain();
+    const v=velocity*0.08;
+    g.gain.setValueAtTime(v,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.25);
+    g2.gain.setValueAtTime(v*0.4,now);g2.gain.exponentialRampToValueAtTime(0.001,now+0.35);
+    o.connect(g);o2.connect(g2);g.connect(musicalRain.dropGain);g2.connect(musicalRain.dropGain);
+    o.start(now);o2.start(now);o.stop(now+0.3);o2.stop(now+0.4);
+  } else if(pool==='mid'){
+    // Surface: triangle + slight detuned pair, moderate decay
+    const o=ac.createOscillator();o.type='triangle';o.frequency.value=freq;
+    const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq*1.003;
+    const g=ac.createGain();
+    const v=velocity*0.06;
+    g.gain.setValueAtTime(v,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.12);
+    o.connect(g);o2.connect(g);g.connect(musicalRain.dropGain);
+    o.start(now);o2.start(now);o.stop(now+0.15);o2.stop(now+0.15);
+  } else if(pool==='high'){
+    // Small drops: pure sine, short bright ping
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const g=ac.createGain();
+    const v=velocity*0.045;
+    g.gain.setValueAtTime(v,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.05);
+    o.connect(g);g.connect(musicalRain.dropGain);
+    o.start(now);o.stop(now+0.07);
+  } else {
+    // Mist: very high, barely there, sine shimmer
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const g=ac.createGain();
+    const v=velocity*0.02;
+    g.gain.setValueAtTime(v,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.03);
+    o.connect(g);g.connect(musicalRain.dropGain);
+    o.start(now);o.stop(now+0.04);
+  }
+}
+
+// Update musical rain — called every frame during rain
+function updateMusicalRain(dt,intensity){
+  if(!musicalRain.active||intensity<0.02)return;
+
+  // Update rain CRR
+  musicalRain.crr.update(dt,intensity);
+  const mem=musicalRain.crr.mem();
+  const crrState=musicalRain.crr.st;
+
+  // On rupture: generate new pattern, influenced by memory of old
+  if(crrState===1){
+    musicalRain.lastPattern=musicalRain.pattern.slice();
+    const coherence=0.3+intensity*0.5; // More rain = more coherent patterns
+    musicalRain.pattern=generateRainPattern(coherence);
+    // Memory: blend some elements from old pattern (exp(C/Ω) weighting)
+    const memWeight=min(0.8,mem/10);
+    for(let i=0;i<min(musicalRain.pattern.length,musicalRain.lastPattern.length);i++){
+      if(random()<memWeight){
+        musicalRain.pattern[i].noteIdx=musicalRain.lastPattern[i].noteIdx;
+      }
+    }
+    musicalRain.patternPos=0;
+  }
+
+  // Rain bed volume follows intensity
+  const bedTarget=intensity*0.18;
+  const t=ac.currentTime;
+  musicalRain.bed.masterGain.gain.setTargetAtTime(bedTarget,t,0.3);
+  // Modulate bed resonance Q with CRR amplitude (more coherent = more tonal)
+  const qMod=1+musicalRain.crr.smoothAmp*0.5;
+  for(const r of musicalRain.bed.gains){
+    r.filter.Q.value=(25+r.freq*0.02)*qMod;
+  }
+
+  // Spawn drops based on intensity and pattern
+  // Tempo of drops scales with intensity: light rain = sparse, heavy = dense
+  const dropsPerSec=intensity*intensity*30+intensity*5; // 0.5→3, 0.5→12, 1.0→35
+  musicalRain.beatAccum+=dt*dropsPerSec;
+
+  while(musicalRain.beatAccum>=1){
+    musicalRain.beatAccum-=1;
+    const pat=musicalRain.pattern;
+    if(pat.length===0)continue;
+    const step=pat[musicalRain.patternPos%pat.length];
+    musicalRain.patternPos++;
+
+    // Play the drop with slight timing humanization
+    const jitter=random()*0.02;
+    const vel=step.vel*intensity;
+
+    // During regeneration, drops are softer (memory fading)
+    const regenFade=crrState===2?0.6+musicalRain.crr.smoothAmp*0.4:1;
+
+    playMusicalDrop(step.pool,step.noteIdx,vel*regenFade,t+jitter);
+
+    // Occasional harmonic cluster: multiple drops at once (like a gust)
+    if(intensity>0.4&&random()<intensity*0.15){
+      const pool2=random()<0.5?'mid':'high';
+      playMusicalDrop(pool2,(step.noteIdx+2)%5,vel*0.5*regenFade,t+jitter+0.01);
+    }
+    if(intensity>0.7&&random()<0.08){
+      playMusicalDrop('low',step.noteIdx,vel*0.4*regenFade,t+jitter+0.015);
+    }
+  }
+}
+
+// Set rain bed intensity (called from composition events)
+function setMusicalRainIntensity(velocity){
+  if(!musicalRain.active)return;
+  const t=ac.currentTime;
+  musicalRain.bed.masterGain.gain.setTargetAtTime(velocity*0.2,t,0.5);
+}
+
+// Legacy wrapper for backward compat with rain events
+function initRainNoise(){initMusicalRain()}
+
+// Individual raindrop — now musical
+function playRaindrop(startTime){
+  if(!ac)return;
+  // Pick random pool and note from pentatonic
+  const pools=['mid','high','high','mist'];
+  const pool=pools[floor(random()*pools.length)];
+  playMusicalDrop(pool,floor(random()*5),0.4+random()*0.4,startTime);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.8 RAINBOW CHOIR — Each colour sings through a woman's voice
+// ───────────────────────────────────────────────────────────────
+//
+// CRR MAPPING: The rainbow choir IS regeneration R made audible.
+//
+// After the falcon rupture shatters coherence, light separates
+// into spectrum — this IS what regeneration looks like: the
+// unified field (white light) breaking into its constituent
+// memories (colours), each carrying a different frequency.
+//
+// PHYSICS → MUSIC:
+//   Each rainbow colour maps to a vocal register:
+//     Red (700nm)    → E3  (low alto)     → vowel "Ah" (open)
+//     Orange (620nm) → Ab3 (alto)          → vowel "Oh" (round)
+//     Yellow (580nm) → B3  (mezzo)         → vowel "Eh" (bright)
+//     Green (530nm)  → Db4 (mezzo)         → vowel "Ah" (warm)
+//     Blue (470nm)   → E4  (soprano)       → vowel "Oo" (closed)
+//     Indigo (440nm) → Ab4 (soprano)       → vowel "Mm" (humming)
+//     Violet (380nm) → B4  (high soprano)  → vowel "Ee" (bright)
+//
+// CRR IN THE SYNTHESIS:
+//   Source = SAWTOOTH oscillator — this IS Z₂ vocal fold oscillation!
+//     The same binary symmetry (Ω=1/π) that drives birdsong drives
+//     the human voice. Sawtooth = the asymmetric open/close cycle
+//     of vocal folds, rich in harmonics that formant filters shape.
+//
+//   Formant filters (3 per voice) = the resonant cavity of CRR:
+//     F1 determines openness (low = closed, high = open)
+//     F2 determines brightness (low = dark, high = bright)
+//     F3 determines presence
+//     These ARE the system's Ω at different scales — each formant
+//     has its own resonance threshold.
+//
+// CRR IN THE COMPOSITION:
+//   CHOIR BUILD (beat 200): Voices enter one by one, like light
+//     separating through a prism — R(memory) reconstructing the
+//     field voice by voice. This IS regeneration made temporal.
+//
+//   VOWEL MORPHING: Mm→Oo→Ah→Eh→Ah = the CRR cycle as vocal gesture:
+//     Mm (closed, humming) = pre-coherence, potential
+//     Oo (dark, round)     = early coherence accumulating
+//     Ah (open, full)      = maximum coherence, peak C/Ω
+//     Eh (bright, forward) = approaching rupture threshold
+//     Ah (return to open)  = regeneration, memory of fullness
+//
+//   CHOIR DISSOLUTION (beat 278): Reverse prism — voices fade from
+//     violet→red (high→low), spectrum recombining into silence.
+//     The final red voice lingers as a solitary hum — the last
+//     memory of coherence persisting as R→0, ready for the next
+//     CRR cycle (which never comes: dusk = permanent R).
+//
+// ───────────────────────────────────────────────────────────────
+let rainbowChoir={voices:[],masterGain:null,reverbSend:null,active:false};
+
+// Female formant data: [F1, F2, F3] frequencies and Q values
+const VOWELS={
+  Ah:{f:[820,1200,2800],q:[12,10,8]},   // open, warm
+  Oh:{f:[450,800,2830],q:[12,10,8]},     // round
+  Eh:{f:[600,2350,3000],q:[11,10,9]},    // bright
+  Oo:{f:[350,650,2700],q:[13,11,8]},     // closed, dark
+  Ee:{f:[310,2790,3300],q:[12,11,9]},    // high, bright
+  Mm:{f:[280,900,2300],q:[8,6,5]},       // humming, nasal
+};
+
+// Rainbow: colour → MIDI note → vowel → character
+const RAINBOW_VOICES=[
+  {colour:'red',    midi:52, vowel:'Ah', detune:-3,  vibratoRate:4.8, vibratoDepth:3},  // E3 low alto
+  {colour:'orange', midi:56, vowel:'Oh', detune:2,   vibratoRate:5.1, vibratoDepth:2.5},// Ab3 alto
+  {colour:'yellow', midi:59, vowel:'Eh', detune:-1,  vibratoRate:5.4, vibratoDepth:2.8},// B3 mezzo
+  {colour:'green',  midi:61, vowel:'Ah', detune:3,   vibratoRate:5.0, vibratoDepth:3.2},// Db4 mezzo
+  {colour:'blue',   midi:64, vowel:'Oo', detune:-2,  vibratoRate:5.6, vibratoDepth:2.6},// E4 soprano
+  {colour:'indigo', midi:68, vowel:'Mm', detune:1,   vibratoRate:5.3, vibratoDepth:3.0},// Ab4 soprano
+  {colour:'violet', midi:71, vowel:'Ee', detune:-2,  vibratoRate:5.8, vibratoDepth:2.4},// B4 high sop
+];
+
+function initRainbowChoir(){
+  if(!ac||rainbowChoir.active)return;
+  rainbowChoir.masterGain=ac.createGain();
+  rainbowChoir.masterGain.gain.value=0;
+  rainbowChoir.masterGain.connect(natureGain);
+  // Also send to reverb for ethereal wash
+  if(reverbNode){
+    rainbowChoir.reverbSend=ac.createGain();
+    rainbowChoir.reverbSend.gain.value=0.4;
+    rainbowChoir.masterGain.connect(rainbowChoir.reverbSend);
+    rainbowChoir.reverbSend.connect(reverbNode);
+  }
+
+  for(const v of RAINBOW_VOICES){
+    const freq=midiToFreq(v.midi);
+    const vw=VOWELS[v.vowel];
+
+    // === Source 1: main sawtooth (vocal folds) ===
+    const src=ac.createOscillator();src.type='sawtooth';
+    src.frequency.value=freq;src.detune.value=v.detune;
+
+    // === Source 2: detuned for chorus width ===
+    const src2=ac.createOscillator();src2.type='sawtooth';
+    src2.frequency.value=freq;src2.detune.value=v.detune+6;
+
+    // === Vibrato LFO ===
+    const vib=ac.createOscillator();vib.type='sine';
+    vib.frequency.value=v.vibratoRate;
+    const vibGain=ac.createGain();vibGain.gain.value=v.vibratoDepth;
+    vib.connect(vibGain);
+    vibGain.connect(src.frequency);vibGain.connect(src2.frequency);
+
+    // === Breath noise (adds realism) ===
+    const breathLen=ac.sampleRate*2;
+    const breathBuf=ac.createBuffer(1,breathLen,ac.sampleRate);
+    const breathData=breathBuf.getChannelData(0);
+    for(let i=0;i<breathLen;i++)breathData[i]=(random()-0.5)*0.15;
+    const breathSrc=ac.createBufferSource();breathSrc.buffer=breathBuf;breathSrc.loop=true;
+    const breathFilter=ac.createBiquadFilter();breathFilter.type='bandpass';
+    breathFilter.frequency.value=freq*3;breathFilter.Q.value=2;
+    breathSrc.connect(breathFilter);
+
+    // === Formant filters (3 per voice) ===
+    const formantGains=[];
+    const voiceSum=ac.createGain();voiceSum.gain.value=0.35;
+
+    for(let fi=0;fi<3;fi++){
+      const bp=ac.createBiquadFilter();bp.type='bandpass';
+      bp.frequency.value=vw.f[fi];bp.Q.value=vw.q[fi]*0.5; // Wider Q for more signal
+      const bp2=ac.createBiquadFilter();bp2.type='bandpass';
+      bp2.frequency.value=vw.f[fi];bp2.Q.value=vw.q[fi]*0.5;
+
+      const fGain=ac.createGain();
+      fGain.gain.value=fi===0?1.2:fi===1?0.9:0.5; // Boost all formants
+      formantGains.push({filter:bp,filter2:bp2,gain:fGain});
+
+      src.connect(bp);bp.connect(fGain);
+      src2.connect(bp2);bp2.connect(fGain);
+      breathFilter.connect(bp);
+      fGain.connect(voiceSum);
+    }
+
+    // === Direct path: gentle lowpass of source for body/warmth ===
+    const directLP=ac.createBiquadFilter();directLP.type='lowpass';
+    directLP.frequency.value=freq*4;directLP.Q.value=0.7;
+    const directGain=ac.createGain();directGain.gain.value=0.15;
+    src.connect(directLP);src2.connect(directLP);
+    directLP.connect(directGain);directGain.connect(voiceSum);
+
+    // === Vowel crossfade gain (for morphing between vowels) ===
+    voiceSum.connect(rainbowChoir.masterGain);
+
+    src.start();src2.start();vib.start();breathSrc.start();
+
+    rainbowChoir.voices.push({
+      src,src2,vib,vibGain,breathSrc,breathFilter,
+      formantGains,voiceSum,freq,
+      vowel:v.vowel,colour:v.colour,midi:v.midi
+    });
+  }
+  rainbowChoir.active=true;
+}
+
+// Morph a voice to a new vowel (CRR regeneration — memory of sound)
+function morphVoice(voiceIdx,newVowel,duration){
+  if(!rainbowChoir.active||voiceIdx>=rainbowChoir.voices.length)return;
+  const voice=rainbowChoir.voices[voiceIdx];
+  const vw=VOWELS[newVowel];if(!vw)return;
+  const t=ac.currentTime;const dur=duration||2;
+  for(let fi=0;fi<3;fi++){
+    const fg=voice.formantGains[fi];
+    fg.filter.frequency.cancelScheduledValues(t);
+    fg.filter.frequency.setValueAtTime(fg.filter.frequency.value,t);
+    fg.filter.frequency.linearRampToValueAtTime(vw.f[fi],t+dur);
+    fg.filter2.frequency.cancelScheduledValues(t);
+    fg.filter2.frequency.setValueAtTime(fg.filter2.frequency.value,t);
+    fg.filter2.frequency.linearRampToValueAtTime(vw.f[fi],t+dur);
+  }
+  voice.vowel=newVowel;
+}
+
+function setRainbowChoir(gain,trans){
+  if(!rainbowChoir.active)return;
+  const t=ac.currentTime;const dur=trans||2;
+  rainbowChoir.masterGain.gain.cancelScheduledValues(t);
+  rainbowChoir.masterGain.gain.setValueAtTime(rainbowChoir.masterGain.gain.value,t);
+  rainbowChoir.masterGain.gain.linearRampToValueAtTime(gain,t+dur);
+}
+
+// Build the rainbow choir up voice by voice (like light separating through prism)
+function buildRainbowChoir(startGain,duration){
+  if(!rainbowChoir.active)return;
+  const t=ac.currentTime;
+  for(let i=0;i<rainbowChoir.voices.length;i++){
+    const voice=rainbowChoir.voices[i];
+    const delay=i*(duration/rainbowChoir.voices.length); // stagger entries
+    voice.voiceSum.gain.cancelScheduledValues(t);
+    voice.voiceSum.gain.setValueAtTime(0,t);
+    voice.voiceSum.gain.setValueAtTime(0,t+delay);
+    voice.voiceSum.gain.linearRampToValueAtTime(0.4,t+delay+1.5);
+    // Increase vibrato as voice settles
+    voice.vibGain.gain.cancelScheduledValues(t);
+    voice.vibGain.gain.setValueAtTime(0.5,t+delay);
+    voice.vibGain.gain.linearRampToValueAtTime(voice.vibGain.gain.value||3,t+delay+2);
+  }
+  rainbowChoir.masterGain.gain.cancelScheduledValues(t);
+  rainbowChoir.masterGain.gain.setValueAtTime(0,t);
+  rainbowChoir.masterGain.gain.linearRampToValueAtTime(startGain,t+duration*0.4);
+}
+
+// Vowel morph sequence for the choir (CRR: coherence builds through vowel unity)
+function choirMorphSequence(vowelSeq,totalDuration){
+  if(!rainbowChoir.active)return;
+  const stepDur=totalDuration/vowelSeq.length;
+  for(let s=0;s<vowelSeq.length;s++){
+    setTimeout(()=>{
+      const vowel=vowelSeq[s];
+      for(let i=0;i<rainbowChoir.voices.length;i++){
+        // Stagger morphs slightly for organic feel
+        setTimeout(()=>morphVoice(i,vowel,stepDur*0.8),i*120);
+      }
+    },s*stepDur*1000);
+  }
+}
+
+// Legacy compatibility wrapper
+function initRainbowChord(){initRainbowChoir()}
+function setRainbowChord(gain,trans){setRainbowChoir(gain,trans)}
+
+// Dissolve the choir voice by voice — reverse prism (spectrum recombining into white)
+// High voices fade first (violet→indigo→blue...) until only red remains as a low hum
+function dissolveRainbowChoir(totalDuration){
+  if(!rainbowChoir.active)return;
+  const t=ac.currentTime;
+  const n=rainbowChoir.voices.length;
+  const stagger=totalDuration*0.7/n; // 70% of time for staggered exits
+
+  // Morph all voices to Mm (humming — closing the mouth as light recombines)
+  for(let i=0;i<n;i++){
+    const delay=i*0.8;
+    setTimeout(()=>morphVoice(i,'Mm',3),delay*1000);
+  }
+
+  // Fade voices one by one, highest first (violet=6 → red=0)
+  for(let i=n-1;i>=0;i--){
+    const exitOrder=n-1-i; // violet exits first
+    const exitTime=exitOrder*stagger;
+    const voice=rainbowChoir.voices[i];
+
+    // Reduce vibrato (voice settling, breath slowing)
+    voice.vibGain.gain.setTargetAtTime(0.5,t+exitTime,1.5);
+    voice.vib.frequency.setTargetAtTime(3,t+exitTime,2);
+
+    // Fade this voice out
+    voice.voiceSum.gain.setTargetAtTime(0.01,t+exitTime,stagger*0.5);
+
+    // The very last voice (red, lowest) lingers longest
+    if(i===0){
+      voice.voiceSum.gain.cancelScheduledValues(t+exitTime);
+      voice.voiceSum.gain.setValueAtTime(voice.voiceSum.gain.value,t+exitTime);
+      // Hold the last hum gently
+      voice.voiceSum.gain.setTargetAtTime(0.15,t+exitTime,1);
+      // Then fade to nothing in the final 30%
+      const lastFadeStart=t+totalDuration*0.75;
+      voice.voiceSum.gain.setTargetAtTime(0.001,lastFadeStart,totalDuration*0.12);
+    }
+  }
+
+  // Master fade — gradual overall dim backing up the individual fades
+  rainbowChoir.masterGain.gain.setTargetAtTime(0.05,t+totalDuration*0.3,totalDuration*0.25);
+  rainbowChoir.masterGain.gain.setTargetAtTime(0.001,t+totalDuration*0.7,totalDuration*0.15);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.9 PAD SYNTH — Sustained harmony pad
+// ───────────────────────────────────────────────────────────────
+//
+// CRR MAPPING: The pad represents the COHERENCE FIELD itself —
+// the sustained harmonic environment within which CRR cycles
+// occur. Detuned sine pairs per note create gentle beating
+// (interference patterns), analogous to the way coherence
+// accumulates through overlapping temporal fields.
+// The pad doesn't rupture; it shifts between chord voicings
+// as the composition's larger CRR arc progresses.
+//
+let padVoices={oscs:[],masterGain:null,active:false};
+function initPad(){
+  if(!ac||padVoices.active)return;
+  padVoices.masterGain=ac.createGain();padVoices.masterGain.gain.value=0;
+  padVoices.masterGain.connect(guitarGain);padVoices.active=true;
+}
+function setPadChord(midis,gain,trans){
+  if(!ac)return;
+  if(!padVoices.active)initPad();
+  const t=ac.currentTime;const dur=trans||1.5;
+  // Kill old
+  for(const v of padVoices.oscs){try{v.o1.stop(t+dur+0.1);v.o2.stop(t+dur+0.1);v.g.gain.setTargetAtTime(0,t,dur*0.3)}catch(e){}}
+  padVoices.oscs=[];
+  padVoices.masterGain.gain.cancelScheduledValues(t);
+  padVoices.masterGain.gain.setValueAtTime(padVoices.masterGain.gain.value,t);
+  padVoices.masterGain.gain.linearRampToValueAtTime(gain,t+dur);
+  for(const midi of midis){
+    if(midi<=0)continue;
+    const freq=midiToFreq(midi);
+    const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=freq-0.3;
+    const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq+0.3;
+    const g=ac.createGain();g.gain.value=0.08;
+    o1.connect(g);o2.connect(g);g.connect(padVoices.masterGain);
+    o1.start(t);o2.start(t);
+    padVoices.oscs.push({o1,o2,g});
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §3  COMPOSITION — "Murmuration" — the living world's song
+// ═══════════════════════════════════════════════════════════════════
+//
+// THE ENTIRE COMPOSITION IS ONE MACRO CRR CYCLE:
+//
+//   DAWN (0-31)         │ Pre-coherence. C ≈ 0. Near-silence.
+//   AWAKENING (32-63)   │ C begins accumulating. First birdsong.
+//   MORNING (64-111)    │ C building steadily. Layers emerge.
+//   ASCENT (112-159)    │ C approaching Ω. Wall of sound. Rain gathers.
+//   RAIN (160-191)      │ C ≈ Ω. Storm = maximum tension before rupture.
+//   RUPTURE (192-207)   │ δ(now). Falcon dive. Chord crash. Everything breaks.
+//   RAINBOW (208-239)   │ R begins. Choir = regeneration as spectral light.
+//   REGEN (240-279)     │ R(memory). Themes return, memory-weighted.
+//   DUSK (280-312)      │ R → 0. Silence returns. Cycle complete.
+//
+// Within this macro cycle, every section contains nested CRR:
+//   - Chord progressions: each 4-bar phrase is a mini C→δ→R
+//   - Tremolo rate increases toward RUPTURE (exp(C/Ω) accelerating)
+//   - Dynamics follow C/Ω ratio: quiet(low C) → loud(C≈Ω) → quiet(R)
+//   - REGENERATION replays MORNING themes = exp(C/Ω) memory weighting
+//     (only the most coherent earlier moments are recalled)
+//
+// KEY OF E MINOR: chosen because E is the stellar drone fundamental.
+// The entire harmonic field grows from the SO(2) sun frequency.
+//
+
+// Post-rock: key of E minor / C major
+// Chord voicings (guitar-like open voicings)
+const Em  =[28,40,52,55,59,64]; // E1,E2,E3,G3,B3,E4
+const C   =[24,36,48,52,55,60]; // C1,C2,C3,E3,G3,C4
+const G   =[31,43,55,59,62,67]; // G1,G2,G3,B3,D4,G4
+const Am  =[33,45,52,57,60,64]; // A1,A2,E3,A3,C4,E4
+const D   =[26,38,50,54,57,62]; // D1,D2,D3,F#3,A3,D4
+const Bm  =[35,47,54,59,62,66]; // B1,B2,F#3,B3,D4,F#4
+const F   =[29,41,48,53,57,60]; // F1,F2,C3,F3,A3,C4
+const Em7 =[28,40,52,55,59,62]; // Em add D
+const Cmaj7=[24,36,48,52,55,59]; // C add B
+const Am7 =[33,45,52,55,60,64]; // Am add G
+
+// Pad voicings
+const padEm=[52,55,59,64];
+const padC=[48,52,55,60];
+const padG=[55,59,62,67];
+const padAm=[52,57,60,64];
+const padD=[50,54,57,62];
+const padBm=[54,59,62,66];
+const padF=[48,53,57,60];
+
+// SECTIONS map directly to CRR phases:
+// Each section name IS a CRR concept made into a musical moment.
+const SECTIONS=[
+  {name:'SILENCE',    start:0,   end:0,   label:'· · ·'},
+  {name:'DAWN',       start:0,   end:32,  label:'first light'},      // C ≈ 0, pre-coherence
+  {name:'AWAKENING',  start:32,  end:64,  label:'the flock stirs'},  // C begins accumulating
+  {name:'MORNING',    start:64,  end:112, label:'taking flight'},    // C building, layers emerge
+  {name:'ASCENT',     start:112, end:160, label:'walls of sound'},   // C → Ω, exp(C/Ω) growing
+  {name:'RAIN',       start:160, end:192, label:'the storm'},        // C ≈ Ω, maximum tension
+  {name:'RUPTURE',    start:192, end:208, label:'δ(now)'},           // δ fires! Everything breaks
+  {name:'RAINBOW',    start:208, end:240, label:'spectral light'},   // R begins, spectrum separates
+  {name:'REGEN',      start:240, end:280, label:'R(memory)'},        // R(memory) — themes return
+  {name:'DUSK',       start:280, end:312, label:'return to earth'},  // R → 0, cycle complete
+];
+const TOTAL_BEATS=312; // ~4 minutes at 72bpm = one complete CRR macro-cycle
+
+function buildSequence(){
+  const E=[];
+  let beat=0;
+
+  // Helper functions — each maps to a CRR sonic element:
+  // trem  = tremolo guitar = exp(C/Ω) pulsing amplitude modulation
+  // clean = clean guitar = low C/Ω quiet coherence
+  // bass  = sub-Ω foundation (felt, never rupturing)
+  // pad   = sustained coherence field
+  // drone = SO(2) continuous oscillation
+  // birds = Z₂ micro-CRR chirps
+  // falcon = δ(now) rupture event
+  // rainbow = R(memory) spectral regeneration
+  function trem(ch,b,v,d,rate){for(const m of[ch[2],ch[3],ch[4]]){E.push({beat:b,midi:m,velocity:v,duration:d,type:'tremolo',rate:rate||6})}}
+  function clean(ch,b,pat,v,d){for(let i=0;i<pat.length;i++){const ni=pat[i];if(ni<0)continue;E.push({beat:b+i*0.5,midi:ch[ni%ch.length],velocity:v*(i===0?1:0.8+random()*0.2),duration:d,type:'clean'})}}
+  function bass(ch,b,v,d){E.push({beat:b,midi:ch[0],velocity:v,duration:d,type:'bass'})}
+  function deepBass(ch,b,v,d){E.push({beat:b,midi:ch[0]-12,velocity:v*0.4,duration:d,type:'bass'})}
+  function pad(notes,b,g,d){E.push({beat:b,type:'pad',padNotes:notes,padGain:g,duration:d})}
+  function drone(b,g,sun,d){E.push({beat:b,type:'drone',droneGain:g,sunPhase:sun,duration:d})}
+  function birds(b,v,count){E.push({beat:b,type:'birds',velocity:v,count:count||3})}
+  function falcon(b,v){E.push({beat:b,type:'falcon',velocity:v})}
+  function rainbow(b,g,d){E.push({beat:b,type:'rainbow',rainbowGain:g,duration:d})}
+  function section(b,name){E.push({beat:b,type:'section',sectionName:name})}
+  function rain(b,v){E.push({beat:b,type:'rain',velocity:v})}
+
+  // ════════════════════════════════════════════════════════════
+  // DAWN (0-31): C ≈ 0 — Pre-coherence
+  // ════════════════════════════════════════════════════════════
+  // CRR state: All systems at baseline. Coherence integral ≈ 0.
+  // The world exists but nothing has accumulated yet.
+  // Drone barely audible (SO(2) at minimum gain = sun below horizon).
+  // Clean guitar harmonics = sparse C, no tremolo because exp(C/Ω) ≈ 1.
+  // Solitary bird chirps = isolated Z₂ micro-ruptures, not yet collective.
+  // Birds are ASLEEP on tree (birdPhase='sleep') — pre-coherence state.
+  // ════════════════════════════════════════════════════════════
+  section(0,'first light');
+  drone(0, 0.02, 0.05, 32);
+
+  // Sparse clean guitar harmonics
+  for(let i=0;i<8;i++){
+    E.push({beat:i*4,midi:Em[4+floor(random()*2)],velocity:0.06+i*0.008,duration:6,type:'clean'});
+    if(i>2)E.push({beat:i*4+2,midi:Em[3],velocity:0.04+i*0.005,duration:4,type:'clean'});
+  }
+  // First birdsong — solitary, distant
+  birds(8, 0.1, 1);
+  birds(16, 0.12, 1);
+  birds(24, 0.15, 2);
+  // Wind
+  E.push({beat:0,type:'wind',velocity:0.05});
+
+  beat=32;
+  // ════════════════════════════════════════════════════════════
+  // AWAKENING (32-63): C begins accumulating — early coherence
+  // ════════════════════════════════════════════════════════════
+  // CRR state: ∫L·dτ starts growing. Attention (L) engages.
+  // Pad enters = coherence field establishing.
+  // Drone gain rises (0.06) = SO(2) becoming more present.
+  // More birds = individual Z₂ agents waking, beginning to synchronise.
+  // Bass enters = sub-Ω harmonic foundation solidifying.
+  // Clean guitar with more notes per bar = C/Ω ratio increasing.
+  // birdPhase='waking' — staggered takeoff mirrors gradual C build.
+  section(32,'the flock stirs');
+  drone(32, 0.06, 0.15, 32);
+
+  const awakeChords=[Em,C,G,Em, Am,C,Em,C];
+  const awakePads=[padEm,padC,padG,padEm, padAm,padC,padEm,padC];
+  for(let i=0;i<8;i++){
+    const v=0.08+i*0.01;
+    clean(awakeChords[i],beat,[2,3,4,-1,3,-1,-1,-1],v,3);
+    if(i%2===0)pad(awakePads[i],beat,0.04+i*0.005,7);
+    bass(awakeChords[i],beat,v*0.5,3.5);
+    birds(beat+1+random()*2, 0.12+i*0.01, 1+floor(i/3));
+    beat+=4;
+  }
+  E.push({beat:32,type:'wind',velocity:0.08});
+
+  beat=64;
+  // ════════════════════════════════════════════════════════════
+  // MORNING (64-111): C/Ω growing — exp(C/Ω) becomes audible
+  // ════════════════════════════════════════════════════════════
+  // CRR state: C accumulating steadily. exp(C/Ω) > 1 and growing.
+  // TREMOLO ENTERS at beat 72 — this IS exp(C/Ω) becoming audible.
+  // The amplitude modulation rate increases (5→7.4 Hz) = memory
+  // amplification accelerating as coherence builds toward Ω.
+  // Deep bass enters = harmonic field deepening (more history integrated).
+  // Birds increasingly active = more Z₂ agents, collective C building.
+  // This section establishes themes that REGENERATION will recall —
+  // these chord progressions are the "coherence peaks" that exp(C/Ω)
+  // will weight most heavily in the memory function later.
+  section(64,'taking flight');
+  drone(64, 0.12, 0.35, 48);
+
+  const mornChords=[Em,C,G,D, Am,C,Em7,G, Em,Cmaj7,G,D];
+  const mornPads=[padEm,padC,padG,padD, padAm,padC,padEm,padG, padEm,padC,padG,padD];
+  for(let i=0;i<12;i++){
+    const grow=0.12+i*0.015;
+    // Tremolo guitar enters and builds
+    if(i>=2){
+      trem(mornChords[i],beat,grow*0.6,5,5+i*0.2);
+    }else{
+      clean(mornChords[i],beat,[2,4,3,5,4,-1,3,-1],grow*0.9,2);
+    }
+    bass(mornChords[i],beat,grow*0.8,3.5);
+    if(i>=4)deepBass(mornChords[i],beat,grow,3.8);
+    if(i%2===0)pad(mornPads[i],beat,0.06+i*0.004,7);
+    // Birds getting more active
+    birds(beat+random()*3, 0.15+i*0.01, 2+floor(i/4));
+    if(i>6&&i%2===0)birds(beat+2, 0.12, 3);
+    beat+=4;
+  }
+  E.push({beat:64,type:'wind',velocity:0.1});
+
+  beat=112;
+  // ════════════════════════════════════════════════════════════
+  // ASCENT (112-159): C approaching Ω — exp(C/Ω) near maximum
+  // ════════════════════════════════════════════════════════════
+  // CRR state: C/Ω → 1. System approaching rupture threshold.
+  // MULTIPLE TREMOLO LAYERS = exp(C/Ω) stacking exponentially.
+  //   First layer rate 6→7.8 Hz (accelerating toward δ).
+  //   Second layer (octave up, beat 144+) = overtone amplification.
+  // This IS the "wall of sound" — coherence saturating every
+  // available degree of freedom before it must rupture.
+  // Rain begins as sprinkles (beat 145) = weather CRR approaching Ω.
+  // Wind rises = atmospheric tension = system seeking its threshold.
+  // Birds at maximum density = collective CRR at peak coordination.
+  section(112,'walls of sound');
+  drone(112, 0.2, 0.65, 48);
+
+  const ascChords=[Em,C,G,Am, Em,C,G,D, Am,Bm,C,D];
+  const ascPads=[padEm,padC,padG,padAm, padEm,padC,padG,padD, padAm,padBm,padC,padD];
+  for(let i=0;i<12;i++){
+    const grow=0.25+i*0.025;
+    // Multi-layered tremolo
+    trem(ascChords[i],beat,grow*0.7,5.5,6+i*0.15);
+    // Second tremolo layer, octave up
+    if(i>=4){
+      const ch2=ascChords[i].map(m=>m+12);
+      trem(ch2,beat+0.1,grow*0.3,4.5,7);
+    }
+    bass(ascChords[i],beat,grow*0.9,3.5);
+    deepBass(ascChords[i],beat,grow*0.7,4);
+    pad(ascPads[i],beat,0.08+i*0.006,7);
+    // Flock dense and active
+    birds(beat+random()*2, 0.18+i*0.008, 3+floor(i/3));
+    if(i%3===0)birds(beat+1, 0.15, 4);
+    // Pre-rain tension: wind rises in late ASCENT, first drops
+    if(i>=8){
+      rain(beat, 0.02+((i-8)/4)*0.06); // Sprinkles begin
+      E.push({beat:beat,type:'wind',velocity:0.1+((i-8)/4)*0.06});
+    }
+    beat+=4;
+  }
+  // Wind building through ASCENT
+  E.push({beat:112,type:'wind',velocity:0.06});
+  E.push({beat:140,type:'wind',velocity:0.12});
+
+  beat=160;
+  // ════════════════════════════════════════════════════════════
+  // RAIN (160-191): C ≈ Ω — maximum tension, rupture imminent
+  // ════════════════════════════════════════════════════════════
+  // CRR state: Coherence at threshold. The system MUST rupture.
+  // Rain intensifies 0.1→0.66 = CRR pattern engine at high coherence
+  //   (drops tightly patterned, harmonic clusters emerging).
+  // The chord progression darkens (Am→F→Em→Bm) = harmonic tension
+  //   mirroring the system straining at its Ω boundary.
+  // Musical rain drops become denser = CRR dropsPerSec scaling with
+  //   intensity² (nonlinear, like coherence acceleration near Ω).
+  // Wind peaks = atmospheric CRR approaching its own rupture.
+  // The entire scene is a coiled spring — maximum C, minimum
+  //   distance to δ. Everything waits for the falcon.
+  section(160,'the storm');
+  drone(160, 0.15, 0.5, 32);
+  // Rain starts light, builds to torrent
+  rain(160, 0.1);
+
+  const rainChords=[Am,F,C,Em, Am7,F,Em,Bm];
+  for(let i=0;i<8;i++){
+    const v=0.35-i*0.005;
+    const rainBuild=0.1+i*0.08; // 0.1 → 0.66 gradual build
+    trem(rainChords[i],beat,v*0.65,5,7+i*0.2);
+    bass(rainChords[i],beat,v*0.8,3.5);
+    deepBass(rainChords[i],beat,v*0.6,4);
+    pad([rainChords[i][2],rainChords[i][3],rainChords[i][4]],beat,0.1,7);
+    rain(beat, rainBuild);
+    // Raindrops as percussion — more as storm builds
+    for(let r=0;r<min(6,1+i);r++){E.push({beat:beat+r*0.7,type:'raindrop'})}
+    // Birds seeking shelter
+    if(i<5)birds(beat+2, 0.1-i*0.01, 2);
+    // Wind intensifies
+    if(i%2===0)E.push({beat:beat,type:'wind',velocity:0.15+i*0.02});
+    beat+=4;
+  }
+  E.push({beat:160,type:'wind',velocity:0.15});
+
+  beat=192;
+  // ════════════════════════════════════════════════════════════
+  // RUPTURE (192-207): δ(now) — The scale-free choice-moment
+  // ════════════════════════════════════════════════════════════
+  // CRR state: δ fires. C ≥ Ω. Everything ruptures simultaneously.
+  //
+  // The falcon cry IS δ(now) — the predator's dive triggers:
+  //   1. Flock CRR rupture → birds scatter (collective C shatters)
+  //   2. Em chord crash across ALL octaves = harmonic rupture
+  //      (every frequency present = Dirac delta in frequency domain)
+  //   3. Rain at 0.75 peak = weather CRR at maximum
+  //   4. Tremolo rate 9-10Hz = exp(C/Ω) at maximum before collapse
+  //   5. Deep bass + high octave tremolo = full spectral saturation
+  //
+  // This is the mathematical δ(now) = scale-free choice-moment
+  // where the past is metabolised into the future. The falcon
+  // doesn't cause the rupture — it IS the rupture, the moment
+  // where accumulated coherence exceeds what the system can hold.
+  //
+  // RAINBOW EMERGES AT BEAT 200 (during peak rain) — this is
+  // the key dramatic choice: R begins DURING δ, not after it.
+  // Light breaking through the heaviest storm = regeneration
+  // beginning even as rupture is still unfolding. CRR phases
+  // OVERLAP — they are not discrete sequential states.
+  section(192,'δ(now)');
+  falcon(192, 0.9);
+  // Massive chord crash
+  for(const m of Em)E.push({beat:192,midi:m,velocity:0.5,duration:8,type:'tremolo',rate:9});
+  for(const m of Em.map(n=>n+12))E.push({beat:192,midi:m,velocity:0.3,duration:6,type:'tremolo',rate:10});
+  deepBass(Em,192,0.6,8);
+  bass(Em,192,0.5,8);
+  // Scattered bird cries
+  birds(192.5, 0.25, 8);
+  birds(193, 0.2, 6);
+  birds(194, 0.18, 4);
+  // Rain at absolute peak
+  rain(192, 0.75);
+  E.push({beat:192,type:'wind',velocity:0.28});
+  // Heavy raindrops
+  for(let r=0;r<8;r++)E.push({beat:192+r*0.5,type:'raindrop'});
+  // Guitar feedback-like sustain — fading as rainbow emerges
+  for(let i=0;i<4;i++){
+    trem(Em,192+i*4,(0.4-i*0.1),6-i,8);
+    rain(192+i*4, 0.75-i*0.12);
+    if(i<3){for(let r=0;r<4;r++)E.push({beat:192+i*4+r,type:'raindrop'})}
+  }
+  // Rainbow choir begins to emerge through the rain at beat 200
+  // (light breaking through storm — the most dramatic moment)
+  rainbow(200, 0.15, 6);
+  E.push({beat:200,type:'choirBuild',gain:0.35,duration:14});
+  rain(204, 0.3);
+  beat=208;
+  // ════════════════════════════════════════════════════════════
+  // RAINBOW (208-239): R(memory) begins — spectral regeneration
+  // ════════════════════════════════════════════════════════════
+  // CRR state: Regeneration R = ∫φ·exp(C/Ω)·Θ dτ
+  //
+  // The rainbow IS regeneration made visible and audible:
+  //   White light (unified coherence) → prism (δ rupture) →
+  //   separated spectrum (R reconstructing from memories).
+  //   Each colour/voice = a different frequency component of the
+  //   original coherence, now individually accessible.
+  //
+  // Choir builds voice by voice = light separating through prism.
+  //   Red first (lowest, most persistent) → Violet last (highest).
+  //   This IS exp(C/Ω) weighting: low frequencies (high C/Ω,
+  //   strong memory) emerge first; high frequencies (low C/Ω,
+  //   weaker memory) emerge last.
+  //
+  // Vowel morph Mm→Oo→Ah→Eh→Ah = the CRR cycle as vocal gesture:
+  //   Mm (humming)  = closed, potential, pre-coherence
+  //   Oo (dark)     = early coherence
+  //   Ah (open)     = peak C/Ω (maximum resonance)
+  //   Eh (bright)   = approaching new threshold
+  //   Ah (return)   = regenerative memory of fullness
+  //
+  // Guitar softens (velocity 0.15→0.02) = coherence energy
+  //   transferring from mechanical (guitar) to spectral (choir).
+  // Rain fading through rainbow = weather CRR entering regeneration.
+  section(208,'spectral light');
+  drone(208, 0.18, 0.7, 32);
+  // Choir swells to full (already building since beat 200)
+  rainbow(208, 0.45, 8); // Strong choir presence
+  rain(208, 0.2); // Rain still present but softening
+
+  const rbChords=[C,G,Am,Em, C,G,D,Em];
+  const rbPads=[padC,padG,padAm,padEm, padC,padG,padD,padEm];
+  // Vowel morph sequence: Mm→Oo→Ah→Eh→Ah (closed→open→bright→open = CRR)
+  E.push({beat:210,type:'choirMorph',vowels:['Mm','Oo','Ah','Eh','Ah'],duration:26});
+  for(let i=0;i<8;i++){
+    const v=0.15+i*0.012;
+    // Ethereal clean arpeggios
+    clean(rbChords[i],beat,[3,4,5,4,3,5,4,-1],v*0.8,3);
+    if(i>=3)trem(rbChords[i],beat,v*0.35,5,4);
+    bass(rbChords[i],beat,v*0.5,3.5);
+    pad(rbPads[i],beat,0.1+i*0.005,7);
+    rainbow(beat, 0.4+i*0.015, 4); // Strong sustained choir
+    // Birds reforming — singing together
+    birds(beat+1, 0.14+i*0.005, 2+floor(i/3));
+    rain(beat, max(0, 0.15-i*0.02)); // Rain fading through section
+    beat+=4;
+  }
+  E.push({beat:208,type:'wind',velocity:0.08});
+
+  beat=240;
+  // ════════════════════════════════════════════════════════════
+  // REGENERATION (240-279): R(memory) — exp(C/Ω) weighted recall
+  // ════════════════════════════════════════════════════════════
+  // CRR state: R = ∫φ(x,τ)·exp(C(x,τ)/Ω)·Θ(...)dτ
+  //
+  // This section IS the regeneration integral made musical.
+  // The chord progression (Em→C→G→Em→Am→C→G→D→Em→C) REPLAYS
+  // the MORNING themes — but weighted by exp(C/Ω). Only the
+  // highest-coherence moments are recalled:
+  //   - Morning's chord roots return, but dynamics fade (0.22→0.1)
+  //   - Tremolo only in first 6 bars, then clean only = memory dimming
+  //   - Velocities decrease = exp(C/Ω) weighting decaying as
+  //     regeneration integrates further from the rupture point
+  //
+  // CHOIR DISSOLUTION begins here: vowels close Ah→Oh→Oo→Mm
+  //   = the "mouth closing" = coherence field narrowing as
+  //   regeneration completes. Spectrum recombining toward unity.
+  //   Gain steps down (0.18→0.12→0.06→0.03) = R integral
+  //   approaching its final value as the reconstruction completes.
+  //
+  // birdPhase='roosting' begins (beat 275) — birds returning
+  //   to tree = individual agents re-entering their perch states,
+  //   the biological equivalent of regeneration completing.
+  section(240,'R(memory)');
+  drone(240, 0.12, 0.55, 40);
+  // Choir begins closing: Ah → Oh → Oo → Mm (mouth closing, light recombining)
+  rainbow(240, 0.18, 10);
+  E.push({beat:240,type:'choirMorph',vowels:['Ah','Oh','Oo','Mm'],duration:30});
+  // Gentle fade through regeneration
+  rainbow(250, 0.12, 8);
+  rainbow(260, 0.06, 10);
+  rainbow(270, 0.03, 10);
+
+  const regenChords=[Em,C,G,Em, Am,C,G,D, Em,C];
+  const regenPads=[padEm,padC,padG,padEm, padAm,padC,padG,padD, padEm,padC];
+  for(let i=0;i<10;i++){
+    const fade=0.22-i*0.012;
+    if(i<6)trem(regenChords[i],beat,fade*0.5,5,5);
+    clean(regenChords[i],beat,[2,4,3,-1,5,-1,4,-1],fade*0.7,2.5);
+    bass(regenChords[i],beat,fade*0.6,3.5);
+    if(i%2===0)pad(regenPads[i],beat,0.06,7);
+    birds(beat+1+random()*2, 0.1+random()*0.05, 1+floor(random()*2));
+    beat+=4;
+  }
+  E.push({beat:240,type:'wind',velocity:0.06});
+
+  beat=280;
+  // ════════════════════════════════════════════════════════════
+  // DUSK (280-311): R → 0 — Cycle complete, return to silence
+  // ════════════════════════════════════════════════════════════
+  // CRR state: R decaying toward 0. The regeneration integral
+  // has been evaluated; the system returns to pre-coherence.
+  //
+  // CHOIR DISSOLVES voice by voice (beat 278): reverse prism.
+  //   Violet→Indigo→Blue→Green→Yellow→Orange fade in order,
+  //   until only Red remains as a solitary hum — the last
+  //   colour of sunset, the lowest frequency, the most
+  //   persistent memory. Then silence.
+  //   This IS exp(C/Ω) selecting: as R→0, only the strongest
+  //   memory (lowest frequency = highest C/Ω) persists.
+  //
+  // Clean guitar returns (no tremolo) = exp(C/Ω) ≈ 1 again.
+  // Notes increasingly sparse = C approaching 0.
+  // Drone fades to 0.01 = SO(2) returning to baseline.
+  // Birds return to tree (birdPhase='settled') = organisms
+  //   completing their daily CRR cycle, re-entering sleep.
+  // Final beat 312: silence = C = 0, ready for next dawn.
+  //
+  // The piece IS one CRR cycle. Dawn will come again.
+  // ════════════════════════════════════════════════════════════
+  section(280,'return to earth');
+  drone(280, 0.04, 0.2, 32);
+  // Choir dissolves voice by voice — violet fades first, red lingers as final hum
+  E.push({beat:278,type:'choirDissolve',duration:30});
+
+  for(let i=0;i<8;i++){
+    const fade=0.12-i*0.012;
+    const ch=[Em,C,G,Em, Am,C,Em,Em][i];
+    clean(ch,beat,[2,4,-1,3,-1,-1,-1,-1],max(0.02,fade),4);
+    if(i<4)bass(ch,beat,fade*0.4,3.5);
+    if(i<2)pad([ch[2],ch[3],ch[4]],beat,0.03,7);
+    if(i<5)birds(beat+2, max(0.02, 0.08-i*0.015), 1);
+    beat+=4;
+  }
+  // Final drone fade
+  drone(308, 0.01, 0.05, 4);
+  E.push({beat:280,type:'wind',velocity:0.03});
+  E.push({beat:308,type:'wind',velocity:0.01});
+
+  E.sort((a,b)=>a.beat-b.beat);
+  return E;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §4  VISUAL SCENE — Canvas rendering
+// ═══════════════════════════════════════════════════════════════════
+//
+// Every visual element is driven by CRR state — nothing is static:
+//
+//   Sky gradient    = sun.agent CRR phase → colour temperature
+//   Sun glow        = SO(2) oscillation → pulsing luminosity
+//   Clouds          = weather.crr coherence → density and darkness
+//   Rain            = weather CRR intensity → drop count and speed
+//   Rainbow         = weather.rainbowVisible → arc opacity (R phase)
+//   Tree sway       = CRR-driven wind gusts → hierarchical branch motion
+//   Grass           = wind + time → blade oscillation
+//   Bird positions  = individual CRR + flock CRR → flight paths
+//   Predator        = hunt CRR → patrol/dive/recover animation
+//   Waveform        = audio analyser → real-time amplitude display
+//
+// The canvas IS the CRR state space made visible: every pixel
+// responds to the mathematical state of one or more CRR agents.
+const canvas=document.getElementById('viz');
+const ctx=canvas.getContext('2d');
+let W,H;
+
+// Fast trig
+const TN=512;
+const ST=new Float32Array(TN),CT=new Float32Array(TN);
+for(let i=0;i<TN;i++){const a=i/TN*PI2;ST[i]=sin(a);CT[i]=cos(a)}
+const fsin=a=>ST[((a%PI2+PI2)%PI2)/PI2*TN|0];
+const fcos=a=>CT[((a%PI2+PI2)%PI2)/PI2*TN|0];
+const lerp=(a,b,t)=>a+(b-a)*t;
+const clamp=(v,a,b)=>max(a,min(b,v));
+
+let simTime=0;
+
+// Spatial hash
+const CELL=45;
+let hash={};
+const hkey=(x,y)=>((x/CELL|0)*10000+(y/CELL|0));
+function buildHash(birds){
+  hash={};
+  for(let i=0;i<birds.length;i++){
+    const b=birds[i];if(b.st!==0)continue;
+    const k=hkey(b.x,b.y);(hash[k]||(hash[k]=[])).push(i);
+  }
+}
+function getCandidates(x,y){
+  const r=[],cx=x/CELL|0,cy=y/CELL|0;
+  for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){const k=(cx+dx)*10000+(cy+dy);if(hash[k])r.push(...hash[k])}
+  return r;
+}
+
+// ── ATMOSPHERE ──
+// CRR: Sky colour IS the sun's CRR phase visualised as a gradient.
+// High sun phase (C building) = warm blues and golds.
+// Rain intensity modulates darkness = weather CRR state darkening the scene.
+// The entire sky IS a heat map of coherence: warm = high C, cool = low C.
+function drawAtmosphere(sunPhase,rainI){
+  const t=sunPhase;
+  const nightTop={r:12,g:15,b:30},nightMid={r:20,g:25,b:45},nightHor={r:35,g:30,b:50};
+  const dawnTop={r:55,g:45,b:75},dawnMid={r:180,g:100,b:70},dawnHor={r:255,g:150,b:60};
+  const dayTop={r:85,g:130,b:190},dayMid={r:150,g:175,b:210},dayHor={r:220,g:200,b:180};
+  const rainTop={r:60,g:70,b:85},rainMid={r:90,g:100,b:115},rainHor={r:130,g:135,b:145};
+  const lc=(a,b,t)=>({r:lerp(a.r,b.r,t),g:lerp(a.g,b.g,t),b:lerp(a.b,b.b,t)});
+  let bT,bM,bH;
+  if(t<0.3){const p=t/0.3,s=p*p*(3-2*p);bT=lc(nightTop,dawnTop,s);bM=lc(nightMid,dawnMid,s);bH=lc(nightHor,dawnHor,s)}
+  else{const p=(t-0.3)/0.7,s=p*p*(3-2*p);bT=lc(dawnTop,dayTop,s);bM=lc(dawnMid,dayMid,s);bH=lc(dawnHor,dayHor,s)}
+  const top=lc(bT,rainTop,rainI*0.7),mid=lc(bM,rainMid,rainI*0.7),hor=lc(bH,rainHor,rainI*0.7);
+  const g=ctx.createLinearGradient(0,0,0,H*0.88);
+  g.addColorStop(0,`rgb(${top.r|0},${top.g|0},${top.b|0})`);
+  g.addColorStop(0.35,`rgb(${mid.r|0},${mid.g|0},${mid.b|0})`);
+  g.addColorStop(0.7,`rgb(${hor.r|0},${hor.g|0},${hor.b|0})`);
+  g.addColorStop(1,`rgb(${hor.r*.9|0},${hor.g*.85|0},${hor.b*.8|0})`);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+}
+
+// ── SUN ──
+// CRR: Sun y-position = SO(2) agent phase mapped to arc trajectory.
+// Glow radius oscillates with sun.agent.expCO = exp(C/Ω) pulsing.
+// Corona rays rotate at SO(2) rate = continuous CRR, never rupturing.
+// Sun colour warms (white→gold→amber) as sunPhase increases.
+function drawSun(sunPhase,rainI){
+  const cx=W*(0.48+fsin(sunPhase*0.3)*0.02);
+  const cy=H*(0.88-sunPhase*0.45);
+  const r=H*0.1;
+  const dim=1-rainI*0.4;
+  const int=(0.7+sunPhase*0.3)*dim;
+  // Glow
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(let i=3;i>=0;i--){
+    const gr=ctx.createRadialGradient(cx,cy,r*0.5,cx,cy,r*(2+i*2));
+    const a=0.04*int/(i+1);
+    gr.addColorStop(0,`rgba(255,220,160,${a})`);
+    gr.addColorStop(0.3,`rgba(255,180,100,${a*0.5})`);
+    gr.addColorStop(1,'transparent');
+    ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+  }
+  // Core
+  const cg=ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+  cg.addColorStop(0,`rgba(255,250,230,${0.95*int})`);
+  cg.addColorStop(0.4,`rgba(255,220,150,${0.6*int})`);
+  cg.addColorStop(0.8,`rgba(255,160,80,${0.2*int})`);
+  cg.addColorStop(1,'transparent');
+  ctx.fillStyle=cg;ctx.beginPath();ctx.arc(cx,cy,r,0,PI2);ctx.fill();
+  // Rays
+  if(sunPhase>0.05){
+    for(let i=0;i<16;i++){
+      const a=i/16*PI2+simTime*0.02;
+      const pulse=0.8+0.2*fsin(simTime*0.3+i);
+      const rLen=r*(2+fsin(simTime*0.1+i*0.7)*0.5)*pulse;
+      const alpha=0.008*int*pulse;
+      if(alpha<0.002)continue;
+      const ex=cx+cos(a)*rLen,ey=cy+sin(a)*rLen;
+      const rg=ctx.createLinearGradient(cx,cy,ex,ey);
+      rg.addColorStop(0,`rgba(255,200,120,${alpha})`);
+      rg.addColorStop(0.5,`rgba(255,160,80,${alpha*0.3})`);
+      rg.addColorStop(1,'transparent');
+      ctx.fillStyle=rg;ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.lineTo(ex+cos(a-PI/2)*r*0.03,ey+sin(a-PI/2)*r*0.03);
+      ctx.lineTo(ex+cos(a+PI/2)*r*0.03,ey+sin(a+PI/2)*r*0.03);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+  return{cx,cy};
+}
+
+// ── CLOUDS ──
+// CRR: Cloud opacity and darkness = weather.crr coherence level.
+// More rain intensity → darker clouds → approaching weather rupture.
+// Clouds drift on sinusoidal paths = slow coherence oscillation.
+let clouds=[];
+function initClouds(){
+  clouds=[];
+  const cfgs=[{x:.15,y:.1,s:.12},{x:.45,y:.06,s:.09},{x:.72,y:.12,s:.14},{x:.3,y:.17,s:.07},{x:.88,y:.14,s:.08}];
+  for(const c of cfgs){
+    const pts=[];for(let i=0;i<8;i++){const a=i/8*PI2;pts.push({x:cos(a)*(0.4+random()*0.3),y:sin(a)*(0.4+random()*0.3)*0.4})}
+    clouds.push({x:c.x,y:c.y,s:c.s,pts,spd:0.00003+random()*0.00003,baseOp:0.15+random()*0.1});
+  }
+}
+function drawClouds(sunPhase,rainI){
+  for(const c of clouds){
+    c.x+=c.spd*16;if(c.x>1.25)c.x=-0.25;
+    const op=c.baseOp*(0.5+sunPhase*0.5)*(1+rainI*1.2);
+    if(op<0.02)continue;
+    ctx.save();ctx.translate(W*c.x,H*c.y);ctx.scale(W*c.s,W*c.s);
+    ctx.beginPath();ctx.moveTo(c.pts[0].x,c.pts[0].y);
+    for(let i=1;i<=c.pts.length;i++){const p=c.pts[i-1],q=c.pts[i%c.pts.length];ctx.quadraticCurveTo(p.x,p.y,(p.x+q.x)/2,(p.y+q.y)/2)}
+    ctx.closePath();
+    const r=lerp(lerp(200,255,sunPhase),90,rainI)|0;
+    const g=lerp(lerp(180,250,sunPhase),95,rainI)|0;
+    const b=lerp(lerp(190,255,sunPhase),110,rainI)|0;
+    ctx.fillStyle=`rgba(${r},${g},${b},${op})`;ctx.fill();ctx.restore();
+  }
+}
+
+// ── RAINBOW ── Spectral arc = R(memory) made visible
+// CRR: The rainbow only appears during REGENERATION phase.
+// It IS regeneration — white light (unified C) separated by
+// rupture (prism/rain) into its spectral memories (colours).
+// Each colour band = a frequency component of original coherence.
+// Opacity tracks weather.rainbowVisible = R phase progress.
+// Inner glow = the exp(C/Ω) luminance of peak memory.
+function drawRainbow(sunX,sunY,visibility){
+  if(visibility<0.01)return;
+  const antiX=W*(1-sunX/W);const antiY=H*0.88+(H*0.88-sunY)*0.8;
+  const sz=max(W,H);const pR=sz*0.55;const bW=sz*0.06;
+  const colors=[[255,20,20],[255,140,0],[255,230,30],[30,220,30],[30,130,255],[90,0,160],[160,0,230]];
+  // Outer glow pass
+  ctx.save();ctx.globalCompositeOperation='screen';
+  for(let i=0;i<colors.length;i++){
+    const t=i/colors.length;const r=pR-t*bW;
+    const c=colors[i];
+    // Glow layer
+    ctx.beginPath();ctx.arc(antiX,antiY,r,PI*1.05,PI*1.95);
+    ctx.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},${visibility*0.08})`;
+    ctx.lineWidth=bW/colors.length*4;ctx.stroke();
+    // Core layer
+    ctx.beginPath();ctx.arc(antiX,antiY,r,PI*1.05,PI*1.95);
+    ctx.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},${visibility*0.18})`;
+    ctx.lineWidth=bW/colors.length*1.8;ctx.stroke();
+  }
+  // Inner white light
+  ctx.beginPath();ctx.arc(antiX,antiY,pR-bW*1.05,PI*1.08,PI*1.92);
+  ctx.strokeStyle=`rgba(255,255,255,${visibility*0.06})`;
+  ctx.lineWidth=bW*0.15;ctx.stroke();
+  ctx.restore();
+}
+
+// ── TREE ── Connected branches with propagating sway
+// CRR: Tree sway IS wind gusts as CRR cycles. Each gust:
+//   Wind coherence builds (branches lean) → gust peaks (δ) →
+//   branches swing back (R, damped oscillation).
+// HIERARCHICAL SWAY PROPAGATION mirrors CRR's scale-invariance:
+//   Trunk sways with low amplitude, long period (high Ω)
+//   Branches amplify parent sway (decreasing Ω, more responsive)
+//   Twigs oscillate fastest (lowest Ω, rapid micro-ruptures)
+// Each branch stores parent index — sway accumulates root→leaf,
+// exactly as C(x,t) = ∫L(x,τ)dτ accumulates through hierarchy.
+// Perched birds track branch sway = organisms coupled to substrate CRR.
+let treeBranches=[];let treePerches=[];let treeBase={x:0,y:0,h:0};
+function initTree(){
+  treeBranches=[];treePerches=[];
+  const bx=W*0.82,by=H*0.88,h=H*0.42;
+  treeBase={x:bx,y:by,h:h};
+  // Each branch stores parent index (-1=trunk root), and local endpoints relative to parent tip
+  // Drawing will accumulate sway from root→leaf so everything stays connected
+  let idx=0;
+  const add=(x1,y1,x2,y2,d,maxD,parentIdx)=>{
+    if(d>maxD)return;
+    const cx=(x1+x2)/2+(random()-0.5)*abs(y2-y1)*0.25;
+    const cy=(y1+y2)/2;
+    const myIdx=idx++;
+    treeBranches.push({x1,y1,x2,y2,cx,cy,d,parent:parentIdx,phase:random()*PI2,children:[]});
+    if(parentIdx>=0)treeBranches[parentIdx].children.push(myIdx);
+    // Perches on branches depth 1-6, more densely
+    if(d>=1&&d<=6){
+      const nPerch=d<=2?3:d<=4?4:2;
+      for(let t=0;t<nPerch;t++){
+        const frac=0.3+t*0.5/nPerch+(random()-0.5)*0.1;
+        const mt=1-frac;
+        const px=mt*mt*x1+2*mt*frac*cx+frac*frac*x2;
+        const py=mt*mt*y1+2*mt*frac*cy+frac*frac*y2;
+        treePerches.push({x:px+(random()-0.5)*3,y:py+(random()-0.5)*2,occ:false,branchIdx:myIdx});
+      }
+    }
+    // Also add perch at tip for outer branches
+    if(d>=3)treePerches.push({x:x2+(random()-0.5)*4,y:y2+(random()-0.5)*3,occ:false,branchIdx:myIdx});
+    // Branch
+    if(d<maxD){
+      const n=d<2?2+floor(random()*2):2;
+      const len=sqrt((x2-x1)**2+(y2-y1)**2)*(0.58+random()*0.12);
+      const baseA=atan2(y2-y1,x2-x1);
+      for(let s=-1;s<=1;s+=2){
+        const a=baseA+s*(0.25+random()*0.5);
+        add(x2,y2,x2+cos(a)*len,y2+sin(a)*len,d+1,maxD,myIdx);
+      }
+      if(d<3&&random()>0.4){
+        const a=baseA+(random()-0.5)*0.7;
+        add(x2,y2,x2+cos(a)*len*0.7,y2+sin(a)*len*0.7,d+1,maxD,myIdx);
+      }
+    }
+  };
+  // Trunk — 3 main ascending branches
+  const trunkTop=by-h*0.15;
+  [[-0.15,0.5],[0,0.58],[0.15,0.48]].forEach(([ao,lm])=>{
+    const a=-PI/2+ao;const len=h*lm;
+    add(bx,trunkTop,bx+cos(a)*len,trunkTop+sin(a)*len,0,7,-1);
+  });
+  // Side branches from trunk at different heights
+  for(let i=0;i<6;i++){
+    const ty=by-h*(0.1+i*0.13);
+    const side=i%2===0?-1:1;
+    const bl=h*(0.08+random()*0.1);
+    const a=-PI/2+side*(0.4+random()*0.5);
+    add(bx,ty,bx+cos(a)*bl,ty+sin(a)*bl,1,6,-1);
+  }
+}
+// Compute per-branch sway offsets (accumulated from root)
+let branchSwayCache=[];
+function computeTreeSway(){
+  branchSwayCache=new Array(treeBranches.length);
+  for(let i=0;i<treeBranches.length;i++){
+    const b=treeBranches[i];
+    const depthFactor=(7-b.d)/7;
+    const ownSway=fsin(simTime*0.2+b.phase+b.d*0.3)*0.0025*depthFactor;
+    let parentSway=0;
+    if(b.parent>=0&&branchSwayCache[b.parent]!==undefined){
+      parentSway=branchSwayCache[b.parent];
+    }
+    branchSwayCache[i]=parentSway+ownSway;
+  }
+  // Update perch positions with sway
+  for(const p of treePerches){
+    if(p.branchIdx>=0){
+      const sw=branchSwayCache[p.branchIdx]||0;
+      p.drawX=p.x+sw*60;p.drawY=p.y;
+    }
+  }
+}
+function drawTree(){
+  computeTreeSway();
+  ctx.lineCap='round';
+  // Draw trunk
+  const trunkSway=fsin(simTime*0.2)*0.001;
+  ctx.strokeStyle='rgba(10,8,6,0.95)';ctx.lineWidth=18;
+  ctx.beginPath();
+  ctx.moveTo(treeBase.x,treeBase.y+15);
+  ctx.quadraticCurveTo(treeBase.x+trunkSway*15,treeBase.y-treeBase.h*0.08,treeBase.x+trunkSway*30,treeBase.y-treeBase.h*0.15);
+  ctx.stroke();
+  // Group by depth and draw back-to-front
+  const byD={};for(let i=0;i<treeBranches.length;i++){const b=treeBranches[i];(byD[b.d]||(byD[b.d]=[])).push(i)}
+  for(const d in byD){
+    const idxs=byD[d],fade=pow(0.68,d),w=max(1.2,4.5*fade);
+    // Shadow pass
+    ctx.strokeStyle=`rgba(12,10,8,${0.55*fade})`;ctx.lineWidth=w*3.2;ctx.beginPath();
+    for(const i of idxs){
+      const b=treeBranches[i];
+      const parentSw=b.parent>=0?(branchSwayCache[b.parent]||0):trunkSway;
+      const mySw=branchSwayCache[i]||0;
+      ctx.moveTo(b.x1+parentSw*60,b.y1);
+      ctx.quadraticCurveTo(b.cx+(parentSw+mySw)*30,b.cy,b.x2+mySw*60,b.y2);
+    }
+    ctx.stroke();
+    // Main pass
+    ctx.strokeStyle=`rgba(18,15,12,${0.85*fade})`;ctx.lineWidth=w;ctx.beginPath();
+    for(const i of idxs){
+      const b=treeBranches[i];
+      const parentSw=b.parent>=0?(branchSwayCache[b.parent]||0):trunkSway;
+      const mySw=branchSwayCache[i]||0;
+      ctx.moveTo(b.x1+parentSw*60,b.y1);
+      ctx.quadraticCurveTo(b.cx+(parentSw+mySw)*30,b.cy,b.x2+mySw*60,b.y2);
+    }
+    ctx.stroke();
+  }
+}
+
+// ── GRASS ──
+// CRR: Each blade oscillates with wind + time = micro-CRR.
+// Phase offset per blade creates wave patterns across the field —
+// collective coherence emerging from individual oscillators,
+// analogous to the flock's emergent patterns from individual birds.
+let grassStems=[];
+function initGrass(){
+  grassStems=[];const gy=H*0.88;
+  for(let i=0;i<120;i++){
+    const x=(i/120)*W*1.1-W*0.05;
+    if(abs(x-W*0.82)<W*0.08)continue;
+    grassStems.push({x:x+(random()-0.5)*6,h:H*(0.02+random()*0.04),lean:(random()-0.5)*0.35,phase:random()*PI2,seed:random()>0.4});
+  }
+}
+function drawGrass(rainI){
+  const gy=H*0.88;
+  ctx.fillStyle='#080808';ctx.beginPath();ctx.moveTo(0,gy);
+  for(let x=0;x<=W;x+=15)ctx.lineTo(x,gy-fsin(x*0.01+simTime*0.05)*2.5-1);
+  ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
+  const rw=1+rainI*1.5;
+  ctx.strokeStyle='#0a0a0a';ctx.lineCap='round';
+  for(const s of grassStems){
+    const sw=fsin(simTime*0.9+s.phase)*0.01*rw;
+    const tx=s.x+s.lean*s.h+sw*W,ty=gy-s.h;
+    ctx.lineWidth=s.seed?1.1:0.7;ctx.beginPath();ctx.moveTo(s.x,gy);
+    ctx.quadraticCurveTo(s.x+s.lean*s.h*0.5+sw*W*0.6,(gy+ty)/2,tx,ty);ctx.stroke();
+  }
+}
+
+// ── RAIN ──
+// CRR: Visual raindrop count scales with weather.rainIntensity
+// = weather CRR coherence level. Each drop IS a micro-δ:
+// it falls (C accumulating as potential energy) → hits ground
+// (δ rupture, kinetic→splash) → dissipates (R regeneration).
+// Drop speed and density increase with intensity = approaching Ω.
+let raindrops=[];
+function updateRain(dt,intensity){
+  const spawn=intensity*20;
+  for(let i=0;i<spawn;i++){
+    if(random()<0.7)raindrops.push({x:random()*W*1.2-W*0.1,y:-10-random()*50,
+      vx:-15-random()*10,vy:200+random()*150,len:8+random()*12,alpha:0.15+random()*0.2});
+  }
+  for(let i=raindrops.length-1;i>=0;i--){
+    const d=raindrops[i];d.x+=d.vx*dt;d.y+=d.vy*dt;
+    if(d.y>H*0.88+10)raindrops.splice(i,1);
+  }
+  if(raindrops.length>800)raindrops.splice(0,raindrops.length-800);
+}
+function drawRain(intensity){
+  if(intensity<0.01)return;
+  ctx.lineWidth=1.5;ctx.lineCap='round';
+  for(const d of raindrops){
+    const a=atan2(d.vy,d.vx);
+    ctx.strokeStyle=`rgba(180,200,220,${intensity*0.35*d.alpha})`;
+    ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.x+cos(a)*d.len,d.y+sin(a)*d.len);ctx.stroke();
+  }
+}
+
+// ── BIRDS ──
+// CRR: The murmuration IS CRR at the collective scale.
+//
+// INDIVIDUAL BIRDS: Each has micro-CRR (Ω~0.08, lr=1.0).
+//   Low Ω = frequent micro-ruptures = rapid course corrections.
+//   This creates the characteristic "jittery" starling flight.
+//
+// COLLECTIVE FLOCK: flock.crr (Ω=0.6, lr=0.22) drives choreography.
+//   When flock CRR ruptures → murmuration changes shape:
+//   vortex → wave → pulse → tornado → split → ribbon → breathe
+//   Each move IS a new coherence regime. The flock doesn't "decide"
+//   to change — it ruptures when C ≥ Ω, and the new move emerges
+//   from regeneration (influenced by exp(C/Ω) memory of past moves).
+//
+// k=7 TOPOLOGY: Each bird tracks its 7 nearest neighbours.
+//   This number comes from empirical starling research (Ballerini et al.)
+//   and creates the correct density-independent correlation length.
+//   In CRR terms: k=7 is the bird's attention bandwidth for L(x,τ).
+//
+// LIFECYCLE (birdPhase state machine):
+//   sleep    (0-20)  = pre-coherence, zero C, on perch
+//   waking   (20-70) = C begins, staggered takeoff (wakeOrder)
+//   flying   (70-275)= full CRR dynamics, collective coherence
+//   roosting (275-308)= R phase, returning to tree, seeking perch
+//   settled  (308+)  = R=0, cycle complete, sleeping again
+let birds=[];
+const BIRD_COUNT=250;
+const K=7;
+const MOVES=['vortex','wave','split','breathe','ribbon','column','sweep','tornado'];
+let currentMove='vortex',moveDuration=5,moveTimer=0;
+let flockAngMom=0,flockTurnDir=null;
+
+function initBirds(){
+  birds=[];
+  // All birds start perched on the tree
+  for(let i=0;i<BIRD_COUNT;i++){
+    const perch=i<treePerches.length?treePerches[i]:null;
+    if(perch){
+      perch.occ=true;
+      birds.push({
+        x:perch.x, y:perch.y,
+        vx:0, vy:0, tvx:0, tvy:0,
+        size:1+random()*0.3, wph:random()*PI2, wsp:12+random()*5,
+        st:2, perch:perch, perchT:0, timer:0,
+        react:0.85+random()*0.3, angMom:0, localDensity:0,
+        crr:new CRR(0.06+random()*0.05,1),
+        wakeOrder:random(), // Stagger dawn wake-up
+        roosting:false
+      });
+    } else {
+      // Overflow birds perch near tree crown area
+      const tx=W*0.82+(random()-0.5)*40;
+      const ty=H*0.5+random()*80;
+      birds.push({
+        x:tx, y:ty,
+        vx:0, vy:0, tvx:0, tvy:0,
+        size:1+random()*0.3, wph:random()*PI2, wsp:12+random()*5,
+        st:2, perch:null, perchT:0, timer:0,
+        react:0.85+random()*0.3, angMom:0, localDensity:0,
+        crr:new CRR(0.06+random()*0.05,1),
+        wakeOrder:random(),
+        roosting:false
+      });
+    }
+  }
+}
+// Track composition phase for bird behavior
+let birdPhase='sleep'; // sleep, waking, flying, roosting, settled
+
+function updateBirds(dt,predX,predY,predHunt){
+  buildHash(birds);
+  // Flock CRR
+  WORLD.flock.crr.update(dt,0.5);
+  if(WORLD.flock.crr.st===1&&WORLD.flock.st===0){
+    // Rupture — new move
+    currentMove=MOVES[floor(random()*MOVES.length)];
+    moveTimer=0;moveDuration=4+random()*5;
+    const sign=random()>0.5?1:-1;
+    flockAngMom=sign*(1.5+random()*2);
+    flockTurnDir={x:cos(random()*PI2)*30,y:sin(random()*PI2)*20};
+  }
+  WORLD.flock.st=WORLD.flock.crr.st;
+  moveTimer+=dt;
+
+  // Choreo modifiers
+  const mt=min(1,moveTimer/moveDuration);
+  let cohMult=1,angM=0,sepMult=1;
+  if(currentMove==='vortex'){angM=2.5*(1-mt);cohMult=1.3}
+  else if(currentMove==='breathe'){cohMult=0.8+0.4*fsin(mt*PI2*2);sepMult=1+0.3*fsin(mt*PI2*2+PI)}
+  else if(currentMove==='wave'){angM=fsin(mt*PI2*3)*1.5}
+  else if(currentMove==='tornado'){angM=3*(1-mt);cohMult=1.8}
+  else if(currentMove==='sweep'){flockTurnDir={x:40*(mt<0.5?1:-1),y:0}}
+  else if(currentMove==='column'){flockTurnDir={x:0,y:-20}}
+  else if(currentMove==='ribbon'){angM=fsin(mt*PI2*2)*2;cohMult=1.2}
+
+  // Global flock center
+  let fcx=0,fcy=0,fc=0;
+  for(const b of birds)if(b.st===0){fcx+=b.x;fcy+=b.y;fc++}
+  if(fc>0){fcx/=fc;fcy/=fc}else{fcx=W*0.5;fcy=H*0.38}
+
+  const rainI=WORLD.weather.rainIntensity;
+
+  for(const b of birds){
+    b.timer+=dt;b.wph+=b.wsp*dt;
+    // PERCHED
+    if(b.st===2){
+      b.perchT+=dt;
+      // Follow tree sway if perched
+      if(b.perch&&b.perch.drawX!==undefined){b.x=b.perch.drawX;b.y=b.perch.drawY}
+      if(b.timer>0.4){b.timer=0;
+        // During sleep/settled phases, birds stay put
+        if(birdPhase==='sleep'||birdPhase==='settled')continue;
+        // During waking phase, birds leave based on wakeOrder
+        if(birdPhase==='waking'){
+          const wakeProgress=(musicBeat-20)/50; // beats 20-70 = gradual wake
+          if(b.wakeOrder>wakeProgress)continue; // not my turn yet
+          b.st=3;b.vy=-28-random()*18;b.vx=(random()-0.5)*25-12;
+          if(b.perch){b.perch.occ=false;b.perch=null}
+          continue;
+        }
+        // During roosting phase, birds stay perched once they land
+        if(birdPhase==='roosting'){continue}
+        // Normal flying phase
+        const predNear=predHunt<4&&sqrt((b.x-predX)**2+(b.y-predY)**2)<180;
+        const minRest=3+b.react*4;
+        const restless=b.perchT>minRest&&random()<0.03;
+        const rainStop=rainI<0.2&&b.perchT>2;
+        if(predNear||restless||rainStop||WORLD.flock.crr.st===1){
+          b.st=3;b.vy=-28-random()*18;b.vx=(random()-0.5)*25-12;
+          if(b.perch){b.perch.occ=false;b.perch=null}
+        }
+      }
+      continue;
+    }
+    b.crr.update(dt,b.st===0?1:0.3);
+    // TAKEOFF
+    if(b.st===3){b.vy-=40*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;if(b.timer>0.35)b.st=0;continue}
+    // LANDING
+    if(b.st===1){
+      if(!b.perch){b.st=0;continue}
+      const dx=b.perch.x-b.x,dy=b.perch.y-b.y,d=sqrt(dx*dx+dy*dy);
+      if(d<3){b.st=2;b.x=b.perch.x;b.y=b.perch.y;b.vx=b.vy=0;b.perchT=0}
+      else{const ls=min(d*2.5,60);b.vx=dx/d*ls;b.vy=dy/d*ls;b.x+=b.vx*dt;b.y+=b.vy*dt}
+      continue;
+    }
+    // FLYING — topological neighbors
+    const cands=getCandidates(b.x,b.y);
+    const neighbors=[];
+    for(const i of cands){const o=birds[i];if(o===b||o.st!==0)continue;
+      const dx=o.x-b.x,dy=o.y-b.y,d2=dx*dx+dy*dy;
+      if(d2<10000)neighbors.push({bird:o,d2,dx,dy,d:sqrt(d2)})}
+    neighbors.sort((a,c)=>a.d2-c.d2);
+    const kN=neighbors.slice(0,K);
+    b.localDensity=kN.length>0?K/(kN[kN.length-1]?.d||30):0;
+    let sx=0,sy=0,ax=0,ay=0,cx=0,cy=0,nc=0;
+    for(const n of kN){
+      const{bird:o,d,dx,dy}=n;
+      if(d<12*sepMult&&d>0){const f=(12*sepMult-d)/(12*sepMult)/(b.crr.omega*5);sx-=dx/d*f;sy-=dy/d*f}
+      ax+=o.vx;ay+=o.vy;cx+=o.x;cy+=o.y;nc++;
+    }
+    if(nc<4){b.tvx+=(fcx-b.x)*0.015*(4-nc);b.tvy+=(fcy-b.y)*0.015*(4-nc)}
+    if(nc>0){
+      const fm=min(WORLD.flock.crr.mem()/4,2);
+      b.tvx+=sx*1.6*b.react;b.tvy+=sy*1.6*b.react;
+      b.tvx+=(ax/nc-b.vx)*(0.14+fm*0.12)*b.react;b.tvy+=(ay/nc-b.vy)*(0.14+fm*0.12)*b.react;
+      b.tvx+=(cx/nc-b.x)*(0.035+fm*0.03)*b.react*cohMult;b.tvy+=(cy/nc-b.y)*(0.035+fm*0.03)*b.react*cohMult;
+      b.angMom=lerp(b.angMom,(nc>0?0:0)+angM*0.3,0.12);
+    }else{b.tvx+=(fcx-b.x)*0.05;b.tvy+=(fcy-b.y)*0.05}
+    if(abs(b.angMom)>0.01){const spd=sqrt(b.vx*b.vx+b.vy*b.vy);if(spd>5){b.tvx+=(-b.vy/spd)*b.angMom*0.8;b.tvy+=(b.vx/spd)*b.angMom*0.8}}
+    if(flockTurnDir&&WORLD.flock.crr.st>0){b.tvx+=flockTurnDir.x*0.02;b.tvy+=flockTurnDir.y*0.02}
+    // Predator avoidance
+    if(predHunt>0&&predHunt<4){const pdx=b.x-predX,pdy=b.y-predY,pd=sqrt(pdx*pdx+pdy*pdy);
+      if(pd<200&&pd>0){const f=3*(200-pd)/200;b.tvx+=pdx/pd*f;b.tvy+=pdy/pd*f}}
+    // Attractor
+    const atX=W*0.4+fsin(simTime*0.15)*W*0.15,atY=H*0.35+fsin(simTime*0.12+1)*H*0.08;
+    b.tvx+=(atX-b.x)*0.002;b.tvy+=(atY-b.y)*0.002;
+    // Smooth
+    b.vx=lerp(b.vx,b.tvx,min(1,dt*6));b.vy=lerp(b.vy,b.tvy,min(1,dt*6));
+    b.tvx=b.vx;b.tvy=b.vy;b.angMom*=0.98;
+    // Boundaries
+    const m=0.08,bf=8;
+    if(b.x<W*m)b.vx+=bf*(1-b.x/(W*m));if(b.x>W*(1-m))b.vx-=bf*(1-(W-b.x)/(W*m));
+    if(b.y<H*m)b.vy+=bf*(1-b.y/(H*m));if(b.y>H*0.75)b.vy-=bf*(1-(H*0.88-b.y)/(H*0.13));
+    const spd=sqrt(b.vx*b.vx+b.vy*b.vy);
+    if(spd>75){b.vx=b.vx/spd*75;b.vy=b.vy/spd*75}else if(spd<18&&spd>0){b.vx=b.vx/spd*18;b.vy=b.vy/spd*18}
+    b.x+=b.vx*dt;b.y+=b.vy*dt;
+    // Perching
+    const nearTree=b.x>W*0.6;const vNear=b.x>W*0.72&&b.y>H*0.45;
+    let pc=0;
+    if(birdPhase==='roosting'){
+      // Strong roost drive — all birds head for tree
+      pc=0.02; // Very high perching probability
+      // Also steer toward tree
+      const dx=W*0.82-b.x,dy=H*0.6-b.y;
+      const d=sqrt(dx*dx+dy*dy);
+      if(d>30){b.vx+=dx/d*15*dt;b.vy+=dy/d*12*dt}
+      if(vNear)pc=0.06;
+    } else {
+      if(vNear){pc=rainI>0.4?0.004:0.001}else if(nearTree&&rainI>0.4){pc=0.0015}
+    }
+    if(random()<pc){
+      let best=null,bestD=birdPhase==='roosting'?250:vNear?80:120;
+      for(const p of treePerches){if(p.occ)continue;const d=sqrt((b.x-p.x)**2+(b.y-p.y)**2);if(d<bestD){bestD=d;best=p}}
+      if(best){b.st=1;b.perch=best;best.occ=true;b.timer=0;b.roosting=birdPhase==='roosting'}
+    }
+  }
+}
+
+function drawBirds(){
+  ctx.fillStyle='rgba(18,18,24,0.9)';
+  for(const b of birds){
+    if(b.st===2){
+      ctx.save();ctx.translate(b.x,b.y);
+      ctx.beginPath();ctx.ellipse(0,0,b.size*1.1,b.size*0.9,0,0,PI2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(b.size*0.2,0,b.size*0.8,b.size*0.5,0.2,0,PI2);ctx.fill();
+      ctx.restore();continue;
+    }
+    const angle=atan2(b.vy,b.vx);
+    let flapMult=b.st===3?1.4:b.st===1?0.7:1;
+    const flap=fsin(b.wph*flapMult)*0.45;
+    ctx.save();ctx.translate(b.x,b.y);ctx.rotate(angle);
+    const spd=sqrt(b.vx*b.vx+b.vy*b.vy);const stretch=1+min(spd/120,0.35);
+    ctx.beginPath();ctx.ellipse(0,0,b.size*1.35*stretch,b.size*0.5,0,0,PI2);ctx.fill();
+    const ws=b.size*2.6,wL=0.42+flap*0.38;
+    ctx.beginPath();
+    ctx.moveTo(-b.size*0.25,0);
+    ctx.quadraticCurveTo(-b.size*0.05,-ws*wL*0.55,b.size*0.35,-ws*wL);
+    ctx.quadraticCurveTo(b.size*0.18,-ws*wL*0.25,b.size*0.12,0);
+    ctx.quadraticCurveTo(b.size*0.18,ws*wL*0.25,b.size*0.35,ws*wL);
+    ctx.quadraticCurveTo(-b.size*0.05,ws*wL*0.55,-b.size*0.25,0);
+    ctx.fill();ctx.restore();
+  }
+}
+
+// ── PREDATOR ──
+// CRR: The falcon embodies δ(now) — the rupture operator.
+// TWO NESTED CRR AGENTS:
+//   Patrol CRR (Ω=0.4, lr=0.12): soar→turn→soar cycle.
+//     Coherence = straight-line soaring. Rupture = banking turn.
+//     Regeneration = stabilising after turn.
+//   Hunt CRR (Ω=0.4, lr=0.08): stalk→dive→recover.
+//     Coherence = tracking prey (C building as distance closes).
+//     Rupture = THE DIVE (δ fires = the falcon strikes).
+//     Regeneration = pull-up and recovery after stoop.
+//
+// The falcon's presence causes flock CRR to accelerate —
+// proximity to predator increases the flock's attention L,
+// driving collective coherence faster toward its own rupture
+// (the murmuration's evasive shape-change).
+// In the composition, the falcon cry at beat 192 IS the macro δ.
+let pred={x:0,y:0,vx:15,vy:0,huntPhase:0,wingPhase:0,size:3.5,wingSpan:12,bank:0,
+  crr:new CRR(0.4,0.12),huntCRR:new CRR(0.4,0.08),patrolR:200,patrolX:0,patrolY:0,flightTimer:0};
+function initPred(){pred.x=W*0.3;pred.y=H*0.2;pred.patrolX=W*0.3;pred.patrolY=H*0.2}
+function updatePred(dt){
+  pred.crr.update(dt,0.5);pred.wingPhase+=4*dt*(0.5+pred.crr.smoothAmp*0.3);
+  pred.flightTimer+=dt;
+  if(pred.huntPhase===0){
+    pred.huntCRR.update(dt,0.3);
+    const pa=simTime*0.3;
+    const tx=pred.patrolX+cos(pa)*pred.patrolR,ty=pred.patrolY+sin(pa)*pred.patrolR*0.4;
+    pred.vx=lerp(pred.vx,(tx-pred.x)*0.5,dt*2);pred.vy=lerp(pred.vy,(ty-pred.y)*0.5,dt*2);
+    // Find nearest flying bird
+    let nearD=Infinity,nearB=null;
+    for(const b of birds){if(b.st===0){const d=sqrt((b.x-pred.x)**2+(b.y-pred.y)**2);if(d<nearD){nearD=d;nearB=b}}}
+    if(nearB&&nearD<400&&pred.huntCRR.C>pred.huntCRR.omega*0.3){pred.huntPhase=1;pred.target=nearB}
+    if(pred.flightTimer>20){pred.huntPhase=0;pred.flightTimer=0;pred.x=W*0.3;pred.y=H*0.15}
+  }else if(pred.huntPhase===1){
+    pred.huntCRR.update(dt,1.5);
+    if(pred.target&&pred.target.st===0){
+      const dx=pred.target.x-pred.x,dy=pred.target.y-pred.y,d=sqrt(dx*dx+dy*dy);
+      const circOff=(1-pred.huntCRR.smoothAmp)*0.8;
+      const a=atan2(dy,dx)+sin(simTime*3)*circOff;
+      const spd=40+pred.huntCRR.smoothAmp*30;
+      pred.vx=lerp(pred.vx,cos(a)*spd,dt*3);pred.vy=lerp(pred.vy,sin(a)*spd,dt*3);
+      if(d<150)WORLD.flock.crr.rupture();
+      if(pred.huntCRR.st===1){pred.huntPhase=2}
+      if(d>500){pred.huntPhase=0;pred.target=null}
+    }else{pred.huntPhase=0;pred.target=null}
+  }else if(pred.huntPhase===2){
+    pred.huntCRR.update(dt,0.3);
+    if(pred.target){
+      const dx=pred.target.x-pred.x,dy=pred.target.y-pred.y,d=sqrt(dx*dx+dy*dy);
+      const spd=120+pred.huntCRR.smoothAmp*60;
+      const a=atan2(dy,dx);pred.vx=cos(a)*spd;pred.vy=sin(a)*spd;
+      if(d<25||pred.huntCRR.st===2){pred.huntPhase=3;pred.target=null}
+    }else{pred.huntPhase=3}
+  }else if(pred.huntPhase===3){
+    pred.vx*=0.95;pred.vy=lerp(pred.vy,-20,dt*2);
+    if(pred.flightTimer>0.5){pred.flightTimer=0;pred.huntPhase=0}
+  }
+  pred.x+=pred.vx*dt;pred.y+=pred.vy*dt;
+  pred.bank=lerp(pred.bank,clamp(pred.vx*0.01,-0.5,0.5),dt*5);
+  // Keep in bounds
+  if(pred.x<50)pred.vx+=3;if(pred.x>W-50)pred.vx-=3;
+  if(pred.y<30)pred.vy+=3;if(pred.y>H*0.8)pred.vy-=3;
+}
+function drawPred(){
+  ctx.save();ctx.translate(pred.x,pred.y);ctx.rotate(atan2(pred.vy,pred.vx));
+  ctx.scale(1,1-abs(pred.bank)*0.3);
+  const spd=sqrt(pred.vx*pred.vx+pred.vy*pred.vy);
+  const stretch=min(spd/60,1.8);
+  const flap=fsin(pred.wingPhase)*0.4*(1-pred.huntCRR.smoothAmp*0.5);
+  ctx.fillStyle='rgba(15,12,18,0.92)';
+  ctx.beginPath();ctx.ellipse(0,0,pred.size*stretch*1.2,pred.size*0.5,0,0,PI2);ctx.fill();
+  const ws=pred.wingSpan;
+  ctx.beginPath();ctx.moveTo(-pred.size*0.3,0);
+  ctx.quadraticCurveTo(-pred.size*0.5,-ws*0.4*(1+flap),-pred.size*0.3,-ws*(0.8+flap*0.15));
+  ctx.quadraticCurveTo(pred.size*0.3,-ws*0.3*(1+flap),pred.size*0.4,0);
+  ctx.quadraticCurveTo(pred.size*0.3,ws*0.3*(1+flap),-pred.size*0.3,ws*(0.8+flap*0.15));
+  ctx.quadraticCurveTo(-pred.size*0.5,ws*0.4*(1+flap),-pred.size*0.3,0);
+  ctx.fill();
+  // Tail
+  ctx.beginPath();ctx.moveTo(-pred.size*stretch,0);
+  ctx.lineTo(-pred.size*stretch-pred.size*1.2,-pred.size*0.4);
+  ctx.lineTo(-pred.size*stretch-pred.size*0.8,0);
+  ctx.lineTo(-pred.size*stretch-pred.size*1.2,pred.size*0.4);
+  ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+
+// ── WAVEFORM DISPLAY ──
+// CRR: The waveform IS the real-time C(x,t) of the audio signal.
+// Amplitude = instantaneous coherence level. The visual shows
+// how all CRR agents' sonic outputs superpose into a single
+// time-domain signal — the integral of all coherence made visible.
+function drawWaveform(){
+  if(!analyser)return;
+  const buf=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteTimeDomainData(buf);
+  ctx.strokeStyle='rgba(212,165,74,0.08)';ctx.lineWidth=1;
+  ctx.beginPath();
+  const sliceW=W/buf.length;
+  for(let i=0;i<buf.length;i++){
+    const v=buf[i]/128;const y=H*0.88+v*H*0.06-H*0.03;
+    if(i===0)ctx.moveTo(0,y);else ctx.lineTo(i*sliceW,y);
+  }
+  ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §5  PLAYBACK ENGINE — Score-driven CRR macro-cycle
+// ═══════════════════════════════════════════════════════════════════
+//
+// The playback engine advances through the composition's event
+// sequence, translating beat positions into audio/visual commands.
+// It IS the temporal operator of the macro CRR cycle:
+//
+//   musicBeat advances = time τ in C(x,t) = ∫L(x,τ)dτ
+//   Event sequence = the score of CRR phase transitions
+//   Weather/bird phase state machines = CRR states synchronised
+//     to the compositional arc
+//
+// processMusic() runs every frame, evaluating:
+//   - Which beat we're at (τ in the macro integral)
+//   - What birdPhase to set (sleep/waking/flying/roosting/settled)
+//   - Weather intensity (rain CRR coherence level)
+//   - Rainbow visibility (R phase progress)
+//   - Real-time bird chirps (stochastic Z₂ micro-events)
+//   - Musical rain updates (CRR pattern engine stepping)
+let sequence=[];let seqIdx=0;let playing=false;
+let musicBeat=0;let tempoMult=1;let beatDuration=60/72;
+let currentSection='';let sectionFadeTimer=0;
+
+function startPlayback(){
+  if(!ac)initAudio();
+  if(ac.state==='suspended')ac.resume();
+  if(!rainbowChoir.active)initRainbowChoir();
+  sequence=buildSequence();seqIdx=0;musicBeat=0;playing=true;
+  currentSection='';
+  // Reset world
+  WORLD.sun.phase=0;WORLD.weather.rainIntensity=0;WORLD.weather.rainbowVisible=0;
+  birdPhase='sleep';
+  // Reset birds to perched state
+  for(const b of birds){
+    if(b.perch)b.perch.occ=false;
+    b.perch=null;b.st=0;
+  }
+  // Re-perch all birds
+  let pIdx=0;
+  for(const b of birds){
+    if(pIdx<treePerches.length){
+      const p=treePerches[pIdx++];
+      p.occ=true;b.perch=p;b.st=2;b.perchT=0;
+      b.x=p.x;b.y=p.y;b.vx=0;b.vy=0;
+    }
+  }
+  document.getElementById('btn-play').classList.add('playing');
+  // Build timeline sections
+  const sc=document.getElementById('timeline-sections');sc.innerHTML='';
+  for(const s of SECTIONS){
+    if(s.start===s.end)continue;
+    const div=document.createElement('div');div.className='t-section';
+    div.style.width=((s.end-s.start)/TOTAL_BEATS*100)+'%';
+    const lbl=document.createElement('span');lbl.className='t-section-label';lbl.textContent=s.name;
+    div.appendChild(lbl);sc.appendChild(div);
+  }
+}
+
+function stopPlayback(){
+  playing=false;
+  document.getElementById('btn-play').classList.remove('playing');
+  // Fade audio
+  if(ac){
+    setStellarDrone(0,0,2);setRainbowChoir(0,2);
+    if(windNoise.gain)windNoise.gain.gain.linearRampToValueAtTime(0,ac.currentTime+1);
+    if(musicalRain.bed.masterGain)musicalRain.bed.masterGain.gain.linearRampToValueAtTime(0,ac.currentTime+1);
+  }
+}
+
+function processMusic(dt){
+  if(!playing||!ac)return;
+  musicBeat+=dt/beatDuration*tempoMult;
+  if(musicBeat>=TOTAL_BEATS){stopPlayback();return}
+
+  // Sun phase follows composition arc
+  const sunTarget=musicBeat<160?musicBeat/160:// rise
+    musicBeat<240?1-(musicBeat-160)/80*0.3:// slight dip during storm+rainbow
+    musicBeat<280?0.7+(musicBeat-240)/40*0.15:// recover
+    0.85-(musicBeat-280)/32*0.85; // set
+  WORLD.sun.phase=lerp(WORLD.sun.phase,clamp(sunTarget,0,1),dt*2);
+  WORLD.sun.agent.step(WORLD.sun.phase*0.3,dt*0.01);
+
+  // Bird phase management — tied to composition arc
+  if(musicBeat<20)birdPhase='sleep';
+  else if(musicBeat<70)birdPhase='waking';
+  else if(musicBeat<275)birdPhase='flying';
+  else if(musicBeat<308)birdPhase='roosting';
+  else birdPhase='settled';
+
+  // Weather from composition — gradual rain build, peak at rupture
+  let targetRain=0;
+  if(musicBeat>=145&&musicBeat<160)targetRain=(musicBeat-145)/15*0.15; // Sprinkles in late ASCENT
+  else if(musicBeat>=160&&musicBeat<192)targetRain=0.15+(musicBeat-160)/32*0.65; // Build through storm
+  else if(musicBeat>=192&&musicBeat<205)targetRain=0.8; // Peak during rupture
+  else if(musicBeat>=205&&musicBeat<240)targetRain=max(0.05,0.8-(musicBeat-205)/35*0.75); // Fade through rainbow
+  else if(musicBeat>=240)targetRain=max(0,WORLD.weather.rainIntensity-dt*0.08);
+  WORLD.weather.rainIntensity=lerp(WORLD.weather.rainIntensity,targetRain,dt*1.8);
+  // Rainbow appears when rain is heavy (through the storm, peaking as it clears)
+  const inRainbow=musicBeat>=198&&musicBeat<=255;
+  const rbTarget=inRainbow?min(1,musicBeat<210?(musicBeat-198)/12: // builds through storm
+    musicBeat<240?1: // full during spectral light
+    1-(musicBeat-240)/15):0; // fades after
+  WORLD.weather.rainbowVisible=lerp(WORLD.weather.rainbowVisible,rbTarget,dt*2.5);
+
+  // Process events
+  while(seqIdx<sequence.length&&sequence[seqIdx].beat<=musicBeat){
+    const ev=sequence[seqIdx++];
+    const now=ac.currentTime;
+    switch(ev.type){
+      case'tremolo':playTremoloGuitar(ev.midi,ev.velocity,ev.duration*beatDuration/tempoMult,now,ev.rate);break;
+      case'clean':playCleanGuitar(ev.midi,ev.velocity,ev.duration*beatDuration/tempoMult,now);break;
+      case'bass':playBass(ev.midi,ev.velocity,ev.duration*beatDuration/tempoMult,now);break;
+      case'pad':setPadChord(ev.padNotes,ev.padGain,ev.duration*beatDuration/tempoMult*0.5);break;
+      case'drone':setStellarDrone(ev.droneGain,ev.sunPhase||WORLD.sun.phase,ev.duration*beatDuration/tempoMult*0.5);break;
+      case'birds':playFlockChorus(ev.velocity,ev.count,now);break;
+      case'falcon':playFalconCry(ev.velocity,now);break;
+      case'rainbow':setRainbowChoir(ev.rainbowGain,ev.duration*beatDuration/tempoMult*0.5);break;
+      case'choirBuild':buildRainbowChoir(ev.gain,ev.duration*beatDuration/tempoMult);break;
+      case'choirMorph':choirMorphSequence(ev.vowels,ev.duration*beatDuration/tempoMult);break;
+      case'choirDissolve':dissolveRainbowChoir(ev.duration*beatDuration/tempoMult);break;
+      case'rain':
+        if(musicalRain.active)setMusicalRainIntensity(ev.velocity);
+        break;
+      case'raindrop':playRaindrop(now+random()*0.3);break;
+      case'wind':
+        if(windNoise.gain)windNoise.gain.gain.linearRampToValueAtTime(ev.velocity,now+1);
+        break;
+      case'section':
+        currentSection=ev.sectionName;sectionFadeTimer=4;
+        const sl=document.getElementById('section-label');
+        sl.textContent=ev.sectionName;sl.style.opacity=0.55;sl.style.color='rgba(212,165,74,0.7)';
+        break;
+    }
+  }
+
+  // Real-time bird sounds reacting to scene
+  if(random()<0.01*WORLD.sun.phase*(1-WORLD.weather.rainIntensity*0.7)){
+    playStarlingChirp(0.08+WORLD.sun.phase*0.05,ac.currentTime,floor(random()*10));
+  }
+  // Musical rain — CRR-driven harmonic drops
+  updateMusicalRain(dt,WORLD.weather.rainIntensity);
+
+  // Update UI
+  const pct=(musicBeat/TOTAL_BEATS*100).toFixed(1);
+  document.getElementById('timeline-fill').style.width=pct+'%';
+  const totalSec=TOTAL_BEATS*beatDuration/tempoMult;
+  const curSec=musicBeat*beatDuration/tempoMult;
+  document.getElementById('timeline-time').textContent=
+    `${floor(curSec/60)}:${(floor(curSec)%60+'').padStart(2,'0')} / ${floor(totalSec/60)}:${(floor(totalSec)%60+'').padStart(2,'0')}`;
+  // CRR display
+  const fc=WORLD.flock.crr;
+  document.getElementById('crr-display').innerHTML=
+    `C=${fc.C.toFixed(2)} Ω=${fc.omega.toFixed(2)}<br>${fc.stateName()} · exp(C/Ω)=${fc.mem().toFixed(1)}<br>move: ${currentMove} · flock: ${birdPhase}<br>sun: ${WORLD.sun.phase.toFixed(2)} · rain: ${(WORLD.weather.rainIntensity*100).toFixed(0)}% · ${musicalRain.crr.stateName()}`;
+  // Section label fade
+  if(sectionFadeTimer>0){sectionFadeTimer-=dt;if(sectionFadeTimer<=1)document.getElementById('section-label').style.opacity=max(0,sectionFadeTimer)*0.55}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §6  MAIN LOOP — All CRR agents stepping in parallel
+// ═══════════════════════════════════════════════════════════════════
+//
+// Every requestAnimationFrame tick:
+//   1. dt computed (time since last frame)
+//   2. Sun agent steps (SO(2) CRR advancing)
+//   3. Weather CRR updates (rain coherence evolving)
+//   4. All 250 birds update (individual + collective CRR)
+//   5. Predator CRR steps (patrol + hunt cycles)
+//   6. Music engine processes events (macro CRR timeline)
+//   7. Canvas renders ALL CRR states simultaneously
+//
+// This IS the participatory reality CRR describes: every agent
+// at every scale running its own C→δ→R cycle, all coupled
+// through shared fields (wind, flock topology, sound).
+function resize(){
+  W=canvas.width=canvas.parentElement.clientWidth;
+  H=canvas.height=canvas.parentElement.clientHeight;
+}
+
+function init(){
+  resize();initClouds();initTree();initGrass();initBirds();initPred();
+}
+
+let lastFrameTime=0;
+function frame(timestamp){
+  const dt=min(0.05,(timestamp-lastFrameTime)/1000);
+  lastFrameTime=timestamp;
+  simTime+=dt;
+
+  processMusic(dt);
+
+  // Scene state
+  const sp=WORLD.sun.phase;const ri=WORLD.weather.rainIntensity;
+  const rv=WORLD.weather.rainbowVisible;
+
+  // Update
+  computeTreeSway(); // So perched birds track current branch positions
+  updateBirds(dt,pred.x,pred.y,pred.huntPhase);
+  if(birdPhase==='flying')updatePred(dt); // Predator only active when flock is flying
+  else{pred.x=-200;pred.y=-200;pred.huntPhase=0} // Hide predator
+  updateRain(dt,ri);
+
+  // Draw
+  drawAtmosphere(sp,ri);
+  const sunPos=drawSun(sp,ri);
+  drawClouds(sp,ri);
+  drawRainbow(sunPos.cx,sunPos.cy,rv);
+  drawRain(ri);
+  drawTree();
+  drawBirds();
+  drawPred();
+  drawGrass(ri);
+  drawWaveform();
+
+  requestAnimationFrame(frame);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §7  UI EVENTS — Observer interaction with the CRR system
+// ═══════════════════════════════════════════════════════════════════
+//
+// CRR is participatory — the observer is part of the system.
+// Slider controls = the observer's L (attention) modulating:
+//   Tempo = rate of coherence accumulation (faster = higher lr)
+//   Reverb = R field strength (more reverb = longer regeneration)
+//   Guitar = exp(C/Ω) volume (tremolo prominence)
+//   Nature = Z₂ chirp and rain prominence
+// Canvas click = manual δ(now) — the observer triggering rupture
+document.getElementById('splash').addEventListener('click',()=>{
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  init();
+  requestAnimationFrame(frame);
+});
+document.getElementById('btn-play').addEventListener('click',()=>{if(!playing)startPlayback();});
+document.getElementById('btn-stop').addEventListener('click',stopPlayback);
+
+// Sliders
+document.getElementById('tempo-slider').addEventListener('input',e=>{
+  tempoMult=parseFloat(e.target.value);
+  document.getElementById('tempo-val').textContent=tempoMult.toFixed(1)+'×';
+});
+document.getElementById('reverb-slider').addEventListener('input',e=>{
+  reverbMix=parseFloat(e.target.value);updateMixes();
+  document.getElementById('reverb-val').textContent=reverbMix.toFixed(2);
+});
+document.getElementById('guitar-slider').addEventListener('input',e=>{
+  guitarMix=parseFloat(e.target.value);
+  if(guitarGain)guitarGain.gain.value=guitarMix*0.5;
+  document.getElementById('guitar-val').textContent=guitarMix.toFixed(2);
+});
+document.getElementById('nature-slider').addEventListener('input',e=>{
+  natureMix=parseFloat(e.target.value);
+  if(natureGain)natureGain.gain.value=natureMix*0.4;
+  document.getElementById('nature-val').textContent=natureMix.toFixed(2);
+});
+
+window.addEventListener('resize',()=>{resize();initGrass()});
+window.addEventListener('orientationchange',()=>{setTimeout(()=>{resize();initGrass()},200)});
+
+// Click/touch to startle flock
+canvas.addEventListener('click',e=>{
+  WORLD.flock.crr.rupture();
+  if(ac&&playing)playFlockChorus(0.2,6,ac.currentTime);
+});
+// Prevent scroll bounce on canvas touch
+canvas.addEventListener('touchmove',e=>{e.preventDefault()},{passive:false});
+
+</script>
+</body>
+</html>
