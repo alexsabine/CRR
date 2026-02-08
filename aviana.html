@@ -161,6 +161,7 @@ C(x,t) = ∫ L(x,τ) dτ&emsp;·&emsp;δ(now)&emsp;·&emsp;R = ∫ φ exp(C/Ω) 
 <div id="tab-bar">
 <button class="tab-btn active" data-mode="chorus">DAWN CHORUS</button>
 <button class="tab-btn" data-mode="flock">MURMURATION</button>
+<button class="tab-btn" data-mode="bat">BAT SONG</button>
 <div class="spacer"></div>
 <span class="title-sm">AVIANA</span>
 </div>
@@ -270,9 +271,10 @@ class CRRAgent{
     this.omega=omega;this.C=0;this.phase='coherence';
     this.ruptures=0;this.lastRupture=0;this.peakC=0;
     this.memory=1;this.name=name;this.L=0;
+    this.justRuptured=false; // Persists one frame after rupture
   }
   step(L,dt=1){
-    this.L=L;
+    this.L=L;this.justRuptured=false; // Clear after one frame
     if(this.phase==='coherence'){this.C+=L*dt;this.peakC=Math.max(this.peakC,this.C);}
     else if(this.phase==='regeneration'){this.C+=(.3+.7*(1-Math.exp(-this.C*.5)))*this.memory*.01*dt;}
     this.memory=Math.exp(Math.min(this.C/this.omega,12));return this;
@@ -280,9 +282,17 @@ class CRRAgent{
   rupture(){
     this.phase='rupture';this.ruptures++;this.lastRupture=this.C;
     this.memory=Math.exp(Math.min(this.C/this.omega,12));
-    this.C*=0.15;this.phase='regeneration';return this;
+    this.C*=0.15;this.phase='regeneration';
+    this.justRuptured=true; // Flag for one frame
+    return this;
   }
-  reset(){this.C=0;this.phase='coherence';this.ruptures=0;this.peakC=0;this.memory=1;}
+  // Auto-rupture: if C exceeds threshold, spontaneously rupture
+  // This drives CRR-based behavior changes
+  autoRupture(threshold){
+    if(this.phase==='coherence'&&this.C>threshold){this.rupture();return true;}
+    return false;
+  }
+  reset(){this.C=0;this.phase='coherence';this.ruptures=0;this.peakC=0;this.memory=1;this.justRuptured=false;}
   get expCO(){return Math.exp(Math.min(this.C/this.omega,12))}
   get normC(){return Math.min(this.C/Math.max(this.peakC,.01),1)}
 }
@@ -304,7 +314,20 @@ const SPECIES={
   starling:{size:.8,color:'#2a2a3e',accent:'#7bed9f',wingSpan:1.0,
     heartBPM:600,wingHz:5.8,songRange:[62,84],songStyle:'mimic',shape:'pointed',syrinxMod:1.6},
   sparrowhawk:{size:1.6,color:'#3a2a1a',accent:'#8a6a4a',wingSpan:2.2,
-    heartBPM:350,wingHz:3,songRange:[],songStyle:'silent',shape:'raptor',syrinxMod:0}
+    heartBPM:350,wingHz:3,songRange:[],songStyle:'silent',shape:'raptor',syrinxMod:0},
+  // Bat species — Chiroptera
+  pipistrelle:{size:.45,color:'#2a1a18',accent:'#6a4a3a',wingSpan:1.6,
+    heartBPM:660,wingHz:12,songRange:[88,120],songStyle:'echo',shape:'bat',syrinxMod:0,
+    echoFreq:45000,echoRate:10}, // 45kHz, 10 pulses/s cruising
+  noctule:{size:.7,color:'#3a2820',accent:'#8a6a4a',wingSpan:2.0,
+    heartBPM:500,wingHz:8,songRange:[80,105],songStyle:'echo',shape:'bat',syrinxMod:0,
+    echoFreq:25000,echoRate:8},
+  longEared:{size:.5,color:'#4a3828',accent:'#9a7a5a',wingSpan:1.8,
+    heartBPM:580,wingHz:10,songRange:[85,115],songStyle:'echo',shape:'bat',syrinxMod:0,
+    echoFreq:50000,echoRate:12},
+  // Owl predator
+  tawnyOwl:{size:2.0,color:'#3a2a18',accent:'#c8a060',wingSpan:3.0,
+    heartBPM:300,wingHz:2,songRange:[48,60],songStyle:'hoot',shape:'owl',syrinxMod:0}
 };
 
 function makeBird(id,species){
@@ -345,7 +368,18 @@ function makeBird(id,species){
     // Species
     size:sp.size,wingSpan:sp.wingSpan,baseColor:sp.color,
     accentColor:sp.accent,shape:sp.shape,songStyle:sp.songStyle,
-    syrinxMod:sp.syrinxMod
+    syrinxMod:sp.syrinxMod,
+    // Bat-specific (only active for bat species)
+    echoFreq:sp.echoFreq||0,echoRate:sp.echoRate||0,
+    echoPhase:Math.random(),echoCooldown:0,echoIntensity:0,
+    // Laryngeal echolocation — Z₂ (call/listen alternation)
+    larynxTension:.5,larynxPressure:0,
+    // Wing membrane — SO(2) continuous flex
+    membranePhase:Math.random()*TAU,membraneStrain:0,
+    // Torpor cycle — slow Z₂
+    torporState:0, // 0=active, 1=torpid
+    huntTarget:null,huntCooldown:0,
+    mothCatch:0 // visual flash on catch
   };
 }
 
@@ -409,6 +443,87 @@ function updateBirdPhysiology(bird,dt,t,section){
   bird.prevAngle=bird.angle;
 }
 
+// ─── Bat Physiology ───
+// Echolocation: Z₂ call/listen alternation at rate proportional to proximity
+// Wing membrane: SO(2) continuous flex cycle
+// Torpor: slow Z₂ energy conservation
+function updateBatPhysiology(bat,dt,t,section){
+  const isHunting=section&&section.name.includes('HUNT');
+  const stressFactor=isHunting?1.3:1;
+
+  // Echolocation — Z₂ call/listen alternation
+  // Rate increases with proximity to prey (acoustic focusing)
+  const huntProx=bat.huntTarget?Math.max(0,1-Math.hypot(bat.x-(bat.huntTarget.x||.5),bat.y-(bat.huntTarget.y||.5))*.8):0;
+  const echoRate=(bat.echoRate||10)*(1+huntProx*4)*stressFactor; // Buzz phase: up to 200 pulses/s
+  bat.echoPhase=(bat.echoPhase+dt*echoRate)%1;
+  bat.echoIntensity=bat.echoPhase<.3?1-bat.echoPhase/.3:0; // Sharp onset, quick decay
+  bat.larynxPressure=bat.echoPhase<.15?1:0; // Very brief pulse
+  bat.larynxTension=.4+huntProx*.4+bat.crr.normC*.2;
+
+  // Wing membrane — SO(2) continuous flex
+  const wingRate=bat.wingHz*stressFactor*(1+bat.speed*50);
+  bat.membranePhase=(bat.membranePhase+dt*wingRate*TAU)%(TAU);
+  bat.membraneStrain=.3+.4*Math.abs(Math.sin(bat.membranePhase));
+  bat.wingPhase=bat.membranePhase;
+  bat.wingAmp=.6+bat.membraneStrain*.3;
+  bat.downstroke=Math.sin(bat.membranePhase)>0;
+  bat.liftForce=bat.downstroke?bat.membraneStrain*1.2:bat.membraneStrain*.3;
+
+  // Heart — Z₂ fast, bats have highly variable heart rate
+  // Active: 600-1000 BPM. Torpor: 20 BPM
+  const targetBPM=bat.torporState>0?25:(bat.heartBPM||660)*stressFactor*(1+huntProx*.3);
+  bat.heartBPM+=(targetBPM-bat.heartBPM)*dt*2;
+  bat.heartPhase=(bat.heartPhase+dt*(bat.heartBPM/60))%1;
+  bat.systole=bat.heartPhase<.3;
+  bat.heartStress=huntProx;
+
+  // Thermoregulation — bats can enter torpor
+  const targetTemp=bat.torporState>0?20:40.5;
+  bat.coreTemp+=(targetTemp-bat.coreTemp)*dt*.5;
+  bat.metabolicRate=bat.torporState>0?.05:.5+huntProx*.3;
+
+  // Air — nose-leaf directs ultrasound
+  bat.airPhase=(bat.airPhase+dt*(bat.wingHz*.4)*stressFactor)%1;
+  bat.inspiration=bat.airPhase<.5;
+  bat.airVolume=.4+.35*Math.sin(bat.airPhase*TAU);
+  bat.airO2=.88+bat.airVolume*.1;
+
+  // Moth catch flash decay
+  bat.mothCatch*=Math.pow(.1,dt);
+  bat.stressRuffle*=Math.pow(.3,dt);
+
+  // Turn rate
+  const da2=bat.angle-bat.prevAngle;
+  bat.turnRate=Math.atan2(Math.sin(da2),Math.cos(da2))/Math.max(dt,.001);
+  bat.prevAngle=bat.angle;
+}
+
+// ─── Moths — simple prey items ───
+const MOTHS=[];
+function initMoths(n){
+  MOTHS.length=0;
+  for(let i=0;i<n;i++)MOTHS.push({
+    x:.05+Math.random()*.9,y:.1+Math.random()*.6,
+    vx:(Math.random()-.5)*.02,vy:(Math.random()-.5)*.015,
+    alive:true,size:.3+Math.random()*.3,phase:Math.random()*TAU,
+    flutter:3+Math.random()*4
+  });
+}
+
+function updateMoths(dt){
+  for(const m of MOTHS){
+    if(!m.alive)continue;
+    m.phase+=dt*m.flutter*TAU;
+    // Erratic moth flight — attracted to moonlight
+    m.vx+=(Math.random()-.5)*.04*dt;m.vy+=(Math.random()-.5)*.03*dt;
+    m.vx+=((.5-m.x)*.002);m.vy+=((.3-m.y)*.001); // Drift toward center/up
+    m.vx*=.99;m.vy*=.99;
+    m.x+=m.vx*dt;m.y+=m.vy*dt;
+    if(m.x<.02||m.x>.98)m.vx*=-1;if(m.y<.05||m.y>.75)m.vy*=-1;
+    m.x=Math.max(.02,Math.min(.98,m.x));m.y=Math.max(.05,Math.min(.75,m.y));
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // §2 PREDATOR
 // ═══════════════════════════════════════════════════════════════════
@@ -423,13 +538,21 @@ const PREDATOR={
 
 function updatePredator(dt,section,birdList){
   if(!section)return;
-  const shouldBeActive=section.name.includes('RAPTOR')||section.name==='SCATTER';
+  const isOwl=MODE==='bat';
+  const shouldBeActive=isOwl?
+    (section.name.includes('OWL')||section.name==='SCATTER'):
+    (section.name.includes('RAPTOR')||section.name==='SCATTER');
   if(shouldBeActive&&!PREDATOR.active){
-    // Enter from edge
     PREDATOR.active=true;PREDATOR.huntPhase='approach';
-    PREDATOR.x=-.05;PREDATOR.y=.15+Math.random()*.2;
-    PREDATOR.vx=.0025;PREDATOR.vy=.0003;
-    // Pick a target in the middle of the flock
+    PREDATOR.species=isOwl?'tawnyOwl':'sparrowhawk';
+    if(isOwl){
+      // Owl swoops from above, silently
+      PREDATOR.x=.1+Math.random()*.3;PREDATOR.y=-.05;
+      PREDATOR.vx=.001;PREDATOR.vy=.002;
+    }else{
+      PREDATOR.x=-.05;PREDATOR.y=.15+Math.random()*.2;
+      PREDATOR.vx=.0025;PREDATOR.vy=.0003;
+    }
     if(birdList.length){
       let cx2=0,cy2=0;birdList.forEach(b=>{cx2+=b.x;cy2+=b.y;});
       cx2/=birdList.length;cy2/=birdList.length;
@@ -438,26 +561,40 @@ function updatePredator(dt,section,birdList){
   }
   if(!PREDATOR.active)return;
 
-  PREDATOR.wingPhase+=dt*3*TAU;
+  PREDATOR.wingPhase+=dt*(isOwl?1.5:3)*TAU;
   PREDATOR.crr.step(.1,dt);
 
-  if(PREDATOR.huntPhase==='approach'){
-    // Fly toward flock center
-    if(PREDATOR.targetBird){
-      const dx=PREDATOR.targetBird.x-PREDATOR.x;
-      const dy=PREDATOR.targetBird.y-PREDATOR.y;
-      PREDATOR.vx+=dx*.0001;PREDATOR.vy+=dy*.00005;
+  if(isOwl){
+    // Owl: silent descent, then swoop through colony
+    if(PREDATOR.huntPhase==='approach'){
+      if(PREDATOR.targetBird){
+        PREDATOR.vx+=(PREDATOR.targetBird.x-PREDATOR.x)*.00008;
+        PREDATOR.vy+=(PREDATOR.targetBird.y-PREDATOR.y)*.0002;
+      }
+      PREDATOR.vx*=.998;PREDATOR.vy*=.998;
+      if(PREDATOR.y>.25)PREDATOR.huntPhase='dive';
+    }else if(PREDATOR.huntPhase==='dive'){
+      PREDATOR.vy*=1.01;PREDATOR.vx+=(Math.random()-.5)*.0002;
+      if(PREDATOR.y>.65)PREDATOR.huntPhase='retreat';
+    }else{
+      PREDATOR.vy=Math.abs(PREDATOR.vy)*-.5;PREDATOR.vx+=.0005;
+      if(PREDATOR.y<-.1||PREDATOR.x>1.1){PREDATOR.active=false;}
     }
-    PREDATOR.vx*=.995;PREDATOR.vy*=.995;
-    if(PREDATOR.x>.4)PREDATOR.huntPhase='dive';
-  }else if(PREDATOR.huntPhase==='dive'){
-    // Acceleration through flock
-    PREDATOR.vx*=1.005;
-    if(PREDATOR.x>.85)PREDATOR.huntPhase='retreat';
   }else{
-    // Exit
-    PREDATOR.vx=Math.abs(PREDATOR.vx)*1.01;
-    if(PREDATOR.x>1.15){PREDATOR.active=false;}
+    if(PREDATOR.huntPhase==='approach'){
+      if(PREDATOR.targetBird){
+        PREDATOR.vx+=(PREDATOR.targetBird.x-PREDATOR.x)*.0001;
+        PREDATOR.vy+=(PREDATOR.targetBird.y-PREDATOR.y)*.00005;
+      }
+      PREDATOR.vx*=.995;PREDATOR.vy*=.995;
+      if(PREDATOR.x>.4)PREDATOR.huntPhase='dive';
+    }else if(PREDATOR.huntPhase==='dive'){
+      PREDATOR.vx*=1.005;
+      if(PREDATOR.x>.85)PREDATOR.huntPhase='retreat';
+    }else{
+      PREDATOR.vx=Math.abs(PREDATOR.vx)*1.01;
+      if(PREDATOR.x>1.15){PREDATOR.active=false;}
+    }
   }
 
   PREDATOR.x+=PREDATOR.vx*dt*60;
@@ -619,7 +756,346 @@ function setWindPad(midis,gain,trans){
     if(windGains[i])windGains[i].gain.linearRampToValueAtTime(gain*.05,t+tr);});
 }
 
-// §4 THERMAL ENGINE
+// ─── BAT AUDIO SYNTHESIS ───
+// CRR-driven nocturnal soundscape: echolocation, wing flutter, insects, atmosphere
+// All harmonics derived from Ω=1/π: freq_n = base * exp(n*Ω)
+
+function playEchoClick(gain,time,crrMod){
+  if(!ac||gain<.005)return;
+  // Species-varied FM sweep with multiple harmonics
+  // CRR modulates: higher C = tighter sweep (more focused beam)
+  const baseStart=1600+crrMod*500;
+  const baseEnd=500+crrMod*300;
+  const sweep=.012+.008/(1+crrMod); // Tighter sweep with more coherence
+
+  // 3 harmonic layers — bat calls are harmonically rich
+  for(let h=0;h<3;h++){
+    const hMult=1+h*.8; // ~1, 1.8, 2.6 (non-integer = rougher timbre)
+    const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+    o.type=h===0?'sine':'triangle';
+    o.frequency.setValueAtTime(baseStart*hMult,time);
+    o.frequency.exponentialRampToValueAtTime(baseEnd*hMult,time+sweep);
+    f.type='highpass';f.frequency.value=400+h*300;f.Q.value=1;
+    const vol=gain*.035/(1+h*.6);
+    g.gain.setValueAtTime(0,time);
+    g.gain.linearRampToValueAtTime(vol,time+.0005); // Sub-ms attack
+    g.gain.exponentialRampToValueAtTime(vol*.2,time+sweep*.6);
+    g.gain.exponentialRampToValueAtTime(.001,time+sweep+.01);
+    o.connect(f);f.connect(g);g.connect(songGain);
+    o.start(time);o.stop(time+sweep+.015);
+  }
+
+  // Echo return — delayed, filtered, attenuated
+  // CRR: return strength ∝ exp(C/Ω) — more coherence = better target lock
+  const returnGain=gain*.01*(1+crrMod*.3);
+  const returnDelay=.015+Math.random()*.025;
+  if(returnGain>.002){
+    const or=ac.createOscillator(),gr=ac.createGain(),fr=ac.createBiquadFilter();
+    or.type='sine';or.frequency.setValueAtTime(baseEnd*1.1,time+returnDelay);
+    or.frequency.exponentialRampToValueAtTime(baseEnd*.6,time+returnDelay+.008);
+    fr.type='lowpass';fr.frequency.value=1200;fr.Q.value=2;
+    gr.gain.setValueAtTime(0,time+returnDelay);
+    gr.gain.linearRampToValueAtTime(returnGain,time+returnDelay+.001);
+    gr.gain.exponentialRampToValueAtTime(.001,time+returnDelay+.015);
+    or.connect(fr);fr.connect(gr);gr.connect(songGain);
+    or.start(time+returnDelay);or.stop(time+returnDelay+.02);
+  }
+}
+
+function playEchoCluster(gain,time,crrMod,n){
+  // Multiple bats clicking at slightly different times — colony texture
+  if(!ac||gain<.005)return;
+  const count=n||3;
+  for(let i=0;i<count;i++){
+    const offset=i*.02+Math.random()*.015;
+    const pitchVar=.8+Math.random()*.4; // Each bat at different pitch
+    const o=ac.createOscillator(),g=ac.createGain();
+    const f0=1400*pitchVar+crrMod*300;
+    o.type='sine';o.frequency.setValueAtTime(f0,time+offset);
+    o.frequency.exponentialRampToValueAtTime(f0*.35,time+offset+.01);
+    const vol=gain*.02*(1-i*.15);
+    g.gain.setValueAtTime(0,time+offset);
+    g.gain.linearRampToValueAtTime(vol,time+offset+.0005);
+    g.gain.exponentialRampToValueAtTime(.001,time+offset+.015);
+    o.connect(g);g.connect(songGain);o.start(time+offset);o.stop(time+offset+.02);
+  }
+}
+
+function playBatBuzz(gain,time,crrMod){
+  // Feeding buzz — rapid clicks accelerating to 200+ per second
+  // CRR: buzz rate = 1/Ω (more coherence = faster buzz = closer to prey)
+  if(!ac||gain<.005)return;
+  const n=8+Math.floor(crrMod*6);
+  let t2=time;
+  for(let i=0;i<n;i++){
+    const interval=.015*(1-i/n*.85); // Accelerate from 66Hz to ~400Hz
+    t2+=interval;
+    const f=1200+i*150+crrMod*200;
+    // Two harmonics per buzz click
+    for(let h=0;h<2;h++){
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.type='sine';o.frequency.setValueAtTime(f*(1+h*.7),t2);
+      o.frequency.exponentialRampToValueAtTime(f*(1+h*.7)*.4,t2+.004);
+      const vol=gain*.025*(1+i/n)/(1+h*.5);
+      g.gain.setValueAtTime(vol,t2);g.gain.exponentialRampToValueAtTime(.001,t2+.005);
+      o.connect(g);g.connect(songGain);o.start(t2);o.stop(t2+.008);
+    }
+  }
+}
+
+function playWingFlutter(gain,time,crrMod){
+  // Bat wing membrane flutter — filtered noise with rhythmic amplitude
+  if(!ac||gain<.005)return;
+  const dur=.15+crrMod*.05;
+  const buf=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter();
+  buf.buffer=noiseBuf;f.type='bandpass';f.frequency.value=800+crrMod*200;f.Q.value=3;
+  // Flutter envelope — rapid amplitude oscillation
+  g.gain.setValueAtTime(0,time);
+  const flutterRate=12+crrMod*4;
+  for(let i=0;i<6;i++){
+    const t3=time+i/flutterRate;
+    if(t3>time+dur)break;
+    g.gain.linearRampToValueAtTime(gain*.012,t3);
+    g.gain.linearRampToValueAtTime(gain*.003,t3+.5/flutterRate);
+  }
+  g.gain.exponentialRampToValueAtTime(.001,time+dur);
+  buf.connect(f);f.connect(g);g.connect(songGain);buf.start(time);buf.stop(time+dur+.01);
+}
+
+function playInsectChorus(gain,time,crrMod){
+  // Cricket/insect ambient bed — essential night atmosphere
+  // CRR: coherence = synchronization of cricket chirps
+  if(!ac||gain<.005)return;
+  const dur=1.5+crrMod*.5;
+  // Cricket stridulation — high-pitched rhythmic tone
+  const cricketF=4200+Math.random()*800;
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.type='sine';o.frequency.value=cricketF;
+  g.gain.setValueAtTime(0,time);
+  // Rhythmic chirp pattern — Z₂ on/off
+  const chirpRate=3+Math.random()*2;
+  for(let i=0;i<Math.floor(dur*chirpRate);i++){
+    const ct=time+i/chirpRate;if(ct>time+dur)break;
+    g.gain.linearRampToValueAtTime(gain*.008,ct+.01);
+    g.gain.linearRampToValueAtTime(gain*.002,ct+.03);
+    g.gain.linearRampToValueAtTime(0,ct+.5/chirpRate);
+  }
+  g.gain.exponentialRampToValueAtTime(.001,time+dur);
+  o.connect(g);g.connect(songGain);o.start(time);o.stop(time+dur+.01);
+
+  // Second cricket at different pitch — counterpoint
+  const o2=ac.createOscillator(),g2=ac.createGain();
+  o2.type='sine';o2.frequency.value=cricketF*1.15+Math.random()*200;
+  g2.gain.setValueAtTime(0,time+.1);
+  for(let i=0;i<Math.floor(dur*chirpRate*.7);i++){
+    const ct2=time+.1+i/(chirpRate*.7);if(ct2>time+dur)break;
+    g2.gain.linearRampToValueAtTime(gain*.005,ct2+.015);
+    g2.gain.linearRampToValueAtTime(0,ct2+.4/(chirpRate*.7));
+  }
+  g2.gain.exponentialRampToValueAtTime(.001,time+dur);
+  o2.connect(g2);g2.connect(songGain);o2.start(time+.1);o2.stop(time+dur+.01);
+}
+
+function playMothCatch(gain,time){
+  if(!ac||gain<.005)return;
+  // Wing membrane snap + crunch
+  const buf=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter();
+  buf.buffer=noiseBuf;f.type='bandpass';f.frequency.value=2500;f.Q.value=3;
+  g.gain.setValueAtTime(gain*.04,time);g.gain.exponentialRampToValueAtTime(.001,time+.04);
+  buf.connect(f);f.connect(g);g.connect(songGain);buf.start(time);buf.stop(time+.06);
+  // Impact thud
+  const o=ac.createOscillator(),g2=ac.createGain();
+  o.type='sine';o.frequency.setValueAtTime(180,time);o.frequency.exponentialRampToValueAtTime(60,time+.03);
+  g2.gain.setValueAtTime(gain*.02,time);g2.gain.exponentialRampToValueAtTime(.001,time+.04);
+  o.connect(g2);g2.connect(bodyGain);o.start(time);o.stop(time+.05);
+}
+
+function playOwlHoot(gain,time,crrMod){
+  // Tawny owl: "twit-twoo" — CRR C→δ→R structure
+  if(!ac||gain<.005)return;
+  const baseF=midiToFreq(52+Math.floor(crrMod*2));
+  // "Twit" — coherence phase
+  const o1=ac.createOscillator(),g1=ac.createGain();
+  o1.type='triangle';o1.frequency.setValueAtTime(baseF*1.5,time);
+  o1.frequency.linearRampToValueAtTime(baseF*1.3,time+.15);
+  g1.gain.setValueAtTime(0,time);g1.gain.linearRampToValueAtTime(gain*.07,time+.02);
+  g1.gain.setValueAtTime(gain*.06,time+.12);g1.gain.exponentialRampToValueAtTime(.001,time+.2);
+  o1.connect(g1);g1.connect(songGain);o1.start(time);o1.stop(time+.25);
+  // "Twoo" — regeneration phase with vibrato
+  const o2=ac.createOscillator(),g2=ac.createGain(),lfo=ac.createOscillator(),lfoG=ac.createGain();
+  o2.type='triangle';o2.frequency.setValueAtTime(baseF,time+.4);
+  o2.frequency.linearRampToValueAtTime(baseF*.88,time+.95);
+  lfo.type='sine';lfo.frequency.value=4+crrMod;lfoG.gain.value=baseF*.025;
+  lfo.connect(lfoG);lfoG.connect(o2.frequency);
+  g2.gain.setValueAtTime(0,time+.4);g2.gain.linearRampToValueAtTime(gain*.09,time+.5);
+  g2.gain.setValueAtTime(gain*.08,time+.8);g2.gain.exponentialRampToValueAtTime(.001,time+1.15);
+  o2.connect(g2);g2.connect(songGain);lfo.start(time+.4);o2.start(time+.4);
+  o2.stop(time+1.2);lfo.stop(time+1.2);
+  // Breathy hoot resonance
+  const buf=ac.createBufferSource(),gn=ac.createGain(),fn=ac.createBiquadFilter();
+  buf.buffer=noiseBuf;fn.type='bandpass';fn.frequency.value=baseF*1.1;fn.Q.value=6;
+  gn.gain.setValueAtTime(0,time+.4);gn.gain.linearRampToValueAtTime(gain*.018,time+.5);
+  gn.gain.exponentialRampToValueAtTime(.001,time+1);
+  buf.connect(fn);fn.connect(gn);gn.connect(songGain);buf.start(time+.4);buf.stop(time+1.1);
+  // Chest resonance — sub-harmonic
+  const o3=ac.createOscillator(),g3=ac.createGain();
+  o3.type='sine';o3.frequency.setValueAtTime(baseF*.5,time+.42);
+  o3.frequency.linearRampToValueAtTime(baseF*.44,time+.9);
+  g3.gain.setValueAtTime(0,time+.42);g3.gain.linearRampToValueAtTime(gain*.025,time+.52);
+  g3.gain.exponentialRampToValueAtTime(.001,time+1);
+  o3.connect(g3);g3.connect(bodyGain);o3.start(time+.42);o3.stop(time+1.05);
+}
+
+function playBatSocialCall(gain,time,crrMod){
+  // Multi-harmonic social chirp — audible communication
+  if(!ac||gain<.005)return;
+  const baseF=midiToFreq(78+Math.floor(crrMod*5));
+  const nHarm=2+Math.floor(crrMod*2);
+  for(let h=0;h<nHarm;h++){
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type=h===0?'sine':'triangle';
+    const hF=baseF*(1+h*.65);
+    o.frequency.setValueAtTime(hF*1.15,time);
+    o.frequency.exponentialRampToValueAtTime(hF*.8,time+.04);
+    o.frequency.exponentialRampToValueAtTime(hF*1.1,time+.07);
+    o.frequency.exponentialRampToValueAtTime(hF*.7,time+.1); // Double sweep
+    const vol=gain*.03/(1+h*.5);
+    g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(vol,time+.002);
+    g.gain.exponentialRampToValueAtTime(.001,time+.1+h*.01);
+    o.connect(g);g.connect(songGain);o.start(time);o.stop(time+.12+h*.01);
+  }
+}
+
+function playNightPad(padNotes,gain,trans){
+  if(!ac)return;const t=ac.currentTime,tr=trans||1;
+  padNotes.forEach((m,i)=>{
+    if(windOscs[i]){
+      windOscs[i].frequency.linearRampToValueAtTime(midiToFreq(m),t+tr);
+      windGains[i].gain.linearRampToValueAtTime(gain*.04,t+tr);
+    }
+  });
+}
+
+function playNightAmbient(gain,time){
+  // Layered night atmosphere: wind through leaves + distant water
+  if(!ac||gain<.005)return;
+  // Wind through trees — shaped noise
+  const buf=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter();
+  buf.buffer=noiseBuf;f.type='lowpass';f.frequency.value=600;f.Q.value=.7;
+  g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(gain*.015,time+.5);
+  g.gain.setValueAtTime(gain*.012,time+1.5);g.gain.exponentialRampToValueAtTime(.001,time+2.5);
+  buf.connect(f);f.connect(g);g.connect(songGain);buf.start(time);buf.stop(time+2.6);
+}
+
+function playWaterDrip(gain,time,crrMod){
+  // Distant stream / water dripping — resonant filtered impulses
+  // CRR: coherent drips form rhythmic patterns
+  if(!ac||gain<.005)return;
+  const nDrips=2+Math.floor(crrMod*3);
+  for(let i=0;i<nDrips;i++){
+    const t2=time+i*.12+Math.random()*.08;
+    const f0=2800+Math.random()*1200; // Each drip at different resonance
+    const o=ac.createOscillator(),g2=ac.createGain(),flt=ac.createBiquadFilter();
+    o.type='sine';o.frequency.setValueAtTime(f0,t2);
+    o.frequency.exponentialRampToValueAtTime(f0*.4,t2+.06);
+    flt.type='bandpass';flt.frequency.value=f0*.7;flt.Q.value=8; // Resonant cavity
+    const vol=gain*.015*(1-i*.15);
+    g2.gain.setValueAtTime(vol,t2);g2.gain.exponentialRampToValueAtTime(.001,t2+.08);
+    o.connect(flt);flt.connect(g2);g2.connect(songGain);o.start(t2);o.stop(t2+.1);
+  }
+}
+
+function playFoxBark(gain,time){
+  // Distant fox bark — eerie, sharp, CRR rupture in the night
+  if(!ac||gain<.005)return;
+  // Bark: brief harsh noise burst with resonant peak
+  const buf=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter();
+  buf.buffer=noiseBuf;f.type='bandpass';f.frequency.value=1200;f.Q.value=4;
+  g.gain.setValueAtTime(0,time);g.gain.linearRampToValueAtTime(gain*.04,time+.01);
+  g.gain.exponentialRampToValueAtTime(gain*.02,time+.06);
+  g.gain.exponentialRampToValueAtTime(.001,time+.25);
+  buf.connect(f);f.connect(g);g.connect(songGain);buf.start(time);buf.stop(time+.3);
+  // Tonal component — strained vocal quality
+  const o=ac.createOscillator(),g2=ac.createGain();
+  o.type='sawtooth';o.frequency.setValueAtTime(380,time);
+  o.frequency.exponentialRampToValueAtTime(250,time+.15);
+  g2.gain.setValueAtTime(0,time);g2.gain.linearRampToValueAtTime(gain*.02,time+.01);
+  g2.gain.exponentialRampToValueAtTime(.001,time+.2);
+  o.connect(g2);g2.connect(songGain);o.start(time);o.stop(time+.25);
+}
+
+function playFrogChorus(gain,time,crrMod){
+  // Distant frog chorus — low rhythmic croaking
+  // CRR: higher coherence = more synchronized frogs
+  if(!ac||gain<.005)return;
+  const nFrogs=2+Math.floor(crrMod*2);
+  for(let i=0;i<nFrogs;i++){
+    const t2=time+i*.2+Math.random()*.1;
+    const baseF=120+Math.random()*60+i*15;
+    const o=ac.createOscillator(),g2=ac.createGain();
+    o.type='square';o.frequency.setValueAtTime(baseF,t2);
+    o.frequency.linearRampToValueAtTime(baseF*.85,t2+.08);
+    // Croak envelope: quick onset, brief sustain, quick release
+    g2.gain.setValueAtTime(0,t2);g2.gain.linearRampToValueAtTime(gain*.012,t2+.005);
+    g2.gain.setValueAtTime(gain*.01,t2+.06);g2.gain.exponentialRampToValueAtTime(.001,t2+.1);
+    o.connect(g2);g2.connect(bodyGain);o.start(t2);o.stop(t2+.12);
+  }
+}
+
+function playDopplerClick(gain,time,crrMod,speed){
+  // Doppler-shifted echolocation — bat flying past listener
+  // CRR: speed determines Doppler shift amount
+  if(!ac||gain<.005)return;
+  const v=speed||.5;const shiftUp=1+v*.08,shiftDown=1-v*.06;
+  const baseF=1500+crrMod*400;
+  // Approaching: higher pitch
+  const o1=ac.createOscillator(),g1=ac.createGain();
+  o1.type='sine';o1.frequency.setValueAtTime(baseF*shiftUp,time);
+  o1.frequency.exponentialRampToValueAtTime(baseF*shiftDown,time+.025); // Pass-by sweep
+  g1.gain.setValueAtTime(0,time);g1.gain.linearRampToValueAtTime(gain*.03,time+.001);
+  g1.gain.setValueAtTime(gain*.04,time+.01); // Peak as passing
+  g1.gain.exponentialRampToValueAtTime(.001,time+.03);
+  o1.connect(g1);g1.connect(songGain);o1.start(time);o1.stop(time+.04);
+  // Second harmonic with sharper Doppler
+  const o2=ac.createOscillator(),g2=ac.createGain();
+  o2.type='sine';o2.frequency.setValueAtTime(baseF*2*shiftUp,time);
+  o2.frequency.exponentialRampToValueAtTime(baseF*2*shiftDown,time+.02);
+  g2.gain.setValueAtTime(gain*.01,time);g2.gain.exponentialRampToValueAtTime(.001,time+.025);
+  o2.connect(g2);g2.connect(songGain);o2.start(time);o2.stop(time+.03);
+}
+
+function playBatMelody(gain,time,crrMod){
+  // Nocturne theme — CRR Ω=1/π derives natural minor from first principles
+  // exp(n/π) maps to: D, F, Ab, C, Eb... the Dm(b5) darkness
+  if(!ac||gain<.005)return;
+  const notes=[50,53,56,60,63,65,68,72]; // D minor with chromatic tensions
+  const nc=3+Math.floor(crrMod*4);
+  const melody=[];
+  for(let i=0;i<nc;i++){
+    // CRR sequence: index = floor(exp(i*Ω) * golden_ratio) mod scale
+    const idx=Math.floor(Math.exp(i/PI)*1.618)%notes.length;
+    melody.push(notes[idx]);
+  }
+  melody.forEach((m,i)=>{
+    const nt=time+i*.3;const dur=.2+Math.random()*.25;
+    // Main voice — triangle for warmth
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type='triangle';o.frequency.setValueAtTime(midiToFreq(m),nt);
+    o.frequency.linearRampToValueAtTime(midiToFreq(m)*(1+Math.sin(i)*.004),nt+dur);
+    const vol=gain*.04*(1-.08*i);
+    g.gain.setValueAtTime(0,nt);g.gain.linearRampToValueAtTime(vol,nt+.015);
+    g.gain.setValueAtTime(vol*.8,nt+dur*.7);g.gain.exponentialRampToValueAtTime(.001,nt+dur);
+    o.connect(g);g.connect(songGain);o.start(nt);o.stop(nt+dur+.05);
+    // Ghost octave — very quiet upper doubling
+    if(i%2===0){
+      const o2=ac.createOscillator(),g2=ac.createGain();
+      o2.type='sine';o2.frequency.value=midiToFreq(m+12);
+      g2.gain.setValueAtTime(0,nt+.01);g2.gain.linearRampToValueAtTime(vol*.15,nt+.03);
+      g2.gain.exponentialRampToValueAtTime(.001,nt+dur*.5);
+      o2.connect(g2);g2.connect(songGain);o2.start(nt+.01);o2.stop(nt+dur);
+    }
+  });
+}
 class ThermalEngine{
   constructor(){
     this.scale=[0,2,4,7,9];this.baseOctave=4;this.octaves=3;this.pitches=[];
@@ -686,15 +1162,30 @@ const FLOCK_SECTIONS=[
 ];
 const FLOCK_BEATS=416;
 
+const BAT_SECTIONS=[
+  {name:'DUSK',start:0,end:31},{name:'EMERGENCE',start:32,end:71},
+  {name:'FIRST ECHO',start:72,end:111},{name:'HUNT',start:112,end:175},
+  {name:'FULL COLONY',start:176,end:223},{name:'OWL STRIKE',start:224,end:247},
+  {name:'SCATTER',start:248,end:271},{name:'REFORMATION',start:272,end:319},
+  {name:'FEEDING FRENZY',start:320,end:367},{name:'ROOST',start:368,end:399}
+];
+const BAT_BEATS=400;
+
+// Helper to get mode-specific values
+function modeVal(chorus,flock,bat){return MODE==='bat'?bat:MODE==='flock'?flock:chorus;}
+function getSections(){return modeVal(CHORUS_SECTIONS,FLOCK_SECTIONS,BAT_SECTIONS);}
+function getBeats(){return modeVal(CHORUS_BEATS,FLOCK_BEATS,BAT_BEATS);}
+
 function getSection(beat){
-  const secs=MODE==='flock'?FLOCK_SECTIONS:CHORUS_SECTIONS;
+  const secs=getSections();
   for(const s of secs)if(beat>=s.start&&beat<=s.end)return s;return secs[0];
 }
 
 // §6 BIRDS, FLOCKING & ROOSTING
 // Velocity in screen-units/s (0-1 range). Position update: x += vx * dt.
 // All force coefficients match CRR World divided by 1000 (scale-invariant).
-const CHORUS_BIRDS=[],FLOCK_BIRDS=[];
+const CHORUS_BIRDS=[],FLOCK_BIRDS=[],BAT_BIRDS=[];
+function getBirdList(){return MODE==='bat'?BAT_BIRDS:MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS;}
 const TOPO_K=7; // Topological neighborhood (Ballerini 2008)
 
 // ─── Spatial Hash for O(1) neighbor finding ───
@@ -852,18 +1343,27 @@ const flockCollective=new FlockCollective();
 
 function initChorus(){
   CHORUS_BIRDS.length=0;
-  ['robin','blackbird','nightingale','skylark','wren','swift','starling',
-   'robin','blackbird','starling'].forEach((sp,i)=>{
+  PERCHES.forEach(p=>p.occ=false);
+  const species=['robin','blackbird','nightingale','skylark','wren','swift','starling',
+   'robin','blackbird','starling'];
+  species.forEach((sp,i)=>{
     const b=makeBird(i,sp);
-    b.x=.15+Math.random()*.7;b.y=.2+Math.random()*.4;
-    b.vx=(Math.random()-.5)*.01;b.vy=(Math.random()-.5)*.008;
-    b.tvx=b.vx;b.tvy=b.vy;
-    b.angle=Math.atan2(b.vy,b.vx);b.speed=Math.hypot(b.vx,b.vy);
-    b.targetX=b.x;b.targetY=b.y;
-    b.birdState=0;b.perchTarget=null;b.perchTimer=0;
+    // Birds start PERCHED in trees at dawn
+    if(i<PERCHES.length){
+      const p=PERCHES[i];p.occ=true;
+      b.x=p.x;b.y=p.y;b.perchTarget=p;
+      b.birdState=2; // Perched
+    }else{
+      b.x=.15+Math.random()*.7;b.y=.7+Math.random()*.06;
+      b.birdState=2; // Perched on ground
+      b.perchTarget={x:b.x,y:b.y};
+    }
+    b.vx=0;b.vy=0;b.tvx=0;b.tvy=0;b.speed=0;
+    b.angle=Math.random()*TAU;b.targetX=b.x;b.targetY=b.y;
+    b.perchTimer=0;b.wakeTime=(.5+i*1.2+Math.random()*2); // Staggered wakeup
     CHORUS_BIRDS.push(b);
   });
-  PERCHES.forEach(p=>p.occ=false);roosting=false;
+  roosting=false;
 }
 
 function initFlock(){
@@ -879,6 +1379,29 @@ function initFlock(){
     b.birdState=0;b.perchTarget=null;b.perchTimer=0;
     FLOCK_BIRDS.push(b);
   }
+  flockCollective.crr.reset();
+  PERCHES.forEach(p=>p.occ=false);roosting=false;
+}
+
+function initBats(){
+  BAT_BIRDS.length=0;initMoths(30);Choreographer.init();
+  const batSpecies=['pipistrelle','pipistrelle','pipistrelle','noctule','noctule',
+    'longEared','longEared','pipistrelle','pipistrelle','noctule',
+    'longEared','pipistrelle','pipistrelle','noctule','pipistrelle',
+    'pipistrelle','longEared','pipistrelle','noctule','pipistrelle'];
+  batSpecies.forEach((sp,i)=>{
+    const b=makeBird(i,sp);
+    // Bats start perched (roosting), emerge during EMERGENCE section
+    b.x=TREES[0].x+(Math.random()-.5)*.08;
+    b.y=TREES[0].trunkBase-TREES[0].h*.3-Math.random()*TREES[0].h*.5;
+    b.vx=0;b.vy=0;b.tvx=0;b.tvy=0;b.speed=0;
+    b.birdState=2;b.angle=PI/2; // Hanging upside down
+    b.wakeTime=(1+i*.4+Math.random()*2);
+    b.flockIdx=i;
+    b.crr=new CRRAgent(1/PI,'bat_'+i);
+    b.perchTimer=0;b.perchTarget={x:b.x,y:b.y};
+    BAT_BIRDS.push(b);
+  });
   flockCollective.crr.reset();
   PERCHES.forEach(p=>p.occ=false);roosting=false;
 }
@@ -1078,84 +1601,335 @@ function updateFlockMovement(bird,dt,allBirds,section){
 function updateChorusMovement(bird,dt,allBirds,section){
   const isAlarm=section&&(section.name.includes('RAPTOR')||section.name==='SCATTER');
   const isEvening=section&&(section.name==='EVENING SONG'||section.name==='ROOST');
+  const skyP=getSkyPhase();
+  const fm=Math.min(bird.crr?bird.crr.expCO/3:1,2.5); // CRR memory factor
 
-  // Perched: sit still
-  if(bird.birdState===2){bird.vx=0;bird.vy=0;bird.speed=0;return;}
-  // Landing
+  // ═══ PERCHED: morning wakeup + perch singing ═══
+  if(bird.birdState===2){
+    bird.vx=0;bird.vy=0;bird.speed=0;
+    if(!isEvening&&!roosting&&skyP>0&&bird.wakeTime!==undefined){
+      const wakePhase=bird.wakeTime*.025;
+      if(skyP>wakePhase){
+        bird.birdState=0;
+        if(bird.perchTarget&&bird.perchTarget.occ!==undefined)bird.perchTarget.occ=false;
+        bird.perchTarget=null;
+        // Species launch: swifts launch fast+level, skylarks go UP, robins dart forward
+        if(bird.species==='swift'){bird.vx=(Math.random()>.5?.04:-.04);bird.vy=-.01;}
+        else if(bird.species==='skylark'){bird.vx=(Math.random()-.5)*.01;bird.vy=-.06;}
+        else{bird.vx=(Math.random()-.5)*.03;bird.vy=-.03-Math.random()*.02;}
+        bird.tvx=bird.vx;bird.tvy=bird.vy;
+        bird.wakeTime=undefined;
+        // Assign territory center near launch point
+        bird.terrX=Math.max(.1,Math.min(.9,bird.x+(Math.random()-.5)*.2));
+        bird.terrY=Math.max(.15,Math.min(.55,bird.y-(Math.random()*.15)));
+        bird.terrR=.08+Math.random()*.06; // Territory radius
+        bird.flightMode='launch';bird.flightTimer=0;
+      }
+    }
+    return;
+  }
+
+  // ═══ LANDING approach ═══
   if(bird.birdState===1&&bird.perchTarget){
     const dx=bird.perchTarget.x-bird.x,dy=bird.perchTarget.y-bird.y;
     const d=Math.hypot(dx,dy);
     if(d<.004){bird.x=bird.perchTarget.x;bird.y=bird.perchTarget.y;
-      bird.vx=0;bird.vy=0;bird.speed=0;bird.birdState=2;return;}
-    const ls=Math.min(d*2,.04);
+      bird.vx=0;bird.vy=0;bird.speed=0;bird.birdState=2;
+      bird.perchTimer=0;return;}
+    // Deceleration curve — fast approach, slow landing
+    const ls=Math.min(d*3,.06)*(d>.02?1:d/.02);
     bird.vx=dx/d*ls;bird.vy=dy/d*ls;
     bird.x+=bird.vx*dt;bird.y+=bird.vy*dt;
     bird.speed=ls;if(ls>.001)bird.angle=Math.atan2(bird.vy,bird.vx);
     return;
   }
 
-  // Evening roosting
+  // ═══ Evening roosting ═══
   if(isEvening&&bird.birdState===0){
     bird.perchTimer+=dt;
     if(bird.perchTimer>(.5+Math.random()*6)*bird.react){tryPerch(bird);return;}
   }
 
+  // ═══ FLIGHT MODE STATE MACHINE ═══
+  // CRR drives transitions: coherence builds → rupture = mode change
+  if(!bird.flightMode)bird.flightMode='cruise';
+  if(!bird.flightTimer)bird.flightTimer=0;
+  bird.flightTimer+=dt;
+
+  // CRR-driven mode transitions — justRuptured flag persists one frame
+  const modeT=bird.flightTimer;
+  if(bird.flightMode==='launch'&&modeT>.5){bird.flightMode='cruise';bird.flightTimer=0;}
+  if(bird.flightMode==='cruise'&&bird.crr&&bird.crr.justRuptured){
+    // Rupture → spontaneous behavior change! Species determines probability
+    const r=Math.random();
+    if(bird.species==='swift')bird.flightMode=r<.6?'screaming_circuit':'cruise';
+    else if(bird.species==='skylark')bird.flightMode=r<.3?'song_flight':r<.6?'territory_circuit':'cruise';
+    else if(bird.species==='robin')bird.flightMode=r<.25?'foraging':r<.45?'perch_hop':r<.65?'chase':'territory_circuit';
+    else if(bird.species==='blackbird')bird.flightMode=r<.3?'foraging':r<.5?'singing_perch':r<.7?'territory_circuit':'chase';
+    else if(bird.species==='wren')bird.flightMode=r<.3?'perch_hop':r<.5?'foraging':'territory_circuit';
+    else if(bird.species==='nightingale')bird.flightMode=r<.4?'singing_perch':r<.6?'territory_circuit':'cruise';
+    else if(bird.species==='starling')bird.flightMode=r<.3?'chase':r<.6?'territory_circuit':'screaming_circuit';
+    else bird.flightMode=r<.2?'chase':r<.5?'perch_hop':'territory_circuit';
+    bird.flightTimer=0;
+  }
+  // Duration limits — CRR Ω determines how long each mode persists
+  if(bird.flightMode==='screaming_circuit'&&modeT>3+fm){bird.flightMode='cruise';bird.flightTimer=0;}
+  if(bird.flightMode==='song_flight'&&modeT>4+fm){bird.flightMode='cruise';bird.flightTimer=0;}
+  if(bird.flightMode==='chase'&&modeT>1.5+fm*.5){bird.flightMode='cruise';bird.flightTimer=0;}
+  if(bird.flightMode==='foraging'&&modeT>2+fm*1.5){bird.flightMode='cruise';bird.flightTimer=0;}
+  if(bird.flightMode==='singing_perch'&&modeT>1.5+fm){
+    // Launch from singing perch with burst of speed
+    bird.tvx=(Math.random()-.5)*.04;bird.tvy=-.03;
+    bird.flightMode='cruise';bird.flightTimer=0;
+  }
+  if(bird.flightMode==='perch_hop'&&modeT>.4){
+    if(tryPerch(bird)){return;}
+    bird.flightMode='cruise';bird.flightTimer=0;
+  }
+  if(bird.flightMode==='territory_circuit'&&modeT>2.5+fm){bird.flightMode='cruise';bird.flightTimer=0;}
+  // Periodic spontaneous mode changes even without CRR rupture
+  if(bird.flightMode==='cruise'&&modeT>1.5+Math.random()*2.5){
+    const r2=Math.random();
+    if(bird.species==='swift')bird.flightMode=r2<.6?'screaming_circuit':'territory_circuit';
+    else if(bird.species==='skylark')bird.flightMode=r2<.25?'song_flight':r2<.5?'territory_circuit':'cruise';
+    else if(bird.species==='robin')bird.flightMode=r2<.25?'foraging':r2<.5?'perch_hop':'territory_circuit';
+    else if(bird.species==='blackbird')bird.flightMode=r2<.2?'foraging':r2<.4?'singing_perch':'territory_circuit';
+    else bird.flightMode=r2<.2?'perch_hop':r2<.5?'territory_circuit':'singing_perch';
+    bird.flightTimer=0;
+  }
+
   bird.tvx=bird.vx;bird.tvy=bird.vy;
 
   if(isAlarm){
-    // ── ALARM: CRR-driven escape flocking ──
-    // Chorus birds form coherent escape group instead of scattering randomly
-    buildSpatialHash(allBirds);
+    // ═══ ALARM: CRR-driven escape flocking ═══
+    bird.flightMode='alarm';
     const cands=getSpatialCandidates(bird.x,bird.y);
     let ax=0,ay=0,cx2=0,cy2=0,nc=0;
     for(const idx of cands){
       const o=allBirds[idx];if(o===bird||o.birdState!==0)continue;
       const d=Math.hypot(o.x-bird.x,o.y-bird.y);
-      if(d<.15){
-        ax+=o.vx;ay+=o.vy;cx2+=o.x;cy2+=o.y;nc++;
-        if(d<.02&&d>.001){
-          bird.tvx-=(o.x-bird.x)/d*.001;bird.tvy-=(o.y-bird.y)/d*.001;
-        }
+      if(d<.15){ax+=o.vx;ay+=o.vy;cx2+=o.x;cy2+=o.y;nc++;
+        if(d<.02&&d>.001){bird.tvx-=(o.x-bird.x)/d*.002;bird.tvy-=(o.y-bird.y)/d*.002;}
       }
     }
     if(nc>0){
-      // Alignment — birds escape TOGETHER
-      bird.tvx+=(ax/nc-bird.vx)*.1;bird.tvy+=(ay/nc-bird.vy)*.1;
-      // Cohesion — stay grouped
-      bird.tvx+=(cx2/nc-bird.x)*.02;bird.tvy+=(cy2/nc-bird.y)*.02;
+      bird.tvx+=(ax/nc-bird.vx)*.12;bird.tvy+=(ay/nc-bird.vy)*.12;
+      bird.tvx+=(cx2/nc-bird.x)*.025;bird.tvy+=(cy2/nc-bird.y)*.025;
     }
-    // Predator flee
     if(PREDATOR.active){
       const pdx=bird.x-PREDATOR.x,pdy=bird.y-PREDATOR.y;
       const pd=Math.hypot(pdx,pdy);
-      if(pd<.25&&pd>.001){
-        const flee=(.25-pd)/.25*.1;
+      if(pd<.3&&pd>.001){
+        const flee=(.3-pd)/.3*.15;
         bird.tvx+=pdx/pd*flee;bird.tvy+=pdy/pd*flee;
         bird.stressRuffle=1;
       }
     }
-    bird.tvx+=(Math.random()-.5)*.008;bird.tvy-=.003; // jitter + upward bias
+    bird.tvx+=(Math.random()-.5)*.01;bird.tvy-=.004;
   }else{
-    // ── Normal: gentle wandering toward random targets ──
-    if(Math.random()<.005||Math.hypot(bird.x-bird.targetX,bird.y-bird.targetY)<.03){
-      bird.targetX=.08+Math.random()*.84;bird.targetY=.15+Math.random()*.5;
+    // ═══ SPECIES-SPECIFIC FLIGHT BEHAVIORS ═══
+    const tx=bird.terrX||.5,ty=bird.terrY||.35;
+
+    switch(bird.flightMode){
+
+      case 'screaming_circuit':{
+        // SWIFTS: fast circular screaming flights around territory
+        // CRR phase determines circuit radius — exp(C/Ω) widens the arc
+        const circR=.06+fm*.05;const circSpd=.06+fm*.025;
+        const dir=bird.id%2?1:-1;
+        const ang=modeT*3*dir; // Fast orbiting
+        const cx3=tx+Math.cos(ang)*circR;
+        const cy3=ty+Math.sin(ang)*circR*.5; // Flattened ellipse
+        bird.tvx+=(cx3-bird.x)*.2;bird.tvy+=(cy3-bird.y)*.2;
+        // Screaming parties — swifts chase each other in groups
+        const cands3=getSpatialCandidates(bird.x,bird.y);
+        for(const idx of cands3){
+          const o=allBirds[idx];if(o===bird||o.birdState!==0||o.species!=='swift')continue;
+          const sd=Math.hypot(o.x-bird.x,o.y-bird.y);
+          if(sd<.12&&sd>.01){bird.tvx+=(o.x-bird.x)*.04;bird.tvy+=(o.y-bird.y)*.04;} // Follow other swifts
+        }
+        const spd2=Math.hypot(bird.tvx,bird.tvy);
+        if(spd2>0&&spd2<circSpd){bird.tvx=bird.tvx/spd2*circSpd;bird.tvy=bird.tvy/spd2*circSpd;}
+        break;}
+
+      case 'song_flight':{
+        // SKYLARKS: rise high singing, hover at apex, parachute down
+        // CRR: C determines peak height, exp(C/Ω) = song intensity
+        const phase3=modeT/5;
+        if(phase3<.25){
+          // Steep spiralling climb — CRR coherence building
+          bird.tvx+=(tx-bird.x)*.015+Math.sin(modeT*8)*.015;
+          bird.tvy-=.05*(1+fm*.4);
+        }else if(phase3<.65){
+          // Hovering apex — tiny figure-8 oscillations while singing
+          bird.tvx+=(tx-bird.x)*.06;
+          bird.tvy+=(.1-bird.y)*.04; // Stay high
+          bird.tvx+=Math.sin(modeT*5)*.012;
+          bird.tvy+=Math.cos(modeT*7)*.006;
+        }else{
+          // Parachute descent — wings half-closed, drifting
+          bird.tvx+=(tx-bird.x)*.02+(Math.random()-.5)*.01;
+          bird.tvy+=.015+Math.random()*.01;
+        }
+        break;}
+
+      case 'chase':{
+        // Territorial chase — fast pursuit with jinking
+        let nearest=null,nd=Infinity;
+        for(const o of allBirds){
+          if(o===bird||o.birdState!==0)continue;
+          const d3=Math.hypot(o.x-bird.x,o.y-bird.y);
+          if(d3<nd&&d3<.15){nd=d3;nearest=o;}
+        }
+        if(nearest){
+          const dx3=nearest.x-bird.x,dy3=nearest.y-bird.y;
+          bird.tvx+=dx3*.1;bird.tvy+=dy3*.1;
+          // Jinking — CRR-modulated evasion complexity
+          bird.tvx+=Math.sin(modeT*12+bird.id)*.02*fm;
+          bird.tvy+=Math.cos(modeT*9+bird.id)*.015*fm;
+        }else{bird.flightMode='cruise';bird.flightTimer=0;}
+        break;}
+
+      case 'territory_circuit':{
+        // Patrol territory boundary — figure-8 pattern
+        const ang2=modeT*1.8;const tr=bird.terrR||.1;
+        // Figure-8: x uses sin(t), y uses sin(2t) for the crossing pattern
+        const cx4=tx+Math.sin(ang2)*tr;
+        const cy4=ty+Math.sin(ang2*2)*tr*.4;
+        bird.tvx+=(cx4-bird.x)*.08;bird.tvy+=(cy4-bird.y)*.08;
+        // CRR micro-bursts — sudden direction changes
+        if(Math.random()<.015*fm){
+          bird.tvx+=(Math.random()-.5)*.06;bird.tvy+=(Math.random()-.5)*.04;
+        }
+        break;}
+
+      case 'foraging':{
+        // Ground-level feeding — robins, blackbirds, thrushes
+        // Drop to low altitude, hop-stop-hop pattern
+        const forageY=.6+bird.id*.001; // Near ground
+        bird.tvy+=(forageY-bird.y)*.04;
+        // Hop-stop pattern: CRR Z₂ alternation
+        const hopPhase=(modeT*3)%1;
+        if(hopPhase<.3){
+          // Hop — quick lateral movement
+          bird.tvx+=(bird.id%2?.015:-.015)*(1+Math.sin(modeT*5));
+        }else if(hopPhase<.5){
+          // Stop — head tilt, looking for food
+          bird.tvx*=.8;bird.tvy*=.8;
+        }else{
+          // Peck — brief downward
+          bird.tvy+=.005;
+          bird.tvx+=(Math.random()-.5)*.01;
+        }
+        break;}
+
+      case 'singing_perch':{
+        // Fly to prominent spot, pause briefly (singing), then launch
+        // CRR: coherence while perched = song duration
+        const singTarget=TREES[bird.id%TREES.length];
+        const stX=singTarget.x,stY=singTarget.trunkBase-.12;
+        const sd2=Math.hypot(stX-bird.x,stY-bird.y);
+        if(sd2>.03){
+          // Approach the singing spot
+          bird.tvx+=(stX-bird.x)*.08;bird.tvy+=(stY-bird.y)*.08;
+        }else{
+          // Arrived — hover in place briefly then depart
+          bird.tvx*=.85;bird.tvy*=.85;
+          bird.tvx+=(Math.random()-.5)*.008;
+          bird.tvy+=(Math.random()-.5)*.005;
+        }
+        break;}
+
+      case 'perch_hop':
+        // Short dart toward nearest tree — fast, direct
+        bird.tvx+=(TREES[bird.id%TREES.length].x-bird.x)*.12;
+        bird.tvy+=(TREES[bird.id%TREES.length].trunkBase-.1-bird.y)*.12;
+        break;
+
+      default:{
+        // CRUISE: species-specific natural flight
+        // CRR memory factor modulates restlessness
+        bird.tvx+=(tx-bird.x)*.01*(1+fm*.4);
+        bird.tvy+=(ty-bird.y)*.008*(1+fm*.4);
+        // Natural undulation — all birds bob in flight
+        bird.tvy+=Math.sin(modeT*3.5+bird.id)*.004;
+        bird.tvx+=Math.cos(modeT*2.3+bird.id*.7)*.002;
+
+        // ── Species personality in cruise ──
+        if(bird.species==='robin'){
+          // Robins: low, darting, sudden stops and starts
+          bird.tvy+=(.5-bird.y)*.006; // Prefer mid-low
+          if(Math.random()<.03*fm){
+            bird.tvx+=(Math.random()-.5)*.05; // Quick dart
+            bird.tvy+=(Math.random()-.5)*.03;
+          }
+        }else if(bird.species==='wren'){
+          // Wrens: very low, fast buzzy flight, close to undergrowth
+          bird.tvy+=(.55-bird.y)*.008;
+          bird.tvx+=(Math.random()-.5)*.012; // Constant micro-jitter
+          bird.tvy+=(Math.random()-.5)*.008;
+        }else if(bird.species==='blackbird'){
+          // Blackbirds: strong direct flight with pronounced undulation
+          bird.tvy+=Math.sin(modeT*5)*.006;
+          bird.tvx+=.003*(bird.x<tx?1:-1); // Direct toward territory
+        }else if(bird.species==='nightingale'){
+          // Nightingales: secretive, stay in mid-canopy, rarely in open
+          bird.tvy+=(.35-bird.y)*.008; // Mid height
+          // Prefer edges near trees
+          const nearTree=TREES.reduce((b2,t)=>Math.abs(t.x-bird.x)<Math.abs(b2.x-bird.x)?t:b2,TREES[0]);
+          bird.tvx+=(nearTree.x-bird.x)*.005;
+        }else if(bird.species==='swift'){
+          // Swifts in cruise: fast, sweeping, never stop
+          bird.tvx+=Math.sin(modeT*1.5)*.015;
+          bird.tvy+=Math.cos(modeT*2.1)*.008;
+          // Minimum speed — swifts never hover
+          const cs=Math.hypot(bird.tvx,bird.tvy);
+          if(cs<.03){bird.tvx+=.02*(bird.tvx>=0?1:-1);bird.tvy-=.01;}
+        }else if(bird.species==='skylark'){
+          // Skylarks: high, drifting, periodic rising
+          bird.tvy+=(.25-bird.y)*.004; // Prefer high
+          if(Math.random()<.005)bird.tvy-=.02; // Occasional sudden rise
+        }else if(bird.species==='starling'){
+          // Starlings: medium, gregarious, seek other starlings
+          const cands4=getSpatialCandidates(bird.x,bird.y);
+          for(const idx of cands4){
+            const o=allBirds[idx];if(o===bird||o.birdState!==0||o.species!=='starling')continue;
+            const sd3=Math.hypot(o.x-bird.x,o.y-bird.y);
+            if(sd3<.15&&sd3>.02){bird.tvx+=(o.x-bird.x)*.01;bird.tvy+=(o.y-bird.y)*.01;}
+          }
+        }
+      }
     }
-    bird.tvx+=(bird.targetX-bird.x)*.003;
-    bird.tvy+=(bird.targetY-bird.y)*.003;
+
+    // ── Neighbor avoidance (all modes) ──
+    const cands2=getSpatialCandidates(bird.x,bird.y);
+    for(const idx of cands2){
+      const o=allBirds[idx];if(o===bird||o.birdState!==0)continue;
+      const dx4=bird.x-o.x,dy4=bird.y-o.y,d4=Math.hypot(dx4,dy4);
+      if(d4<.025&&d4>.001){bird.tvx+=dx4/d4*.004;bird.tvy+=dy4/d4*.004;}
+    }
   }
 
-  // Turning wave
-  const tL=Math.min(1,dt*8);
+  // ═══ PHYSICS ═══
+  const tL=Math.min(1,dt*(bird.species==='swift'?15:10));
   bird.vx+=(bird.tvx-bird.vx)*tL;bird.vy+=(bird.tvy-bird.vy)*tL;
 
   // Boundary
-  if(bird.x<.06)bird.vx+=.004;if(bird.x>.94)bird.vx-=.004;
-  if(bird.y<.06)bird.vy+=.004;if(bird.y>.75)bird.vy-=.004;
+  const M=.06,bF=.006;
+  if(bird.x<M)bird.vx+=bF*(1-bird.x/M);if(bird.x>1-M)bird.vx-=bF*(1-(1-bird.x)/M);
+  if(bird.y<M)bird.vy+=bF*(1-bird.y/M);if(bird.y>.75)bird.vy-=bF;
 
-  // Speed limits (chorus birds are slower)
+  // Speed limits — species-specific!
   const spd=Math.hypot(bird.vx,bird.vy);
-  const maxS=isAlarm?.06:.02;
+  let maxS,minS=.005;
+  if(isAlarm)maxS=.07;
+  else if(bird.species==='swift')maxS=.08;
+  else if(bird.species==='skylark'&&bird.flightMode==='song_flight')maxS=.04;
+  else maxS=.04;
   if(spd>maxS){bird.vx=bird.vx/spd*maxS;bird.vy=bird.vy/spd*maxS;}
+  else if(spd<minS&&spd>.001&&bird.flightMode!=='perch_hop'){
+    bird.vx=bird.vx/spd*minS;bird.vy=bird.vy/spd*minS;
+  }
 
   bird.vx*=.98;bird.vy*=.98;
   bird.x+=bird.vx*dt;bird.y+=bird.vy*dt;
@@ -1178,6 +1952,148 @@ function measureFlockMetrics(birdList){
   flockMetrics.alignment=Math.hypot(ax,ay)/flying;
   const avgNND=birdList.reduce((s,b)=>s+(b.neighborDists&&b.neighborDists[0]||0),0)/n;
   flockMetrics.separation=avgNND;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Bat mode: erratic hunting flight + CRR echolocation
+// Bats hunt individually but maintain loose colony cohesion
+// ═══════════════════════════════════════════════════════════
+function updateBatMovement(bat,dt,allBats,section){
+  const isHunt=section&&(section.name.includes('HUNT')||section.name==='FEEDING FRENZY');
+  const isScatter=section&&(section.name.includes('OWL')||section.name==='SCATTER');
+  const isRoost=section&&section.name==='ROOST';
+  const skyP=getSkyPhase();
+
+  // Perched: check for emergence wakeup
+  if(bat.birdState===2){
+    bat.vx=0;bat.vy=0;bat.speed=0;
+    if(!roosting&&skyP>0&&bat.wakeTime!==undefined){
+      const wakePhase=bat.wakeTime*.02;
+      if(skyP>wakePhase){
+        bat.birdState=0;bat.wakeTime=undefined;
+        bat.vx=(Math.random()-.5)*.03;bat.vy=-.03-Math.random()*.02;
+        bat.tvx=bat.vx;bat.tvy=bat.vy;
+      }
+    }
+    return;
+  }
+
+  // Landing
+  if(bat.birdState===1&&bat.perchTarget){
+    const dx=bat.perchTarget.x-bat.x,dy=bat.perchTarget.y-bat.y;
+    const d=Math.hypot(dx,dy);
+    if(d<.005){bat.x=bat.perchTarget.x;bat.y=bat.perchTarget.y;
+      bat.vx=0;bat.vy=0;bat.speed=0;bat.birdState=2;return;}
+    const ls=Math.min(d*3,.06);
+    bat.vx=dx/d*ls;bat.vy=dy/d*ls;
+    bat.x+=bat.vx*dt;bat.y+=bat.vy*dt;
+    bat.speed=ls;if(ls>.001)bat.angle=Math.atan2(bat.vy,bat.vx);
+    return;
+  }
+
+  // Roost landing
+  if(isRoost&&bat.birdState===0){
+    bat.perchTimer+=dt;
+    if(bat.perchTimer>(.3+Math.random()*3)*bat.react){
+      bat.perchTarget={x:TREES[0].x+(Math.random()-.5)*.08,
+        y:TREES[0].trunkBase-TREES[0].h*.3-Math.random()*TREES[0].h*.4};
+      bat.birdState=1;return;
+    }
+  }
+
+  // Reset target velocity
+  bat.tvx=bat.vx;bat.tvy=bat.vy;
+
+  // ── Moth hunting — find nearest moth and pursue ──
+  if(isHunt||section?.name==='FEEDING FRENZY'){
+    bat.huntCooldown-=dt;
+    if(bat.huntCooldown<=0&&!bat.huntTarget){
+      let bestM=null,bestD=.15;
+      for(const m of MOTHS){
+        if(!m.alive)continue;
+        const d=Math.hypot(m.x-bat.x,m.y-bat.y);
+        if(d<bestD){bestD=d;bestM=m;}
+      }
+      if(bestM)bat.huntTarget=bestM;
+    }
+    if(bat.huntTarget&&bat.huntTarget.alive){
+      const dx=bat.huntTarget.x-bat.x,dy=bat.huntTarget.y-bat.y;
+      const d=Math.hypot(dx,dy);
+      if(d<.01){
+        // Catch!
+        bat.huntTarget.alive=false;bat.mothCatch=1;
+        bat.huntTarget=null;bat.huntCooldown=1+Math.random()*2;
+        bat.crr.rupture(); // Feeding rupture
+      }else{
+        // Pursuit — accelerate toward moth
+        const pursuitF=.08*(1+bat.crr.normC*.3);
+        bat.tvx+=dx/d*pursuitF;bat.tvy+=dy/d*pursuitF;
+      }
+    }else{bat.huntTarget=null;}
+  }
+
+  // ── Loose colony cohesion (bats are less cohesive than starlings) ──
+  const cands=getSpatialCandidates(bat.x,bat.y);
+  let ax=0,ay=0,cx2=0,cy2=0,nc=0;
+  for(const idx of cands){
+    const o=allBats[idx];if(o===bat||o.birdState!==0)continue;
+    const dx=o.x-bat.x,dy=o.y-bat.y,d=Math.hypot(dx,dy);
+    if(d<.12){
+      ax+=o.vx;ay+=o.vy;cx2+=o.x;cy2+=o.y;nc++;
+      if(d<.015&&d>.001){bat.tvx-=dx/d*.003;bat.tvy-=dy/d*.003;} // Separation
+    }
+  }
+  bat.neighbors=[];bat.neighborDists=[];
+
+  if(nc>0){
+    // Very loose alignment and cohesion (bats are more independent)
+    bat.tvx+=(ax/nc-bat.vx)*.04;bat.tvy+=(ay/nc-bat.vy)*.04;
+    bat.tvx+=(cx2/nc-bat.x)*.008;bat.tvy+=(cy2/nc-bat.y)*.008;
+  }
+
+  // ── Erratic flight — bats jink constantly ──
+  bat.tvx+=(Math.random()-.5)*.06;
+  bat.tvy+=(Math.random()-.5)*.04;
+  // Slight upward bias during active hunting
+  if(isHunt)bat.tvy-=.005;
+
+  // Center pull — keep colony loosely together
+  bat.tvx+=(.5-bat.x)*.005;bat.tvy+=(.35-bat.y)*.003;
+
+  // Owl avoidance
+  if(PREDATOR.active){
+    const pdx=bat.x-PREDATOR.x,pdy=bat.y-PREDATOR.y;
+    const pd=Math.hypot(pdx,pdy);
+    if(pd<.2&&pd>.001){
+      const flee=(.2-pd)/.2*.15;
+      bat.tvx+=pdx/pd*flee;bat.tvy+=pdy/pd*flee;
+      bat.stressRuffle=1;
+      if(pd<.08)bat.crr.rupture();
+    }
+  }
+  if(isScatter){bat.tvx+=(Math.random()-.5)*.02;bat.tvy+=(Math.random()-.5)*.015;}
+
+  // Smooth turning
+  const tL=Math.min(1,dt*12);
+  bat.vx+=(bat.tvx-bat.vx)*tL;bat.vy+=(bat.tvy-bat.vy)*tL;
+
+  // Boundary
+  const M=.08,bF=.01;
+  if(bat.x<M)bat.vx+=bF*(1-bat.x/M);if(bat.x>1-M)bat.vx-=bF*(1-(1-bat.x)/M);
+  if(bat.y<M)bat.vy+=bF*(1-bat.y/M);if(bat.y>.7)bat.vy-=bF*(1-(.85-bat.y)/.15);
+
+  // Speed limits (bats are fast!)
+  const spd=Math.hypot(bat.vx,bat.vy);
+  const maxS=isScatter?.12:.08,minS=.02;
+  if(spd>maxS){bat.vx=bat.vx/spd*maxS;bat.vy=bat.vy/spd*maxS;}
+  else if(spd<minS&&spd>.001){bat.vx=bat.vx/spd*minS;bat.vy=bat.vy/spd*minS;}
+
+  bat.vx*=.97;bat.vy*=.97;
+  bat.x+=bat.vx*dt;bat.y+=bat.vy*dt;
+  bat.x=Math.max(.03,Math.min(.97,bat.x));
+  bat.y=Math.max(.04,Math.min(.78,bat.y));
+  bat.speed=Math.hypot(bat.vx,bat.vy);
+  if(bat.speed>.001)bat.angle=Math.atan2(bat.vy,bat.vx);
 }
 
 // §7 COMPOSITIONS
@@ -1380,15 +2296,275 @@ function buildFlockSequence(){
   E.sort((a,b)=>a.beat-b.beat);return E;
 }
 
-// §8 SEQUENCER
+function buildBatSequence(){
+  const E=[];
+  // D minor nocturne — CRR Ω=1/π derived harmony
+  const Dm=[50,53,57,60,62],Am=[45,48,52,57,60];
+  const Bb=[46,50,53,58,62],Gm=[43,50,55,58,62];
+  const Ebm=[51,54,58,63,66]; // Tension chord
+  const ch=[Dm,Dm,Am,Am,Gm,Gm,Bb,Bb,Dm,Am,Gm,Bb,Dm,Ebm,Am,Dm];
+
+  // Shorthand helpers
+  const ec=(b,g)=>E.push({beat:b,type:'echo',gain:g||.3});
+  const ecN=(b,g,n)=>E.push({beat:b,type:'echoCluster',gain:g||.2,n:n||3});
+  const bz=(b,g)=>E.push({beat:b,type:'buzz',gain:g||.25});
+  const wf=(b,g)=>E.push({beat:b,type:'wingFlutter',gain:g||.15});
+  const ins=(b,g)=>E.push({beat:b,type:'insectChorus',gain:g||.12});
+  const na=(b,g)=>E.push({beat:b,type:'nightAmbient',gain:g||.1});
+  const ow=(b,g)=>E.push({beat:b,type:'owl',gain:g||.2});
+  const sc=(b,g)=>E.push({beat:b,type:'batSocial',gain:g||.15});
+  const mc=(b,g)=>E.push({beat:b,type:'mothCatch',gain:g||.2});
+  const mel=(b,g)=>E.push({beat:b,type:'batMelody',gain:g||.15});
+  const drip=(b,g)=>E.push({beat:b,type:'waterDrip',gain:g||.1});
+  const fox=(b,g)=>E.push({beat:b,type:'foxBark',gain:g||.12});
+  const frog=(b,g)=>E.push({beat:b,type:'frogChorus',gain:g||.08});
+  const dopp=(b,g,s)=>E.push({beat:b,type:'dopplerClick',gain:g||.15,speed:s||.5});
+  const pad=(b,notes,g,dur)=>E.push({beat:b,type:'nightPad',padNotes:notes,padGain:g,duration:dur});
+  const nt=(b,m,v,d)=>E.push({beat:b,midi:m,velocity:v,duration:d,type:'note'});
+  const th=(b,s,v,dur)=>E.push({beat:b,type:'thermal',steps:s,velocity:v,duration:dur});
+  const tc=(b,cfg)=>E.push({beat:b,type:'thermalConfig',...cfg});
+
+  // ════════════════════════════════════════════════
+  // I. DUSK (0-31) — World settling into night
+  // CRR: coherence of twilight building toward first rupture
+  // ════════════════════════════════════════════════
+  pad(0,Dm,.02,30);tc(0,{activity:.02,turbulence:.2,lift:.15});
+  // Insect chorus fades IN — the signature of approaching night
+  ins(0,.03);ins(4,.05);ins(8,.07);ins(12,.08);ins(16,.1);ins(20,.11);ins(24,.12);ins(28,.13);
+  // Night ambient wind — continuous
+  na(0,.04);na(8,.06);na(16,.08);na(24,.1);
+  // Distant owl — first sign of predator
+  ow(10,.06);ow(22,.1);
+  // Sparse thermal — heat still escaping from day
+  for(let b=0;b<32;b+=6)th(b,1,.03,.5);
+  // Water dripping — stream in the distance
+  drip(2,.04);drip(10,.06);drip(18,.07);drip(25,.08);
+  // Frog chorus starts — rhythmic backdrop building
+  frog(6,.03);frog(14,.05);frog(22,.07);frog(28,.08);
+  // First bat clicks — tentative, testing from roost
+  ec(26,.04);ec(28,.05);ec(30,.06);
+
+  // ════════════════════════════════════════════════
+  // II. EMERGENCE (32-71) — Bats leave roost one by one
+  // CRR: each bat's emergence is a micro-rupture
+  // ════════════════════════════════════════════════
+  pad(32,Dm,.04,38);tc(32,{activity:.06,turbulence:.4,lift:.3});
+  for(let b=32;b<72;b++){const l=b-32;
+    // Individual clicks build to colony — staggered entry
+    if(l<10&&l%2===0)ec(b,.06+l*.008); // First few solo
+    else if(l<20&&l%2===0)ecN(b,.08+l*.004,2); // Then pairs
+    else if(l%2===0)ecN(b,.1+l*.003,3); // Then clusters
+    // Wing flutter as bats drop from roost
+    if(l%4===0)wf(b,.05+l*.003);
+    // Social chirps — colony communication
+    if(l%6===0)sc(b,.04+l*.002);
+    // Insect backdrop continuous
+    if(l%8===0)ins(b,.1+l*.002);
+    // Night ambient
+    if(l%10===0)na(b,.08);
+    // Melody emerges sparsely
+    if(l%16===0)mel(b,.03+l*.002);
+    // Harmony notes
+    if(l%8===0){const c2=ch[Math.floor(l/4)%16];nt(b,c2[0],.06+l*.003,2);}
+    // Thermal wisps
+    if(l%5===0)th(b,1,.04,.4);
+    // Water and frogs — continuous atmospheric bed
+    if(l%10===0)drip(b,.06+l*.001);
+    if(l%12===0)frog(b,.06+l*.001);
+  }
+
+  // ════════════════════════════════════════════════
+  // III. FIRST ECHO (72-111) — Echolocation chorus builds
+  // CRR: colony coherence — clicks synchronize
+  // ════════════════════════════════════════════════
+  pad(72,Am,.07,38);tc(72,{activity:.12,turbulence:.5,lift:.4});
+  for(let b=72;b<112;b++){const l=b-72;
+    // Dense clicks — multiple bats at once
+    ec(b,.12+l*.004); // Solo click every beat
+    if(l%2===0)ecN(b,.1+l*.003,2+Math.floor(l/10)); // Growing clusters
+    // Wing flutter layers
+    if(l%3===0)wf(b,.08+l*.002);
+    // Social calls intensify
+    if(l%3===0)sc(b,.06+l*.002);
+    // Insect chorus — louder, more species
+    if(l%6===0)ins(b,.12+l*.002);
+    // Night ambient
+    if(l%12===0)na(b,.1);
+    // Melody — longer phrases
+    if(l%10===0)mel(b,.06+l*.003);
+    // Harmony — richer
+    const c2=ch[Math.floor(l/4)%16];
+    if(l%4===0)nt(b,c2[l%c2.length],.08+l*.003,1.5);
+    if(l%8===0)nt(b,c2[0]-12,.04,3); // Bass pedal
+    if(l%8===0)pad(b,c2,.08,7);
+    th(b,1,.06,.45);
+  }
+
+  // ════════════════════════════════════════════════
+  // IV. HUNT (112-175) — Active moth hunting
+  // CRR: approach phase — C builds as bat locks target,
+  // δ at feeding buzz, R as catch/miss
+  // ════════════════════════════════════════════════
+  pad(112,Gm,.1,62);tc(112,{activity:.35,turbulence:.6,lift:.5});
+  for(let b=112;b<176;b++){const l=b-112;
+    // DENSE echolocation — every beat, multiple layers
+    ec(b,.18+Math.sin(l*.3)*.08);
+    ecN(b,.12,2+Math.floor(l/16)); // Background colony
+    // Feeding buzz clusters — accelerating approach
+    if(l%3===0)bz(b,.1+l*.001);
+    // Moth catches with wing flutter
+    if(l%5===0){mc(b,.12+Math.random()*.06);wf(b,.1);}
+    // Wing flutter — constant bat wings
+    if(l%2===0)wf(b,.06+Math.sin(l*.4)*.03);
+    // Social — territorial chirps during feeding
+    if(l%4===0)sc(b,.08+Math.random()*.04);
+    // Insect chorus — competing with bats
+    if(l%8===0)ins(b,.14);
+    // Night ambient
+    if(l%16===0)na(b,.1);
+    // Musical layers
+    const c2=ch[Math.floor(l/4)%16];
+    if(l%3===0)nt(b,c2[l%c2.length],.12+Math.sin(l*.2)*.04,.8);
+    if(l%6===0)nt(b,c2[0]-12,.06,2); // Bass
+    if(l%12===0)mel(b,.1);
+    if(l%8===0)pad(b,c2,.1,7);
+    th(b,1,.08,.35);
+  }
+
+  // ════════════════════════════════════════════════
+  // V. FULL COLONY (176-223) — Peak activity
+  // CRR: maximum coherence — all systems layered
+  // ════════════════════════════════════════════════
+  pad(176,Bb,.14,46);tc(176,{activity:.55,turbulence:.35,lift:.6});
+  for(let b=176;b<224;b++){const l=b-176;
+    // Maximum echolocation density — 3 layers per beat
+    ec(b,.22);ecN(b,.15,4);if(l%2===0)ecN(b,.08,2);
+    // Feeding frenzy sounds
+    if(l%2===0)bz(b,.12);if(l%3===0)mc(b,.15);
+    // Constant wing texture
+    wf(b,.08);
+    // Colony communication at peak
+    if(l%2===0)sc(b,.1);
+    // Insects fighting to be heard
+    if(l%6===0)ins(b,.15);
+    if(l%10===0)na(b,.08);
+    // Rich musical texture
+    const c2=ch[Math.floor(l/3)%16];
+    nt(b,c2[l%c2.length],.16,.6);
+    if(l%2===0)nt(b,c2[(l+2)%c2.length]+12,.06,.4); // High doubling
+    if(l%4===0)nt(b,c2[0]-12,.08,1.5);
+    if(l%6===0)mel(b,.12);
+    if(l%8===0)pad(b,c2,.13,6);
+    th(b,1,.1,.3);
+  }
+
+  // ════════════════════════════════════════════════
+  // VI. OWL STRIKE (224-247) — Terror from above
+  // CRR: massive rupture — owl hoot = predator coherence,
+  // bat colony shatters
+  // ════════════════════════════════════════════════
+  tc(224,{activity:.04,turbulence:.95,lift:.15});
+  pad(224,[43,48,53,56],.18,22); // Ominous chord
+  ow(224,.5);ow(225,.3); // Double hoot
+  // Colony alarm — frantic clicks
+  for(let b=226;b<248;b++){const l=b-224;
+    ec(b,.25+Math.random()*.1); // Panic clicks
+    ecN(b,.2,5); // Everyone clicking at once
+    if(l%2===0)sc(b,.2-l*.006); // Alarm calls
+    wf(b,.15); // Frantic wing beats
+    if(l%4===0)na(b,.05); // Atmosphere darkens
+    th(b,1,.03,.6);
+  }
+  ow(236,.2); // Owl calls again
+
+  // ════════════════════════════════════════════════
+  // VII. SCATTER (248-271) — Colony disperses
+  // CRR: regeneration begins — scattered, rebuilding
+  // ════════════════════════════════════════════════
+  pad(248,[50,55,58,62],.06,22);
+  for(let b=248;b<272;b++){const l=b-248;
+    // Sparse, scattered clicks — individuals
+    if(l%3===0)ec(b,.08-l*.002);
+    if(l%5===0)wf(b,.04);
+    if(l%8===0)sc(b,.03);
+    if(l%6===0)ins(b,.08); // Insects reclaim the silence
+    if(l%10===0)na(b,.08);
+    if(l%6===0)th(b,1,.03,.5);
+  }
+
+  // ════════════════════════════════════════════════
+  // VIII. REFORMATION (272-319) — Colony rebuilds
+  // CRR: regeneration → new coherence cycle
+  // exp(C/Ω) weighted memory draws bats back together
+  // ════════════════════════════════════════════════
+  pad(272,Dm,.06,46);tc(272,{activity:.12,turbulence:.55,lift:.35});
+  for(let b=272;b<320;b++){const l=b-272,r=l/48;
+    // Clicks rebuild gradually — CRR regeneration curve
+    if(l%3===0)ec(b,.04+r*.18);
+    if(l>=8&&l%4===0)ecN(b,.03+r*.12,1+Math.floor(r*3));
+    // Wing flutter returns
+    if(l%4===0)wf(b,.03+r*.08);
+    // Social calls — colony reforming
+    if(l%5===0)sc(b,.03+r*.1);
+    // Insects steady
+    if(l%8===0)ins(b,.1+r*.04);
+    if(l%12===0)na(b,.07+r*.04);
+    // Melody returns — more emotional
+    if(l>=12&&l%8===0)mel(b,.04+r*.12);
+    // Harmony rebuilds
+    const c2=ch[Math.floor(l/4)%16];
+    if(l>=8&&l%4===0)nt(b,c2[0],.04+r*.14,1.4);
+    if(l>=16&&l%8===0)nt(b,c2[0]-12,.03+r*.06,2.5);
+    if(l%10===0)pad(b,c2,.04+r*.1,8);
+    if(l%4===0)th(b,1,.04+r*.07,.45);
+  }
+
+  // ════════════════════════════════════════════════
+  // IX. FEEDING FRENZY (320-367) — Last burst before dawn
+  // CRR: final coherence peak, then fade
+  // ════════════════════════════════════════════════
+  pad(320,Am,.12,46);tc(320,{activity:.45,turbulence:.4,lift:.5});
+  for(let b=320;b<368;b++){const l=b-320,f=Math.max(.05,1-l/48);
+    // Dense but fading
+    ec(b,.2*f);ecN(b,.12*f,3);
+    if(l%2===0)bz(b,.1*f);if(l%3===0)mc(b,.12*f);
+    wf(b,.06*f);
+    if(l%3===0)sc(b,.08*f);
+    if(l%6===0)ins(b,.12*f);
+    if(l%10===0)na(b,.06*f);
+    const c2=ch[Math.floor(l/4)%16];
+    if(l%2===0)nt(b,c2[l%c2.length],.14*f,.7);
+    if(l%8===0)nt(b,c2[0]-12,.05*f,2);
+    if(l%10===0)mel(b,.1*f);
+    if(l%8===0)pad(b,c2,.08*f,6);
+    th(b,1,.07*f,.38);
+  }
+
+  // ════════════════════════════════════════════════
+  // X. ROOST (368-399) — Return to silence
+  // CRR: coherence dissolves into sleep
+  // ════════════════════════════════════════════════
+  pad(368,Dm,.04,28);tc(368,{activity:.02,turbulence:.6,lift:.12});
+  ow(372,.1);ow(386,.06); // Owl reclaims the night
+  // Last stragglers
+  ec(370,.05);ec(374,.03);sc(376,.03);wf(378,.02);
+  // Insects have the last word
+  ins(370,.1);ins(378,.08);ins(386,.05);ins(394,.03);
+  na(370,.06);na(382,.04);
+  // Final melody note — haunting single tone
+  nt(380,50,.08,4); // Low D, long sustain
+  nt(382,57,.04,3); // A above, fading
+
+  E.sort((a,b)=>a.beat-b.beat);return E;
+}
 let sequence=[],seqIdx=0,playing=false,startTime=0,currentBeat=0;
 
 function startPlayback(){
   if(!ac)initAudio();if(ac.state==='suspended')ac.resume();
-  sequence=MODE==='flock'?buildFlockSequence():buildChorusSequence();
+  sequence=MODE==='bat'?buildBatSequence():MODE==='flock'?buildFlockSequence():buildChorusSequence();
   seqIdx=0;currentBeat=0;startTime=ac.currentTime;playing=true;
   ALL_CRR.forEach(c=>c.reset());thermalEngine.reset();PREDATOR.active=false;
-  if(MODE==='chorus')initChorus();else initFlock();
+  if(MODE==='chorus')initChorus();else if(MODE==='flock')initFlock();else initBats();
   flockCollective.crr.reset();flockCollective.angMom=0;
   flockCollective.turnDir={x:0,y:0};flockCollective.choreo=null;
   roosting=false;masterFade=1;
@@ -1401,38 +2577,42 @@ let masterFade=1; // For end-of-song fadeout
 
 function scheduleLoop(){
   if(!playing)return;const now=ac.currentTime;currentBeat=(now-startTime)/BEAT_S;
-  const totalB=MODE==='flock'?FLOCK_BEATS:CHORUS_BEATS;
+  const totalB=getBeats();
   if(currentBeat>=totalB){stopPlayback();return;}
 
   const section=getSection(Math.floor(currentBeat));
-  const secs=MODE==='flock'?FLOCK_SECTIONS:CHORUS_SECTIONS;
+  const secs=getSections();
   const sIdx=secs.indexOf(section);
   const L=.012+sIdx*.007;
   ALL_CRR.forEach(c=>c.step(L*(c===crrFlock?1.2:c===crrSyrinx?.9:.7),.016));
 
-  if(section.name.includes('RAPTOR')&&crrGlobal.phase==='coherence'){
+  const isRaptorLike=section.name.includes('RAPTOR')||section.name.includes('OWL');
+  if(isRaptorLike&&crrGlobal.phase==='coherence'){
     ALL_CRR.forEach(c=>c.rupture());
-    if(MODE==='flock')flockCollective.crr.rupture();
+    if(MODE!=='chorus')flockCollective.crr.rupture();
   }
   if(section.name==='REFORMATION'&&crrGlobal.phase==='regeneration'&&crrGlobal.C>crrGlobal.lastRupture*.4)
     ALL_CRR.forEach(c=>{c.phase='coherence';});
 
-  const birdList=MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS;
+  const birdList=getBirdList();
 
-  // Build spatial hash for flocking
+  // Build spatial hash
   buildSpatialHash(birdList);
 
-  // Update flock collective (murmuration mode)
-  if(MODE==='flock')flockCollective.update(.016,birdList,currentBeat*BEAT_S);
+  // Update flock collective (murmuration and bat modes)
+  if(MODE!=='chorus')flockCollective.update(.016,birdList,currentBeat*BEAT_S);
+
+  // Update moths (bat mode)
+  if(MODE==='bat')updateMoths(.016);
 
   // Update predator
   updatePredator(.016,section,birdList);
 
-  // Roosting check — final sections trigger birds going to trees
+  // Roosting check
   const isRoost=section.name==='ROOST';
   if(isRoost&&!roosting){roosting=true;roostStartTime=currentBeat*BEAT_S;}
 
-  // Master fadeout during last ~20% of ROOST section
+  // Master fadeout
   if(isRoost){
     const roostProgress=(currentBeat-section.start)/(section.end-section.start);
     if(roostProgress>.3)masterFade=Math.max(0,1-(roostProgress-.3)/.7);
@@ -1440,11 +2620,24 @@ function scheduleLoop(){
   }
 
   birdList.forEach(f=>{
-    updateBirdPhysiology(f,.016,currentBeat/2,section);
-    f.crr.step(L*.6,.016);
-    if(section.name.includes('RAPTOR')&&f.crr.phase==='coherence')f.crr.rupture();
+    if(MODE==='bat')updateBatPhysiology(f,.016,currentBeat/2,section);
+    else updateBirdPhysiology(f,.016,currentBeat/2,section);
+    // CRR step rate: chorus birds step 3x faster for frequent mode changes
+    const crrRate=MODE==='chorus'?L*1.8:L*.6;
+    f.crr.step(crrRate,.016);
+    if(isRaptorLike&&f.crr.phase==='coherence')f.crr.rupture();
     if(section.name==='REFORMATION'&&f.crr.phase==='regeneration'&&f.crr.C>f.crr.lastRupture*.3)f.crr.phase='coherence';
+    // Chorus birds: auto-rupture at species-specific thresholds
+    // This drives the flight mode state machine (CRR → behavior change)
+    if(MODE==='chorus'&&f.birdState===0){
+      const thresh=f.species==='swift'?.08:f.species==='skylark'?.12:
+        f.species==='wren'?.18:.14; // Species personality: swifts most restless
+      f.crr.autoRupture(thresh);
+      // Return to coherence quickly after regeneration
+      if(f.crr.phase==='regeneration'&&f.crr.C>.02)f.crr.phase='coherence';
+    }
     if(MODE==='flock')updateFlockMovement(f,.016,birdList,section);
+    else if(MODE==='bat')updateBatMovement(f,.016,birdList,section);
     else updateChorusMovement(f,.016,birdList,section);
   });
   measureFlockMetrics(birdList);
@@ -1476,6 +2669,22 @@ function scheduleLoop(){
     else if(ev.type==='wing')playWingFlap(evTime,ev.velocity);
     else if(ev.type==='alarm')playAlarmCall(evTime,ev.velocity);
     else if(ev.type==='windPad')setWindPad(ev.padNotes,ev.padGain,ev.duration*BEAT_S*.3);
+    else if(ev.type==='nightPad')playNightPad(ev.padNotes,ev.padGain,ev.duration*BEAT_S*.3);
+    // Bat-specific events
+    else if(ev.type==='echo')playEchoClick(ev.gain*crrMod,evTime,crrMod);
+    else if(ev.type==='echoCluster')playEchoCluster(ev.gain*crrMod,evTime,crrMod,ev.n||3);
+    else if(ev.type==='buzz')playBatBuzz(ev.gain*crrMod,evTime,crrMod);
+    else if(ev.type==='wingFlutter')playWingFlutter(ev.gain*crrMod,evTime,crrMod);
+    else if(ev.type==='insectChorus')playInsectChorus(ev.gain*crrMod,evTime,crrMod);
+    else if(ev.type==='nightAmbient')playNightAmbient(ev.gain*crrMod,evTime);
+    else if(ev.type==='waterDrip')playWaterDrip(ev.gain*crrMod,evTime,crrMod);
+    else if(ev.type==='foxBark')playFoxBark(ev.gain*crrMod,evTime);
+    else if(ev.type==='frogChorus')playFrogChorus(ev.gain*crrMod,evTime,crrMod);
+    else if(ev.type==='dopplerClick')playDopplerClick(ev.gain*crrMod,evTime,crrMod,ev.speed||.5);
+    else if(ev.type==='owl')playOwlHoot(ev.gain*crrMod,evTime,crrMod);
+    else if(ev.type==='batSocial')playBatSocialCall(ev.gain*crrMod,evTime,crrMod);
+    else if(ev.type==='mothCatch')playMothCatch(ev.gain*crrMod,evTime);
+    else if(ev.type==='batMelody')playBatMelody(ev.gain*crrMod,evTime,crrMod);
     else if(ev.type==='thermal'){for(let s=0;s<(ev.steps||1);s++){const notes=thermalEngine.step(crrGlobal.expCO);notes.forEach((m,i)=>playThermalNote(m,ev.velocity,ev.duration*BEAT_S,evTime+i*.05));}}
     else if(ev.type==='thermalCollapse')thermalEngine.collapse();
     else if(ev.type==='thermalConfig'){if(ev.activity!==undefined)thermalEngine.activity=ev.activity;if(ev.turbulence!==undefined)thermalEngine.turbulence=ev.turbulence;if(ev.lift!==undefined)thermalEngine.lift=ev.lift;}
@@ -1514,7 +2723,7 @@ function initTelemCanvases(){
 function sampleTelemetry(){
   const now=performance.now();if(now-telemLastTime<50)return;telemLastTime=now;
   const i=telemIdx%TELEM_BUF;
-  const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0];
+  const b0=(getBirdList())[0];
   if(b0){
     TD.syrinxL[i]=b0.syrinxL.amp;TD.syrinxR[i]=b0.syrinxR.amp;
     TD.syrinxTension[i]=b0.syrinxTension;
@@ -1561,7 +2770,7 @@ function renderTelemetry(){
     drawTelemLine(ctx,TD.syrinxL,w,h,'rgba(232,168,56,','.5',0,1.2,true);
     drawTelemLine(ctx,TD.syrinxR,w,h,'rgba(232,116,97,','.4',0,1.2,true);
     drawTelemLine(ctx,TD.syrinxTension,w,h,'rgba(240,192,64,','.6',0,1,false);
-    const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0];
+    const b0=(getBirdList())[0];
     if(b0)document.getElementById('tv-syr').textContent=b0.syrinxTension.toFixed(2);}
 
   // Air sacs
@@ -1569,7 +2778,7 @@ function renderTelemetry(){
     ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,2);
     drawTelemLine(ctx,TD.airVol,w,h,'rgba(126,200,227,','.5',0,1.1,true);
     drawTelemLine(ctx,TD.airO2,w,h,'rgba(79,209,197,','.5',.8,1,false);
-    const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0];
+    const b0=(getBirdList())[0];
     if(b0)document.getElementById('tv-air').textContent=b0.inspiration?'IN':'EX';}
 
   // Heart
@@ -1577,7 +2786,7 @@ function renderTelemetry(){
     ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,3);
     drawTelemLine(ctx,TD.heartECG,w,h,'rgba(252,129,129,','.6',-.3,1.2,false);
     drawTelemLine(ctx,TD.heartBPM,w,h,'rgba(232,116,97,','.3',0,1,true);
-    const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0];
+    const b0=(getBirdList())[0];
     if(b0)document.getElementById('tv-heart').textContent=b0.heartBPM+' BPM';}
 
   // Wing
@@ -1613,7 +2822,7 @@ function renderTelemetry(){
     ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,2);
     drawTelemLine(ctx,TD.coreTemp,w,h,'rgba(232,120,58,','.5',0,1.1,true);
     drawTelemLine(ctx,TD.metabolic,w,h,'rgba(126,200,227,','.4',0,1,false);
-    const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0];
+    const b0=(getBirdList())[0];
     if(b0)document.getElementById('tv-thermo').textContent=b0.coreTemp.toFixed(1)+'°';}
 
   // Song activity
@@ -1630,31 +2839,31 @@ const CRR_DEFS=[
   {id:'syrinx',title:'SYRINX · DUAL Z₂',agent:crrSyrinx,color:'var(--gold)',
    eq:'C = ∫ syrinx_coherence dτ',
    desc:'Dual-source vocal organ at tracheal bifurcation. L/R bronchi = independent Z₂ oscillators. Birds sing two notes simultaneously. Membrane tension driven by air sac pressure. Respiratory-syrinx coupling: unidirectional flow means singing during IN and EX.',
-   fields:()=>{const b=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{syrinxTension:.5,syrinxPressure:0};
+   fields:()=>{const b=(getBirdList())[0]||{syrinxTension:.5,syrinxPressure:0};
      return{'Tension':b.syrinxTension.toFixed(3),'Pressure':b.syrinxPressure.toFixed(2),'Symmetry':'dual Z₂',
      'C':crrSyrinx.C.toFixed(3),'exp(C/Ω)':crrSyrinx.expCO.toFixed(2)};}},
   {id:'airsac',title:'AIR SACS · SO(2)',agent:crrAirSac,color:'var(--airstream)',
    eq:'C = ∫ ventilation_flow dτ',
    desc:'9 air sacs, unidirectional flow through rigid parabronchi. No dead space. Cross-current gas exchange 10× mammalian efficiency. SO(2) continuous rotation. Couples to wingbeat: respiratory-locomotor locking during flight.',
-   fields:()=>{const b=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{airPhase:0,airVolume:.5,airO2:.9};
+   fields:()=>{const b=(getBirdList())[0]||{airPhase:0,airVolume:.5,airO2:.9};
      return{'Phase':b.inspiration?'inspiration':'expiration','Volume':b.airVolume.toFixed(2),'O₂':Math.round(b.airO2*100)+'%',
      'C':crrAirSac.C.toFixed(3),'Ω':'1/2π = '+crrAirSac.omega.toFixed(4)};}},
   {id:'heart',title:'AVIAN HEART · Z₂',agent:crrHeart,color:'var(--coral)',
    eq:'C = ∫ cardiac_coherence dτ',
    desc:'4-chambered, 400-1000 BPM. Larger relative to body than mammalian. Systole/diastole = Z₂. Heart rate locks to wingbeat during flight (cardiovascular-locomotor coupling). Stress response: BPM increases 30% on predator detection.',
-   fields:()=>{const b=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{heartBPM:600,systole:false,heartStress:0};
+   fields:()=>{const b=(getBirdList())[0]||{heartBPM:600,systole:false,heartStress:0};
      return{'BPM':b.heartBPM,'Phase':b.systole?'systole':'diastole','Stress':b.heartStress.toFixed(2),
      'C':crrHeart.C.toFixed(3),'exp(C/Ω)':crrHeart.expCO.toFixed(2)};}},
   {id:'wing',title:'WING · Z₂',agent:crrWing,color:'var(--thermal)',
    eq:'C = ∫ flight_coherence dτ',
    desc:'Downstroke = power (pectoralis major, 15-25% body mass). Upstroke = recovery via triosseal canal. Z₂ binary power/recovery. Vortex wake carries coherence information for following birds — why flocking works.',
-   fields:()=>{const b=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{downstroke:false,liftForce:0,wingHz:5};
+   fields:()=>{const b=(getBirdList())[0]||{downstroke:false,liftForce:0,wingHz:5};
      return{'Phase':b.downstroke?'downstroke↓':'upstroke↑','Lift':b.liftForce.toFixed(2),'Hz':b.wingHz.toFixed(1),
      'C':crrWing.C.toFixed(3),'exp(C/Ω)':crrWing.expCO.toFixed(2)};}},
   {id:'thermo',title:'THERMOREGULATION · SO(2)',agent:crrThermo,color:'var(--thermal)',
    eq:'C = ∫ homeostasis dτ',
    desc:'Core temp 40.5-42°C. Higher than mammals. Metabolic rate scales with flight and stress. Ptiloerection (feather position) modulates heat loss. Gular flutter (throat vibration) for cooling. SO(2) continuous regulation.',
-   fields:()=>{const b=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{coreTemp:41,metabolicRate:.5};
+   fields:()=>{const b=(getBirdList())[0]||{coreTemp:41,metabolicRate:.5};
      return{'Core':b.coreTemp.toFixed(1)+'°C','Metabolic':b.metabolicRate.toFixed(2),
      'C':crrThermo.C.toFixed(3),'Ω':'1/2π = '+crrThermo.omega.toFixed(4)};}},
   {id:'flock',title:'FLOCK · CRR-BOIDS',agent:crrFlock,color:'var(--omega)',
@@ -1699,14 +2908,14 @@ function updateCRRPanel(){
 // §11 TIMELINE & MONITORS
 function buildTimeline(){
   const cont=document.getElementById('track-sections');cont.innerHTML='';
-  const secs=MODE==='flock'?FLOCK_SECTIONS:CHORUS_SECTIONS;
-  const total=MODE==='flock'?FLOCK_BEATS:CHORUS_BEATS;
+  const secs=getSections();
+  const total=getBeats();
   secs.forEach(s=>{const d=document.createElement('div');d.className='track-sec';
     d.style.flex=(s.end-s.start+1)/total;
     d.innerHTML=`<span class="track-sec-label">${s.name}</span>`;cont.appendChild(d);});
 }
 function updateTimeline(){
-  const total=MODE==='flock'?FLOCK_BEATS:CHORUS_BEATS;
+  const total=getBeats();
   document.getElementById('track-fill').style.width=Math.min(currentBeat/total*100,100)+'%';
   const secs=currentBeat*BEAT_S;const m=Math.floor(secs/60),s=Math.floor(secs%60);
   document.getElementById('time-display').textContent=`${m}:${s.toString().padStart(2,'0')}`;
@@ -1717,19 +2926,25 @@ function updateMonitors(){
   document.getElementById('iBeat').textContent=Math.floor(currentBeat);
   document.getElementById('iCRR').textContent=`C=${crrGlobal.C.toFixed(2)} Ω=${crrGlobal.omega.toFixed(3)}`;
   document.getElementById('iExpCO').textContent=`exp=${crrGlobal.expCO.toFixed(2)}`;
-  const b0=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS)[0]||{syrinxTension:.5,inspiration:false,heartBPM:600,downstroke:false,coreTemp:41};
-  document.getElementById('mSyrinx').textContent=b0.syrinxTension.toFixed(2);
+  const b0=(getBirdList())[0]||{syrinxTension:.5,inspiration:false,heartBPM:600,downstroke:false,coreTemp:41};
+  document.getElementById('mSyrinx').textContent=MODE==='bat'?
+    (b0.echoIntensity||0).toFixed(2):b0.syrinxTension.toFixed(2);
   document.getElementById('mAir').textContent=b0.inspiration?'IN':'EX';
-  document.getElementById('mHeart').textContent=b0.heartBPM+' BPM';
-  document.getElementById('mWing').textContent=b0.downstroke?'DOWN↓':'UP↑';
+  document.getElementById('mHeart').textContent=Math.round(b0.heartBPM)+' BPM';
+  document.getElementById('mWing').textContent=MODE==='bat'?
+    (b0.membraneStrain||0).toFixed(2):(b0.downstroke?'DOWN↓':'UP↑');
   document.getElementById('mTemp').textContent=b0.coreTemp.toFixed(1)+'°';
-  document.getElementById('mSBlack').textContent=songMonitor.blackbird>.01?songMonitor.blackbird.toFixed(2):'—';
-  document.getElementById('mSNight').textContent=songMonitor.nightingale>.01?songMonitor.nightingale.toFixed(2):'—';
-  document.getElementById('mSLark').textContent=songMonitor.skylark>.01?songMonitor.skylark.toFixed(2):'—';
-  document.getElementById('mSRobin').textContent=songMonitor.robin>.01?songMonitor.robin.toFixed(2):'—';
+  document.getElementById('mSBlack').textContent=MODE==='bat'?'—':
+    (songMonitor.blackbird>.01?songMonitor.blackbird.toFixed(2):'—');
+  document.getElementById('mSNight').textContent=MODE==='bat'?'—':
+    (songMonitor.nightingale>.01?songMonitor.nightingale.toFixed(2):'—');
+  document.getElementById('mSLark').textContent=MODE==='bat'?'—':
+    (songMonitor.skylark>.01?songMonitor.skylark.toFixed(2):'—');
+  document.getElementById('mSRobin').textContent=MODE==='bat'?'—':
+    (songMonitor.robin>.01?songMonitor.robin.toFixed(2):'—');
   document.getElementById('mCohesion').textContent=flockMetrics.cohesion.toFixed(2);
   document.getElementById('mAlign').textContent=flockMetrics.alignment.toFixed(2);
-  document.getElementById('mBirds').textContent=(MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS).length;
+  document.getElementById('mBirds').textContent=(getBirdList()).length;
   document.getElementById('mPredator').textContent=PREDATOR.active?'⚠ '+PREDATOR.huntPhase:
     (MODE==='flock'&&flockCollective.choreo?'♫ '+flockCollective.choreo.name:'—');
   updateCRRPanel();
@@ -1744,11 +2959,17 @@ function resize(){
   setTimeout(initTelemCanvases,100);
 }
 function hexToRgb(hex){return`${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)}`}
-function getSkyPhase(){if(!playing)return 0;return Math.min(currentBeat/(MODE==='flock'?FLOCK_BEATS:CHORUS_BEATS),1);}
+function getSkyPhase(){if(!playing)return MODE==='bat'?.9:0;return Math.min(currentBeat/(getBeats()),1);}
 
 function drawSky(w,h){
   const p=getSkyPhase(),grad=cx.createLinearGradient(0,0,0,h);
-  if(p<.1){grad.addColorStop(0,'rgb(8,10,28)');grad.addColorStop(.5,'rgb(12,16,35)');grad.addColorStop(1,'rgb(18,22,42)');}
+  if(MODE==='bat'){
+    // Night sky throughout — deep blue-black with slight variation
+    const d=Math.sin(p*PI)*.15; // Subtle brightness at midnight
+    grad.addColorStop(0,`rgb(${5+d*10|0},${8+d*8|0},${20+d*15|0})`);
+    grad.addColorStop(.5,`rgb(${8+d*12|0},${12+d*10|0},${30+d*18|0})`);
+    grad.addColorStop(1,`rgb(${12+d*15|0},${15+d*12|0},${35+d*15|0})`);
+  }else if(p<.1){grad.addColorStop(0,'rgb(8,10,28)');grad.addColorStop(.5,'rgb(12,16,35)');grad.addColorStop(1,'rgb(18,22,42)');}
   else if(p<.3){const d=(p-.1)/.2;
     grad.addColorStop(0,`rgb(${8+d*40|0},${10+d*20|0},${28+d*30|0})`);
     grad.addColorStop(.6,`rgb(${10+d*50|0},${15+d*30|0},${36+d*40|0})`);
@@ -1924,10 +3145,75 @@ function drawClouds(w,h){CLOUDS.forEach(c=>{c.x+=c.speed;if(c.x>1.2)c.x=-.2;cons
   cx.beginPath();cx.ellipse(px-c.w*.3,py+c.h*.2,c.w*.5,c.h*.7,0,0,TAU);cx.fill();
   cx.beginPath();cx.ellipse(px+c.w*.35,py+c.h*.15,c.w*.4,c.h*.6,0,0,TAU);cx.fill();});}
 
-const STARS=Array.from({length:60},()=>({x:Math.random(),y:Math.random()*.6,size:.3+Math.random(),tw:Math.random()*TAU}));
-function drawStars(w,h){const p=getSkyPhase(),vis=p<.15?1-p/.15:p>.85?(p-.85)/.15:0;if(vis<.02)return;
-  STARS.forEach(s=>{s.tw+=.02;cx.fillStyle=`rgba(255,248,220,${vis*(.2+.3*Math.sin(s.tw))})`;
-  cx.beginPath();cx.arc(s.x*w,s.y*h,s.size,0,TAU);cx.fill();});}
+const STARS=Array.from({length:80},()=>({
+  x:Math.random(),y:Math.random()*.6,
+  size:.3+Math.random()*1.2,tw:Math.random()*TAU,
+  // CRR per star: coherence builds → twinkle rupture → regeneration glow
+  crrPhase:Math.random(),crrC:Math.random()*.5,
+  crrOmega:.05+Math.random()*.15, // Each star has unique Ω
+  color:Math.random()>.7?[200,220,255]:Math.random()>.5?[255,240,200]:[255,255,240]
+}));
+function drawStars(w,h){
+  const p=getSkyPhase();
+  // Bat mode: stars visible throughout. Bird modes: dawn/dusk only
+  let vis;
+  if(MODE==='bat')vis=Math.min(1,p/.1);
+  else{vis=p<.15?1-p/.15:p>.85?(p-.85)/.15:0;}
+  if(vis<.02)return;
+  const t=performance.now()*.001;
+  STARS.forEach(s=>{
+    // CRR twinkle: C accumulates, ruptures create brightness spikes
+    s.crrC+=.016*s.crrOmega;
+    if(s.crrC>s.crrOmega*PI){s.crrC=0;s.crrPhase=1;} // Rupture → bright flash
+    s.crrPhase*=.96; // Decay
+    const brightness=.15+.25*Math.sin(s.tw+=.02)+s.crrPhase*.5;
+    const sz=s.size*(1+s.crrPhase*.8);
+    const [r,g,b2]=s.color;
+    // Glow halo
+    if(sz>1){
+      const halo=cx.createRadialGradient(s.x*w,s.y*h,0,s.x*w,s.y*h,sz*3);
+      halo.addColorStop(0,`rgba(${r},${g},${b2},${vis*brightness*.3})`);
+      halo.addColorStop(1,'transparent');
+      cx.fillStyle=halo;cx.beginPath();cx.arc(s.x*w,s.y*h,sz*3,0,TAU);cx.fill();
+    }
+    cx.fillStyle=`rgba(${r},${g},${b2},${vis*brightness})`;
+    cx.beginPath();cx.arc(s.x*w,s.y*h,sz,0,TAU);cx.fill();
+  });
+}
+
+function drawMoon(w,h){
+  const p=getSkyPhase();
+  // Moon visible during late evening (bird modes) or throughout (bat mode)
+  let vis;
+  if(MODE==='bat')vis=Math.min(1,p/.15);
+  else vis=p>.8?(p-.8)/.15:0;
+  if(vis<.02)return;
+  const t=performance.now()*.001;
+  const mx=w*.78,my=h*(.15+Math.sin(p*PI*.3)*.08);
+  const mr=h*.06;
+
+  // Outer glow
+  const glow=cx.createRadialGradient(mx,my,mr,mx,my,mr*4);
+  glow.addColorStop(0,`rgba(200,210,230,${vis*.08})`);
+  glow.addColorStop(.5,`rgba(180,190,220,${vis*.03})`);
+  glow.addColorStop(1,'transparent');
+  cx.fillStyle=glow;cx.beginPath();cx.arc(mx,my,mr*4,0,TAU);cx.fill();
+
+  // Moon disc — waxing gibbous
+  cx.fillStyle=`rgba(220,225,235,${vis*.7})`;
+  cx.beginPath();cx.arc(mx,my,mr,0,TAU);cx.fill();
+  // Dark side (crescent shadow)
+  cx.fillStyle=`rgba(15,18,30,${vis*.5})`;
+  cx.beginPath();cx.arc(mx-mr*.3,my,mr*.85,0,TAU);cx.fill();
+  // Bright limb
+  cx.fillStyle=`rgba(240,245,255,${vis*.3})`;
+  cx.beginPath();cx.arc(mx+mr*.1,my,mr*.95,-PI/3,PI/3);cx.fill();
+
+  // Mare (dark patches)
+  cx.fillStyle=`rgba(180,185,200,${vis*.15})`;
+  cx.beginPath();cx.arc(mx+mr*.2,my-mr*.15,mr*.25,0,TAU);cx.fill();
+  cx.beginPath();cx.arc(mx+mr*.05,my+mr*.2,mr*.15,0,TAU);cx.fill();
+}
 
 function drawLandscape(w,h){
   const p=getSkyPhase(),t=performance.now()*.001;
@@ -2076,18 +3362,152 @@ function drawBird(bird,w,h){
 // ─── Draw predator with shadow ───
 function drawPredator(w,h){
   if(!PREDATOR.active)return;
-  // Shadow on the ground
   const sx=PREDATOR.x*w,sy=h*.83;
   const shadowSize=PREDATOR.shadowRadius*w*.4;
   cx.fillStyle='rgba(0,0,0,.08)';cx.beginPath();cx.ellipse(sx,sy,shadowSize,shadowSize*.3,0,0,TAU);cx.fill();
-  // Draw the raptor bird
-  const raptor={...makeBird(99,'sparrowhawk'),
-    x:PREDATOR.x,y:PREDATOR.y,angle:PREDATOR.angle,
-    wingPhase:PREDATOR.wingPhase,wingAmp:.7,speed:PREDATOR.speed,
-    crr:PREDATOR.crr,stressRuffle:0,shape:'raptor',
-    size:SPECIES.sparrowhawk.size,baseColor:SPECIES.sparrowhawk.color,
-    accentColor:SPECIES.sparrowhawk.accent};
-  drawBird(raptor,w,h);
+  if(PREDATOR.species==='tawnyOwl'){
+    drawOwl(PREDATOR.x*w,PREDATOR.y*h,PREDATOR.angle,PREDATOR.wingPhase,w,h);
+  }else{
+    const raptor={...makeBird(99,'sparrowhawk'),
+      x:PREDATOR.x,y:PREDATOR.y,angle:PREDATOR.angle,
+      wingPhase:PREDATOR.wingPhase,wingAmp:.7,speed:PREDATOR.speed,
+      crr:PREDATOR.crr,stressRuffle:0,shape:'raptor',
+      size:SPECIES.sparrowhawk.size,baseColor:SPECIES.sparrowhawk.color,
+      accentColor:SPECIES.sparrowhawk.accent};
+    drawBird(raptor,w,h);
+  }
+}
+
+function drawOwl(ox,oy,angle,wingPhase,w,h){
+  const s=12;cx.save();cx.translate(ox,oy);cx.rotate(angle);
+  const wa=Math.sin(wingPhase)*.6;
+  // Body
+  cx.fillStyle='rgba(60,45,25,.8)';
+  cx.beginPath();cx.ellipse(0,0,s*1.5,s*.8,0,0,TAU);cx.fill();
+  // Wings — broad, rounded
+  cx.fillStyle='rgba(55,40,22,.7)';
+  cx.beginPath();cx.moveTo(s*.2,0);cx.quadraticCurveTo(-s*.3,-s*(1.8+wa),-s*2.2,-s*(.5+wa*.8));
+  cx.quadraticCurveTo(-s*1.2,-s*.2,s*.2,0);cx.fill();
+  cx.beginPath();cx.moveTo(s*.2,0);cx.quadraticCurveTo(-s*.3,s*(1.8+wa),-s*2.2,s*(.5+wa*.8));
+  cx.quadraticCurveTo(-s*1.2,s*.2,s*.2,0);cx.fill();
+  // Head — large, round
+  cx.fillStyle='rgba(65,50,28,.85)';cx.beginPath();cx.arc(s*1,0,s*.7,0,TAU);cx.fill();
+  // Facial disc
+  cx.fillStyle='rgba(180,160,120,.3)';cx.beginPath();cx.arc(s*1.05,0,s*.55,0,TAU);cx.fill();
+  // Eyes — large, forward-facing
+  cx.fillStyle='rgba(255,200,50,.9)';
+  cx.beginPath();cx.arc(s*1.2,-s*.2,s*.18,0,TAU);cx.fill();
+  cx.beginPath();cx.arc(s*1.2,s*.2,s*.18,0,TAU);cx.fill();
+  cx.fillStyle='rgba(0,0,0,.95)';
+  cx.beginPath();cx.arc(s*1.22,-s*.2,s*.1,0,TAU);cx.fill();
+  cx.beginPath();cx.arc(s*1.22,s*.2,s*.1,0,TAU);cx.fill();
+  // Beak
+  cx.fillStyle='rgba(120,100,60,.8)';
+  cx.beginPath();cx.moveTo(s*1.5,0);cx.lineTo(s*1.75,-s*.06);cx.lineTo(s*1.7,s*.08);cx.closePath();cx.fill();
+  // Tail
+  cx.fillStyle='rgba(50,38,20,.6)';
+  cx.beginPath();cx.moveTo(-s*1.3,0);cx.lineTo(-s*2.5,-s*.4);cx.lineTo(-s*2.5,s*.4);cx.closePath();cx.fill();
+  cx.restore();
+}
+
+function drawBat(bat,w,h){
+  const bx=bat.x*w,by=bat.y*h,s=bat.size*5;
+  cx.save();cx.translate(bx,by);cx.rotate(bat.angle);
+  const wa=Math.sin(bat.membranePhase||bat.wingPhase||0)*.9;
+  const col=hexToRgb(bat.baseColor);
+  const a=.7+(bat.crr?Math.min(bat.crr.expCO*.01,.2):0);
+
+  // Echolocation pulse glow
+  if(bat.echoIntensity>.1){
+    const eg=cx.createRadialGradient(s*.8,0,0,s*.8,0,s*6*bat.echoIntensity);
+    eg.addColorStop(0,`rgba(100,180,255,${bat.echoIntensity*.08})`);
+    eg.addColorStop(1,'transparent');
+    cx.fillStyle=eg;cx.beginPath();cx.arc(s*.8,0,s*6*bat.echoIntensity,0,TAU);cx.fill();
+  }
+
+  // Moth catch flash
+  if(bat.mothCatch>.1){
+    cx.fillStyle=`rgba(255,255,200,${bat.mothCatch*.2})`;
+    cx.beginPath();cx.arc(0,0,s*3,0,TAU);cx.fill();
+  }
+
+  // Body — small, compact
+  cx.fillStyle=`rgba(${col},${a})`;
+  cx.beginPath();cx.ellipse(0,0,s*.8,s*.35,0,0,TAU);cx.fill();
+
+  // Wing membranes — the key feature! Translucent, fingered
+  cx.fillStyle=`rgba(${col},${a*.4})`;
+  // Upper wing
+  cx.beginPath();cx.moveTo(s*.1,0);
+  cx.quadraticCurveTo(s*.3,-s*(1.6+wa),-s*.5,-s*(.7+wa*1.2));
+  cx.lineTo(-s*1.5,-s*(.4+wa*.6));
+  cx.quadraticCurveTo(-s*.8,-s*.15,s*.1,0);cx.fill();
+  // Lower wing
+  cx.beginPath();cx.moveTo(s*.1,0);
+  cx.quadraticCurveTo(s*.3,s*(1.6+wa),-s*.5,s*(.7+wa*1.2));
+  cx.lineTo(-s*1.5,s*(.4+wa*.6));
+  cx.quadraticCurveTo(-s*.8,s*.15,s*.1,0);cx.fill();
+
+  // Wing finger bones (membrane struts)
+  cx.strokeStyle=`rgba(${col},${a*.6})`;cx.lineWidth=.5;
+  for(let f=0;f<3;f++){
+    const fa=-PI/4-f*PI/8,fl=s*(1+f*.3);
+    cx.beginPath();cx.moveTo(s*.1,0);
+    cx.lineTo(s*.1+Math.cos(fa-wa*.3)*fl,-Math.sin(fa+wa*.4)*fl);cx.stroke();
+    cx.beginPath();cx.moveTo(s*.1,0);
+    cx.lineTo(s*.1+Math.cos(-fa+wa*.3)*fl,Math.sin(fa+wa*.4)*fl);cx.stroke();
+  }
+
+  // Head
+  cx.fillStyle=`rgba(${col},${a})`;cx.beginPath();cx.arc(s*.6,0,s*.25,0,TAU);cx.fill();
+  // Ears — large
+  cx.beginPath();cx.moveTo(s*.6,-s*.2);cx.lineTo(s*.55,-s*.5);cx.lineTo(s*.75,-s*.2);cx.fill();
+  cx.beginPath();cx.moveTo(s*.6,s*.2);cx.lineTo(s*.55,s*.5);cx.lineTo(s*.75,s*.2);cx.fill();
+  // Eyes — tiny, reflective
+  cx.fillStyle='rgba(200,180,150,.6)';
+  cx.beginPath();cx.arc(s*.7,-s*.08,s*.06,0,TAU);cx.fill();
+  cx.beginPath();cx.arc(s*.7,s*.08,s*.06,0,TAU);cx.fill();
+
+  cx.restore();
+}
+
+function drawPerchBat(bat,w,h){
+  // Bat hanging upside down
+  const bx=bat.x*w,by=bat.y*h,s=bat.size*4;
+  cx.save();cx.translate(bx,by);
+  const col=hexToRgb(bat.baseColor);
+  const a=.5;
+  // Wrapped wings
+  cx.fillStyle=`rgba(${col},${a})`;
+  cx.beginPath();cx.ellipse(0,s*.3,s*.5,s*.8,0,0,TAU);cx.fill();
+  // Head poking out bottom
+  cx.fillStyle=`rgba(${col},${a*.9})`;
+  cx.beginPath();cx.arc(0,s*1,s*.2,0,TAU);cx.fill();
+  // Ears
+  cx.beginPath();cx.moveTo(-s*.1,s*.85);cx.lineTo(-s*.15,s*.6);cx.lineTo(s*.05,s*.85);cx.fill();
+  cx.beginPath();cx.moveTo(s*.1,s*.85);cx.lineTo(s*.15,s*.6);cx.lineTo(-s*.05,s*.85);cx.fill();
+  // Tiny eyes
+  cx.fillStyle='rgba(200,180,150,.4)';
+  cx.beginPath();cx.arc(-s*.06,s*1.02,s*.04,0,TAU);cx.fill();
+  cx.beginPath();cx.arc(s*.06,s*1.02,s*.04,0,TAU);cx.fill();
+  cx.restore();
+}
+
+function drawMoths(w,h){
+  for(const m of MOTHS){
+    if(!m.alive)continue;
+    const mx=m.x*w,my=m.y*h,ms=m.size*3;
+    const flutter=Math.sin(m.phase)*.8;
+    cx.fillStyle='rgba(200,195,180,.25)';
+    // Wings
+    cx.beginPath();
+    cx.ellipse(mx-ms*.5,my,ms*.6,ms*(.3+flutter*.2),flutter*.2,0,TAU);cx.fill();
+    cx.beginPath();
+    cx.ellipse(mx+ms*.5,my,ms*.6,ms*(.3-flutter*.2),-flutter*.2,0,TAU);cx.fill();
+    // Body
+    cx.fillStyle='rgba(160,150,130,.3)';
+    cx.beginPath();cx.ellipse(mx,my,ms*.15,ms*.4,0,0,TAU);cx.fill();
+  }
 }
 
 function drawThermalBar(w,h){
@@ -2110,11 +3530,22 @@ function drawSpectrum(w,h,sx,sy,r){
 // §13 RENDER
 function render(){
   const w=W/devicePixelRatio,h=H/devicePixelRatio;cx.clearRect(0,0,w,h);
-  drawSky(w,h);drawStars(w,h);drawSun(w,h);drawClouds(w,h);drawLandscape(w,h);
-  const birds=MODE==='flock'?FLOCK_BIRDS:CHORUS_BIRDS;
+  drawSky(w,h);drawStars(w,h);
+  if(MODE==='bat')drawMoon(w,h);
+  else drawSun(w,h);
+  drawClouds(w,h);drawLandscape(w,h);
+  // Draw moths (bat mode)
+  if(MODE==='bat')drawMoths(w,h);
+  // Draw creatures
+  const birds=getBirdList();
   birds.forEach(b=>{
-    if(b.birdState===2)drawPerchBird(b,w,h);
-    else drawBird(b,w,h);
+    if(b.birdState===2){
+      if(MODE==='bat')drawPerchBat(b,w,h);
+      else drawPerchBird(b,w,h);
+    }else{
+      if(MODE==='bat')drawBat(b,w,h);
+      else drawBird(b,w,h);
+    }
   });
   drawPredator(w,h);
   // Night overlay during roost fadeout
@@ -2143,7 +3574,7 @@ function boot(){
   document.getElementById('track-wrap').addEventListener('click',e=>{
     if(!playing)return;const rect=e.currentTarget.getBoundingClientRect();
     const pct=(e.clientX-rect.left)/rect.width;
-    const total=MODE==='flock'?FLOCK_BEATS:CHORUS_BEATS,tb=pct*total;
+    const total=getBeats(),tb=pct*total;
     startTime=ac.currentTime-tb*BEAT_S;seqIdx=sequence.findIndex(ev=>ev.beat>=tb);if(seqIdx<0)seqIdx=sequence.length;
   });
   document.getElementById('crr-toggle').addEventListener('click',()=>document.getElementById('crr-panel').classList.toggle('open'));
