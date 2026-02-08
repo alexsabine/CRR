@@ -18,6 +18,54 @@
 body{background:var(--bg);color:var(--cream);font-family:'Cormorant Garamond',Georgia,serif;
 overflow:hidden;width:100vw;height:100vh;position:fixed}
 
+/* ─── Telemetry Panel ─── */
+#telem-toggle{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:60;
+  background:rgba(8,10,18,0.92);border:1px solid rgba(80,160,200,0.12);
+  border-left:none;border-radius:0 6px 6px 0;padding:8px 5px;cursor:pointer;
+  color:rgba(160,180,200,0.4);font-family:'Space Mono',monospace;font-size:9px;
+  writing-mode:vertical-rl;letter-spacing:.12em;transition:all .3s;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  display:none}
+#telem-toggle:hover{color:rgba(160,180,200,0.7);border-color:rgba(80,160,200,0.3);background:rgba(8,10,18,0.98)}
+#telem-toggle.open{left:320px}
+@media(max-width:600px){#telem-toggle.open{left:260px}}
+
+#telem-panel{position:fixed;left:0;top:0;bottom:0;width:320px;z-index:55;
+  background:rgba(6,8,14,0.96);border-right:1px solid rgba(80,160,200,0.08);
+  transform:translateX(-100%);transition:transform .4s cubic-bezier(.23,1,.32,1);
+  overflow-y:auto;overflow-x:hidden;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  scrollbar-width:thin;scrollbar-color:rgba(80,160,200,0.12) transparent}
+#telem-panel.open{transform:translateX(0)}
+#telem-panel::-webkit-scrollbar{width:4px}
+#telem-panel::-webkit-scrollbar-track{background:transparent}
+#telem-panel::-webkit-scrollbar-thumb{background:rgba(80,160,200,0.15);border-radius:2px}
+@media(max-width:600px){#telem-panel{width:260px}}
+
+#telem-header{padding:14px 16px 10px;border-bottom:1px solid rgba(80,160,200,0.06)}
+#telem-header h2{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.2em;
+  color:rgba(160,180,200,0.35);font-weight:400;margin:0;text-transform:uppercase}
+#telem-header .subtitle{font-family:'Space Mono',monospace;font-size:7px;
+  color:rgba(160,180,200,0.18);margin-top:3px;letter-spacing:.04em}
+
+.telem-group{border-bottom:1px solid rgba(80,160,200,0.04);padding:8px 12px 6px}
+.telem-group-title{font-family:'Space Mono',monospace;font-size:7.5px;letter-spacing:.14em;
+  color:rgba(160,180,200,0.3);margin-bottom:5px;text-transform:uppercase;display:flex;
+  align-items:center;gap:6px}
+.telem-group-title .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.telem-group-title .val{margin-left:auto;color:rgba(160,180,200,0.22);font-size:7px;letter-spacing:0}
+
+.telem-canvas{width:100%;height:52px;display:block;border-radius:3px;
+  background:rgba(0,0,0,0.25);margin-bottom:2px}
+.telem-canvas.tall{height:72px}
+.telem-canvas.short{height:38px}
+
+.telem-legend{display:flex;gap:8px;flex-wrap:wrap;padding:2px 0 4px;margin-top:1px}
+.telem-legend span{font-family:'Space Mono',monospace;font-size:6.5px;color:rgba(160,180,200,0.25);
+  display:flex;align-items:center;gap:3px}
+.telem-legend span::before{content:'';width:8px;height:2px;border-radius:1px;display:inline-block;
+  background:var(--c,rgba(160,180,200,0.3))}
+
 /* ─── Splash ─── */
 #splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;
 justify-content:center;cursor:pointer;transition:opacity 1.4s ease}
@@ -140,6 +188,96 @@ exp(C/Ω) = memory amplification · CV = Ω/2 · Ω = σ² = inverse precision</
 </div></div>
 
 <div id="app">
+
+<!-- Telemetry Panel -->
+<button id="telem-toggle" onclick="toggleTelem()">◂ TELEMETRY</button>
+<div id="telem-panel">
+  <div id="telem-header">
+    <h2>⬡ Body Telemetry</h2>
+    <div class="subtitle">CRR real-time physiological monitor</div>
+  </div>
+
+  <div class="telem-group">
+    <div class="telem-group-title"><span class="dot" style="background:var(--arterial)"></span>Heart &amp; ECG<span class="val" id="tv-heart">72 BPM</span></div>
+    <canvas class="telem-canvas tall" id="tc-heart"></canvas>
+    <div class="telem-legend">
+      <span style="--c:var(--arterial)">Pulse</span>
+      <span style="--c:var(--bioelec)">ECG</span>
+      <span style="--c:rgba(255,255,255,0.2)">Sys/Dia</span>
+    </div>
+  </div>
+
+  <div class="telem-group">
+    <div class="telem-group-title"><span class="dot" style="background:var(--vagal)"></span>Breath Cycle<span class="val" id="tv-breath">C</span></div>
+    <canvas class="telem-canvas" id="tc-breath"></canvas>
+    <div class="telem-legend">
+      <span style="--c:var(--vagal)">Amplitude</span>
+      <span style="--c:var(--coherence)">C→δ→R</span>
+    </div>
+  </div>
+
+  <div class="telem-group">
+    <div class="telem-group-title"><span class="dot" style="background:var(--cortical)"></span>Brainwaves<span class="val" id="tv-brain">—</span></div>
+    <canvas class="telem-canvas tall" id="tc-brain"></canvas>
+    <div class="telem-legend">
+      <span style="--c:#ecc94b">δ 2Hz</span>
+      <span style="--c:#9f7aea">θ 6Hz</span>
+      <span style="--c:#38a169">α 10Hz</span>
+      <span style="--c:#dd6b20">β 20Hz</span>
+      <span style="--c:#ed64a6">γ 40Hz</span>
+    </div>
+  </div>
+
+  <div class="telem-group">
+    <div class="telem-group-title"><span class="dot" style="background:var(--bioelec)"></span>Bioelectric<span class="val" id="tv-bio">rest</span></div>
+    <canvas class="telem-canvas" id="tc-bioelec"></canvas>
+    <div class="telem-legend">
+      <span style="--c:var(--bioelec)">SA→AV→His→PF</span>
+      <span style="--c:rgba(255,221,87,0.4)">Propagation</span>
+    </div>
+  </div>
+
+  <div class="telem-group">
+    <div class="telem-group-title"><span class="dot" style="background:var(--venous)"></span>Blood Dynamics<span class="val" id="tv-blood">—</span></div>
+    <canvas class="telem-canvas" id="tc-blood"></canvas>
+    <div class="telem-legend">
+      <span style="--c:var(--arterial)">Pressure</span>
+      <span style="--c:var(--venous)">Flow</span>
+    </div>
+  </div>
+
+  <div class="telem-group">
+    <div class="telem-group-title"><span class="dot" style="background:var(--vagal)"></span>Vagal Tone<span class="val" id="tv-vagal">—</span></div>
+    <canvas class="telem-canvas short" id="tc-vagal"></canvas>
+    <div class="telem-legend">
+      <span style="--c:var(--vagal)">Tone</span>
+      <span style="--c:var(--cortical)">Coupling</span>
+    </div>
+  </div>
+
+  <div class="telem-group">
+    <div class="telem-group-title"><span class="dot" style="background:var(--coherence)"></span>CRR Dynamics<span class="val" id="tv-crr">—</span></div>
+    <canvas class="telem-canvas tall" id="tc-crr"></canvas>
+    <div class="telem-legend">
+      <span style="--c:var(--coherence)">C</span>
+      <span style="--c:var(--omega)">Ω</span>
+      <span style="--c:var(--regen)">exp(C/Ω)</span>
+      <span style="--c:var(--rupture)">δ rupture</span>
+      <span style="--c:var(--bioelec)">Ω mod</span>
+      <span style="--c:rgba(229,62,62,0.5)">arousal</span>
+    </div>
+  </div>
+
+  <div class="telem-group">
+    <div class="telem-group-title"><span class="dot" style="background:var(--chant)"></span>Musical Energy<span class="val" id="tv-energy">—</span></div>
+    <canvas class="telem-canvas" id="tc-energy"></canvas>
+    <div class="telem-legend">
+      <span style="--c:var(--chant)">Choir</span>
+      <span style="--c:var(--gamma-col)">Gamma</span>
+      <span style="--c:rgba(255,255,255,0.2)">Spectrum</span>
+    </div>
+  </div>
+</div>
 <div id="canvas-wrap">
 <canvas id="viz"></canvas>
 <div id="info-bar">
@@ -185,7 +323,7 @@ exp(C/Ω) = memory amplification · CV = Ω/2 · Ω = σ² = inverse precision</
     <span class="val" id="bioelec-val">0.45</span></div>
 </div>
 <div id="crr-footer">
-  heart = Z₂ rhythm · SA→AV→His→Purkinje = CRR cascade · chant: Dorian neumes = C→δ→R phrases · drone = Ω reference · 72 BPM = resting pulse
+  heart = Z₂ rhythm · BPM = 72×tempo×arousal · SA→AV→His→PF delays ∝ Ω · breath period = π²/tempo · brainwaves CRR-modulated · vagal = Ω of heart-brain axis
 </div>
 </div>
 </div>
@@ -286,58 +424,115 @@ const CONDUCT_PATH={
 function updateBody(dt,musicBeat){
   BODY.t+=dt;
   const t=BODY.t;
-  // Breath cycle
+
+  // ── CRR coupling: musical state → body Ω modulation ──
+  // tempoScale IS an Ω modulator: faster = lower Ω (rigid, frequent rupture),
+  // slower = higher Ω (fluid, deeper coherence before rupture)
+  const ts=seq.tempoScale||1;
+  const tempoOmegaMod=1/ts; // inverse: fast tempo → compressed Ω
+
+  // Musical coherence from the phrase agent feeds body systems
+  const musicalC=seq.playing?Math.min(3,seq.phraseAgent.C):0;
+  const musicalOmega=seq.playing?seq.phraseAgent.omega:1/PI;
+  const musicalExpCO=seq.playing?Math.min(20,seq.phraseAgent.expCO):1;
+  const musicalNormC=seq.playing?seq.phraseAgent.normC:0;
+  const musicalPhase=seq.playing?(seq.phraseAgent.inRegen?'R':
+    (seq.phraseAgent.sinceRupture<3?'delta':'C')):'C';
+  const pieceC=seq.playing?Math.min(5,seq.pieceAgent.C):0;
+
+  // Section-dependent physiological arousal (0=rest, 1=climax)
+  const sec=seq.playing?getSection(musicBeat):null;
+  const arousal=sec?({
+    'AWAKENING':0.1,'FIRST COHERENCE':0.3,'BREATH DEEPENS':0.4,
+    'FULL RESONANCE I':0.6,'FULL RESONANCE II':0.75,
+    'CLIMAX':1.0,'RUPTURE δ(now)':0.5,'REGENERATION R':0.35,'CODA':0.12
+  }[sec.name]||0.2):0;
+
+  // Global Ω modifier: tempo × musical coherence × section
+  // High coherence INCREASES Ω (more open, fluid)
+  // Rupture DECREASES Ω (rigid, defensive)
+  const crrOmegaMod=tempoOmegaMod*(
+    musicalPhase==='C'?(1+musicalNormC*0.3):
+    musicalPhase==='delta'?0.6:
+    0.75+0.25*((seq.phraseAgent&&seq.phraseAgent.regenProg)||0)
+  );
+
+  // ── Breath cycle — period = π²/tempoScale at coherent rate ──
+  // At 72 BPM × 1.0, 12 beats = π² ≈ 10s. Tempo scales this directly.
+  BODY.breath.period=PI*PI/ts;
+  // Coherence deepens breath amplitude
+  const breathDepth=0.85+0.15*Math.min(1,musicalC*0.5+arousal*0.3);
   const breathNorm=(t/BODY.breath.period)%1;
-  BODY.breath.amplitude=breathNorm<0.4?Math.sin(breathNorm/0.4*PI/2):
-    breathNorm<0.5?1:Math.cos((breathNorm-0.5)/0.5*PI/2);
+  BODY.breath.amplitude=(breathNorm<0.4?Math.sin(breathNorm/0.4*PI/2):
+    breathNorm<0.5?1:Math.cos((breathNorm-0.5)/0.5*PI/2))*breathDepth;
   BODY.breath.crrPhase=breathNorm<0.4?'C':breathNorm<0.5?'delta':'R';
   BODY.breath.phase=breathNorm;
-  // Heart
-  const rsaMod=1+BODY.breath.amplitude*0.08;
+
+  // ── Heart — BPM modulated by tempo, arousal, and breath (RSA) ──
+  // Base 72 BPM scales with tempo. Musical energy adds 0-15 BPM.
+  // Respiratory Sinus Arrhythmia coupled through vagal tone.
+  const baseBPM=72*ts;
+  const arousalBPM=arousal*15; // climax pushes heart rate up
+  const crrBPM=musicalPhase==='delta'?5:-musicalNormC*3; // rupture spikes, coherence slows
+  BODY.heart.bpm=Math.round(Math.max(55,Math.min(110,baseBPM+arousalBPM+crrBPM)));
+  // RSA: breath modulates heart rate, strength proportional to vagal tone
+  const rsaStrength=0.04+BODY.vagal.tone*0.08;
+  const rsaMod=1+BODY.breath.amplitude*rsaStrength;
   BODY.heart.phase+=dt*BODY.heart.bpm/60*rsaMod;
   const hp=BODY.heart.phase%1;
   BODY.heart.systole=hp<0.35;
   if(hp<0.02&&BODY.heart.phase>0.5)BODY.heart.lastBeat=t;
+  // Heart CRR agent: Ω modulated by global CRR state
+  BODY.heart.agent.omegaScale=1.2*crrOmegaMod;
   BODY.heart.agent.step(hp<0.35?0.8:0.3,dt*0.01);
 
-  // Bioelectric conduction cascade
+  // ── Bioelectric conduction cascade — delays modulated by Ω ──
+  // Lower Ω = faster conduction (stressed/aroused state)
+  // Higher Ω = normal delays (relaxed coherent state)
   const bio=BODY.bioelectric;
+  const condMod=0.7+0.3*crrOmegaMod; // conduction delay modifier
   bio.ecgTime+=dt;
-  // SA node fires with each heartbeat (phase < 0.05)
+  // SA node fires with each heartbeat
   if(hp<0.03&&!bio.sa.fired){
     bio.sa.fired=true; bio.sa.lastFire=t; bio.sa.phase=1;
-    bio.sa.agent.doRupture(); // SA firing IS a rupture event
+    bio.sa.agent.omegaScale=0.6*crrOmegaMod;
+    bio.sa.agent.doRupture();
     bio.propagation=0; bio.ecgPhase='P'; bio.ecgTime=0;
-    // Add depolarisation wavefront
-    bio.depolarWave.push({pos:0,speed:0.8,birth:t,node:'sa'});
+    bio.depolarWave.push({pos:0,speed:0.8/condMod,birth:t,node:'sa'});
   }
   if(hp>0.1)bio.sa.fired=false;
-  // AV fires after delay from SA
-  if(bio.sa.phase>0&&(t-bio.sa.lastFire)>bio.av.delay&&!bio.av.fired){
+  // AV: delay scales with conduction modifier
+  const avDelay=0.12*condMod;
+  if(bio.sa.phase>0&&(t-bio.sa.lastFire)>avDelay&&!bio.av.fired){
     bio.av.fired=true; bio.av.lastFire=t; bio.av.phase=1;
+    bio.av.agent.omegaScale=0.8*crrOmegaMod;
     bio.av.agent.doRupture();
     bio.ecgPhase='PR'; bio.propagation=0.25;
-    bio.depolarWave.push({pos:0.25,speed:1.5,birth:t,node:'av'});
+    bio.depolarWave.push({pos:0.25,speed:1.5/condMod,birth:t,node:'av'});
   }
   if(hp>0.15)bio.av.fired=false;
-  // His bundle after AV
-  if(bio.av.phase>0&&(t-bio.av.lastFire)>bio.his.delay&&!bio.his.fired){
+  // His bundle
+  const hisDelay=0.06*condMod;
+  if(bio.av.phase>0&&(t-bio.av.lastFire)>hisDelay&&!bio.his.fired){
     bio.his.fired=true; bio.his.lastFire=t; bio.his.phase=1;
+    bio.his.agent.omegaScale=1.2*crrOmegaMod;
     bio.his.agent.doRupture();
     bio.ecgPhase='QRS'; bio.propagation=0.5;
-    bio.depolarWave.push({pos:0.5,speed:2.5,birth:t,node:'his'});
+    bio.depolarWave.push({pos:0.5,speed:2.5/condMod,birth:t,node:'his'});
   }
   if(hp>0.2)bio.his.fired=false;
-  // Purkinje fibers after His
-  if(bio.his.phase>0&&(t-bio.his.lastFire)>bio.purkinjeL.delay&&!bio.purkinjeL.fired){
+  // Purkinje fibers
+  const purkDelay=0.04*condMod;
+  if(bio.his.phase>0&&(t-bio.his.lastFire)>purkDelay&&!bio.purkinjeL.fired){
     bio.purkinjeL.fired=true; bio.purkinjeL.lastFire=t; bio.purkinjeL.phase=1;
     bio.purkinjeR.fired=true; bio.purkinjeR.lastFire=t; bio.purkinjeR.phase=1;
+    bio.purkinjeL.agent.omegaScale=1.5*crrOmegaMod;
+    bio.purkinjeR.agent.omegaScale=1.5*crrOmegaMod;
     bio.purkinjeL.agent.doRupture(); bio.purkinjeR.agent.doRupture();
     bio.propagation=0.75;
-    bio.depolarWave.push({pos:0.75,speed:3,birth:t,node:'purkinje'});
+    bio.depolarWave.push({pos:0.75,speed:3/condMod,birth:t,node:'purkinje'});
   }
   if(hp>0.3){bio.purkinjeL.fired=false;bio.purkinjeR.fired=false;}
-  // Decay phases and update ECG
   for(const node of [bio.sa,bio.av,bio.his,bio.purkinjeL,bio.purkinjeR]){
     node.phase=Math.max(0,node.phase-dt*3);
     node.agent.step(node.phase*0.5,dt*0.01);
@@ -346,23 +541,70 @@ function updateBody(dt,musicBeat){
   if(hp>0.5&&hp<0.7)bio.ecgPhase='T';
   if(hp>0.7)bio.ecgPhase='rest';
   bio.propagation=Math.max(0,bio.propagation-dt*0.5);
-  // Age wavefronts
   bio.depolarWave=bio.depolarWave.filter(w=>(t-w.birth)<0.6);
   for(const w of bio.depolarWave){w.pos+=w.speed*dt*0.3;}
 
-  // Brain waves
+  // ── Brain waves — CRR-modulated by musical state ──
+  // Coherence phase: α power rises (calm focus), θ deepens (contemplation)
+  // Rupture δ(now): β/γ spike (arousal), α drops
+  // Regeneration: θ dominates (integration), α gradually returns
+  // exp(C/Ω) amplifies the dominant band (memory-weighted resonance)
+  const memoryAmp=Math.min(2,Math.log(1+musicalExpCO)*0.3); // exp(C/Ω) → amplitude boost
+
   for(const[name,b]of Object.entries(BODY.brain)){
-    b.phase+=dt*b.freq;
-    b.amp=0.5+0.5*Math.sin(b.phase*TAU);
-    if(name==='gamma')b.amp*=0.5+0.5*BODY.brain.theta.amp;
+    b.phase+=dt*b.freq*ts; // tempo scales oscillation rate
+    const baseSin=0.5+0.5*Math.sin(b.phase*TAU);
+    // CRR phase-dependent modulation
+    let crrMod=1;
+    if(name==='alpha'){
+      // α rises with coherence, drops at rupture
+      crrMod=musicalPhase==='C'?(1+musicalNormC*0.5+memoryAmp*0.3):
+             musicalPhase==='delta'?0.3:
+             0.5+0.5*((seq.phraseAgent&&seq.phraseAgent.regenProg)||0);
+    }else if(name==='theta'){
+      // θ deepens during coherence and regeneration
+      crrMod=musicalPhase==='C'?(0.8+musicalNormC*0.4):
+             musicalPhase==='R'?(1.2+memoryAmp*0.2):0.7;
+    }else if(name==='beta'){
+      // β spikes at rupture (arousal/alertness)
+      crrMod=musicalPhase==='delta'?(1.5+arousal*0.5):
+             musicalPhase==='C'?(0.6+arousal*0.3):0.8;
+    }else if(name==='gamma'){
+      // γ = binding/integration, strongest at climax + coupled to θ
+      crrMod=(0.5+0.5*BODY.brain.theta.amp)*(1+arousal*0.8);
+      if(musicalPhase==='delta')crrMod*=1.3;
+    }else if(name==='delta'){
+      // δ deepest at rest/coda, suppressed during arousal
+      crrMod=1.2-arousal*0.6;
+    }
+    b.amp=Math.max(0,Math.min(1.5,baseSin*crrMod));
+    // Modulate brain CRR agent Ω
+    b.agent.omegaScale=b.agent.omegaScale*0.95+({
+      theta:1.8,alpha:1.5,beta:1.3,gamma:2.0,delta:0.8
+    }[name]||1)*crrOmegaMod*0.05;
     b.agent.step(b.amp*0.2,dt*0.005);
   }
-  // Blood
-  BODY.blood.pressure=0.5+0.5*Math.sin((BODY.heart.phase-0.1)*TAU);
-  BODY.blood.flow=0.3+0.7*BODY.blood.pressure;
-  // Vagal
-  BODY.vagal.tone=0.5+0.3*(BODY.breath.crrPhase==='R'?1:BODY.breath.crrPhase==='C'?0.3:0);
-  BODY.vagal.coupling=BODY.vagal.tone*BODY.brain.alpha.amp;
+
+  // ── Blood — pressure/flow modulated by heart rate AND vagal ──
+  // Higher heart rate → sharper pressure pulses
+  // Higher vagal → smoother, lower pressure
+  const hrFactor=BODY.heart.bpm/72; // >1 at fast rates
+  const vagalDamp=1-BODY.vagal.tone*0.2; // vagal smooths pressure
+  BODY.blood.pressure=(0.5+0.5*Math.sin((BODY.heart.phase-0.1)*TAU))*hrFactor*vagalDamp;
+  BODY.blood.flow=0.2+0.8*BODY.blood.pressure;
+
+  // ── Vagal tone — integrates breath, musical coherence, α power ──
+  // CRR: vagal IS the Ω modulator for the heart-brain axis
+  // High coherence + exhalation = peak vagal (parasympathetic dominance)
+  // Rupture = vagal withdrawal (sympathetic surge)
+  const breathVagal=BODY.breath.crrPhase==='R'?1:BODY.breath.crrPhase==='C'?0.3:0.1;
+  const coherenceVagal=musicalPhase==='C'?0.3*musicalNormC:
+                       musicalPhase==='delta'?-0.2:0.1;
+  const alphaVagal=BODY.brain.alpha.amp*0.15;
+  // Smooth transition (vagal tone changes slowly, like real physiology)
+  const targetVagal=Math.max(0.1,Math.min(1,0.4+breathVagal*0.3+coherenceVagal+alphaVagal));
+  BODY.vagal.tone+=(targetVagal-BODY.vagal.tone)*dt*2; // ~0.5s time constant
+  BODY.vagal.coupling=BODY.vagal.tone*BODY.brain.alpha.amp*(1+musicalNormC*0.3);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1555,6 +1797,315 @@ function updateTimeline(currentBeat){
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// §6.5  TELEMETRY PANEL — Real-time physiological graphs
+// ═══════════════════════════════════════════════════════════════════
+const TELEM_BUF=200; // samples in each ring buffer
+const telemData={
+  heartPhase:new Float32Array(TELEM_BUF),
+  ecg:new Float32Array(TELEM_BUF),
+  breathAmp:new Float32Array(TELEM_BUF),
+  breathPhase:new Float32Array(TELEM_BUF),
+  theta:new Float32Array(TELEM_BUF),
+  alpha:new Float32Array(TELEM_BUF),
+  beta:new Float32Array(TELEM_BUF),
+  gamma:new Float32Array(TELEM_BUF),
+  delta_w:new Float32Array(TELEM_BUF),
+  pressure:new Float32Array(TELEM_BUF),
+  flow:new Float32Array(TELEM_BUF),
+  vagalTone:new Float32Array(TELEM_BUF),
+  vagalCoupling:new Float32Array(TELEM_BUF),
+  bioPropagation:new Float32Array(TELEM_BUF),
+  bioSA:new Float32Array(TELEM_BUF),
+  bioAV:new Float32Array(TELEM_BUF),
+  bioHis:new Float32Array(TELEM_BUF),
+  bioPurk:new Float32Array(TELEM_BUF),
+  crrC:new Float32Array(TELEM_BUF),
+  crrOmega:new Float32Array(TELEM_BUF),
+  crrExpCO:new Float32Array(TELEM_BUF),
+  crrRupture:new Float32Array(TELEM_BUF),
+  arousal:new Float32Array(TELEM_BUF),
+  omegaMod:new Float32Array(TELEM_BUF),
+  energy:new Float32Array(TELEM_BUF),
+  choirGain:new Float32Array(TELEM_BUF),
+  gammaShimmer:new Float32Array(TELEM_BUF),
+};
+let telemIdx=0;
+let telemOpen=false;
+let telemCanvases={};
+let telemCtxs={};
+let telemLastSample=0;
+const TELEM_SAMPLE_INTERVAL=50; // ms between samples
+
+function toggleTelem(){
+  telemOpen=!telemOpen;
+  document.getElementById('telem-panel').classList.toggle('open',telemOpen);
+  document.getElementById('telem-toggle').classList.toggle('open',telemOpen);
+  document.getElementById('telem-toggle').textContent=telemOpen?'◂ CLOSE':'◂ TELEMETRY';
+  if(telemOpen&&!telemCanvases.heart){initTelemCanvases();}
+}
+
+function initTelemCanvases(){
+  const ids=['heart','breath','brain','bioelec','blood','vagal','crr','energy'];
+  const dpr=window.devicePixelRatio||1;
+  for(const id of ids){
+    const c=document.getElementById('tc-'+id);
+    if(!c)continue;
+    const rect=c.getBoundingClientRect();
+    c.width=rect.width*dpr;
+    c.height=rect.height*dpr;
+    const ctx=c.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    telemCanvases[id]=c;
+    telemCtxs[id]=ctx;
+  }
+}
+
+function sampleTelemetry(energyVal){
+  const i=telemIdx%TELEM_BUF;
+  // Heart
+  const hp=BODY.heart.phase%1;
+  // Synthetic ECG waveform from heart phase
+  let ecgV=0;
+  if(hp<0.03)ecgV=0.15; // P wave
+  else if(hp<0.08)ecgV=0.05; // PR
+  else if(hp<0.10)ecgV=-0.15; // Q
+  else if(hp<0.14)ecgV=1.0; // R peak
+  else if(hp<0.18)ecgV=-0.3; // S
+  else if(hp<0.35)ecgV=0.05; // ST
+  else if(hp<0.5)ecgV=0.25*Math.sin((hp-0.35)/0.15*PI); // T wave
+  else ecgV=0;
+  telemData.heartPhase[i]=hp;
+  telemData.ecg[i]=ecgV;
+  // Breath
+  telemData.breathAmp[i]=BODY.breath.amplitude;
+  telemData.breathPhase[i]=BODY.breath.crrPhase==='C'?0.33:BODY.breath.crrPhase==='delta'?0.66:1;
+  // Brain
+  telemData.theta[i]=BODY.brain.theta.amp;
+  telemData.alpha[i]=BODY.brain.alpha.amp;
+  telemData.beta[i]=BODY.brain.beta.amp;
+  telemData.gamma[i]=BODY.brain.gamma.amp;
+  telemData.delta_w[i]=BODY.brain.delta.amp;
+  // Blood
+  telemData.pressure[i]=BODY.blood.pressure;
+  telemData.flow[i]=BODY.blood.flow;
+  // Vagal
+  telemData.vagalTone[i]=BODY.vagal.tone;
+  telemData.vagalCoupling[i]=BODY.vagal.coupling;
+  // Bioelectric
+  telemData.bioPropagation[i]=BODY.bioelectric.propagation;
+  telemData.bioSA[i]=BODY.bioelectric.sa.phase;
+  telemData.bioAV[i]=BODY.bioelectric.av.phase;
+  telemData.bioHis[i]=BODY.bioelectric.his.phase;
+  telemData.bioPurk[i]=Math.max(BODY.bioelectric.purkinjeL.phase,BODY.bioelectric.purkinjeR.phase);
+  // CRR
+  if(seq.playing){
+    const pA=seq.phraseAgent;
+    telemData.crrC[i]=Math.min(2,pA.C);
+    telemData.crrOmega[i]=pA.omega;
+    telemData.crrExpCO[i]=Math.min(10,pA.expCO)/10;
+    // Detect rupture state
+    telemData.crrRupture[i]=pA.inRegen?0.7:(pA.sinceRupture<3?1:0);
+    // Arousal from section
+    const secNow=getSection((ac.currentTime-seq.startTime)*(seq.tempo*seq.tempoScale)/60);
+    telemData.arousal[i]=secNow?({
+      'AWAKENING':0.1,'FIRST COHERENCE':0.3,'BREATH DEEPENS':0.4,
+      'FULL RESONANCE I':0.6,'FULL RESONANCE II':0.75,
+      'CLIMAX':1.0,'RUPTURE δ(now)':0.5,'REGENERATION R':0.35,'CODA':0.12
+    }[secNow.name]||0.2):0;
+    // Ω modulation = how much the body Ω is being modified
+    telemData.omegaMod[i]=BODY.heart.agent.omegaScale/1.2; // normalized to base
+  }
+  // Energy
+  telemData.energy[i]=energyVal||0;
+  // Choir total gain
+  let cg=0;
+  if(choirVoices.length)for(const v of choirVoices)cg+=v.targetGain;
+  telemData.choirGain[i]=Math.min(1,cg/2);
+  telemData.gammaShimmer[i]=BODY.brain.gamma.amp*0.5;
+  telemIdx++;
+}
+
+function drawTelemLine(ctx,data,w,h,colorBase,alpha,yMin,yMax,filled){
+  const n=Math.min(telemIdx,TELEM_BUF);
+  if(n<2)return;
+  const startI=telemIdx>=TELEM_BUF?telemIdx%TELEM_BUF:0;
+  ctx.beginPath();
+  for(let j=0;j<n;j++){
+    const di=(startI+j)%TELEM_BUF;
+    const x=(j/(TELEM_BUF-1))*w;
+    const v=(data[di]-yMin)/(yMax-yMin);
+    const y=h-v*(h-4)-2;
+    if(j===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  }
+  if(filled){
+    ctx.lineTo((n-1)/(TELEM_BUF-1)*w,h);ctx.lineTo(0,h);ctx.closePath();
+    ctx.fillStyle=colorBase+(alpha*0.15)+')';
+    ctx.fill();
+  }
+  ctx.strokeStyle=colorBase+alpha+')';
+  ctx.lineWidth=1;ctx.stroke();
+}
+
+function renderTelemetry(){
+  if(!telemOpen||!telemCtxs.heart)return;
+  const dpr=window.devicePixelRatio||1;
+  // Ensure canvases are properly sized
+  for(const [id,c] of Object.entries(telemCanvases)){
+    const rect=c.getBoundingClientRect();
+    if(Math.abs(c.width/dpr-rect.width)>2){
+      c.width=rect.width*dpr;c.height=rect.height*dpr;
+      telemCtxs[id]=c.getContext('2d');
+      telemCtxs[id].setTransform(dpr,0,0,dpr,0,0);
+    }
+  }
+
+  // Grid helper
+  function drawGrid(ctx,w,h,rows){
+    ctx.strokeStyle='rgba(80,160,200,0.04)';ctx.lineWidth=0.5;
+    for(let r=1;r<rows;r++){
+      const y=h*r/rows;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
+    }
+    // Time markers
+    for(let c=1;c<5;c++){
+      const x=w*c/5;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();
+    }
+  }
+
+  // ─── Heart & ECG ───
+  {const ctx=telemCtxs.heart;if(!ctx)return;
+    const c=telemCanvases.heart;const w=c.clientWidth;const h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,4);
+    drawTelemLine(ctx,telemData.ecg,w,h,'rgba(255,221,87,','0.7',-0.5,1.2,true);
+    drawTelemLine(ctx,telemData.heartPhase,w,h,'rgba(229,62,62,','0.5',0,1,false);
+    // Value
+    document.getElementById('tv-heart').textContent=
+      BODY.heart.bpm+' BPM · '+(BODY.heart.systole?'SYS':'DIA');
+  }
+
+  // ─── Breath ───
+  {const ctx=telemCtxs.breath;const c=telemCanvases.breath;const w=c.clientWidth;const h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,3);
+    drawTelemLine(ctx,telemData.breathAmp,w,h,'rgba(11,197,234,','0.65',0,1.1,true);
+    // CRR phase as colored band at bottom
+    const n=Math.min(telemIdx,TELEM_BUF);const startI=telemIdx>=TELEM_BUF?telemIdx%TELEM_BUF:0;
+    for(let j=0;j<n;j++){
+      const di=(startI+j)%TELEM_BUF;const x=(j/(TELEM_BUF-1))*w;
+      const ph=telemData.breathPhase[di];
+      ctx.fillStyle=ph<0.5?'rgba(79,209,197,0.2)':ph<0.8?'rgba(252,129,129,0.25)':'rgba(104,211,145,0.2)';
+      ctx.fillRect(x,h-3,w/TELEM_BUF+1,3);
+    }
+    document.getElementById('tv-breath').textContent=
+      BODY.breath.crrPhase==='C'?'INHALE (C)':BODY.breath.crrPhase==='delta'?'PEAK (δ)':'EXHALE (R)';
+  }
+
+  // ─── Brainwaves ───
+  {const ctx=telemCtxs.brain;const c=telemCanvases.brain;const w=c.clientWidth;const h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,5);
+    // Stack brainwaves with offsets
+    const bands=[
+      {data:telemData.delta_w,color:'rgba(236,201,75,',label:'δ'},
+      {data:telemData.theta,color:'rgba(159,122,234,',label:'θ'},
+      {data:telemData.alpha,color:'rgba(56,161,105,',label:'α'},
+      {data:telemData.beta,color:'rgba(221,107,32,',label:'β'},
+      {data:telemData.gamma,color:'rgba(237,100,166,',label:'γ'},
+    ];
+    const bandH=h/5;
+    for(let bi=0;bi<bands.length;bi++){
+      const b=bands[bi];const n=Math.min(telemIdx,TELEM_BUF);
+      const startI=telemIdx>=TELEM_BUF?telemIdx%TELEM_BUF:0;
+      const yOff=bi*bandH;
+      ctx.beginPath();
+      for(let j=0;j<n;j++){
+        const di=(startI+j)%TELEM_BUF;
+        const x=(j/(TELEM_BUF-1))*w;
+        const v=b.data[di];
+        const y=yOff+bandH-v*bandH*0.85-1;
+        if(j===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle=b.color+'0.6)';ctx.lineWidth=1;ctx.stroke();
+      // Label
+      ctx.fillStyle=b.color+'0.25)';ctx.font='7px "Space Mono"';
+      ctx.fillText(b.label,2,yOff+9);
+    }
+    const domBand=bands.reduce((a,b2)=>{
+      const lastI=(telemIdx-1+TELEM_BUF)%TELEM_BUF;
+      return b2.data[lastI]>(a.data[lastI]||0)?b2:a;
+    },bands[0]);
+    document.getElementById('tv-brain').textContent='dom: '+domBand.label;
+  }
+
+  // ─── Bioelectric ───
+  {const ctx=telemCtxs.bioelec;const c=telemCanvases.bioelec;const w=c.clientWidth;const h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,3);
+    const nodes=[
+      {data:telemData.bioSA,color:'rgba(255,221,87,',label:'SA'},
+      {data:telemData.bioAV,color:'rgba(246,173,85,',label:'AV'},
+      {data:telemData.bioHis,color:'rgba(229,62,62,',label:'His'},
+      {data:telemData.bioPurk,color:'rgba(237,100,166,',label:'PF'},
+    ];
+    for(const nd of nodes){
+      drawTelemLine(ctx,nd.data,w,h,nd.color,'0.55',0,1.1,false);
+    }
+    drawTelemLine(ctx,telemData.bioPropagation,w,h,'rgba(255,221,87,','0.2',0,1.1,true);
+    document.getElementById('tv-bio').textContent=BODY.bioelectric.ecgPhase.toUpperCase();
+  }
+
+  // ─── Blood ───
+  {const ctx=telemCtxs.blood;const c=telemCanvases.blood;const w=c.clientWidth;const h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,3);
+    drawTelemLine(ctx,telemData.pressure,w,h,'rgba(229,62,62,','0.6',0,1.1,true);
+    drawTelemLine(ctx,telemData.flow,w,h,'rgba(49,130,206,','0.5',0,1.1,true);
+    const lastI=(telemIdx-1+TELEM_BUF)%TELEM_BUF;
+    document.getElementById('tv-blood').textContent=
+      'P:'+telemData.pressure[lastI].toFixed(2)+' F:'+telemData.flow[lastI].toFixed(2);
+  }
+
+  // ─── Vagal ───
+  {const ctx=telemCtxs.vagal;const c=telemCanvases.vagal;const w=c.clientWidth;const h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,2);
+    drawTelemLine(ctx,telemData.vagalTone,w,h,'rgba(11,197,234,','0.6',0,1.1,true);
+    drawTelemLine(ctx,telemData.vagalCoupling,w,h,'rgba(159,122,234,','0.5',0,1.1,true);
+    document.getElementById('tv-vagal').textContent=BODY.vagal.tone.toFixed(2);
+  }
+
+  // ─── CRR Dynamics ───
+  {const ctx=telemCtxs.crr;const c=telemCanvases.crr;const w=c.clientWidth;const h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,4);
+    drawTelemLine(ctx,telemData.crrC,w,h,'rgba(79,209,197,','0.6',0,2.1,true);
+    drawTelemLine(ctx,telemData.crrOmega,w,h,'rgba(246,173,85,','0.5',0,0.5,false);
+    drawTelemLine(ctx,telemData.crrExpCO,w,h,'rgba(104,211,145,','0.55',0,1.1,true);
+    drawTelemLine(ctx,telemData.arousal,w,h,'rgba(229,62,62,','0.3',0,1.1,false);
+    drawTelemLine(ctx,telemData.omegaMod,w,h,'rgba(255,221,87,','0.35',0,2,false);
+    // Rupture markers
+    const n=Math.min(telemIdx,TELEM_BUF);const startI=telemIdx>=TELEM_BUF?telemIdx%TELEM_BUF:0;
+    for(let j=0;j<n;j++){
+      const di=(startI+j)%TELEM_BUF;
+      if(telemData.crrRupture[di]>0.5){
+        const x=(j/(TELEM_BUF-1))*w;
+        ctx.strokeStyle='rgba(252,129,129,0.4)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();
+      }
+    }
+    if(seq.playing){
+      const pA=seq.phraseAgent;
+      document.getElementById('tv-crr').textContent=
+        'C:'+pA.C.toFixed(2)+' Ω:'+pA.omega.toFixed(3)+' ΩM:'+(BODY.heart.agent.omegaScale/1.2).toFixed(2);
+    }
+  }
+
+  // ─── Musical Energy ───
+  {const ctx=telemCtxs.energy;const c=telemCanvases.energy;const w=c.clientWidth;const h=c.clientHeight;
+    ctx.clearRect(0,0,w,h);drawGrid(ctx,w,h,3);
+    drawTelemLine(ctx,telemData.energy,w,h,'rgba(200,195,210,','0.3',0,0.8,true);
+    drawTelemLine(ctx,telemData.choirGain,w,h,'rgba(196,181,253,','0.55',0,1.1,true);
+    drawTelemLine(ctx,telemData.gammaShimmer,w,h,'rgba(237,100,166,','0.45',0,0.8,false);
+    const lastI=(telemIdx-1+TELEM_BUF)%TELEM_BUF;
+    document.getElementById('tv-energy').textContent=
+      (telemData.energy[lastI]*100|0)+'%';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // §7  VISUALIZATION — The Living Body
 // ═══════════════════════════════════════════════════════════════════
 const canvas=document.getElementById('viz');
@@ -2021,6 +2572,14 @@ function render(t){
       le.classList.add('visible');}else{le.classList.remove('visible');}
   }
 
+  // ─── Telemetry (always renders when panel is open) ───
+  const nowMs=performance.now();
+  if(nowMs-telemLastSample>TELEM_SAMPLE_INTERVAL){
+    sampleTelemetry(energy);
+    telemLastSample=nowMs;
+  }
+  renderTelemetry();
+
   // ─── CRR metrics ───
   if(seq.playing&&ac){
     const bps=(seq.tempo*seq.tempoScale)/60;
@@ -2040,10 +2599,11 @@ function render(t){
 
     const bm=document.getElementById('body-metrics');
     const ecg=BODY.bioelectric.ecgPhase;
+    const omMod=(BODY.heart.agent.omegaScale/1.2).toFixed(2);
     bm.innerHTML=
-      `♡ ${BODY.heart.bpm} BPM · ${BODY.heart.systole?'SYS':'DIA'}<br>`+
+      `♡ ${BODY.heart.bpm} BPM · ${BODY.heart.systole?'SYS':'DIA'} · Ω×${omMod}<br>`+
       `⚡ ${ecg.toUpperCase()} · SA→AV→His→PF<br>`+
-      `☁ ${BODY.breath.crrPhase==='C'?'inhale':BODY.breath.crrPhase==='delta'?'peak':'exhale'}<br>`+
+      `☁ ${BODY.breath.crrPhase==='C'?'inhale(C)':BODY.breath.crrPhase==='delta'?'peak(δ)':'exhale(R)'} · T=${BODY.breath.period.toFixed(1)}s<br>`+
       `θ ${BODY.brain.theta.amp.toFixed(2)} · α ${BODY.brain.alpha.amp.toFixed(2)} · vagal ${BODY.vagal.tone.toFixed(2)}`;
   }
 }
@@ -2082,14 +2642,16 @@ function startApp(){
   const splash=document.getElementById('splash');
   splash.classList.add('hidden');
   document.getElementById('app').classList.add('active');
+  document.getElementById('telem-toggle').style.display='block';
   setTimeout(()=>splash.style.display='none',1400);
   resize();initParticles();initBloodParts();initNeuroParts();initConductParts();
+  if(telemOpen)initTelemCanvases();
   new ResizeObserver(resize).observe(document.getElementById('canvas-wrap'));
   animId=requestAnimationFrame(render);
 }
 document.getElementById('splash').addEventListener('click',startApp);
 document.getElementById('splash').addEventListener('touchend',e=>{e.preventDefault();startApp()});
-window.addEventListener('resize',()=>{if(startApp._done)resize()});
+window.addEventListener('resize',()=>{if(startApp._done){resize();if(telemOpen)setTimeout(initTelemCanvases,100);}});
 window.addEventListener('orientationchange',()=>setTimeout(resize,150));
 document.addEventListener('keydown',e=>{
   if(e.code==='Space'){e.preventDefault();if(seq.playing)stopPlayback();else startPlayback();}});
