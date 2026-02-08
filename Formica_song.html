@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Formica — The Music of the Ant Body | CRR</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Mono:wght@400;700&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --chitin:#d69e2e;--hemolymph:#ecc94b;--neural:#38a169;
+  --tracheal:#63b3ed;--mushroom:#9f7aea;--alarm:#fc8181;
+  --trail:#f6ad55;--colony:#dd6b20;--optic:#ed64a6;
+  --coherence:#4fd1c5;--rupture:#fc8181;--regen:#68d391;
+  --omega:#f6ad55;
+  --cream:rgba(220,210,195,0.85);--creamD:rgba(200,190,175,0.5);
+  --bg:#050403;--panel:rgba(12,10,8,0.97)
+}
+body{background:var(--bg);color:var(--cream);font-family:'Cormorant Garamond',Georgia,serif;
+overflow:hidden;width:100vw;height:100vh;position:fixed}
+
+/* ─── Splash ─── */
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;
+justify-content:center;cursor:pointer;transition:opacity 1.4s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:680px;padding:0 24px}
+#splash .pulse-bar{width:240px;height:2px;margin:0 auto 28px;border-radius:2px;
+background:linear-gradient(90deg,var(--chitin),var(--hemolymph),var(--neural),var(--trail),var(--colony));
+animation:dorsalpulse 0.9s ease-in-out infinite}
+@keyframes dorsalpulse{0%,100%{opacity:.3;transform:scaleX(1)}20%{opacity:.85;transform:scaleX(1.06)}40%{opacity:.4;transform:scaleX(1)}100%{opacity:.3;transform:scaleX(1)}}
+#splash h1{font-size:clamp(2.2rem,5.5vw,3.8rem);font-weight:300;letter-spacing:.28em;
+margin-bottom:6px;background:linear-gradient(135deg,var(--chitin),var(--hemolymph),var(--neural),var(--trail),var(--mushroom));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#splash .sub{font-size:clamp(.82rem,1.5vw,1.05rem);font-weight:300;opacity:.4;
+letter-spacing:.04em;line-height:1.9;font-style:italic}
+#splash .eq{font-family:'Space Mono',monospace;font-size:clamp(.5rem,.85vw,.62rem);
+opacity:.16;margin-top:18px;letter-spacing:.02em;line-height:1.8}
+#splash .credit{font-size:.62rem;opacity:.18;margin-top:14px;letter-spacing:.06em}
+#splash .tap{font-size:.68rem;opacity:.18;margin-top:22px;letter-spacing:.12em;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.12}50%{opacity:.3}}
+
+/* ─── App ─── */
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+
+/* ─── Tab bar ─── */
+#tab-bar{height:32px;min-height:32px;background:var(--panel);display:flex;align-items:center;
+padding:0 14px;gap:2px;border-bottom:1px solid rgba(100,80,60,.1)}
+.tab-btn{background:transparent;border:1px solid rgba(200,180,150,.08);border-bottom:none;
+border-radius:4px 4px 0 0;color:var(--creamD);font-family:'Space Mono',monospace;
+font-size:.55rem;letter-spacing:.08em;padding:5px 16px;cursor:pointer;transition:all .2s;opacity:.4}
+.tab-btn.active{opacity:.8;color:var(--cream);background:rgba(200,180,150,.06);
+border-color:rgba(200,180,150,.15)}
+.tab-btn:hover{opacity:.7}
+#tab-bar .spacer{flex:1}
+#tab-bar .title-sm{font-size:.5rem;opacity:.2;letter-spacing:.15em;font-family:'Space Mono',monospace}
+
+/* ─── Canvas area ─── */
+#canvas-wrap{flex:1;min-height:0;position:relative}
+#viz{display:block;width:100%;height:100%;touch-action:none}
+
+/* ─── Info overlays ─── */
+#info-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+align-items:flex-start;padding:8px 18px;pointer-events:none;z-index:5}
+.info-col{display:flex;flex-direction:column;gap:2px}
+.info-col.right{align-items:flex-end}
+.info-label{font-family:'Space Mono',monospace;font-size:.5rem;letter-spacing:.08em;opacity:.3}
+.info-val{font-family:'Space Mono',monospace;font-size:.56rem;letter-spacing:.02em;opacity:.5}
+
+/* ─── CRR Popup Panel ─── */
+#crr-toggle{position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:12;
+width:24px;height:60px;background:rgba(20,16,10,.9);border:1px solid rgba(79,209,197,.2);
+border-radius:0 6px 6px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+color:var(--coherence);font-size:.6rem;font-family:'Space Mono',monospace;opacity:.5;
+transition:opacity .2s;pointer-events:auto;writing-mode:vertical-rl}
+#crr-toggle:hover{opacity:.8}
+#crr-panel{position:absolute;left:0;top:0;bottom:0;width:280px;z-index:11;
+background:rgba(8,6,4,.96);border-right:1px solid rgba(79,209,197,.12);
+transform:translateX(-100%);transition:transform .35s ease;overflow-y:auto;
+pointer-events:auto;padding:12px 14px 80px}
+#crr-panel.open{transform:translateX(0)}
+#crr-panel.open+#crr-toggle{left:280px}
+.crr-section{margin-bottom:12px;border-bottom:1px solid rgba(79,209,197,.06);padding-bottom:10px}
+.crr-head{font-family:'Space Mono',monospace;font-size:.52rem;letter-spacing:.1em;
+color:var(--coherence);opacity:.6;margin-bottom:4px;cursor:pointer;display:flex;
+justify-content:space-between;align-items:center}
+.crr-head .arrow{font-size:.4rem;transition:transform .2s}
+.crr-head .arrow.open{transform:rotate(90deg)}
+.crr-body{overflow:hidden;transition:max-height .3s ease;max-height:0}
+.crr-body.open{max-height:500px}
+.crr-eq{font-family:'Space Mono',monospace;font-size:.44rem;opacity:.25;margin:3px 0;
+letter-spacing:.01em;line-height:1.5}
+.crr-row{display:flex;justify-content:space-between;align-items:center;margin:2px 0}
+.crr-label{font-family:'Space Mono',monospace;font-size:.46rem;opacity:.4}
+.crr-val{font-family:'Space Mono',monospace;font-size:.48rem;opacity:.6}
+.crr-bar-wrap{width:60px;height:4px;background:rgba(200,180,150,.06);border-radius:2px;overflow:hidden}
+.crr-bar{height:100%;border-radius:2px;transition:width .15s,background .3s}
+.crr-desc{font-size:.54rem;opacity:.25;font-style:italic;margin:3px 0;line-height:1.4}
+.crr-phase-indicator{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}
+
+/* ─── Monitor panels ─── */
+#monitor-bar{position:absolute;bottom:0;left:0;right:0;display:flex;gap:1px;
+padding:4px 8px;pointer-events:none;z-index:5;justify-content:center;flex-wrap:wrap}
+.mon-panel{background:rgba(5,4,3,.85);border:1px solid rgba(100,80,60,.15);border-radius:3px;
+padding:4px 7px;font-family:'Space Mono',monospace;font-size:.48rem;letter-spacing:.02em;
+opacity:.6;min-width:100px;max-width:180px}
+.mon-title{font-size:.42rem;letter-spacing:.1em;opacity:.4;margin-bottom:2px;text-transform:uppercase}
+.mon-row{display:flex;justify-content:space-between;gap:6px;line-height:1.4}
+
+/* ─── Timeline ─── */
+#timeline{height:36px;min-height:36px;background:var(--panel);display:flex;align-items:center;
+padding:0 14px;gap:10px;border-top:1px solid rgba(100,80,60,.12);user-select:none}
+#play-btn{width:26px;height:26px;border:1px solid rgba(200,180,150,.2);border-radius:50%;
+background:transparent;color:var(--cream);cursor:pointer;display:flex;align-items:center;
+justify-content:center;font-size:.65rem;opacity:.5;transition:opacity .2s}
+#play-btn:hover{opacity:.8}
+#track-wrap{flex:1;height:16px;position:relative;cursor:pointer}
+#track-bg{position:absolute;inset:0;height:2px;top:7px;background:rgba(200,180,150,.1);border-radius:1px}
+#track-fill{position:absolute;left:0;top:7px;height:2px;width:0;
+background:linear-gradient(90deg,var(--chitin),var(--trail));border-radius:1px;transition:width .1s linear}
+#track-sections{position:absolute;inset:0;display:flex}
+.track-sec{flex:1;position:relative;border-right:1px solid rgba(200,180,150,.06)}
+.track-sec-label{position:absolute;bottom:0;left:2px;font-family:'Space Mono',monospace;
+font-size:.34rem;opacity:.2;letter-spacing:.04em;white-space:nowrap}
+#time-display{font-family:'Space Mono',monospace;font-size:.54rem;opacity:.35;min-width:52px;text-align:right}
+
+/* scrollbar */
+#crr-panel::-webkit-scrollbar{width:3px}
+#crr-panel::-webkit-scrollbar-track{background:transparent}
+#crr-panel::-webkit-scrollbar-thumb{background:rgba(79,209,197,.15);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="splash">
+<div class="inner">
+<div class="pulse-bar"></div>
+<h1>FORMICA</h1>
+<div class="sub">The Music of the Ant Body<br>
+<span style="font-size:.78em;opacity:.6">stridulation · stigmergy · spiracle</span></div>
+<div class="eq">
+C(x,t) = ∫ L(x,τ) dτ&emsp;·&emsp;δ(now)&emsp;·&emsp;R = ∫ φ exp(C/Ω) Θ dτ<br>
+Ω<sub>Z₂</sub> = 1/π&emsp;·&emsp;Ω<sub>SO(2)</sub> = 1/2π
+</div>
+<div class="credit">A. Sabine · Cohere Research · CRR Framework</div>
+<div class="tap">tap anywhere to begin</div>
+</div>
+</div>
+
+<div id="app">
+<div id="tab-bar">
+<button class="tab-btn active" data-mode="solo">SOLO</button>
+<button class="tab-btn" data-mode="colony">COLONY</button>
+<div class="spacer"></div>
+<span class="title-sm">FORMICA</span>
+</div>
+<div id="canvas-wrap">
+<canvas id="viz"></canvas>
+<div id="info-bar">
+<div class="info-col">
+<div><span class="info-label">SECTION </span><span class="info-val" id="iSection">—</span></div>
+<div><span class="info-label">BEAT </span><span class="info-val" id="iBeat">0</span></div>
+</div>
+<div class="info-col right">
+<div><span class="info-val" id="iCRR">C=0 Ω=0.318</span><span class="info-label"> CRR</span></div>
+<div><span class="info-val" id="iExpCO">exp=1.00</span><span class="info-label"> MEMORY</span></div>
+</div>
+</div>
+
+<!-- CRR Biology Panel -->
+<div id="crr-panel"></div>
+<div id="crr-toggle">CRR</div>
+
+<div id="monitor-bar">
+<div class="mon-panel" id="monBody">
+<div class="mon-title">BODY</div>
+<div class="mon-row"><span>♥</span><span id="mHR">50</span><span id="mDir">→</span></div>
+<div class="mon-row"><span>DGC</span><span id="mDGC">C</span><span id="mCO2">0%</span></div>
+<div class="mon-row"><span>spir</span><span id="mSpir">shut</span></div>
+</div>
+<div class="mon-panel" id="monStrid">
+<div class="mon-title">STRIDULATION</div>
+<div class="mon-row"><span style="color:var(--mushroom)">QN</span><span id="mSQ">—</span></div>
+<div class="mon-row"><span style="color:var(--alarm)">MW</span><span id="mSM">—</span></div>
+<div class="mon-row"><span style="color:var(--neural)">mw</span><span id="mSm">—</span></div>
+<div class="mon-row"><span style="color:var(--tracheal)">PP</span><span id="mSP">—</span></div>
+</div>
+<div class="mon-panel" id="monStig">
+<div class="mon-title">STIGMERGY</div>
+<div class="mon-row"><span>trails</span><span id="mTrail">0.00</span></div>
+<div class="mon-row"><span>explore</span><span id="mExpl">0.50</span></div>
+<div class="mon-row"><span>top</span><span id="mTop">—</span></div>
+</div>
+</div>
+</div>
+<div id="timeline">
+<button id="play-btn">▶</button>
+<div id="track-wrap"><div id="track-bg"></div><div id="track-fill"></div><div id="track-sections"></div></div>
+<div id="time-display">0:00</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  F O R M I C A  v2 — Solo + Colony modes, CRR Biology Panel
+//  CRR: C(x,t)=∫L(x,τ)dτ · δ(now) · R=∫φ·exp(C/Ω)·Θ dτ
+//  Alexander Sabine · Cohere Research · 2025
+// ═══════════════════════════════════════════════════════════════════
+const TAU=Math.PI*2,PI=Math.PI;
+let MODE='solo'; // 'solo' or 'colony'
+
+// ═══════════════════════════════════════════════════════════════════
+// §0  CRR ENGINE
+// ═══════════════════════════════════════════════════════════════════
+class CRRAgent{
+  constructor(omega=1/PI,name=''){
+    this.omega=omega;this.C=0;this.phase='coherence';
+    this.ruptures=0;this.lastRupture=0;this.peakC=0;
+    this.memory=1;this.name=name;this.L=0;
+  }
+  step(L,dt=1){
+    this.L=L;
+    if(this.phase==='coherence'){
+      this.C+=L*dt;this.peakC=Math.max(this.peakC,this.C);
+    }else if(this.phase==='regeneration'){
+      const phi=0.3+0.7*(1-Math.exp(-this.C*0.5));
+      this.C+=phi*this.memory*0.01*dt;
+    }
+    this.memory=Math.exp(Math.min(this.C/this.omega,12));
+    return this;
+  }
+  rupture(){
+    this.phase='rupture';this.ruptures++;this.lastRupture=this.C;
+    this.memory=Math.exp(Math.min(this.C/this.omega,12));
+    this.C*=0.15;this.phase='regeneration';return this;
+  }
+  reset(){this.C=0;this.phase='coherence';this.ruptures=0;this.peakC=0;this.memory=1;}
+  get expCO(){return Math.exp(Math.min(this.C/this.omega,12))}
+  get normC(){return Math.min(this.C/Math.max(this.peakC,0.01),1)}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §1  ANT PHYSIOLOGY
+// ═══════════════════════════════════════════════════════════════════
+function makeAnt(id,caste){
+  return{
+    id,caste:caste||'worker',
+    heartRate:50,heartPhase:0,heartDirection:1,
+    reversalTimer:0,reversalPeriod:12,peristalticWave:0,
+    dgcPhase:Math.random(),dgcPeriod:6,co2Level:0,
+    spiracleState:'closed',spiracleFlutter:0,dgcC:0.45,dgcF:0.60,
+    mushroom:0,antennal:0,optic:0,thoracic:0,subesophageal:0,
+    hemolymph:[],gait:Math.random()*TAU,antennaeL:0,antennaeR:0,
+    // Colony fields
+    x:0,y:0,angle:0,speed:0,targetX:0,targetY:0,
+    carrying:false,state:'idle',stridGain:0
+  };
+}
+
+function initHemolymph(ant){
+  ant.hemolymph=[];
+  for(let i=0;i<30;i++) ant.hemolymph.push({pos:Math.random(),inVessel:Math.random()>0.4,returnPhase:Math.random()});
+}
+
+function updateAntPhysiology(ant,dt,t){
+  ant.dgcPhase=(ant.dgcPhase+dt/ant.dgcPeriod)%1;
+  const dp=ant.dgcPhase;
+  if(dp<ant.dgcC){ant.spiracleState='closed';ant.spiracleFlutter=0;ant.co2Level=Math.min(1,ant.co2Level+dt*0.25);}
+  else if(dp<ant.dgcF){ant.spiracleState='flutter';ant.spiracleFlutter=Math.sin(dp*120*PI)*0.5+0.5;ant.co2Level=Math.max(0.3,ant.co2Level-dt*0.05);}
+  else{ant.spiracleState='open';ant.spiracleFlutter=0;ant.co2Level=Math.max(0,ant.co2Level-dt*0.8);}
+
+  const dgcMod=dp>=ant.dgcF?1.08:dp>=ant.dgcC?1.04:1.0;
+  const hr=ant.heartRate*dgcMod;
+  ant.heartPhase=(ant.heartPhase+dt*hr/60)%1;
+  ant.peristalticWave=(ant.peristalticWave+dt*hr/60*ant.heartDirection)%1;
+  if(ant.peristalticWave<0)ant.peristalticWave+=1;
+  ant.reversalTimer+=dt;
+  if(ant.reversalTimer>=ant.reversalPeriod){ant.reversalTimer=0;ant.heartDirection*=-1;}
+
+  ant.mushroom=0.5+0.5*Math.sin(t*1.1);ant.antennal=0.5+0.5*Math.sin(t*2.3+0.7);
+  ant.optic=0.5+0.5*Math.sin(t*3.7+1.3);ant.thoracic=0.5+0.5*Math.sin(t*0.8+2.1);
+  ant.subesophageal=0.5+0.5*Math.sin(t*1.7+3.0);
+
+  for(const p of ant.hemolymph){
+    const speed=hr/60*dt*0.8;
+    if(p.inVessel){p.pos=(p.pos+speed*ant.heartDirection+1)%1;if(Math.random()<0.008){p.inVessel=false;p.returnPhase=0;}}
+    else{p.returnPhase+=dt*0.15;if(p.returnPhase>1){p.inVessel=true;p.returnPhase=0;}}
+  }
+  ant.gait=(ant.gait+dt*2.5)%TAU;
+  ant.antennaeL=Math.sin(t*1.8)*0.3;ant.antennaeR=Math.sin(t*1.8+0.8)*0.3;
+}
+
+// Solo ant instance
+const ANT=makeAnt(0,'queen');
+
+// ═══════════════════════════════════════════════════════════════════
+// §2  AUDIO ENGINE
+// ═══════════════════════════════════════════════════════════════════
+let ctx,masterGain,bodyGain,stridGain,stigGain,compressor,reverbNode,dryGain,wetGain,analyser,freqData;
+let trachealOscs=[],trachealGains=[];
+const VOL={master:0.7,body:0.55,strid:0.45,stig:0.5};
+function midiToFreq(m){return 440*Math.pow(2,(m-69)/12)}
+let noiseBuf;
+
+function createNoiseBuf(ctx,dur=2){
+  const len=ctx.sampleRate*dur,buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=Math.random()*2-1;return buf;
+}
+function createReverb(ctx){
+  const len=ctx.sampleRate*1.8,buf=ctx.createBuffer(2,len,ctx.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++){const t=i/ctx.sampleRate;d[i]=(Math.random()*2-1)*Math.exp(-t*3.5)+(t>0.03?(Math.random()*2-1)*Math.exp(-t*1.8)*0.4:0);}}
+  const conv=ctx.createConvolver();conv.buffer=buf;return conv;
+}
+
+function initAudio(){
+  ctx=new(window.AudioContext||window.webkitAudioContext)();
+  noiseBuf=createNoiseBuf(ctx);analyser=ctx.createAnalyser();analyser.fftSize=512;freqData=new Uint8Array(analyser.frequencyBinCount);
+  compressor=ctx.createDynamicsCompressor();compressor.threshold.value=-18;compressor.knee.value=12;compressor.ratio.value=4;compressor.attack.value=0.01;compressor.release.value=0.15;
+  reverbNode=createReverb(ctx);dryGain=ctx.createGain();dryGain.gain.value=0.72;wetGain=ctx.createGain();wetGain.gain.value=0.28;
+  masterGain=ctx.createGain();masterGain.gain.value=VOL.master;bodyGain=ctx.createGain();bodyGain.gain.value=VOL.body;
+  stridGain=ctx.createGain();stridGain.gain.value=VOL.strid;stigGain=ctx.createGain();stigGain.gain.value=VOL.stig;
+  [masterGain,bodyGain,stridGain,stigGain].forEach(g=>g.connect(compressor));
+  compressor.connect(dryGain);compressor.connect(reverbNode);reverbNode.connect(wetGain);
+  dryGain.connect(analyser);wetGain.connect(analyser);analyser.connect(ctx.destination);
+  initTrachealPad();
+}
+
+function playNote(midi,velocity,duration,startTime){
+  if(!ctx)return;const t=startTime||ctx.currentTime,freq=midiToFreq(midi),v=velocity*0.35;
+  const o1=ctx.createOscillator(),g1=ctx.createGain();o1.type='triangle';o1.frequency.value=freq;
+  g1.gain.setValueAtTime(v,t);g1.gain.exponentialRampToValueAtTime(v*0.4,t+0.06);g1.gain.exponentialRampToValueAtTime(0.001,t+duration*0.9);
+  o1.connect(g1);g1.connect(masterGain);o1.start(t);o1.stop(t+duration);
+  const o2=ctx.createOscillator(),g2=ctx.createGain();o2.type='sine';o2.frequency.value=freq*2.017;
+  g2.gain.setValueAtTime(v*0.15,t);g2.gain.exponentialRampToValueAtTime(0.001,t+duration*0.5);
+  o2.connect(g2);g2.connect(masterGain);o2.start(t);o2.stop(t+duration);
+}
+
+function playDorsalPulse(time,intensity){
+  if(!ctx)return;const t=time||ctx.currentTime,baseFreq=ANT.heartDirection>0?55:48,v=intensity*0.3;
+  const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(baseFreq*1.15,t);o.frequency.exponentialRampToValueAtTime(baseFreq,t+0.3);
+  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.5);o.connect(g);g.connect(bodyGain);o.start(t);o.stop(t+0.55);
+  const n=ctx.createBufferSource(),nf=ctx.createBiquadFilter(),ng=ctx.createGain();n.buffer=noiseBuf;
+  nf.type='bandpass';nf.Q.value=3;nf.frequency.setValueAtTime(ANT.heartDirection>0?180:130,t);nf.frequency.exponentialRampToValueAtTime(ANT.heartDirection>0?90:160,t+0.3);
+  ng.gain.setValueAtTime(v*0.12,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.35);
+  n.connect(nf);nf.connect(ng);ng.connect(bodyGain);n.start(t);n.stop(t+0.4);
+}
+
+function initTrachealPad(){
+  if(!ctx)return;[50,57,62,65].forEach(m=>{
+    const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=midiToFreq(m);g.gain.value=0;
+    o.connect(g);g.connect(bodyGain);o.start();trachealOscs.push(o);trachealGains.push(g);
+  });
+}
+function setTrachealChord(midis,gain,transTime){
+  if(!ctx)return;const t=ctx.currentTime,trans=transTime||0.3;
+  midis.forEach((m,i)=>{
+    if(trachealOscs[i])trachealOscs[i].frequency.linearRampToValueAtTime(midiToFreq(m),t+trans);
+    if(trachealGains[i]){
+      let dgcMod=ANT.spiracleState==='closed'?0.15:ANT.spiracleState==='flutter'?0.4+ANT.spiracleFlutter*0.3:1.0;
+      trachealGains[i].gain.linearRampToValueAtTime(gain*0.08*dgcMod,t+trans);
+    }
+  });
+}
+
+function playOpticShimmer(midi,velocity,time){
+  if(!ctx)return;const t=time||ctx.currentTime,freq=midiToFreq(midi),v=velocity*0.12;
+  const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=freq;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+0.04);g.gain.linearRampToValueAtTime(0,t+0.25);
+  o.connect(g);g.connect(bodyGain);o.start(t);o.stop(t+0.3);
+}
+
+function playMandibleClick(time,intensity){
+  if(!ctx)return;const t=time||ctx.currentTime,v=intensity*0.2;
+  const n=ctx.createBufferSource(),f=ctx.createBiquadFilter(),g=ctx.createGain();n.buffer=noiseBuf;
+  f.type='highpass';f.frequency.value=2000;f.Q.value=8;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.025);
+  n.connect(f);f.connect(g);g.connect(bodyGain);n.start(t);n.stop(t+0.03);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §3  STRIDULATION ENGINE
+// ═══════════════════════════════════════════════════════════════════
+const STRID_VOICES=[
+  {name:'queen',ridgeFreq:600,pulseRate:40,chirpDur:0.8,Q:6,color:'var(--mushroom)'},
+  {name:'major',ridgeFreq:1000,pulseRate:80,chirpDur:0.4,Q:8,color:'var(--alarm)'},
+  {name:'minor',ridgeFreq:850,pulseRate:55,chirpDur:0.6,Q:5,color:'var(--neural)'},
+  {name:'pupa',ridgeFreq:700,pulseRate:20,chirpDur:0.3,Q:4,color:'var(--tracheal)'}
+];
+const stridMonitor={queen:0,major:0,minor:0,pupa:0,context:'quiet'};
+
+function playStridulation(voiceIdx,gain,time,crrMod){
+  if(!ctx||gain<0.01)return;const v=STRID_VOICES[voiceIdx],t=time||ctx.currentTime,mod=crrMod||1;
+  const noise=ctx.createBufferSource();noise.buffer=noiseBuf;
+  const rf=ctx.createBiquadFilter();rf.type='bandpass';rf.frequency.value=v.ridgeFreq*(0.95+mod*0.1);rf.Q.value=v.Q;
+  const br=ctx.createBiquadFilter();br.type='peaking';br.frequency.value=v.ridgeFreq*0.7;br.Q.value=2;br.gain.value=4;
+  const sub=ctx.createBiquadFilter();sub.type='lowpass';sub.frequency.value=2000;sub.Q.value=0.7;
+  const po=ctx.createOscillator(),mg=ctx.createGain();po.type='square';po.frequency.value=v.pulseRate*(0.9+mod*0.2);mg.gain.value=0.5;po.connect(mg.gain);
+  const eg=ctx.createGain(),amp=gain*0.35;eg.gain.setValueAtTime(0,t);eg.gain.linearRampToValueAtTime(amp,t+0.01);
+  eg.gain.setValueAtTime(amp,t+v.chirpDur*0.7);eg.gain.exponentialRampToValueAtTime(0.001,t+v.chirpDur);
+  noise.connect(rf);rf.connect(br);br.connect(mg);mg.connect(sub);sub.connect(eg);eg.connect(stridGain);
+  noise.start(t);po.start(t);noise.stop(t+v.chirpDur+0.05);po.stop(t+v.chirpDur+0.05);
+  stridMonitor[v.name]=gain;setTimeout(()=>{stridMonitor[v.name]*=0.5;},v.chirpDur*1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §4  STIGMERGY ENGINE
+// ═══════════════════════════════════════════════════════════════════
+class StigmergyEngine{
+  constructor(){
+    this.scale=[0,2,3,5,7,8,10];this.baseOctave=3;this.octaves=4;this.pitches=[];
+    this.pheromone=null;this.adjacency=[];this.ants=[];this.evapRate=0.05;
+    this.exploration=0.5;this.activity=0;this.lastNotes=[];this.trailStrength=0;
+    this._buildPitchSpace();this._buildAdjacency();
+    this.pheromone=new Float32Array(this.pitches.length);
+    this.ants=[{pos:Math.floor(this.pitches.length/3),lastPos:-1},{pos:Math.floor(this.pitches.length*2/3),lastPos:-1}];
+  }
+  _buildPitchSpace(){for(let o=0;o<this.octaves;o++)for(const s of this.scale){const m=(this.baseOctave+o)*12+2+s;if(m>=38&&m<=86)this.pitches.push(m);}}
+  _buildAdjacency(){
+    const n=this.pitches.length;this.adjacency=new Array(n);
+    for(let i=0;i<n;i++){const nb=new Set();if(i>0)nb.add(i-1);if(i<n-1)nb.add(i+1);if(i>1)nb.add(i-2);if(i<n-2)nb.add(i+2);
+    const ou=i+this.scale.length,od=i-this.scale.length;if(ou<n)nb.add(ou);if(od>=0)nb.add(od);this.adjacency[i]=[...nb];}
+  }
+  step(crrMem){
+    if(this.activity<0.01)return[];const notes=[];
+    for(const ant of this.ants){
+      if(Math.random()>this.activity)continue;const nb=this.adjacency[ant.pos];if(!nb||!nb.length)continue;
+      const w=nb.map(n=>{const p=Math.pow(Math.max(this.pheromone[n],0.01),1.5);
+        return p*(1-this.exploration)+this.exploration*(Math.random()*0.5+0.5)+(this.lastNotes.includes(n)?0.06:0.2);});
+      const tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot,ch=nb[0];
+      for(let i=0;i<w.length;i++){r-=w[i];if(r<=0){ch=nb[i];break;}}
+      ant.lastPos=ant.pos;ant.pos=ch;
+      this.pheromone[ch]+=0.2*(1+Math.log(Math.max(crrMem,1))*0.3);notes.push(this.pitches[ch]);
+    }
+    for(let i=0;i<this.pheromone.length;i++)this.pheromone[i]*=(1-this.evapRate);
+    this.lastNotes=notes.map(n=>this.pitches.indexOf(n));
+    this.trailStrength=0;for(let i=0;i<this.pheromone.length;i++)this.trailStrength+=this.pheromone[i];
+    this.trailStrength/=this.pitches.length;return notes;
+  }
+  collapse(memFac){for(let i=0;i<this.pheromone.length;i++)this.pheromone[i]*=0.15*memFac;this.ants.forEach(a=>{a.pos=Math.floor(Math.random()*this.pitches.length);});}
+  getTopPitches(n=4){const idx=this.pitches.map((p,i)=>({midi:p,s:this.pheromone[i]}));idx.sort((a,b)=>b.s-a.s);return idx.slice(0,n);}
+  reset(){this.pheromone.fill(0);this.activity=0;this.exploration=0.5;this.trailStrength=0;}
+}
+const stigEngine=new StigmergyEngine();
+
+function playStigmNote(midi,vel,dur,time){
+  if(!ctx)return;const t=time||ctx.currentTime,freq=midiToFreq(midi),v=vel*0.25;
+  const o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=freq;
+  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g);g.connect(stigGain);o.start(t);o.stop(t+dur+0.01);
+}
+function midiNoteName(m){return['C','C#','D','D#','E','F','F#','G','G#','A','Bb','B'][m%12]+(Math.floor(m/12)-1)}
+
+// ═══════════════════════════════════════════════════════════════════
+// §5  CRR AGENTS — per-subsystem tracking
+// ═══════════════════════════════════════════════════════════════════
+const BPM=108,BEAT_S=60/BPM,TOTAL_BEATS=252;
+const crrGlobal=new CRRAgent(1/PI,'Composition');
+const crrCardiac=new CRRAgent(1/PI,'Cardiac Z₂');
+const crrDGC=new CRRAgent(1/(2*PI),'Tracheal SO(2)');
+const crrNeural=new CRRAgent(1/(2*PI),'Neural SO(2)');
+const crrStrid=new CRRAgent(1/PI,'Stridulation Z₂');
+const crrStigm=new CRRAgent(1/PI,'Stigmergy Z₂');
+const crrColony=new CRRAgent(1/(2*PI),'Colony SO(2)');
+const ALL_CRR=[crrGlobal,crrCardiac,crrDGC,crrNeural,crrStrid,crrStigm,crrColony];
+
+const SECTIONS=[
+  {name:'EMERGENCE',start:0,end:23},{name:'ANTENNAE',start:24,end:71},
+  {name:'TRACHEAL SYNC',start:72,end:95},{name:'FORAGING I',start:96,end:131},
+  {name:'FORAGING II',start:132,end:155},{name:'SWARM',start:156,end:179},
+  {name:'ALARM δ(now)',start:180,end:191},{name:'REFORMATION',start:192,end:227},
+  {name:'STILLNESS',start:228,end:251}
+];
+const COLONY_SECTIONS=[
+  {name:'NEST PULSE',start:0,end:31},{name:'SCOUTS',start:32,end:79},
+  {name:'TRAIL FORMING',start:80,end:127},{name:'HIGHWAY',start:128,end:175},
+  {name:'ALARM δ(now)',start:176,end:199},{name:'SCATTER',start:200,end:223},
+  {name:'REFORMATION',start:224,end:271},{name:'NEW TRAILS',start:272,end:319},
+  {name:'COLONY REST',start:320,end:351}
+];
+const COLONY_BEATS=352;
+
+function getSection(beat){
+  const secs=MODE==='colony'?COLONY_SECTIONS:SECTIONS;
+  for(const s of secs)if(beat>=s.start&&beat<=s.end)return s;
+  return secs[0];
+}
+function getTotalBeats(){return MODE==='colony'?COLONY_BEATS:TOTAL_BEATS}
+
+// ═══════════════════════════════════════════════════════════════════
+// §6  SOLO COMPOSITION
+// ═══════════════════════════════════════════════════════════════════
+function buildSoloSequence(){
+  const E=[];
+  const Dm=[50,57,62,65],Gm=[55,58,62,67],Am=[57,60,64,69],Bb=[58,62,65,70],F=[53,57,60,65],C=[48,55,60,64];
+  const chords=[Dm,Dm,Gm,Am,Bb,F,Gm,Am,Dm,Bb,C,Dm,Gm,Am,Bb,Dm];
+  function arp(ch,b,pat,v,d){pat.forEach((p,i)=>{if(p>=0)E.push({beat:b+i*0.25,midi:ch[p%ch.length],velocity:v,duration:d,type:'chitin'});});}
+  function bass(ch,b,v,d){E.push({beat:b,midi:ch[0],velocity:v,duration:d,type:'chitin'})}
+  function dorsal(b,v){E.push({beat:b,type:'dorsal',velocity:v})}
+  function mandible(b,v){E.push({beat:b,type:'mandible',velocity:v})}
+  function trachPad(b,m,g,d){E.push({beat:b,type:'trachealPad',padNotes:m,padGain:g,duration:d})}
+  function optic(b,m,v){E.push({beat:b,midi:m,type:'optic',velocity:v})}
+  function strid(b,voice,gain){E.push({beat:b,type:'strid',voice,gain})}
+  function stigStep(b,steps,vel,dur){E.push({beat:b,type:'stigmergy',steps:steps||1,velocity:vel||0.6,duration:dur||0.4})}
+  function stigCollapse(b){E.push({beat:b,type:'stigCollapse'})}
+  function stigCfg(b,cfg){E.push({beat:b,type:'stigConfig',...cfg})}
+
+  // I. EMERGENCE (0-23)
+  stigCfg(0,{activity:0.1,exploration:0.8,evapRate:0.1});
+  for(let b=0;b<24;b++){if(b%2===0)dorsal(b,0.3+b*0.015);if(b>=12&&b%4===0)stigStep(b,1,0.15,0.5);if(b===8)trachPad(b,Dm,0.15,16);}
+
+  // II. ANTENNAE (24-71)
+  stigCfg(24,{activity:0.3,exploration:0.6,evapRate:0.07});
+  for(let b=24;b<72;b++){const l=b-24;if(b%2===0)dorsal(b,0.4);if(l%8===0)bass(chords[Math.floor(l/8)%16],b,0.2,1.5);
+  if(l%4===2)optic(b,74+Math.floor(Math.random()*8),0.15);if(l>=16&&l%6===0)strid(b,3,0.12);
+  if(l%3===0)stigStep(b,1,0.2+l*0.003,0.45);if(l%16===0)trachPad(b,chords[Math.floor(l/16)%16],0.2,14);}
+
+  // III. TRACHEAL SYNC (72-95)
+  stigCfg(72,{activity:0.5,exploration:0.45,evapRate:0.05});
+  for(let b=72;b<96;b++){const l=b-72;if(b%2===0)dorsal(b,0.5);if(l%2===1)mandible(b,0.2);
+  const ch=chords[Math.floor(l/4)%16];if(l%4===0){bass(ch,b,0.3,1.2);arp(ch,b,[0,1,2,3],0.15,0.3);}
+  if(l%4===2)strid(b,2,0.2);if(l%8===6)strid(b,3,0.1);if(l%2===0)stigStep(b,1,0.35,0.4);if(l%8===0)trachPad(b,ch,0.35,7);}
+
+  // IV. FORAGING I (96-131)
+  stigCfg(96,{activity:0.75,exploration:0.3,evapRate:0.04});
+  for(let b=96;b<132;b++){const l=b-96;if(b%2===0)dorsal(b,0.55);if(l%3===1)mandible(b,0.25);
+  const ch=chords[Math.floor(l/4)%16];if(l%4===0){bass(ch,b,0.4,1.0);arp(ch,b,[0,2,1,3],0.2,0.25);}
+  if(l%4===0)strid(b,0,0.25);if(l%4===1)strid(b,2,0.3);if(l%4===2)strid(b,1,0.15);
+  stigStep(b,1,0.45,0.35);if(l%8===0)trachPad(b,ch,0.4,7);}
+
+  // V. FORAGING II (132-155)
+  stigCfg(132,{activity:0.9,exploration:0.15,evapRate:0.02});
+  for(let b=132;b<156;b++){const l=b-132;if(b%2===0)dorsal(b,0.6);if(l%2===1)mandible(b,0.3);
+  const ch=chords[Math.floor(l/4)%16];if(l%4===0){bass(ch,b,0.5,0.8);arp(ch,b,[3,2,0,1],0.25,0.2);}
+  if(l%3===0)strid(b,0,0.35);if(l%3===1)strid(b,2,0.35);if(l%3===2)strid(b,1,0.2);
+  stigStep(b,1,0.55,0.3);if(l%8===0)trachPad(b,ch,0.45,7);}
+
+  // VI. SWARM (156-179)
+  stigCfg(156,{activity:1.0,exploration:0.1,evapRate:0.015});
+  for(let b=156;b<180;b++){const l=b-156;dorsal(b,0.65);if(l%2===0)mandible(b,0.35);
+  const ch=chords[Math.floor(l/4)%16];if(l%2===0){bass(ch,b,0.55,0.6);arp(ch,b,[0,3,1,2],0.3,0.18);}
+  if(l%2===0)strid(b,0,0.3);strid(b,2,0.3);if(l%3===0)strid(b,1,0.3+l*0.008);
+  stigStep(b,Math.random()>0.4?2:1,0.6,0.25);if(l%8===0)trachPad(b,ch,0.5,7);optic(b,74+Math.floor(Math.random()*10),0.2);}
+
+  // VII. ALARM (180-191)
+  stigCollapse(180);stigCfg(180,{activity:0.15,exploration:0.9,evapRate:0.15});
+  for(let b=180;b<192;b++){const l=b-180;if(l<4)strid(b,1,0.6-l*0.1);
+  if(l===0){mandible(b,0.6);mandible(b+0.25,0.5);}if(l<6)dorsal(b,0.7-l*0.05);
+  if(l>=6&&l%3===0)dorsal(b,0.15);if(l>=8&&l%4===0)stigStep(b,1,0.1,0.6);
+  if(l===0)trachPad(b,[50,57,61,66],0.5,4);if(l===4)trachPad(b,Dm,0.1,8);}
+
+  // VIII. REFORMATION (192-227)
+  stigCfg(192,{activity:0.2,exploration:0.6,evapRate:0.06});
+  for(let b=192;b<228;b++){const l=b-192,r=l/36;if(b%2===0)dorsal(b,0.2+r*0.3);
+  const ch=chords[Math.floor(l/4)%16];if(l%4===0&&l>=8)bass(ch,b,0.15+r*0.2,1.2);
+  if(l>=8&&l%6===0)strid(b,3,0.05+r*0.1);if(l>=16&&l%4===0)strid(b,2,0.1+r*0.15);
+  if(l%2===0)stigStep(b,1,0.15+r*0.25,0.4);if(l%12===0)trachPad(b,ch,0.15+r*0.2,11);}
+
+  // IX. STILLNESS (228-251)
+  stigCfg(228,{activity:0.05,exploration:0.8,evapRate:0.12});
+  for(let b=228;b<252;b++){const l=b-228,f=1-l/24;if(b%2===0&&f>0.1)dorsal(b,0.25*f);
+  if(l===0)trachPad(b,Dm,0.15,20);if(l%8===0&&f>0.3)stigStep(b,1,0.08*f,0.6);if(l===8)strid(b,3,0.06);}
+
+  E.sort((a,b)=>a.beat-b.beat);return E;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §7  COLONY — Multiple ants, shared pheromone, emergent behavior
+// ═══════════════════════════════════════════════════════════════════
+const COLONY_SIZE=12;
+let colonyAnts=[], colonyPheromoneField=null;
+const FIELD_RES=60; // pheromone grid resolution
+const NEST={x:0.2,y:0.5}; // normalized coords
+const FOOD_SOURCES=[{x:0.8,y:0.3,strength:1},{x:0.75,y:0.7,strength:0.7},{x:0.6,y:0.15,strength:0.5}];
+
+function initColony(){
+  colonyAnts=[];
+  const castes=['queen','major','major','minor','minor','minor','minor','minor','worker','worker','worker','worker'];
+  for(let i=0;i<COLONY_SIZE;i++){
+    const a=makeAnt(i,castes[i]||'worker');
+    a.x=NEST.x+Math.random()*0.08-0.04;
+    a.y=NEST.y+Math.random()*0.08-0.04;
+    a.angle=Math.random()*TAU;
+    a.speed=0;a.state='nest';
+    a.crr=new CRRAgent(castes[i]==='queen'?1/(2*PI):1/PI,'ant_'+i);
+    initHemolymph(a);
+    colonyAnts.push(a);
+  }
+  colonyPheromoneField=new Float32Array(FIELD_RES*FIELD_RES);
+}
+
+function updateColonyAnts(dt,beat,section){
+  const sIdx=COLONY_SECTIONS.indexOf(section);
+  const isAlarm=section.name.includes('ALARM')||section.name==='SCATTER';
+  const activity=Math.min(sIdx/4,1);
+
+  colonyAnts.forEach((a,i)=>{
+    updateAntPhysiology(a,dt,beat/1.8);
+    const L=0.01+activity*0.02;
+    a.crr.step(L,dt);
+
+    if(isAlarm&&a.crr.phase==='coherence'){a.crr.rupture();a.state='flee';}
+    if(section.name==='REFORMATION'&&a.crr.phase==='regeneration'&&a.crr.C>a.crr.lastRupture*0.4)a.crr.phase='coherence';
+
+    // Movement behavior based on state and section
+    if(a.caste==='queen'){a.x=NEST.x;a.y=NEST.y;a.speed=0;return;}
+
+    const spd=0.0008*(1+activity)*dt*60;
+    if(a.state==='flee'){
+      a.angle+=((Math.random()-0.5)*2)*dt*3;
+      a.speed=spd*2;
+    } else if(a.state==='forage'||activity>0.3){
+      // Follow pheromone gradient toward food
+      const gx=Math.floor(a.x*FIELD_RES),gy=Math.floor(a.y*FIELD_RES);
+      let bestAngle=a.angle,bestPhero=0;
+      for(let da=-1;da<=1;da++){
+        const testA=a.angle+da*0.4;
+        const tx=Math.floor((a.x+Math.cos(testA)*0.03)*FIELD_RES);
+        const ty=Math.floor((a.y+Math.sin(testA)*0.03)*FIELD_RES);
+        if(tx>=0&&tx<FIELD_RES&&ty>=0&&ty<FIELD_RES){
+          const p=colonyPheromoneField[ty*FIELD_RES+tx];
+          if(p>bestPhero){bestPhero=p;bestAngle=testA;}
+        }
+      }
+      // Exploration vs exploitation
+      if(Math.random()<0.15||bestPhero<0.01) a.angle+=(Math.random()-0.5)*0.8;
+      else a.angle=bestAngle+(Math.random()-0.5)*0.2;
+      a.speed=spd;a.state='forage';
+
+      // Deposit pheromone
+      if(gx>=0&&gx<FIELD_RES&&gy>=0&&gy<FIELD_RES){
+        colonyPheromoneField[gy*FIELD_RES+gx]+=0.1*a.crr.expCO*0.01;
+      }
+    } else {
+      // Near nest, wander slowly
+      a.angle+=(Math.random()-0.5)*0.3;
+      a.speed=spd*0.3;
+      if(activity>0.2&&Math.random()<0.02)a.state='forage';
+    }
+
+    a.x+=Math.cos(a.angle)*a.speed;
+    a.y+=Math.sin(a.angle)*a.speed;
+    a.x=Math.max(0.02,Math.min(0.98,a.x));
+    a.y=Math.max(0.02,Math.min(0.98,a.y));
+
+    // Return to nest occasionally
+    if(Math.random()<0.005){
+      a.angle=Math.atan2(NEST.y-a.y,NEST.x-a.x);
+      if(Math.hypot(a.x-NEST.x,a.y-NEST.y)<0.05)a.state='nest';
+    }
+  });
+
+  // Evaporate pheromone
+  for(let i=0;i<colonyPheromoneField.length;i++)colonyPheromoneField[i]*=0.997;
+
+  // Place food-source pheromone attractors
+  if(!isAlarm){
+    FOOD_SOURCES.forEach(f=>{
+      const fx=Math.floor(f.x*FIELD_RES),fy=Math.floor(f.y*FIELD_RES);
+      if(fx>=0&&fx<FIELD_RES&&fy>=0&&fy<FIELD_RES)
+        colonyPheromoneField[fy*FIELD_RES+fx]=Math.min(colonyPheromoneField[fy*FIELD_RES+fx]+0.02*f.strength,2);
+    });
+  }
+}
+
+function buildColonySequence(){
+  const E=[];
+  const Dm=[50,57,62,65],Gm=[55,58,62,67],Am=[57,60,64,69],Bb=[58,62,65,70],F=[53,57,60,65],C_=[48,55,60,64];
+  const chords=[Dm,Dm,Gm,Am,Bb,F,Gm,Am,Dm,Bb,C_,Dm,Gm,Am,Bb,Dm];
+
+  // Colony composition: denser, more layered, longer arc
+  // I. NEST PULSE (0-31): Queen heartbeat, chamber resonance
+  for(let b=0;b<32;b++){
+    if(b%2===0)E.push({beat:b,type:'dorsal',velocity:0.25+b*0.008});
+    if(b===4)E.push({beat:b,type:'trachealPad',padNotes:Dm,padGain:0.12,duration:24});
+    if(b>=16&&b%8===0)E.push({beat:b,type:'strid',voice:0,gain:0.08}); // queen strid
+    if(b>=20&&b%4===0)E.push({beat:b,type:'stigmergy',steps:1,velocity:0.1,duration:0.5});
+  }
+  E.push({beat:0,type:'stigConfig',activity:0.05,exploration:0.9,evapRate:0.1});
+
+  // II. SCOUTS (32-79): Workers venture out, tentative stridulation
+  E.push({beat:32,type:'stigConfig',activity:0.3,exploration:0.65,evapRate:0.07});
+  for(let b=32;b<80;b++){
+    const l=b-32;
+    if(b%2===0)E.push({beat:b,type:'dorsal',velocity:0.35});
+    const ch=chords[Math.floor(l/4)%16];
+    if(l%8===0)E.push({beat:b,midi:ch[0],velocity:0.2,duration:1.5,type:'chitin'});
+    if(l%6===0)E.push({beat:b,type:'strid',voice:2,gain:0.15}); // minor worker
+    if(l%8===4)E.push({beat:b,type:'strid',voice:3,gain:0.08}); // pupa
+    if(l%3===0)E.push({beat:b,type:'stigmergy',steps:1,velocity:0.2+l*0.002,duration:0.45});
+    if(l%16===0)E.push({beat:b,type:'trachealPad',padNotes:ch,padGain:0.2,duration:14});
+    // Multiple ants = overlapping stridulation
+    if(l%4===2&&l>16)E.push({beat:b,type:'strid',voice:2,gain:0.1}); // second minor
+  }
+
+  // III. TRAIL FORMING (80-127): Pheromone convergence
+  E.push({beat:80,type:'stigConfig',activity:0.6,exploration:0.35,evapRate:0.04});
+  for(let b=80;b<128;b++){
+    const l=b-80;
+    if(b%2===0)E.push({beat:b,type:'dorsal',velocity:0.45});
+    if(l%2===1)E.push({beat:b,type:'mandible',velocity:0.2});
+    const ch=chords[Math.floor(l/4)%16];
+    if(l%4===0){E.push({beat:b,midi:ch[0],velocity:0.35,duration:1,type:'chitin'});
+      [0,1,2,3].forEach((p,i)=>E.push({beat:b+i*0.25,midi:ch[p],velocity:0.15,duration:0.3,type:'chitin'}));}
+    // Full strid choir — colony layering
+    if(l%3===0)E.push({beat:b,type:'strid',voice:0,gain:0.2}); // queen
+    if(l%2===0)E.push({beat:b,type:'strid',voice:2,gain:0.25}); // workers
+    if(l%4===1)E.push({beat:b,type:'strid',voice:1,gain:0.12}); // major
+    // Dense stigmergy
+    E.push({beat:b,type:'stigmergy',steps:1,velocity:0.4,duration:0.35});
+    if(l%8===0)E.push({beat:b,type:'trachealPad',padNotes:ch,padGain:0.35,duration:7});
+  }
+
+  // IV. HIGHWAY (128-175): Maximum trail reinforcement, colony in full flow
+  E.push({beat:128,type:'stigConfig',activity:0.95,exploration:0.1,evapRate:0.02});
+  for(let b=128;b<176;b++){
+    const l=b-128;
+    E.push({beat:b,type:'dorsal',velocity:0.55});
+    if(l%2===0)E.push({beat:b,type:'mandible',velocity:0.3});
+    const ch=chords[Math.floor(l/4)%16];
+    if(l%2===0){E.push({beat:b,midi:ch[0],velocity:0.5,duration:0.7,type:'chitin'});
+      [3,1,2,0].forEach((p,i)=>E.push({beat:b+i*0.25,midi:ch[p],velocity:0.25,duration:0.2,type:'chitin'}));}
+    // Massive strid layering — 3-4 voices simultaneously
+    if(l%2===0)E.push({beat:b,type:'strid',voice:0,gain:0.3});
+    E.push({beat:b,type:'strid',voice:2,gain:0.35});
+    if(l%3===0)E.push({beat:b,type:'strid',voice:1,gain:0.2});
+    if(l%4===0)E.push({beat:b,type:'strid',voice:2,gain:0.15}); // extra worker
+    E.push({beat:b,type:'stigmergy',steps:2,velocity:0.55,duration:0.28});
+    if(l%8===0)E.push({beat:b,type:'trachealPad',padNotes:ch,padGain:0.5,duration:7});
+    if(l%4===0)E.push({beat:b,midi:76+Math.floor(Math.random()*8),type:'optic',velocity:0.18});
+  }
+
+  // V. ALARM (176-199): Predator detected — colony rupture
+  E.push({beat:176,type:'stigCollapse'});
+  E.push({beat:176,type:'stigConfig',activity:0.1,exploration:0.95,evapRate:0.2});
+  for(let b=176;b<200;b++){
+    const l=b-176;
+    if(l<6){E.push({beat:b,type:'strid',voice:1,gain:0.7-l*0.08}); // ALARM bursts
+      E.push({beat:b,type:'mandible',velocity:0.5-l*0.05});}
+    if(l<8)E.push({beat:b,type:'dorsal',velocity:0.7-l*0.04});
+    if(l>=12&&l%4===0)E.push({beat:b,type:'dorsal',velocity:0.12});
+    if(l===0)E.push({beat:b,type:'trachealPad',padNotes:[50,57,61,66],padGain:0.5,duration:6});
+    if(l===8)E.push({beat:b,type:'trachealPad',padNotes:Dm,padGain:0.08,duration:12});
+  }
+
+  // VI. SCATTER (200-223): Near silence, individuals dispersed
+  for(let b=200;b<224;b++){const l=b-200;
+    if(l%4===0)E.push({beat:b,type:'dorsal',velocity:0.1});
+    if(l%8===0&&l>=8)E.push({beat:b,type:'strid',voice:3,gain:0.04});
+    if(l%6===0)E.push({beat:b,type:'stigmergy',steps:1,velocity:0.06,duration:0.6});
+  }
+
+  // VII. REFORMATION (224-271): Colony rebuilds from memory
+  E.push({beat:224,type:'stigConfig',activity:0.15,exploration:0.65,evapRate:0.06});
+  for(let b=224;b<272;b++){const l=b-224,r=l/48;
+    if(b%2===0)E.push({beat:b,type:'dorsal',velocity:0.15+r*0.35});
+    const ch=chords[Math.floor(l/4)%16];
+    if(l%4===0&&l>=12)E.push({beat:b,midi:ch[0],velocity:0.12+r*0.25,duration:1.2,type:'chitin'});
+    if(l>=8&&l%6===0)E.push({beat:b,type:'strid',voice:3,gain:0.04+r*0.12});
+    if(l>=16&&l%4===0)E.push({beat:b,type:'strid',voice:2,gain:0.08+r*0.2});
+    if(l>=32&&l%6===0)E.push({beat:b,type:'strid',voice:0,gain:0.08+r*0.15});
+    if(l%2===0)E.push({beat:b,type:'stigmergy',steps:1,velocity:0.1+r*0.3,duration:0.4});
+    if(l%12===0)E.push({beat:b,type:'trachealPad',padNotes:ch,padGain:0.12+r*0.25,duration:11});
+  }
+
+  // VIII. NEW TRAILS (272-319): Fresh paths, colony coheres
+  E.push({beat:272,type:'stigConfig',activity:0.7,exploration:0.3,evapRate:0.035});
+  for(let b=272;b<320;b++){const l=b-272;
+    if(b%2===0)E.push({beat:b,type:'dorsal',velocity:0.5});if(l%3===1)E.push({beat:b,type:'mandible',velocity:0.2});
+    const ch=chords[Math.floor(l/4)%16];
+    if(l%4===0){E.push({beat:b,midi:ch[0],velocity:0.4,duration:0.9,type:'chitin'});
+      [0,2,1,3].forEach((p,i)=>E.push({beat:b+i*0.25,midi:ch[p],velocity:0.18,duration:0.25,type:'chitin'}));}
+    if(l%3===0)E.push({beat:b,type:'strid',voice:0,gain:0.25});
+    if(l%2===0)E.push({beat:b,type:'strid',voice:2,gain:0.3});
+    E.push({beat:b,type:'stigmergy',steps:1,velocity:0.45,duration:0.32});
+    if(l%8===0)E.push({beat:b,type:'trachealPad',padNotes:ch,padGain:0.4,duration:7});
+  }
+
+  // IX. COLONY REST (320-351)
+  E.push({beat:320,type:'stigConfig',activity:0.05,exploration:0.8,evapRate:0.12});
+  for(let b=320;b<352;b++){const l=b-320,f=1-l/32;
+    if(b%3===0&&f>0.1)E.push({beat:b,type:'dorsal',velocity:0.2*f});
+    if(l===0)E.push({beat:b,type:'trachealPad',padNotes:Dm,padGain:0.12,duration:28});
+    if(l===12)E.push({beat:b,type:'strid',voice:0,gain:0.05}); // queen's last chirp
+  }
+
+  E.sort((a,b)=>a.beat-b.beat);return E;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §8  SEQUENCER
+// ═══════════════════════════════════════════════════════════════════
+let sequence=[],seqIdx=0,playing=false,startTime=0,currentBeat=0;
+const LOOK_AHEAD=0.15;
+
+function startPlayback(){
+  if(!ctx)initAudio();if(ctx.state==='suspended')ctx.resume();
+  sequence=MODE==='colony'?buildColonySequence():buildSoloSequence();
+  seqIdx=0;currentBeat=0;startTime=ctx.currentTime;playing=true;
+  ALL_CRR.forEach(c=>c.reset());stigEngine.reset();
+  if(MODE==='colony')initColony();
+  document.getElementById('play-btn').textContent='■';
+  scheduleLoop();
+}
+function stopPlayback(){playing=false;document.getElementById('play-btn').textContent='▶';}
+function togglePlayback(){playing?stopPlayback():startPlayback();}
+
+function scheduleLoop(){
+  if(!playing)return;const now=ctx.currentTime;currentBeat=(now-startTime)/BEAT_S;
+  if(currentBeat>=getTotalBeats()){stopPlayback();return;}
+
+  const section=getSection(Math.floor(currentBeat));
+  const secs=MODE==='colony'?COLONY_SECTIONS:SECTIONS;
+  const sIdx=secs.indexOf(section);
+  const L=0.02+sIdx*0.01;
+  crrGlobal.step(L,0.016);crrCardiac.step(L*0.8,0.016);crrDGC.step(L*0.6,0.016);
+  crrNeural.step(L*0.7,0.016);crrStrid.step(L*0.9,0.016);crrStigm.step(L*1.1,0.016);
+  if(MODE==='colony')crrColony.step(L*1.3,0.016);
+
+  if(section.name.includes('ALARM')&&crrGlobal.phase==='coherence')ALL_CRR.forEach(c=>c.rupture());
+  if(section.name==='REFORMATION'&&crrGlobal.phase==='regeneration'&&crrGlobal.C>crrGlobal.lastRupture*0.4)
+    ALL_CRR.forEach(c=>{c.phase='coherence';});
+
+  if(MODE==='colony')updateColonyAnts(0.016,currentBeat,section);
+
+  const schedH=currentBeat+LOOK_AHEAD/BEAT_S;
+  while(seqIdx<sequence.length&&sequence[seqIdx].beat<=schedH){
+    const ev=sequence[seqIdx],evTime=startTime+ev.beat*BEAT_S;
+    const crrMod=Math.min(crrGlobal.expCO/5,3);
+    if(ev.type==='chitin')playNote(ev.midi,ev.velocity*crrMod,ev.duration*BEAT_S,evTime);
+    else if(ev.type==='dorsal')playDorsalPulse(evTime,ev.velocity);
+    else if(ev.type==='mandible')playMandibleClick(evTime,ev.velocity);
+    else if(ev.type==='trachealPad')setTrachealChord(ev.padNotes,ev.padGain,ev.duration*BEAT_S*0.3);
+    else if(ev.type==='optic')playOpticShimmer(ev.midi,ev.velocity,evTime);
+    else if(ev.type==='strid')playStridulation(ev.voice,ev.gain*Math.min(crrMod,2),evTime,crrMod);
+    else if(ev.type==='stigmergy'){for(let s=0;s<(ev.steps||1);s++){const notes=stigEngine.step(crrGlobal.expCO);notes.forEach((m,i)=>playStigmNote(m,ev.velocity,ev.duration*BEAT_S,evTime+i*0.05));}}
+    else if(ev.type==='stigCollapse')stigEngine.collapse(crrGlobal.normC);
+    else if(ev.type==='stigConfig'){if(ev.activity!==undefined)stigEngine.activity=ev.activity;if(ev.exploration!==undefined)stigEngine.exploration=ev.exploration;if(ev.evapRate!==undefined)stigEngine.evapRate=ev.evapRate;}
+    seqIdx++;
+  }
+
+  updateAntPhysiology(ANT,0.016,currentBeat/1.8);
+  requestAnimationFrame(scheduleLoop);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §9  CRR BIOLOGY PANEL
+// ═══════════════════════════════════════════════════════════════════
+const CRR_SECTIONS=[
+  {id:'cardiac',title:'DORSAL VESSEL · Z₂',agent:crrCardiac,color:'var(--hemolymph)',
+   eq:'C = ∫ heartbeat_coherence dτ',
+   desc:'Myogenic pacemaker at ~50 BPM. Heartbeat reversal (anterograde↔retrograde) every 12s is a Z₂ symmetry operation. Rupture = arrhythmia. exp(C/Ω) determines recovery speed.',
+   fields:()=>({
+     'Heart Rate':`${Math.round(ANT.heartRate*(ANT.dgcPhase>=0.6?1.08:ANT.dgcPhase>=0.45?1.04:1))} BPM`,
+     'Direction':ANT.heartDirection>0?'Anterograde →':'← Retrograde',
+     'Reversal in':`${(ANT.reversalPeriod-ANT.reversalTimer).toFixed(1)}s`,
+     'Phase':crrCardiac.phase,'C':crrCardiac.C.toFixed(3),'exp(C/Ω)':crrCardiac.expCO.toFixed(2)
+   })},
+  {id:'dgc',title:'TRACHEAL DGC · SO(2)',agent:crrDGC,color:'var(--tracheal)',
+   eq:'C = ∫ gas_exchange_efficiency dτ',
+   desc:'Discontinuous Gas-exchange Cycle: C-phase (closed, CO₂ builds), F-phase (flutter, O₂ enters), O-phase (open, CO₂ burst). Full rotational symmetry SO(2) — continuous phase.',
+   fields:()=>{
+     const dp=ANT.dgcPhase;const phase=dp<0.45?'C (closed)':dp<0.6?'F (flutter)':'O (open)';
+     return{'DGC Phase':phase,'CO₂':Math.round(ANT.co2Level*100)+'%','Spiracles':ANT.spiracleState,
+       'Ω':crrDGC.omega.toFixed(4)+' = 1/2π','C':crrDGC.C.toFixed(3),'exp(C/Ω)':crrDGC.expCO.toFixed(2)};
+   }},
+  {id:'neural',title:'GANGLIA · SO(2)',agent:crrNeural,color:'var(--mushroom)',
+   eq:'C = ∫ neural_synchrony dτ',
+   desc:'Mushroom body (learning), antennal lobe (chemosense), optic lobe (vision), thoracic (motor), subesophageal (feeding). Continuous oscillatory coupling = SO(2).',
+   fields:()=>({'Mushroom':ANT.mushroom.toFixed(2),'Antennal':ANT.antennal.toFixed(2),
+     'Optic':ANT.optic.toFixed(2),'Thoracic':ANT.thoracic.toFixed(2),
+     'C':crrNeural.C.toFixed(3),'exp(C/Ω)':crrNeural.expCO.toFixed(2)})},
+  {id:'strid',title:'STRIDULATION · Z₂',agent:crrStrid,color:'var(--alarm)',
+   eq:'C = ∫ signal_coherence dτ',
+   desc:'Plectrum scrapes pars stridens ridges. Discrete ON/OFF signaling = Z₂. Queen (500-700Hz), Major alarm (800-1200Hz), Minor feeding (700-1000Hz), Pupa (700Hz single pulse).',
+   fields:()=>({'Queen':stridMonitor.queen.toFixed(2),'Major':stridMonitor.major.toFixed(2),
+     'Minor':stridMonitor.minor.toFixed(2),'Pupa':stridMonitor.pupa.toFixed(2),
+     'Context':stridMonitor.context,'C':crrStrid.C.toFixed(3),'exp(C/Ω)':crrStrid.expCO.toFixed(2)})},
+  {id:'stigm',title:'STIGMERGY · Z₂',agent:crrStigm,color:'var(--trail)',
+   eq:'C = Σ pheromone_deposits · exp(C/Ω)',
+   desc:'Pheromone trail formation. Deposit ∝ exp(C/Ω) — memory amplifies successful trails. Trail collapse (δ) when food depleted. Ants rebuild from residual pheromone memory.',
+   fields:()=>({'Trail Strength':stigEngine.trailStrength.toFixed(3),'Activity':stigEngine.activity.toFixed(2),
+     'Exploration':stigEngine.exploration.toFixed(2),'Evaporation':stigEngine.evapRate.toFixed(3),
+     'Top Pitches':stigEngine.getTopPitches(2).map(p=>midiNoteName(p.midi)).join(', '),
+     'C':crrStigm.C.toFixed(3),'exp(C/Ω)':crrStigm.expCO.toFixed(2)})},
+  {id:'global',title:'COMPOSITION · Z₂',agent:crrGlobal,color:'var(--coherence)',
+   eq:'R = ∫ φ(x,τ) · exp(C/Ω) · Θ dτ',
+   desc:'The global compositional arc. Coherence builds through sections. Alarm = δ(now) rupture. Reformation = regeneration weighted by exp(C/Ω) — colony memory determines what can be rebuilt.',
+   fields:()=>({'Phase':crrGlobal.phase,'Ruptures':crrGlobal.ruptures,
+     'C':crrGlobal.C.toFixed(3),'Ω':'1/π ≈ '+crrGlobal.omega.toFixed(4),
+     'exp(C/Ω)':crrGlobal.expCO.toFixed(2),'Peak C':crrGlobal.peakC.toFixed(3)})}
+];
+
+function buildCRRPanel(){
+  const panel=document.getElementById('crr-panel');
+  let html=`<div style="font-family:'Space Mono',monospace;font-size:.48rem;letter-spacing:.1em;opacity:.3;margin-bottom:10px">CRR BIOLOGICAL PROCESSES</div>`;
+  html+=`<div class="crr-desc" style="margin-bottom:12px">Each biological system maps to a CRR agent:<br>C = coherence accumulation<br>δ(now) = rupture moment<br>R = regeneration weighted by exp(C/Ω)</div>`;
+  CRR_SECTIONS.forEach(s=>{
+    html+=`<div class="crr-section" id="crr-${s.id}">`;
+    html+=`<div class="crr-head" onclick="toggleCRRSection('${s.id}')"><span style="color:${s.color}">${s.title}</span><span class="arrow" id="arrow-${s.id}">▸</span></div>`;
+    html+=`<div class="crr-body" id="body-${s.id}">`;
+    html+=`<div class="crr-eq">${s.eq}</div>`;
+    html+=`<div class="crr-desc">${s.desc}</div>`;
+    html+=`<div class="crr-row"><span class="crr-label">Phase</span><span class="crr-phase-indicator" id="phase-${s.id}"></span><span class="crr-val" id="phaseVal-${s.id}">—</span></div>`;
+    html+=`<div class="crr-row"><span class="crr-label">exp(C/Ω)</span><div class="crr-bar-wrap"><div class="crr-bar" id="bar-${s.id}" style="width:0%;background:${s.color}"></div></div></div>`;
+    html+=`<div id="fields-${s.id}"></div>`;
+    html+=`</div></div>`;
+  });
+  panel.innerHTML=html;
+}
+
+function toggleCRRSection(id){
+  const body=document.getElementById('body-'+id);
+  const arrow=document.getElementById('arrow-'+id);
+  body.classList.toggle('open');arrow.classList.toggle('open');
+}
+
+function updateCRRPanel(){
+  CRR_SECTIONS.forEach(s=>{
+    const a=s.agent;
+    const phaseEl=document.getElementById('phase-'+s.id);
+    const phaseVal=document.getElementById('phaseVal-'+s.id);
+    const bar=document.getElementById('bar-'+s.id);
+    const fields=document.getElementById('fields-'+s.id);
+    if(!phaseEl)return;
+
+    phaseEl.style.background=a.phase==='coherence'?'var(--coherence)':a.phase==='rupture'?'var(--rupture)':'var(--regen)';
+    phaseVal.textContent=a.phase;
+    const barPct=Math.min(Math.log(a.expCO)/12*100,100);
+    bar.style.width=barPct+'%';
+
+    const f=s.fields();let fhtml='';
+    Object.entries(f).forEach(([k,v])=>{
+      fhtml+=`<div class="crr-row"><span class="crr-label">${k}</span><span class="crr-val">${v}</span></div>`;
+    });
+    fields.innerHTML=fhtml;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §10  TIMELINE & MONITORS
+// ═══════════════════════════════════════════════════════════════════
+function buildTimeline(){
+  const cont=document.getElementById('track-sections');cont.innerHTML='';
+  const secs=MODE==='colony'?COLONY_SECTIONS:SECTIONS;
+  const total=getTotalBeats();
+  secs.forEach(s=>{const d=document.createElement('div');d.className='track-sec';d.style.flex=(s.end-s.start+1)/total;
+    d.innerHTML=`<span class="track-sec-label">${s.name}</span>`;cont.appendChild(d);});
+}
+
+function updateTimeline(){
+  const pct=Math.min(currentBeat/getTotalBeats()*100,100);
+  document.getElementById('track-fill').style.width=pct+'%';
+  const secs=currentBeat*BEAT_S;const m=Math.floor(secs/60),s=Math.floor(secs%60);
+  document.getElementById('time-display').textContent=`${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function updateMonitors(){
+  const section=getSection(Math.floor(currentBeat));
+  document.getElementById('iSection').textContent=section.name;
+  document.getElementById('iBeat').textContent=Math.floor(currentBeat);
+  document.getElementById('iCRR').textContent=`C=${crrGlobal.C.toFixed(2)} Ω=${crrGlobal.omega.toFixed(3)}`;
+  document.getElementById('iExpCO').textContent=`exp=${crrGlobal.expCO.toFixed(2)}`;
+  document.getElementById('mHR').textContent=Math.round(ANT.heartRate*(ANT.dgcPhase>=0.6?1.08:ANT.dgcPhase>=0.45?1.04:1));
+  document.getElementById('mDir').textContent=ANT.heartDirection>0?'→':'←';
+  document.getElementById('mDGC').textContent=ANT.spiracleState==='closed'?'C':ANT.spiracleState==='flutter'?'F':'O';
+  document.getElementById('mCO2').textContent=Math.round(ANT.co2Level*100)+'%';
+  document.getElementById('mSpir').textContent=ANT.spiracleState;
+  document.getElementById('mSQ').textContent=stridMonitor.queen>0.01?stridMonitor.queen.toFixed(2):'—';
+  document.getElementById('mSM').textContent=stridMonitor.major>0.01?stridMonitor.major.toFixed(2):'—';
+  document.getElementById('mSm').textContent=stridMonitor.minor>0.01?stridMonitor.minor.toFixed(2):'—';
+  document.getElementById('mSP').textContent=stridMonitor.pupa>0.01?stridMonitor.pupa.toFixed(2):'—';
+  document.getElementById('mTrail').textContent=stigEngine.trailStrength.toFixed(2);
+  document.getElementById('mExpl').textContent=stigEngine.exploration.toFixed(2);
+  document.getElementById('mTop').textContent=stigEngine.getTopPitches(2).map(p=>midiNoteName(p.midi)).join(' ')||'—';
+  updateCRRPanel();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §11  VISUALIZATION
+// ═══════════════════════════════════════════════════════════════════
+const canvas=document.getElementById('viz');
+const cx=canvas.getContext('2d');
+let W,H,antCx,antCy,antScale;
+
+function resize(){
+  const wrap=document.getElementById('canvas-wrap');
+  W=canvas.width=wrap.clientWidth*devicePixelRatio;H=canvas.height=wrap.clientHeight*devicePixelRatio;
+  cx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  const w=wrap.clientWidth,h=wrap.clientHeight;antCx=w*0.52;antCy=h*0.48;antScale=Math.min(w,h)*0.0028;
+}
+
+// ─── SOLO ant drawing ───
+function drawSoloAnt(){
+  const s=antScale,x=antCx,y=antCy;cx.save();cx.translate(x,y);
+
+  // Gaster
+  cx.fillStyle='rgba(45,32,20,0.9)';cx.beginPath();cx.ellipse(s*50,0,s*45,s*28,0,0,TAU);cx.fill();
+  drawDorsalVessel(s);
+  // Petiole + strid organ
+  cx.fillStyle='rgba(55,40,25,0.9)';cx.beginPath();cx.ellipse(s*2,0,s*8,s*6,0,0,TAU);cx.fill();
+  drawStridOrgan(s);
+  // Mesosoma
+  cx.fillStyle='rgba(50,36,22,0.9)';cx.beginPath();cx.ellipse(-s*35,0,s*30,s*22,0,0,TAU);cx.fill();
+  drawSpiracles(s);
+  // Head
+  cx.fillStyle='rgba(48,34,20,0.95)';cx.beginPath();cx.ellipse(-s*78,0,s*18,s*16,0,0,TAU);cx.fill();
+  drawCompoundEye(-s*88,-s*12,s*8,s);drawCompoundEye(-s*88,s*12,s*8,s);
+  // Mandibles
+  cx.strokeStyle='rgba(180,140,80,0.4)';cx.lineWidth=s*2;
+  cx.beginPath();cx.moveTo(-s*94,-s*8);cx.lineTo(-s*108,-s*14);cx.moveTo(-s*94,s*8);cx.lineTo(-s*108,s*14);cx.stroke();
+  drawAntenna(-s*90,-s*10,ANT.antennaeL,s,-1);drawAntenna(-s*90,s*10,ANT.antennaeR,s,1);
+  drawLegs(s);drawGanglia(s);drawHemolymph(s,ANT);
+  cx.restore();
+  drawStigmBar();drawSpectrumArcs();
+}
+
+function drawDorsalVessel(s){
+  const w=ANT.peristalticWave;cx.strokeStyle='rgba(200,160,80,0.25)';cx.lineWidth=s*3;cx.beginPath();
+  for(let i=0;i<=20;i++){const t=i/20,px=s*(8+t*80),py=-s*20+Math.sin((t-w)*TAU*2)*s*3;i===0?cx.moveTo(px,py):cx.lineTo(px,py);}cx.stroke();
+  const pulseX=s*(8+w*80),pa=0.3+Math.sin(ANT.heartPhase*TAU)*0.4;
+  cx.fillStyle=`rgba(236,201,75,${pa})`;cx.beginPath();cx.arc(pulseX,-s*20,s*4,0,TAU);cx.fill();
+  cx.fillStyle='rgba(200,160,80,0.15)';cx.beginPath();const d=ANT.heartDirection,ax=s*48;
+  cx.moveTo(ax+d*s*6,-s*20);cx.lineTo(ax-d*s*3,-s*17);cx.lineTo(ax-d*s*3,-s*23);cx.fill();
+}
+function drawStridOrgan(s){
+  const active=stridMonitor.queen+stridMonitor.major+stridMonitor.minor+stridMonitor.pupa;
+  cx.strokeStyle=`rgba(180,140,80,${0.15+Math.min(active,1)*0.6})`;cx.lineWidth=s*0.5;
+  for(let i=0;i<6;i++){cx.beginPath();cx.moveTo(s*(-1+i*1.2),-s*4);cx.lineTo(s*(-1+i*1.2),s*4);cx.stroke();}
+  if(active>0.05)for(let r=1;r<=3;r++){cx.strokeStyle=`rgba(180,140,80,${active*0.15/r})`;cx.beginPath();cx.arc(s*2,0,s*(8+r*5),0,TAU);cx.stroke();}
+}
+function drawSpiracles(s){
+  [[-s*55,-s*18],[-s*45,-s*20],[-s*30,-s*20],[-s*15,-s*18],[s*15,-s*22],[s*35,-s*24],[s*55,-s*22]].forEach(([px,py])=>{
+    let r=s*1.5,col;if(ANT.spiracleState==='open'){r=s*2.2;col='rgba(99,179,237,0.6)';}
+    else if(ANT.spiracleState==='flutter'){r=s*1.5+Math.sin(Date.now()*0.03)*s*0.5;col=`rgba(99,179,237,${0.2+ANT.spiracleFlutter*0.4})`;}
+    else col='rgba(99,179,237,0.1)';
+    cx.fillStyle=col;cx.beginPath();cx.arc(px,py,r,0,TAU);cx.fill();
+    cx.strokeStyle='rgba(99,179,237,0.08)';cx.lineWidth=s*0.5;cx.beginPath();cx.moveTo(px,py);cx.lineTo(px+s*3,py+s*8);cx.stroke();
+  });
+}
+function drawCompoundEye(ex,ey,r,s){
+  cx.fillStyle=`rgba(237,100,166,${0.15+ANT.optic*0.25})`;cx.beginPath();cx.arc(ex,ey,r,0,TAU);cx.fill();
+  cx.fillStyle=`rgba(237,100,166,${0.05+ANT.optic*0.15})`;
+  for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){if(i*i+j*j>5)continue;cx.beginPath();cx.arc(ex+i*s*1.8,ey+j*s*1.8,s*0.7,0,TAU);cx.fill();}
+}
+function drawAntenna(ax,ay,angle,s,side){
+  cx.strokeStyle='rgba(180,140,80,0.35)';cx.lineWidth=s*1.2;
+  const a1=-0.6+angle,mx=ax+Math.cos(a1)*s*30,my=ay+side*Math.abs(Math.sin(a1))*s*25;
+  const a2=a1-0.3,tx=mx+Math.cos(a2)*s*20,ty=my+side*Math.abs(Math.sin(a2))*s*12;
+  cx.beginPath();cx.moveTo(ax,ay);cx.quadraticCurveTo(mx,my,tx,ty);cx.stroke();
+  cx.fillStyle=`rgba(79,209,197,${0.1+ANT.antennal*0.3})`;cx.beginPath();cx.arc(tx,ty,s*2,0,TAU);cx.fill();
+}
+function drawLegs(s){
+  cx.strokeStyle='rgba(120,90,50,0.3)';cx.lineWidth=s*1;
+  [[-s*50,0],[-s*35,0],[-s*20,0]].forEach(([lx,ly],i)=>{
+    const sw=Math.sin(ANT.gait+(i%2?PI:0))*s*4;
+    cx.beginPath();cx.moveTo(lx,ly-s*18);cx.lineTo(lx-s*15-sw,ly-s*40);cx.stroke();
+    cx.beginPath();cx.moveTo(lx,ly+s*18);cx.lineTo(lx-s*15+sw,ly+s*40);cx.stroke();
+  });
+}
+function drawGanglia(s){
+  [{x:-s*78,y:0,v:ANT.mushroom,c:'159,122,234'},{x:-s*82,y:-s*6,v:ANT.antennal,c:'79,209,197'},
+   {x:-s*85,y:s*3,v:ANT.optic,c:'237,100,166'},{x:-s*40,y:0,v:ANT.thoracic,c:'56,161,105'},
+   {x:-s*70,y:s*3,v:ANT.subesophageal,c:'246,173,85'}].forEach(g=>{
+    cx.fillStyle=`rgba(${g.c},${0.08+g.v*0.25})`;cx.beginPath();cx.arc(g.x,g.y,s*3+g.v*s*2,0,TAU);cx.fill();
+  });
+}
+function drawHemolymph(s,ant){
+  (ant||ANT).hemolymph.forEach(p=>{
+    let px,py,a;if(p.inVessel){px=s*(8+p.pos*80);py=-s*20+Math.sin(p.pos*TAU)*s*2;a=0.3;}
+    else{const ang=p.returnPhase*PI+p.pos*TAU;px=s*(-20+Math.cos(ang)*50);py=Math.sin(ang)*s*15;a=0.12;}
+    cx.fillStyle=`rgba(236,201,75,${a})`;cx.beginPath();cx.arc(px,py,s*1.2,0,TAU);cx.fill();
+  });
+}
+function drawStigmBar(){
+  const w=W/devicePixelRatio,barH=6,barY=H/devicePixelRatio-48,n=stigEngine.pitches.length;if(!n)return;
+  const segW=w*0.6/n,startX=w*0.2;
+  for(let i=0;i<n;i++){const st=Math.min(stigEngine.pheromone[i]*2,1);if(st<0.01)continue;cx.fillStyle=`rgba(246,173,85,${st*0.6})`;cx.fillRect(startX+i*segW,barY,segW-0.5,barH);}
+  stigEngine.ants.forEach((a,i)=>{cx.fillStyle=i===0?'rgba(79,209,197,0.7)':'rgba(237,100,166,0.7)';cx.beginPath();cx.arc(startX+a.pos*segW+segW/2,barY-2,2.5,0,TAU);cx.fill();});
+}
+function drawSpectrumArcs(){
+  if(!analyser)return;analyser.getByteFrequencyData(freqData);
+  const cols=['214,158,46','236,201,75','56,161,105','99,179,237','159,122,234'];
+  for(let arc=0;arc<5;arc++){
+    const bS=Math.floor(arc*freqData.length/5),bE=Math.floor((arc+1)*freqData.length/5);
+    let sum=0;for(let i=bS;i<bE;i++)sum+=freqData[i];const avg=sum/(bE-bS)/255;if(avg<0.02)continue;
+    cx.strokeStyle=`rgba(${cols[arc]},${avg*0.3})`;cx.lineWidth=1.5;cx.beginPath();
+    cx.arc(antCx,antCy,antScale*100+arc*12+avg*20,-PI*0.7,PI*0.7);cx.stroke();
+  }
+}
+
+// ─── COLONY visualization (top-down) ───
+function drawColony(){
+  const w=W/devicePixelRatio,h=H/devicePixelRatio;
+
+  // Draw pheromone field
+  if(colonyPheromoneField){
+    const cellW=w/FIELD_RES,cellH=h/FIELD_RES;
+    for(let y=0;y<FIELD_RES;y++)for(let x=0;x<FIELD_RES;x++){
+      const v=colonyPheromoneField[y*FIELD_RES+x];if(v<0.01)continue;
+      const a=Math.min(v*0.5,0.6);
+      cx.fillStyle=`rgba(246,173,85,${a})`;
+      cx.fillRect(x*cellW,y*cellH,cellW+0.5,cellH+0.5);
+    }
+  }
+
+  // Nest
+  cx.fillStyle='rgba(100,70,40,0.3)';cx.beginPath();cx.arc(NEST.x*w,NEST.y*h,20,0,TAU);cx.fill();
+  cx.strokeStyle='rgba(200,160,80,0.2)';cx.lineWidth=1;cx.beginPath();cx.arc(NEST.x*w,NEST.y*h,22,0,TAU);cx.stroke();
+  cx.fillStyle='rgba(200,180,150,0.15)';cx.font="8px 'Space Mono'";cx.fillText('NEST',NEST.x*w-12,NEST.y*h+30);
+
+  // Food sources
+  FOOD_SOURCES.forEach((f,i)=>{
+    const section=getSection(Math.floor(currentBeat));
+    const isAlarm=section.name.includes('ALARM')||section.name==='SCATTER';
+    const alpha=isAlarm?0.05:0.3*f.strength;
+    cx.fillStyle=`rgba(104,211,145,${alpha})`;cx.beginPath();cx.arc(f.x*w,f.y*h,8+f.strength*5,0,TAU);cx.fill();
+    cx.fillStyle='rgba(200,180,150,0.1)';cx.font="7px 'Space Mono'";cx.fillText('FOOD',f.x*w-10,f.y*h+16);
+  });
+
+  // Colony ants
+  if(colonyAnts.length){
+    colonyAnts.forEach((a,i)=>{
+      const ax=a.x*w,ay=a.y*h;
+      // Body
+      let col;
+      if(a.caste==='queen') col='159,122,234';
+      else if(a.caste==='major') col='252,129,129';
+      else col='214,158,46';
+
+      const memGlow=Math.min(a.crr?a.crr.expCO*0.02:0,0.4);
+      cx.fillStyle=`rgba(${col},${0.5+memGlow})`;
+      cx.save();cx.translate(ax,ay);cx.rotate(a.angle);
+
+      // Simplified ant shape (top-down)
+      // Gaster
+      cx.beginPath();cx.ellipse(3,0,a.caste==='queen'?6:4,a.caste==='queen'?4:2.5,0,0,TAU);cx.fill();
+      // Thorax
+      cx.beginPath();cx.ellipse(-2,0,3,2,0,0,TAU);cx.fill();
+      // Head
+      cx.beginPath();cx.ellipse(-6,0,2.2,2,0,0,TAU);cx.fill();
+      // Antennae
+      cx.strokeStyle=`rgba(${col},0.3)`;cx.lineWidth=0.5;
+      cx.beginPath();cx.moveTo(-7,-1);cx.lineTo(-11,-4);cx.moveTo(-7,1);cx.lineTo(-11,4);cx.stroke();
+      // Legs
+      cx.strokeStyle=`rgba(${col},0.2)`;
+      for(let l=0;l<3;l++){const lx=-3+l*3;cx.beginPath();cx.moveTo(lx,-2);cx.lineTo(lx-1,-5);cx.moveTo(lx,2);cx.lineTo(lx-1,5);cx.stroke();}
+
+      cx.restore();
+
+      // CRR glow aura
+      if(a.crr&&a.crr.expCO>2){
+        const gr=cx.createRadialGradient(ax,ay,0,ax,ay,12);
+        gr.addColorStop(0,`rgba(${col},${memGlow*0.3})`);gr.addColorStop(1,'rgba(0,0,0,0)');
+        cx.fillStyle=gr;cx.beginPath();cx.arc(ax,ay,12,0,TAU);cx.fill();
+      }
+
+      // Stridulation rings
+      if(a.stridGain>0.05){
+        cx.strokeStyle=`rgba(${col},${a.stridGain*0.2})`;cx.lineWidth=0.5;
+        cx.beginPath();cx.arc(ax,ay,8+Math.sin(Date.now()*0.01)*3,0,TAU);cx.stroke();
+      }
+    });
+  }
+
+  // Spectrum arcs (smaller, in corner)
+  if(analyser){
+    analyser.getByteFrequencyData(freqData);
+    const cols=['214,158,46','236,201,75','56,161,105','99,179,237','159,122,234'];
+    for(let arc=0;arc<5;arc++){
+      const bS=Math.floor(arc*freqData.length/5),bE=Math.floor((arc+1)*freqData.length/5);
+      let sum=0;for(let i=bS;i<bE;i++)sum+=freqData[i];const avg=sum/(bE-bS)/255;if(avg<0.02)continue;
+      cx.strokeStyle=`rgba(${cols[arc]},${avg*0.25})`;cx.lineWidth=1;cx.beginPath();
+      cx.arc(w-35,35,12+arc*4+avg*8,0,TAU);cx.stroke();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §12  RENDER & BOOT
+// ═══════════════════════════════════════════════════════════════════
+function render(){
+  const w=W/devicePixelRatio,h=H/devicePixelRatio;cx.clearRect(0,0,w,h);
+  // Background
+  const grad=cx.createRadialGradient(w/2,h/2,0,w/2,h/2,Math.max(w,h)*0.6);
+  if(MODE==='colony'){grad.addColorStop(0,'rgba(15,12,8,1)');grad.addColorStop(1,'rgba(5,4,3,1)');}
+  else{grad.addColorStop(0,'rgba(20,16,10,1)');grad.addColorStop(1,'rgba(5,4,3,1)');}
+  cx.fillStyle=grad;cx.fillRect(0,0,w,h);
+
+  if(MODE==='colony')drawColony();else drawSoloAnt();
+  if(playing){updateTimeline();updateMonitors();}
+  requestAnimationFrame(render);
+}
+
+function switchMode(mode){
+  const wasPlaying=playing;if(wasPlaying)stopPlayback();
+  MODE=mode;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+  buildTimeline();
+  if(wasPlaying)startPlayback();
+}
+
+function boot(){
+  initHemolymph(ANT);resize();buildTimeline();buildCRRPanel();render();
+
+  document.getElementById('splash').addEventListener('click',()=>{
+    document.getElementById('splash').classList.add('hidden');
+    document.getElementById('app').classList.add('active');
+    setTimeout(()=>{resize();startPlayback();},600);
+  });
+  document.getElementById('play-btn').addEventListener('click',togglePlayback);
+  document.getElementById('track-wrap').addEventListener('click',(e)=>{
+    if(!playing)return;const rect=e.currentTarget.getBoundingClientRect();const pct=(e.clientX-rect.left)/rect.width;
+    const tb=pct*getTotalBeats();startTime=ctx.currentTime-tb*BEAT_S;seqIdx=sequence.findIndex(ev=>ev.beat>=tb);if(seqIdx<0)seqIdx=sequence.length;
+  });
+
+  // CRR panel toggle
+  document.getElementById('crr-toggle').addEventListener('click',()=>{
+    document.getElementById('crr-panel').classList.toggle('open');
+  });
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchMode(b.dataset.mode)));
+
+  window.addEventListener('resize',resize);
+}
+boot();
+</script>
+</body>
+</html>
