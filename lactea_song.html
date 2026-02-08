@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Lactea — The Music of the Milky Way | CRR</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Mono:wght@400;700&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bulge:#ffd699;--young:#aaccff;--old:#ffcc88;
+  --halo:#2a1a4e;--arm:rgba(100,140,220,0.15);
+  --coherence:#4fd1c5;--rupture:#fc8181;--regen:#68d391;
+  --omega:#f6ad55;--sgra:#ff9955;--dm:#7b68ee;
+  --cream:rgba(210,215,230,0.85);--creamD:rgba(190,195,210,0.5);
+  --bg:#020208;--panel:rgba(6,6,14,0.97)
+}
+body{background:var(--bg);color:var(--cream);font-family:'Cormorant Garamond',Georgia,serif;
+overflow:hidden;width:100vw;height:100vh;height:100dvh;position:fixed;
+-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;
+padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;
+justify-content:center;cursor:pointer;transition:opacity 1.4s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:720px;padding:0 24px}
+#splash .pulse-bar{width:260px;height:2px;margin:0 auto 28px;border-radius:2px;
+background:linear-gradient(90deg,var(--halo),var(--dm),var(--young),var(--bulge),var(--sgra),var(--coherence),var(--regen));
+animation:spiralpulse 4s ease-in-out infinite}
+@keyframes spiralpulse{0%,100%{opacity:.2;transform:scaleX(1) rotate(0deg)}50%{opacity:.7;transform:scaleX(1.05) rotate(0.5deg)}}
+#splash h1{font-size:clamp(2.2rem,5.5vw,3.8rem);font-weight:300;letter-spacing:.3em;
+margin-bottom:6px;background:linear-gradient(135deg,var(--dm),var(--young),var(--bulge),var(--sgra),var(--coherence));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#splash .sub{font-size:clamp(.78rem,1.4vw,1rem);font-weight:300;opacity:.4;
+letter-spacing:.04em;line-height:1.9;font-style:italic}
+#splash .eq{font-family:'Space Mono',monospace;font-size:clamp(.46rem,.78vw,.56rem);
+opacity:.16;margin-top:18px;letter-spacing:.02em;line-height:1.8}
+#splash .credit{font-size:.62rem;opacity:.18;margin-top:14px;letter-spacing:.06em}
+#splash .tap{font-size:.68rem;opacity:.18;margin-top:22px;letter-spacing:.12em;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.12}50%{opacity:.3}}
+
+#app{display:none;flex-direction:column;width:100%;height:100vh;height:100dvh;overflow:hidden}
+#app.active{display:flex}
+#canvas-wrap{flex:1;min-height:0;position:relative}
+#viz{display:block;width:100%;height:100%;touch-action:none}
+
+#info-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+align-items:flex-start;padding:12px 54px 12px 18px;pointer-events:none;z-index:5}
+#piece-title{font-size:clamp(.9rem,1.6vw,1.2rem);font-weight:300;letter-spacing:.12em;
+color:rgba(180,170,220,0.45)}
+#piece-title .composer{font-size:.68em;font-weight:300;opacity:.5;font-style:italic;display:block;margin-top:3px}
+#crr-display{font-family:'Space Mono',monospace;font-size:clamp(.48rem,.8vw,.6rem);
+color:rgba(160,150,210,0.28);text-align:right;line-height:1.65}
+
+#section-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+text-align:center;pointer-events:none;z-index:4;font-size:clamp(1rem,2.2vw,1.6rem);
+font-weight:300;letter-spacing:.22em;font-style:italic;opacity:0;transition:opacity 1.4s ease;
+text-shadow:0 0 50px rgba(100,140,220,0.15)}
+
+#lyric-display{position:absolute;bottom:16%;left:0;right:0;text-align:center;pointer-events:none;z-index:5}
+#lyric-text{font-size:clamp(.85rem,1.8vw,1.3rem);font-weight:300;letter-spacing:.12em;
+font-style:italic;opacity:0;transition:opacity .9s ease;text-shadow:0 0 40px rgba(100,140,220,0.15);
+font-family:'Space Mono',monospace;color:rgba(180,190,220,0.5)}
+#lyric-text.visible{opacity:1}
+
+#body-metrics{position:absolute;bottom:12%;right:16px;pointer-events:none;z-index:5;
+font-family:'Space Mono',monospace;font-size:.52rem;color:rgba(160,170,210,0.25);
+text-align:right;line-height:1.7}
+
+#timeline-wrap{height:26px;background:rgba(6,6,14,0.95);border-top:1px solid rgba(100,140,220,0.06);
+display:flex;align-items:center;padding:0 14px;gap:9px;flex-shrink:0}
+#timeline-bar{flex:1;height:5px;background:rgba(255,255,255,0.03);border-radius:3px;
+position:relative;overflow:hidden}
+#timeline-fill{height:100%;width:0%;border-radius:3px;transition:width 0.3s linear;
+background:linear-gradient(90deg,
+  rgba(42,26,78,0.6),rgba(123,104,238,0.5),rgba(170,204,255,0.5),rgba(255,214,153,0.5),
+  rgba(79,209,197,0.5),rgba(104,211,145,0.5),rgba(255,153,85,0.5),rgba(42,26,78,0.4))}
+#timeline-sections{position:absolute;inset:0;display:flex;pointer-events:none}
+.t-section{height:100%;border-right:1px solid rgba(255,255,255,0.05);position:relative}
+.t-section-label{position:absolute;top:-13px;left:2px;font-family:'Space Mono',monospace;
+font-size:6.5px;color:rgba(160,170,210,0.18);letter-spacing:.03em;white-space:nowrap}
+#timeline-time{font-family:'Space Mono',monospace;font-size:.52rem;color:rgba(160,170,210,0.22);
+min-width:62px;text-align:right}
+#timeline-crr{font-family:'Space Mono',monospace;font-size:.52rem;min-width:48px;
+background:linear-gradient(90deg,rgba(123,104,238,.35),rgba(170,204,255,.35),rgba(79,209,197,.35));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+#controls{border-top:1px solid rgba(100,140,220,0.08);background:var(--panel);
+padding:9px 14px 10px;display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.transport-row{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap}
+.transport-btn{font-family:'Cormorant Garamond',serif;font-size:clamp(.7rem,1vw,.85rem);
+padding:4px 18px;border:1px solid rgba(100,140,220,0.1);background:transparent;
+color:var(--creamD);cursor:pointer;border-radius:3px;letter-spacing:.06em;transition:all .25s}
+.transport-btn:hover{border-color:rgba(100,140,220,0.3);color:var(--cream)}
+.transport-btn.playing{border-color:rgba(104,211,145,0.4);color:rgba(140,220,170,.8);
+background:rgba(104,211,145,.03)}
+.slider-wrap{display:flex;align-items:center;gap:4px}
+.slider-wrap label{font-size:.56rem;color:rgba(160,170,210,.28);letter-spacing:.06em;width:36px}
+.slider-wrap input[type=range]{flex:1;max-width:72px;height:2px;cursor:pointer;accent-color:rgba(100,140,220,0.45)}
+.slider-wrap .val{font-family:'Space Mono',monospace;font-size:.48rem;color:rgba(160,170,210,.22);width:26px;text-align:right}
+#crr-footer{text-align:center;padding:2px;font-size:clamp(.38rem,.65vw,.48rem);
+font-family:'Space Mono',monospace;letter-spacing:.02em;
+background:linear-gradient(90deg,rgba(42,26,78,.2),rgba(123,104,238,.15),rgba(170,204,255,.15),rgba(255,214,153,.15),rgba(79,209,197,.15),rgba(104,211,145,.15));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* CRR Annotation Panel */
+#crr-toggle{position:absolute;top:8px;right:8px;z-index:20;pointer-events:auto;
+width:40px;height:40px;border-radius:50%;border:1px solid rgba(100,140,220,0.2);
+background:rgba(6,6,14,0.85);color:rgba(180,190,220,0.5);font-size:16px;
+cursor:pointer;display:flex;align-items:center;justify-content:center;
+transition:all .3s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#crr-toggle:hover,#crr-toggle.active{border-color:rgba(79,209,197,0.4);color:var(--coherence);
+background:rgba(6,6,14,0.95)}
+
+#crr-panel{position:absolute;top:0;right:0;bottom:0;width:min(340px,85vw);z-index:15;
+background:rgba(6,6,14,0.96);border-left:1px solid rgba(100,140,220,0.08);
+transform:translateX(100%);transition:transform .4s cubic-bezier(.4,0,.2,1);
+overflow-y:auto;-webkit-overflow-scrolling:touch;
+backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+padding:52px 16px 20px;scrollbar-width:thin;scrollbar-color:rgba(100,140,220,0.15) transparent}
+#crr-panel.open{transform:translateX(0)}
+#crr-panel::-webkit-scrollbar{width:4px}
+#crr-panel::-webkit-scrollbar-track{background:transparent}
+#crr-panel::-webkit-scrollbar-thumb{background:rgba(100,140,220,0.15);border-radius:2px}
+
+#crr-panel h2{font-family:'Space Mono',monospace;font-size:clamp(.6rem,1.2vw,.75rem);
+letter-spacing:.14em;color:rgba(79,209,197,0.6);margin:0 0 12px;font-weight:400;
+border-bottom:1px solid rgba(100,140,220,0.06);padding-bottom:8px}
+
+.crr-card{margin-bottom:14px;padding:10px 12px;border-radius:6px;
+border:1px solid rgba(100,140,220,0.06);background:rgba(20,20,40,0.4);
+transition:border-color .3s}
+.crr-card:hover{border-color:rgba(100,140,220,0.15)}
+.crr-card .card-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.crr-card .card-icon{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.crr-card .card-title{font-family:'Space Mono',monospace;font-size:clamp(.5rem,.9vw,.62rem);
+letter-spacing:.06em;font-weight:700;color:rgba(180,190,220,0.6)}
+.crr-card .card-eq{font-family:'Space Mono',monospace;font-size:clamp(.42rem,.7vw,.5rem);
+color:rgba(160,170,210,0.35);margin-bottom:4px;line-height:1.5}
+.crr-card .card-body{font-size:clamp(.58rem,1vw,.72rem);line-height:1.6;
+color:rgba(180,190,220,0.45);font-style:italic}
+
+.crr-card .card-body .crr-c{color:var(--coherence)}
+.crr-card .card-body .crr-d{color:var(--rupture)}
+.crr-card .card-body .crr-r{color:var(--regen)}
+.crr-card .card-body .crr-o{color:var(--omega)}
+
+/* Mobile controls improvements */
+@media(max-width:600px){
+  #controls{padding:6px 8px 8px;padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+  .transport-row{gap:4px;flex-wrap:wrap}
+  .transport-btn{padding:8px 14px;font-size:.8rem;min-height:36px;min-width:44px}
+  .slider-wrap{min-width:0;flex:1 1 calc(50% - 4px)}
+  .slider-wrap label{font-size:.6rem;width:32px;min-width:32px}
+  .slider-wrap input[type=range]{flex:1;min-width:40px;max-width:none;height:6px;
+  -webkit-appearance:none;appearance:none;background:rgba(255,255,255,0.06);border-radius:3px}
+  .slider-wrap input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;
+  width:18px;height:18px;border-radius:50%;background:rgba(100,140,220,0.5);border:none}
+  .slider-wrap .val{font-size:.5rem;width:24px}
+  #info-bar{padding:6px 8px}
+  #piece-title{font-size:clamp(.7rem,3vw,.9rem)}
+  #crr-display{font-size:clamp(.42rem,1.6vw,.52rem)}
+  #timeline-wrap{padding:0 8px;height:24px;
+  padding-bottom:calc(0px + env(safe-area-inset-bottom,0px))}
+  .t-section-label{display:none}
+  #body-metrics{display:none}
+  #lyric-text{font-size:clamp(.7rem,3.5vw,1rem);padding:0 12px}
+  #section-label{font-size:clamp(.85rem,4vw,1.3rem)}
+  #crr-toggle{width:36px;height:36px;font-size:14px;top:6px;right:6px}
+  #crr-panel{width:min(300px,88vw);padding:46px 12px 16px}
+  .crr-card{padding:8px 10px}
+  #splash .inner{padding:0 18px}
+  #splash h1{letter-spacing:.2em}
+  #splash .sub{font-size:clamp(.68rem,2.8vw,.88rem);line-height:1.7}
+  #splash .eq{font-size:clamp(.4rem,1.6vw,.5rem);line-height:1.6}
+  #crr-footer{font-size:clamp(.36rem,1.4vw,.44rem);padding:3px 6px}
+}
+@media(max-width:380px){
+  .slider-wrap{flex:1 1 100%}
+  .transport-btn{padding:8px 10px;font-size:.72rem}
+  #controls{gap:3px}
+}
+@media(max-height:600px){
+  #controls{padding:4px 8px 5px}
+  .transport-btn{padding:4px 10px;min-height:30px}
+  .slider-wrap{gap:2px}
+  #timeline-wrap{height:20px}
+  #crr-footer{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="inner">
+<div class="pulse-bar"></div>
+<h1>LACTEA</h1>
+<p class="sub">The music of the Milky Way, composed entirely by Coherence, Rupture &amp; Regeneration.<br>
+Differential rotation as counterpoint. Density waves as rhythm. Dark matter as &Omega;.<br>
+Sgr A* as the deepest bass. Star formation as glockenspiel. Supernovae as rupture.<br>
+Bowed guitar as galactic magnetic field. Falsetto as stellar populations singing.<br>
+At 72 BPM, twelve beats equal one galactic breath &mdash; &pi;&sup2; &asymp; 10 seconds.</p>
+<p class="eq">v(r) &asymp; 220 km/s flat &rarr; dark matter IS &Omega; &middot; &Omega;(r) = v/r &rarr; differential CRR cycles<br>
+density wave: &Omega;_pattern &ne; &Omega;_star &rarr; spiral arms = coherence waves<br>
+corotation: &Omega;_star = &Omega;_pattern &rarr; C = &Omega; &rarr; maximum resonance (Earth!)<br>
+Jeans collapse = &delta;(now) &middot; stellar feedback = R(memory) &middot; metallicity = exp(C/&Omega;)<br>
+bowed guitar: ebow = sustained magnetic coherence &middot; glockenspiel = star birth &middot; falsetto = Hopelandic stellar song</p>
+<p class="credit">CRR Framework &mdash; Alexander Sabine &middot; temporalgrammar.ai</p>
+<p class="tap">tap to enter &middot; &#x2733; for CRR annotations</p>
+</div></div>
+
+<div id="app">
+<div id="canvas-wrap">
+  <canvas id="viz"></canvas>
+  <div id="info-bar">
+    <div id="piece-title">Lactea<span class="composer">CRR &mdash; the music of the Milky Way</span></div>
+    <div id="crr-display"></div>
+  </div>
+  <button id="crr-toggle" title="CRR Annotations" aria-label="Toggle CRR annotations">&#x2733;</button>
+  <div id="crr-panel">
+    <h2>CRR &mdash; HOW EACH ASPECT IS SOLVED</h2>
+
+    <div class="crr-card">
+      <div class="card-head"><div class="card-icon" style="background:var(--dm)"></div>
+      <div class="card-title">DARK MATTER = &Omega;</div></div>
+      <div class="card-eq">&Omega;(r) = v/r &middot; v &asymp; 220 km/s flat &rarr; SO(2), &Omega;_scale=3</div>
+      <div class="card-body">Dark matter sets <span class="crr-o">&Omega;</span> for the entire disk. The flat rotation curve means every radius shares the same coherence capacity. CRR agent: <span class="crr-o">highest &Omega;</span>, slowest cycle, most stable &mdash; you cannot see it but you <em>feel</em> it as sub-bass drone at D1 (36.7 Hz).</div>
+    </div>
+
+    <div class="crr-card">
+      <div class="card-head"><div class="card-icon" style="background:var(--sgra)"></div>
+      <div class="card-title">SGR A* = LOWEST &Omega;</div></div>
+      <div class="card-eq">Z&sub2;, &Omega;_scale=0.4 &middot; M = 4.15&times;10&sup6; M&circledS;</div>
+      <div class="card-body">The supermassive black hole has the <span class="crr-o">lowest &Omega;</span> &mdash; most rigid, frequent micro-ruptures reconstituting the same pattern. CRR explains why it&rsquo;s the gravitational anchor: <span class="crr-d">exp(C/&Omega;)</span> is peaked, accessing only recent coherence. Musical: D0 sub-bass rumble (18.35 Hz), felt not heard.</div>
+    </div>
+
+    <div class="crr-card">
+      <div class="card-head"><div class="card-icon" style="background:var(--arm)"></div>
+      <div class="card-title">SPIRAL ARMS = COHERENCE WAVES</div></div>
+      <div class="card-eq">&Omega;_pattern &ne; &Omega;_star &rarr; arms are NOT material</div>
+      <div class="card-body">Density waves are <span class="crr-c">C accumulating</span> as gas enters the arm. When <span class="crr-c">C</span> reaches Jeans threshold (<span class="crr-c">C = &Omega;</span>), it <span class="crr-d">ruptures into star formation &delta;(now)</span>. CRR agent: Z&sub2;, &Omega;_scale=1.2 &mdash; periodic compression-rupture cycles. Musical: strings pad = the density wave field itself.</div>
+    </div>
+
+    <div class="crr-card">
+      <div class="card-head"><div class="card-icon" style="background:var(--coherence)"></div>
+      <div class="card-title">COROTATION = C = &Omega;</div></div>
+      <div class="card-eq">&Omega;_star = &Omega;_pattern at r &asymp; 8 kpc (the Sun)</div>
+      <div class="card-body">At corotation, <span class="crr-c">C = &Omega; permanently</span> &mdash; <span class="crr-o">maximum resonance</span>. This is where we live. CRR predicts this as the point of maximum coherent memory access. Musical: piano represents <em>our</em> perspective &mdash; the listener standing at the galaxy&rsquo;s resonance peak.</div>
+    </div>
+
+    <div class="crr-card">
+      <div class="card-head"><div class="card-icon" style="background:var(--rupture)"></div>
+      <div class="card-title">SUPERNOVAE = &delta;(now)</div></div>
+      <div class="card-eq">Chandrasekhar threshold: C = &Omega; at ~1.4 M&circledS; &rarr; catastrophic rupture</div>
+      <div class="card-body">A supernova IS the ultimate <span class="crr-d">&delta;(now)</span>. Nuclear fusion accumulates <span class="crr-c">C</span> until the Chandrasekhar limit. The explosion enriches the ISM with heavy elements &mdash; <span class="crr-r">R(memory)</span> for the next generation. Every element heavier than iron was forged in a <span class="crr-d">&delta;(now)</span>.</div>
+    </div>
+
+    <div class="crr-card">
+      <div class="card-head"><div class="card-icon" style="background:var(--regen)"></div>
+      <div class="card-title">METALLICITY = exp(C/&Omega;)</div></div>
+      <div class="card-eq">R = &int;&phi;(x,&tau;)exp(C/&Omega;)&Theta;(...)d&tau;</div>
+      <div class="card-body"><span class="crr-r">Regeneration</span> weights stellar memory by significance. <span class="crr-r">exp(C/&Omega;)</span> determines which past coherence moments are accessible: high-coherence supernova products are preferentially incorporated into new stars. Musical: reverb delay = temporal memory weighting.</div>
+    </div>
+
+    <div class="crr-card">
+      <div class="card-head"><div class="card-icon" style="background:var(--young)"></div>
+      <div class="card-title">BOWED GUITAR = MAGNETIC COHERENCE</div></div>
+      <div class="card-eq">B &asymp; 2&ndash;10 &mu;G sustained along spiral arms</div>
+      <div class="card-body">The Milky Way&rsquo;s large-scale magnetic field follows arm structure &mdash; sustained <span class="crr-c">coherence</span> that accumulates along arms and <span class="crr-d">ruptures at reconnection events</span>. The ebow synthesis = continuous, shimmering, slowly evolving. Two detuned sawtooths + triangle, long attack. Pure Sigur R&oacute;s bloom.</div>
+    </div>
+
+    <div class="crr-card">
+      <div class="card-head"><div class="card-icon" style="background:var(--bulge)"></div>
+      <div class="card-title">FALSETTO = STELLAR POPULATIONS</div></div>
+      <div class="card-eq">Hopelandic: meaning from harmonic relationship, not words</div>
+      <div class="card-body">Each voice = a stellar population. Shared harmonics = constructive <span class="crr-c">coherence</span>. <span class="crr-r">exp(C/&Omega;)</span> weights which populations dominate. Triangle wave: 1/n&sup2; harmonic decay &rarr; coherence dominated by fundamentals. We hear HARMONY not TIMBRE &mdash; Hopelandic as the language of stars.</div>
+    </div>
+
+    <div class="crr-card">
+      <div class="card-head"><div class="card-icon" style="background:var(--omega)"></div>
+      <div class="card-title">MACRO CRR CYCLE</div></div>
+      <div class="card-eq">VOID &rarr; COLLAPSE &rarr; FIRST LIGHT &rarr; SPIRAL &rarr; ROTATION &rarr; COROTATION &rarr; RUPTURE &rarr; REGENERATION &rarr; STILLNESS</div>
+      <div class="card-body">The entire composition IS one <span class="crr-c">C</span>&rarr;<span class="crr-d">&delta;</span>&rarr;<span class="crr-r">R</span> cycle. Post-rock crescendo = <span class="crr-c">coherence accumulation</span>. Wall of sound = <span class="crr-c">C approaching &Omega;</span>. Silence = <span class="crr-d">&delta;(now)</span>. The rebuild = <span class="crr-r">R(memory)</span>. At 72 BPM, 12 beats = one galactic breath &mdash; &pi;&sup2; &asymp; 10 seconds.</div>
+    </div>
+
+    <div class="crr-card">
+      <div class="card-head"><div class="card-icon" style="background:rgba(160,170,210,0.4)"></div>
+      <div class="card-title">CRR AGENTS IN COMPOSITION</div></div>
+      <div class="card-eq">7 concurrent CRR agents driving all dynamics</div>
+      <div class="card-body" style="font-style:normal;font-family:'Space Mono',monospace;font-size:clamp(.42rem,.72vw,.5rem);line-height:1.8">
+      Sgr A* &nbsp;&middot; Z&sub2;, &Omega;s=0.4 &middot; rigid<br>
+      Dark matter &nbsp;&middot; SO(2), &Omega;s=3 &middot; stable<br>
+      Disk rotation &nbsp;&middot; SO(2), &Omega;s=1.5<br>
+      Density wave &nbsp;&middot; Z&sub2;, &Omega;s=1.2 &middot; periodic<br>
+      Star formation &nbsp;&middot; Z&sub2;, &Omega;s=0.8<br>
+      Composition &nbsp;&middot; &phi;, &Omega;s=2 &middot; macro<br>
+      Phrase &nbsp;&middot; SO(2), &Omega;s=1.5 &middot; musical
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:12px 0 4px;font-family:'Space Mono',monospace;
+    font-size:clamp(.38rem,.65vw,.46rem);letter-spacing:.06em;
+    background:linear-gradient(90deg,rgba(42,26,78,.3),rgba(123,104,238,.25),rgba(79,209,197,.25),rgba(104,211,145,.25));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+    Alexander Sabine &middot; CRR Framework &middot; temporalgrammar.ai
+    </div>
+  </div>
+  <div id="section-label"></div>
+  <div id="lyric-display"><div id="lyric-text"></div></div>
+  <div id="body-metrics"></div>
+</div>
+<div id="timeline-wrap">
+  <div id="timeline-bar">
+    <div id="timeline-fill"></div>
+    <div id="timeline-sections"></div>
+  </div>
+  <span id="timeline-crr">C=0</span>
+  <span id="timeline-time">0:00 / 0:00</span>
+</div>
+<div id="controls">
+<div class="transport-row">
+  <button class="transport-btn" id="btn-play">&#9654; Play</button>
+  <button class="transport-btn" id="btn-stop">&#9632; Stop</button>
+  <div class="slider-wrap"><label>Tempo</label>
+    <input type="range" id="tempo-slider" min="0.7" max="1.3" step="0.05" value="1">
+    <span class="val" id="tempo-val">1.0&times;</span></div>
+  <div class="slider-wrap"><label>Reverb</label>
+    <input type="range" id="reverb-slider" min="0.3" max="1" step="0.05" value="0.82">
+    <span class="val" id="reverb-val">0.82</span></div>
+  <div class="slider-wrap"><label>Bowed</label>
+    <input type="range" id="bowed-slider" min="0" max="1" step="0.05" value="0.7">
+    <span class="val" id="bowed-val">0.70</span></div>
+  <div class="slider-wrap"><label>Piano</label>
+    <input type="range" id="piano-slider" min="0" max="1" step="0.05" value="0.7">
+    <span class="val" id="piano-val">0.70</span></div>
+  <div class="slider-wrap"><label>Choir</label>
+    <input type="range" id="choir-slider" min="0" max="1" step="0.05" value="0.65">
+    <span class="val" id="choir-val">0.65</span></div>
+</div>
+<div id="crr-footer">
+  dark matter = &Omega; &middot; rotation = C accumulating &middot; density wave = &delta;(now) &middot; star formation = R(memory) &middot; corotation: C = &Omega; = Earth &middot; Sgr A* = lowest &Omega;
+</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  LACTEA — The Music of the Milky Way
+//  Every sound from CRR × galactic physics × Sigur Rós
+//
+//  CRR GALACTIC PHYSICS:
+//  ─────────────────────
+//  Dark matter sets Ω for the disk — the flat rotation curve
+//  (v ≈ 220 km/s) means every radius shares the same coherence
+//  capacity relative to accumulation rate. The galaxy IS in CRR
+//  equilibrium.
+//
+//  Spiral arms are NOT material — they are COHERENCE WAVES.
+//  Density wave compression: C accumulates as gas enters the arm,
+//  reaches Jeans threshold (C = Ω), ruptures into star formation
+//  δ(now), and regenerates R(memory) enriching the ISM.
+//
+//  Corotation radius (≈8 kpc, the Sun): Ω_star = Ω_pattern →
+//  C = Ω permanently → maximum resonance. We live at the galaxy's
+//  point of maximum coherent memory access. Perhaps not coincidence.
+//
+//  SIGUR RÓS MAPPING:
+//  ───────────────────
+//  Bowed guitar (ebow)  = galactic magnetic field coherence
+//  Glockenspiel         = individual star births
+//  Falsetto choir       = stellar populations (Hopelandic)
+//  Piano                = listener at corotation (Earth)
+//  Strings pad          = density wave coherence field
+//  Sub-bass drone       = dark matter Ω reference + Sgr A*
+//  Supernova burst      = δ(now) percussion
+//  Massive reverb       = the regeneration field of interstellar space
+//  Delay                = memory (exp(C/Ω) temporal weighting)
+//
+//  Post-rock crescendo IS coherence accumulation.
+//  The wall of sound IS C approaching Ω.
+//  The silence IS δ(now).
+//  The rebuild IS R(memory).
+//  Sigur Rós always knew.
+//
+//  Alexander Sabine · CRR Framework · temporalgrammar.ai
+// ═══════════════════════════════════════════════════════════════════
+
+const PI=Math.PI,TAU=2*PI,PHI=(1+Math.sqrt(5))/2;
+const {pow,exp,sqrt,sin,cos,log,abs,min,max,floor,ceil,round,random}=Math;
+
+function midiToFreq(m){return 440*pow(2,(m-69)/12)}
+
+// ═══════════════════════════════════════════════════════════════════
+// §0  CRR ENGINE — Coherence, Rupture, Regeneration Agents
+// ═══════════════════════════════════════════════════════════════════
+class CRRAgent{
+  constructor(sym='Z2',s=1){
+    this.omegaBase=sym==='Z2'?1/PI:sym==='SO2'?1/TAU:1/(PI*PHI);
+    this.omegaScale=s;this.C=0;this.lastRC=0;this.ruptures=0;
+    this.sinceRupture=0;this.inRegen=false;this.regenProg=0;
+  }
+  get omega(){return this.omegaBase*this.omegaScale}
+  get expCO(){return exp(min(10,this.C/max(.001,this.omega)))}
+  get normC(){return min(1,(this.C-this.lastRC)/max(.01,1/this.omega))}
+  acc(L,dt=1){this.C+=L*dt;this.sinceRupture++}
+  shouldRupture(){const th=1/this.omega,acc=this.C-this.lastRC,cv=this.omega/2;
+    return acc>=(th+(random()-.5)*2*cv*th)}
+  doRupture(){this.lastRC=this.C;this.ruptures++;this.sinceRupture=0;this.inRegen=true;this.regenProg=0}
+  step(L,dt=1){if(this.inRegen){this.regenProg=min(1,this.regenProg+.025);
+    if(this.regenProg>=1)this.inRegen=false;return{phase:'R',progress:this.regenProg}}
+    this.acc(L,dt);if(this.shouldRupture()){this.doRupture();return{phase:'delta'}}
+    return{phase:'C',value:this.C}}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §1  GALAXY STATE — CRR-driven galactic physics
+// ═══════════════════════════════════════════════════════════════════
+//
+// CRR Agent assignments:
+//   Sgr A*         │ Z₂, Ω_scale=0.4  │ Most rigid, frequent micro-ruptures
+//   Dark matter    │ SO(2), Ω_scale=3  │ Highest Ω, most stable
+//   Disk rotation  │ SO(2), Ω_scale=1.5│ Intermediate stability
+//   Density wave   │ Z₂, Ω_scale=1.2  │ Periodic compression-rupture
+//   Star formation │ Z₂, Ω_scale=0.8  │ Jeans collapse events
+//   Composition    │ φ, Ω_scale=2      │ Macro piece-level CRR
+//   Phrase         │ SO(2), Ω_scale=1.5│ Musical phrase CRR
+
+const GALAXY={
+  sgrA:{agent:new CRRAgent('Z2',0.4),mass:4.15e6,luminosity:0},
+  darkMatter:{agent:new CRRAgent('SO2',3),haloMass:1e12,vFlat:220},
+  disk:{agent:new CRRAgent('SO2',1.5),rotation:0,armPhase:0},
+  densityWave:{agent:new CRRAgent('Z2',1.2),patternSpeed:28,phase:0},
+  starFormation:{agent:new CRRAgent('Z2',0.8),rate:0,events:[]},
+  t:0,beat:0,arousal:0,crrPhase:'C'
+};
+
+// Pre-generate galaxy stars
+const STARS=[];
+const NUM_STARS=2500;
+const ARM_PITCH=0.213; // tan(12°) — Milky Way spiral pitch angle
+for(let i=0;i<NUM_STARS;i++){
+  const isDisk=random()<0.85;
+  const isBulge=!isDisk&&random()<0.6;
+  let r,theta,brightness,hue;
+  if(isBulge){
+    r=random()*random()*0.1;
+    theta=random()*TAU;
+    brightness=0.4+random()*0.5;
+    hue=30+random()*30; // warm golden
+  }else if(isDisk){
+    r=0.04+pow(random(),0.6)*0.44;
+    const arm=floor(random()*4);
+    const armTheta=log(max(0.01,r)/0.04)/ARM_PITCH+arm*PI/2;
+    const scatter=(random()-0.5)*(0.15+r*0.3);
+    theta=armTheta+scatter;
+    const inArm=abs(scatter)<0.08+r*0.05;
+    brightness=inArm?(0.5+random()*0.5):(0.2+random()*0.3);
+    hue=inArm?(200+random()*40):(40+random()*30); // blue in arms, yellow between
+  }else{ // halo
+    r=0.15+random()*0.4;
+    theta=random()*TAU;
+    brightness=0.15+random()*0.2;
+    hue=40+random()*20;
+  }
+  STARS.push({
+    r,theta,brightness,hue,
+    size:0.3+random()*(isBulge?1.5:isDisk?1.2:0.8),
+    orbSpeed:1/max(0.03,r), // Ω(r)=v/r, v≈const → differential rotation
+    twinkle:random()*TAU,twinkleSpd:0.5+random()*3,
+    inArm:isDisk&&abs((theta-log(max(0.01,r)/0.04)/ARM_PITCH)%(PI/2))<0.12,
+    flash:0 // star formation flash
+  });
+}
+
+// Supernova events (visual)
+const SUPERNOVAE=[];
+
+function updateGalaxy(dt,musicBeat){
+  GALAXY.t+=dt;
+  const t=GALAXY.t;
+  GALAXY.beat=musicBeat||0;
+
+  // Section-dependent arousal
+  const sec=getSection(musicBeat||0);
+  const targetArousal=sec?({
+    'VOID':0.02,'COLLAPSE':0.1,'FIRST LIGHT':0.25,
+    'SPIRAL':0.45,'ROTATION':0.7,'COROTATION':0.95,
+    'RUPTURE':0.3,'REGENERATION':0.4,'STILLNESS':0.05
+  }[sec.name]||0.1):0;
+  GALAXY.arousal+=(targetArousal-GALAXY.arousal)*dt*0.5;
+
+  // Disk rotation — CRR agent accumulates angular momentum
+  GALAXY.disk.agent.step(GALAXY.arousal*0.3,dt*0.01);
+  GALAXY.disk.rotation+=dt*0.015*(1+GALAXY.arousal*0.3);
+
+  // Density wave — pattern speed independent of disk rotation
+  GALAXY.densityWave.agent.step(GALAXY.arousal*0.5,dt*0.02);
+  GALAXY.densityWave.phase+=dt*0.008;
+
+  // Sgr A* — continuous micro-ruptures proportional to arousal
+  GALAXY.sgrA.agent.step(0.3+GALAXY.arousal*0.7,dt*0.05);
+  GALAXY.sgrA.luminosity=GALAXY.sgrA.agent.normC*GALAXY.arousal;
+
+  // Dark matter — highest Ω, slowest CRR cycle
+  GALAXY.darkMatter.agent.step(0.1,dt*0.002);
+
+  // Star formation events — triggered by density wave CRR ruptures
+  if(GALAXY.densityWave.agent.inRegen&&random()<0.3*GALAXY.arousal){
+    const arm=floor(random()*4);
+    const r=0.08+random()*0.35;
+    const armTheta=log(max(0.01,r)/0.04)/ARM_PITCH+arm*PI/2+GALAXY.disk.rotation;
+    GALAXY.starFormation.events.push({
+      r,theta:armTheta,life:1,birth:t
+    });
+  }
+  GALAXY.starFormation.events=GALAXY.starFormation.events.filter(e=>{
+    e.life-=dt*0.8;return e.life>0;
+  });
+
+  // Supernova decay
+  for(const sn of SUPERNOVAE){sn.life-=dt*0.5;sn.radius+=dt*0.15;}
+  while(SUPERNOVAE.length>0&&SUPERNOVAE[0].life<=0)SUPERNOVAE.shift();
+
+  // Overall CRR phase
+  const pa=seq.phraseAgent;
+  GALAXY.crrPhase=pa?(pa.inRegen?'R':(pa.sinceRupture<3?'delta':'C')):'C';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §2  AUDIO ENGINE — Sigur Rós from first principles
+// ═══════════════════════════════════════════════════════════════════
+let ac=null,masterGain=null,reverbNode=null,delayNode=null,delayFB=null;
+let dryGain=null,wetGain=null,compressor=null,analyser=null,noiseBuf=null;
+let bowedGain=null,pianoGain=null,choirGain=null,glockGain=null,bassGain=null,padGain=null;
+let reverbMix=0.82,bowedMix=0.7,pianoMix=0.7,choirMix=0.65;
+
+function createNoiseBuf(ctx){
+  const b=ctx.createBuffer(2,ctx.sampleRate*2,ctx.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<d.length;i++)d[i]=random()*2-1}
+  return b;
+}
+
+function createReverb(ctx){
+  // VERY long reverb — interstellar space, Sigur Rós cathedral
+  const sr=ctx.sampleRate,len=sr*8|0;
+  const buf=ctx.createBuffer(2,len,sr);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);
+    // Early reflections
+    for(let i=0;i<40;i++){const t=(0.005+i*0.02+random()*0.015)*sr|0;
+      if(t<len)d[t]=0.15*pow(0.72,i)*(0.5+random()*0.5)}
+    // Late diffuse tail — very long decay
+    for(let i=0;i<len;i++){const t=i/sr;
+      d[i]+=(random()*2-1)*0.04*(exp(-t*0.4)*0.6+exp(-t*1.5)*0.4)}}
+  const conv=ctx.createConvolver();conv.buffer=buf;return conv;
+}
+
+function initAudio(){
+  if(ac)return;
+  ac=new(window.AudioContext||window.webkitAudioContext)();
+  noiseBuf=createNoiseBuf(ac);
+
+  // Compressor for dynamics control
+  compressor=ac.createDynamicsCompressor();
+  compressor.threshold.value=-12;compressor.knee.value=12;
+  compressor.ratio.value=3;compressor.attack.value=0.005;compressor.release.value=0.3;
+
+  // Gains — boosted for presence
+  masterGain=ac.createGain();masterGain.gain.value=1.0;
+  bowedGain=ac.createGain();bowedGain.gain.value=bowedMix*0.9;
+  pianoGain=ac.createGain();pianoGain.gain.value=pianoMix*1.1;
+  choirGain=ac.createGain();choirGain.gain.value=choirMix*0.8;
+  glockGain=ac.createGain();glockGain.gain.value=0.85;
+  bassGain=ac.createGain();bassGain.gain.value=0.9;
+  padGain=ac.createGain();padGain.gain.value=0.75;
+
+  dryGain=ac.createGain();wetGain=ac.createGain();
+  reverbNode=createReverb(ac);
+
+  // Delay — memory = exp(C/Ω) temporal weighting
+  delayNode=ac.createDelay(4.0);
+  delayNode.delayTime.value=60/72*3; // 3-beat delay
+  delayFB=ac.createGain();delayFB.gain.value=0.3;
+  const delayFilter=ac.createBiquadFilter();
+  delayFilter.type='lowpass';delayFilter.frequency.value=1800;
+  delayNode.connect(delayFilter);delayFilter.connect(delayFB);
+  delayFB.connect(delayNode);
+
+  analyser=ac.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=0.88;
+
+  // Routing: all channels → compressor → dry + reverb + delay → master
+  const channels=[bowedGain,pianoGain,choirGain,glockGain,bassGain,padGain];
+  for(const ch of channels)ch.connect(compressor);
+  compressor.connect(dryGain);
+  compressor.connect(reverbNode);
+  compressor.connect(delayNode);
+  reverbNode.connect(wetGain);
+  delayNode.connect(wetGain);
+  dryGain.connect(masterGain);wetGain.connect(masterGain);
+  masterGain.connect(analyser);analyser.connect(ac.destination);
+  updateMixes();
+
+  initDarkMatterDrone();
+}
+
+function updateMixes(){
+  if(!dryGain)return;
+  dryGain.gain.value=1-reverbMix*0.2;
+  wetGain.gain.value=reverbMix*0.9;
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.1 DARK MATTER DRONE — The Ω reference frequency
+// ───────────────────────────────────────────────────────────────
+//
+// CRR: Dark matter IS Ω. It determines the rotation curve,
+// hence the threshold for every CRR cycle in the galaxy.
+// You cannot see it but you feel it — sub-bass presence.
+//
+// Physics: NFW halo → flat v(r) → Ω(r)=v/r
+// Musical: D1 (36.7Hz) fundamental with overtones.
+// The drone IS the galaxy's gravitational substrate.
+// Sgr A* adds a lower rumble at D0 (18.35Hz).
+//
+let dmDrone={oscs:[],masterGain:null,active:false};
+
+function initDarkMatterDrone(){
+  if(!ac)return;
+  dmDrone.masterGain=ac.createGain();
+  dmDrone.masterGain.gain.value=0;
+  dmDrone.masterGain.connect(bassGain);
+
+  // D1=36.7Hz (dark matter fundamental) + Sgr A* sub-bass
+  const harmonics=[
+    [18.35,0.15], // D0 — Sgr A* rumble, felt not heard
+    [36.7,0.25],  // D1 — dark matter fundamental
+    [73.4,0.15],  // D2 — first overtone
+    [110.0,0.08], // A2 — fifth, galactic bar resonance
+    [55.0,0.1],   // A1 — lower fifth
+    [146.8,0.05], // D3 — second overtone, subtle
+  ];
+  for(const[freq,vol]of harmonics){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const g=ac.createGain();g.gain.value=vol;
+    o.connect(g);g.connect(dmDrone.masterGain);o.start();
+    dmDrone.oscs.push({osc:o,gain:g,baseFreq:freq});
+  }
+  // Very slow LFO — dark matter tidal breathing
+  const lfo=ac.createOscillator();lfo.type='sine';lfo.frequency.value=0.04;
+  const lfoG=ac.createGain();lfoG.gain.value=1.2;
+  lfo.connect(lfoG);
+  for(const h of dmDrone.oscs)lfoG.connect(h.osc.frequency);
+  lfo.start();
+
+  // Sub-bass rumble noise
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;ns.loop=true;
+  const nf=ac.createBiquadFilter();nf.type='lowpass';nf.frequency.value=60;nf.Q.value=0.5;
+  const ng=ac.createGain();ng.gain.value=0.025;
+  ns.connect(nf);nf.connect(ng);ng.connect(dmDrone.masterGain);ns.start();
+  dmDrone.active=true;
+}
+
+function setDrone(gain,dur){
+  if(!dmDrone.active)return;
+  const t=ac.currentTime;const d=dur||2;
+  dmDrone.masterGain.gain.cancelScheduledValues(t);
+  dmDrone.masterGain.gain.setValueAtTime(dmDrone.masterGain.gain.value,t);
+  dmDrone.masterGain.gain.linearRampToValueAtTime(gain,t+d);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.2 BOWED GUITAR (EBOW) — Galactic magnetic field coherence
+// ───────────────────────────────────────────────────────────────
+//
+// CRR: The Milky Way has a coherent large-scale magnetic field
+// (~2-10 μG) that follows spiral arm structure. This sustained
+// coherence IS what the ebow represents — continuous, shimmering,
+// slowly evolving. The field accumulates coherence along arms
+// and ruptures at reconnection events.
+//
+// Synthesis: Two detuned sawtooths + triangle, lowpass filtered,
+// slow vibrato LFO, very long attack/release. Pure Sigur Rós.
+//
+function playBowed(midi,velocity,duration,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const freq=midiToFreq(midi);
+  const noteG=ac.createGain();noteG.gain.value=0;noteG.connect(bowedGain);
+
+  // Two detuned sawtooths for richness
+  const o1=ac.createOscillator();o1.type='sawtooth';o1.frequency.value=freq*0.998;
+  const o2=ac.createOscillator();o2.type='sawtooth';o2.frequency.value=freq*1.003;
+  // Triangle for warmth (odd harmonics, 1/n² decay)
+  const o3=ac.createOscillator();o3.type='triangle';o3.frequency.value=freq;
+  const sawMix=ac.createGain();sawMix.gain.value=0.25;
+  const triMix=ac.createGain();triMix.gain.value=0.2;
+  o1.connect(sawMix);o2.connect(sawMix);o3.connect(triMix);
+
+  // Vibrato — slow, wide, like a bowed string
+  const vib=ac.createOscillator();vib.type='sine';vib.frequency.value=5.2;
+  const vibG=ac.createGain();vibG.gain.value=freq*0.007; // ~12 cents
+  vib.connect(vibG);
+  vibG.connect(o1.frequency);vibG.connect(o2.frequency);vibG.connect(o3.frequency);
+
+  // Lowpass — bow brightness, warmer than normal guitar
+  const lp=ac.createBiquadFilter();lp.type='lowpass';
+  lp.frequency.value=1200+freq*1.5;lp.Q.value=0.7;
+  sawMix.connect(lp);triMix.connect(lp);lp.connect(noteG);
+
+  // Envelope: very slow attack (Sigur Rós bloom), sustain, slow release
+  const att=min(2.5,duration*0.3);
+  const rel=min(3.0,duration*0.3);
+  noteG.gain.setValueAtTime(0,now);
+  noteG.gain.linearRampToValueAtTime(velocity*0.45,now+att);
+  if(duration>att+rel){
+    noteG.gain.setValueAtTime(velocity*0.4,now+duration-rel);
+  }
+  noteG.gain.setTargetAtTime(0.001,now+duration,rel*0.4);
+
+  o1.start(now);o2.start(now);o3.start(now);vib.start(now);
+  const stop=now+duration+rel+1;
+  o1.stop(stop);o2.stop(stop);o3.stop(stop);vib.stop(stop);
+  setTimeout(()=>{try{noteG.disconnect()}catch(e){}},((stop-now)+0.5)*1000);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.3 GLOCKENSPIEL — Star births
+// ───────────────────────────────────────────────────────────────
+//
+// CRR: Each glockenspiel note IS a star birth — the moment
+// when a molecular cloud's coherence reaches Jeans threshold
+// and ruptures into gravitational collapse. The crystalline
+// bell tone represents the brief, brilliant ignition.
+//
+// Physics: Star formation rate ~1-3 M☉/yr in the Milky Way.
+// Pitch from stellar mass (massive = lower, dimmer = higher).
+//
+function playGlock(midi,velocity,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const freq=midiToFreq(midi);
+
+  // Pure sine fundamental + slightly inharmonic overtone (metallic)
+  const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=freq;
+  const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq*3.98;
+  const o3=ac.createOscillator();o3.type='sine';o3.frequency.value=freq*6.27;
+
+  const g1=ac.createGain();g1.gain.value=velocity*0.6;
+  const g2=ac.createGain();g2.gain.value=velocity*0.15;
+  const g3=ac.createGain();g3.gain.value=velocity*0.05;
+
+  o1.connect(g1);o2.connect(g2);o3.connect(g3);
+  g1.connect(glockGain);g2.connect(glockGain);g3.connect(glockGain);
+
+  // Fast attack, long exponential decay (bell-like)
+  g1.gain.setValueAtTime(velocity*0.6,now);
+  g1.gain.exponentialRampToValueAtTime(0.001,now+4);
+  g2.gain.setValueAtTime(velocity*0.15,now);
+  g2.gain.exponentialRampToValueAtTime(0.001,now+2);
+  g3.gain.setValueAtTime(velocity*0.05,now);
+  g3.gain.exponentialRampToValueAtTime(0.001,now+1.2);
+
+  o1.start(now);o2.start(now);o3.start(now);
+  o1.stop(now+4.5);o2.stop(now+2.5);o3.stop(now+1.5);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.4 FALSETTO CHOIR — Stellar populations singing
+// ───────────────────────────────────────────────────────────────
+//
+// CRR HARMONIC RESONANCE — Hopelandic as the language of stars:
+//
+//   Jónsi sings in Hopelandic — a language of pure vowels with
+//   no semantic content. This IS the sound of stellar populations:
+//   meaning emerges from harmonic relationship, not from words.
+//
+//   Each voice = a stellar population. Their shared harmonics
+//   = constructive coherence. exp(C/Ω) weights which populations
+//   dominate the sound.
+//
+//   Triangle wave: 1/n² harmonic decay → coherence dominated
+//   by fundamentals → we hear HARMONY not TIMBRE.
+//
+
+const FALSETTO_FORMANTS={
+  oo:{f:[350,900,2400],  db:[14,8,3],  q:[8,9,10]},
+  aa:{f:[800,1200,2800], db:[16,12,5], q:[7,8,9]},
+  ee:{f:[300,2300,3000], db:[14,10,4], q:[8,10,11]},
+  oh:{f:[500,1000,2600], db:[15,10,4], q:[7,8,9]},
+};
+
+function playFalsetto(notes,vowel,gain,duration,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const fm=FALSETTO_FORMANTS[vowel||'aa'];
+  const masterG=ac.createGain();masterG.gain.value=0;masterG.connect(choirGain);
+
+  for(const midi of notes){
+    const freq=midiToFreq(midi);
+    // Triangle wave — warmer than sawtooth for voices
+    const o1=ac.createOscillator();o1.type='triangle';o1.frequency.value=freq;
+    const o2=ac.createOscillator();o2.type='triangle';o2.frequency.value=freq*1.005;
+    o2.detune.value=random()*6-3;
+    const mix=ac.createGain();mix.gain.value=0.18;
+    o1.connect(mix);o2.connect(mix);
+
+    // Formant filters
+    for(let fi=0;fi<3;fi++){
+      const bp=ac.createBiquadFilter();bp.type='peaking';
+      bp.frequency.value=fm.f[fi];bp.Q.value=fm.q[fi];bp.gain.value=fm.db[fi];
+      mix.connect(bp);bp.connect(masterG);
+    }
+
+    // Vibrato — slow, wide (falsetto characteristic)
+    const vib=ac.createOscillator();vib.type='sine';vib.frequency.value=4.5+random()*1;
+    const vibG=ac.createGain();vibG.gain.value=freq*0.008;
+    vib.connect(vibG);vibG.connect(o1.frequency);vibG.connect(o2.frequency);
+
+    // Breath noise
+    const ns=ac.createBufferSource();ns.buffer=noiseBuf;ns.loop=true;
+    const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=fm.f[1];nf.Q.value=2;
+    const ng=ac.createGain();ng.gain.value=gain*0.02;
+    ns.connect(nf);nf.connect(ng);ng.connect(masterG);
+
+    o1.start(now);o2.start(now);vib.start(now);ns.start(now);
+    const stop=now+duration+3;
+    o1.stop(stop);o2.stop(stop);vib.stop(stop);ns.stop(stop);
+  }
+
+  // Envelope: slow bloom, sustain, gentle release
+  const att=min(2,duration*0.25);
+  masterG.gain.setValueAtTime(0,now);
+  masterG.gain.linearRampToValueAtTime(gain*0.6,now+att);
+  masterG.gain.setValueAtTime(gain*0.55,now+duration*0.7);
+  masterG.gain.setTargetAtTime(0.001,now+duration,duration*0.35);
+  setTimeout(()=>{try{masterG.disconnect()}catch(e){}},((duration+4)*1000));
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.5 PIANO — The listener at corotation (Earth)
+// ───────────────────────────────────────────────────────────────
+//
+// CRR: Piano represents our perspective — from corotation radius
+// where Ω_star = Ω_pattern and C = Ω permanently. The piano
+// melody is what WE hear, standing at the point of maximum
+// resonance with the galaxy.
+//
+// Harmonic series: each note contains overtones weighted by 1/n²,
+// modelling how coherence distributes across frequency space.
+//
+function playPiano(midi,velocity,duration,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const freq=midiToFreq(midi);
+  const noteG=ac.createGain();noteG.gain.value=0;noteG.connect(pianoGain);
+
+  // Harmonic series with natural decay
+  const harmonics=[
+    {n:1,w:1.0},{n:2,w:0.7},{n:3,w:0.35},{n:4,w:0.2},
+    {n:5,w:0.12},{n:6,w:0.08},{n:7,w:0.05}
+  ];
+  for(const h of harmonics){
+    const hFreq=freq*h.n;if(hFreq>8000)break;
+    const o=ac.createOscillator();o.type=h.n<=2?'triangle':'sine';
+    o.frequency.value=hFreq+(random()-0.5)*0.4;
+    const g=ac.createGain();
+    g.gain.value=velocity*(h.w/2.718)*(1/(h.n*h.n))*1.0;
+    const tau=duration*(1/(1+(h.n-1)*0.5));
+    g.gain.setValueAtTime(g.gain.value,now+0.002);
+    g.gain.setTargetAtTime(0.001,now+0.01,tau*0.4);
+    o.connect(g);g.connect(noteG);o.start(now);o.stop(now+tau*3+0.5);
+  }
+
+  // Key noise
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+  const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=2000;nf.Q.value=3;
+  const ng=ac.createGain();ng.gain.setValueAtTime(velocity*0.04,now);
+  ng.gain.exponentialRampToValueAtTime(0.001,now+0.01);
+  ns.connect(nf);nf.connect(ng);ng.connect(noteG);ns.start(now);ns.stop(now+0.03);
+
+  noteG.gain.setValueAtTime(1,now);
+  noteG.gain.setTargetAtTime(0.001,now+duration*2,duration*0.35);
+  setTimeout(()=>{try{noteG.disconnect()}catch(e){}},((duration*3+1)*1000));
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.6 STRINGS PAD — Density wave coherence field
+// ───────────────────────────────────────────────────────────────
+//
+// CRR: The strings represent the density wave itself — the slow,
+// massive coherence field that sweeps through the disk. As gas
+// enters the wave, coherence builds (crescendo). At the crest,
+// C→Ω and star formation ruptures. The pad IS the field.
+//
+let padVoices={master:null,oscs:[]};
+
+function playPad(notes,gain,duration,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  // Fade out old pad
+  if(padVoices.master){
+    padVoices.master.gain.cancelScheduledValues(now);
+    padVoices.master.gain.setValueAtTime(padVoices.master.gain.value,now);
+    padVoices.master.gain.linearRampToValueAtTime(0,now+0.8);
+  }
+  // Create new pad
+  const master2=ac.createGain();master2.gain.value=0;master2.connect(padGain);
+  padVoices.master=master2;padVoices.oscs=[];
+  const att=duration*0.2;
+  for(const midi of notes){
+    const freq=midiToFreq(midi);
+    const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=freq;
+    const o2=ac.createOscillator();o2.type='triangle';o2.frequency.value=freq*1.002;
+    const g=ac.createGain();g.gain.value=0.2;
+    const g2=ac.createGain();g2.gain.value=0.06;
+    o1.connect(g);o2.connect(g2);g.connect(master2);g2.connect(master2);
+    // Slow vibrato
+    const vib=ac.createOscillator();vib.type='sine';vib.frequency.value=0.3+random()*0.3;
+    const vibG=ac.createGain();vibG.gain.value=freq*0.002;
+    vib.connect(vibG);vibG.connect(o1.frequency);
+    o1.start(now);o2.start(now);vib.start(now);
+    const stop=now+duration+4;
+    o1.stop(stop);o2.stop(stop);vib.stop(stop);
+    padVoices.oscs.push(o1,o2,vib);
+  }
+  master2.gain.setValueAtTime(0,now);
+  master2.gain.linearRampToValueAtTime(gain*0.7,now+att);
+  master2.gain.setValueAtTime(gain*0.65,now+duration*0.75);
+  master2.gain.setTargetAtTime(0.001,now+duration,duration*0.3);
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.7 BASS — Sgr A* gravitational anchor
+// ───────────────────────────────────────────────────────────────
+function playBass(midi,velocity,duration,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const freq=midiToFreq(midi);
+  const g=ac.createGain();g.connect(bassGain);
+  const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=freq;
+  const o2=ac.createOscillator();o2.type='triangle';o2.frequency.value=freq;
+  const m1=ac.createGain();m1.gain.value=velocity*0.5;
+  const m2=ac.createGain();m2.gain.value=velocity*0.15;
+  o1.connect(m1);o2.connect(m2);
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=freq*2.5;lp.Q.value=1;
+  m1.connect(lp);m2.connect(lp);lp.connect(g);
+  g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(1,now+0.04);
+  g.gain.setTargetAtTime(0.001,now+0.1,duration*0.4);
+  o1.start(now);o2.start(now);o1.stop(now+duration*3);o2.stop(now+duration*3);
+  setTimeout(()=>{try{g.disconnect()}catch(e){}},((duration*3+1)*1000));
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.8 SUPERNOVA BURST — δ(now) made audible
+// ───────────────────────────────────────────────────────────────
+//
+// CRR: A supernova IS the ultimate stellar rupture. A massive
+// star accumulates coherence (nuclear fusion fighting gravity)
+// until C reaches the Chandrasekhar threshold (C = Ω at ~1.4 M☉)
+// and ruptures catastrophically. The explosion enriches the ISM
+// with heavy elements — R(memory) for the next stellar generation.
+// Every element heavier than iron was forged in a δ(now).
+//
+function playSupernova(velocity,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+
+  // White noise burst — the initial shock wave
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+  const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=800;bp.Q.value=1;
+  const eg=ac.createGain();
+  eg.gain.setValueAtTime(velocity*0.5,now);
+  eg.gain.exponentialRampToValueAtTime(0.001,now+2.5);
+  ns.connect(bp);bp.connect(eg);eg.connect(masterGain);
+  ns.start(now);ns.stop(now+3);
+
+  // Resonant low boom — remnant shock
+  const o=ac.createOscillator();o.type='sine';
+  o.frequency.setValueAtTime(120,now);
+  o.frequency.exponentialRampToValueAtTime(30,now+1.5);
+  const og=ac.createGain();
+  og.gain.setValueAtTime(velocity*0.35,now);
+  og.gain.exponentialRampToValueAtTime(0.001,now+2);
+  o.connect(og);og.connect(bassGain);o.start(now);o.stop(now+2.5);
+
+  // High ring — element synthesis flash
+  const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=2400+random()*800;
+  const rg=ac.createGain();
+  rg.gain.setValueAtTime(velocity*0.1,now);
+  rg.gain.exponentialRampToValueAtTime(0.001,now+1.5);
+  o2.connect(rg);rg.connect(glockGain);o2.start(now);o2.stop(now+2);
+
+  // Visual supernova
+  const arm=floor(random()*4);
+  const r=0.1+random()*0.3;
+  const theta=log(max(0.01,r)/0.04)/ARM_PITCH+arm*PI/2+GALAXY.disk.rotation;
+  SUPERNOVAE.push({r,theta,life:1,radius:0.01,birth:GALAXY.t});
+}
+
+// ───────────────────────────────────────────────────────────────
+// §2.9 PULSAR — Neutron star rotation as rhythm
+// ───────────────────────────────────────────────────────────────
+function playPulsar(velocity,rate,startTime){
+  if(!ac)return;
+  const now=startTime||ac.currentTime;
+  const clickRate=rate||8;
+  for(let i=0;i<12;i++){
+    const t=now+i/clickRate;
+    const o=ac.createOscillator();o.type='sine';
+    o.frequency.setValueAtTime(3000+random()*1000,t);
+    o.frequency.exponentialRampToValueAtTime(800,t+0.005);
+    const g=ac.createGain();
+    g.gain.setValueAtTime(velocity*0.08*(1-i*0.06),t);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.02);
+    o.connect(g);g.connect(glockGain);o.start(t);o.stop(t+0.05);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §3  COMPOSITION — "Lactea" — key of D major / B minor
+// ═══════════════════════════════════════════════════════════════════
+//
+// Sigur Rós DNA: glacial builds, bowed guitar, falsetto choir,
+// glockenspiel, massive reverb, post-rock crescendo → silence → rebuild.
+//
+// THE MACRO CRR CYCLE:
+//   VOID (0-23)         │ Before the galaxy. Dark matter condensing. C ≈ 0.
+//   COLLAPSE (24-59)    │ Protogalactic cloud. C begins.
+//   FIRST LIGHT (60-95) │ First stars ignite. Glockenspiel births.
+//   SPIRAL (96-143)     │ Arms unfold. Density waves. C builds.
+//   ROTATION (144-191)  │ The great wheel. Crescendo. C → Ω.
+//   COROTATION (192-215)│ C = Ω. We are here. Wall of sound.
+//   RUPTURE (216-227)   │ δ(now). Silence. Everything breaks.
+//   REGENERATION (228-263)│ R(memory). Stellar recycling.
+//   STILLNESS (264-299) │ The galaxy now. Return to silence.
+
+const BPM=72;
+const BEAT_S=60/BPM;
+
+const SECTIONS=[
+  {name:'SILENCE',      start:0,   end:0,   label:'· · ·'},
+  {name:'VOID',         start:0,   end:24,  label:'before the galaxy'},
+  {name:'COLLAPSE',     start:24,  end:60,  label:'the cloud falls inward'},
+  {name:'FIRST LIGHT',  start:60,  end:96,  label:'first stars ignite'},
+  {name:'SPIRAL',       start:96,  end:144, label:'arms unfold'},
+  {name:'ROTATION',     start:144, end:192, label:'the great wheel turns'},
+  {name:'COROTATION',   start:192, end:216, label:'C = Ω — we are here'},
+  {name:'RUPTURE',      start:216, end:228, label:'δ(now)'},
+  {name:'REGENERATION', start:228, end:264, label:'R(memory)'},
+  {name:'STILLNESS',    start:264, end:300, label:'the galaxy now'},
+];
+const TOTAL_BEATS=300;
+
+function getSection(beat){
+  for(let i=SECTIONS.length-1;i>=0;i--){if(beat>=SECTIONS[i].start)return SECTIONS[i];}
+  return SECTIONS[0];
+}
+
+const TEXTS=[
+  'dark matter is Ω — it sets the rotation threshold for the entire disk',
+  'v(r) ≈ 220 km/s flat — every radius shares the same coherence capacity',
+  'spiral arms are coherence waves — not material structures',
+  'density wave compression: C accumulates → Jeans collapse = δ(now)',
+  'corotation: Ω_star = Ω_pattern — C = Ω — maximum resonance',
+  'the Sun sits at corotation — perhaps why we are here',
+  'metallicity gradient: exp(C/Ω) weights stellar generations',
+  'Sgr A*: 4.15 million M☉ — lowest Ω, most rigid CRR agent',
+  '225 million years: one galactic breath — one macro CRR cycle',
+  'the galaxy has breathed ~50 times — 50 complete C→δ→R cycles',
+  'post-rock crescendo IS coherence accumulation — Sigur Rós knew',
+  'the wall of sound IS C approaching Ω — silence IS δ(now)',
+  'every element heavier than iron was forged in a supernova δ(now)',
+  'bowed guitar = galactic magnetic field — sustained coherence',
+  'the flat rotation curve: CRR predicts CV = Ω/2 for dispersion',
+];
+
+function buildSequence(){
+  const E=[];
+  // Chord voicings — wide, open, Sigur Rós style (D major / B minor)
+  const D  =[26,38,50,57,62,66];
+  const G  =[31,43,55,59,62,67];
+  const Bm =[35,47,54,59,62,66];
+  const A  =[33,45,52,57,61,64];
+  const Em =[28,40,52,55,59,64];
+  const Fsm=[30,42,54,57,61,66];
+  const Gm7=[31,43,55,62,66,67];
+
+  const padD =[50,57,62,66];
+  const padG =[55,59,62,67];
+  const padBm=[54,59,62,66];
+  const padA =[52,57,61,64];
+  const padEm=[52,55,59,64];
+
+  // D major pentatonic for glockenspiel: D E F# A B (high register)
+  const glockNotes=[74,76,78,81,83,86,88,90];
+
+  // Helpers
+  const p=(b,m,v,d)=>E.push({beat:b,type:'piano',midi:m,velocity:v||0.2,duration:d||2});
+  const bow=(b,m,v,d)=>E.push({beat:b,type:'bowed',midi:m,velocity:v||0.2,duration:d||6});
+  const gl=(b,m,v)=>E.push({beat:b,type:'glock',midi:m||glockNotes[floor(random()*glockNotes.length)],velocity:v||0.15});
+  const str=(b,mids,g,d)=>E.push({beat:b,type:'strings',midis:mids,gain:g,duration:d||8});
+  const bs=(b,m,v,d)=>E.push({beat:b,type:'bass',midi:m,velocity:v||0.2,duration:d||4});
+  const fal=(b,notes,vow,g,d)=>E.push({beat:b,type:'falsetto',notes,vowel:vow||'aa',gain:g||0.15,duration:d||6});
+  const dr=(b,g,d)=>E.push({beat:b,type:'drone',droneGain:g,duration:d||3});
+  const pd=(b,notes,g,d)=>E.push({beat:b,type:'pad',padNotes:notes,padGain:g,duration:d||8});
+  const nova=(b,v)=>E.push({beat:b,type:'supernova',velocity:v||0.3});
+  const pul=(b,v,r)=>E.push({beat:b,type:'pulsar',velocity:v||0.08,rate:r||8});
+  const tx=(b,t,d)=>E.push({beat:b,type:'text',text:t,duration:d||10});
+  const sec=(b,name)=>E.push({beat:b,type:'section',sectionName:name});
+
+  // ════════════════════════════════════════════════════════════════
+  // VOID (0-23): Before the galaxy. Almost nothing.
+  // Dark matter condenses. The faintest sub-bass.
+  // ════════════════════════════════════════════════════════════════
+  sec(0,'before the galaxy');
+  tx(0,'dark matter is Ω — it sets the rotation threshold for the entire disk',12);
+  dr(0, 0.02, 24);
+  // Distant glockenspiel — primordial density fluctuations
+  gl(8, 86, 0.04);
+  gl(14, 83, 0.05);
+  gl(20, 90, 0.03);
+  // Single piano note at beat 18 — the first gravitational whisper
+  p(18, 62, 0.05, 8); // D4
+
+  // ════════════════════════════════════════════════════════════════
+  // COLLAPSE (24-59): Protogalactic cloud falls inward.
+  // Drone deepens. First bowed guitar. Piano awakens.
+  // ════════════════════════════════════════════════════════════════
+  sec(24,'the cloud falls inward');
+  tx(24,'v(r) ≈ 220 km/s flat — every radius shares the same coherence capacity',10);
+  dr(24, 0.08, 36);
+
+  // Bowed guitar enters — galactic magnetic field forming
+  bow(28, 62, 0.08, 12); // D4 — slow bloom
+  bow(36, 57, 0.1, 10);  // A3
+  bow(44, 54, 0.12, 14); // F#3
+
+  // Sparse piano — gravitational collapse events
+  p(30, 50, 0.08, 6); // D3
+  p(36, 57, 0.07, 4); // A3
+  p(42, 50, 0.1, 6);  // D3
+  p(46, 54, 0.09, 4); // F#3
+  p(50, 62, 0.1, 6);  // D4
+  p(54, 59, 0.08, 4); // B3
+
+  // Glockenspiel — scattered early formation
+  gl(32, 83, 0.06);
+  gl(38, 78, 0.05);
+  gl(44, 86, 0.07);
+  gl(52, 81, 0.06);
+  gl(57, 88, 0.05);
+
+  // First pad whisper
+  pd(48, padD, 0.04, 12);
+
+  tx(38,'spiral arms are coherence waves — not material structures',10);
+
+  // ════════════════════════════════════════════════════════════════
+  // FIRST LIGHT (60-95): Pop III stars ignite. Glockenspiel shower.
+  // Bowed guitar sustains. Strings enter. First falsetto whisper.
+  // ════════════════════════════════════════════════════════════════
+  sec(60,'first stars ignite');
+  tx(60,'density wave compression: C accumulates → Jeans collapse = δ(now)',10);
+  dr(60, 0.15, 36);
+
+  // Bowed guitar melody — sustained, Sigur Rós bloom
+  bow(60, 62, 0.15, 16); // D4
+  bow(72, 66, 0.17, 12); // F#4
+  bow(82, 64, 0.15, 14); // E4 (passing tone)
+
+  // Strings enter — D major
+  str(60, [38,50,57,62], 0.05, 12); // D chord
+  str(72, [43,55,59,67], 0.06, 12); // G chord
+  str(84, [47,54,59,66], 0.07, 12); // Bm
+
+  // Piano — more confident now
+  p(60, 38, 0.12, 8); // D2 bass
+  p(60, 62, 0.13, 3); // D4
+  p(63, 66, 0.11, 3); // F#4
+  p(66, 69, 0.12, 3); // A4
+  p(69, 71, 0.13, 2); // B4
+
+  p(72, 43, 0.12, 8); // G2 bass
+  p(72, 67, 0.12, 3); // G4
+  p(75, 62, 0.11, 3); // D4
+  p(78, 59, 0.13, 3); // B3
+  p(81, 62, 0.11, 2); // D4
+
+  p(84, 47, 0.13, 8); // B2 bass
+  p(84, 66, 0.13, 3); // F#4
+  p(87, 62, 0.12, 3); // D4
+  p(90, 59, 0.14, 3); // B3
+  p(93, 62, 0.12, 2); // D4
+
+  // Glockenspiel shower — star births accelerating
+  for(let i=0;i<8;i++){
+    gl(62+i*4, glockNotes[i%glockNotes.length], 0.08+i*0.01);
+  }
+
+  // First falsetto — the faintest whisper
+  fal(78, [62,69], 'oo', 0.05, 8);
+
+  // Pad
+  pd(60, padD, 0.06, 16);
+  pd(76, padG, 0.07, 16);
+
+  tx(75,'corotation: Ω_star = Ω_pattern — C = Ω — maximum resonance',10);
+
+  // ════════════════════════════════════════════════════════════════
+  // SPIRAL (96-143): Arms unfold. Density waves form.
+  // Piano arpeggios establish. Everything builds. C accumulates.
+  // ════════════════════════════════════════════════════════════════
+  sec(96,'arms unfold');
+  tx(96,'the Sun sits at corotation — perhaps why we are here',10);
+  dr(96, 0.22, 48);
+
+  // Bowed guitar — now two voices, building harmony
+  bow(96, 62, 0.2, 24);  // D4 — long sustain
+  bow(96, 57, 0.18, 24); // A3 — fifth below
+  bow(120, 66, 0.22, 24); // F#4
+  bow(120, 59, 0.2, 24);  // B3
+
+  // Strings — full chords cycling
+  str(96, [38,50,57,62,66], 0.1, 12);  // D
+  str(108,[43,55,59,62,67], 0.11, 12); // G
+  str(120,[47,54,59,62,66], 0.12, 12); // Bm
+  str(132,[45,52,57,61,64], 0.11, 12); // A
+
+  // Piano arpeggios — Sigur Rós style (root, 5th, octave, 3rd pattern)
+  const spiralChords=[D,G,Bm,A];
+  const spiralPads=[padD,padG,padBm,padA];
+  for(let c=0;c<4;c++){
+    const ch=spiralChords[c];
+    const base=96+c*12;
+    // Bass note
+    bs(base, ch[0], 0.15, 10);
+    // Arpeggio pattern
+    p(base,   ch[3], 0.15, 2); // A3/B3/F#3/A3
+    p(base+2, ch[4], 0.13, 2); // D4
+    p(base+4, ch[5], 0.14, 2); // F#4/G4
+    p(base+6, ch[3], 0.12, 2);
+    p(base+8, ch[4], 0.14, 2);
+    p(base+10,ch[5], 0.13, 2);
+    // Pad
+    pd(base, spiralPads[c], 0.1, 12);
+  }
+
+  // Glockenspiel — more frequent, cascading
+  for(let i=0;i<12;i++){
+    gl(98+i*3.5, glockNotes[i%glockNotes.length], 0.1+i*0.008);
+    if(i>4) gl(99+i*3.5, glockNotes[(i+3)%glockNotes.length], 0.06);
+  }
+
+  // Falsetto grows
+  fal(96, [62,66], 'oo', 0.08, 10);
+  fal(108,[67,71], 'aa', 0.1, 10);
+  fal(120,[66,69], 'oh', 0.12, 10);
+  fal(132,[62,66,69], 'aa', 0.14, 12);
+
+  // Pulsar enters — distant rhythmic clicks
+  pul(110, 0.04, 6);
+  pul(134, 0.05, 8);
+
+  tx(115,'metallicity gradient: exp(C/Ω) weights stellar generations',10);
+  tx(132,'225 million years: one galactic breath — one macro CRR cycle',10);
+
+  // ════════════════════════════════════════════════════════════════
+  // ROTATION (144-191): THE GREAT CRESCENDO.
+  // Everything builds toward wall of sound. C → Ω.
+  // This IS the Sigur Rós moment — unstoppable accumulation.
+  // ════════════════════════════════════════════════════════════════
+  sec(144,'the great wheel turns');
+  tx(144,'post-rock crescendo IS coherence accumulation — Sigur Rós knew',10);
+  dr(144, 0.35, 48);
+
+  // Bowed guitar — multiple voices now, building density
+  bow(144, 50, 0.25, 24); // D3 — low foundation
+  bow(144, 62, 0.25, 24); // D4
+  bow(144, 66, 0.23, 24); // F#4
+  bow(156, 57, 0.27, 20); // A3
+  bow(156, 69, 0.26, 20); // A4
+  bow(168, 54, 0.28, 24); // F#3
+  bow(168, 71, 0.27, 24); // B4
+  bow(180, 62, 0.3, 12);  // D4 — final sustained
+  bow(180, 66, 0.3, 12);  // F#4
+  bow(180, 74, 0.28, 12); // D5 — reaching higher!
+
+  // Strings — growing intensity
+  str(144,[26,38,50,57,62,66], 0.16, 12); // D with deep bass
+  str(156,[31,43,55,59,62,67], 0.18, 12); // G
+  str(168,[35,47,54,59,62,66], 0.2, 12);  // Bm
+  str(180,[33,45,52,57,61,64], 0.22, 12); // A — building to peak
+
+  // Piano — more intense arpeggios, higher register
+  const rotChords=[D,G,Bm,A];
+  for(let c=0;c<4;c++){
+    const ch=rotChords[c];
+    const base=144+c*12;
+    bs(base, ch[0], 0.2+c*0.03, 10);
+    bs(base, ch[0]-12, 0.1+c*0.02, 10); // sub-bass
+    for(let i=0;i<6;i++){
+      const vel=0.17+c*0.03+i*0.005;
+      p(base+i*2, ch[2+i%4], vel, 2);
+    }
+    // Add higher piano notes as we build
+    if(c>=1) p(base+1, ch[5]+12, 0.1+c*0.02, 3);
+    if(c>=2) p(base+5, ch[4]+12, 0.12+c*0.02, 3);
+  }
+
+  // Pads — thickening
+  pd(144, padD, 0.15, 12);
+  pd(156, padG, 0.18, 12);
+  pd(168, padBm, 0.2, 12);
+  pd(180, padA, 0.22, 12);
+
+  // Glockenspiel — shower of star births
+  for(let i=0;i<20;i++){
+    gl(146+i*2.2, glockNotes[i%glockNotes.length], 0.12+i*0.005);
+    if(i>8) gl(147+i*2.2, glockNotes[(i+4)%glockNotes.length], 0.08);
+  }
+
+  // Falsetto choir — GROWING, multiple voices
+  fal(144, [62,66,69], 'aa', 0.16, 10);
+  fal(156, [59,62,67], 'oo', 0.2, 10);
+  fal(168, [62,66,71], 'aa', 0.25, 10);
+  fal(180, [57,62,66,69], 'ee', 0.3, 12); // four voices now!
+
+  // Pulsars more insistent
+  pul(150, 0.06, 8);
+  pul(166, 0.07, 10);
+  pul(182, 0.08, 12);
+
+  tx(162,'the wall of sound IS C approaching Ω — silence IS δ(now)',10);
+  tx(180,'the galaxy has breathed ~50 times — 50 complete C→δ→R cycles',10);
+
+  // ════════════════════════════════════════════════════════════════
+  // COROTATION (192-215): MAXIMUM. C = Ω. We are here.
+  // Wall of sound. Full falsetto. All instruments at peak.
+  // Earth stands at the point of maximum galactic resonance.
+  // ════════════════════════════════════════════════════════════════
+  sec(192,'C = Ω — we are here');
+  tx(192,'every element heavier than iron was forged in a supernova δ(now)',10);
+  dr(192, 0.45, 24);
+
+  // FULL bowed guitar — wall of harmonic sustain
+  bow(192, 50, 0.35, 24); // D3
+  bow(192, 57, 0.35, 24); // A3
+  bow(192, 62, 0.35, 24); // D4
+  bow(192, 66, 0.33, 24); // F#4
+  bow(192, 69, 0.32, 24); // A4
+  bow(192, 74, 0.3, 24);  // D5
+  bow(204, 78, 0.28, 12); // F#5 — highest reach!
+
+  // Massive strings
+  str(192,[26,38,50,57,62,66,74], 0.28, 12); // D with full spread
+  str(204,[31,43,55,59,67,74,79], 0.3, 12);  // G soaring
+
+  // Piano at maximum intensity
+  const coroBase=192;
+  bs(coroBase, 26, 0.28, 12); bs(coroBase, 14, 0.12, 12); // D1 + D0 sub
+  for(let i=0;i<12;i++){
+    const vel=0.22+sin(i/12*PI)*0.08;
+    p(coroBase+i, D[2+i%4], vel, 2);
+    if(i%3===0) p(coroBase+i, D[5]+12, vel*0.6, 3); // high sparkle
+  }
+  bs(204, 31, 0.26, 12); // G1
+  for(let i=0;i<12;i++){
+    const vel=0.2+sin(i/12*PI)*0.08;
+    p(204+i, G[2+i%4], vel, 2);
+    if(i%3===0) p(204+i, G[5]+12, vel*0.5, 3);
+  }
+
+  // Pad at full
+  pd(192, padD, 0.28, 12);
+  pd(204, padG, 0.3, 12);
+
+  // FULL FALSETTO CHOIR — five voices, the galaxy sings
+  fal(192, [50,57,62,66,74], 'aa', 0.35, 12);
+  fal(204, [55,59,67,71,79], 'oo', 0.38, 12);
+
+  // Glockenspiel SHOWER — maximum star formation at corotation
+  for(let i=0;i<24;i++){
+    gl(192+i, glockNotes[i%glockNotes.length], 0.15+random()*0.05);
+  }
+
+  tx(206,'bowed guitar = galactic magnetic field — sustained coherence',10);
+
+  // ════════════════════════════════════════════════════════════════
+  // RUPTURE (216-227): δ(now). Everything breaks.
+  // Supernovae. Then silence. The dimensionless present.
+  // ════════════════════════════════════════════════════════════════
+  sec(216,'δ(now)');
+
+  // First: MASSIVE supernova burst at the rupture point
+  nova(216, 0.5);
+  nova(217, 0.4);
+  nova(218, 0.35);
+
+  // Cut drone dramatically
+  dr(216, 0.02, 1);
+
+  // Single sustained bowed note — ringing in the void
+  bow(219, 62, 0.12, 9); // D4 alone, fading
+
+  // Sparse, dissonant glock — aftermath
+  gl(220, 76, 0.06); // E5
+  gl(222, 73, 0.04); // C#5 (outside pentatonic — rupture!)
+  gl(225, 78, 0.03); // F#5
+
+  // Pulsar — the remnant
+  pul(220, 0.06, 15);
+
+  tx(216,'the flat rotation curve: CRR predicts CV = Ω/2 for dispersion',10);
+
+  // ════════════════════════════════════════════════════════════════
+  // REGENERATION (228-263): R(memory). The rebuild.
+  // Bowed guitar returns first (highest coherence → strongest memory).
+  // Piano melody transformed. New stars from old elements.
+  // The Sigur Rós post-rupture: gentle, transformed, hopeful.
+  // ════════════════════════════════════════════════════════════════
+  sec(228,'R(memory)');
+  tx(228,'Sgr A*: 4.15 million M☉ — lowest Ω, most rigid CRR agent',10);
+  dr(228, 0.1, 36);
+
+  // Bowed guitar returns FIRST — it had highest sustained coherence
+  // exp(C/Ω) peaks for the bowed voice → it regenerates first
+  bow(228, 62, 0.12, 18); // D4 — the same note, transformed
+  bow(234, 57, 0.14, 14); // A3
+  bow(240, 66, 0.16, 16); // F#4
+  bow(248, 59, 0.15, 14); // B3
+
+  // Strings return gently
+  str(234, [38,50,57,62], 0.06, 12); // D — softer now
+  str(246, [43,55,59,67], 0.08, 12); // G
+  str(258, [47,54,59,66], 0.07, 6);  // Bm — brief
+
+  // Piano — the transformed melody (same notes, different rhythm)
+  p(232, 62, 0.1, 6);  // D4
+  p(236, 66, 0.09, 4); // F#4
+  p(240, 69, 0.11, 4); // A4
+  p(244, 71, 0.1, 4);  // B4
+  p(248, 69, 0.09, 4); // A4 — descending now
+  p(252, 66, 0.1, 4);  // F#4
+  p(256, 62, 0.11, 6); // D4 — home
+  p(260, 50, 0.08, 4); // D3 — settling
+
+  // Bass returns
+  bs(234, 38, 0.1, 10); // D2
+  bs(248, 43, 0.08, 8); // G2
+
+  // Gentle pad
+  pd(234, padD, 0.06, 14);
+  pd(248, padG, 0.05, 14);
+
+  // Glockenspiel — new star births, gentler than before
+  gl(236, 86, 0.08);
+  gl(242, 83, 0.07);
+  gl(248, 81, 0.09);
+  gl(254, 78, 0.07);
+  gl(260, 86, 0.06);
+
+  // Falsetto returns — single voice, then two
+  fal(240, [62], 'oo', 0.08, 10);
+  fal(252, [62,69], 'aa', 0.1, 10);
+
+  tx(244,'memory weighted by significance, not recency — exp(C/Ω)',10);
+
+  // ════════════════════════════════════════════════════════════════
+  // STILLNESS (264-299): The galaxy as it is now.
+  // Everything fades. Dark matter last to go.
+  // Final glockenspiel note. Silence.
+  // ════════════════════════════════════════════════════════════════
+  sec(264,'the galaxy now');
+  tx(264,'the galaxy is 13.6 billion years old — and still breathing',10);
+
+  // Bowed guitar — last echo
+  bow(264, 62, 0.08, 16); // D4 — long, fading
+  bow(272, 57, 0.06, 12); // A3
+
+  // Piano — sparse final notes
+  p(266, 62, 0.07, 8); // D4
+  p(274, 50, 0.06, 6); // D3
+  p(282, 38, 0.04, 8); // D2 — sinking
+
+  // Strings — last sigh
+  str(266, [50,57,62], 0.04, 14);
+
+  // Drone fades last — dark matter persists
+  dr(264, 0.06, 20);
+  dr(284, 0.02, 16);
+
+  // Final glockenspiel notes — last star births
+  gl(270, 86, 0.05);
+  gl(280, 83, 0.04);
+  gl(290, 90, 0.03); // the very last star
+
+  // Pad — final whisper
+  pd(266, padD, 0.03, 20);
+
+  // Sort by beat
+  E.sort((a,b)=>a.beat-b.beat);
+  return E;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §4  VISUAL SCENE — Galaxy rendering
+// ═══════════════════════════════════════════════════════════════════
+
+const canvas=document.getElementById('viz');
+const ctx=canvas.getContext('2d');
+let W=0,H=0;
+
+function resizeCanvas(){
+  const wrap=document.getElementById('canvas-wrap');
+  W=canvas.width=wrap.clientWidth*(devicePixelRatio||1);
+  H=canvas.height=wrap.clientHeight*(devicePixelRatio||1);
+  ctx.scale(devicePixelRatio||1,devicePixelRatio||1);
+  canvas.style.width=wrap.clientWidth+'px';
+  canvas.style.height=wrap.clientHeight+'px';
+}
+
+function drawScene(dt){
+  const cW=W/(devicePixelRatio||1);
+  const cH=H/(devicePixelRatio||1);
+  const cx=cW*0.5,cy=cH*0.5;
+  const scale=min(cW,cH)*0.42;
+  const t=GALAXY.t;
+  const rot=GALAXY.disk.rotation;
+  const arousal=GALAXY.arousal;
+  const crrPhase=GALAXY.crrPhase;
+
+  // Background
+  ctx.fillStyle='#020208';
+  ctx.fillRect(0,0,cW,cH);
+
+  // Dark matter halo — subtle purple glow
+  const haloGrad=ctx.createRadialGradient(cx,cy,0,cx,cy,scale*1.3);
+  haloGrad.addColorStop(0,'rgba(30,20,60,'+(0.08+arousal*0.06)+')');
+  haloGrad.addColorStop(0.5,'rgba(20,15,50,'+(0.04+arousal*0.03)+')');
+  haloGrad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=haloGrad;
+  ctx.fillRect(0,0,cW,cH);
+
+  // Spiral arms — drawn as series of translucent arcs
+  ctx.save();
+  ctx.globalAlpha=0.12+arousal*0.08;
+  for(let arm=0;arm<4;arm++){
+    const armOffset=arm*PI/2;
+    ctx.beginPath();
+    for(let i=0;i<200;i++){
+      const frac=i/200;
+      const r=0.04+frac*0.46;
+      const theta=log(max(0.01,r)/0.04)/ARM_PITCH+armOffset+rot;
+      const x=cx+cos(theta)*r*scale;
+      const y=cy+sin(theta)*r*scale;
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle=`rgba(100,150,230,${0.08+arousal*0.04})`;
+    ctx.lineWidth=scale*0.035;
+    ctx.lineCap='round';
+    ctx.stroke();
+
+    // Inner arm glow
+    ctx.strokeStyle=`rgba(170,200,255,${0.03+arousal*0.02})`;
+    ctx.lineWidth=scale*0.015;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Stars
+  ctx.save();
+  for(const s of STARS){
+    // Differential rotation
+    s.theta+=dt*0.012*s.orbSpeed*(1+arousal*0.3);
+    s.twinkle+=dt*s.twinkleSpd;
+    const twinkle=0.7+0.3*sin(s.twinkle);
+
+    const x=cx+cos(s.theta)*s.r*scale;
+    const y=cy+sin(s.theta)*s.r*scale;
+
+    // Star formation flash
+    let flash=s.flash;
+    if(flash>0){
+      s.flash-=dt*2;
+      const flashGrad=ctx.createRadialGradient(x,y,0,x,y,flash*8);
+      flashGrad.addColorStop(0,`rgba(200,220,255,${flash*0.6})`);
+      flashGrad.addColorStop(1,'rgba(200,220,255,0)');
+      ctx.fillStyle=flashGrad;
+      ctx.fillRect(x-flash*8,y-flash*8,flash*16,flash*16);
+    }
+
+    const bright=s.brightness*twinkle*(0.6+arousal*0.4);
+    const sz=s.size*(0.8+arousal*0.3);
+
+    // Color based on hue
+    const h=s.hue;
+    const sat=s.inArm?60:30;
+    ctx.fillStyle=`hsla(${h},${sat}%,${50+bright*40}%,${bright*0.8})`;
+    ctx.beginPath();
+    ctx.arc(x,y,sz,0,TAU);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Star formation events — bright flashes in arms
+  ctx.save();
+  for(const sf of GALAXY.starFormation.events){
+    const x=cx+cos(sf.theta)*sf.r*scale;
+    const y=cy+sin(sf.theta)*sf.r*scale;
+    const a=sf.life;
+    const grad=ctx.createRadialGradient(x,y,0,x,y,a*12);
+    grad.addColorStop(0,`rgba(200,220,255,${a*0.5})`);
+    grad.addColorStop(0.5,`rgba(150,180,255,${a*0.2})`);
+    grad.addColorStop(1,'rgba(100,140,220,0)');
+    ctx.fillStyle=grad;
+    ctx.beginPath();
+    ctx.arc(x,y,a*12,0,TAU);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Supernovae — expanding rings
+  ctx.save();
+  for(const sn of SUPERNOVAE){
+    const x=cx+cos(sn.theta)*sn.r*scale;
+    const y=cy+sin(sn.theta)*sn.r*scale;
+    const a=sn.life;
+    ctx.strokeStyle=`rgba(255,150,100,${a*0.6})`;
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.arc(x,y,sn.radius*scale,0,TAU);
+    ctx.stroke();
+    // Inner glow
+    const snGrad=ctx.createRadialGradient(x,y,0,x,y,sn.radius*scale);
+    snGrad.addColorStop(0,`rgba(255,200,150,${a*0.2})`);
+    snGrad.addColorStop(1,'rgba(255,150,100,0)');
+    ctx.fillStyle=snGrad;
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Central bulge
+  const bulgeGrad=ctx.createRadialGradient(cx,cy,0,cx,cy,scale*0.12);
+  bulgeGrad.addColorStop(0,`rgba(255,220,150,${0.25+arousal*0.15})`);
+  bulgeGrad.addColorStop(0.3,`rgba(255,200,120,${0.1+arousal*0.08})`);
+  bulgeGrad.addColorStop(0.7,'rgba(200,150,80,0.03)');
+  bulgeGrad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=bulgeGrad;
+  ctx.beginPath();ctx.arc(cx,cy,scale*0.12,0,TAU);ctx.fill();
+
+  // Sgr A* — bright center
+  const sgrBright=0.5+0.5*GALAXY.sgrA.luminosity;
+  const sgrGrad=ctx.createRadialGradient(cx,cy,0,cx,cy,scale*0.015);
+  sgrGrad.addColorStop(0,`rgba(255,240,200,${sgrBright})`);
+  sgrGrad.addColorStop(1,'rgba(255,200,120,0)');
+  ctx.fillStyle=sgrGrad;
+  ctx.beginPath();ctx.arc(cx,cy,scale*0.015,0,TAU);ctx.fill();
+
+  // CRR phase flash (rupture = red flash, regen = green glow)
+  if(crrPhase==='delta'){
+    ctx.fillStyle='rgba(252,129,129,0.05)';
+    ctx.fillRect(0,0,cW,cH);
+  }else if(crrPhase==='R'){
+    ctx.fillStyle='rgba(104,211,145,0.02)';
+    ctx.fillRect(0,0,cW,cH);
+  }
+
+  // CRR display overlay
+  const pa=seq.phraseAgent;
+  const pca=seq.pieceAgent;
+  if(pa&&seq.playing){
+    const crrEl=document.getElementById('crr-display');
+    crrEl.innerHTML=
+      `C=${pa.C.toFixed(3)}<br>Ω=${pa.omega.toFixed(3)}<br>`+
+      `exp(C/Ω)=${min(999,pa.expCO).toFixed(1)}<br>`+
+      `ruptures=${pa.ruptures}<br>`+
+      `arousal=${arousal.toFixed(2)}`;
+  }
+
+  // Body metrics
+  const metricsEl=document.getElementById('body-metrics');
+  if(seq.playing){
+    metricsEl.innerHTML=
+      `rotation: ${(rot*180/PI%360).toFixed(0)}°<br>`+
+      `Sgr A*: ${(GALAXY.sgrA.luminosity*100).toFixed(0)}%<br>`+
+      `formation: ${GALAXY.starFormation.events.length}<br>`+
+      `phase: ${crrPhase}`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §5  PLAYBACK ENGINE
+// ═══════════════════════════════════════════════════════════════════
+
+const seq={
+  sequence:[],seqIdx:0,musicBeat:0,playing:false,
+  tempoScale:1,rafId:null,lastTime:0,
+  phraseAgent:new CRRAgent('SO2',1.5),
+  pieceAgent:new CRRAgent('phi',2),
+};
+
+let sectionLabelTimeout=null;
+let textTimeout=null;
+
+function showSection(name){
+  const el=document.getElementById('section-label');
+  el.textContent=name;
+  el.style.opacity='0.5';
+  el.style.color='rgba(170,190,230,0.5)';
+  clearTimeout(sectionLabelTimeout);
+  sectionLabelTimeout=setTimeout(()=>{el.style.opacity='0'},3000);
+}
+
+function showText(text,dur){
+  const el=document.getElementById('lyric-text');
+  el.textContent=text;
+  el.classList.add('visible');
+  clearTimeout(textTimeout);
+  textTimeout=setTimeout(()=>{el.classList.remove('visible')},((dur||8)*1000));
+}
+
+function dispatchEvent(evt){
+  const dynMod=seq.phraseAgent?
+    (seq.phraseAgent.inRegen?0.87+0.13*seq.phraseAgent.regenProg:
+     0.87+0.13*Math.tanh(seq.phraseAgent.normC*2)):1;
+
+  switch(evt.type){
+    case 'bowed':playBowed(evt.midi,evt.velocity*dynMod,evt.duration/seq.tempoScale);break;
+    case 'glock':playGlock(evt.midi,evt.velocity*dynMod);break;
+    case 'piano':playPiano(evt.midi,evt.velocity*dynMod,evt.duration/seq.tempoScale);break;
+    case 'strings':playPad(evt.midis,evt.gain*dynMod,evt.duration/seq.tempoScale);break;
+    case 'bass':playBass(evt.midi,evt.velocity*dynMod,evt.duration/seq.tempoScale);break;
+    case 'falsetto':playFalsetto(evt.notes,evt.vowel,evt.gain*dynMod,evt.duration/seq.tempoScale);break;
+    case 'drone':setDrone(evt.droneGain*dynMod,evt.duration/seq.tempoScale);break;
+    case 'pad':playPad(evt.padNotes,evt.padGain*dynMod,evt.duration/seq.tempoScale);break;
+    case 'supernova':playSupernova(evt.velocity);break;
+    case 'pulsar':playPulsar(evt.velocity,evt.rate);break;
+    case 'text':showText(evt.text,evt.duration);break;
+    case 'section':showSection(evt.sectionName);break;
+  }
+
+  // Update CRR agents
+  const energy=evt.velocity||evt.gain||evt.droneGain||evt.padGain||0.2;
+  const pR=seq.phraseAgent.step(energy*0.5,0.01);
+  if(pR.phase==='delta'){
+    // Trigger visual star formation on some stars
+    const randomStars=STARS.filter(()=>random()<0.02);
+    for(const s of randomStars)s.flash=1;
+  }
+  seq.pieceAgent.step(energy*0.2,0.005);
+}
+
+function startPlayback(){
+  if(seq.playing)return;
+  initAudio();
+  if(ac.state==='suspended')ac.resume();
+  seq.sequence=buildSequence();
+  seq.seqIdx=0;seq.musicBeat=0;seq.playing=true;
+  seq.phraseAgent=new CRRAgent('SO2',1.5);
+  seq.pieceAgent=new CRRAgent('phi',2);
+  seq.lastTime=performance.now()/1000;
+  document.getElementById('btn-play').classList.add('playing');
+  // Build timeline sections
+  const secWrap=document.getElementById('timeline-sections');
+  secWrap.innerHTML='';
+  for(const s of SECTIONS){
+    if(s.name==='SILENCE')continue;
+    const div=document.createElement('div');
+    div.className='t-section';
+    div.style.width=((s.end-s.start)/TOTAL_BEATS*100)+'%';
+    const lab=document.createElement('span');
+    lab.className='t-section-label';
+    lab.textContent=s.label;
+    div.appendChild(lab);
+    secWrap.appendChild(div);
+  }
+  tick();
+}
+
+function stopPlayback(){
+  seq.playing=false;
+  if(seq.rafId)cancelAnimationFrame(seq.rafId);
+  seq.rafId=null;
+  document.getElementById('btn-play').classList.remove('playing');
+  if(dmDrone.active)setDrone(0,1);
+  if(padVoices.master){
+    const now=ac.currentTime;
+    padVoices.master.gain.cancelScheduledValues(now);
+    padVoices.master.gain.setValueAtTime(padVoices.master.gain.value,now);
+    padVoices.master.gain.linearRampToValueAtTime(0,now+0.5);
+  }
+}
+
+function tick(){
+  if(!seq.playing)return;
+  const now=performance.now()/1000;
+  const dt=min(0.05,now-seq.lastTime);
+  seq.lastTime=now;
+
+  const beatDelta=dt*BPM/60*seq.tempoScale;
+  seq.musicBeat+=beatDelta;
+
+  // Dispatch events
+  while(seq.seqIdx<seq.sequence.length&&seq.sequence[seq.seqIdx].beat<=seq.musicBeat){
+    dispatchEvent(seq.sequence[seq.seqIdx]);
+    seq.seqIdx++;
+  }
+
+  // Update galaxy physics
+  updateGalaxy(dt,seq.musicBeat);
+
+  // Draw
+  drawScene(dt);
+
+  // Update timeline
+  const fill=document.getElementById('timeline-fill');
+  fill.style.width=(seq.musicBeat/TOTAL_BEATS*100).toFixed(1)+'%';
+
+  const timeEl=document.getElementById('timeline-time');
+  const elapsed=seq.musicBeat*BEAT_S/seq.tempoScale;
+  const total=TOTAL_BEATS*BEAT_S/seq.tempoScale;
+  const fmt=s=>`${floor(s/60)}:${('0'+floor(s%60)).slice(-2)}`;
+  timeEl.textContent=`${fmt(elapsed)} / ${fmt(total)}`;
+
+  const crrEl=document.getElementById('timeline-crr');
+  crrEl.textContent=`C=${seq.phraseAgent.C.toFixed(2)}`;
+
+  if(seq.musicBeat>=TOTAL_BEATS){stopPlayback();return}
+  seq.rafId=requestAnimationFrame(tick);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §6  DOM & EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════════════
+
+// Splash — handle both click and touch
+const splashEl=document.getElementById('splash');
+function dismissSplash(){
+  splashEl.classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  resizeCanvas();
+  GALAXY.t=0;GALAXY.arousal=0.02;
+  drawScene(0);
+}
+splashEl.addEventListener('click',dismissSplash);
+
+// CRR Annotation Panel toggle
+const crrToggle=document.getElementById('crr-toggle');
+const crrPanel=document.getElementById('crr-panel');
+crrToggle.addEventListener('click',(e)=>{
+  e.stopPropagation();
+  crrPanel.classList.toggle('open');
+  crrToggle.classList.toggle('active');
+});
+// Close panel when tapping on canvas (not panel)
+document.getElementById('viz').addEventListener('click',()=>{
+  if(crrPanel.classList.contains('open')){
+    crrPanel.classList.remove('open');
+    crrToggle.classList.remove('active');
+  }
+});
+
+// Transport
+document.getElementById('btn-play').addEventListener('click',startPlayback);
+document.getElementById('btn-stop').addEventListener('click',stopPlayback);
+
+// Sliders
+function setupSlider(id,varName,cb){
+  const el=document.getElementById(id);
+  const valEl=document.getElementById(id.replace('-slider','-val'));
+  el.addEventListener('input',()=>{
+    const v=parseFloat(el.value);
+    if(valEl)valEl.textContent=v.toFixed(2);
+    if(cb)cb(v);
+  });
+}
+setupSlider('tempo-slider','tempoScale',(v)=>{
+  seq.tempoScale=v;
+  document.getElementById('tempo-val').textContent=v.toFixed(1)+'×';
+});
+setupSlider('reverb-slider','reverbMix',(v)=>{reverbMix=v;updateMixes()});
+setupSlider('bowed-slider','bowedMix',(v)=>{bowedMix=v;if(bowedGain)bowedGain.gain.value=v*0.9});
+setupSlider('piano-slider','pianoMix',(v)=>{pianoMix=v;if(pianoGain)pianoGain.gain.value=v*1.1});
+setupSlider('choir-slider','choirMix',(v)=>{choirMix=v;if(choirGain)choirGain.gain.value=v*0.8});
+
+// Resize — handle both resize and orientation change
+window.addEventListener('resize',resizeCanvas);
+window.addEventListener('orientationchange',()=>{setTimeout(resizeCanvas,150)});
+
+// Initial canvas size
+resizeCanvas();
+</script>
+</body>
+</html>

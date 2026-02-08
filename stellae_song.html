@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Stellae — The Music of Stars | CRR</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Mono:wght@400;700&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --red-dwarf:#e84a3a;--sun-gold:#f6c744;--blue-giant:#4a9ef6;
+  --neutron:#d4a5ff;--cmb:#1a1028;--void:#050510;
+  --coherence:#4fd1c5;--rupture:#fc8181;--regen:#68d391;
+  --omega:#f6ad55;--grav-wave:#6b46c1;
+  --cream:rgba(210,215,230,0.85);--creamD:rgba(180,185,200,0.5);
+  --bg:#020308;--panel:rgba(6,8,16,0.97)
+}
+body{background:var(--bg);color:var(--cream);font-family:'Cormorant Garamond',Georgia,serif;
+overflow:hidden;width:100vw;height:100vh;position:fixed}
+
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;
+justify-content:center;cursor:pointer;transition:opacity 1.6s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:720px;padding:0 24px}
+#splash .pulse-bar{width:280px;height:2px;margin:0 auto 28px;border-radius:2px;
+background:linear-gradient(90deg,var(--red-dwarf),var(--sun-gold),var(--blue-giant),var(--neutron),var(--grav-wave));
+animation:stellarpulse 3s ease-in-out infinite}
+@keyframes stellarpulse{0%,100%{opacity:.2;transform:scaleX(.8)}50%{opacity:.7;transform:scaleX(1.1)}}
+#splash h1{font-size:clamp(2.4rem,6vw,4.2rem);font-weight:300;letter-spacing:.35em;
+margin-bottom:8px;background:linear-gradient(135deg,var(--red-dwarf),var(--sun-gold),var(--blue-giant),var(--neutron));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#splash .sub{font-size:clamp(.82rem,1.5vw,1.05rem);font-weight:300;opacity:.35;
+letter-spacing:.04em;line-height:2;font-style:italic}
+#splash .eq{font-family:'Space Mono',monospace;font-size:clamp(.46rem,.78vw,.56rem);
+opacity:.14;margin-top:20px;letter-spacing:.02em;line-height:1.9}
+#splash .credit{font-size:.6rem;opacity:.16;margin-top:16px;letter-spacing:.06em}
+#splash .tap{font-size:.66rem;opacity:.16;margin-top:24px;letter-spacing:.14em;animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.1}50%{opacity:.28}}
+
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#canvas-wrap{flex:1;min-height:0;position:relative}
+#viz{display:block;width:100%;height:100%;touch-action:none}
+
+#info-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+align-items:flex-start;padding:12px 18px;pointer-events:none;z-index:5}
+#piece-title{font-size:clamp(.9rem,1.6vw,1.2rem);font-weight:300;letter-spacing:.14em;
+color:rgba(180,190,220,0.4)}
+#piece-title .composer{font-size:.65em;font-weight:300;opacity:.5;font-style:italic;display:block;margin-top:3px}
+#crr-display{font-family:'Space Mono',monospace;font-size:clamp(.46rem,.78vw,.58rem);
+color:rgba(160,170,210,0.25);text-align:right;line-height:1.7}
+
+#section-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+text-align:center;pointer-events:none;z-index:4;font-size:clamp(1rem,2.4vw,1.7rem);
+font-weight:300;letter-spacing:.25em;font-style:italic;opacity:0;transition:opacity 1.6s ease;
+text-shadow:0 0 60px rgba(70,150,230,0.15)}
+
+#lyric-display{position:absolute;bottom:14%;left:0;right:0;text-align:center;pointer-events:none;z-index:5}
+#lyric-text{font-size:clamp(.88rem,1.8vw,1.3rem);font-weight:300;letter-spacing:.12em;
+font-style:italic;opacity:0;transition:opacity 1s ease;text-shadow:0 0 40px rgba(70,150,230,0.12)}
+#lyric-text.visible{opacity:.45}
+
+#timeline-wrap{height:26px;background:rgba(6,8,16,0.95);border-top:1px solid rgba(70,130,220,0.06);
+display:flex;align-items:center;padding:0 14px;gap:9px;flex-shrink:0}
+#timeline-bar{flex:1;height:5px;background:rgba(255,255,255,0.02);border-radius:3px;
+position:relative;overflow:hidden}
+#timeline-fill{height:100%;width:0%;border-radius:3px;transition:width 0.3s linear;
+background:linear-gradient(90deg,
+  rgba(232,74,58,0.5),rgba(246,199,68,0.5),rgba(74,158,246,0.5),rgba(212,165,255,0.5),
+  rgba(107,70,193,0.5),rgba(104,211,145,0.5))}
+#timeline-sections{position:absolute;inset:0;display:flex;pointer-events:none}
+.t-section{height:100%;border-right:1px solid rgba(255,255,255,0.04);position:relative}
+.t-section-label{position:absolute;top:-13px;left:2px;font-family:'Space Mono',monospace;
+font-size:6px;color:rgba(160,170,210,0.16);letter-spacing:.03em;white-space:nowrap}
+#timeline-time{font-family:'Space Mono',monospace;font-size:.5rem;color:rgba(160,170,210,0.2);
+min-width:62px;text-align:right}
+#timeline-crr{font-family:'Space Mono',monospace;font-size:.5rem;min-width:48px;
+background:linear-gradient(90deg,rgba(232,74,58,.3),rgba(246,199,68,.3),rgba(74,158,246,.3));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+#controls{border-top:1px solid rgba(70,130,220,0.08);background:var(--panel);
+padding:9px 14px 10px;display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.transport-row{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap}
+.transport-btn{font-family:'Cormorant Garamond',serif;font-size:clamp(.7rem,1vw,.85rem);
+padding:4px 18px;border:1px solid rgba(70,130,220,0.1);background:transparent;
+color:var(--creamD);cursor:pointer;border-radius:3px;letter-spacing:.06em;transition:all .25s}
+.transport-btn:hover{border-color:rgba(70,130,220,0.3);color:var(--cream)}
+.transport-btn.playing{border-color:rgba(104,211,145,0.4);color:rgba(140,220,170,.8);
+background:rgba(104,211,145,.03)}
+.slider-wrap{display:flex;align-items:center;gap:4px}
+.slider-wrap label{font-size:.54rem;color:rgba(160,170,210,.26);letter-spacing:.06em;width:36px}
+.slider-wrap input[type=range]{flex:1;max-width:72px;height:2px;cursor:pointer;accent-color:rgba(70,130,220,0.45)}
+.slider-wrap .val{font-family:'Space Mono',monospace;font-size:.46rem;color:rgba(160,170,210,.2);width:26px;text-align:right}
+#crr-footer{text-align:center;padding:2px;font-size:clamp(.36rem,.6vw,.46rem);
+font-family:'Space Mono',monospace;letter-spacing:.02em;
+background:linear-gradient(90deg,rgba(232,74,58,.1),rgba(246,199,68,.1),rgba(74,158,246,.1),rgba(212,165,255,.1),rgba(107,70,193,.1),rgba(104,211,145,.1));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@media(max-width:600px){
+  #controls{padding:7px 9px 8px}
+  .transport-btn{padding:5px 12px;font-size:.76rem}
+  #info-bar{padding:7px 10px}
+  #timeline-wrap{padding:0 9px;height:22px}
+  .t-section-label{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="inner">
+<div class="pulse-bar"></div>
+<h1>STELLAE</h1>
+<p class="sub">The music of stars, composed entirely by Coherence, Rupture &amp; Regeneration.<br>
+Red dwarf as bass drone. Our sun as melody. Blue giant as blazing strings.<br>
+Neutron star as crystalline pulse. The CMB as the oldest memory.<br>
+Every pitch from Wien's law. Every rhythm from asteroseismology. Every harmony from exp(C/Ω).</p>
+<p class="eq">fusion: Z₂ → Ω=1/π · p-modes: SO(2) → Ω=1/2π · supernova: δ(now) = core collapse<br>
+CMB: T=2.725K = cosmic Ω drone · Wien: λ=b/T → pitch · Planck: exp(hν/kT) = exp(C/Ω)<br>
+red dwarf: E Phrygian · sun: C Dorian · blue giant: G Lydian · neutron: E whole-tone</p>
+<p class="credit">CRR Framework — Alexander Sabine · temporalgrammar.ai</p>
+<p class="tap">tap to enter</p>
+</div></div>
+
+<div id="app">
+<div id="canvas-wrap">
+  <canvas id="viz"></canvas>
+  <div id="info-bar">
+    <div id="piece-title">Stellae<span class="composer">CRR — the music of stars</span></div>
+    <div id="crr-display"></div>
+  </div>
+  <div id="section-label"></div>
+  <div id="lyric-display"><div id="lyric-text"></div></div>
+</div>
+<div id="timeline-wrap">
+  <div id="timeline-bar">
+    <div id="timeline-fill"></div>
+    <div id="timeline-sections"></div>
+  </div>
+  <span id="timeline-crr">C=0</span>
+  <span id="timeline-time">0:00 / 0:00</span>
+</div>
+<div id="controls">
+<div class="transport-row">
+  <button class="transport-btn" id="btn-play">▶ Play</button>
+  <button class="transport-btn" id="btn-stop">■ Stop</button>
+  <div class="slider-wrap"><label>Reverb</label>
+    <input type="range" id="reverb-slider" min="0" max="1" step="0.05" value="0.82">
+    <span class="val" id="reverb-val">0.82</span></div>
+  <div class="slider-wrap"><label>Piano</label>
+    <input type="range" id="piano-slider" min="0" max="1" step="0.05" value="0.65">
+    <span class="val" id="piano-val">0.65</span></div>
+  <div class="slider-wrap"><label>Strings</label>
+    <input type="range" id="strings-slider" min="0" max="1" step="0.05" value="0.55">
+    <span class="val" id="strings-val">0.55</span></div>
+  <div class="slider-wrap"><label>Synth</label>
+    <input type="range" id="synth-slider" min="0" max="1" step="0.05" value="0.50">
+    <span class="val" id="synth-val">0.50</span></div>
+</div>
+<div id="crr-footer">
+  fusion = Z₂ CRR · p-modes = SO(2) standing waves · supernova = δ(now) · CMB = R[Φ] of the early universe · Wien: T→pitch · Planck: exp(C/Ω) = harmonic weighting
+</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// STELLAE — The Music of Stars
+// ═══════════════════════════════════════════════════════════════════
+//  Every sound derived from CRR applied to stellar physics.
+//  CRR does not replace physics; it provides the temporal grammar
+//  by which physical processes unfold.
+//
+//  Nuclear fusion: Z₂ CRR (reaction happens or doesn't)
+//  Stellar oscillations: SO(2) CRR (standing waves)
+//  Supernova: δ(now) — the ultimate stellar rupture
+//  Neutron star: Post-rupture remnant, maximum density CRR
+//  CMB: R[Φ] of the Big Bang — the oldest regeneration field
+//
+//  Music theory derivation:
+//    Pitch from Wien's law (T → λ_peak → frequency)
+//    Rhythm from asteroseismology (p-mode periods)
+//    Harmony from exp(C/Ω) weighting of harmonic series
+//    Mode from stellar temperature (cool→dark, hot→bright)
+//
+//  Genre: Modern Classical Electric
+//    (Ólafur Arnalds × Nils Frahm × Radiohead atmospherics)
+//
+//  Alexander Sabine · CRR Framework · temporalgrammar.ai
+// ═══════════════════════════════════════════════════════════════════
+
+const PI=Math.PI,TAU=2*PI,PHI=(1+Math.sqrt(5))/2;
+const{min,max,abs,sin,cos,sqrt,exp,log,log2,floor,ceil,round,random,pow}=Math;
+function clamp(v,lo,hi){return max(lo,min(hi,v))}
+function lerp(a,b,t){return a+(b-a)*t}
+function midiToFreq(m){return 440*pow(2,(m-69)/12)}
+
+// ═══════════════════════════════════════════════════════════════════
+// §0  CRR ENGINE — Coherence, Rupture, Regeneration
+// ═══════════════════════════════════════════════════════════════════
+// C(x,t) = ∫L(x,τ)dτ  — coherence accumulates
+// δ(t-t*) fires when C ≥ Ω (with stochastic CV = Ω/2)
+// R[Φ] = ∫Φ·exp(C/Ω)·Θ dτ — regeneration weights history by significance
+
+class CRRAgent{
+  constructor(sym='Z2',s=1){
+    this.omegaBase=sym==='Z2'?1/PI:sym==='SO2'?1/TAU:1/(PI*PHI);
+    this.omegaScale=s;this.C=0;this.lastRC=0;this.ruptures=0;
+    this.sinceRupture=0;this.inRegen=false;this.regenProg=0;
+  }
+  get omega(){return this.omegaBase*this.omegaScale}
+  get expCO(){return exp(min(10,this.C/max(.001,this.omega)))}
+  get normC(){return min(1,(this.C-this.lastRC)/max(.01,1/this.omega))}
+  acc(L,dt=1){this.C+=L*dt;this.sinceRupture++}
+  shouldRupture(){const th=1/this.omega,acc=this.C-this.lastRC,cv=this.omega/2;
+    return acc>=(th+(random()-.5)*2*cv*th)}
+  doRupture(){this.lastRC=this.C;this.ruptures++;this.sinceRupture=0;this.inRegen=true;this.regenProg=0}
+  step(L,dt=1){if(this.inRegen){this.regenProg=min(1,this.regenProg+.02);
+    if(this.regenProg>=1)this.inRegen=false;return{phase:'R',progress:this.regenProg}}
+    this.acc(L,dt);if(this.shouldRupture()){this.doRupture();return{phase:'delta'}}
+    return{phase:'C',value:this.C}}
+  reset(){this.C=0;this.lastRC=0;this.ruptures=0;this.sinceRupture=0;this.inRegen=false;this.regenProg=0}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §1  STELLAR STATE — CRR agents for each star type
+// ═══════════════════════════════════════════════════════════════════
+// Each star has its own CRR agent(s):
+//   - Fusion agent (Z₂): drives core energy production
+//   - P-mode agent (SO(2)): drives oscillation/rhythm
+//   - Structure agent: overall stellar coherence
+
+const STARS={
+  // Red dwarf: E Phrygian, deep, slow, ancient
+  // T=3042K, root=E2(40), Ω_scale=2.0 (high Ω = fluid, long-lived)
+  redDwarf:{
+    name:'Proxima Centauri',T:3042,root:40,
+    mode:[0,1,3,5,7,8,10], // E Phrygian
+    omegaScale:2.0,sym:'Z2',
+    fusion:new CRRAgent('Z2',2.0),
+    pmode:new CRRAgent('SO2',2.5),
+    color:[232,74,58],
+  },
+  // Sun: C Dorian, balanced, warm, human
+  // T=5778K, root=C3(48), Ω_scale=1.0
+  sun:{
+    name:'Sol',T:5778,root:48,
+    mode:[0,2,3,5,7,9,10], // C Dorian
+    omegaScale:1.0,sym:'Z2',
+    fusion:new CRRAgent('Z2',1.0),
+    pmode:new CRRAgent('SO2',1.5),
+    color:[246,199,68],
+  },
+  // Blue giant: G Lydian, brilliant, blazing, short-lived
+  // T=12100K, root=G3(55), Ω_scale=0.6 (low Ω = rigid, fast-burning)
+  blueGiant:{
+    name:'Rigel',T:12100,root:55,
+    mode:[0,2,4,6,7,9,11], // G Lydian
+    omegaScale:0.6,sym:'SO2',
+    fusion:new CRRAgent('SO2',0.6),
+    pmode:new CRRAgent('SO2',0.8),
+    color:[74,158,246],
+  },
+  // Neutron star: E4 whole-tone, crystalline, post-rupture
+  // T=10^6K, root=E4(64), Ω_scale=0.3 (extreme rigidity)
+  neutron:{
+    name:'PSR B1919+21',T:1e6,root:64,
+    mode:[0,2,4,6,8,10], // Whole tone
+    omegaScale:0.3,sym:'Z2',
+    pulse:new CRRAgent('Z2',0.3),
+    color:[212,165,255],
+    pulsePeriod:1.3373, // seconds
+  },
+};
+
+// CMB: The cosmic Ω reference drone
+const CMB={
+  T:2.725,
+  droneNote:28, // E1 = 41.2 Hz (sub-bass Ω reference)
+  agent:new CRRAgent('SO2',3.0), // highest Ω — the most ancient memory
+};
+
+// Piece-level CRR agents
+const compositionAgent=new CRRAgent('phi',2);
+const phraseAgent=new CRRAgent('SO2',1.5);
+
+// ═══════════════════════════════════════════════════════════════════
+// §2  AUDIO ENGINE — CRR-driven synthesis (Web Audio API)
+// ═══════════════════════════════════════════════════════════════════
+// Every sound source maps to stellar physics:
+//   Piano: crystalline resonances (stellar p-mode harmonics)
+//   Strings: sustained plasma oscillations (stellar envelopes)
+//   Synth pad: the coherence field itself (C building over time)
+//   Sub-drone: CMB — the oldest regeneration signal
+//   Pulsar click: neutron star Z₂ rotation
+//   Supernova burst: δ(now) rendered as noise + resonance
+
+let ac,masterGain,pianoGain,stringsGain,synthGain,dryGain,wetGain,convolver;
+let pianoMix=0.65,stringsMix=0.55,synthMix=0.50,reverbMix=0.82;
+let noiseBuf;
+
+function createNoiseBuf(){
+  const len=ac.sampleRate*2,buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=(random()*2-1);return buf;
+}
+function createReverbIR(){
+  const len=ac.sampleRate*4,buf=ac.createBuffer(2,len,ac.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);
+    for(let i=0;i<len;i++){d[i]=(random()*2-1)*exp(-i/(ac.sampleRate*1.8))*(1+0.3*sin(i*0.0001));}}
+  return buf;
+}
+
+function initAudio(){
+  ac=new(window.AudioContext||window.webkitAudioContext)();
+  noiseBuf=createNoiseBuf();
+  masterGain=ac.createGain();masterGain.gain.value=1.0;
+  pianoGain=ac.createGain();pianoGain.gain.value=pianoMix*1.2;
+  stringsGain=ac.createGain();stringsGain.gain.value=stringsMix*1.1;
+  synthGain=ac.createGain();synthGain.gain.value=synthMix*1.0;
+  dryGain=ac.createGain();wetGain=ac.createGain();
+  dryGain.gain.value=1-reverbMix*0.2;wetGain.gain.value=reverbMix*1.0;
+  convolver=ac.createConvolver();convolver.buffer=createReverbIR();
+  pianoGain.connect(dryGain);pianoGain.connect(convolver);
+  stringsGain.connect(dryGain);stringsGain.connect(convolver);
+  synthGain.connect(dryGain);synthGain.connect(convolver);
+  convolver.connect(wetGain);
+  dryGain.connect(masterGain);wetGain.connect(masterGain);
+  masterGain.connect(ac.destination);
+  initDrone();initPad();
+}
+
+// §2.1 PIANO — Crystalline resonances (stellar p-mode harmonics)
+// Each note is a set of harmonics weighted by exp(1/n) — the CRR
+// harmonic weighting derived in the Python derivation.
+function playPiano(midi,velocity,duration){
+  if(!ac)return;const now=ac.currentTime,freq=midiToFreq(midi);
+  const noteGain=ac.createGain();noteGain.gain.value=0;noteGain.connect(pianoGain);
+  // Harmonics weighted by exp(1/n) — CRR regeneration spectrum
+  const harmonics=[
+    {n:1,w:2.718,type:'sine'},   // fundamental: exp(1)
+    {n:2,w:1.649,type:'sine'},   // octave: exp(0.5)
+    {n:3,w:1.396,type:'sine'},   // fifth: exp(0.333)
+    {n:5,w:1.221,type:'sine'},   // maj 3rd: exp(0.2)
+    {n:7,w:1.154,type:'triangle'}, // min 7th: exp(0.143)
+  ];
+  const oscs=[];
+  for(const h of harmonics){
+    if(h.n*freq>nyq())continue;
+    const o=ac.createOscillator();o.type=h.type;o.frequency.value=freq*h.n;
+    // Slight detuning for warmth (stellar scintillation)
+    o.detune.value=(random()-0.5)*3;
+    const g=ac.createGain();
+    // Weight by exp(1/n) normalized, with 1/n² rolloff for piano timbre
+    g.gain.value=velocity*(h.w/2.718)*(1/(h.n*h.n))*1.0;
+    o.connect(g);g.connect(noteGain);o.start(now);
+    o.stop(now+duration+1.5);oscs.push(o);
+  }
+  // Piano envelope: fast attack, exp decay
+  const att=0.003,dec=duration*0.7;
+  noteGain.gain.setValueAtTime(0,now);
+  noteGain.gain.linearRampToValueAtTime(velocity*0.5,now+att);
+  noteGain.gain.exponentialRampToValueAtTime(0.001,now+att+dec+1);
+  setTimeout(()=>{noteGain.disconnect()},((duration+2)*1000));
+}
+
+// §2.2 STRINGS — Sustained plasma oscillations
+// Sawtooth + formant filtering = bowed string = stellar envelope
+function playStrings(midis,gain,duration){
+  if(!ac)return;const now=ac.currentTime;
+  const master=ac.createGain();master.gain.value=0;master.connect(stringsGain);
+  for(const midi of midis){
+    const freq=midiToFreq(midi);if(freq>nyq())continue;
+    const saw=ac.createOscillator();saw.type='sawtooth';saw.frequency.value=freq;
+    // Detune pair for ensemble
+    const saw2=ac.createOscillator();saw2.type='sawtooth';saw2.frequency.value=freq*1.002;
+    const lp=ac.createBiquadFilter();lp.type='lowpass';
+    lp.frequency.value=min(freq*4,6000);lp.Q.value=0.7;
+    const g=ac.createGain();g.gain.value=gain*0.5;
+    // Vibrato (LFO) — stellar oscillation
+    const vib=ac.createOscillator();vib.frequency.value=4.5+random()*1;
+    const vibG=ac.createGain();vibG.gain.value=freq*0.003;
+    vib.connect(vibG);vibG.connect(saw.frequency);vibG.connect(saw2.frequency);
+    saw.connect(lp);saw2.connect(lp);lp.connect(g);g.connect(master);
+    saw.start(now);saw2.start(now);vib.start(now);
+    saw.stop(now+duration+2);saw2.stop(now+duration+2);vib.stop(now+duration+2);
+  }
+  // Slow swell envelope
+  const att=duration*0.25;
+  master.gain.setValueAtTime(0,now);
+  master.gain.linearRampToValueAtTime(gain*1.1,now+att);
+  master.gain.setValueAtTime(gain*1.1,now+duration*0.7);
+  master.gain.exponentialRampToValueAtTime(0.001,now+duration+1.5);
+  setTimeout(()=>{master.disconnect()},((duration+3)*1000));
+}
+
+// §2.3 SYNTH PAD — The coherence field
+// Filtered noise + sine layers = the C field building
+let padVoices=null;
+function initPad(){
+  if(!ac)return;
+  padVoices={master:ac.createGain(),oscs:[],active:false};
+  padVoices.master.gain.value=0;padVoices.master.connect(synthGain);
+}
+function setPad(midis,gain,duration){
+  if(!ac||!padVoices)return;const now=ac.currentTime;
+  // Fade out old
+  padVoices.master.gain.cancelScheduledValues(now);
+  padVoices.master.gain.setValueAtTime(padVoices.master.gain.value,now);
+  padVoices.master.gain.linearRampToValueAtTime(0,now+0.5);
+  // Kill old oscs
+  setTimeout(()=>{
+    for(const o of padVoices.oscs)try{o.stop()}catch(e){}
+    padVoices.oscs=[];
+    if(!midis||midis.length===0)return;
+    const master2=ac.createGain();master2.gain.value=0;master2.connect(synthGain);
+    for(const midi of midis){
+      const freq=midiToFreq(midi);
+      const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+      const o2=ac.createOscillator();o2.type='triangle';o2.frequency.value=freq*2.001;
+      const g=ac.createGain();g.gain.value=0.25;
+      const g2=ac.createGain();g2.gain.value=0.08;
+      o.connect(g);g.connect(master2);o2.connect(g2);g2.connect(master2);
+      o.start();o2.start();padVoices.oscs.push(o,o2);
+    }
+    const att=duration*0.3;
+    master2.gain.setValueAtTime(0,ac.currentTime);
+    master2.gain.linearRampToValueAtTime(gain*0.85,ac.currentTime+att);
+    padVoices.master=master2;
+  },600);
+}
+
+// §2.4 CMB DRONE — The cosmic Ω reference
+// Sub-bass E1 (41.2 Hz) + fifth B1 (61.7 Hz) + octave E2 (82.4 Hz)
+// This IS the oldest regeneration field in the universe.
+let droneVoice=null;
+function initDrone(){
+  if(!ac)return;
+  droneVoice={master:ac.createGain(),oscs:[]};
+  droneVoice.master.gain.value=0;droneVoice.master.connect(synthGain);
+  const freqs=[[41.2,0.15],[61.7,0.08],[82.4,0.06]]; // E1, B1, E2
+  for(const[freq,vol]of freqs){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const g=ac.createGain();g.gain.value=vol;
+    o.connect(g);g.connect(droneVoice.master);o.start();
+    droneVoice.oscs.push(o);
+  }
+  // Sub-rumble noise
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;ns.loop=true;
+  const nf=ac.createBiquadFilter();nf.type='lowpass';nf.frequency.value=80;nf.Q.value=0.5;
+  const ng=ac.createGain();ng.gain.value=0.025;
+  ns.connect(nf);nf.connect(ng);ng.connect(droneVoice.master);ns.start();
+}
+function setDroneGain(g){
+  if(!droneVoice)return;const now=ac.currentTime;
+  droneVoice.master.gain.cancelScheduledValues(now);
+  droneVoice.master.gain.setValueAtTime(droneVoice.master.gain.value,now);
+  droneVoice.master.gain.linearRampToValueAtTime(g,now+0.8);
+}
+
+// §2.5 PULSAR CLICK — Neutron star Z₂ rotation pulse
+function playPulsar(velocity){
+  if(!ac)return;const now=ac.currentTime;
+  // Sharp click + pitched resonance at E4 (329.6 Hz)
+  const freq=midiToFreq(64);
+  const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+  const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq*2;
+  const g=ac.createGain();g.gain.setValueAtTime(velocity*0.3,now);
+  g.gain.exponentialRampToValueAtTime(0.001,now+0.15);
+  const g2=ac.createGain();g2.gain.value=0.1;
+  o.connect(g);o2.connect(g2);g2.connect(g);g.connect(synthGain);
+  // Click noise
+  const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+  const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=3000;nf.Q.value=5;
+  const ng=ac.createGain();ng.gain.setValueAtTime(velocity*0.12,now);
+  ng.gain.exponentialRampToValueAtTime(0.001,now+0.04);
+  ns.connect(nf);nf.connect(ng);ng.connect(synthGain);
+  o.start(now);o2.start(now);ns.start(now);
+  o.stop(now+0.3);o2.stop(now+0.3);ns.stop(now+0.1);
+}
+
+// §2.6 SUPERNOVA BURST — δ(now) rendered as sound
+// Rising chirp (coherence building) → silence → explosion
+function playSupernovaBurst(intensity){
+  if(!ac)return;const now=ac.currentTime;
+  // Rising chirp: gravitational wave inspiral analogy
+  const chirp=ac.createOscillator();chirp.type='sine';
+  chirp.frequency.setValueAtTime(40,now);
+  chirp.frequency.exponentialRampToValueAtTime(2000,now+1.5);
+  const cg=ac.createGain();cg.gain.setValueAtTime(0,now);
+  cg.gain.linearRampToValueAtTime(intensity*0.3,now+1.2);
+  cg.gain.linearRampToValueAtTime(0,now+1.5);
+  chirp.connect(cg);cg.connect(masterGain);chirp.start(now);chirp.stop(now+1.6);
+  // Silence gap (0.3s) then explosion
+  setTimeout(()=>{
+    if(!ac)return;const t=ac.currentTime;
+    const ns=ac.createBufferSource();ns.buffer=noiseBuf;
+    const bp=ac.createBiquadFilter();bp.type='lowpass';
+    bp.frequency.setValueAtTime(8000,t);bp.frequency.exponentialRampToValueAtTime(200,t+3);
+    bp.Q.value=1;
+    const eg=ac.createGain();eg.gain.setValueAtTime(intensity*0.5,t);
+    eg.gain.exponentialRampToValueAtTime(0.001,t+4);
+    ns.connect(bp);bp.connect(eg);eg.connect(masterGain);
+    ns.start(t);ns.stop(t+4.5);
+    // Resonant ring — the remnant forming
+    for(const freq of [82.4,164.8,329.6,659.3]){
+      const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+      const rg=ac.createGain();rg.gain.setValueAtTime(intensity*0.15,t+0.1);
+      rg.gain.exponentialRampToValueAtTime(0.001,t+5);
+      o.connect(rg);rg.connect(convolver);rg.connect(masterGain);
+      o.start(t+0.05);o.stop(t+5.5);
+    }
+  },1800);
+}
+
+// §2.7 SHIMMER — High harmonics (stellar scintillation)
+function playShimmer(midi,velocity){
+  if(!ac)return;const now=ac.currentTime,freq=midiToFreq(midi);
+  const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+  const g=ac.createGain();
+  g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(velocity*0.15,now+0.05);
+  g.gain.exponentialRampToValueAtTime(0.001,now+2);
+  o.connect(g);g.connect(synthGain);o.start(now);o.stop(now+2.5);
+}
+
+function nyq(){return ac?ac.sampleRate/2:22050}
+
+// ═══════════════════════════════════════════════════════════════════
+// §3  COMPOSITION — "Stellae" — the song of the cosmos
+// ═══════════════════════════════════════════════════════════════════
+// Genre: Modern Classical Electric
+// Structure: One macro CRR cycle across 348 beats at 60 BPM
+//
+// THE MACRO CRR CYCLE:
+//   VOID (0-23)          │ C ≈ 0. CMB drone. The oldest light.
+//   RED EMBER (24-71)    │ C begins. Red dwarf: E Phrygian bass.
+//   MAIN SEQUENCE (72-131)│ C builds. Sun: C Dorian piano melody.
+//   BLUE FIRE (132-191)  │ C → Ω. Blue giant: G Lydian strings blaze.
+//   CRITICAL MASS (192-227)│ C ≈ Ω. All stars in harmony. Maximum.
+//   SUPERNOVA (228-251)  │ δ(now). Core collapse. Silence → explosion.
+//   REMNANT (252-299)    │ R[memory]. Pulsar pulse. Stars return.
+//   COSMIC DAWN (300-347)│ R → 0. The cycle is eternal.
+
+const SECTIONS=[
+  {name:'SILENCE',start:0,end:0,label:'· · ·'},
+  {name:'VOID',start:0,end:24,label:'before the first light'},
+  {name:'RED EMBER',start:24,end:72,label:'the oldest stars'},
+  {name:'MAIN SEQUENCE',start:72,end:132,label:'our star breathes'},
+  {name:'BLUE FIRE',start:132,end:192,label:'giants burning fast'},
+  {name:'CRITICAL MASS',start:192,end:228,label:'C → Ω across all scales'},
+  {name:'SUPERNOVA',start:228,end:252,label:'δ(now)'},
+  {name:'REMNANT',start:252,end:300,label:'R[memory]'},
+  {name:'COSMIC DAWN',start:300,end:348,label:'regeneration complete'},
+];
+const TOTAL_BEATS=348;
+const BPM=60;
+
+function getSection(beat){
+  for(let i=SECTIONS.length-1;i>=0;i--){if(beat>=SECTIONS[i].start)return SECTIONS[i]}
+  return SECTIONS[0];
+}
+
+// Chord voicings derived from each star's mode + harmonic series weighting
+// Red dwarf E Phrygian: E F G A B C D
+const Em =[28,40,52,55,59,64];  // E1,E2,E3,G3,B3,E4
+const Fmaj=[29,41,53,57,60,65]; // F1,F2,F3,A3,C4,F4
+const Am =[33,45,52,57,60,64];  // A1,A2,E3,A3,C4,E4
+const Bdim=[35,47,53,59,62,65]; // B1,B2,F3,B3,D4,F4
+
+// Sun C Dorian: C D Eb F G A Bb
+const Cm =[36,48,55,60,63,67];  // C2,C3,G3,C4,Eb4,G4
+const Dm7=[38,50,57,62,65,69];  // D2,D3,A3,D4,F4,A4
+const EbM=[39,51,55,58,63,67];  // Eb2,Eb3,G3,Bb3,Eb4,G4
+const Gm =[31,43,55,58,62,67];  // G1,G2,G3,Bb3,D4,G4
+const BbM=[34,46,53,58,62,65];  // Bb1,Bb2,F3,Bb3,D4,F4
+
+// Blue giant G Lydian: G A B C# D E F#
+const GM =[31,43,55,59,62,67];  // G1,G2,G3,B3,D4,G4
+const A7 =[33,45,57,61,64,69];  // A1,A2,A3,C#4,E4,A4
+const Bm2=[35,47,59,62,66,71];  // B1,B2,B3,D4,F#4,B4
+const DM =[38,50,54,57,62,66];  // D2,D3,F#3,A3,D4,F#4
+const EM7=[40,52,56,59,64,68];  // E2,E3,G#3,B3,E4,G#4
+
+// Pad voicings (mid-register)
+const padEm=[52,55,59,64];
+const padCm=[48,55,60,63];
+const padGM=[55,59,62,67];
+const padBm=[59,62,66,71];
+
+function buildSequence(){
+  const E=[];
+  function p(b,m,v,d){E.push({beat:b,midi:m,velocity:v||.2,duration:d||2,type:'piano'})}
+  function str(b,mids,g,d){E.push({beat:b,type:'strings',midis:mids,gain:g,dur:d||4})}
+  function pad(b,notes,g,d){E.push({beat:b,type:'pad',padNotes:notes,padGain:g,duration:d||6})}
+  function drone(b,g,d){E.push({beat:b,type:'drone',droneGain:g,duration:d||8})}
+  function pulsar(b,v){E.push({beat:b,type:'pulsar',velocity:v})}
+  function shimmer(b,m,v){E.push({beat:b,type:'shimmer',midi:m,velocity:v||.15})}
+  function nova(b,v){E.push({beat:b,type:'supernova',intensity:v})}
+  function text(b,t,d){E.push({beat:b,type:'text',text:t,dur:d||8})}
+  function sec(b,n){E.push({beat:b,type:'section',name:n})}
+
+  // ═══ I. VOID (0-23): Before the first light ═══
+  // CMB drone fades in. The oldest memory. Near-silence.
+  sec(0,'before the first light');
+  text(0,'the oldest light in the universe',10);
+  drone(0,0.01,24);
+  // Barely audible shimmer — CMB photons
+  for(let i=0;i<6;i++){shimmer(i*4,64+floor(random()*12),0.02+i*0.005)}
+  drone(12,0.04,12);
+  text(12,'T = 2.725 K — the cosmic Ω reference',8);
+
+  // ═══ II. RED EMBER (24-71): The oldest stars ═══
+  // E Phrygian bass. Red dwarf: slow, deep, ancient coherence.
+  sec(24,'the oldest stars');
+  text(24,'red dwarfs — E Phrygian — Ω=2.0 (fluid, patient)',10);
+  drone(24,0.08,48);
+
+  // Bass notes: E Phrygian descent E-D-C-B (the Phrygian sighing figure)
+  // Slow, one note every 4 beats
+  const rdBass=[40,38,36,35, 40,38,36,33, 40,38,36,35];
+  for(let i=0;i<12;i++){
+    p(24+i*4,rdBass[i],0.08+i*0.005,6);
+    // Shimmer overtones
+    if(i%3===0)shimmer(24+i*4+2,rdBass[i]+24,0.04);
+  }
+  // Pad: Em sustained
+  pad(24,padEm,0.04,24);
+  pad(48,padEm,0.06,24);
+  text(36,'Wien: T=3042K → λ=953nm → infrared warmth',8);
+  // First melody hint: very sparse Phrygian melody in high register
+  p(40,64,0.06,4); // E4
+  p(48,65,0.07,3); // F4 — the Phrygian b2
+  p(52,67,0.08,3); // G4
+  p(56,64,0.07,4); // E4 — return
+  p(64,69,0.06,5); // A4
+  p(68,67,0.07,3); // G4
+
+  // ═══ III. MAIN SEQUENCE (72-131): Our star breathes ═══
+  // C Dorian piano melody. The sun. Warmth, balance, humanity.
+  // 12-beat breath phrases (π² ≈ 10 seconds at 72 BPM equivalent).
+  sec(72,'our star breathes');
+  text(72,'Sol — C Dorian — Ω=1.0 (balanced, human)',10);
+  drone(72,0.12,60);
+  pad(72,padCm,0.08,12);
+
+  // Sun melody: ascending Dorian figure (coherence building)
+  // Breath 1 (72-83): First statement
+  p(72,48,0.12,4);  // C3 bass
+  p(72,60,0.14,3);  // C4
+  p(75,62,0.12,2);  // D4
+  p(77,63,0.15,3);  // Eb4 — the Dorian minor 3rd
+  p(80,65,0.13,3);  // F4
+  p(83,67,0.16,4);  // G4 — the fifth, breath turn
+
+  // Breath 2 (84-95): Answer, with strings entering
+  str(84,[36,48,55,60],0.04,10);
+  pad(84,padCm,0.10,12);
+  p(84,48,0.14,4);
+  p(84,67,0.15,2);  // G4
+  p(86,69,0.14,2);  // A4 — the Dorian natural 6th (signature interval)
+  p(88,67,0.13,3);  // G4
+  p(91,65,0.12,2);  // F4 — exhale
+  p(93,63,0.11,3);  // Eb4
+  p(95,60,0.10,4);  // C4 — return to tonic
+
+  // Breath 3 (96-107): Growing. Red dwarf bass continues underneath.
+  str(96,[36,43,48,55],0.06,10);
+  pad(96,[48,55,63,67],0.10,12);
+  p(96,36,0.12,6);  // C2 deep bass
+  p(96,60,0.16,2);  // C4
+  p(98,63,0.15,2);  // Eb4
+  p(100,65,0.17,2); // F4
+  p(102,67,0.18,2); // G4 — turn
+  p(104,69,0.19,2); // A4 — reaching
+  p(106,67,0.16,3); // G4 — settling
+  // Red dwarf echoes underneath
+  p(97,40,0.06,5);  // E2 — the red dwarf remembers
+  p(103,38,0.05,4); // D2
+
+  text(96,'12 beats = one stellar breath',8);
+
+  // Breath 4 (108-119): Confidence. Wider intervals.
+  str(108,[39,48,55,58],0.07,10); // EbMaj
+  pad(108,[55,58,63,67],0.12,12);
+  p(108,39,0.13,6); // Eb2
+  p(108,63,0.17,2); // Eb4
+  p(110,65,0.16,2); // F4
+  p(112,67,0.18,2); // G4
+  p(114,70,0.19,2); // Bb4 — the Dorian b7
+  p(116,72,0.20,3); // C5 — octave reached!
+  p(119,69,0.16,4); // A4
+
+  // Breath 5 (120-131): Full melody with harmony
+  str(120,[34,46,53,58],0.08,10); // BbMaj
+  pad(120,padCm,0.12,12);
+  p(120,34,0.14,6);
+  p(120,70,0.18,2); // Bb4
+  p(122,72,0.17,2); // C5
+  p(124,69,0.19,2); // A4 — Dorian signature
+  p(126,67,0.18,2); // G4 — turn
+  p(128,65,0.15,2); // F4
+  p(130,63,0.13,3); // Eb4 — exhale home
+
+  text(120,'exp(C/Ω) = e at every rupture — Euler calibration',8);
+
+  // ═══ IV. BLUE FIRE (132-191): Giants burning fast ═══
+  // G Lydian strings. Rigel. Brilliant, blazing, short-lived.
+  sec(132,'giants burning fast');
+  text(132,'Rigel — G Lydian — Ω=0.6 (rigid, blazing)',10);
+  drone(132,0.15,60);
+
+  // Tremolo strings enter — the blue giant's plasma oscillations
+  // G Lydian: the #4 (C#) gives that bright, otherworldly quality
+  str(132,[31,43,55,59,62],0.08,16);
+  pad(132,padGM,0.12,12);
+
+  // Blue giant melody: wide leaps, Lydian brightness
+  p(132,55,0.18,2); // G3
+  p(134,59,0.17,2); // B3
+  p(136,62,0.20,2); // D4
+  p(138,66,0.22,3); // F#4 — Lydian #4!
+  p(141,67,0.20,2); // G4
+  p(143,62,0.18,3); // D4 — leap down
+
+  str(144,[33,45,57,61,64],0.10,12); // A7
+  pad(144,[57,61,64,69],0.14,12);
+  p(144,45,0.15,4); // A2 bass
+  p(144,69,0.22,2); // A4
+  p(146,71,0.20,2); // B4
+  p(148,73,0.23,2); // C#5 — the Lydian #4 in higher register
+  p(150,74,0.24,3); // D5 — blazing peak!
+  p(153,71,0.20,2); // B4
+  p(155,69,0.18,4); // A4
+
+  // All three stars now playing together
+  // Red dwarf bass drone
+  p(156,40,0.06,8); p(164,38,0.05,8);
+  // Sun continues
+  str(156,[36,48,55,60],0.08,16);
+  // Blue giant continues to blaze
+  str(156,[31,43,55,62,67],0.12,8);
+  pad(156,padGM,0.15,12);
+  p(156,67,0.22,2); p(158,71,0.20,2); p(160,74,0.25,2);
+  p(162,76,0.26,3); // E5 — reaching higher!
+  p(165,74,0.22,2); p(167,71,0.20,2); p(169,67,0.18,4);
+
+  text(156,'three stars singing — Wien\'s law becomes harmony',8);
+
+  str(172,[35,47,59,62,66],0.12,10); // Bm
+  pad(172,padBm,0.14,10);
+  p(172,47,0.16,4);
+  // Building toward climax
+  p(172,71,0.22,2); p(174,74,0.23,2); p(176,76,0.25,2);
+  p(178,78,0.26,2); // F#5!
+  p(180,79,0.28,3); // G5 — maximum blue giant
+  p(183,76,0.24,2); p(185,74,0.22,3); p(188,71,0.20,4);
+
+  text(180,'Lydian #4 = the brightest interval in the harmonic series',8);
+
+  // ═══ V. CRITICAL MASS (192-227): C → Ω across all scales ═══
+  sec(192,'C → Ω across all scales');
+  text(192,'all stars aligned — coherence approaching threshold',10);
+  drone(192,0.20,36);
+
+  // All voices layered: maximum coherence
+  // Bass: Red dwarf + Sun octave foundation
+  p(192,28,0.10,8); // E1 (sub)
+  p(192,40,0.14,4); // E2
+  p(196,36,0.14,4); // C2
+  p(200,31,0.14,4); // G1
+  p(204,40,0.14,4); // E2
+
+  // Sun melody at peak expression
+  str(192,[36,48,55,60,67],0.12,16);
+  str(208,[39,48,55,63,67],0.14,16);
+  pad(192,[48,55,60,67],0.16,12);
+  pad(204,[55,60,63,67],0.18,12);
+
+  // Full combined melody — all modes interweaving
+  p(192,60,0.22,2); p(194,63,0.20,2); p(196,67,0.24,2);
+  p(198,69,0.25,2); // A4 — Dorian
+  p(200,71,0.26,2); // B4 — Lydian
+  p(202,72,0.28,2); // C5
+  shimmer(202,84,0.08); shimmer(203,88,0.06);
+  p(204,74,0.28,2); // D5
+  p(206,76,0.30,3); // E5 — peak!
+
+  text(204,'exp(C/Ω) approaching maximum — the wall of sound',8);
+
+  // The crescendo builds through beats 208-227
+  str(208,[28,40,48,55,60,67],0.16,20); // Full Em orchestral chord
+  pad(216,[48,55,63,67,72],0.20,12);
+  for(let b=208;b<228;b+=2){
+    const intensity=(b-208)/20;
+    const midi=60+floor(intensity*19);
+    p(b,midi,0.15+intensity*0.18,2);
+    if(b%4===0)shimmer(b,midi+12,0.05+intensity*0.08);
+  }
+  // Accelerating pulsar ticks leading to rupture
+  for(let b=220;b<228;b++){
+    pulsar(b,0.03+(b-220)*0.02);
+  }
+
+  // ═══ VI. SUPERNOVA (228-251): δ(now) — core collapse ═══
+  sec(228,'δ(now)');
+  text(228,'supernova — the universe ruptures',6);
+
+  // Everything drops to silence first (the core collapse is silent)
+  drone(228,0,2);
+  // Beat 230: THE RUPTURE
+  nova(230,0.8);
+
+  // Beats 234-251: aftershock, the universe processing
+  text(236,'from rupture comes new matter — iron, gold, uranium',10);
+  // Sparse, shocked tones
+  drone(236,0.04,16);
+  p(238,40,0.06,8); // E2 — echoing back from the void
+  shimmer(240,76,0.04);
+  p(244,48,0.05,6); // C3 — the sun's note, faintly
+  shimmer(246,79,0.03);
+  p(248,55,0.04,6); // G3 — blue giant's ghost
+  shimmer(250,71,0.03);
+
+  // ═══ VII. REMNANT (252-299): R[memory] — the pulsar remembers ═══
+  sec(252,'R[memory]');
+  text(252,'the pulsar remembers — R[Φ] = ∫Φ·exp(C/Ω)·Θ dτ',10);
+  drone(252,0.06,48);
+
+  // Neutron star pulse: regular, crystalline, whole-tone
+  // The pulsar IS the remnant's CRR agent — Z₂ pulse, Ω=0.3
+  for(let b=252;b<300;b+=2){
+    pulsar(b,0.08+((b-252)/48)*0.06);
+  }
+
+  // Regeneration: Stars return, weighted by coherence
+  // High-coherence moments return first (exp(C/Ω) = e at rupture peaks)
+  // The sun's melody returns first (it had the highest sustained coherence)
+  pad(258,padCm,0.04,12);
+  p(260,60,0.06,4); // C4 — sun returning
+  p(264,63,0.07,3); // Eb4
+  p(268,65,0.08,3); // F4
+
+  // Then blue giant harmonics shimmer back
+  shimmer(270,67,0.04); shimmer(272,71,0.05);
+  str(272,[36,48,55,60],0.04,12);
+
+  // Then red dwarf bass — the most ancient, last to return but most enduring
+  p(276,40,0.06,6); // E2
+  pad(276,padEm,0.06,12);
+  text(276,'history weighted by significance, not recency',8);
+
+  // Growing richer — regeneration building new coherence
+  p(280,48,0.10,4); // C3
+  p(280,60,0.12,3); // C4
+  p(283,62,0.11,2); // D4
+  p(285,63,0.13,3); // Eb4
+
+  str(284,[36,43,48,55,60],0.06,12);
+  p(288,40,0.08,6); // E2 bass
+  p(288,65,0.14,2); // F4
+  p(290,67,0.15,2); // G4
+  p(292,69,0.16,3); // A4 — Dorian signature returns!
+  p(295,67,0.14,4); // G4
+
+  text(288,'the cycle continues — from rupture, new stars form',8);
+
+  // ═══ VIII. COSMIC DAWN (300-347): Regeneration complete ═══
+  sec(300,'regeneration complete');
+  text(300,'regeneration — the universe makes new coherence',10);
+  drone(300,0.10,48);
+
+  // All voices return, transformed but connected to history
+  str(300,[28,40,48,55,60,67],0.06,24);
+  pad(300,padEm,0.08,12);
+  pad(312,padCm,0.06,12);
+
+  // Final melody: the sun's Dorian theme, but now incorporating
+  // the Phrygian b2 from the red dwarf and the Lydian #4 from the blue giant
+  // — regeneration has integrated all the stellar voices
+  p(300,40,0.08,8); // E2 — red dwarf memory
+  p(300,60,0.14,3); // C4 — sun
+  p(303,62,0.12,2); // D4
+  p(305,63,0.13,3); // Eb4 — Dorian
+  p(308,65,0.11,4); // F4
+
+  p(312,48,0.10,8); // C3
+  p(312,67,0.13,2); // G4
+  p(314,66,0.10,2); // F#4 — blue giant Lydian memory!
+  p(316,65,0.11,2); // F4 — back to Dorian
+  p(318,63,0.10,3); // Eb4
+  p(321,60,0.09,4); // C4 — home
+
+  // Final descent to stillness
+  p(324,40,0.06,8);  // E2
+  p(324,60,0.08,6);  // C4
+  p(330,55,0.06,6);  // G3
+  p(336,48,0.05,8);  // C3
+  p(342,40,0.03,6);  // E2 — the red dwarf, last to fade
+
+  drone(336,0.03,12);
+  text(324,'the oldest stars will burn longest — Ω is patience',10);
+  text(340,'· · ·',6);
+
+  // Sort by beat
+  E.sort((a,b)=>a.beat-b.beat);
+  return E;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §4  VISUAL SCENE — Canvas rendering of the cosmos
+// ═══════════════════════════════════════════════════════════════════
+
+const canvas=document.getElementById('viz');
+const ctx=canvas.getContext('2d');
+let W,H;
+
+// Star field
+let starField=[];
+function initStarField(){
+  starField=[];
+  for(let i=0;i<400;i++){
+    starField.push({
+      x:random(),y:random(),
+      size:random()*1.5+0.3,
+      brightness:random()*0.5+0.1,
+      twinklePhase:random()*TAU,
+      twinkleRate:0.5+random()*2,
+      color:random()<0.6?[200,210,240]:random()<0.5?[255,220,180]:[180,200,255],
+    });
+  }
+}
+
+// Nebula particles
+let nebulae=[];
+function initNebulae(){
+  nebulae=[];
+  for(let i=0;i<60;i++){
+    nebulae.push({
+      x:random(),y:random(),
+      size:50+random()*200,
+      color:random()<0.33?[80,30,60]:random()<0.5?[30,40,80]:[40,60,40],
+      alpha:0.01+random()*0.02,
+      drift:random()*0.0001,
+    });
+  }
+}
+
+// The four featured stars (visualized as larger, colored objects)
+const featuredStars=[
+  {x:0.2,y:0.65,baseSize:8, color:STARS.redDwarf.color,  name:'red dwarf', activeFrom:24},
+  {x:0.5,y:0.45,baseSize:14,color:STARS.sun.color,       name:'sun',       activeFrom:72},
+  {x:0.78,y:0.3,baseSize:20,color:STARS.blueGiant.color,  name:'blue giant', activeFrom:132},
+  {x:0.55,y:0.7,baseSize:4, color:STARS.neutron.color,    name:'neutron',   activeFrom:252},
+];
+
+let supernovaFlash=0;
+let pulsarGlow=0;
+
+function resize(){
+  const dpr=window.devicePixelRatio||1;
+  const rect=canvas.parentElement.getBoundingClientRect();
+  W=rect.width;H=rect.height;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function drawScene(t,beat,arousal,crrPhase){
+  ctx.fillStyle='rgba(2,3,8,0.15)';ctx.fillRect(0,0,W,H);
+
+  // Nebulae (background glow)
+  for(const n of nebulae){
+    n.x+=n.drift*sin(t*0.1);
+    const x=n.x*W,y=n.y*H;
+    const grad=ctx.createRadialGradient(x,y,0,x,y,n.size*(1+arousal*0.3));
+    grad.addColorStop(0,`rgba(${n.color[0]},${n.color[1]},${n.color[2]},${n.alpha*(1+arousal*0.5)})`);
+    grad.addColorStop(1,'rgba(2,3,8,0)');
+    ctx.fillStyle=grad;ctx.fillRect(x-n.size,y-n.size,n.size*2,n.size*2);
+  }
+
+  // Star field
+  for(const s of starField){
+    const twinkle=0.5+0.5*sin(t*s.twinkleRate+s.twinklePhase);
+    const bright=s.brightness*twinkle*(1+arousal*0.3);
+    ctx.fillStyle=`rgba(${s.color[0]},${s.color[1]},${s.color[2]},${bright})`;
+    ctx.beginPath();
+    ctx.arc(s.x*W,s.y*H,s.size*(0.8+twinkle*0.4),0,TAU);
+    ctx.fill();
+  }
+
+  // Supernova flash
+  if(supernovaFlash>0){
+    const grad=ctx.createRadialGradient(W*0.78,H*0.3,0,W*0.78,H*0.3,W*supernovaFlash);
+    grad.addColorStop(0,`rgba(255,255,255,${supernovaFlash*0.8})`);
+    grad.addColorStop(0.3,`rgba(100,180,255,${supernovaFlash*0.4})`);
+    grad.addColorStop(1,'rgba(2,3,8,0)');
+    ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+    supernovaFlash*=0.96;
+    if(supernovaFlash<0.01)supernovaFlash=0;
+  }
+
+  // Featured stars
+  for(const fs of featuredStars){
+    if(beat<fs.activeFrom)continue;
+    const age=(beat-fs.activeFrom)/TOTAL_BEATS;
+    const alpha=min(1,age*8);
+    const pulse=1+0.1*sin(t*2+fs.x*10)*arousal;
+    const size=fs.baseSize*pulse*(1+arousal*0.3);
+
+    // Glow
+    const grad=ctx.createRadialGradient(fs.x*W,fs.y*H,0,fs.x*W,fs.y*H,size*4);
+    grad.addColorStop(0,`rgba(${fs.color[0]},${fs.color[1]},${fs.color[2]},${alpha*0.3})`);
+    grad.addColorStop(0.5,`rgba(${fs.color[0]},${fs.color[1]},${fs.color[2]},${alpha*0.08})`);
+    grad.addColorStop(1,'rgba(2,3,8,0)');
+    ctx.fillStyle=grad;
+    ctx.fillRect(fs.x*W-size*4,fs.y*H-size*4,size*8,size*8);
+
+    // Core
+    ctx.fillStyle=`rgba(${min(255,fs.color[0]+80)},${min(255,fs.color[1]+80)},${min(255,fs.color[2]+80)},${alpha*0.9})`;
+    ctx.beginPath();ctx.arc(fs.x*W,fs.y*H,size*0.4,0,TAU);ctx.fill();
+
+    // Pulsar special: radio beams
+    if(fs.name==='neutron'&&pulsarGlow>0){
+      ctx.save();ctx.translate(fs.x*W,fs.y*H);ctx.rotate(t*2);
+      const bg=ctx.createLinearGradient(0,-H*0.3,0,H*0.3);
+      bg.addColorStop(0,`rgba(212,165,255,0)`);
+      bg.addColorStop(0.45,`rgba(212,165,255,${pulsarGlow*0.15})`);
+      bg.addColorStop(0.5,`rgba(255,255,255,${pulsarGlow*0.3})`);
+      bg.addColorStop(0.55,`rgba(212,165,255,${pulsarGlow*0.15})`);
+      bg.addColorStop(1,`rgba(212,165,255,0)`);
+      ctx.fillStyle=bg;ctx.fillRect(-2,-H*0.4,4,H*0.8);
+      ctx.restore();
+      pulsarGlow*=0.92;
+    }
+  }
+
+  // CRR phase indicator (subtle bottom glow)
+  if(crrPhase){
+    const phaseColor=crrPhase==='C'?'79,209,197':crrPhase==='delta'?'252,129,129':'104,211,145';
+    const grad=ctx.createLinearGradient(0,H-40,0,H);
+    grad.addColorStop(0,'rgba(2,3,8,0)');
+    grad.addColorStop(1,`rgba(${phaseColor},${0.06+arousal*0.04})`);
+    ctx.fillStyle=grad;ctx.fillRect(0,H-40,W,40);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §5  PLAYBACK ENGINE
+// ═══════════════════════════════════════════════════════════════════
+
+let sequence=[],seqIdx=0,musicBeat=0,playing=false;
+let lastFrameTime=0,beatAccum=0;
+const beatDuration=60/BPM; // 1.0 seconds at 60 BPM
+
+function startPlayback(){
+  if(!ac)initAudio();
+  if(ac.state==='suspended')ac.resume();
+  sequence=buildSequence();seqIdx=0;musicBeat=0;playing=true;
+  beatAccum=0;lastFrameTime=performance.now()/1000;
+  compositionAgent.reset();phraseAgent.reset();
+  for(const s of Object.values(STARS)){
+    if(s.fusion)s.fusion.reset();if(s.pmode)s.pmode.reset();if(s.pulse)s.pulse.reset();
+  }
+  CMB.agent.reset();
+  document.getElementById('btn-play').classList.add('playing');
+  // Build timeline sections
+  const tsc=document.getElementById('timeline-sections');tsc.innerHTML='';
+  for(const s of SECTIONS){
+    if(s.name==='SILENCE')continue;
+    const div=document.createElement('div');div.className='t-section';
+    div.style.width=((s.end-s.start)/TOTAL_BEATS*100)+'%';
+    div.innerHTML='<span class="t-section-label">'+s.label+'</span>';
+    tsc.appendChild(div);
+  }
+}
+
+function stopPlayback(){
+  playing=false;
+  document.getElementById('btn-play').classList.remove('playing');
+  setDroneGain(0);
+  setPad(null,0,0);
+}
+
+function processEvents(){
+  while(seqIdx<sequence.length&&sequence[seqIdx].beat<=musicBeat){
+    const evt=sequence[seqIdx];seqIdx++;
+    // CRR phrase agent: every event feeds coherence
+    const pR=phraseAgent.step((evt.velocity||evt.gain||evt.padGain||0.2)*0.5,0.01);
+    compositionAgent.step(0.15,0.005);
+    // Dynamic gain modulation via exp(C/Ω)
+    let dynMod=1;
+    if(pR.phase==='delta')dynMod=1.15;
+    else if(pR.phase==='R')dynMod=0.85+0.15*phraseAgent.regenProg;
+    else dynMod=0.88+0.12*Math.tanh(phraseAgent.normC*2);
+
+    switch(evt.type){
+      case'piano':playPiano(evt.midi,evt.velocity*dynMod,evt.duration);break;
+      case'strings':playStrings(evt.midis,evt.gain*dynMod,evt.dur);break;
+      case'pad':setPad(evt.padNotes,evt.padGain*dynMod,evt.duration);break;
+      case'drone':setDroneGain(evt.droneGain*dynMod);break;
+      case'pulsar':playPulsar(evt.velocity*dynMod);pulsarGlow=1;break;
+      case'shimmer':playShimmer(evt.midi,(evt.velocity||0.15)*dynMod);break;
+      case'supernova':playSupernovaBurst(evt.intensity);supernovaFlash=1;break;
+      case'text':{
+        const el=document.getElementById('lyric-text');
+        el.textContent=evt.text;el.classList.add('visible');
+        setTimeout(()=>el.classList.remove('visible'),(evt.dur||8)*1000);
+        break;
+      }
+      case'section':{
+        const el=document.getElementById('section-label');
+        el.textContent=evt.name;el.style.opacity=0.4;
+        setTimeout(()=>{el.style.opacity=0},3000);
+        break;
+      }
+    }
+  }
+}
+
+function updateDisplay(){
+  const sec=getSection(musicBeat);
+  const totalSec=TOTAL_BEATS*beatDuration;
+  const curSec=musicBeat*beatDuration;
+  const mm=s=>floor(s/60)+':'+('0'+floor(s%60)).slice(-2);
+  document.getElementById('timeline-fill').style.width=(musicBeat/TOTAL_BEATS*100).toFixed(1)+'%';
+  document.getElementById('timeline-time').textContent=mm(curSec)+' / '+mm(totalSec);
+  document.getElementById('timeline-crr').textContent=
+    'C='+phraseAgent.C.toFixed(2)+' Ω='+phraseAgent.omega.toFixed(3);
+  const disp=document.getElementById('crr-display');
+  disp.innerHTML=
+    'C = '+phraseAgent.C.toFixed(3)+'<br>'+
+    'Ω = '+phraseAgent.omega.toFixed(4)+'<br>'+
+    'exp(C/Ω) = '+min(99,phraseAgent.expCO).toFixed(2)+'<br>'+
+    'ruptures = '+phraseAgent.ruptures+'<br>'+
+    (sec?sec.name:'');
+}
+
+function mainLoop(timestamp){
+  requestAnimationFrame(mainLoop);
+  const now=timestamp/1000;
+  const dt=min(0.05,now-(lastFrameTime||now));
+  lastFrameTime=now;
+  resize();
+
+  if(playing){
+    beatAccum+=dt/beatDuration;
+    while(beatAccum>=1){beatAccum-=1;musicBeat++;}
+    if(musicBeat>=TOTAL_BEATS){stopPlayback();return}
+    processEvents();
+    updateDisplay();
+    // Step stellar CRR agents
+    const sec=getSection(musicBeat);
+    const arousal=sec?({
+      'VOID':0.02,'RED EMBER':0.15,'MAIN SEQUENCE':0.35,'BLUE FIRE':0.7,
+      'CRITICAL MASS':0.95,'SUPERNOVA':0.3,'REMNANT':0.4,'COSMIC DAWN':0.12
+    }[sec.name]||0.1):0;
+    for(const s of Object.values(STARS)){
+      if(s.fusion)s.fusion.step(arousal*0.3,dt*0.01);
+      if(s.pmode)s.pmode.step(arousal*0.2,dt*0.008);
+      if(s.pulse)s.pulse.step(arousal*0.5,dt*0.02);
+    }
+    CMB.agent.step(0.05,dt*0.003);
+    const phase=phraseAgent.inRegen?'R':phraseAgent.sinceRupture<3?'delta':'C';
+    drawScene(now,musicBeat,arousal,phase);
+  }else{
+    drawScene(now,0,0.02,null);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §6  INITIALIZATION
+// ═══════════════════════════════════════════════════════════════════
+
+window.addEventListener('load',()=>{
+  initStarField();initNebulae();resize();
+  requestAnimationFrame(mainLoop);
+  document.getElementById('splash').addEventListener('click',()=>{
+    document.getElementById('splash').classList.add('hidden');
+    document.getElementById('app').classList.add('active');
+    initAudio();
+  });
+  document.getElementById('btn-play').addEventListener('click',()=>{
+    if(playing)return;startPlayback();
+  });
+  document.getElementById('btn-stop').addEventListener('click',stopPlayback);
+  // Sliders
+  for(const[id,setter]of[
+    ['reverb-slider',v=>{reverbMix=v;if(wetGain)wetGain.gain.value=v*0.6;if(dryGain)dryGain.gain.value=1-v*0.5}],
+    ['piano-slider',v=>{pianoMix=v;if(pianoGain)pianoGain.gain.value=v*0.4}],
+    ['strings-slider',v=>{stringsMix=v;if(stringsGain)stringsGain.gain.value=v*0.35}],
+    ['synth-slider',v=>{synthMix=v;if(synthGain)synthGain.gain.value=v*0.3}],
+  ]){
+    const el=document.getElementById(id);
+    el.addEventListener('input',()=>{
+      setter(parseFloat(el.value));
+      const valId=id.replace('-slider','-val');
+      document.getElementById(valId).textContent=parseFloat(el.value).toFixed(2);
+    });
+  }
+});
+window.addEventListener('resize',resize);
+</script>
+</body>
+</html>
