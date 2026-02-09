@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MACHINA — A CRR Computer Song</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg: #06060c;
+  --bg2: #0a0a14;
+  --panel: rgba(10, 14, 25, 0.9);
+  --border: rgba(0, 255, 136, 0.12);
+  --green: #00ff88;
+  --green-dim: #00aa55;
+  --green-faint: rgba(0, 255, 136, 0.06);
+  --cyan: #00ddff;
+  --magenta: #ff00aa;
+  --amber: #ffaa00;
+  --red: #ff3344;
+  --blue: #4488ff;
+  --white: #e0e8f0;
+  --dim: #445566;
+  --text: #8899aa;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+#binaryCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.5; }
+.content-layer { position: relative; z-index: 1; }
+
+.header { text-align: center; padding: 32px 20px 16px; }
+.header h1 { font-family: 'Orbitron', sans-serif; font-size: clamp(2.2rem, 5.5vw, 4rem); font-weight: 900; letter-spacing: 0.3em; color: var(--green); text-shadow: 0 0 40px rgba(0,255,136,0.3), 0 0 80px rgba(0,255,136,0.08); margin-bottom: 6px; }
+.header .subtitle { font-size: 0.75rem; color: var(--dim); letter-spacing: 0.2em; text-transform: uppercase; }
+.header .equations { font-size: 0.65rem; color: var(--green-dim); margin-top: 10px; opacity: 0.6; line-height: 1.8; }
+
+.explanation { max-width: 900px; margin: 12px auto; padding: 0 20px; }
+.explanation h3 { font-family: 'Orbitron', sans-serif; font-size: 0.8rem; color: var(--cyan); letter-spacing: 0.15em; margin-bottom: 8px; }
+.explanation p { font-size: 0.72rem; line-height: 1.7; color: var(--dim); margin-bottom: 6px; }
+.math-note { color: var(--green-dim); font-size: 0.68rem; border-left: 2px solid var(--border); padding-left: 12px; margin: 8px 0; line-height: 1.6; }
+
+.component-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px; margin: 10px 0; }
+.comp-card { background: var(--panel); border: 1px solid var(--border); border-radius: 3px; padding: 8px 10px; }
+.comp-card .comp-name { font-family: 'Orbitron', sans-serif; font-size: 0.65rem; color: var(--green); margin-bottom: 2px; }
+.comp-card .comp-sym { color: var(--cyan); font-size: 0.6rem; }
+.comp-card .comp-role { color: var(--dim); font-size: 0.6rem; margin-top: 3px; }
+
+.binary-strip { background: rgba(0,0,0,0.6); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--green-dim); overflow: hidden; white-space: nowrap; height: 50px; display: flex; flex-direction: column; gap: 2px; line-height: 1.4; }
+.binary-strip .bin-row { opacity: 0.7; transition: opacity 0.1s; }
+.binary-strip .bin-row.highlight { color: var(--green); opacity: 1; }
+.binary-strip .bin-row .bin-label { color: var(--dim); display: inline-block; width: 50px; }
+.binary-strip .bin-row .bin-delta { color: var(--red); }
+
+.transport { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 14px; flex-wrap: wrap; }
+.btn { font-family: 'Orbitron', sans-serif; font-size: 0.75rem; letter-spacing: 0.15em; padding: 10px 24px; border: 1px solid var(--green); background: transparent; color: var(--green); cursor: pointer; transition: all 0.3s; text-transform: uppercase; }
+.btn:hover { background: rgba(0,255,136,0.1); box-shadow: 0 0 20px rgba(0,255,136,0.15); }
+.btn.active { background: var(--green); color: var(--bg); }
+.btn.stop { border-color: var(--red); color: var(--red); }
+.btn.stop:hover { background: rgba(255,51,68,0.1); }
+.time-display { font-family: 'Orbitron', sans-serif; font-size: 1rem; color: var(--green); min-width: 90px; text-align: center; }
+
+.state-bar { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 10px 16px; background: var(--panel); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.state-item { text-align: center; }
+.state-item .label { font-size: 0.55rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; }
+.state-item .value { font-family: 'Orbitron', sans-serif; font-size: 0.8rem; color: var(--green); }
+.state-item .value.cyan { color: var(--cyan); }
+.state-item .value.magenta { color: var(--magenta); }
+.state-item .value.amber { color: var(--amber); }
+.state-item .value.red { color: var(--red); }
+
+.section-display { text-align: center; padding: 6px; }
+.section-name { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; letter-spacing: 0.3em; color: var(--amber); }
+.section-desc { font-size: 0.6rem; color: var(--dim); margin-top: 3px; }
+
+.progress-track { display: flex; gap: 3px; padding: 6px 20px; max-width: 1200px; margin: 0 auto; }
+.progress-segment { flex: 1; height: 5px; background: rgba(255,255,255,0.04); border-radius: 2px; position: relative; overflow: hidden; }
+.progress-segment.active { background: rgba(0,255,136,0.12); }
+.progress-segment .fill { position: absolute; top: 0; left: 0; bottom: 0; width: 0%; border-radius: 2px; background: var(--green); transition: width 0.1s linear; }
+.progress-segment .seg-label { position: absolute; bottom: -13px; left: 50%; transform: translateX(-50%); font-size: 0.45rem; color: var(--dim); white-space: nowrap; letter-spacing: 0.05em; }
+
+.code-display { max-width: 1200px; margin: 4px auto; padding: 0 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+@media (max-width: 768px) { .code-display { grid-template-columns: 1fr; } }
+
+.panel { background: var(--panel); border: 1px solid var(--border); padding: 10px 12px; position: relative; min-height: 100px; }
+.panel-title { font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 0.12em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.panel-title .icon { font-size: 0.9rem; }
+.panel-title .sym { font-size: 0.55rem; color: var(--dim); margin-left: auto; }
+.panel.psu .panel-title { color: var(--amber); }
+.panel.cpu .panel-title { color: var(--green); }
+.panel.ram .panel-title { color: var(--cyan); }
+.panel.bus .panel-title { color: var(--magenta); }
+.panel.gpu .panel-title { color: var(--blue); }
+.panel.fan .panel-title { color: #88aacc; }
+.panel.net .panel-title { color: var(--red); }
+.panel.master .panel-title { color: var(--green); }
+
+.crr-meters { display: flex; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+.meter { text-align: center; }
+.meter .m-label { font-size: 0.5rem; color: var(--dim); text-transform: uppercase; }
+.meter .m-value { font-family: 'Orbitron', sans-serif; font-size: 0.68rem; }
+
+.c-bar-wrap { height: 3px; background: rgba(255,255,255,0.04); border-radius: 2px; margin: 4px 0; overflow: hidden; }
+.c-bar { height: 100%; border-radius: 2px; transition: width 0.05s linear; width: 0%; }
+.panel.psu .c-bar { background: var(--amber); }
+.panel.cpu .c-bar { background: var(--green); }
+.panel.ram .c-bar { background: var(--cyan); }
+.panel.bus .c-bar { background: var(--magenta); }
+.panel.gpu .c-bar { background: var(--blue); }
+.panel.fan .c-bar { background: #88aacc; }
+.panel.net .c-bar { background: var(--red); }
+
+.phase-indicator { font-size: 0.55rem; padding: 1px 5px; border-radius: 2px; display: inline-block; }
+.phase-C { background: rgba(0,255,136,0.12); color: var(--green); }
+.phase-delta { background: rgba(255,51,68,0.2); color: var(--red); }
+.phase-R { background: rgba(0,221,255,0.12); color: var(--cyan); }
+
+.panel-binary { font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; color: var(--green-dim); margin-top: 6px; line-height: 1.3; word-break: break-all; min-height: 28px; opacity: 0.8; }
+.panel-binary .b-label { color: var(--dim); }
+.panel-binary .b-rupture { color: var(--red); font-weight: 700; }
+.panel-binary .b-regen { color: var(--cyan); }
+
+.footer { text-align: center; padding: 24px 20px; font-size: 0.6rem; color: var(--dim); line-height: 1.8; }
+.footer a { color: var(--green-dim); text-decoration: none; }
+.footer .framework-note { color: var(--green-dim); margin-bottom: 4px; }
+
+@keyframes rupture-flash { 0% { opacity: 0; } 8% { opacity: 1; } 100% { opacity: 0; } }
+.rupture-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,51,68,0.12); pointer-events: none; opacity: 0; z-index: 999; }
+.rupture-overlay.flash { animation: rupture-flash 0.4s ease-out; }
+
+.bsod-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0078d7; z-index: 998; display: none; font-family: 'Segoe UI', 'IBM Plex Mono', sans-serif; color: white; padding: 6vh 8vw; flex-direction: column; justify-content: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.bsod-frown { font-size: clamp(3rem, 8vw, 8rem); font-weight: 100; margin-bottom: 16px; }
+.bsod-main { font-size: clamp(0.9rem, 2.2vw, 1.6rem); font-weight: 400; margin-bottom: 8px; }
+.bsod-body { font-size: clamp(0.6rem, 1.2vw, 0.85rem); font-weight: 300; line-height: 1.8; max-width: 700px; opacity: 0.95; }
+.bsod-percent { font-size: clamp(0.9rem, 2.2vw, 1.6rem); font-weight: 400; margin-top: 16px; }
+.bsod-qr-row { display: flex; align-items: flex-start; gap: 14px; margin-top: 20px; }
+.bsod-qr-canvas { width: 100px; height: 100px; flex-shrink: 0; image-rendering: pixelated; border: 4px solid white; background: white; }
+.bsod-qr-text { font-size: clamp(0.5rem, 1vw, 0.72rem); font-weight: 300; line-height: 1.7; opacity: 0.9; }
+.bsod-binary { font-family: 'IBM Plex Mono', monospace; font-size: 0.45rem; opacity: 0.2; margin-top: 16px; word-break: break-all; max-width: 600px; line-height: 1.4; padding-bottom: 4vh; }
+
+@keyframes crash-glitch {
+  0% { transform: translate(0); filter: none; }
+  10% { transform: translate(-5px, 3px); filter: hue-rotate(90deg); }
+  20% { transform: translate(3px, -2px); filter: saturate(3) brightness(1.5); }
+  30% { transform: translate(0, 5px); filter: hue-rotate(180deg) contrast(2); }
+  40% { transform: translate(-3px, 0); filter: invert(1); }
+  50% { transform: translate(2px, -4px); filter: hue-rotate(270deg); }
+  60% { transform: translate(0); filter: brightness(0.3); }
+  70% { transform: translate(4px, 2px); filter: saturate(0) contrast(3); }
+  80% { transform: translate(-2px, -1px); filter: hue-rotate(45deg); }
+  90% { transform: translate(1px, 3px); filter: invert(0.5) brightness(1.5); }
+  100% { transform: translate(0); filter: none; }
+}
+.content-layer.glitching { animation: crash-glitch 0.3s ease-in-out 3; }
+.content-layer.crashed { filter: brightness(0); transition: filter 0.5s; }
+
+/* ═══════ MOBILE RESPONSIVE ═══════ */
+@media (max-width: 600px) {
+  .header { padding: 20px 12px 10px; }
+  .header h1 { letter-spacing: 0.12em; font-size: clamp(1.8rem, 10vw, 2.8rem); }
+  .header .subtitle { font-size: 0.65rem; letter-spacing: 0.1em; }
+  .header .equations { font-size: 0.58rem; }
+  .explanation { padding: 0 12px; margin: 8px auto; }
+  .explanation h3 { font-size: 0.7rem; }
+  .explanation p { font-size: 0.65rem; }
+  .math-note { font-size: 0.6rem; padding-left: 8px; }
+  .component-grid { grid-template-columns: 1fr 1fr; gap: 4px; }
+  .comp-card { padding: 6px 8px; }
+  .comp-card .comp-name { font-size: 0.58rem; }
+  .comp-card .comp-sym { font-size: 0.5rem; }
+  .comp-card .comp-role { font-size: 0.5rem; }
+  .binary-strip { height: 42px; padding: 6px 10px; font-size: 0.5rem; }
+  .binary-strip .bin-row .bin-label { width: 36px; }
+  .transport { gap: 8px; padding: 10px 8px; }
+  .btn { font-size: 0.65rem; padding: 8px 16px; letter-spacing: 0.1em; }
+  .time-display { font-size: 0.85rem; min-width: 70px; }
+  .state-bar { gap: 8px; padding: 8px 10px; }
+  .state-item .label { font-size: 0.48rem; }
+  .state-item .value { font-size: 0.68rem; }
+  .section-display { padding: 4px; }
+  .section-name { font-size: 0.85rem; letter-spacing: 0.15em; }
+  .section-desc { font-size: 0.52rem; }
+  .progress-track { padding: 4px 10px; gap: 2px; }
+  .progress-segment .seg-label { font-size: 0.38rem; bottom: -11px; }
+  .code-display { padding: 0 4px; gap: 2px; grid-template-columns: 1fr; }
+  .panel { padding: 8px 8px; min-height: 70px; }
+  .panel-title { font-size: 0.58rem; margin-bottom: 5px; gap: 4px; }
+  .panel-title .icon { font-size: 0.75rem; }
+  .panel-title .sym { font-size: 0.45rem; }
+  .crr-meters { gap: 6px; }
+  .meter .m-label { font-size: 0.42rem; }
+  .meter .m-value { font-size: 0.58rem; }
+  .panel-binary { font-size: 0.42rem; min-height: 22px; margin-top: 4px; }
+  .footer { padding: 16px 12px; font-size: 0.52rem; }
+  .footer div:last-child { font-size: 0.45rem; }
+  /* BSOD mobile */
+  .bsod-overlay { padding: 4vh 5vw; }
+  .bsod-frown { font-size: clamp(2.5rem, 10vw, 4rem); margin-bottom: 12px; }
+  .bsod-main { font-size: 0.9rem; }
+  .bsod-body { font-size: 0.6rem; line-height: 1.6; }
+  .bsod-percent { font-size: 0.9rem; margin-top: 12px; }
+  .bsod-qr-row { flex-direction: column; gap: 10px; margin-top: 14px; }
+  .bsod-qr-canvas { width: 80px; height: 80px; }
+  .bsod-qr-text { font-size: 0.5rem; line-height: 1.5; }
+  .bsod-binary { font-size: 0.35rem; margin-top: 10px; }
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+  .header h1 { font-size: 1.6rem; letter-spacing: 0.08em; }
+  .component-grid { grid-template-columns: 1fr; }
+  .state-bar { gap: 6px; }
+  .state-item .value { font-size: 0.6rem; }
+  .btn { padding: 7px 12px; font-size: 0.6rem; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="binaryCanvas"></canvas>
+<div class="rupture-overlay" id="ruptureFlash"></div>
+<div class="bsod-overlay" id="bsod">
+  <div class="bsod-frown">:(</div>
+  <div class="bsod-main">Your PC ran into a problem and needs to restart.</div>
+  <div class="bsod-body">We're just collecting some error info, and then we'll restart for you.</div>
+  <div class="bsod-percent" id="bsodPercent">0% complete</div>
+  <div class="bsod-qr-row">
+    <canvas class="bsod-qr-canvas" id="bsodQR" width="200" height="200"></canvas>
+    <div class="bsod-qr-text">
+      For more information about this issue and possible fixes,<br>
+      scan QR or visit <b>https://www.temporalgrammar.ai</b><br><br>
+      If you call a support person, give them this info:<br>
+      Stop code: CRR_COHERENCE_THRESHOLD_EXCEEDED<br>
+      What failed: <span id="bsodStopInfo">δ(now).sys — C=Ω</span><br><br>
+      <span style="opacity:0.6; font-size:0.9em;">QR structure: C=finder patterns · δ=data modules (Z₂) · R=Reed-Solomon<br>
+      Error correction level H (Ω<sub>low</sub>=0.30) — maximum regeneration capacity</span>
+    </div>
+  </div>
+  <div class="bsod-binary" id="bsodBinary"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+
+<div class="content-layer" id="contentLayer">
+<div class="header">
+  <h1>MACHINA</h1>
+  <div class="subtitle">A Computer Song Composed from CRR First Principles</div>
+  <div class="equations">C(x,t) = ∫L(x,τ)dτ · δ(now) · R = ∫φ·exp(C/Ω)·Θ dτ<br>Ω<sub>Z₂</sub> = 1/π ≈ 0.318 · Ω<sub>SO(2)</sub> = 1/2π ≈ 0.159</div>
+</div>
+
+<div class="explanation">
+  <h3>HOW CRR SOLVES THE COMPUTER</h3>
+  <p>A computer is a nested hierarchy of CRR cycles — identical in structure to brain-heart-breath coupling. The power supply's AC sinusoid (SO(2), Ω=1/2π) feeds the crystal oscillator's binary switching (Z₂, Ω=1/π), which clocks memory refresh cycles, which drive bus transactions across 2<sup>n</sup> parallel lines. Each level's rupture rate is set by the level above. Every sound is synthesised from these CRR dynamics. Nothing is sampled. The binary code rain shows the actual CRR state — coherence, Ω, exp(C/Ω) — being solved in real time as IEEE 754 floating-point.</p>
+  <div class="math-note">The SO(2)→Z₂ symmetry breaking at rectification creates the octave: precision ratio 2π/π = 2. The data bus (2ⁿ) creates natural octave harmonics. A computer's harmonic structure IS its CRR structure. EDM build→drop→groove IS C→δ→R.</div>
+  <div class="component-grid">
+    <div class="comp-card"><div class="comp-name">⚡ PSU</div><div class="comp-sym">SO(2)→Z₂ · Ω=1/2π · 50Hz≈G1</div><div class="comp-role">Modulated sub-bass. AC rectification.</div></div>
+    <div class="comp-card"><div class="comp-name">◈ CPU CLOCK</div><div class="comp-sym">Z₂ · Ω=1/π · CV≈0.159</div><div class="comp-role">Kick drum. Crystal oscillator heartbeat.</div></div>
+    <div class="comp-card"><div class="comp-name">▦ RAM</div><div class="comp-sym">Z₂ · Ω=1/π · capacitor refresh</div><div class="comp-role">Hi-hats. Micro-rupture maintenance.</div></div>
+    <div class="comp-card"><div class="comp-name">⇌ DATA BUS</div><div class="comp-sym">Z₂×N · 2ⁿ→octaves</div><div class="comp-role">Arpeggios. Parallel binary harmonics.</div></div>
+    <div class="comp-card"><div class="comp-name">◧ GPU</div><div class="comp-sym">Z₂ · frame buffer→VSync</div><div class="comp-role">Pad. Frame envelopes.</div></div>
+    <div class="comp-card"><div class="comp-name">✦ FAN</div><div class="comp-sym">SO(2) · thermal load</div><div class="comp-role">Filtered noise texture.</div></div>
+    <div class="comp-card"><div class="comp-name">⊞ NETWORK</div><div class="comp-sym">Stochastic CRR · TCP</div><div class="comp-role">Glitch/stutter effects.</div></div>
+  </div>
+</div>
+
+<div class="binary-strip" id="binaryStrip">
+  <div class="bin-row" id="binRow0"><span class="bin-label">PSU</span> 00000000 00000000 00000000 00000000</div>
+  <div class="bin-row" id="binRow1"><span class="bin-label">CPU</span> 00000000 00000000 00000000 00000000</div>
+  <div class="bin-row" id="binRow2"><span class="bin-label">RAM</span> 00000000 00000000 00000000 00000000</div>
+</div>
+
+<div class="transport">
+  <button class="btn" id="btnPlay" onclick="startSong()">▶ BOOT</button>
+  <button class="btn stop" id="btnStop" onclick="stopSong()">■ HALT</button>
+  <div class="time-display" id="timeDisplay">0:00</div>
+</div>
+
+<div class="state-bar">
+  <div class="state-item"><div class="label">Section</div><div class="value amber" id="sectionLabel">—</div></div>
+  <div class="state-item"><div class="label">System C</div><div class="value" id="globalC">0.000</div></div>
+  <div class="state-item"><div class="label">Ω</div><div class="value cyan" id="globalOmega">0.318</div></div>
+  <div class="state-item"><div class="label">exp(C/Ω)</div><div class="value magenta" id="globalExp">1.00</div></div>
+  <div class="state-item"><div class="label">Beat</div><div class="value" id="beatCount">0</div></div>
+  <div class="state-item"><div class="label">Ruptures</div><div class="value red" id="ruptureCount">0</div></div>
+</div>
+
+<div class="progress-track" id="progressTrack">
+  <div class="progress-segment" data-section="0"><div class="fill"></div><div class="seg-label">POWER</div></div>
+  <div class="progress-segment" data-section="1"><div class="fill"></div><div class="seg-label">POST</div></div>
+  <div class="progress-segment" data-section="2"><div class="fill"></div><div class="seg-label">BIOS</div></div>
+  <div class="progress-segment" data-section="3"><div class="fill"></div><div class="seg-label">BOOT</div></div>
+  <div class="progress-segment" data-section="4"><div class="fill"></div><div class="seg-label">RUNNING</div></div>
+  <div class="progress-segment" data-section="5"><div class="fill"></div><div class="seg-label">OVERLOAD</div></div>
+  <div class="progress-segment" data-section="6"><div class="fill"></div><div class="seg-label">CRASH</div></div>
+  <div class="progress-segment" data-section="7"><div class="fill"></div><div class="seg-label">REBOOT</div></div>
+</div>
+
+<div class="section-display">
+  <div class="section-name" id="sectionName">STANDBY</div>
+  <div class="section-desc" id="sectionDesc">Awaiting power-on signal</div>
+</div>
+
+<div class="code-display">
+  <div class="panel psu"><div class="panel-title"><span class="icon">⚡</span> POWER SUPPLY <span class="sym">SO(2) · Ω=1/2π</span></div><div class="crr-meters"><div class="meter"><div class="m-label">C(t)</div><div class="m-value" id="psu-c" style="color:var(--amber)">0.000</div></div><div class="meter"><div class="m-label">Ω</div><div class="m-value" style="color:var(--cyan)">0.159</div></div><div class="meter"><div class="m-label">exp</div><div class="m-value" id="psu-exp" style="color:var(--magenta)">1.00</div></div></div><div class="c-bar-wrap"><div class="c-bar" id="psu-bar"></div></div><span class="phase-indicator phase-C" id="psu-phase">C</span><div class="panel-binary" id="psu-bin"></div></div>
+  <div class="panel cpu"><div class="panel-title"><span class="icon">◈</span> CPU CLOCK <span class="sym">Z₂ · Ω=1/π</span></div><div class="crr-meters"><div class="meter"><div class="m-label">C(t)</div><div class="m-value" id="cpu-c" style="color:var(--green)">0.000</div></div><div class="meter"><div class="m-label">Ω</div><div class="m-value" style="color:var(--cyan)">0.318</div></div><div class="meter"><div class="m-label">exp</div><div class="m-value" id="cpu-exp" style="color:var(--magenta)">1.00</div></div></div><div class="c-bar-wrap"><div class="c-bar" id="cpu-bar"></div></div><span class="phase-indicator phase-C" id="cpu-phase">C</span><div class="panel-binary" id="cpu-bin"></div></div>
+  <div class="panel ram"><div class="panel-title"><span class="icon">▦</span> RAM REFRESH <span class="sym">Z₂ · Ω=1/π</span></div><div class="crr-meters"><div class="meter"><div class="m-label">C(t)</div><div class="m-value" id="ram-c" style="color:var(--cyan)">0.000</div></div><div class="meter"><div class="m-label">Ω</div><div class="m-value" style="color:var(--cyan)">0.318</div></div><div class="meter"><div class="m-label">exp</div><div class="m-value" id="ram-exp" style="color:var(--magenta)">1.00</div></div></div><div class="c-bar-wrap"><div class="c-bar" id="ram-bar"></div></div><span class="phase-indicator phase-C" id="ram-phase">C</span><div class="panel-binary" id="ram-bin"></div></div>
+  <div class="panel bus"><div class="panel-title"><span class="icon">⇌</span> DATA BUS <span class="sym">Z₂×64 · octaves</span></div><div class="crr-meters"><div class="meter"><div class="m-label">C(t)</div><div class="m-value" id="bus-c" style="color:var(--magenta)">0.000</div></div><div class="meter"><div class="m-label">Ω</div><div class="m-value" style="color:var(--cyan)">0.318</div></div><div class="meter"><div class="m-label">exp</div><div class="m-value" id="bus-exp" style="color:var(--magenta)">1.00</div></div></div><div class="c-bar-wrap"><div class="c-bar" id="bus-bar"></div></div><span class="phase-indicator phase-C" id="bus-phase">C</span><div class="panel-binary" id="bus-bin"></div></div>
+  <div class="panel gpu"><div class="panel-title"><span class="icon">◧</span> GPU DISPLAY <span class="sym">Z₂ · 60Hz VSync</span></div><div class="crr-meters"><div class="meter"><div class="m-label">C(t)</div><div class="m-value" id="gpu-c" style="color:var(--blue)">0.000</div></div><div class="meter"><div class="m-label">Ω</div><div class="m-value" style="color:var(--cyan)">0.318</div></div><div class="meter"><div class="m-label">exp</div><div class="m-value" id="gpu-exp" style="color:var(--magenta)">1.00</div></div></div><div class="c-bar-wrap"><div class="c-bar" id="gpu-bar"></div></div><span class="phase-indicator phase-C" id="gpu-phase">C</span><div class="panel-binary" id="gpu-bin"></div></div>
+  <div class="panel fan"><div class="panel-title"><span class="icon">✦</span> COOLING FAN <span class="sym">SO(2) · thermal</span></div><div class="crr-meters"><div class="meter"><div class="m-label">C(t)</div><div class="m-value" id="fan-c" style="color:#88aacc">0.000</div></div><div class="meter"><div class="m-label">Ω</div><div class="m-value" style="color:var(--cyan)">0.159</div></div><div class="meter"><div class="m-label">exp</div><div class="m-value" id="fan-exp" style="color:var(--magenta)">1.00</div></div></div><div class="c-bar-wrap"><div class="c-bar" id="fan-bar"></div></div><span class="phase-indicator phase-C" id="fan-phase">C</span><div class="panel-binary" id="fan-bin"></div></div>
+  <div class="panel net"><div class="panel-title"><span class="icon">⊞</span> NETWORK TCP <span class="sym">Stochastic CRR</span></div><div class="crr-meters"><div class="meter"><div class="m-label">C(t)</div><div class="m-value" id="net-c" style="color:var(--red)">0.000</div></div><div class="meter"><div class="m-label">Ω</div><div class="m-value" id="net-omega" style="color:var(--cyan)">0.318</div></div><div class="meter"><div class="m-label">exp</div><div class="m-value" id="net-exp" style="color:var(--magenta)">1.00</div></div></div><div class="c-bar-wrap"><div class="c-bar" id="net-bar"></div></div><span class="phase-indicator phase-C" id="net-phase">C</span><div class="panel-binary" id="net-bin"></div></div>
+  <div class="panel master"><div class="panel-title"><span class="icon">⬡</span> SYSTEM CRR <span class="sym">Macro Arc</span></div><div class="crr-meters"><div class="meter"><div class="m-label">C(t)</div><div class="m-value" id="sys-c" style="color:var(--green)">0.000</div></div><div class="meter"><div class="m-label">Ω</div><div class="m-value" id="sys-omega" style="color:var(--cyan)">0.318</div></div><div class="meter"><div class="m-label">exp</div><div class="m-value" id="sys-exp" style="color:var(--magenta)">1.00</div></div></div><div class="c-bar-wrap"><div class="c-bar" id="sys-bar" style="background:var(--green)"></div></div><span class="phase-indicator phase-C" id="sys-phase">C</span><div class="panel-binary" id="sys-bin"></div></div>
+</div>
+
+<div class="footer">
+  <div class="framework-note">CRR Framework — Alexander Sabine (<a href="https://www.temporalgrammar.ai">temporalgrammar.ai</a>)</div>
+  <div>Composition — Claude (Anthropic)</div>
+  <div style="margin-top:6px; font-size:0.55rem;">Every sound synthesised from CRR dynamics. Nothing sampled. Binary code = IEEE 754 of live CRR state.<br>PSU(SO(2))→Clock(Z₂)→RAM(Z₂)→Bus(Z₂×N)→GPU(Z₂) · Fan(SO(2)) · Net(stochastic)</div>
+</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// MACHINA — CRR Computer Song · HYBRID BUILD
+// ────────────────────────────────────────────────────────────────
+// From BSOD version: authentic crash sequence, binary rain,
+//   IEEE 754 readouts, PSU LFO, DOM glitch, console errors
+// From fix version:  resetParam(), seeded PRNG,
+//   ensureAudioConnected(), crash timeout cleanup
+// ════════════════════════════════════════════════════════════════
+
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let ctx = null, isPlaying = false, startTime = 0, beatNum = 0;
+let totalRuptures = 0, animFrame = null, schedulerTimer = null, songEnded = false;
+let crashTimeouts = []; // Track all crash-related timeouts for cleanup
+
+const BPM = 128, BEAT_SEC = 60 / BPM, BAR_SEC = BEAT_SEC * 4;
+const ROOT = 49; // G1 ≈ mains hum
+const SCALE = [1, 6/5, 4/3, 3/2, 9/5];
+const OCTS = [1, 2, 4, 8, 16];
+function noteFreq(d, o) { return ROOT * SCALE[d % SCALE.length] * OCTS[Math.min(o, OCTS.length-1)]; }
+
+const OMEGA_Z2 = 1/Math.PI, OMEGA_SO2 = 1/(2*Math.PI);
+
+// ═══ SEEDED PRNG — reproducible stochastic CRR ═══
+let seed = 42;
+function sRand() { seed = (seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0x100000000; }
+
+// ═══ AUDIO PARAM RESET — the "doesn't play on restart" fix ═══
+function resetParam(p, v) { p.cancelScheduledValues(0); p.setValueAtTime(v, ctx.currentTime); }
+
+// ═══ IEEE 754 BINARY ═══
+const f32Buf = new ArrayBuffer(4), f32View = new Float32Array(f32Buf), u32View = new Uint32Array(f32Buf);
+function float32ToBinary(v) {
+  f32View[0]=v; const b=u32View[0]; let s='';
+  for(let i=31;i>=0;i--){s+=(b>>>i)&1; if(i===31||i===23)s+=' ';}
+  return s;
+}
+function float32ToBinaryCompact(v) {
+  f32View[0]=v; const b=u32View[0]; let s='';
+  for(let i=31;i>=0;i--){s+=(b>>>i)&1; if(i%8===0&&i>0)s+=' ';}
+  return s;
+}
+
+// ═══ BINARY CODE RAIN ═══
+const rainCanvas=document.getElementById('binaryCanvas'), rainCtx=rainCanvas.getContext('2d');
+let rainColumns=[], rainFS=12;
+function initRain(){
+  const dpr=window.devicePixelRatio||1;
+  rainCanvas.width=window.innerWidth*dpr; rainCanvas.height=window.innerHeight*dpr;
+  rainCtx.scale(dpr,dpr);
+  rainFS=window.innerWidth<600?10:12;
+  const cols=Math.floor(window.innerWidth/(rainFS*0.65));
+  rainColumns=[];
+  for(let i=0;i<cols;i++) rainColumns.push({y:Math.random()*window.innerHeight,speed:0.5+Math.random()*2,brightness:0.1+Math.random()*0.2});
+}
+function updateRain(){
+  const w=window.innerWidth, h=window.innerHeight;
+  rainCtx.fillStyle='rgba(6,6,12,0.12)'; rainCtx.fillRect(0,0,w,h);
+  rainCtx.font=`${rainFS}px 'IBM Plex Mono',monospace`;
+  const ak=Object.keys(agents);
+  for(let i=0;i<rainColumns.length;i++){
+    const col=rainColumns[i], x=i*(rainFS*0.65), a=agents[ak[i%ak.length]];
+    if(a&&a.active&&isPlaying){
+      f32View[0]=a.C; const bits=u32View[0], bitIdx=Math.floor(col.y/rainFS)%32, bit=(bits>>>(31-bitIdx))&1;
+      if(a.phase==='delta') rainCtx.fillStyle=`rgba(255,51,68,${col.brightness*3})`;
+      else if(a.phase==='R') rainCtx.fillStyle=`rgba(0,221,255,${col.brightness*1.5})`;
+      else{const g=80+a.getCRatio()*176; rainCtx.fillStyle=`rgba(0,${g},${g*0.5},${col.brightness})`;}
+      rainCtx.fillText(bit.toString(),x,col.y);
+    } else { rainCtx.fillStyle='rgba(0,100,50,0.04)'; rainCtx.fillText('0',x,col.y); }
+    col.y+=col.speed; if(col.y>h){col.y=0; col.speed=0.5+Math.random()*(isPlaying?3:1);}
+  }
+}
+initRain(); window.addEventListener('resize',initRain);
+function ambientRain(){updateRain(); requestAnimationFrame(ambientRain);}
+
+// ═══ SONG STRUCTURE ═══
+const SECTIONS=[
+  {name:'POWER_ON',desc:'AC mains energises · SO(2) drone emerges',bars:4},
+  {name:'POST',desc:'Crystal oscillator starts · Z₂ heartbeat',bars:4},
+  {name:'BIOS',desc:'Memory initialises · capacitor micro-ruptures',bars:4},
+  {name:'BOOT',desc:'OS loads · data bus arpeggios from 2ⁿ',bars:8},
+  {name:'RUNNING',desc:'Full operation · all CRR cycles coupled',bars:12},
+  {name:'OVERLOAD',desc:'C → Ω · coherence approaches threshold',bars:8},
+  {name:'CRASH',desc:'δ(now) · SYSTEM RUPTURE · coherence resets',bars:2},
+  {name:'REBOOT',desc:'R[exp(C/Ω)] · motifs return from memory',bars:8},
+];
+let sectionIndex=0, sectionStartBeat=0;
+function getCurSec(){return SECTIONS[Math.min(sectionIndex,SECTIONS.length-1)];}
+function getSecBeats(i){return i>=SECTIONS.length?999:SECTIONS[i].bars*4;}
+
+// ═══ CRR AGENTS ═══
+class CRRAgent{
+  constructor(n,o,s,cb){this.name=n;this.omega=o;this.symmetry=s;this.cycleBeats=cb;this.C=0;this.phase='C';this.ruptures=0;this.phaseTime=0;this.history=[];this.active=false;}
+  update(dt){
+    if(!this.active)return;
+    const r=1/(this.cycleBeats*BEAT_SEC);
+    if(this.phase==='C'){this.C+=r*dt;this.phaseTime+=dt;if(this.C>=this.omega){this.phase='delta';this.phaseTime=0;this.ruptures++;totalRuptures++;this.history.push(this.C);if(this.history.length>64)this.history.shift();}}
+    else if(this.phase==='delta'){this.phaseTime+=dt;if(this.phaseTime>0.02){this.phase='R';this.phaseTime=0;this.C=this.omega*0.1;}}
+    else if(this.phase==='R'){this.phaseTime+=dt;this.C+=r*dt*0.5*(1+0.1*this.getExp());if(this.phaseTime>this.cycleBeats*BEAT_SEC*0.4){this.phase='C';this.phaseTime=0;}}
+  }
+  getExp(){return Math.exp(Math.min(this.C/this.omega,10));}
+  getCRatio(){return Math.min(this.C/this.omega,1);}
+  reset(){this.C=0;this.phase='C';this.phaseTime=0;this.ruptures=0;this.history=[];}
+}
+const agents={
+  psu:new CRRAgent('PSU',OMEGA_SO2,'SO2',8),cpu:new CRRAgent('CPU',OMEGA_Z2,'Z2',1),
+  ram:new CRRAgent('RAM',OMEGA_Z2,'Z2',0.5),bus:new CRRAgent('BUS',OMEGA_Z2,'Z2',2),
+  gpu:new CRRAgent('GPU',OMEGA_Z2,'Z2',4),fan:new CRRAgent('FAN',OMEGA_SO2,'SO2',16),
+  net:new CRRAgent('NET',OMEGA_Z2,'Z2',3),
+};
+let systemC=0, systemOmega=OMEGA_Z2, systemPhase='C';
+ambientRain();
+
+// ═══ AUDIO ENGINE ═══
+let masterGain,masterComp,masterFilter,psuOsc,psuGain,psuFilter,psuLFO,psuLFOGain;
+let cpuGain,ramNoise,ramGain,ramFilter,busOscs=[],busGains=[],busFilter;
+let gpuOsc,gpuGain,gpuFilter,fanNoise,fanGain,fanFilter,netOsc,netGain,netFilter,reverbConv,reverbGain;
+
+function mkNoise(c){const s=c.sampleRate*2,b=c.createBuffer(1,s,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<s;i++)d[i]=Math.random()*2-1;const n=c.createBufferSource();n.buffer=b;n.loop=true;return n;}
+function mkReverb(c,dur=2.5,dec=3){const r=c.sampleRate,l=r*dur,b=c.createBuffer(2,l,r);for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<l;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/l,dec);}const v=c.createConvolver();v.buffer=b;return v;}
+
+function initAudio(){
+  if(ctx)return; ctx=new AudioCtx();
+  masterGain=ctx.createGain();masterGain.gain.value=0.75;
+  masterComp=ctx.createDynamicsCompressor();masterComp.threshold.value=-10;masterComp.ratio.value=4;
+  masterFilter=ctx.createBiquadFilter();masterFilter.type='lowpass';masterFilter.frequency.value=20000;masterFilter.Q.value=0.5;
+  reverbConv=mkReverb(ctx,2.5,3.5);reverbGain=ctx.createGain();reverbGain.gain.value=0.18;
+  masterGain.connect(masterComp);masterComp.connect(masterFilter);masterFilter.connect(ctx.destination);
+  masterGain.connect(reverbConv);reverbConv.connect(reverbGain);reverbGain.connect(ctx.destination);
+
+  psuOsc=ctx.createOscillator();psuOsc.type='sine';psuOsc.frequency.value=ROOT;
+  psuFilter=ctx.createBiquadFilter();psuFilter.type='lowpass';psuFilter.frequency.value=90;psuFilter.Q.value=4;
+  psuGain=ctx.createGain();psuGain.gain.value=0;
+  psuLFO=ctx.createOscillator();psuLFO.type='sine';psuLFO.frequency.value=1/(2*Math.PI);
+  psuLFOGain=ctx.createGain();psuLFOGain.gain.value=0.04;
+  psuLFO.connect(psuLFOGain);psuLFOGain.connect(psuGain.gain);psuLFO.start();
+  psuOsc.connect(psuFilter);psuFilter.connect(psuGain);psuGain.connect(masterGain);psuOsc.start();
+
+  cpuGain=ctx.createGain();cpuGain.gain.value=0;cpuGain.connect(masterGain);
+  ramNoise=mkNoise(ctx);ramFilter=ctx.createBiquadFilter();ramFilter.type='highpass';ramFilter.frequency.value=7000;ramFilter.Q.value=2;
+  ramGain=ctx.createGain();ramGain.gain.value=0;ramNoise.connect(ramFilter);ramFilter.connect(ramGain);ramGain.connect(masterGain);ramNoise.start();
+
+  busFilter=ctx.createBiquadFilter();busFilter.type='bandpass';busFilter.frequency.value=800;busFilter.Q.value=2;busFilter.connect(masterGain);
+  for(let i=0;i<4;i++){const o=ctx.createOscillator();o.type='square';o.frequency.value=noteFreq(0,i+1);const g=ctx.createGain();g.gain.value=0;o.connect(g);g.connect(busFilter);o.start();busOscs.push(o);busGains.push(g);}
+
+  gpuOsc=ctx.createOscillator();gpuOsc.type='triangle';gpuOsc.frequency.value=noteFreq(0,2);
+  gpuFilter=ctx.createBiquadFilter();gpuFilter.type='lowpass';gpuFilter.frequency.value=400;gpuFilter.Q.value=4;
+  gpuGain=ctx.createGain();gpuGain.gain.value=0;gpuOsc.connect(gpuFilter);gpuFilter.connect(gpuGain);gpuGain.connect(masterGain);gpuOsc.start();
+
+  fanNoise=mkNoise(ctx);fanFilter=ctx.createBiquadFilter();fanFilter.type='bandpass';fanFilter.frequency.value=400;fanFilter.Q.value=1;
+  fanGain=ctx.createGain();fanGain.gain.value=0;fanNoise.connect(fanFilter);fanFilter.connect(fanGain);fanGain.connect(masterGain);fanNoise.start();
+
+  netOsc=ctx.createOscillator();netOsc.type='sawtooth';netOsc.frequency.value=200;
+  netFilter=ctx.createBiquadFilter();netFilter.type='bandpass';netFilter.frequency.value=1800;netFilter.Q.value=4;
+  netGain=ctx.createGain();netGain.gain.value=0;netOsc.connect(netFilter);netFilter.connect(netGain);netGain.connect(masterGain);netOsc.start();
+}
+
+// ═══ ENSURE AUDIO GRAPH — crash disconnects masterGain ═══
+function ensureAudioConnected(){
+  if(!ctx)return;
+  try{masterGain.disconnect();}catch(e){}
+  masterGain.connect(masterComp);masterGain.connect(reverbConv);
+}
+
+// ═══ SOUND TRIGGERS ═══
+function triggerKick(t,v=0.8){const o=ctx.createOscillator();o.type='sine';o.frequency.setValueAtTime(160,t);o.frequency.exponentialRampToValueAtTime(ROOT,t+0.12);const g=ctx.createGain();g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.3);const c=ctx.createOscillator();c.type='square';c.frequency.value=1200;const cg=ctx.createGain();cg.gain.setValueAtTime(v*0.25,t);cg.gain.exponentialRampToValueAtTime(0.001,t+0.008);o.connect(g);g.connect(cpuGain);c.connect(cg);cg.connect(cpuGain);o.start(t);o.stop(t+0.4);c.start(t);c.stop(t+0.02);}
+function triggerHH(t,open=false,v=0.3){const d=open?0.15:0.04;ramGain.gain.setValueAtTime(v,t);ramGain.gain.exponentialRampToValueAtTime(0.001,t+d);}
+function triggerArp(t,deg,oct,dur=0.1,v=0.15){const fr=noteFreq(deg,oct),o=ctx.createOscillator();o.type='square';o.frequency.value=fr;const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+0.005);g.gain.exponentialRampToValueAtTime(0.001,t+dur);const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(fr*4,t);f.frequency.exponentialRampToValueAtTime(fr*1.5,t+dur);f.Q.value=2;o.connect(f);f.connect(g);g.connect(busFilter);o.start(t);o.stop(t+dur+0.01);}
+function triggerGlitch(t,dur=0.08){
+  // TCP packet burst: 1-3 rapid micro-packets with frequency shifts
+  const baseFreq=400+sRand()*2400;
+  netOsc.frequency.setValueAtTime(baseFreq,t);
+  netGain.gain.setValueAtTime(0.35,t);
+  netGain.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  // Second packet echo (retransmission) — stochastic
+  if(sRand()<0.5){
+    const t2=t+dur*0.6;
+    netOsc.frequency.setValueAtTime(baseFreq*(sRand()<0.5?1.5:0.75),t2);
+    netGain.gain.setValueAtTime(0.2,t2);
+    netGain.gain.exponentialRampToValueAtTime(0.001,t2+dur*0.5);
+  }
+}
+function triggerBeep(t,fr=800,dur=0.15){const o=ctx.createOscillator();o.type='square';o.frequency.value=fr;const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.1,t+0.005);g.gain.setValueAtTime(0.1,t+dur-0.01);g.gain.linearRampToValueAtTime(0,t+dur);const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=2000;o.connect(f);f.connect(g);g.connect(masterGain);o.start(t);o.stop(t+dur+0.01);}
+
+const ARP={boot:[0,0,2,3,0,2,3,4],running:[0,3,2,4,0,2,3,1],overload:[0,4,3,4,2,4,3,4],reboot:[3,2,0,2,3,4,3,0]};
+
+// ═══ BEAT SCHEDULER — all stochastic via seeded PRNG ═══
+let nextBeatTime=0;const LA=0.1;
+
+function scheduleBeat(t){
+  if(songEnded||sectionIndex>=SECTIONS.length)return;
+  const lb=beatNum-sectionStartBeat, bib=beatNum%4, bis=Math.floor(lb/4);
+
+  switch(sectionIndex){
+  case 0:{// POWER_ON
+    agents.psu.active=true;const p=lb/getSecBeats(0);
+    psuGain.gain.setTargetAtTime(0.08*p,t,0.2);psuFilter.frequency.setTargetAtTime(50+p*60,t,0.2);
+    psuLFOGain.gain.setTargetAtTime(0.02+p*0.04,t,0.3);
+    if(lb>8){agents.fan.active=true;fanGain.gain.setTargetAtTime((lb-8)/getSecBeats(0)*0.03,t,0.5);fanFilter.frequency.setTargetAtTime(80+p*120,t,0.5);}
+    break;}
+  case 1:{// POST
+    agents.cpu.active=true;cpuGain.gain.setTargetAtTime(0.65,t,0.05);psuGain.gain.setTargetAtTime(0.08,t,0.2);
+    if(lb===0)triggerBeep(t,880,0.2);if(lb===2)triggerBeep(t,880,0.1);if(lb===4)triggerBeep(t,1320,0.3);if(lb===8)triggerBeep(t,660,0.1);
+    if(bib===0&&lb>=8)triggerKick(t,0.5);break;}
+  case 2:{// BIOS
+    agents.ram.active=true;const p=lb/getSecBeats(2);
+    if(bib===0||(p>0.5&&bib===2))triggerKick(t,0.6);
+    triggerHH(t,false,0.15*p);if(p>0.3)triggerHH(t+BEAT_SEC/2,bib===2,0.1*p);
+    if(p>0.5){agents.gpu.active=true;gpuGain.gain.setTargetAtTime(0.08*p,t,0.5);gpuOsc.frequency.setTargetAtTime(noteFreq(0,2),t,0.1);}
+    psuGain.gain.setTargetAtTime(0.1,t,0.2);break;}
+  case 3:{// BOOT
+    agents.bus.active=true;const p=lb/getSecBeats(3);
+    if(bib===0)triggerKick(t,0.75);if(bib===2&&p>0.3)triggerKick(t,0.5);
+    triggerHH(t,false,0.2);triggerHH(t+BEAT_SEC/2,bib===2,0.12);
+    if(p>0.5){triggerHH(t+BEAT_SEC/4,false,0.08);triggerHH(t+BEAT_SEC*3/4,false,0.06);}
+    const d=ARP.boot[lb%ARP.boot.length],o=2+Math.floor(lb/8)%2;
+    triggerArp(t,d,o,BEAT_SEC*0.8,0.1*p);
+    psuGain.gain.setTargetAtTime(0.1,t,0.2);gpuGain.gain.setTargetAtTime(0.1,t,0.3);
+    psuLFOGain.gain.setTargetAtTime(0.03+p*0.03,t,0.3);
+    if(p>0.4){agents.net.active=true;if(sRand()<0.4)triggerGlitch(t,0.06+sRand()*0.08);}
+    break;}
+  case 4:{// RUNNING
+    const p=lb/getSecBeats(4);
+    triggerKick(t,0.8);triggerHH(t+BEAT_SEC/2,bib===1||bib===3,0.22);triggerHH(t,false,0.15);
+    triggerHH(t+BEAT_SEC/4,false,0.06);triggerHH(t+BEAT_SEC*3/4,false,0.06);
+    const d=ARP.running[lb%ARP.running.length];
+    triggerArp(t,d,2,BEAT_SEC*0.4,0.12);triggerArp(t+BEAT_SEC/2,d,3,BEAT_SEC*0.3,0.06);
+    psuGain.gain.setTargetAtTime(0.12,t,0.1);psuOsc.frequency.setValueAtTime(bib<2?noteFreq(0,0):noteFreq(3,0),t);
+    psuLFO.frequency.setTargetAtTime(1/(2*Math.PI)*(1+p*0.5),t,0.5);
+    gpuGain.gain.setTargetAtTime(0.12,t,0.3);
+    gpuOsc.frequency.setTargetAtTime([noteFreq(0,2),noteFreq(2,2),noteFreq(3,2)][bis%3],t,0.2);
+    gpuFilter.frequency.setTargetAtTime(600+p*800,t,0.5);
+    fanGain.gain.setTargetAtTime(0.03+p*0.03,t,0.5);fanFilter.frequency.setTargetAtTime(300+p*400,t,0.5);
+    agents.net.active=true;
+    if(sRand()<0.25+p*0.2){triggerGlitch(t+sRand()*BEAT_SEC*0.5,0.05+sRand()*0.08);
+      if(p>0.5&&sRand()<0.3)triggerGlitch(t+BEAT_SEC*0.5+sRand()*BEAT_SEC*0.3,0.04+sRand()*0.06);}
+    break;}
+  case 5:{// OVERLOAD
+    const p=lb/getSecBeats(5);
+    triggerKick(t,0.9);if(p>0.5&&bib===2)triggerKick(t,0.6);if(p>0.75)triggerKick(t+BEAT_SEC/2,0.4);
+    triggerHH(t,false,0.25);triggerHH(t+BEAT_SEC/4,false,0.15);triggerHH(t+BEAT_SEC/2,true,0.2);triggerHH(t+BEAT_SEC*3/4,false,0.12);
+    const d=ARP.overload[lb%ARP.overload.length];
+    triggerArp(t,d,3,BEAT_SEC*0.3,0.15*(0.7+p*0.3));
+    if(p>0.3)triggerArp(t+BEAT_SEC/4,(d+2)%5,2,BEAT_SEC*0.2,0.08);
+    psuGain.gain.setTargetAtTime(0.14+p*0.06,t,0.1);psuFilter.frequency.setTargetAtTime(90+p*100,t,0.3);
+    psuLFOGain.gain.setTargetAtTime(0.05+p*0.08,t,0.2);psuLFO.frequency.setTargetAtTime(1/(2*Math.PI)*(1+p*3),t,0.3);
+    masterFilter.frequency.setTargetAtTime(2000+p*16000,t,0.5);
+    fanGain.gain.setTargetAtTime(0.04+p*0.06,t,0.3);fanFilter.frequency.setTargetAtTime(800+p*2500,t,0.3);
+    gpuGain.gain.setTargetAtTime(0.15+p*0.08,t,0.2);gpuFilter.frequency.setTargetAtTime(300+p*2000,t,0.3);gpuFilter.Q.setTargetAtTime(5+p*8,t,0.3);
+    agents.net.active=true;
+    if(sRand()<0.35+p*0.4){triggerGlitch(t+sRand()*BEAT_SEC*0.3,0.06+sRand()*0.12);if(p>0.4&&sRand()<0.5)triggerGlitch(t+BEAT_SEC*0.2+sRand()*0.15,0.04+sRand()*0.08);
+      if(p>0.7&&sRand()<0.4)triggerGlitch(t+BEAT_SEC*0.6+sRand()*0.1,0.03+sRand()*0.06);}
+    break;}
+  case 6:{// ═══ CRASH — δ(now) ═══
+    if(lb===0){
+      // Kill all audio
+      [psuGain,cpuGain,ramGain,gpuGain,fanGain,netGain,psuLFOGain].forEach(g=>g.gain.setValueAtTime(0,t));
+      busGains.forEach(g=>g.gain.setValueAtTime(0,t));
+      masterFilter.frequency.setValueAtTime(20000,t);
+      // Crash burst
+      const co=ctx.createOscillator();co.type='sawtooth';co.frequency.value=80;
+      const cg=ctx.createGain();cg.gain.setValueAtTime(0.7,t);cg.gain.exponentialRampToValueAtTime(0.001,t+0.8);
+      const cf=ctx.createBiquadFilter();cf.type='lowpass';cf.frequency.setValueAtTime(8000,t);cf.frequency.exponentialRampToValueAtTime(20,t+0.8);
+      co.connect(cf);cf.connect(cg);cg.connect(masterGain);co.start(t);co.stop(t+1);
+      // Kill CRR agents
+      Object.values(agents).forEach(a=>{a.history.push(a.C);a.C=0;a.phase='delta';a.active=false;});
+      systemPhase='delta';
+      const cd=Math.max(0,(t-ctx.currentTime)*1000), cl=document.getElementById('contentLayer');
+      // Disconnect audio + DOM glitch + BSOD
+      crashTimeouts.push(setTimeout(()=>{
+        try{masterGain.disconnect();}catch(e){}
+        cl.classList.add('glitching');
+        try{throw new Error('CRR_COHERENCE_THRESHOLD_EXCEEDED: δ(now) C='+systemC.toFixed(6)+' Ω='+systemOmega.toFixed(6)+' exp='+Math.exp(systemC/systemOmega).toFixed(4));}
+        catch(e){console.error('%c══ CRR SYSTEM RUPTURE ══','color:#ff3344;font-size:16px;font-weight:bold');console.error(e);
+          console.log('%cHistory:','color:#00ddff');Object.entries(agents).forEach(([k,a])=>console.log(`  ${k}: [${a.history.map(v=>v.toFixed(4)).join(', ')}]`));}
+        crashTimeouts.push(setTimeout(()=>{cl.classList.remove('glitching');cl.classList.add('crashed');},900));
+        // QR Code: CRR structure encoding www.temporalgrammar.ai
+        // C=finder patterns, δ=data modules (Z₂), R=Reed-Solomon (H=max regeneration)
+        try{
+          const qr=qrcode(0,'H'); // Type 0=auto, H=high error correction (low Ω, max resilience)
+          qr.addData('https://www.temporalgrammar.ai');
+          qr.make();
+          const canvas=document.getElementById('bsodQR');
+          const cx=canvas.getContext('2d');
+          const count=qr.getModuleCount();
+          const sz=canvas.width;
+          const mod=sz/count;
+          cx.fillStyle='#ffffff';cx.fillRect(0,0,sz,sz);
+          cx.fillStyle='#000000';
+          for(let r=0;r<count;r++)for(let c=0;c<count;c++)if(qr.isDark(r,c))cx.fillRect(c*mod,r*mod,mod+0.5,mod+0.5);
+        }catch(e){console.log('QR generation skipped:',e);}
+        document.getElementById('bsodStopInfo').textContent=`δ(now).sys — C=${systemC.toFixed(4)} Ω=${systemOmega.toFixed(4)} ruptures=${totalRuptures}`;
+        let dump='*** COHERENCE HISTORY DUMP ***\n';Object.entries(agents).forEach(([k,a])=>{dump+=k.toUpperCase()+': ';a.history.forEach(v=>{dump+=float32ToBinaryCompact(v)+' ';});dump+='\n';});
+        document.getElementById('bsodBinary').textContent=dump;
+        let pct=0;const pctEl=document.getElementById('bsodPercent');
+        const pi=setInterval(()=>{pct+=Math.floor(Math.random()*15)+5;if(pct>=100){pct=100;clearInterval(pi);}pctEl.textContent=pct+'% complete';},400);
+        crashTimeouts.push({clear:()=>clearInterval(pi)});
+        document.getElementById('bsod').style.display='flex';
+      },cd));
+      // Reconnect audio before reboot
+      crashTimeouts.push(setTimeout(()=>{ensureAudioConnected();masterGain.gain.value=0;
+        console.log('%c══ REGENERATION INITIATED ══','color:#00ff88;font-size:14px');},cd+3200));
+      // Hide BSOD
+      crashTimeouts.push(setTimeout(()=>{document.getElementById('bsod').style.display='none';cl.classList.remove('crashed','glitching');
+        if(ctx)resetParam(masterGain.gain,0.75);},cd+4800));
+      triggerRuptureFlash();
+    }
+    break;}
+  case 7:{// REBOOT — R[exp(C/Ω)]
+    const p=lb/getSecBeats(7);
+    if(lb===0){systemPhase='R';Object.values(agents).forEach(a=>{a.phase='R';});}
+    if(p>0.05){agents.psu.active=true;psuGain.gain.setTargetAtTime(0.06*Math.min(1,(p-0.05)*4),t,0.3);psuFilter.frequency.setTargetAtTime(60+p*50,t,0.3);psuLFOGain.gain.setTargetAtTime(0.02,t,0.3);}
+    if(p>0.15){agents.cpu.active=true;if(bib===0)triggerKick(t,0.4+p*0.3);}
+    if(p>0.25){agents.ram.active=true;triggerHH(t,false,0.1*p);if(p>0.4)triggerHH(t+BEAT_SEC/2,false,0.06*p);}
+    if(p>0.35){agents.bus.active=true;const d=ARP.reboot[lb%ARP.reboot.length],mw=Math.min(agents.bus.getExp(),5);triggerArp(t,d,2,BEAT_SEC*0.6,0.08*p*(1+mw*0.1));}
+    if(p>0.45){agents.gpu.active=true;gpuGain.gain.setTargetAtTime(0.08*p,t,0.5);gpuFilter.frequency.setTargetAtTime(300+p*400,t,0.5);gpuFilter.Q.setTargetAtTime(3,t,0.5);}
+    if(p>0.3){agents.fan.active=true;fanGain.gain.setTargetAtTime(0.015*p,t,0.5);fanFilter.frequency.setTargetAtTime(200+p*200,t,0.5);}
+    if(p>0.7){if(bib===2)triggerKick(t,0.4);triggerHH(t+BEAT_SEC/4,false,0.05);triggerHH(t+BEAT_SEC*3/4,false,0.05);agents.net.active=true;if(sRand()<0.3)triggerGlitch(t,0.05+sRand()*0.06);}
+    if(p>0.85){masterGain.gain.setTargetAtTime(0.75*(1-(p-0.85)/0.15),t,0.3);}
+    break;}
+  }
+  beatNum++;
+  if(beatNum-sectionStartBeat>=getSecBeats(sectionIndex)){sectionIndex++;sectionStartBeat=beatNum;if(sectionIndex>=SECTIONS.length){songEnded=true;setTimeout(stopSong,1500);}}
+}
+
+// ═══ SCHEDULER ═══
+function scheduler(){if(!isPlaying||songEnded)return;while(nextBeatTime<ctx.currentTime+LA){scheduleBeat(nextBeatTime);nextBeatTime+=BEAT_SEC;}schedulerTimer=setTimeout(scheduler,25);}
+
+// ═══ VISUAL UPDATE ═══
+function updateVisuals(){
+  if(!isPlaying)return;
+  const el=ctx.currentTime-startTime,dt=1/60;
+  Object.values(agents).forEach(a=>a.update(dt));
+  const ac=Object.values(agents).filter(a=>a.active);
+  if(ac.length>0)systemC=ac.reduce((s,a)=>s+a.C,0)/ac.length;
+  document.getElementById('timeDisplay').textContent=`${Math.floor(el/60)}:${Math.floor(el%60).toString().padStart(2,'0')}`;
+  const sec=getCurSec();
+  document.getElementById('sectionLabel').textContent=sec.name;
+  document.getElementById('globalC').textContent=systemC.toFixed(3);
+  document.getElementById('globalOmega').textContent=systemOmega.toFixed(3);
+  document.getElementById('globalExp').textContent=Math.min(Math.exp(systemC/systemOmega),999).toFixed(2);
+  document.getElementById('beatCount').textContent=beatNum;
+  document.getElementById('ruptureCount').textContent=totalRuptures;
+  document.getElementById('sectionName').textContent=sec.name;
+  document.getElementById('sectionDesc').textContent=sec.desc;
+  document.querySelectorAll('.progress-segment').forEach((s,i)=>{const f=s.querySelector('.fill');if(i<sectionIndex){f.style.width='100%';s.classList.remove('active');}else if(i===sectionIndex&&sectionIndex<SECTIONS.length){s.classList.add('active');f.style.width=((beatNum-sectionStartBeat)/getSecBeats(i)*100)+'%';}else{f.style.width='0%';s.classList.remove('active');}});
+
+  ['psu','cpu','ram','bus','gpu','fan','net'].forEach(id=>{
+    const a=agents[id];
+    const cE=document.getElementById(`${id}-c`),xE=document.getElementById(`${id}-exp`),bE=document.getElementById(`${id}-bar`),pE=document.getElementById(`${id}-phase`),nE=document.getElementById(`${id}-bin`);
+    if(cE)cE.textContent=a.C.toFixed(3);if(xE)xE.textContent=Math.min(a.getExp(),999).toFixed(2);
+    if(bE)bE.style.width=(a.getCRatio()*100)+'%';
+    if(pE){pE.textContent=a.phase==='delta'?'δ':a.phase.toUpperCase();pE.className='phase-indicator phase-'+(a.phase==='delta'?'delta':a.phase);}
+    if(nE&&a.active){const cb=float32ToBinary(a.C),eb=float32ToBinary(Math.min(a.getExp(),1e10)),cls=a.phase==='delta'?'b-rupture':a.phase==='R'?'b-regen':'';
+      nE.innerHTML=`<span class="b-label">C:</span> <span class="${cls}">${cb}</span><br><span class="b-label">e:</span> ${eb}`;}
+    else if(nE)nE.innerHTML='<span class="b-label">—</span> offline';
+  });
+  const sb=document.getElementById('sys-bin');
+  if(sb)sb.innerHTML=`<span class="b-label">C:</span> ${float32ToBinary(systemC)}<br><span class="b-label">Ω:</span> ${float32ToBinary(systemOmega)}`;
+  document.getElementById('sys-c').textContent=systemC.toFixed(3);document.getElementById('sys-omega').textContent=systemOmega.toFixed(3);
+  document.getElementById('sys-exp').textContent=Math.min(Math.exp(systemC/systemOmega),999).toFixed(2);
+  document.getElementById('sys-bar').style.width=(Math.min(systemC/systemOmega,1)*100)+'%';
+  document.getElementById('sys-phase').textContent=systemPhase==='delta'?'δ':systemPhase.toUpperCase();
+  document.getElementById('sys-phase').className='phase-indicator phase-'+(systemPhase==='delta'?'delta':systemPhase);
+
+  [{id:'binRow0',l:'PSU',a:agents.psu,f:'C'},{id:'binRow1',l:'CPU',a:agents.cpu,f:'C'},{id:'binRow2',l:'BUS',a:agents.bus,f:'exp'}].forEach(r=>{
+    const e=document.getElementById(r.id);if(!e)return;
+    const v=r.f==='exp'?Math.min(r.a.getExp(),1e10):r.a.C,b=float32ToBinaryCompact(v),isDelta=r.a.phase==='delta';
+    e.innerHTML=`<span class="bin-label">${r.l}</span> `+(isDelta?`<span class="bin-delta">${b}</span>`:b);
+    e.classList.toggle('highlight',r.a.active&&r.a.getCRatio()>0.5);
+  });
+  animFrame=requestAnimationFrame(updateVisuals);
+}
+
+function triggerRuptureFlash(){const e=document.getElementById('ruptureFlash');e.classList.remove('flash');void e.offsetWidth;e.classList.add('flash');}
+
+// ═══ START / STOP — with full reset + crash cleanup ═══
+function startSong(){
+  if(isPlaying)return;
+  initAudio();ctx.resume();
+  // Cancel pending crash timeouts
+  crashTimeouts.forEach(t=>{if(t&&typeof t==='object'&&t.clear)t.clear();else clearTimeout(t);});crashTimeouts=[];
+  // Ensure audio graph connected (crash may have disconnected)
+  ensureAudioConnected();
+  // Clean DOM
+  const cl=document.getElementById('contentLayer');cl.classList.remove('crashed','glitching');document.getElementById('bsod').style.display='none';
+  // Reset state
+  isPlaying=true;songEnded=false;seed=42;startTime=ctx.currentTime;nextBeatTime=ctx.currentTime+0.1;
+  beatNum=0;sectionIndex=0;sectionStartBeat=0;totalRuptures=0;systemC=0;systemPhase='C';
+  Object.values(agents).forEach(a=>{a.reset();a.active=false;});
+  // Cancel ALL lingering automation → set clean values
+  resetParam(masterGain.gain,0.75);resetParam(masterFilter.frequency,20000);resetParam(masterFilter.Q,0.5);
+  resetParam(psuGain.gain,0);resetParam(psuOsc.frequency,ROOT);resetParam(psuFilter.frequency,90);resetParam(psuFilter.Q,4);
+  resetParam(psuLFO.frequency,1/(2*Math.PI));resetParam(psuLFOGain.gain,0.02);
+  resetParam(cpuGain.gain,0);resetParam(ramGain.gain,0);resetParam(ramFilter.frequency,7000);
+  resetParam(gpuGain.gain,0);resetParam(gpuOsc.frequency,noteFreq(0,2));resetParam(gpuFilter.frequency,400);resetParam(gpuFilter.Q,4);
+  resetParam(fanGain.gain,0);resetParam(fanFilter.frequency,400);
+  resetParam(netGain.gain,0);resetParam(netOsc.frequency,200);resetParam(netFilter.frequency,1800);
+  busGains.forEach(g=>resetParam(g.gain,0));busOscs.forEach((o,i)=>resetParam(o.frequency,noteFreq(0,i+1)));resetParam(busFilter.frequency,800);
+  document.getElementById('btnPlay').classList.add('active');
+  scheduler();updateVisuals();
+}
+
+function stopSong(){
+  isPlaying=false;songEnded=true;
+  if(schedulerTimer)clearTimeout(schedulerTimer);if(animFrame)cancelAnimationFrame(animFrame);
+  crashTimeouts.forEach(t=>{if(t&&typeof t==='object'&&t.clear)t.clear();else clearTimeout(t);});crashTimeouts=[];
+  if(ctx){ensureAudioConnected();const n=ctx.currentTime;masterGain.gain.cancelScheduledValues(n);masterGain.gain.setValueAtTime(masterGain.gain.value,n);masterGain.gain.setTargetAtTime(0,n,0.3);}
+  const cl=document.getElementById('contentLayer');cl.classList.remove('crashed','glitching');
+  document.getElementById('btnPlay').classList.remove('active');document.getElementById('bsod').style.display='none';
+}
+</script>
+</body>
+</html>
