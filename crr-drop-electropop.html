@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CRR DROP · Electro-Pop | temporalgrammar.ai</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;700;900&family=Space+Mono:wght@400;700&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--cyan:#00f0ff;--magenta:#ff2d95;--yellow:#ffe234;--lime:#39ff14;
+--purple:#b026ff;--white:rgba(240,245,255,0.92);--dim:rgba(160,180,220,0.4);
+--bg:#030008;--panel:rgba(6,2,16,0.97)}
+body{background:var(--bg);color:var(--white);font-family:'Outfit',sans-serif;
+overflow:hidden;width:100vw;height:100vh;position:fixed}
+
+/* ═══ SPLASH ═══ */
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;
+justify-content:center;cursor:pointer;transition:opacity 1.4s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:720px;padding:0 24px}
+#splash .bar{width:320px;height:3px;margin:0 auto 28px;border-radius:2px;
+background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--yellow),var(--lime),var(--purple),var(--cyan));
+background-size:200% 100%;animation:barSlide 2s linear infinite}
+@keyframes barSlide{0%{background-position:0% 0}100%{background-position:200% 0}}
+#splash h1{font-size:clamp(2.4rem,6vw,4.2rem);font-weight:900;letter-spacing:.08em;margin-bottom:4px;
+text-transform:uppercase;
+background:linear-gradient(135deg,var(--cyan),var(--magenta),var(--yellow),var(--cyan));
+background-size:300% 300%;animation:hueShift 3s ease-in-out infinite;
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@keyframes hueShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+#splash .sub{font-size:clamp(.7rem,1.2vw,.88rem);font-weight:200;opacity:.45;
+letter-spacing:.05em;line-height:1.9}
+#splash .eq{font-family:'Space Mono',monospace;font-size:clamp(.42rem,.7vw,.52rem);
+opacity:.18;margin-top:18px;letter-spacing:.02em;line-height:1.8}
+#splash .credit{font-size:.58rem;opacity:.2;margin-top:14px;letter-spacing:.08em}
+#splash .tap{font-size:.7rem;opacity:.2;margin-top:22px;letter-spacing:.18em;text-transform:uppercase;
+font-weight:700;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.15;transform:scale(1)}50%{opacity:.4;transform:scale(1.02)}}
+
+/* ═══ APP ═══ */
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#canvas-wrap{flex:1;min-height:0;position:relative;overflow:hidden}
+#viz{display:block;width:100%;height:100%;touch-action:none}
+
+/* ═══ FLASH OVERLAY ═══ */
+#flash-overlay{position:absolute;inset:0;pointer-events:none;z-index:3;
+background:white;opacity:0;transition:opacity 0.05s linear;mix-blend-mode:screen}
+
+/* ═══ INFO BAR ═══ */
+#info-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+align-items:flex-start;padding:12px 18px;pointer-events:none;z-index:5}
+#piece-title{font-size:clamp(.9rem,1.6vw,1.2rem);font-weight:900;letter-spacing:.12em;
+text-transform:uppercase;
+background:linear-gradient(90deg,var(--cyan),var(--magenta));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#piece-title .bpm{font-size:.55em;opacity:.4;font-weight:400;display:block;margin-top:2px;
+-webkit-text-fill-color:var(--dim)}
+#crr-display{font-family:'Space Mono',monospace;font-size:clamp(.44rem,.75vw,.56rem);
+color:rgba(0,240,255,0.2);text-align:right;line-height:1.6}
+
+/* ═══ SECTION LABEL ═══ */
+#section-label{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);text-align:center;
+pointer-events:none;z-index:4;font-size:clamp(2rem,5vw,4rem);font-weight:900;letter-spacing:.15em;
+text-transform:uppercase;opacity:0;transition:opacity 0.8s ease;
+background:linear-gradient(135deg,var(--cyan),var(--magenta),var(--yellow));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+filter:drop-shadow(0 0 40px rgba(0,240,255,0.3))}
+
+/* ═══ FORM LABEL ═══ */
+#form-label{position:absolute;top:16%;left:50%;transform:translate(-50%,0);text-align:center;
+pointer-events:none;z-index:6;font-size:clamp(.8rem,1.4vw,1.1rem);font-weight:200;letter-spacing:.1em;
+opacity:0;transition:opacity 1.2s ease;color:var(--cyan);
+text-shadow:0 0 20px rgba(0,240,255,0.3);padding:4px 16px}
+
+/* ═══ BIO PANEL ═══ */
+#bio-panel{position:absolute;bottom:10%;left:18px;pointer-events:none;z-index:5;max-width:380px}
+#bio-text{font-family:'Space Mono',monospace;font-size:clamp(.55rem,.95vw,.72rem);
+line-height:1.8;transition:opacity 1s ease;opacity:0;
+background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--yellow),var(--cyan));
+background-size:300% 100%;animation:bioShift 6s ease-in-out infinite;
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@keyframes bioShift{0%,100%{background-position:0% 0}50%{background-position:100% 0}}
+
+/* ═══ CRR EXPLAIN ═══ */
+#crr-explain{position:absolute;top:60px;right:18px;pointer-events:none;z-index:5;
+max-width:260px;font-family:'Space Mono',monospace;font-size:clamp(.48rem,.8vw,.62rem);
+color:rgba(176,38,255,0.45);line-height:1.7;text-align:right;transition:opacity 1.5s ease}
+
+/* ═══ LYRIC ═══ */
+#lyric-display{position:absolute;bottom:6%;left:0;right:0;text-align:center;pointer-events:none;z-index:5}
+#lyric-text{font-size:clamp(1.2rem,2.5vw,1.8rem);font-weight:700;letter-spacing:.08em;
+text-transform:uppercase;opacity:0;transition:opacity 0.3s ease;
+background:linear-gradient(90deg,var(--yellow),var(--magenta));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+filter:drop-shadow(0 0 20px rgba(255,45,149,0.4))}
+#lyric-text.visible{opacity:.85}
+
+/* ═══ BEAT COUNTER ═══ */
+#beat-counter{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+pointer-events:none;z-index:2;font-family:'Space Mono',monospace;
+font-size:clamp(6rem,15vw,12rem);font-weight:700;opacity:0;
+color:rgba(255,255,255,0.03);transition:opacity 0.1s}
+
+/* ═══ TIMELINE ═══ */
+#timeline-wrap{height:28px;background:rgba(6,2,16,0.95);border-top:1px solid rgba(0,240,255,0.06);
+display:flex;align-items:center;padding:0 14px;gap:8px;flex-shrink:0}
+#timeline-bar{flex:1;height:5px;background:rgba(255,255,255,0.02);border-radius:3px;
+position:relative;overflow:hidden}
+#timeline-fill{height:100%;width:0%;border-radius:3px;transition:width 0.2s linear;
+background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--yellow),var(--lime),var(--purple))}
+#timeline-sections{position:absolute;inset:0;display:flex;pointer-events:none}
+.t-sec{height:100%;border-right:1px solid rgba(255,255,255,0.03);position:relative}
+.t-sec-l{position:absolute;top:-13px;left:2px;font-family:'Space Mono',monospace;
+font-size:6px;color:rgba(0,240,255,0.12);letter-spacing:.03em;white-space:nowrap}
+#tl-crr{font-family:'Space Mono',monospace;font-size:.5rem;min-width:46px;
+background:linear-gradient(90deg,var(--cyan),var(--magenta));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#tl-time{font-family:'Space Mono',monospace;font-size:.5rem;color:rgba(0,240,255,0.18);
+min-width:60px;text-align:right}
+
+/* ═══ CONTROLS ═══ */
+#controls{border-top:1px solid rgba(0,240,255,0.06);background:var(--panel);
+padding:8px 14px 9px;display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.tr{display:flex;gap:4px;justify-content:center;align-items:center;flex-wrap:wrap}
+.tb{font-family:'Outfit',sans-serif;font-size:clamp(.68rem,.95vw,.82rem);font-weight:700;
+padding:3px 18px;border:1px solid rgba(0,240,255,0.1);background:transparent;
+color:var(--dim);cursor:pointer;border-radius:3px;letter-spacing:.06em;transition:all .2s;
+text-transform:uppercase}
+.tb:hover{border-color:rgba(0,240,255,0.35);color:var(--cyan);
+box-shadow:0 0 12px rgba(0,240,255,0.1)}
+.tb.on{border-color:rgba(255,45,149,0.4);color:var(--magenta);
+background:rgba(255,45,149,0.03);box-shadow:0 0 15px rgba(255,45,149,0.1)}
+.sw{display:flex;align-items:center;gap:3px}
+.sw label{font-size:.5rem;color:rgba(0,240,255,.2);letter-spacing:.06em;width:38px;text-transform:uppercase}
+.sw input[type=range]{flex:1;max-width:60px;height:2px;cursor:pointer;accent-color:var(--magenta)}
+.sw .v{font-family:'Space Mono',monospace;font-size:.44rem;color:rgba(0,240,255,.15);width:24px;text-align:right}
+
+#crr-footer{text-align:center;padding:2px;font-size:clamp(.36rem,.6vw,.44rem);
+font-family:'Space Mono',monospace;letter-spacing:.03em;
+background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--yellow),var(--lime),var(--purple),var(--cyan));
+background-size:200% 100%;animation:barSlide 4s linear infinite;
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+@media(max-width:600px){
+  #controls{padding:6px 8px 7px}
+  .tb{padding:4px 10px;font-size:.72rem}
+  #info-bar{padding:6px 10px}
+  #timeline-wrap{padding:0 8px;height:22px}
+  .t-sec-l{display:none}
+  #bio-panel{max-width:240px;bottom:8%}
+  #crr-explain{max-width:130px;top:48px}
+}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="inner">
+<div class="bar"></div>
+<h1>CRR DROP</h1>
+<p class="sub">Every sound from the Song of Beauty — reforged as electro-pop.<br>
+Whale song becomes the bass drop. Heartbeat becomes the kick.<br>
+Sacred geometry as the visual hook. Choir as the anthem.<br>
+Verse builds C → Pre-chorus approaches Ω → DROP = δ(now) → Chorus = R<br>
+128 BPM. The CRR framework IS pop structure.</p>
+<p class="eq">B(C/Ω)=exp(C/Ω)·(1−C/(Ω·π)) peaks at π−1 · kick = systole δ · sidechain = Ω breathing<br>
+whale FM → bass wobble · choir SATB → anthem · sacred geometry = coherence basin · brainwave → arp<br>
+verse=C · pre-chorus=approaching Ω · DROP=δ(now) · chorus=R(regeneration)</p>
+<p class="credit">CRR Framework — Alexander Sabine · temporalgrammar.ai</p>
+<p class="tap">▶ tap to drop</p>
+</div></div>
+
+<div id="app">
+<div id="canvas-wrap">
+<canvas id="viz"></canvas>
+<div id="flash-overlay"></div>
+<div id="info-bar">
+  <div id="piece-title">CRR DROP<span class="bpm">128 BPM · electro-pop · CRR</span></div>
+  <div id="crr-display"></div>
+</div>
+<div id="section-label"></div>
+<div id="form-label"></div>
+<div id="bio-panel"><div id="bio-text"></div></div>
+<div id="crr-explain"></div>
+<div id="lyric-display"><span id="lyric-text"></span></div>
+<div id="beat-counter"></div>
+</div>
+
+<div id="timeline-wrap">
+  <div id="tl-crr">C=0</div>
+  <div id="timeline-bar"><div id="timeline-fill"></div><div id="timeline-sections"></div></div>
+  <div id="tl-time">0:00 / 0:00</div>
+</div>
+
+<div id="controls">
+<div class="tr">
+  <button class="tb" id="btn-play">▶ Play</button>
+  <button class="tb" id="btn-stop">■ Stop</button>
+  <div class="sw"><label>Tempo</label>
+    <input type="range" id="sl-tempo" min="0.7" max="1.3" step="0.05" value="1">
+    <span class="v" id="v-tempo">1.0×</span></div>
+  <div class="sw"><label>Reverb</label>
+    <input type="range" id="sl-rev" min="0" max="1" step="0.05" value="0.55">
+    <span class="v" id="v-rev">0.55</span></div>
+  <div class="sw"><label>Synth</label>
+    <input type="range" id="sl-piano" min="0" max="1" step="0.05" value="0.6">
+    <span class="v" id="v-piano">0.60</span></div>
+  <div class="sw"><label>Choir</label>
+    <input type="range" id="sl-choir" min="0" max="1" step="0.05" value="0.6">
+    <span class="v" id="v-choir">0.60</span></div>
+  <div class="sw"><label>Bass</label>
+    <input type="range" id="sl-whale" min="0" max="1" step="0.05" value="0.55">
+    <span class="v" id="v-whale">0.55</span></div>
+  <div class="sw"><label>Drums</label>
+    <input type="range" id="sl-nature" min="0" max="1" step="0.05" value="0.65">
+    <span class="v" id="v-nature">0.65</span></div>
+</div>
+<div id="crr-footer">
+  B(C/Ω)=exp(C/Ω)·(1−C/(Ω·π)) peaked at π−1 · verse=C accumulation · pre-chorus=approaching Ω
+  · DROP=δ(now) · chorus=R(regeneration) · whale→bass · heart→kick · choir→anthem · geometry→visuals
+</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+//
+//  CRR DROP — The Most Exciting Electro-Pop Song in the World
+//
+//  Every sound from Song of Beauty v2, reforged:
+//  · Heartbeat → 4-on-the-floor kick drum
+//  · Whale song → Bass drops, wobble bass, sub
+//  · Choir SATB → Anthem vocals, chop hooks
+//  · Sacred geometry → Beat-reactive particle forms
+//  · Brainwaves → Synth arpeggios
+//  · Rainbow → Spectral laser sweeps
+//  · Piano → Sparkle leads + pluck arps
+//  · Nature → Atmospheric risers + impacts
+//
+//  CRR IS pop structure:
+//  Verse = C (coherence accumulates)
+//  Pre-chorus = approaching Ω (tension builds)
+//  DROP = δ(now) (rupture — bass hits)
+//  Chorus = R (regeneration — everything blooms)
+//
+//  128 BPM · D minor (the people's key)
+//
+//  Alexander Sabine · CRR Framework · temporalgrammar.ai
+//
+// ═══════════════════════════════════════════════════════════════════════
+
+const PI=Math.PI,TAU=2*PI,PHI=(1+Math.sqrt(5))/2;
+const min=Math.min,max=Math.max,abs=Math.abs,sqrt=Math.sqrt;
+const sin=Math.sin,cos=Math.cos,exp=Math.exp,log=Math.log;
+const rnd=Math.random,flr=Math.floor;
+
+// ═══════════════════════════════════════════════════════════════════
+// §0 CRR ENGINE
+// ═══════════════════════════════════════════════════════════════════
+class CRR{
+  constructor(sym='Z2',s=1){
+    this.omegaBase=sym==='Z2'?1/PI:sym==='SO2'?1/TAU:1/(PI*PHI);
+    this.omegaScale=s;this.C=0;this.lastRC=0;this.ruptures=0;
+    this.since=0;this.inRegen=false;this.regenP=0;
+  }
+  get omega(){return this.omegaBase*this.omegaScale}
+  get expCO(){return exp(min(10,this.C/max(.001,this.omega)))}
+  get normC(){return min(1,(this.C-this.lastRC)/max(.01,1/this.omega))}
+  acc(L,dt=1){this.C+=L*dt;this.since++}
+  shouldRupture(){const th=1/this.omega,acc=this.C-this.lastRC,cv=this.omega/2;
+    return acc>=(th+(rnd()-.5)*2*cv*th)}
+  doRupture(){this.lastRC=this.C;this.ruptures++;this.since=0;this.inRegen=true;this.regenP=0}
+  step(L,dt=1){if(this.inRegen){this.regenP=min(1,this.regenP+.02);
+    if(this.regenP>=1)this.inRegen=false;return{phase:'R',prog:this.regenP}}
+    this.acc(L,dt);if(this.shouldRupture()){this.doRupture();return{phase:'delta'}}
+    return{phase:'C',val:this.C}}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §1 MUSICAL CONSTANTS — ELECTRO-POP
+// ═══════════════════════════════════════════════════════════════════
+const BPM=128,BEAT_S=60/BPM,TOTAL_BEATS=544; // ~4:15 at 128 BPM
+function m2f(m){return 440*Math.pow(2,(m-69)/12)}
+
+// D minor (the people's key — Nigel Tufnel): D E F G A Bb C
+const Dm=[62,64,65,67,69,70,72,74]; // MIDI D4→D5
+const Dm_lo=[50,52,53,55,57,58,60,62]; // D3→D4
+const BASS_NOTES=[38,38,41,43]; // D2, D2, F2, G2 — i-i-III-IV
+
+// Rainbow → D minor spectral neon mapping
+const RAINBOW=[
+  {name:'red',   r:255,g:30,b:80,  midi:62},
+  {name:'orange',r:255,g:140,b:0,  midi:64},
+  {name:'yellow',r:255,g:226,b:52, midi:65},
+  {name:'green', r:57,g:255,b:20,  midi:67},
+  {name:'cyan',  r:0,g:240,b:255,  midi:69},
+  {name:'blue',  r:80,g:120,b:255, midi:70},
+  {name:'violet',r:176,g:38,b:255, midi:72}
+];
+
+// Formants (same SATB system from Song of Beauty)
+const FMT={
+  a:[{f:800,g:1},{f:1150,g:.5},{f:2800,g:.22}],
+  e:[{f:400,g:1},{f:2000,g:.4},{f:2800,g:.15}],
+  i:[{f:300,g:1},{f:2300,g:.3},{f:3000,g:.1}],
+  o:[{f:450,g:1},{f:800,g:.45},{f:2830,g:.15}],
+  u:[{f:325,g:1},{f:700,g:.35},{f:2700,g:.1}]
+};
+const FMT_A={
+  a:[{f:700,g:1},{f:1050,g:.5},{f:2600,g:.2}],
+  e:[{f:350,g:1},{f:1800,g:.38},{f:2600,g:.13}],
+  i:[{f:270,g:1},{f:2100,g:.28},{f:2800,g:.09}],
+  o:[{f:400,g:1},{f:720,g:.42},{f:2630,g:.13}],
+  u:[{f:290,g:1},{f:630,g:.32},{f:2500,g:.09}]
+};
+const FMT_T={
+  a:[{f:650,g:1},{f:1000,g:.45},{f:2400,g:.18}],
+  e:[{f:320,g:1},{f:1700,g:.35},{f:2400,g:.12}],
+  i:[{f:250,g:1},{f:1900,g:.25},{f:2600,g:.08}],
+  o:[{f:380,g:1},{f:680,g:.4},{f:2430,g:.12}],
+  u:[{f:270,g:1},{f:600,g:.3},{f:2300,g:.08}]
+};
+const FMT_B={
+  a:[{f:600,g:1},{f:950,g:.42},{f:2200,g:.16}],
+  e:[{f:290,g:1},{f:1600,g:.32},{f:2200,g:.1}],
+  i:[{f:230,g:1},{f:1750,g:.22},{f:2400,g:.07}],
+  o:[{f:350,g:1},{f:640,g:.38},{f:2230,g:.1}],
+  u:[{f:250,g:1},{f:560,g:.28},{f:2100,g:.07}]
+};
+
+const VOWEL_SEQ=['u','o','a','e','i','a','o','u'];
+
+// ═══════════════════════════════════════════════════════════════════
+// §2 SECTIONS — ELECTRO-POP STRUCTURE
+// ═══════════════════════════════════════════════════════════════════
+const SECTIONS=[
+  {name:'SIGNAL',        start:0,   end:16,  form:-1, arousal:0,   energy:0,
+   bio:'♡ heart → kick: systole=transient diastole=release\nevery beat is a micro-CRR cycle\nδ(now) at 128 BPM = 2.13Hz',
+   explain:'the heartbeat becomes\nthe four-on-the-floor\neach kick = δ(now)\neach release = R'},
+  {name:'VERSE 1',       start:16,  end:80,  form:1,  arousal:.2,  energy:.3,
+   bio:'🌀 arpeggio = brainwave entrainment at α 10Hz\neach note = coherence increment\nstepwise motion = high L(alignment)\nC accumulates toward Ω threshold',
+   explain:'verse = C phase\ncoherence accumulates\nstepwise = high L\neach bar: C += L·dt'},
+  {name:'PRE-CHORUS 1',  start:80,  end:112, form:2,  arousal:.5,  energy:.55,
+   bio:'⟡ tension = C approaching Ω boundary\nexp(C/Ω) growing exponentially\nnoise sweep = phase transition warning\nthe system KNOWS rupture is coming',
+   explain:'approaching Ω:\nexp(C/Ω) → maximum\nriser = dC/dt accelerating\nfilter sweep = Ω narrowing'},
+  {name:'DROP 1',        start:112, end:176, form:3,  arousal:.85, energy:.9,
+   bio:'💥 δ(now): ALL coherence ruptures simultaneously\nbass = whale song at 40Hz (sub-bass)\nsidechain = Ω breathing (pump)\nkick+bass+choir = coupled CRR agents',
+   explain:'DROP = δ(now)\nall C converts to energy\nbass wobble = whale FM\nsidechain pump = Ω modulation\nexp(C/Ω) at maximum'},
+  {name:'VERSE 2',       start:176, end:240, form:4,  arousal:.25, energy:.35,
+   bio:'✧ stripped back: coherence re-accumulates\nmelodic variation = new L patterns\nsacred geometry reforms from chaos\nMeisner\'s cube = all Platonic solids',
+   explain:'verse 2 = new C cycle\nhigher baseline from R\nprevious coherence\naccessible via exp(C/Ω)'},
+  {name:'PRE-CHORUS 2',  start:240, end:272, form:5,  arousal:.6,  energy:.65,
+   bio:'⟡ second approach — HIGHER C baseline\nexp(C/Ω) exceeds first pre-chorus\nthe system remembers the first drop\nmemory-weighted anticipation',
+   explain:'second approach:\nC_base higher (memory)\nexp(C/Ω) > first time\nthe body REMEMBERS'},
+  {name:'DROP 2',        start:272, end:336, form:6,  arousal:.95, energy:1,
+   bio:'💥💥 MAXIMUM δ(now): every voice, every form\nwhale + choir + kick + bass + arp + geometry\nall CRR agents coupled and rupturing\nγ 40Hz peak experience state',
+   explain:'DROP 2 = PEAK\nall agents coupled:\nΩ_heart = Ω_breath = Ω_brain\n= Ω_whale = Ω_choir\nUNIFIED FIELD'},
+  {name:'BRIDGE',        start:336, end:384, form:0,  arousal:.2,  energy:.15,
+   bio:'🐋 whale song alone in the deep\nthe original voice before all music\nmoan → upcall → wail → silence\ncoherence persists in the medium',
+   explain:'bridge = post-rupture\nonly whale remains\ndeepest Ω (slowest cycle)\ncoherence never truly lost'},
+  {name:'BUILD',         start:384, end:416, form:7,  arousal:.7,  energy:.75,
+   bio:'⚡ MAXIMUM RISER: all frequencies sweeping up\nsnare roll accelerating (Ω → 0)\nnoise band narrowing to singularity\nthe moment before δ(now) IS the beauty',
+   explain:'B(C/Ω) approaches maximum\nC/Ω → π−1\nthe ANTICIPATION\nis the beauty itself\nnot the drop — the APPROACH'},
+  {name:'FINAL DROP',    start:416, end:496, form:3,  arousal:1,   energy:1,
+   bio:'✦ EVERYTHING: nuclear δ(now)\nstellar explosion → regeneration\nall sacred forms cycling\nall voices at maximum\nexp(C/Ω) = transcendence',
+   explain:'FINAL DROP:\nC_total = ∫L(all)dτ\nΩ_coupled → minimum\nexp(C/Ω) → ∞\nbeauty = THIS moment'},
+  {name:'OUTRO',         start:496, end:544, form:0,  arousal:.05, energy:.05,
+   bio:'○ return to heartbeat\nthe kick dissolves back to pulse\nall form returns to circle\nthe song is the cycle itself\nC → δ → R → C → δ → R → ∞',
+   explain:'after everything:\njust the heartbeat remains\nthe first sound we heard\nthe last sound we hear\nthe cycle continues'}
+];
+
+function getSec(beat){for(let i=SECTIONS.length-1;i>=0;i--)if(beat>=SECTIONS[i].start)return SECTIONS[i];return SECTIONS[0]}
+
+// ═══════════════════════════════════════════════════════════════════
+// §3 SACRED GEOMETRY (same generators, beat-reactive)
+// ═══════════════════════════════════════════════════════════════════
+const N=16000;
+
+function genCircle(n,s){const p=[];for(let i=0;i<n;i++){const a=(i/n)*TAU;p.push([cos(a)*s,sin(a)*s])}return p}
+function genFibSpiral(n,s){const p=[],ga=PI*(3-sqrt(5));
+  for(let i=0;i<n;i++){const t=i*ga,r=s*sqrt(i/n)*1.2;p.push([cos(t)*r,sin(t)*r])}return p}
+function genFlowerOfLife(n,s){const p=[],ppc=flr(n/19);
+  for(let i=0;i<ppc*2;i++){const a=(i/(ppc*2))*TAU;p.push([cos(a)*s*.5,sin(a)*s*.5])}
+  for(let j=0;j<6;j++){const ca=(j/6)*TAU,ccx=cos(ca)*s*.5,ccy=sin(ca)*s*.5;
+    for(let i=0;i<ppc;i++){const a=(i/ppc)*TAU;p.push([ccx+cos(a)*s*.5,ccy+sin(a)*s*.5])}}
+  for(let j=0;j<12;j++){const ca=(j/12)*TAU+PI/12,ccx=cos(ca)*s*.866,ccy=sin(ca)*s*.866;
+    for(let i=0;i<ppc;i++){const a=(i/ppc)*TAU;p.push([ccx+cos(a)*s*.5,ccy+sin(a)*s*.5])}}
+  while(p.length<n){const idx=flr(rnd()*p.length),ns=.02*s;
+    p.push([p[idx][0]+(rnd()-.5)*ns,p[idx][1]+(rnd()-.5)*ns])}return p.slice(0,n)}
+function genSriYantra(n,s){const p=[];const ppt=flr(n/10);
+  for(let t=0;t<4;t++){const sc=.25+t*.18,cy2=s*(.08-t*.06);
+    for(let i=0;i<ppt;i++){const t2=rnd(),e=flr(rnd()*3);
+      const pts=[[0,-sc*s*.9],[sc*s*.8,sc*s*.65],[-sc*s*.8,sc*s*.65]];
+      const p1=pts[e],p2=pts[(e+1)%3];p.push([p1[0]+t2*(p2[0]-p1[0]),cy2+p1[1]+t2*(p2[1]-p1[1])])}}
+  for(let t=0;t<5;t++){const sc=.22+t*.15,cy2=s*(-.04+t*.06);
+    for(let i=0;i<ppt;i++){const t2=rnd(),e=flr(rnd()*3);
+      const pts=[[0,sc*s*.9],[-sc*s*.8,-sc*s*.65],[sc*s*.8,-sc*s*.65]];
+      const p1=pts[e],p2=pts[(e+1)%3];p.push([p1[0]+t2*(p2[0]-p1[0]),cy2+p1[1]+t2*(p2[1]-p1[1])])}}
+  for(let i=0;i<flr(n*.08);i++){const a=(i/flr(n*.08))*TAU;p.push([cos(a)*s,sin(a)*s])}
+  while(p.length<n){const idx=flr(rnd()*p.length);p.push([p[idx][0]+(rnd()-.5)*s*.02,p[idx][1]+(rnd()-.5)*s*.02])}
+  return p.slice(0,n)}
+function genMetatronCube(n,s){const p=[],ctrs=[[0,0]];
+  for(let i=0;i<6;i++){const a=(i/6)*TAU;ctrs.push([cos(a)*s*.5,sin(a)*s*.5])}
+  for(let i=0;i<6;i++){const a=(i/6)*TAU+PI/6;ctrs.push([cos(a)*s*.866,sin(a)*s*.866])}
+  const ppc=flr(n*.055);
+  for(const c of ctrs)for(let i=0;i<ppc;i++){const a=(i/ppc)*TAU,r=s*.17;p.push([c[0]+cos(a)*r,c[1]+sin(a)*r])}
+  const lpp=flr((n-p.length)/78);
+  for(let i=0;i<ctrs.length;i++)for(let j=i+1;j<ctrs.length;j++){
+    for(let k=0;k<lpp;k++){const t=k/lpp;
+      p.push([ctrs[i][0]+t*(ctrs[j][0]-ctrs[i][0]),ctrs[i][1]+t*(ctrs[j][1]-ctrs[i][1])])}}
+  while(p.length<n){const idx=flr(rnd()*p.length);p.push([p[idx][0]+(rnd()-.5)*s*.015,p[idx][1]+(rnd()-.5)*s*.015])}
+  return p.slice(0,n)}
+function genRose(n,s){const p=[],k=5;
+  for(let i=0;i<n;i++){const t=(i/n)*TAU*k,r=s*abs(cos(k*t/2))*.92;p.push([cos(t)*r,sin(t)*r])}return p}
+function genVesicaPiscis(n,s){const p=[],off=s*.43,h=flr(n/2);
+  for(let i=0;i<h;i++){const a=(i/h)*TAU;p.push([-off+cos(a)*s*.6,sin(a)*s*.6])}
+  for(let i=0;i<h;i++){const a=(i/h)*TAU;p.push([off+cos(a)*s*.6,sin(a)*s*.6])}
+  while(p.length<n){const idx=flr(rnd()*p.length);p.push([p[idx][0]+(rnd()-.5)*s*.02,p[idx][1]+(rnd()-.5)*s*.02])}
+  return p.slice(0,n)}
+function genOuroboros(n,s){const p=[];const bodyPts=flr(n*.85);
+  for(let i=0;i<bodyPts;i++){const frac=i/bodyPts;const theta=frac*TAU*.97;
+    const baseR=s*.7;const thick=(s*.14*(1-frac*.72)+s*.04*frac*.72);
+    const spread=(rnd()-.5)*thick;const wobble=sin(theta*3)*s*.03;
+    p.push([cos(theta)*(baseR+spread+wobble),sin(theta)*(baseR+spread+wobble)])}
+  const headPts=flr(n*.08);
+  for(let i=0;i<headPts;i++){const ang=(rnd()-.5)*.25;const headR=s*.7+(rnd()-.5)*s*.2;
+    const jaw=(rnd()>.5?1:-1)*s*.06*(0.3+rnd()*.7);p.push([cos(ang)*headR,sin(ang)*headR+jaw])}
+  const eyePts=flr(n*.03);
+  for(let i=0;i<eyePts;i++){p.push([s*.7+s*.05+(rnd()-.5)*s*.025,s*.08+(rnd()-.5)*s*.025])}
+  while(p.length<n){const frac=rnd();const theta=frac*TAU*.95;const baseR=s*.7;
+    const thick=(s*.14*(1-frac*.72)+s*.04*frac*.72)*.5;
+    p.push([cos(theta)*(baseR+(rnd()>.5?1:-1)*thick),sin(theta)*(baseR+(rnd()>.5?1:-1)*thick)])}
+  return p.slice(0,n)}
+
+const GENS=[genCircle,genFibSpiral,genFlowerOfLife,genSriYantra,genMetatronCube,genRose,genVesicaPiscis,genOuroboros];
+const FORM_NAMES=['Circle · SO(2) · the heartbeat','Fibonacci · φ · golden arpeggio',
+  'Flower of Life · hexagonal bass','Sri Yantra · triangulated build',
+  'Metatron\'s Cube · all harmonics','Rose · k=5 · the hook',
+  'Vesica Piscis · stereo field','Ouroboros · C→δ→R→∞ · the loop'];
+
+// ═══════════════════════════════════════════════════════════════════
+// §4 PARTICLE SYSTEM
+// ═══════════════════════════════════════════════════════════════════
+const canvas=document.getElementById('viz');
+const gl=canvas.getContext('webgl',{antialias:false,alpha:true});
+let W,H,cx,cy;
+
+const px=new Float32Array(N),py=new Float32Array(N);
+const pvx=new Float32Array(N),pvy=new Float32Array(N);
+const coh=new Float32Array(N),phs=new Float32Array(N);
+const tx=new Float32Array(N),ty=new Float32Array(N);
+const hasT=new Uint8Array(N);
+
+const CELL=50;let gridW,gridH,grid,gridCounts;const MPC=24;
+let OMEGA_P=0.12,FORM_ATT=1.0,DECAY=0.99;
+let currentForm=-1,pTime=0,windAngle=0;
+let beatPulse=0,dropExplosion=0; // beat-reactive
+
+function initP(){for(let i=0;i<N;i++){
+  const t=(i/N)*PI*6,r=(i/N)*min(W,H)*.3;
+  px[i]=cx+cos(t)*r+(rnd()-.5)*50;py[i]=cy+sin(t)*r+(rnd()-.5)*50;
+  const va=t+PI/2,sp=1+rnd()*1.5;pvx[i]=cos(va)*sp;pvy[i]=sin(va)*sp;
+  coh[i]=.3+rnd()*.4;phs[i]=rnd()*TAU;hasT[i]=0}}
+
+function buildGrid(){gridCounts.fill(0);for(let i=0;i<N;i++){
+  const gx=flr(px[i]/CELL)+1,gy=flr(py[i]/CELL)+1;
+  if(gx>=0&&gx<gridW&&gy>=0&&gy<gridH){const idx=gy*gridW+gx,c=gridCounts[idx];
+    if(c<MPC){grid[idx*MPC+c]=i;gridCounts[idx]=c+1}}}}
+
+function setGeo(shapeIdx){
+  if(shapeIdx<0){for(let i=0;i<N;i++)hasT[i]=0;currentForm=-1;return}
+  const s=min(W,H)*.31,pts=GENS[shapeIdx](N,s);
+  for(let i=0;i<N;i++){tx[i]=cx+pts[i][0];ty[i]=cy+pts[i][1];hasT[i]=1;coh[i]*=.65}
+  currentForm=shapeIdx}
+
+function updateP(dt){
+  pTime+=dt;buildGrid();
+  windAngle+=(sin(pTime*.08)*.4-windAngle)*.008;
+  const wX=cos(windAngle)*.2,wY=sin(windAngle)*.2;
+  const bp=beatPulse; // 0-1 on each beat
+  for(let i=0;i<N;i++){
+    const ppx=px[i],ppy=py[i],ppvx=pvx[i],ppvy=pvy[i];
+    const gx=flr(ppx/CELL)+1,gy=flr(ppy/CELL)+1;
+    let sVx=0,sVy=0,sepX=0,sepY=0,cohX=0,cohY=0,nC=0,tCW=0,wVx=0,wVy=0;
+    for(let dy2=-1;dy2<=1;dy2++)for(let dx2=-1;dx2<=1;dx2++){
+      const cxi=gx+dx2,cyi=gy+dy2;if(cxi<0||cxi>=gridW||cyi<0||cyi>=gridH)continue;
+      const ci=cyi*gridW+cxi,cnt=gridCounts[ci],stp=cnt>6?flr(cnt/6):1;
+      for(let k=0;k<cnt;k+=stp){const j=grid[ci*MPC+k];if(j===i)continue;
+        const ddx=px[j]-ppx,ddy=py[j]-ppy,d2=ddx*ddx+ddy*ddy;
+        if(d2<2500&&d2>0){const d=sqrt(d2);nC++;sVx+=pvx[j];sVy+=pvy[j];cohX+=px[j];cohY+=py[j];
+          if(d2<196){const f=(14-d)/14;sepX-=ddx/d*f;sepY-=ddy/d*f}
+          const w=exp(coh[j]/OMEGA_P);tCW+=w;wVx+=pvx[j]*w;wVy+=pvy[j]*w}}}
+    if(nC>0){const sp=sqrt(ppvx*ppvx+ppvy*ppvy)+.001;
+      const aVx=sVx/nC,aVy=sVy/nC,aS=sqrt(aVx*aVx+aVy*aVy)+.001;
+      const dot=(ppvx*aVx+ppvy*aVy)/(sp*aS),al=(dot+1)*.5;
+      coh[i]=coh[i]*DECAY+al*(1-DECAY)}
+
+    // Beat pulse: radial push from center on each kick
+    let ax=0,ay=0;
+    if(bp>.01){const ddx=ppx-cx,ddy=ppy-cy,d=sqrt(ddx*ddx+ddy*ddy)+1;
+      const push=bp*dropExplosion*.15;ax+=ddx/d*push;ay+=ddy/d*push}
+
+    if(hasT[i]){const ddx=tx[i]-ppx,ddy=ty[i]-ppy,d=sqrt(ddx*ddx+ddy*ddy)+.001;
+      const pull=FORM_ATT*exp(coh[i]/OMEGA_P)*.012*min(d*.008,1);
+      ax+=ddx/d*pull;ay+=ddy/d*pull;if(d<25)coh[i]=min(1,coh[i]+.003)}
+    if(nC>0){cohX/=nC;cohY/=nC;ax+=(cohX-ppx)*.005;ay+=(cohY-ppy)*.005;
+      if(tCW>0){wVx/=tCW;wVy/=tCW;ax+=(wVx-ppvx)*.03;ay+=(wVy-ppvy)*.03}ax+=sepX*.06;ay+=sepY*.06}
+    ax+=wX*(hasT[i]?.008:.02);ay+=wY*(hasT[i]?.008:.02);
+    const mg=50;if(ppx<mg)ax+=(mg-ppx)*.0015;if(ppx>W-mg)ax-=(ppx-(W-mg))*.0015;
+    if(ppy<mg)ay+=(mg-ppy)*.0015;if(ppy>H-mg)ay-=(ppy-(H-mg))*.0015;
+    ax+=sin(pTime*1.3+phs[i])*.005;ay+=cos(pTime*1.5+phs[i])*.005;
+    let nvx=ppvx+ax,nvy=ppvy+ay;let sp2=sqrt(nvx*nvx+nvy*nvy);const mxS=hasT[i]?5:3.5;
+    if(sp2>mxS){nvx=nvx/sp2*mxS;nvy=nvy/sp2*mxS}if(sp2<.4){nvx=nvx/(sp2+.001)*.4;nvy=nvy/(sp2+.001)*.4}
+    pvx[i]=nvx;pvy[i]=nvy;px[i]=ppx+nvx;py[i]=ppy+nvy;
+    if(px[i]<-10)px[i]+=W+20;if(px[i]>W+10)px[i]-=W+20;
+    if(py[i]<-10)py[i]+=H+20;if(py[i]>H+10)py[i]-=H+20;
+    phs[i]+=.006+coh[i]*.012}
+  beatPulse*=.85;dropExplosion+=(0-dropExplosion)*.03}
+
+// ═══════════════════════════════════════════════════════════════════
+// §5 WEBGL SHADERS — NEON
+// ═══════════════════════════════════════════════════════════════════
+const vsrc=`
+attribute vec2 a_pos;attribute float a_coh;attribute float a_phase;
+uniform vec2 u_res;uniform float u_time;uniform float u_hueBase;uniform float u_hueRange;
+uniform float u_energy;uniform float u_beatPulse;
+varying float v_coh;varying float v_hue;varying float v_alpha;varying float v_energy;
+varying vec2 v_npos;
+void main(){vec2 p=(a_pos/u_res)*2.0-1.0;p.y*=-1.0;
+  gl_Position=vec4(p,0.0,1.0);
+  float sz=1.5+a_coh*3.0+u_beatPulse*2.0+u_energy*1.5;
+  gl_PointSize=sz;v_coh=a_coh;
+  float baseHue=u_hueBase+a_coh*u_hueRange;
+  v_hue=baseHue+sin(a_phase+u_time*0.3)*0.15+(p.x*0.3+p.y*0.2)*0.1;
+  v_alpha=0.15+a_coh*0.6+u_energy*0.2;v_energy=u_energy;v_npos=p;}`;
+const fsrc=`
+precision mediump float;
+varying float v_coh;varying float v_hue;varying float v_alpha;varying float v_energy;
+varying vec2 v_npos;
+vec3 hsv2rgb(vec3 c){vec4 K=vec4(1.0,2.0/3.0,1.0/3.0,3.0);
+  vec3 p=abs(fract(c.xxx+K.xyz)*6.0-K.www);return c.z*mix(K.xxx,clamp(p-K.xxx,0.0,1.0),c.y);}
+void main(){vec2 cxy=2.0*gl_PointCoord-1.0;float r=dot(cxy,cxy);if(r>1.0)discard;
+  float soft=1.0-sqrt(r);
+  float sat=0.6+v_coh*0.3+v_energy*0.1;float val=0.8+v_coh*0.2+v_energy*0.1;
+  vec3 rgb=hsv2rgb(vec3(v_hue,sat,val));
+  // Neon glow: oversaturate at high energy
+  rgb=rgb+rgb*v_energy*0.4;
+  // Bright core
+  rgb=mix(rgb,vec3(1.0),smoothstep(0.4,0.0,r)*0.5*v_coh);
+  float alpha=v_alpha*soft;
+  gl_FragColor=vec4(rgb,alpha);}`;
+
+let program,posBuffer,cohBuffer,phaseBuffer;
+let posLoc,cohLoc,phaseLoc,resLoc,timeLoc,hueBaseLoc,hueRangeLoc,energyLoc,beatPulseLoc;
+const posData=new Float32Array(N*2);
+
+function initGL(){
+  const vs=gl.createShader(gl.VERTEX_SHADER);gl.shaderSource(vs,vsrc);gl.compileShader(vs);
+  const fs=gl.createShader(gl.FRAGMENT_SHADER);gl.shaderSource(fs,fsrc);gl.compileShader(fs);
+  program=gl.createProgram();gl.attachShader(program,vs);gl.attachShader(program,fs);
+  gl.linkProgram(program);gl.useProgram(program);
+  posLoc=gl.getAttribLocation(program,'a_pos');cohLoc=gl.getAttribLocation(program,'a_coh');
+  phaseLoc=gl.getAttribLocation(program,'a_phase');resLoc=gl.getUniformLocation(program,'u_res');
+  timeLoc=gl.getUniformLocation(program,'u_time');hueBaseLoc=gl.getUniformLocation(program,'u_hueBase');
+  hueRangeLoc=gl.getUniformLocation(program,'u_hueRange');
+  energyLoc=gl.getUniformLocation(program,'u_energy');
+  beatPulseLoc=gl.getUniformLocation(program,'u_beatPulse');
+  posBuffer=gl.createBuffer();cohBuffer=gl.createBuffer();phaseBuffer=gl.createBuffer();
+  gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE)}
+
+function getHue(sec){
+  const m={'SIGNAL':[.55,.06],'VERSE 1':[.52,.15],'PRE-CHORUS 1':[.85,.2],
+    'DROP 1':[.95,.3],'VERSE 2':[.48,.15],'PRE-CHORUS 2':[.82,.22],
+    'DROP 2':[0,.99],'BRIDGE':[.58,.12],'BUILD':[.75,.3],
+    'FINAL DROP':[0,.99],'OUTRO':[.55,.08]};
+  return m[sec.name]||[.5,.15]}
+
+function renderP(){
+  gl.clearColor(0.012,0.0,0.03,1);gl.clear(gl.COLOR_BUFFER_BIT);
+  const sec=seq.on?getSec(seq.beat):SECTIONS[0];const hue=getHue(sec);
+  gl.uniform2f(resLoc,W,H);gl.uniform1f(timeLoc,pTime);
+  gl.uniform1f(hueBaseLoc,hue[0]);gl.uniform1f(hueRangeLoc,hue[1]);
+  gl.uniform1f(energyLoc,sec.energy||0);gl.uniform1f(beatPulseLoc,beatPulse);
+  for(let i=0;i<N;i++){posData[i*2]=px[i];posData[i*2+1]=py[i]}
+  gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,posData,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(posLoc);gl.vertexAttribPointer(posLoc,2,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,cohBuffer);gl.bufferData(gl.ARRAY_BUFFER,coh,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(cohLoc);gl.vertexAttribPointer(cohLoc,1,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,phaseBuffer);gl.bufferData(gl.ARRAY_BUFFER,phs,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(phaseLoc);gl.vertexAttribPointer(phaseLoc,1,gl.FLOAT,false,0,0);
+  gl.drawArrays(gl.POINTS,0,N)}
+
+// ═══════════════════════════════════════════════════════════════════
+// §6 AUDIO SYNTHESIS — ELECTRO-POP ENGINE
+// ═══════════════════════════════════════════════════════════════════
+let ac=null,masterGain,masterComp,reverbConv,reverbGain;
+let synthGain,choirGain,bassGain,drumGain,fxGain,brainGain;
+let sidechainGain; // for the PUMP
+
+function mkReverb(c,dur=2.5,dec=2.8){const r=c.sampleRate,l=r*dur,b=c.createBuffer(2,l,r);
+  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<l;i++)d[i]=(rnd()*2-1)*Math.pow(1-i/l,dec)}
+  const v=c.createConvolver();v.buffer=b;return v}
+
+function initAudio(){
+  if(ac)return;ac=new(window.AudioContext||window.webkitAudioContext)();
+  masterGain=ac.createGain();masterGain.gain.value=0.78;
+  masterComp=ac.createDynamicsCompressor();masterComp.threshold.value=-10;masterComp.ratio.value=6;
+  masterComp.knee.value=8;
+  reverbConv=mkReverb(ac);reverbGain=ac.createGain();reverbGain.gain.value=0.55;
+  masterGain.connect(masterComp);masterComp.connect(ac.destination);
+  masterGain.connect(reverbConv);reverbConv.connect(reverbGain);reverbGain.connect(ac.destination);
+
+  // Sidechain gain node — everything except kick goes through this
+  sidechainGain=ac.createGain();sidechainGain.gain.value=1;sidechainGain.connect(masterGain);
+
+  synthGain=ac.createGain();synthGain.gain.value=0.6;synthGain.connect(sidechainGain);
+  choirGain=ac.createGain();choirGain.gain.value=0.6;choirGain.connect(sidechainGain);
+  bassGain=ac.createGain();bassGain.gain.value=0.55;bassGain.connect(sidechainGain);
+  drumGain=ac.createGain();drumGain.gain.value=0.65;drumGain.connect(masterGain); // kick bypasses sidechain
+  fxGain=ac.createGain();fxGain.gain.value=0.4;fxGain.connect(sidechainGain);
+  brainGain=ac.createGain();brainGain.gain.value=0.15;brainGain.connect(sidechainGain);
+
+  initChoir();initSubBass();initBrain();
+}
+
+// ── SIDECHAIN PUMP (the Ω breathing) ──
+function triggerSidechain(when){
+  if(!ac||!sidechainGain)return;
+  const t=max(ac.currentTime,when);
+  // Fast duck, slow release = the classic pump
+  sidechainGain.gain.setValueAtTime(0.15,t);
+  sidechainGain.gain.linearRampToValueAtTime(0.15,t+.02);
+  sidechainGain.gain.linearRampToValueAtTime(1,t+BEAT_S*.85);
+}
+
+// ── KICK (heartbeat → 4otf) ──
+function playKick(when,vel=1){
+  if(!ac)return;const t=max(ac.currentTime,when);
+  // Sine kick: pitch envelope 150→40Hz
+  const o=ac.createOscillator();o.type='sine';
+  o.frequency.setValueAtTime(150*vel,t);
+  o.frequency.exponentialRampToValueAtTime(38,t+.08);
+  const g=ac.createGain();g.gain.setValueAtTime(.65*vel,t);
+  g.gain.linearRampToValueAtTime(.55*vel,t+.02);
+  g.gain.exponentialRampToValueAtTime(.001,t+.35);
+  o.connect(g);g.connect(drumGain);o.start(t);o.stop(t+.4);
+  // Click transient
+  const nb=ac.createBuffer(1,flr(ac.sampleRate*.008),ac.sampleRate);
+  const nd=nb.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=(rnd()*2-1)*(1-i/nd.length);
+  const ns=ac.createBufferSource();ns.buffer=nb;
+  const ng=ac.createGain();ng.gain.setValueAtTime(.3*vel,t);ng.gain.linearRampToValueAtTime(.001,t+.015);
+  const nf=ac.createBiquadFilter();nf.type='highpass';nf.frequency.value=4000;
+  ns.connect(nf);nf.connect(ng);ng.connect(drumGain);ns.start(t);
+  // Sidechain pump
+  triggerSidechain(t);
+  // Visual beat pulse
+  beatPulse=.8*vel;
+}
+
+// ── SNARE/CLAP ──
+function playSnare(when,vel=1){
+  if(!ac)return;const t=max(ac.currentTime,when);
+  // White noise body
+  const bl=.15;const buf=ac.createBuffer(1,flr(ac.sampleRate*bl),ac.sampleRate);
+  const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(rnd()*2-1)*Math.pow(1-i/d.length,.8);
+  const s=ac.createBufferSource();s.buffer=buf;
+  const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=3500;bp.Q.value=1.2;
+  const g=ac.createGain();g.gain.setValueAtTime(.35*vel,t);g.gain.exponentialRampToValueAtTime(.001,t+bl);
+  s.connect(bp);bp.connect(g);g.connect(drumGain);s.start(t);
+  // Tonal body
+  const o=ac.createOscillator();o.type='triangle';o.frequency.setValueAtTime(200,t);
+  o.frequency.exponentialRampToValueAtTime(120,t+.04);
+  const og=ac.createGain();og.gain.setValueAtTime(.15*vel,t);og.gain.exponentialRampToValueAtTime(.001,t+.08);
+  o.connect(og);og.connect(drumGain);o.start(t);o.stop(t+.1);
+}
+
+// ── HI-HAT ──
+function playHat(when,open=false,vel=.7){
+  if(!ac)return;const t=max(ac.currentTime,when);
+  const bl=open?.2:.06;
+  const buf=ac.createBuffer(1,flr(ac.sampleRate*bl),ac.sampleRate);
+  const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(rnd()*2-1)*Math.pow(1-i/d.length,open?1.5:3);
+  const s=ac.createBufferSource();s.buffer=buf;
+  const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=7000;
+  const g=ac.createGain();g.gain.setValueAtTime(.12*vel,t);g.gain.exponentialRampToValueAtTime(.001,t+bl);
+  s.connect(hp);hp.connect(g);g.connect(drumGain);s.start(t);
+}
+
+// ── SYNTH LEAD (piano → sparkle lead) ──
+function playSynth(midi,vel,dur,when){
+  if(!ac)return;const freq=m2f(midi),t=max(ac.currentTime,when);
+  const nG=ac.createGain();nG.gain.setValueAtTime(0.001,t);nG.gain.linearRampToValueAtTime(1,t+.005);
+  nG.gain.setValueAtTime(1,t+.01);nG.gain.linearRampToValueAtTime(.2,t+dur*.3);
+  nG.gain.linearRampToValueAtTime(.001,t+dur);nG.connect(synthGain);
+  // Supersaw-lite: 3 detuned saws + sub
+  [-7,0,7].forEach(det=>{
+    const o=ac.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(freq,t);
+    o.detune.setValueAtTime(det,t);
+    const hG=ac.createGain();hG.gain.setValueAtTime(vel*.12,t);
+    hG.gain.linearRampToValueAtTime(vel*.04,t+dur*.5);hG.gain.linearRampToValueAtTime(.001,t+dur);
+    // Low-pass for warmth
+    const lp=ac.createBiquadFilter();lp.type='lowpass';
+    lp.frequency.setValueAtTime(3000+vel*4000,t);lp.frequency.linearRampToValueAtTime(800,t+dur);
+    o.connect(lp);lp.connect(hG);hG.connect(nG);o.start(t);o.stop(t+dur+.05)});
+  // Sub sine
+  const sub=ac.createOscillator();sub.type='sine';sub.frequency.setValueAtTime(freq/2,t);
+  const subG=ac.createGain();subG.gain.setValueAtTime(vel*.06,t);subG.gain.linearRampToValueAtTime(.001,t+dur);
+  sub.connect(subG);subG.connect(nG);sub.start(t);sub.stop(t+dur+.05);
+}
+
+// ── PLUCK ARP (brainwave → arpeggio) ──
+function playPluck(midi,vel,when){
+  if(!ac)return;const freq=m2f(midi),t=max(ac.currentTime,when);
+  const o=ac.createOscillator();o.type='square';o.frequency.setValueAtTime(freq,t);
+  const lp=ac.createBiquadFilter();lp.type='lowpass';
+  lp.frequency.setValueAtTime(6000,t);lp.frequency.exponentialRampToValueAtTime(400,t+.25);
+  const g=ac.createGain();g.gain.setValueAtTime(vel*.08,t);
+  g.gain.exponentialRampToValueAtTime(.001,t+.3);
+  o.connect(lp);lp.connect(g);g.connect(synthGain);o.start(t);o.stop(t+.35);
+}
+
+// ── SUB BASS (whale → bass wobble) ──
+let subBassOsc=null,subBassGain2=null,subBassLFO=null,subBassLFOGain=null;
+function initSubBass(){
+  subBassOsc=ac.createOscillator();subBassOsc.type='sawtooth';subBassOsc.frequency.value=m2f(38);
+  // Wobble LFO (whale-derived FM)
+  subBassLFO=ac.createOscillator();subBassLFO.type='sine';subBassLFO.frequency.value=0;
+  subBassLFOGain=ac.createGain();subBassLFOGain.gain.value=0;
+  subBassLFO.connect(subBassLFOGain);
+  // LFO → filter cutoff for wobble
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=200;lp.Q.value=8;
+  subBassLFOGain.connect(lp.frequency);
+  subBassOsc.connect(lp);
+  subBassGain2=ac.createGain();subBassGain2.gain.value=0;
+  lp.connect(subBassGain2);subBassGain2.connect(bassGain);
+  // Sub sine layer
+  const subSine=ac.createOscillator();subSine.type='sine';subSine.frequency.value=m2f(38);
+  const subSineG=ac.createGain();subSineG.gain.value=0;
+  subSine.connect(subSineG);subSineG.connect(bassGain);
+  subBassOsc._subSine=subSine;subBassOsc._subSineG=subSineG;
+  subBassOsc._lp=lp;
+  subBassOsc.start();subBassLFO.start();subSine.start();
+}
+
+function setBass(midi,level,wobbleRate,wobbleDepth){
+  if(!ac||!subBassOsc)return;const t=ac.currentTime;const f=m2f(midi);
+  subBassOsc.frequency.setTargetAtTime(f,t,.08);
+  subBassOsc._subSine.frequency.setTargetAtTime(f/2,t,.08);
+  subBassGain2.gain.setTargetAtTime(level*.3,t,.1);
+  subBassOsc._subSineG.gain.setTargetAtTime(level*.2,t,.1);
+  subBassLFO.frequency.setTargetAtTime(wobbleRate,t,.2);
+  subBassLFOGain.gain.setTargetAtTime(wobbleDepth,t,.2);
+  subBassOsc._lp.frequency.setTargetAtTime(200+level*800,t,.15);
+}
+
+// ── WHALE CALLS (same synthesis, used as FX) ──
+function playWhaleCall(type,when){
+  if(!ac)return;const t=max(ac.currentTime,when||ac.currentTime);
+  const master=ac.createGain();master.gain.setValueAtTime(0.001,t);master.connect(fxGain);
+  if(type==='moan'){
+    const fund=55+rnd()*20,dur=4+rnd()*2;
+    [1,2,3,4,5].forEach((h,i)=>{
+      const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(fund*h,t);
+      o.frequency.linearRampToValueAtTime(fund*h*(1+(.03-.06*rnd())),t+dur*.7);
+      const g=ac.createGain();const amp=[.14,.07,.03,.014,.007][i];
+      g.gain.setValueAtTime(0.001,t);g.gain.linearRampToValueAtTime(amp,t+.4);
+      g.gain.linearRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.1)});
+    master.gain.linearRampToValueAtTime(1,t+.3);master.gain.linearRampToValueAtTime(.001,t+dur);
+  } else if(type==='upcall'){
+    const startF=45+rnd()*20,endF=120+rnd()*30,dur=2.5+rnd()*1;
+    [1,2,3,4].forEach((h,i)=>{
+      const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(startF*h,t);
+      o.frequency.linearRampToValueAtTime(endF*h,t+dur*.85);
+      const g=ac.createGain();const amp=[.11,.05,.022,.01][i];
+      g.gain.setValueAtTime(0.001,t);g.gain.linearRampToValueAtTime(amp,t+.15);
+      g.gain.linearRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.1)});
+    master.gain.linearRampToValueAtTime(1,t+.1);master.gain.linearRampToValueAtTime(.001,t+dur);
+  } else if(type==='wail'){
+    const fund=80+rnd()*50,dur=2+rnd()*1.5;
+    [1,2,3,4,5,6,7].forEach((h,i)=>{
+      const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(fund*h,t);
+      o.frequency.linearRampToValueAtTime(fund*h*1.08,t+dur*.4);
+      o.frequency.linearRampToValueAtTime(fund*h*.95,t+dur);
+      const g=ac.createGain();const amp=[.06,.04,.028,.016,.01,.006,.003][i];
+      g.gain.setValueAtTime(0.001,t);g.gain.linearRampToValueAtTime(amp,t+.1);
+      g.gain.linearRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.1)});
+    master.gain.linearRampToValueAtTime(1,t+.08);master.gain.linearRampToValueAtTime(.001,t+dur);
+  }
+}
+
+// ── RISER (nature → noise sweep) ──
+function playRiser(dur,when){
+  if(!ac)return;const t=max(ac.currentTime,when);
+  const bl=dur*BEAT_S;
+  const buf=ac.createBuffer(1,flr(ac.sampleRate*bl),ac.sampleRate);
+  const d=buf.getChannelData(0);for(let i=0;i<d.length;i++){
+    const p=i/d.length;d[i]=(rnd()*2-1)*p*p}
+  const s=ac.createBufferSource();s.buffer=buf;
+  const bp=ac.createBiquadFilter();bp.type='bandpass';bp.Q.value=3;
+  bp.frequency.setValueAtTime(200,t);bp.frequency.exponentialRampToValueAtTime(8000,t+bl);
+  const g=ac.createGain();g.gain.setValueAtTime(.001,t);
+  g.gain.linearRampToValueAtTime(.35,t+bl*.9);g.gain.linearRampToValueAtTime(.001,t+bl);
+  s.connect(bp);bp.connect(g);g.connect(fxGain);s.start(t);
+}
+
+// ── IMPACT (nature → downward sweep) ──
+function playImpact(when){
+  if(!ac)return;const t=max(ac.currentTime,when);
+  const bl=.6;const buf=ac.createBuffer(1,flr(ac.sampleRate*bl),ac.sampleRate);
+  const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(rnd()*2-1)*Math.pow(1-i/d.length,1.5);
+  const s=ac.createBufferSource();s.buffer=buf;
+  const g=ac.createGain();g.gain.setValueAtTime(.5,t);g.gain.exponentialRampToValueAtTime(.001,t+bl);
+  s.connect(g);g.connect(fxGain);s.start(t);
+  // Sub boom
+  const o=ac.createOscillator();o.type='sine';
+  o.frequency.setValueAtTime(80,t);o.frequency.exponentialRampToValueAtTime(25,t+.3);
+  const og=ac.createGain();og.gain.setValueAtTime(.4,t);og.gain.exponentialRampToValueAtTime(.001,t+.5);
+  o.connect(og);og.connect(fxGain);o.start(t);o.stop(t+.6);
+}
+
+// ── SATB CHOIR (same system) ──
+let choirSATB=[];
+function initChoir(){
+  choirSATB=[];
+  const voices=[
+    {name:'S',midi:[74,77,81,74,81],fmt:FMT},
+    {name:'A',midi:[62,65,69,62,69],fmt:FMT_A},
+    {name:'T',midi:[50,53,57,50,57],fmt:FMT_T},
+    {name:'B',midi:[38,45,38,45,33],fmt:FMT_B},
+  ];
+  voices.forEach(v=>{
+    const part=[];
+    v.midi.forEach((m,vi)=>{
+      const freq=m2f(m);
+      const det1=vi<3?.998:.994,det2=vi<3?1.003:1.007;
+      const o1=ac.createOscillator();o1.type='sawtooth';o1.frequency.value=freq*det1;
+      const o2=ac.createOscillator();o2.type='sawtooth';o2.frequency.value=freq*det2;
+      const o3=ac.createOscillator();o3.type='sawtooth';o3.frequency.value=freq*.499;
+      const mx=ac.createGain();mx.gain.value=0;o1.connect(mx);o2.connect(mx);
+      const mx3=ac.createGain();mx3.gain.value=0;o3.connect(mx3);
+      const vib=ac.createOscillator();vib.type='sine';vib.frequency.value=4.8+rnd()*1.5;
+      const vibG=ac.createGain();vibG.gain.value=0;
+      vib.connect(vibG);vibG.connect(o1.frequency);vibG.connect(o2.frequency);vibG.connect(o3.frequency);
+      const filters=[];
+      for(let f=0;f<3;f++){
+        const bp=ac.createBiquadFilter();bp.type='bandpass';bp.Q.value=6+rnd()*4;bp.frequency.value=600;
+        const fG=ac.createGain();fG.gain.value=0;
+        mx.connect(bp);mx3.connect(bp);bp.connect(fG);fG.connect(choirGain);
+        filters.push({bp,gain:fG})}
+      o1.start();o2.start();o3.start();vib.start();
+      part.push({o1,o2,o3,mx,mx3,vib,vibG,filters,freq,midi:m,fmtSet:v.fmt})});
+    choirSATB.push({name:v.name,voices:part})});
+}
+
+function setChoirVowel(vowel,trans){
+  if(!ac||choirSATB.length===0)return;const t=ac.currentTime;
+  choirSATB.forEach(part=>{part.voices.forEach(v=>{
+    const f=v.fmtSet[vowel]||v.fmtSet.a;
+    v.filters.forEach((flt,idx)=>{if(f[idx]){
+      flt.bp.frequency.setTargetAtTime(f[idx].f,t,trans||1);
+      flt.gain.gain.setTargetAtTime(f[idx].g*.4,t,trans||1)}})})});
+}
+
+function setChoirLevel(level,trans){
+  if(!ac)return;const t=ac.currentTime;
+  choirSATB.forEach(part=>{part.voices.forEach(v=>{
+    v.mx.gain.setTargetAtTime(level,t,trans||1);
+    v.mx3.gain.setTargetAtTime(level*.35,t,trans||1);
+    v.vibG.gain.setTargetAtTime(level>0?v.freq*.004:0,t,trans||1)})});
+}
+
+function setChoirPitch(partName,midiArr,trans){
+  if(!ac)return;const t=ac.currentTime;
+  const part=choirSATB.find(p=>p.name===partName);if(!part)return;
+  part.voices.forEach((v,i)=>{if(midiArr[i]!==undefined){
+    const f=m2f(midiArr[i]);const wi=i<3?[.998,1.003]:[.994,1.007];
+    v.o1.frequency.setTargetAtTime(f*wi[0],t,trans||.5);
+    v.o2.frequency.setTargetAtTime(f*wi[1],t,trans||.5);
+    v.o3.frequency.setTargetAtTime(f*.499,t,trans||.5);v.freq=f}});
+}
+
+// ── BRAINWAVE ENTRAINMENT (same) ──
+let brainOsc,brainMod,brainModG,brainG2;
+function initBrain(){
+  brainOsc=ac.createOscillator();brainOsc.type='sine';brainOsc.frequency.value=440;
+  brainMod=ac.createOscillator();brainMod.type='sine';brainMod.frequency.value=10;
+  brainModG=ac.createGain();brainModG.gain.value=0;
+  brainG2=ac.createGain();brainG2.gain.value=0;
+  brainMod.connect(brainModG);brainModG.connect(brainG2.gain);
+  brainOsc.connect(brainG2);brainG2.connect(brainGain);
+  brainOsc.start();brainMod.start()}
+function setBrain(freq,level){
+  if(!ac)return;const t=ac.currentTime;
+  brainMod.frequency.setTargetAtTime(freq,t,.5);
+  brainModG.gain.setTargetAtTime(level*.12,t,1);
+  brainG2.gain.setTargetAtTime(level*.06,t,1)}
+
+// ── NUCLEAR IMPACT (stellar explosion for final drop) ──
+function playStellarImpact(){
+  if(!ac)return;const t=ac.currentTime;
+  const g=ac.createGain();g.gain.setValueAtTime(0.001,t);g.connect(fxGain);
+  // Massive noise burst
+  const bl=1.5;const buf=ac.createBuffer(2,flr(ac.sampleRate*bl),ac.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);
+    for(let i=0;i<d.length;i++){const p=i/d.length;
+      d[i]=(rnd()*2-1)*(p<.01?p/.01:Math.pow(1-p,1.2))}}
+  const s=ac.createBufferSource();s.buffer=buf;
+  const sg=ac.createGain();sg.gain.setValueAtTime(.6,t);sg.gain.exponentialRampToValueAtTime(.001,t+bl);
+  s.connect(sg);sg.connect(g);s.start(t);
+  // Sub sweep
+  const o=ac.createOscillator();o.type='sine';
+  o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(20,t+1);
+  const og=ac.createGain();og.gain.setValueAtTime(.5,t);og.gain.exponentialRampToValueAtTime(.001,t+1.2);
+  o.connect(og);og.connect(g);o.start(t);o.stop(t+1.3);
+  g.gain.linearRampToValueAtTime(1,t+.01);g.gain.linearRampToValueAtTime(.001,t+bl);
+  // Flash
+  flashScreen();
+}
+
+function flashScreen(){
+  const el=document.getElementById('flash-overlay');
+  el.style.opacity='0.7';setTimeout(()=>el.style.opacity='0',80);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §7 SCORE — ELECTRO-POP COMPOSITION
+// ═══════════════════════════════════════════════════════════════════
+const SCORE=[];
+function buildScore(){
+  SCORE.length=0;
+  function kick(b,v){SCORE.push({beat:b,type:'kick',vel:v||1})}
+  function snare(b,v){SCORE.push({beat:b,type:'snare',vel:v||1})}
+  function hat(b,o,v){SCORE.push({beat:b,type:'hat',open:o||false,vel:v||.7})}
+  function syn(b,m,v,d){SCORE.push({beat:b,midi:m,vel:v,dur:d,type:'synth'})}
+  function plk(b,m,v){SCORE.push({beat:b,midi:m,vel:v||.5,type:'pluck'})}
+  function wh(b,type){SCORE.push({beat:b,type:'whale',call:type})}
+  function riser(b,d){SCORE.push({beat:b,dur:d,type:'riser'})}
+  function impact(b){SCORE.push({beat:b,type:'impact'})}
+  function bass(b,m,l,w,wd){SCORE.push({beat:b,midi:m,level:l,wobbleRate:w,wobbleDepth:wd,type:'bass'})}
+  function stellar(b){SCORE.push({beat:b,type:'stellar'})}
+
+  // ═══ SIGNAL (0-16): Heartbeat emerging ═══
+  for(let b=0;b<16;b+=4)kick(b,.3+b/16*.3);
+  for(let b=2;b<16;b+=4)kick(b,.2+b/16*.2);
+
+  // ═══ VERSE 1 (16-80): Kick + hat + arp build ═══
+  // 4otf kick
+  for(let b=16;b<80;b+=1){
+    if(b%4===0)kick(b,.8);
+    if(b%4===2)snare(b,.3+(b-16)/64*.3);
+    if(b%2===0)hat(b,false,.4);
+    if(b%2===1)hat(b,b%4===3,.25);
+  }
+  // Arp pattern: D minor ascending
+  const arpPat=[0,2,4,5,4,2,0,4]; // scale degrees
+  for(let bar=0;bar<8;bar++){
+    const bOff=16+bar*8;
+    bass(bOff,BASS_NOTES[bar%4],.4,0,0);
+    for(let n=0;n<8;n++){
+      plk(bOff+n,Dm[arpPat[n]]+12,.3+bar/8*.15);
+    }
+  }
+  // Melody enters at bar 4
+  const v1Mel=[[4,.4,2],[5,.42,1],[4,.4,1],[2,.38,2],[4,.4,2],
+    [5,.45,2],[7,.48,1],[5,.45,1],[4,.42,2],[2,.4,2]];
+  let mb=48;v1Mel.forEach(([deg,vel,dur])=>{syn(mb,Dm[deg],vel,dur*BEAT_S);mb+=dur*2});
+  // Whale undertone
+  wh(32,'moan');wh(56,'upcall');
+
+  // ═══ PRE-CHORUS 1 (80-112): TENSION BUILD ═══
+  for(let b=80;b<112;b+=1){
+    if(b%4===0)kick(b,.9);
+    if(b%4===2)snare(b,.6);
+    if(b%2===0)hat(b,false,.5);
+    if(b%2===1)hat(b,b%4===3,.35);
+    // Snare roll accelerating in last 8 beats
+    if(b>=104){const density=(b-104)/8;
+      if(rnd()<density)snare(b+.5,.3+density*.3)}
+  }
+  // Rising arp
+  for(let bar=0;bar<4;bar++){
+    const bOff=80+bar*8;
+    bass(bOff,BASS_NOTES[bar%4],.5,2+bar,200+bar*100);
+    for(let n=0;n<8;n++){
+      plk(bOff+n,Dm[arpPat[n]]+12+flr(bar/2)*12,.4+bar/4*.15);
+    }
+  }
+  // Synth chords building
+  syn(80,Dm[0]+12,.35,8*BEAT_S);syn(80,Dm[4]+12,.3,8*BEAT_S);
+  syn(88,Dm[2]+12,.4,8*BEAT_S);syn(88,Dm[5]+12,.35,8*BEAT_S);
+  syn(96,Dm[4]+12,.45,8*BEAT_S);syn(96,Dm[7]+12,.4,8*BEAT_S);
+  syn(104,Dm[5]+12,.5,8*BEAT_S);syn(104,Dm[0]+24,.45,8*BEAT_S);
+  riser(80,32);
+  wh(88,'wail');
+  impact(111);
+
+  // ═══ DROP 1 (112-176): THE DROP ═══
+  for(let b=112;b<176;b+=1){
+    if(b%4===0)kick(b,1);
+    if(b%4===2)snare(b,.85);
+    if(b%2===0)hat(b,false,.55);
+    if(b%2===1)hat(b,b%4===3,.4);
+  }
+  // BASS WOBBLE (whale → sub)
+  const dropBass=[38,38,41,43]; // Dm: i-i-III-IV
+  for(let bar=0;bar<8;bar++){
+    const bOff=112+bar*8;
+    bass(bOff,dropBass[bar%4],.85,4,600);
+  }
+  // Massive synth stabs
+  for(let bar=0;bar<8;bar++){
+    const bOff=112+bar*8;
+    syn(bOff,Dm[0]+12,.55,1.5*BEAT_S);
+    syn(bOff,Dm[4]+12,.5,1.5*BEAT_S);
+    syn(bOff+4,Dm[2]+12,.5,1.5*BEAT_S);
+    syn(bOff+4,Dm[5]+12,.45,1.5*BEAT_S);
+  }
+  // Arp continues but HIGHER
+  for(let bar=0;bar<8;bar++){
+    const bOff=112+bar*8;
+    for(let n=0;n<8;n++)plk(bOff+n,Dm[arpPat[n]]+24,.45);
+  }
+  // Lead melody over drop
+  const d1Mel=[[7,.55,2],[5,.5,1],[7,.55,1],[7,.6,4],[5,.55,2],[4,.5,2],[2,.48,2],[4,.5,2]];
+  mb=120;d1Mel.forEach(([deg,vel,dur])=>{syn(mb,Dm[deg]+12,vel,dur*BEAT_S);mb+=dur*2});
+  wh(128,'moan');wh(148,'upcall');
+
+  // ═══ VERSE 2 (176-240): Stripped, new elements ═══
+  for(let b=176;b<240;b+=1){
+    if(b%4===0)kick(b,.65);
+    if(b%4===2&&b>=192)snare(b,.35);
+    if(b%2===0)hat(b,false,.3);
+    if(b%4===3)hat(b,true,.2);
+  }
+  const arpPat2=[0,4,2,5,4,7,5,4];
+  for(let bar=0;bar<8;bar++){
+    const bOff=176+bar*8;
+    bass(bOff,BASS_NOTES[bar%4],.35,0,0);
+    for(let n=0;n<8;n++)plk(bOff+n,Dm[arpPat2[n]]+12,.3+bar/8*.1);
+  }
+  const v2Mel=[[2,.38,2],[4,.4,2],[5,.42,3],[4,.4,1],[2,.38,2],[0,.36,2],
+    [2,.4,2],[4,.42,2],[7,.48,4]];
+  mb=192;v2Mel.forEach(([deg,vel,dur])=>{syn(mb,Dm[deg]+12,vel,dur*BEAT_S);mb+=dur*2});
+  wh(200,'moan');wh(224,'wail');
+
+  // ═══ PRE-CHORUS 2 (240-272): BIGGER BUILD ═══
+  for(let b=240;b<272;b+=1){
+    if(b%4===0)kick(b,.95);
+    if(b%4===2)snare(b,.7);
+    if(b%2===0)hat(b,false,.55);
+    if(b%2===1)hat(b,b%4===3,.4);
+    if(b>=260){const d=(b-260)/12;if(rnd()<d)snare(b+.5,.35+d*.35)}
+  }
+  for(let bar=0;bar<4;bar++){
+    const bOff=240+bar*8;
+    bass(bOff,BASS_NOTES[bar%4],.6,3+bar,300+bar*150);
+    for(let n=0;n<8;n++)plk(bOff+n,Dm[arpPat[n]]+12+flr(bar/2)*12,.45+bar/4*.1);
+  }
+  syn(240,Dm[0]+12,.4,8*BEAT_S);syn(248,Dm[2]+12,.45,8*BEAT_S);
+  syn(256,Dm[4]+12,.5,8*BEAT_S);syn(264,Dm[5]+12,.55,8*BEAT_S);
+  riser(240,32);wh(248,'upcall');wh(260,'wail');
+  impact(271);
+
+  // ═══ DROP 2 (272-336): MAXIMUM ═══
+  for(let b=272;b<336;b+=1){
+    if(b%4===0)kick(b,1);
+    if(b%4===2)snare(b,.9);
+    if(b%2===0)hat(b,false,.6);
+    if(b%2===1)hat(b,b%4===3,.45);
+  }
+  for(let bar=0;bar<8;bar++){
+    const bOff=272+bar*8;bass(bOff,dropBass[bar%4],1,6,800);
+  }
+  for(let bar=0;bar<8;bar++){
+    const bOff=272+bar*8;
+    syn(bOff,Dm[0]+12,.6,1.5*BEAT_S);syn(bOff,Dm[4]+12,.55,1.5*BEAT_S);syn(bOff,Dm[0]+24,.4,1.5*BEAT_S);
+    syn(bOff+4,Dm[2]+12,.55,1.5*BEAT_S);syn(bOff+4,Dm[5]+12,.5,1.5*BEAT_S);syn(bOff+4,Dm[2]+24,.35,1.5*BEAT_S);
+  }
+  for(let bar=0;bar<8;bar++){const bOff=272+bar*8;
+    for(let n=0;n<8;n++)plk(bOff+n,Dm[arpPat[n]]+24,.5)}
+  const d2Mel=[[7,.6,2],[7,.65,2],[5,.6,1],[7,.65,1],[7,.7,6],[5,.6,2],[4,.55,2]];
+  mb=280;d2Mel.forEach(([deg,vel,dur])=>{syn(mb,Dm[deg]+12,vel,dur*BEAT_S);mb+=dur*2});
+  wh(280,'moan');wh(300,'upcall');wh(320,'wail');
+
+  // ═══ BRIDGE (336-384): Whale song in the deep ═══
+  // No drums. Just whale + choir + sparse plucks
+  bass(336,38,.15,0,0);
+  wh(336,'moan');wh(348,'upcall');wh(360,'wail');wh(372,'moan');
+  for(let b=340;b<384;b+=4)plk(b,Dm[flr(rnd()*8)]+12,.15);
+
+  // ═══ BUILD (384-416): THE RISER ═══
+  for(let b=384;b<416;b+=1){
+    // Accelerating kick
+    if(b<400&&b%4===0)kick(b,.6);
+    if(b>=400&&b%2===0)kick(b,.7);
+    if(b>=408)kick(b,.5+(b-408)/8*.3);
+    // Accelerating snare
+    if(b>=392){const d=(b-392)/24;if(rnd()<d*.8)snare(b,.3+d*.5)}
+    if(b>=400)hat(b,b%2===1,.3+(b-400)/16*.3);
+  }
+  riser(384,32);
+  bass(384,38,.3,0,0);
+  for(let bar=0;bar<4;bar++){const bOff=384+bar*8;
+    syn(bOff,Dm[0]+12,.3+bar/4*.2,8*BEAT_S);
+    syn(bOff,Dm[4]+12,.25+bar/4*.2,8*BEAT_S)}
+  wh(392,'upcall');wh(404,'wail');
+  impact(415);stellar(415.5);
+
+  // ═══ FINAL DROP (416-496): EVERYTHING ═══
+  for(let b=416;b<496;b+=1){
+    if(b%4===0)kick(b,1);
+    if(b%4===2)snare(b,1);
+    if(b%2===0)hat(b,false,.65);
+    if(b%2===1)hat(b,b%4===3,.5);
+  }
+  for(let bar=0;bar<10;bar++){
+    const bOff=416+bar*8;bass(bOff,dropBass[bar%4],1,8,1000);
+  }
+  for(let bar=0;bar<10;bar++){
+    const bOff=416+bar*8;
+    syn(bOff,Dm[0]+12,.65,1.5*BEAT_S);syn(bOff,Dm[4]+12,.6,1.5*BEAT_S);syn(bOff,Dm[0]+24,.45,1.5*BEAT_S);
+    syn(bOff+4,Dm[2]+12,.6,1.5*BEAT_S);syn(bOff+4,Dm[5]+12,.55,1.5*BEAT_S);syn(bOff+4,Dm[2]+24,.4,1.5*BEAT_S);
+  }
+  for(let bar=0;bar<10;bar++){const bOff=416+bar*8;
+    for(let n=0;n<8;n++)plk(bOff+n,Dm[arpPat[n]]+24,.55)}
+  // Epic lead
+  const fMel=[[7,.65,2],[7,.7,2],[7,.72,4],[5,.65,2],[7,.7,2],[7,.75,8],
+    [5,.65,2],[4,.6,2],[5,.65,2],[7,.72,4],[7,.75,4]];
+  mb=424;fMel.forEach(([deg,vel,dur])=>{syn(mb,Dm[deg]+12,vel,dur*BEAT_S);mb+=dur*2});
+  wh(432,'moan');wh(456,'upcall');wh(472,'wail');wh(488,'moan');
+
+  // ═══ OUTRO (496-544): Return to heartbeat ═══
+  for(let b=496;b<544;b+=4){
+    const fade=1-(b-496)/48;
+    kick(b,.3*fade);
+    if(b<520)hat(b+2,false,.15*fade);
+  }
+  bass(496,38,.1,0,0);
+  plk(500,Dm[0]+12,.15);plk(508,Dm[4]+12,.1);plk(520,Dm[0]+12,.08);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §8 SEQUENCER
+// ═══════════════════════════════════════════════════════════════════
+const seq={on:false,beat:0,ts:1,lastBeat:-1,
+  pieceA:new CRR('Z2',1.5),phraseA:new CRR('Z2',1),prevSec:null,ni:0};
+
+function startPlay(){
+  if(seq.on)return;initAudio();buildScore();
+  seq.on=true;seq.beat=0;seq.ni=0;seq.lastBeat=-1;
+  seq.pieceA.C=0;seq.phraseA.C=0;seq.prevSec=null;
+  document.getElementById('btn-play').classList.add('on');
+}
+
+function stopPlay(){
+  seq.on=false;document.getElementById('btn-play').classList.remove('on');
+  dropExplosion=0;
+  if(ac){const t=ac.currentTime;
+    setChoirLevel(0,.3);setBrain(10,0);
+    setBass(38,0,0,0);
+  }}
+
+function schedNotes(){
+  if(!seq.on||!ac)return;const t=ac.currentTime;
+  while(seq.ni<SCORE.length){
+    const ev=SCORE[seq.ni];if(ev.beat>seq.beat+.15)break;
+    const when=t+(ev.beat-seq.beat)*BEAT_S/seq.ts;
+    if(when>=t-.01){
+      const w=max(t,when);
+      if(ev.type==='kick')playKick(w,ev.vel);
+      else if(ev.type==='snare')playSnare(w,ev.vel);
+      else if(ev.type==='hat')playHat(w,ev.open,ev.vel);
+      else if(ev.type==='synth')playSynth(ev.midi,ev.vel,ev.dur,w);
+      else if(ev.type==='pluck')playPluck(ev.midi,ev.vel,w);
+      else if(ev.type==='whale')playWhaleCall(ev.call,w);
+      else if(ev.type==='bass')setBass(ev.midi,ev.level,ev.wobbleRate,ev.wobbleDepth);
+      else if(ev.type==='riser')playRiser(ev.dur,w);
+      else if(ev.type==='impact')playImpact(w);
+      else if(ev.type==='stellar'){playStellarImpact();dropExplosion=3;
+        for(let i=0;i<N;i++){coh[i]*=.1;const dx=px[i]-cx,dy=py[i]-cy,dist=sqrt(dx*dx+dy*dy)+1;
+          pvx[i]+=(dx/dist)*12+rnd()*5-2.5;pvy[i]+=(dy/dist)*12+rnd()*5-2.5}}
+    }
+    seq.ni++}}
+
+function updateSeq(dt){
+  if(!seq.on)return;
+  const bd=dt*BPM/60*seq.ts;seq.beat+=bd;
+  if(seq.beat>=TOTAL_BEATS){stopPlay();return}
+
+  const sec=getSec(seq.beat);const ar=sec.arousal;const en=sec.energy;
+
+  // Section change
+  if(sec!==seq.prevSec){
+    seq.prevSec=sec;
+    showSection(sec.name);
+    if(sec.form>=0){setGeo(sec.form);showForm(FORM_NAMES[sec.form])}
+    else{setGeo(-1);showForm('')}
+    showBio(sec.bio);showExplain(sec.explain);
+
+    const t=ac?ac.currentTime:0;
+    switch(sec.name){
+      case 'SIGNAL':setChoirLevel(0,1);setBrain(2,.1);break;
+      case 'VERSE 1':setBrain(10,.2);break;
+      case 'PRE-CHORUS 1':setBrain(18,.35);
+        setChoirVowel('o',2);setChoirLevel(.15,1.5);
+        setChoirPitch('S',[74,77,81,74,81],1);setChoirPitch('A',[62,65,69,62,69],1);
+        setChoirPitch('T',[50,53,57,50,57],1);setChoirPitch('B',[38,45,38,45,33],1);
+        break;
+      case 'DROP 1':setBrain(40,.5);flashScreen();
+        setChoirVowel('a',1);setChoirLevel(.55,.5);
+        setChoirPitch('S',[77,81,74,77,81],.5);setChoirPitch('A',[65,69,62,65,69],.5);
+        setChoirPitch('T',[53,57,50,53,57],.5);setChoirPitch('B',[38,45,38,45,33],.5);
+        dropExplosion=1.5;break;
+      case 'VERSE 2':setBrain(10,.2);
+        setChoirLevel(.05,1);break;
+      case 'PRE-CHORUS 2':setBrain(18,.4);
+        setChoirVowel('e',2);setChoirLevel(.25,1);
+        setChoirPitch('S',[77,81,86,74,81],.8);setChoirPitch('A',[65,69,74,62,69],.8);
+        setChoirPitch('T',[53,57,62,50,57],.8);setChoirPitch('B',[38,45,38,45,33],.8);
+        break;
+      case 'DROP 2':setBrain(40,.65);flashScreen();
+        setChoirVowel('a',.5);setChoirLevel(.75,.3);
+        setChoirPitch('S',[77,81,86,77,86],.3);setChoirPitch('A',[65,69,74,65,74],.3);
+        setChoirPitch('T',[53,57,62,53,62],.3);setChoirPitch('B',[38,45,38,45,33],.3);
+        dropExplosion=2;break;
+      case 'BRIDGE':setBrain(6,.15);
+        setChoirVowel('u',3);setChoirLevel(.1,2);
+        setBass(38,.1,0,0);break;
+      case 'BUILD':setBrain(18,.5);
+        setChoirVowel('i',1);setChoirLevel(.4,.8);
+        setChoirPitch('S',[77,81,86,77,86],.6);setChoirPitch('A',[65,69,74,65,74],.6);
+        setChoirPitch('T',[53,57,62,53,62],.6);setChoirPitch('B',[38,45,38,45,33],.6);
+        break;
+      case 'FINAL DROP':setBrain(40,.8);flashScreen();
+        setChoirVowel('a',.3);setChoirLevel(.9,.2);
+        setChoirPitch('S',[77,81,86,77,86],.2);setChoirPitch('A',[65,69,74,65,74],.2);
+        setChoirPitch('T',[53,57,62,53,62],.2);setChoirPitch('B',[38,45,38,45,33],.2);
+        dropExplosion=3;break;
+      case 'OUTRO':setBrain(2,.08);
+        setChoirLevel(.02,3);setBass(38,.05,0,0);break;
+    }
+  }
+
+  // Continuous CRR
+  seq.phraseA.omegaScale=1+ar*.5;
+  seq.phraseA.step(ar*.5+.1,dt*.01);
+  seq.pieceA.step(.2+ar*.3,dt*.005);
+
+  // Vowel cycling (slower in pop)
+  if(flr(seq.beat)%16===0&&flr(seq.beat)!==flr(seq.beat-bd)){
+    setChoirVowel(VOWEL_SEQ[flr((seq.beat%64)/8)%VOWEL_SEQ.length],1.5)}
+
+  OMEGA_P=0.08+ar*.12+seq.phraseA.normC*.05;
+
+  // Beat flash on drops
+  if(en>.8&&flr(seq.beat)%4===0&&flr(seq.beat)!==flr(seq.beat-bd)){
+    const el=document.getElementById('flash-overlay');
+    el.style.opacity=String(.08+en*.08);setTimeout(()=>el.style.opacity='0',40);
+  }
+
+  schedNotes()}
+
+// ═══════════════════════════════════════════════════════════════════
+// §9 UI
+// ═══════════════════════════════════════════════════════════════════
+function showSection(name){
+  const el=document.getElementById('section-label');el.textContent=name;el.style.opacity='.85';
+  setTimeout(()=>el.style.opacity='0',2500)}
+function showForm(text){const el=document.getElementById('form-label');el.textContent=text;el.style.opacity=text?'.75':'0'}
+function showBio(text){const bt=document.getElementById('bio-text');bt.textContent=text;bt.style.opacity=text?'1':'0'}
+function showExplain(text){const el=document.getElementById('crr-explain');el.textContent=text;el.style.opacity=text?'1':'0'}
+
+function buildTL(){
+  const c=document.getElementById('timeline-sections');c.innerHTML='';
+  SECTIONS.forEach(s=>{const el=document.createElement('div');el.className='t-sec';
+    el.style.width=((s.end-s.start)/TOTAL_BEATS*100)+'%';
+    const l=document.createElement('div');l.className='t-sec-l';
+    l.textContent=s.name.split(' ')[0];el.appendChild(l);c.appendChild(el)})}
+
+function updateTL(){
+  const pct=seq.on?(seq.beat/TOTAL_BEATS*100):0;
+  document.getElementById('timeline-fill').style.width=pct+'%';
+  const el=seq.on?seq.beat*BEAT_S/seq.ts:0,tot=TOTAL_BEATS*BEAT_S/seq.ts;
+  const fm=s=>{const m=flr(s/60),ss=flr(s%60);return m+':'+(ss<10?'0':'')+ss};
+  document.getElementById('tl-time').textContent=fm(el)+' / '+fm(tot);
+  document.getElementById('tl-crr').textContent='C='+seq.pieceA.C.toFixed(2)}
+
+function updateCRRD(){
+  if(!seq.on)return;const sec=getSec(seq.beat);
+  document.getElementById('crr-display').innerHTML=
+    'C='+seq.pieceA.C.toFixed(2)+' Ω='+seq.phraseA.omega.toFixed(3)+'<br>'+
+    'exp(C/Ω)='+min(999,seq.phraseA.expCO).toFixed(1)+'<br>'+sec.name}
+
+// ═══════════════════════════════════════════════════════════════════
+// §10 MAIN LOOP
+// ═══════════════════════════════════════════════════════════════════
+let lastTime=0;
+
+function resize(){
+  W=canvas.width=canvas.clientWidth;H=canvas.height=canvas.clientHeight;cx=W/2;cy=H/2;
+  gridW=flr(W/CELL)+3;gridH=flr(H/CELL)+3;
+  grid=new Int32Array(gridW*gridH*MPC);gridCounts=new Int32Array(gridW*gridH);
+  if(gl)gl.viewport(0,0,W,H)}
+
+function loop(ts){
+  const dt=min(.033,lastTime?((ts-lastTime)/1000):.016);lastTime=ts;
+  updateSeq(dt);updateP(dt);renderP();updateTL();
+  if(seq.on&&flr(ts/500)%2===0)updateCRRD();
+  requestAnimationFrame(loop)}
+
+// Events
+document.getElementById('splash').addEventListener('click',()=>{
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  resize();initGL();initP();buildTL();requestAnimationFrame(loop)});
+document.getElementById('btn-play').addEventListener('click',startPlay);
+document.getElementById('btn-stop').addEventListener('click',stopPlay);
+
+document.getElementById('sl-tempo').addEventListener('input',e=>{
+  seq.ts=parseFloat(e.target.value);document.getElementById('v-tempo').textContent=seq.ts.toFixed(1)+'×'});
+document.getElementById('sl-rev').addEventListener('input',e=>{
+  const v=parseFloat(e.target.value);document.getElementById('v-rev').textContent=v.toFixed(2);
+  if(reverbGain)reverbGain.gain.setTargetAtTime(v,ac.currentTime,.1)});
+document.getElementById('sl-piano').addEventListener('input',e=>{
+  const v=parseFloat(e.target.value);document.getElementById('v-piano').textContent=v.toFixed(2);
+  if(synthGain)synthGain.gain.setTargetAtTime(v,ac.currentTime,.1)});
+document.getElementById('sl-choir').addEventListener('input',e=>{
+  const v=parseFloat(e.target.value);document.getElementById('v-choir').textContent=v.toFixed(2);
+  if(choirGain)choirGain.gain.setTargetAtTime(v,ac.currentTime,.1)});
+document.getElementById('sl-whale').addEventListener('input',e=>{
+  const v=parseFloat(e.target.value);document.getElementById('v-whale').textContent=v.toFixed(2);
+  if(bassGain)bassGain.gain.setTargetAtTime(v,ac.currentTime,.1)});
+document.getElementById('sl-nature').addEventListener('input',e=>{
+  const v=parseFloat(e.target.value);document.getElementById('v-nature').textContent=v.toFixed(2);
+  if(drumGain)drumGain.gain.setTargetAtTime(v,ac.currentTime,.1)});
+
+window.addEventListener('resize',resize);
+window.addEventListener('orientationchange',()=>setTimeout(resize,200));
+</script>
+</body>
+</html>
