@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ANIMA — CRR Soundscape for Healing Environments</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e18;--panel:rgba(8,12,22,0.96);--sun:rgba(255,200,100,0.7);--sea:rgba(78,180,210,0.7);
+--glow:rgba(255,220,140,0.5);--crr:#4ecdc4;--warm:#f0b848;--cool:#58b8e8;
+--txt:rgba(190,200,220,0.8);--txtD:rgba(140,160,185,0.4);--txtDD:rgba(90,110,140,0.25);
+--rupture:rgba(220,80,70,0.7);--resolve:rgba(255,210,120,0.6)}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--txt);font-family:'Cormorant Garamond',Georgia,serif;position:fixed;width:100%;height:100%}
+
+#splash{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity 3s}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:600px;padding:0 28px}
+#splash h1{font-size:clamp(2.4rem,6vw,4rem);font-weight:300;letter-spacing:.5em;margin-bottom:6px;
+  background:linear-gradient(135deg,var(--warm),#fff8e0,var(--cool));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#splash .sub{font-size:clamp(.72rem,1.1vw,.85rem);font-weight:300;font-style:italic;opacity:.25;letter-spacing:.05em;margin-bottom:16px}
+#splash .desc{font-size:clamp(.62rem,.9vw,.74rem);font-weight:300;opacity:.16;line-height:2.2;letter-spacing:.02em;max-width:500px;margin:0 auto}
+#splash .tap{font-size:.52rem;opacity:.08;margin-top:22px;letter-spacing:.18em;animation:pulse 5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.06}50%{opacity:.16}}
+
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+
+#ambient{position:absolute;inset:0;pointer-events:none;transition:opacity .5s}
+#ambient .g1{position:absolute;width:100%;height:100%}
+#ambient .g2{position:absolute;width:100%;height:100%}
+
+/* Ocean wave canvas at bottom */
+#ocean-canvas{position:absolute;bottom:0;left:0;width:100%;height:30%;pointer-events:none;opacity:.8}
+
+#orb-wrap{position:relative;width:min(340px,65vw);height:min(340px,65vw);margin-bottom:16px;z-index:2}
+#orb{width:100%;height:100%;border-radius:50%;transition:all .3s;
+  background:radial-gradient(circle at 46% 40%,rgba(255,255,250,0.25) 0%,rgba(255,250,240,0.12) 25%,rgba(245,225,180,0.05) 45%,transparent 70%);
+  box-shadow:0 0 80px rgba(255,248,235,0.12),0 0 160px rgba(250,235,200,0.05)}
+.ring{position:absolute;top:50%;left:50%;border-radius:50%;border:1px solid rgba(255,248,235,0.12);transform:translate(-50%,-50%);transition:all .5s}
+.r1{width:125%;height:125%}.r2{width:150%;height:150%}.r3{width:175%;height:175%}
+.rupture-ring{position:absolute;top:50%;left:50%;width:125%;height:125%;border-radius:50%;
+  border:2px solid transparent;transform:translate(-50%,-50%);transition:all .5s;pointer-events:none}
+.rupture-ring.flash{border-color:rgba(220,80,70,0.5);width:190%;height:190%}
+.rupture-ring.resolve{border-color:rgba(255,240,200,0.4);width:220%;height:220%}
+
+#breath-word{font-size:clamp(.9rem,1.6vw,1.15rem);font-weight:300;letter-spacing:.35em;
+  color:var(--txtDD);transition:all .8s;text-transform:lowercase;min-height:1.8em;text-align:center;z-index:2}
+#breath-word.in{color:rgba(88,180,230,0.35);letter-spacing:.4em}
+#breath-word.out{color:rgba(240,184,72,0.28);letter-spacing:.25em}
+
+#wave-canvas{width:min(480px,78vw);height:36px;display:block;margin:10px 0;z-index:2}
+
+#status{font-family:'JetBrains Mono',monospace;font-size:.38rem;color:var(--txtDD);text-align:center;letter-spacing:.04em;line-height:1.8;margin-top:6px;z-index:2}
+
+#controls{padding:10px 20px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(255,200,100,0.03);
+  background:var(--panel);display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.ctrl-row{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
+.btn{font-family:'Cormorant Garamond',serif;font-size:clamp(.68rem,.9vw,.78rem);padding:5px 18px;
+  border:1px solid rgba(255,200,100,0.06);background:transparent;color:var(--txtD);cursor:pointer;
+  border-radius:2px;letter-spacing:.06em;transition:all .35s;touch-action:manipulation}
+.btn:hover{border-color:rgba(255,200,100,0.18);color:var(--txt)}
+.btn.on{border-color:rgba(255,200,100,0.22);color:var(--warm);background:rgba(255,200,100,0.03)}
+.sw{display:flex;align-items:center;gap:5px}
+.sw label{font-family:'JetBrains Mono',monospace;font-size:.38rem;color:var(--txtDD);letter-spacing:.04em;width:40px;flex-shrink:0}
+.sw input[type=range]{flex:1;max-width:70px;height:2px;cursor:pointer;-webkit-appearance:none;
+  background:rgba(255,200,100,0.08);border-radius:1px;min-height:18px}
+.sw input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;
+  background:rgba(255,200,100,0.5);box-shadow:0 0 6px rgba(255,200,100,0.15)}
+.sw .sv{font-family:'JetBrains Mono',monospace;font-size:.34rem;color:rgba(255,200,100,0.4);width:22px;text-align:right}
+#footer{text-align:center;padding:3px;font-family:'JetBrains Mono',monospace;font-size:.3rem;color:rgba(255,200,100,0.06);letter-spacing:.02em}
+@media(max-width:600px){.ctrl-row{flex-wrap:wrap;gap:4px}.btn{padding:7px 18px;font-size:.78rem;min-height:32px}
+  .sw{flex:1 1 calc(50% - 4px);min-width:120px}.sw input[type=range]{max-width:none;min-height:22px}}
+</style>
+</head>
+<body>
+<div id="splash"><div class="inner">
+<h1>ANIMA</h1>
+<p class="sub">A CRR soundscape for healing environments</p>
+<p class="desc">
+Sunlight on water.<br>
+The sun's p-mode oscillations — standing waves five minutes deep —<br>
+mirror the cortical hierarchy at π⁵ ≈ 306 seconds.<br>
+Full-spectrum daylight, 5778K — the colour of our star —<br>
+breathes with the cortical rhythm, bright as a clear morning.<br>
+When disruption comes, the deep answers —<br>
+whale song descending through the frequencies,<br>
+folding every rupture back into radiance.
+</p>
+<p class="tap">tap to begin</p>
+</div></div>
+
+<div id="app">
+<div id="main">
+  <div id="ambient"><div class="g1"></div><div class="g2"></div></div>
+  <canvas id="ocean-canvas"></canvas>
+  <div id="orb-wrap">
+    <div id="orb"></div>
+    <div class="ring r1" id="ring1"></div>
+    <div class="ring r2" id="ring2"></div>
+    <div class="ring r3" id="ring3"></div>
+    <div class="rupture-ring" id="ruptureRing"></div>
+  </div>
+  <div id="breath-word">—</div>
+  <canvas id="wave-canvas"></canvas>
+  <div id="status"></div>
+</div>
+<div id="controls">
+  <div class="ctrl-row">
+    <button class="btn" id="btn-play" onclick="togglePlay()">begin</button>
+    <button class="btn" id="btn-ward" onclick="toggleWard()">hospital ward</button>
+  </div>
+  <div class="ctrl-row">
+    <div class="sw"><label>sound</label><input type="range" min="0" max="100" value="70" id="sl-vol" oninput="setVol(this.value)"><span class="sv" id="sv-vol">70</span></div>
+    <div class="sw"><label>ward</label><input type="range" min="0" max="100" value="40" id="sl-ward" oninput="setWard(this.value)"><span class="sv" id="sv-ward">40</span></div>
+    <div class="sw"><label>light</label><input type="range" min="0" max="100" value="85" id="sl-light" oninput="setLight(this.value)"><span class="sv" id="sv-light">85</span></div>
+    <div class="sw"><label>resolve</label><input type="range" min="0" max="100" value="75" id="sl-resolve" oninput="setResolve(this.value)"><span class="sv" id="sv-resolve">75</span></div>
+  </div>
+</div>
+<div id="footer">CRR: C(t)=∫L(τ)dτ · δ→whale resolve · R=∫φ·exp(C/Ω)dτ · breath=π² · solar p-mode=π⁵ · base=136.1Hz</div>
+</div>
+
+<script>
+const{PI,sin,cos,abs,max,min,exp,floor,random,sqrt,log2,pow,round,ceil}=Math;
+const TAU=PI*2,BREATH=PI*PI,LIMBIC=PI*PI*PI,CORTICAL=pow(PI,4),SOLAR=pow(PI,5);
+const BASE=136.1,PHI=(1+sqrt(5))/2;
+const m2f=m=>440*pow(2,(m-69)/12);
+
+let ac=null,nB=null,comp=null,an=null;
+let dryG=null,wetG=null,revN=null;
+let droneG=null,arpG=null,bowlG=null,oceanG=null,shimG=null,wardG=null,resolveG=null;
+let vol=0.7,wardVol=0.4,lightC=0.85,resolveVol=0.75;
+let playing=false,wardOn=false,t0=0,af=null;
+
+// === PENTATONIC SCALE (C major pentatonic — bright, universal, healing) ===
+// In just intonation from BASE:
+// C=1:1, D=9:8, E=5:4, G=3:2, A=5:3
+const PENT_RATIOS=[1, 9/8, 5/4, 3/2, 5/3];
+const PENT_FREQS=[];
+for(let oct=0;oct<4;oct++) PENT_RATIOS.forEach(r=>PENT_FREQS.push(BASE*r*pow(2,oct)));
+// Bright ascending patterns (MIDI-like indices into PENT_FREQS)
+const PATTERNS=[
+  [0,2,4,5,7,9,7,5],    // ascending sweep
+  [5,4,2,4,5,7,5,4],    // wave contour
+  [0,4,5,9,7,5,4,2],    // arch
+  [2,5,7,9,10,9,7,5],   // high arc
+  [7,5,4,2,0,2,4,5],    // descend and rise
+  [0,2,5,7,10,12,10,7], // wide sweep up
+  [9,7,5,4,5,7,9,10],   // gentle undulation
+];
+
+function mkNoise(c){const b=c.createBuffer(2,c.sampleRate*3,c.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<d.length;i++)d[i]=random()*2-1}return b}
+
+function mkRev(c){const sr=c.sampleRate,tau=5.5/6.91,len=(5.5*1.5*sr)|0;
+  const buf=c.createBuffer(2,len,sr);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);
+    for(const[t,a]of[[.021,.26],[.034,.20],[.051,.16],[.067,.12],[.083,.09],[.107,.07],[.137,.05],[.173,.035],[.211,.025],[.257,.015]]){
+      const idx=((t+ch*.006+random()*.003)*sr)|0;if(idx<len)d[idx]+=a*(.6+random()*.4)*(random()>.5?1:-1)}
+    for(let i=0;i<len;i++){const t=i/sr;if(t<.05)continue;d[i]+=(random()*2-1)*(exp(-t/tau)*.04+exp(-t/(tau*.3))*.01)}}
+  const cv=c.createConvolver();cv.buffer=buf;return cv}
+
+function initAudio(){if(ac)return;ac=new(window.AudioContext||window.webkitAudioContext)();
+  nB=mkNoise(ac);
+  comp=ac.createDynamicsCompressor();comp.threshold.value=-18;comp.knee.value=12;comp.ratio.value=2.5;comp.attack.value=.008;comp.release.value=.3;
+  const lim=ac.createDynamicsCompressor();lim.threshold.value=-6;lim.knee.value=3;lim.ratio.value=20;lim.attack.value=.001;lim.release.value=.1;
+  droneG=ac.createGain();droneG.gain.value=.10*vol;
+  arpG=ac.createGain();arpG.gain.value=.22*vol;
+  bowlG=ac.createGain();bowlG.gain.value=.12*vol;
+  oceanG=ac.createGain();oceanG.gain.value=.18*vol;
+  shimG=ac.createGain();shimG.gain.value=.08*vol;
+  wardG=ac.createGain();wardG.gain.value=0;
+  resolveG=ac.createGain();resolveG.gain.value=.22*resolveVol;
+  dryG=ac.createGain();wetG=ac.createGain();revN=mkRev(ac);
+  an=ac.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=.85;
+  for(const g of[droneG,arpG,bowlG,oceanG,shimG,wardG,resolveG])g.connect(comp);
+  comp.connect(lim);lim.connect(dryG);lim.connect(revN);revN.connect(wetG);
+  dryG.connect(an);wetG.connect(an);an.connect(ac.destination);
+  dryG.gain.value=.65;wetG.gain.value=.42}
+
+// === DRONE — golden ison, warm and radiant ===
+function initDrone(){if(!ac)return;const now=ac.currentTime;
+  // Sub (felt warmth)
+  const sub=ac.createOscillator();sub.type='sine';sub.frequency.value=BASE/2;
+  const subG=ac.createGain();subG.gain.value=.06;sub.connect(subG);subG.connect(droneG);
+  // Fundamental with solar-rate vibrato
+  const fund=ac.createOscillator();fund.type='sine';fund.frequency.value=BASE;
+  const vLFO=ac.createOscillator();vLFO.type='sine';vLFO.frequency.value=1/BREATH;
+  const vG=ac.createGain();vG.gain.value=.35;vLFO.connect(vG);vG.connect(fund.frequency);
+  const fG=ac.createGain();fG.gain.value=.10;fund.connect(fG);fG.connect(droneG);
+  // Perfect fifth
+  const fifth=ac.createOscillator();fifth.type='sine';fifth.frequency.value=BASE*3/2;
+  const fiG=ac.createGain();fiG.gain.value=.05;fifth.connect(fiG);fiG.connect(droneG);
+  // Major third (5:4) — gives the golden, major quality
+  const third=ac.createOscillator();third.type='sine';third.frequency.value=BASE*5/4;
+  const thG=ac.createGain();thG.gain.value=.04;third.connect(thG);thG.connect(droneG);
+  // Octave
+  const oct=ac.createOscillator();oct.type='sine';oct.frequency.value=BASE*2;
+  const oG=ac.createGain();oG.gain.value=.03;oct.connect(oG);oG.connect(droneG);
+  [sub,fund,vLFO,fifth,third,oct].forEach(o=>o.start(now))}
+
+// === OCEAN WAVES — filtered noise sculpted by breath ===
+function initOcean(){if(!ac)return;const now=ac.currentTime;
+  // Deep swell: low-passed noise, breath-modulated
+  const s1=ac.createBufferSource();s1.buffer=nB;s1.loop=true;
+  const lp1=ac.createBiquadFilter();lp1.type='lowpass';lp1.frequency.value=280;lp1.Q.value=.5;
+  const g1=ac.createGain();g1.gain.value=.12;
+  s1.connect(lp1);lp1.connect(g1);g1.connect(oceanG);
+  // Breath LFO on swell volume — tide in and out
+  const bLFO=ac.createOscillator();bLFO.type='sine';bLFO.frequency.value=1/BREATH;
+  const bMod=ac.createGain();bMod.gain.value=.06;bLFO.connect(bMod);bMod.connect(g1.gain);
+  // Surf texture: higher band, faster modulation (wave crests)
+  const s2=ac.createBufferSource();s2.buffer=nB;s2.loop=true;
+  const bp2=ac.createBiquadFilter();bp2.type='bandpass';bp2.frequency.value=1800;bp2.Q.value=.4;
+  const g2=ac.createGain();g2.gain.value=.03;
+  s2.connect(bp2);bp2.connect(g2);g2.connect(oceanG);
+  // Wave crest shimmer modulation
+  const wLFO=ac.createOscillator();wLFO.type='sine';wLFO.frequency.value=0.18;
+  const wMod=ac.createGain();wMod.gain.value=.015;wLFO.connect(wMod);wMod.connect(g2.gain);
+  // Mid-range body (the fullness of the ocean)
+  const s3=ac.createBufferSource();s3.buffer=nB;s3.loop=true;
+  const bp3=ac.createBiquadFilter();bp3.type='bandpass';bp3.frequency.value=600;bp3.Q.value=.3;
+  const g3=ac.createGain();g3.gain.value=.04;
+  s3.connect(bp3);bp3.connect(g3);g3.connect(oceanG);
+  const limLFO=ac.createOscillator();limLFO.type='sine';limLFO.frequency.value=1/LIMBIC;
+  const limMod=ac.createGain();limMod.gain.value=.02;limLFO.connect(limMod);limMod.connect(g3.gain);
+  [s1,s2,s3].forEach(n=>n.start(now));
+  [bLFO,wLFO,limLFO].forEach(o=>o.start(now))}
+
+// === SOLAR ARPEGGIOS — pentatonic patterns, bright sine tones ===
+let arpPattern=0,arpNote=0,arpTimer=0,arpGap=0,arpActive=false;
+function playArpNote(freq,dur){if(!ac)return;
+  const now=ac.currentTime;
+  const g=ac.createGain();g.connect(arpG);
+  // Pure sine fundamental — clean, glowing
+  const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=freq;
+  const g1=ac.createGain();g1.gain.value=.5;o1.connect(g1);g1.connect(g);
+  // Octave above (brightness)
+  const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq*2;
+  const g2=ac.createGain();g2.gain.value=.15;o2.connect(g2);g2.connect(g);
+  // Twelfth (3x — adds shimmer)
+  const o3=ac.createOscillator();o3.type='sine';o3.frequency.value=freq*3;
+  const g3=ac.createGain();g3.gain.value=.04;o3.connect(g3);g3.connect(g);
+  // Envelope: soft attack, long tail
+  const rDur=dur*2.5;
+  g.gain.setValueAtTime(0,now);
+  g.gain.linearRampToValueAtTime(.055,now+.3);
+  g.gain.setValueAtTime(.055,now+dur*.4);
+  g.gain.setTargetAtTime(.001,now+dur*.6,rDur*.35);
+  o1.start(now);o2.start(now);o3.start(now);
+  o1.stop(now+rDur+1);o2.stop(now+rDur+1);o3.stop(now+rDur+1);
+  setTimeout(()=>{try{g.disconnect()}catch(e){}},(rDur+2)*1000)}
+
+// === SINGING BOWLS — bright, high, with golden ratio beating ===
+function initBowls(){if(!ac)return;const now=ac.currentTime;
+  const configs=[
+    [BASE*3,    .30, .018],  // 408 Hz — bright
+    [BASE*4,    .22, .014],  // 544 Hz
+    [BASE*5,    .35, .010],  // 680 Hz
+    [BASE*6,    .28, .007],  // 817 Hz
+    [BASE*4*PHI,.18, .005],  // golden ratio tone ~880 Hz
+  ];
+  configs.forEach(([freq,detune,amp])=>{
+    const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=freq;
+    const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq+detune;
+    const g=ac.createGain();g.gain.value=amp;
+    o1.connect(g);o2.connect(g);g.connect(bowlG);
+    o1.start(now);o2.start(now)})}
+
+// === SOLAR SHIMMER — high crystalline harmonics, sparkle texture ===
+let shimTimer=0;
+function playShimmer(){if(!ac)return;const now=ac.currentTime;
+  const base=PENT_FREQS[5+floor(random()*8)]; // mid-high range
+  const dur=3+random()*5;
+  const g=ac.createGain();g.connect(shimG);
+  // Pair of detuned high sines
+  const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=base*2;
+  const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=base*2*1.003;
+  const mg=ac.createGain();mg.gain.value=.3;o1.connect(mg);o2.connect(mg);mg.connect(g);
+  // Golden partial
+  const o3=ac.createOscillator();o3.type='sine';o3.frequency.value=base*PHI;
+  const g3=ac.createGain();g3.gain.value=.1;o3.connect(g3);g3.connect(g);
+  g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.04,now+.6+random()*.4);
+  g.gain.setTargetAtTime(.001,now+dur*.4,dur*.3);
+  [o1,o2,o3].forEach(o=>{o.start(now);o.stop(now+dur*2)});
+  setTimeout(()=>{try{g.disconnect()}catch(e){}},(dur*2+1)*1000)}
+
+// === CHIME — crystalline bell at breath peaks ===
+function playChime(){if(!ac)return;const now=ac.currentTime;
+  const freqs=[BASE*4,BASE*5,BASE*6,BASE*4*PHI,BASE*3*PHI];
+  const f=freqs[floor(random()*freqs.length)];const dur=5+random()*4;
+  const g=ac.createGain();g.connect(bowlG);
+  const o1=ac.createOscillator();o1.type='sine';o1.frequency.value=f;
+  const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=f*2;
+  const o3=ac.createOscillator();o3.type='sine';o3.frequency.value=f*PHI;
+  const g1=ac.createGain();g1.gain.value=.35;const g2=ac.createGain();g2.gain.value=.10;const g3=ac.createGain();g3.gain.value=.06;
+  o1.connect(g1);g1.connect(g);o2.connect(g2);g2.connect(g);o3.connect(g3);g3.connect(g);
+  g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.04,now+.7);g.gain.setTargetAtTime(.001,now+dur*.35,dur*.28);
+  [o1,o2,o3].forEach(o=>{o.start(now);o.stop(now+dur*2)});
+  setTimeout(()=>{try{g.disconnect()}catch(e){}},(dur*2+1)*1000)}
+
+// === WHALE — responds to alarm ruptures ===
+function playWhaleResponse(alarmFreq,isMajor){if(!ac)return;const now=ac.currentTime;
+  const delay=isMajor?1.2:0.8;const st=now+delay;
+  const dur=isMajor?8+random()*5:5+random()*3;
+  const nV=isMajor?3:2;
+  for(let v=0;v<nV;v++){
+    const vD=v*1.5+random()*.8;const vt=st+vD;
+    const g=ac.createGain();g.connect(resolveG);
+    const car=ac.createOscillator();car.type='sine';
+    const sf=alarmFreq*(.3+random()*.15)/(v+1);
+    const ef=max(20,BASE*(.5+random()*.3)/(v+1));
+    car.frequency.setValueAtTime(sf,vt);car.frequency.exponentialRampToValueAtTime(ef,vt+dur*.7);
+    const mod=ac.createOscillator();mod.type='sine';mod.frequency.value=2.5+random()*3;
+    const mG=ac.createGain();mG.gain.value=sf*.01;mod.connect(mG);mG.connect(car.frequency);
+    const h2=ac.createOscillator();h2.type='sine';h2.frequency.setValueAtTime(sf*2,vt);
+    h2.frequency.exponentialRampToValueAtTime(max(40,ef*2),vt+dur*.7);
+    const h2g=ac.createGain();h2g.gain.value=.08;
+    const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=600+sf;lp.Q.value=.4;
+    car.connect(lp);h2.connect(h2g);h2g.connect(lp);lp.connect(g);
+    const amp=resolveVol*(isMajor?.08:.04)/(v+1);
+    g.gain.setValueAtTime(0,vt);g.gain.linearRampToValueAtTime(amp,vt+1.5+random());
+    g.gain.setTargetAtTime(.001,vt+dur*.55,dur*.3);
+    car.start(vt);mod.start(vt);h2.start(vt);
+    car.stop(vt+dur*2);mod.stop(vt+dur*2);h2.stop(vt+dur*2);
+    setTimeout(()=>{try{g.disconnect()}catch(e){}},(delay+vD+dur*2+2)*1000)}}
+
+// === HOSPITAL WARD ===
+let wardNodes=[];
+function initWard(){if(!ac)return;const now=ac.currentTime;
+  const hvac=ac.createOscillator();hvac.type='sine';hvac.frequency.value=60;
+  const hg=ac.createGain();hg.gain.value=.15;hvac.connect(hg);hg.connect(wardG);
+  const hvac2=ac.createOscillator();hvac2.type='sine';hvac2.frequency.value=120;
+  const h2g=ac.createGain();h2g.gain.value=.07;hvac2.connect(h2g);h2g.connect(wardG);
+  const eq=ac.createOscillator();eq.type='sine';eq.frequency.value=92;
+  const eqg=ac.createGain();eqg.gain.value=.04;eq.connect(eqg);eqg.connect(wardG);
+  const ns=ac.createBufferSource();ns.buffer=nB;ns.loop=true;
+  const nlp=ac.createBiquadFilter();nlp.type='lowpass';nlp.frequency.value=500;nlp.Q.value=.3;
+  const ng=ac.createGain();ng.gain.value=.05;ns.connect(nlp);nlp.connect(ng);ng.connect(wardG);
+  const beep=ac.createOscillator();beep.type='sine';beep.frequency.value=800;
+  const bg=ac.createGain();bg.gain.value=0;beep.connect(bg);bg.connect(wardG);
+  [hvac,hvac2,eq,beep].forEach(o=>o.start(now));ns.start(now);
+  wardNodes=[hvac,hvac2,eq,beep,ns];
+  (function sb(){const n=ac.currentTime;
+    for(let i=0;i<120;i++){const t=n+i*1.05+random()*.1;
+      bg.gain.setValueAtTime(0,t);bg.gain.linearRampToValueAtTime(.08,t+.005);
+      bg.gain.setValueAtTime(.08,t+.06);bg.gain.linearRampToValueAtTime(0,t+.08)}
+    setTimeout(sb,110000)})();
+  scheduleAlarms()}
+
+let alarmTimeout=null;
+function scheduleAlarms(){if(!wardOn||!ac)return;
+  const delay=(8+random()*22)*1000;
+  alarmTimeout=setTimeout(()=>{if(!wardOn)return;fireAlarm();scheduleAlarms()},delay)}
+
+function fireAlarm(){if(!ac||!wardOn)return;
+  const now=ac.currentTime;
+  const isMajor=random()>.55;
+  const freq=isMajor?[440,523,660,880][floor(random()*4)]:[1000,1200,1500][floor(random()*3)];
+  const dur=isMajor?2.5+random()*3.5:1+random()*1.5;
+  const amp=isMajor?.14:.07;
+  const ao=ac.createOscillator();ao.type=isMajor?'square':'sine';ao.frequency.value=freq;
+  if(isMajor){for(let k=0;k<dur*3;k++)ao.frequency.setValueAtTime(k%2?freq:freq*1.5,now+k*.33)}
+  const ag=ac.createGain();
+  ag.gain.setValueAtTime(0,now);ag.gain.linearRampToValueAtTime(amp,now+.015);
+  ag.gain.setValueAtTime(amp,now+dur-.06);ag.gain.linearRampToValueAtTime(0,now+dur);
+  ao.connect(ag);ag.connect(wardG);ao.start(now);ao.stop(now+dur+.1);
+  // Rupture flash
+  const ring=document.getElementById('ruptureRing');ring.className='rupture-ring flash';
+  // Harmonic counter-action
+  const ct=now+.15;const cDur=isMajor?5:3;
+  const justF=[BASE,BASE*9/8,BASE*5/4,BASE*4/3,BASE*3/2,BASE*5/3,BASE*2,BASE*3,BASE*4,BASE*5,BASE*6];
+  const target=justF.reduce((b,f)=>abs(f-freq*2/3)<abs(b-freq*2/3)?f:b);
+  const c1=ac.createOscillator();c1.type='sine';
+  c1.frequency.setValueAtTime(freq*.8,ct);c1.frequency.linearRampToValueAtTime(freq*.8,ct+.2);
+  c1.frequency.exponentialRampToValueAtTime(target,ct+.7);
+  const c2=ac.createOscillator();c2.type='sine';c2.frequency.setValueAtTime(target*3/2,ct+.3);
+  const c3=ac.createOscillator();c3.type='sine';c3.frequency.setValueAtTime(target*PHI,ct+.5);
+  const c4=ac.createOscillator();c4.type='sine';c4.frequency.setValueAtTime(target/2,ct+.4);
+  const cAmp=resolveVol*(isMajor?.10:.05);
+  const cLP=ac.createBiquadFilter();cLP.type='lowpass';cLP.frequency.value=2200;cLP.Q.value=.4;
+  cLP.connect(resolveG);
+  [[c1,cAmp,.08,1,cDur],[c2,cAmp*.5,.3,.7,cDur],[c3,cAmp*.2,.5,.5,cDur*.7],[c4,cAmp*.35,.4,.8,cDur]].forEach(([osc,a,attack,peak,end])=>{
+    const g=ac.createGain();g.gain.setValueAtTime(0,ct);g.gain.linearRampToValueAtTime(a,ct+attack);
+    g.gain.setValueAtTime(a*peak,ct+attack+.5);g.gain.exponentialRampToValueAtTime(.001,ct+end);
+    osc.connect(g);g.connect(cLP);osc.start(ct);osc.stop(ct+end+.2)});
+  setTimeout(()=>{ring.className='rupture-ring resolve';setTimeout(()=>{ring.className='rupture-ring'},2500)},400);
+  playWhaleResponse(freq,isMajor);
+  setTimeout(()=>{try{ag.disconnect();cLP.disconnect()}catch(e){}},(cDur+dur+3)*1000)}
+
+// === PLAYBACK ===
+function togglePlay(){initAudio();if(ac.state==='suspended')ac.resume();
+  if(playing){playing=false;if(af)cancelAnimationFrame(af);
+    document.getElementById('btn-play').classList.remove('on');
+    document.getElementById('btn-play').textContent='begin';return}
+  playing=true;t0=ac.currentTime;
+  document.getElementById('btn-play').classList.add('on');
+  document.getElementById('btn-play').textContent='pause';
+  initDrone();initOcean();initBowls();
+  arpGap=2+random()*3;arpTimer=0;arpPattern=0;arpNote=0;arpActive=false;
+  shimTimer=4+random()*3;chimeTimer=BREATH*.38;
+  runLoop()}
+
+function toggleWard(){wardOn=!wardOn;
+  document.getElementById('btn-ward').classList.toggle('on',wardOn);
+  if(wardOn){if(!ac)return;initWard();
+    const t=ac.currentTime;wardG.gain.cancelScheduledValues(t);wardG.gain.setValueAtTime(0,t);
+    wardG.gain.linearRampToValueAtTime(wardVol*.25,t+3)}
+  else{if(wardG){const t=ac.currentTime;wardG.gain.cancelScheduledValues(t);
+    wardG.gain.linearRampToValueAtTime(0,t+2)}if(alarmTimeout)clearTimeout(alarmTimeout)}}
+
+function setVol(v){vol=v/100;document.getElementById('sv-vol').textContent=v;
+  if(droneG)droneG.gain.value=.10*vol;if(arpG)arpG.gain.value=.22*vol;
+  if(bowlG)bowlG.gain.value=.12*vol;if(oceanG)oceanG.gain.value=.18*vol;if(shimG)shimG.gain.value=.08*vol}
+function setWard(v){wardVol=v/100;document.getElementById('sv-ward').textContent=v;
+  if(wardG&&wardOn){const t=ac.currentTime;wardG.gain.cancelScheduledValues(t);wardG.gain.linearRampToValueAtTime(wardVol*.25,t+.5)}}
+function setLight(v){lightC=v/100;document.getElementById('sv-light').textContent=v}
+function setResolve(v){resolveVol=v/100;document.getElementById('sv-resolve').textContent=v;
+  if(resolveG)resolveG.gain.value=.22*resolveVol}
+
+// === MAIN LOOP ===
+let chimeTimer=0;
+function runLoop(){if(!playing)return;
+  const now=ac.currentTime;const elapsed=now-t0;const dt=1/60;
+  
+  // Arpeggio sequencing — patterns emerge at breath rate
+  arpTimer-=dt;
+  if(!arpActive){arpGap-=dt;if(arpGap<=0){arpActive=true;arpNote=0;arpTimer=0}}
+  if(arpActive&&arpTimer<=0){
+    const pat=PATTERNS[arpPattern%PATTERNS.length];
+    if(arpNote<pat.length){
+      const idx=min(pat[arpNote],PENT_FREQS.length-1);
+      const freq=PENT_FREQS[idx];
+      const noteDur=.8+random()*.6; // rhythmic but gentle
+      playArpNote(freq,noteDur);
+      arpTimer=noteDur*(.6+random()*.2); // overlap for legato
+      arpNote++;
+    }else{arpActive=false;arpPattern++;arpGap=BREATH*(.4+random()*.4);arpNote=0}}
+  
+  // Chimes at breath peaks
+  chimeTimer-=dt;
+  if(chimeTimer<=0){playChime();chimeTimer=BREATH*(.85+random()*.35)}
+  
+  // Solar shimmer
+  shimTimer-=dt;
+  if(shimTimer<=0){playShimmer();shimTimer=3+random()*5}
+  
+  updateOrb(elapsed);
+  drawWave();
+  drawOcean(elapsed);
+  updateStatus(elapsed);
+  af=requestAnimationFrame(runLoop)}
+
+// === VISUALS ===
+function updateOrb(elapsed){
+  const phase=(elapsed%BREATH)/BREATH;
+  const bv=phase<.4?.5*(1-cos(PI*phase/.4)):.5*(1+cos(PI*(phase-.4)/.6));
+  const lv=.5*(1+cos(TAU*elapsed/LIMBIC));
+  const cv_=.5*(1+cos(TAU*elapsed/CORTICAL));
+  const env=(.2+.8*bv)*(.6+.4*lv)*(.7+.3*cv_);
+  
+  const bw=document.getElementById('breath-word');
+  if(phase<.38){bw.textContent='inhale';bw.className='in'}
+  else if(phase<.42){bw.textContent='·';bw.className=''}
+  else{bw.textContent='exhale';bw.className='out'}
+  
+  const brightness=.45+.55*env*lightC;
+  const warmth=1-bv;
+  // Full-spectrum daylight: 5778K blackbody
+  // SAD therapy: 10,000 lux — the orb should feel like staring at a bright window
+  const r=round(250+5*warmth);
+  const g=round(235+18*bv);
+  const b=round(200+50*bv);
+  // High alpha — this is a light source, not an ornament
+  const a=.35+.60*brightness,oa=.12+.35*brightness;
+  
+  const orb=document.getElementById('orb');
+  orb.style.background=`radial-gradient(circle at 46% 40%,`+
+    `rgba(255,255,250,${a}) 0%,`+                // blazing white core
+    `rgba(255,252,242,${a*.85}) 15%,`+            // near-white inner corona
+    `rgba(${r},${g},${b},${a*.6}) 35%,`+         // warm daylight
+    `rgba(${r},${g+10},${b+15},${oa*1.2}) 55%,`+ // halo
+    `rgba(${round(r*.8)},${round(g*.85)},${round(b*.9)},${oa*.3}) 75%,`+
+    `transparent 92%)`;
+  orb.style.boxShadow=
+    `0 0 ${80+80*brightness}px rgba(255,252,245,${oa*1.8}),`+
+    `0 0 ${160+120*brightness}px rgba(${r},${g},${b},${oa*1.2}),`+
+    `0 0 ${280+150*brightness}px rgba(${r},${g+10},${b+20},${oa*.5}),`+
+    `0 0 ${400+200*brightness}px rgba(255,248,235,${oa*.15})`;
+  
+  document.getElementById('ring1').style.borderColor=`rgba(255,250,240,${.06+.12*bv})`;
+  document.getElementById('ring2').style.borderColor=`rgba(${r},${g},${b},${.04+.08*lv})`;
+  document.getElementById('ring3').style.borderColor=`rgba(${r},${g},${b},${.03+.06*cv_})`;
+  
+  // Room-filling daylight wash — the whole screen glows
+  document.getElementById('ambient').querySelector('.g1').style.background=
+    `radial-gradient(ellipse at 50% 35%,rgba(255,252,245,${.12*brightness}) 0%,rgba(${r},${g},${b},${.05*brightness}) 35%,rgba(${r},${g},${b},${.015*brightness}) 55%,transparent 75%)`;
+  document.getElementById('ambient').querySelector('.g2').style.background=
+    `radial-gradient(ellipse at 40% 50%,rgba(${round(220+30*bv)},${round(235+18*bv)},${round(245+10*bv)},${.04*brightness}) 0%,rgba(${round(200+40*bv)},${round(225+25*bv)},${round(240+15*bv)},${.015*brightness}) 30%,transparent 55%)`}
+
+function drawWave(){
+  if(!an)return;const cv=document.getElementById('wave-canvas');const c=cv.getContext('2d');
+  const w=cv.width=cv.clientWidth*2,h=cv.height=cv.clientHeight*2;c.clearRect(0,0,w,h);
+  const buf=new Uint8Array(an.frequencyBinCount);an.getByteTimeDomainData(buf);
+  const step=buf.length/w;
+  // Golden gradient stroke
+  const grad=c.createLinearGradient(0,0,w,0);
+  grad.addColorStop(0,'rgba(240,184,72,0.15)');grad.addColorStop(.5,'rgba(255,220,140,0.25)');grad.addColorStop(1,'rgba(88,184,232,0.15)');
+  c.strokeStyle=grad;c.lineWidth=1.2;c.beginPath();
+  for(let x=0;x<w;x++){const v=buf[floor(x*step)]/128;const y=v*h/2;x===0?c.moveTo(x,y):c.lineTo(x,y)}
+  c.stroke()}
+
+function drawOcean(elapsed){
+  const cv=document.getElementById('ocean-canvas');const c=cv.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.width=cv.clientWidth*dpr,h=cv.height=cv.clientHeight*dpr;
+  c.clearRect(0,0,w,h);
+  
+  const phase=(elapsed%BREATH)/BREATH;
+  const bv=phase<.4?.5*(1-cos(PI*phase/.4)):.5*(1+cos(PI*(phase-.4)/.6));
+  
+  // Multiple wave layers
+  const layers=[
+    {speed:.015,amp:.25,freq:2.5,col:'rgba(40,80,120,0.14)',y:.3},
+    {speed:.025,amp:.18,freq:3.2,col:'rgba(55,110,150,0.10)',y:.45},
+    {speed:.04, amp:.12,freq:4.5,col:'rgba(70,130,170,0.06)',y:.6},
+  ];
+  
+  layers.forEach(l=>{
+    const baseY=h*l.y+h*.1*bv; // waves breathe with CRR
+    c.fillStyle=l.col;c.beginPath();c.moveTo(0,h);
+    for(let x=0;x<=w;x+=2){
+      const wx=x/w*l.freq*TAU;
+      const y=baseY+sin(wx+elapsed*l.speed*TAU)*h*l.amp
+              +sin(wx*1.7+elapsed*l.speed*1.3*TAU)*h*l.amp*.4
+              +sin(wx*.6+elapsed*l.speed*.7*TAU)*h*l.amp*.3;
+      c.lineTo(x,y)}
+    c.lineTo(w,h);c.closePath();c.fill()});
+  
+  // Foam and sun-sparkle on wave crests
+  c.fillStyle='rgba(255,248,230,0.025)';
+  for(let i=0;i<8;i++){
+    const x=((elapsed*.03+i*.13)%1)*w;
+    const y=h*.3+sin(elapsed*.3+i*2.3)*h*.15;
+    const sz=6+sin(elapsed*.5+i)*4;
+    c.beginPath();c.arc(x,y,sz,0,TAU);c.fill()}
+  // Sun glint — bright specular highlights
+  c.fillStyle='rgba(255,252,240,0.04)';
+  for(let i=0;i<3;i++){
+    const x=((elapsed*.02+i*.37+.1)%1)*w;
+    const y=h*.25+sin(elapsed*.25+i*3.1)*h*.12;
+    c.beginPath();c.arc(x,y,3+sin(elapsed*.8+i)*2,0,TAU);c.fill()}}
+
+function updateStatus(t){
+  const bc=floor(t/BREATH);const phase=((t%BREATH)/BREATH*100)|0;
+  document.getElementById('status').innerHTML=
+    `breath ${bc} · phase ${phase}% · π²=${BREATH.toFixed(2)}s · solar π⁵=${SOLAR.toFixed(0)}s · base ${BASE}Hz · Ω=1/π`}
+
+// === SPLASH ===
+document.getElementById('splash').addEventListener('click',()=>{
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  setTimeout(()=>{document.getElementById('splash').style.display='none'},3500)});
+</script>
+</body>
+</html>
