@@ -3,100 +3,176 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRR Family — Living Systems from First Principles</title>
+<title>CRR Family v2 — From Homunculus to Human</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400&display=swap');
+
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#07070c;overflow:hidden;font-family:'Palatino Linotype','Book Antiqua',Palatino,serif;color:#c8b89a}
+body{background:#06060a;overflow:hidden;font-family:'Cormorant Garamond',serif;color:#c8b89a}
 canvas{display:block;position:fixed;top:0;left:0}
 
-#hud{position:fixed;top:16px;left:16px;z-index:10;display:flex;flex-direction:column;gap:8px;
-  pointer-events:none;max-width:320px}
-.agent-card{background:rgba(7,7,12,0.92);border:1px solid rgba(200,184,154,0.12);border-radius:8px;
-  padding:14px 16px;backdrop-filter:blur(10px);pointer-events:auto;cursor:pointer;
-  transition:border-color 0.3s,max-height 0.4s ease;max-height:56px;overflow:hidden}
-.agent-card.selected{border-color:rgba(212,165,116,0.5);max-height:400px}
-.agent-card .name{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#e8d5b5;
-  display:flex;justify-content:space-between;align-items:center}
-.agent-card .name .role{font-size:9px;color:#a89880;letter-spacing:1px}
-.agent-card .detail{margin-top:10px;border-top:1px solid rgba(200,184,154,0.08);padding-top:10px}
-.agent-card .row{display:flex;justify-content:space-between;font-size:10px;padding:2px 0}
-.agent-card .row .label{color:#a89880}
-.agent-card .row .val{color:#d4c4a8;font-family:'Courier New',monospace;font-size:10px}
-.agent-card .bar-bg{height:3px;background:rgba(200,184,154,0.1);border-radius:2px;margin:3px 0}
-.agent-card .bar{height:100%;border-radius:2px;transition:width 0.3s}
-.agent-card .brain{margin-top:8px}
-.agent-card .brain canvas{width:100%;height:40px;border-radius:4px;
-  background:rgba(0,0,0,0.3);display:block}
-.agent-card .state{font-size:10px;color:#d4a574;margin-top:6px;font-style:italic;
-  letter-spacing:0.3px}
-.agent-card .thought{font-size:10px;color:#c8b89a;margin-top:4px;opacity:0.7}
+/* ── HUD ── */
+#hud{position:fixed;top:14px;left:14px;z-index:10;display:flex;flex-direction:column;gap:6px;
+  pointer-events:none;max-width:340px}
 
-#env-info{position:fixed;bottom:16px;left:16px;right:16px;z-index:10;
-  background:rgba(7,7,12,0.88);border:1px solid rgba(200,184,154,0.1);border-radius:8px;
-  padding:14px 18px;backdrop-filter:blur(10px);display:flex;gap:20px;align-items:center}
-#env-info .title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#a89880;
-  white-space:nowrap}
-#env-info .stats{display:flex;gap:16px;flex-wrap:wrap}
-#env-info .stat{font-size:10px;color:#d4c4a8;white-space:nowrap}
-#env-info .stat span{font-family:'Courier New',monospace;color:#d4a574}
+.agent-card{
+  background:rgba(6,6,10,0.94);
+  border:1px solid rgba(200,184,154,0.08);
+  border-radius:10px;
+  padding:12px 14px;
+  backdrop-filter:blur(12px);
+  pointer-events:auto;
+  cursor:pointer;
+  transition:border-color 0.4s,max-height 0.5s cubic-bezier(0.4,0,0.2,1);
+  max-height:48px;overflow:hidden;
+}
+.agent-card.selected{border-color:rgba(212,165,116,0.4);max-height:600px}
+.agent-card .name{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#e8d5b5;
+  display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.agent-card .role{font-size:9px;color:#8a7e6e;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace}
+.agent-card .detail{margin-top:10px;border-top:1px solid rgba(200,184,154,0.06);padding-top:10px}
+.agent-card .row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0}
+.agent-card .label{color:#8a7e6e;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.5px}
+.agent-card .val{color:#d4c4a8;font-family:'JetBrains Mono',monospace;font-size:10px}
+.agent-card .bar-bg{height:2px;background:rgba(200,184,154,0.08);border-radius:2px;margin:2px 0 4px}
+.agent-card .bar{height:100%;border-radius:2px;transition:width 0.4s}
+.agent-card .section-label{font-size:9px;color:#6a5e4e;letter-spacing:1.5px;text-transform:uppercase;
+  margin-top:8px;padding-bottom:4px;border-bottom:1px solid rgba(200,184,154,0.04)}
+.agent-card .brain{margin-top:6px}
+.agent-card .brain canvas{width:100%;height:36px;border-radius:4px;background:rgba(0,0,0,0.3);display:block}
+.agent-card .state{font-size:11px;color:#d4a574;margin-top:6px;font-style:italic;letter-spacing:0.3px}
+.agent-card .thought{font-size:10px;color:#c8b89a;margin-top:3px;opacity:0.6}
+.agent-card .morph-indicator{display:flex;gap:3px;margin-top:6px;align-items:center}
+.agent-card .morph-dot{width:6px;height:6px;border-radius:50%;transition:background 0.3s}
 
-#controls{position:fixed;top:16px;right:16px;z-index:10;display:flex;gap:6px;flex-direction:column}
-.ctrl{background:rgba(7,7,12,0.88);border:1px solid rgba(200,184,154,0.15);border-radius:6px;
-  color:#a89880;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:8px 12px;
-  cursor:pointer;font-family:inherit;transition:all 0.3s;text-align:left}
-.ctrl:hover{color:#e8d5b5;border-color:rgba(200,184,154,0.35)}
-.ctrl.active{color:#d4a574;border-color:rgba(212,165,116,0.4)}
-.ctrl kbd{font-family:'Courier New',monospace;opacity:0.5;float:right;margin-left:8px}
+/* ── Bottom Panel ── */
+#bottom-panel{position:fixed;bottom:0;left:0;right:0;z-index:10;
+  background:rgba(6,6,10,0.92);border-top:1px solid rgba(200,184,154,0.06);
+  padding:12px 18px;backdrop-filter:blur(12px);display:flex;gap:24px;align-items:center}
+#bottom-panel .title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#6a5e4e;
+  white-space:nowrap;font-weight:600}
+#bottom-panel .stats{display:flex;gap:16px;flex-wrap:wrap;flex:1}
+#bottom-panel .stat{font-size:10px;color:#a89880;white-space:nowrap}
+#bottom-panel .stat span{font-family:'JetBrains Mono',monospace;color:#d4a574}
+
+/* ── Dev Timeline ── */
+#dev-timeline{display:flex;align-items:center;gap:8px}
+#dev-timeline label{font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:#6a5e4e;
+  font-family:'JetBrains Mono',monospace}
+#dev-slider{-webkit-appearance:none;width:120px;height:2px;background:rgba(200,184,154,0.15);
+  border-radius:2px;outline:none}
+#dev-slider::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;
+  background:#d4a574;cursor:pointer}
+
+/* ── Controls ── */
+#controls{position:fixed;top:14px;right:14px;z-index:10;display:flex;gap:5px;flex-direction:column}
+.ctrl{background:rgba(6,6,10,0.92);border:1px solid rgba(200,184,154,0.1);border-radius:6px;
+  color:#8a7e6e;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;padding:7px 11px;
+  cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all 0.3s;text-align:left}
+.ctrl:hover{color:#e8d5b5;border-color:rgba(200,184,154,0.3)}
+.ctrl.active{color:#d4a574;border-color:rgba(212,165,116,0.35)}
+.ctrl kbd{opacity:0.4;float:right;margin-left:8px}
+
+/* ── Cortical Map Overlay ── */
+#cortical-overlay{position:fixed;top:50%;right:16px;transform:translateY(-50%);z-index:10;
+  pointer-events:none;opacity:0;transition:opacity 0.5s}
+#cortical-overlay.visible{opacity:1}
+#cortical-overlay canvas{border-radius:8px;background:rgba(6,6,10,0.85);
+  border:1px solid rgba(200,184,154,0.08)}
 </style>
 </head>
 <body>
 
 <div id="hud"></div>
 
-<div id="env-info">
-  <div class="title">CRR World</div>
+<div id="bottom-panel">
+  <div class="title">CRR Genesis</div>
   <div class="stats" id="world-stats"></div>
+  <div id="dev-timeline">
+    <label>Dev Speed</label>
+    <input type="range" id="dev-slider" min="0" max="5" step="0.1" value="1">
+  </div>
 </div>
 
 <div id="controls">
-  <button class="ctrl active" onclick="toggleCam('follow')" id="btn-follow">Follow Agent <kbd>1-4</kbd></button>
+  <button class="ctrl active" onclick="toggleCam('follow')" id="btn-follow">Follow <kbd>1-5</kbd></button>
   <button class="ctrl" onclick="toggleCam('overview')" id="btn-overview">Overview <kbd>O</kbd></button>
-  <button class="ctrl" onclick="toggleSpeed()" id="btn-speed">Speed: 1× <kbd>S</kbd></button>
-  <button class="ctrl" onclick="toggleBrainViz()" id="btn-brain">Brain Waves <kbd>B</kbd></button>
-  <button class="ctrl" onclick="toggleOmegaField()" id="btn-omega">Ω Field <kbd>F</kbd></button>
+  <button class="ctrl" onclick="toggleSpeed()" id="btn-speed">Speed 1× <kbd>S</kbd></button>
+  <button class="ctrl" onclick="toggleBrain()" id="btn-brain">Brain <kbd>B</kbd></button>
+  <button class="ctrl" onclick="toggleOmega()" id="btn-omega">Ω Field <kbd>F</kbd></button>
+  <button class="ctrl" onclick="toggleCortical()" id="btn-cortical">Cortical Map <kbd>C</kbd></button>
+  <button class="ctrl" onclick="toggleHomunculus()" id="btn-homunculus">Show Internal Model <kbd>H</kbd></button>
 </div>
+
+<div id="cortical-overlay"><canvas id="cortical-canvas" width="180" height="320"></canvas></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════════════
-// CRR CONSTANTS — THE UNIVERSAL GRAMMAR
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  CRR CONSTANTS — THE UNIVERSAL GRAMMAR
+// ═══════════════════════════════════════════════════════════════════════
 
 const π = Math.PI;
 const φ = (1 + Math.sqrt(5)) / 2;
 const Ω_Z2 = 1 / π;
-const f0 = 1 / (π * π); // breath frequency
+const Ω_SO2 = 1 / (2 * π);
+const f0 = 1 / (π * π);
 
-const BRAIN_LEVELS = [
-  { name: 'Breath',  freq: f0,          color: '#8b4513' },
-  { name: 'Infra',   freq: f0*π,        color: '#a0522d' },
-  { name: 'Delta',   freq: f0*π**2,     color: '#cd853f' },
-  { name: 'Theta',   freq: f0*π**3,     color: '#daa520' },
-  { name: 'Alpha',   freq: f0*π**4,     color: '#d4a574' },
-  { name: 'Beta',    freq: f0*π**5,     color: '#e8c89a' },
-  { name: 'Gamma',   freq: f0*π**6,     color: '#f0e0c8' },
+const BRAIN = [
+  { name:'Breath', freq: f0,       color:'#6b3a1a', idx:0 },
+  { name:'Infra',  freq: f0*π,     color:'#8b4a2a', idx:1 },
+  { name:'Delta',  freq: f0*π**2,  color:'#ab6a3a', idx:2 },
+  { name:'Theta',  freq: f0*π**3,  color:'#cb8a4a', idx:3 },
+  { name:'Alpha',  freq: f0*π**4,  color:'#d4a574', idx:4 },
+  { name:'Beta',   freq: f0*π**5,  color:'#e0c090', idx:5 },
+  { name:'Gamma',  freq: f0*π**6,  color:'#f0ddb8', idx:6 },
 ];
 
-// ═══════════════════════════════════════════════════════════════
-// THREE.JS SCENE
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  CORTICAL BODY MAP — THE INSIDE-OUT DERIVATION
+// ═══════════════════════════════════════════════════════════════════════
+
+const CORTICAL_MAP = {
+  head:        { cortical: 1.6,  anatomical: 1.0 },
+  face:        { cortical: 2.2,  anatomical: 1.0 },
+  lips:        { cortical: 3.0,  anatomical: 1.0 },
+  eyes:        { cortical: 1.8,  anatomical: 1.0 },
+  neck:        { cortical: 0.5,  anatomical: 1.0 },
+  torso:       { cortical: 0.35, anatomical: 1.0 },
+  chest:       { cortical: 0.4,  anatomical: 1.0 },
+  pelvis:      { cortical: 0.5,  anatomical: 1.0 },
+  shoulderL:   { cortical: 0.6,  anatomical: 1.0 },
+  shoulderR:   { cortical: 0.6,  anatomical: 1.0 },
+  upperArmL:   { cortical: 0.55, anatomical: 1.0 },
+  upperArmR:   { cortical: 0.55, anatomical: 1.0 },
+  forearmL:    { cortical: 0.6,  anatomical: 1.0 },
+  forearmR:    { cortical: 0.6,  anatomical: 1.0 },
+  handL:       { cortical: 3.2,  anatomical: 1.0 },
+  handR:       { cortical: 3.5,  anatomical: 1.0 },
+  thighL:      { cortical: 0.4,  anatomical: 1.0 },
+  thighR:      { cortical: 0.4,  anatomical: 1.0 },
+  shinL:       { cortical: 0.35, anatomical: 1.0 },
+  shinR:       { cortical: 0.35, anatomical: 1.0 },
+  footL:       { cortical: 1.4,  anatomical: 1.0 },
+  footR:       { cortical: 1.4,  anatomical: 1.0 },
+};
+
+function morphBlend(cortical, anatomical, development, mirrorCalibration) {
+  const effectiveDev = Math.min(1, development * (0.6 + 0.4 * mirrorCalibration));
+  const blend = 1 - Math.exp(-effectiveDev * 3.0);
+  return cortical * (1 - blend) + anatomical * blend;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  THREE.JS SCENE
+// ═══════════════════════════════════════════════════════════════════════
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x07070c, 0.04);
-scene.background = new THREE.Color(0x07070c);
+scene.fog = new THREE.FogExp2(0x06060a, 0.032);
+scene.background = new THREE.Color(0x06060a);
 
-const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 200);
-camera.position.set(0, 8, 16);
+const camera = new THREE.PerspectiveCamera(48, innerWidth/innerHeight, 0.1, 250);
+camera.position.set(0, 8, 18);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
@@ -104,141 +180,127 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.0;
 document.body.appendChild(renderer.domElement);
 
-// Lighting
-scene.add(new THREE.AmbientLight(0x8b7355, 0.5));
-const sun = new THREE.DirectionalLight(0xffeedd, 0.9);
-sun.position.set(8, 15, 10);
+const ambient = new THREE.AmbientLight(0x7a6a55, 0.45);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xffeedd, 0.85);
+sun.position.set(10, 18, 8);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 50;
-sun.shadow.camera.left = -20; sun.shadow.camera.right = 20;
-sun.shadow.camera.top = 20; sun.shadow.camera.bottom = -20;
+sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 60;
+sun.shadow.camera.left = -25; sun.shadow.camera.right = 25;
+sun.shadow.camera.top = 25; sun.shadow.camera.bottom = -25;
 scene.add(sun);
 
-const fill = new THREE.DirectionalLight(0x9ab4cc, 0.3);
-fill.position.set(-5, 8, -3);
+const fill = new THREE.DirectionalLight(0x8aa4bb, 0.25);
+fill.position.set(-6, 10, -5);
 scene.add(fill);
 
-// ═══════════════════════════════════════════════════════════════
-// ENVIRONMENT — THE WORLD
-// ═══════════════════════════════════════════════════════════════
+const rim = new THREE.DirectionalLight(0xd4a574, 0.15);
+rim.position.set(0, 5, -15);
+scene.add(rim);
 
-// Ground
-const groundGeo = new THREE.PlaneGeometry(60, 60, 30, 30);
-const groundMat = new THREE.MeshStandardMaterial({ color: 0x1a1a0e, roughness: 0.95 });
+// ═══════════════════════════════════════════════════════════════════════
+//  ENVIRONMENT
+// ═══════════════════════════════════════════════════════════════════════
+
+const groundGeo = new THREE.PlaneGeometry(80, 80, 40, 40);
+const posArr = groundGeo.attributes.position.array;
+for(let i = 0; i < posArr.length; i += 3) {
+  posArr[i+2] += (Math.random() - 0.5) * 0.06;
+}
+groundGeo.computeVertexNormals();
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x151510, roughness: 0.95 });
 const ground = new THREE.Mesh(groundGeo, groundMat);
 ground.rotation.x = -π/2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Subtle grid
-const grid = new THREE.GridHelper(60, 60, 0x1f1f15, 0x12120d);
-grid.position.y = 0.01;
+const grid = new THREE.GridHelper(80, 80, 0x1a1a12, 0x0e0e0a);
+grid.position.y = 0.005;
 scene.add(grid);
 
-// World objects that agents can interact with
 const worldObjects = [];
 
-function createWorldObject(type, x, z, data = {}) {
+function createWorldObj(type, x, z, data = {}) {
   const obj = { type, x, z, data, mesh: null, active: true, cooldown: 0 };
-  
-  const mats = {
-    food:    new THREE.MeshStandardMaterial({ color: 0xcc6633, roughness: 0.6 }),
-    water:   new THREE.MeshStandardMaterial({ color: 0x3366aa, roughness: 0.2, metalness: 0.3 }),
-    shelter: new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.8 }),
-    puzzle:  new THREE.MeshStandardMaterial({ color: 0xaa8844, roughness: 0.5, metalness: 0.2 }),
-    toy:     new THREE.MeshStandardMaterial({ color: 0xcc4466, roughness: 0.4 }),
-    tool:    new THREE.MeshStandardMaterial({ color: 0x778899, roughness: 0.3, metalness: 0.6 }),
-    fire:    new THREE.MeshStandardMaterial({ color: 0xff6622, roughness: 0.5, emissive: 0xff4400, emissiveIntensity: 0.3 }),
-  };
-
   const g = new THREE.Group();
   
+  const M = {
+    food:    new THREE.MeshStandardMaterial({ color: 0xbb5530, roughness: 0.6 }),
+    water:   new THREE.MeshStandardMaterial({ color: 0x2a5588, roughness: 0.15, metalness: 0.3 }),
+    shelter: new THREE.MeshStandardMaterial({ color: 0x7a6345, roughness: 0.85 }),
+    puzzle:  new THREE.MeshStandardMaterial({ color: 0x997744, roughness: 0.5, metalness: 0.15 }),
+    toy:     new THREE.MeshStandardMaterial({ color: 0xcc4466, roughness: 0.35 }),
+    tool:    new THREE.MeshStandardMaterial({ color: 0x667788, roughness: 0.3, metalness: 0.5 }),
+    fire:    new THREE.MeshStandardMaterial({ color: 0xff5511, emissive: 0xff3300, emissiveIntensity: 0.4 }),
+    leaf:    new THREE.MeshStandardMaterial({ color: 0x1e4a15, roughness: 0.92 }),
+    mirror:  new THREE.MeshStandardMaterial({ color: 0x99aacc, roughness: 0.05, metalness: 0.85 }),
+  };
+  
   if(type === 'food') {
-    // Berry bush
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.4, 6), mats.shelter);
-    trunk.position.y = 0.2;
-    g.add(trunk);
-    const bush = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 6), 
-      new THREE.MeshStandardMaterial({ color: 0x2d5a1e, roughness: 0.9 }));
-    bush.position.y = 0.55;
-    g.add(bush);
-    for(let i = 0; i < 6; i++) {
-      const berry = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), mats.food);
-      berry.position.set(Math.cos(i*π/3)*0.3, 0.5+Math.random()*0.2, Math.sin(i*π/3)*0.3);
-      g.add(berry);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.07, 0.45, 6), M.shelter);
+    trunk.position.y = 0.22; g.add(trunk);
+    const bush = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), M.leaf);
+    bush.position.y = 0.6; g.add(bush);
+    for(let i = 0; i < 8; i++) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 4), M.food);
+      const a = i * π/4, r = 0.28 + Math.random()*0.1;
+      b.position.set(Math.cos(a)*r, 0.5+Math.random()*0.25, Math.sin(a)*r);
+      g.add(b);
     }
-    obj.need = 'hunger';
-    obj.value = 30;
+    obj.need = 'hunger'; obj.value = 30;
   } else if(type === 'water') {
-    const pool = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 0.08, 16), mats.water);
-    pool.position.y = 0.04;
-    g.add(pool);
-    obj.need = 'thirst';
-    obj.value = 25;
+    const pool = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.8, 0.06, 20), M.water);
+    pool.position.y = 0.03; g.add(pool);
+    const ripple = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.35, 24), 
+      new THREE.MeshBasicMaterial({ color: 0x4477aa, transparent: true, opacity: 0.15, side: THREE.DoubleSide }));
+    ripple.rotation.x = -π/2; ripple.position.y = 0.07; g.add(ripple);
+    obj.ripple = ripple;
+    obj.need = 'thirst'; obj.value = 25;
   } else if(type === 'shelter') {
-    // Simple hut shape
-    const walls = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 1.8), mats.shelter);
-    walls.position.y = 0.6;
-    g.add(walls);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.8, 4), mats.shelter);
-    roof.position.y = 1.6;
-    roof.rotation.y = π/4;
-    g.add(roof);
-    obj.need = 'rest';
-    obj.value = 20;
+    const walls = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.3, 2.0), M.shelter);
+    walls.position.y = 0.65; g.add(walls);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(1.6, 0.9, 4), M.shelter);
+    roof.position.y = 1.75; roof.rotation.y = π/4; g.add(roof);
+    obj.need = 'rest'; obj.value = 20;
   } else if(type === 'puzzle') {
-    // Stack of stones
-    for(let i = 0; i < 3; i++) {
-      const stone = new THREE.Mesh(new THREE.SphereGeometry(0.2-i*0.05, 8, 6), mats.puzzle);
-      stone.position.y = i * 0.3 + 0.15;
-      stone.scale.y = 0.6;
-      g.add(stone);
+    for(let i = 0; i < 4; i++) {
+      const s = new THREE.Mesh(new THREE.SphereGeometry(0.18-i*0.035, 8, 6), M.puzzle);
+      s.position.y = i*0.28+0.14; s.scale.y = 0.55; g.add(s);
     }
-    obj.need = 'curiosity';
-    obj.value = 40;
-    obj.difficulty = data.difficulty || 0.5;
+    obj.need = 'curiosity'; obj.value = 40; obj.difficulty = data.difficulty || 0.5;
   } else if(type === 'toy') {
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 8), mats.toy);
-    ball.position.y = 0.15;
-    g.add(ball);
-    obj.need = 'play';
-    obj.value = 25;
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), M.toy);
+    ball.position.y = 0.16; g.add(ball);
+    obj.need = 'play'; obj.value = 25;
   } else if(type === 'fire') {
-    // Campfire
-    for(let i = 0; i < 5; i++) {
-      const log = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.6, 6), mats.shelter);
-      log.rotation.z = π/2;
-      log.rotation.y = i * π/5;
-      log.position.y = 0.08;
-      g.add(log);
+    for(let i = 0; i < 6; i++) {
+      const log = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.55, 6), M.shelter);
+      log.rotation.z = π/2; log.rotation.y = i*π/6; log.position.y = 0.07; g.add(log);
     }
-    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 6), mats.fire);
-    flame.position.y = 0.4;
-    g.add(flame);
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.55, 6), M.fire);
+    flame.position.y = 0.42; g.add(flame);
     obj.flameMesh = flame;
-    obj.need = 'social';
-    obj.value = 15;
-    // Light
-    const fireLight = new THREE.PointLight(0xff6622, 1.5, 6);
-    fireLight.position.y = 0.6;
-    g.add(fireLight);
-    obj.light = fireLight;
+    const fl = new THREE.PointLight(0xff5511, 1.8, 7);
+    fl.position.y = 0.7; g.add(fl); obj.light = fl;
+    obj.need = 'social'; obj.value = 15;
   } else if(type === 'tool') {
-    // Stick/tool
-    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.8, 6), mats.shelter);
-    stick.position.y = 0.4;
-    stick.rotation.z = 0.3;
-    g.add(stick);
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.1, 0.04), mats.tool);
-    head.position.set(-0.15, 0.7, 0);
-    g.add(head);
-    obj.need = 'curiosity';
-    obj.value = 35;
-    obj.isTool = true;
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.85, 6), M.shelter);
+    stick.position.y = 0.42; stick.rotation.z = 0.25; g.add(stick);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.04), M.tool);
+    head.position.set(-0.14, 0.72, 0); g.add(head);
+    obj.need = 'curiosity'; obj.value = 35; obj.isTool = true;
+  } else if(type === 'mirror_pool') {
+    const pool = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.1, 0.04, 24), M.mirror);
+    pool.position.y = 0.02; g.add(pool);
+    const rim2 = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.05, 8, 24), M.shelter);
+    rim2.rotation.x = π/2; rim2.position.y = 0.04; g.add(rim2);
+    obj.need = 'self_model'; obj.value = 0;
+    obj.isMirror = true;
   }
   
   g.position.set(x, 0, z);
@@ -249,91 +311,92 @@ function createWorldObject(type, x, z, data = {}) {
   return obj;
 }
 
-// Populate world
-createWorldObject('fire', 0, 0);
-createWorldObject('shelter', -6, -4);
-createWorldObject('shelter', 5, 6);
-createWorldObject('food', -8, 2);
-createWorldObject('food', 7, -3);
-createWorldObject('food', -3, 8);
-createWorldObject('food', 4, -8);
-createWorldObject('water', -4, -7);
-createWorldObject('water', 6, 3);
-createWorldObject('water', -2, 5);
-createWorldObject('puzzle', 3, 2, { difficulty: 0.4 });
-createWorldObject('puzzle', -5, 4, { difficulty: 0.7 });
-createWorldObject('puzzle', 8, 7, { difficulty: 0.9 });
-createWorldObject('toy', -1, -3);
-createWorldObject('toy', 2, 5);
-createWorldObject('tool', -7, -1);
-createWorldObject('tool', 5, -5);
+createWorldObj('fire', 0, 0);
+createWorldObj('mirror_pool', -3, 3);
+createWorldObj('mirror_pool', 4, -2);
+createWorldObj('shelter', -7, -5);
+createWorldObj('shelter', 6, 7);
+createWorldObj('food', -9, 2); createWorldObj('food', 8, -4);
+createWorldObj('food', -4, 9); createWorldObj('food', 5, -9);
+createWorldObj('food', -1, -7);
+createWorldObj('water', -5, -8); createWorldObj('water', 7, 4);
+createWorldObj('water', -3, 6); createWorldObj('water', 2, -5);
+createWorldObj('puzzle', 3, 3, { difficulty: 0.3 });
+createWorldObj('puzzle', -6, 5, { difficulty: 0.6 });
+createWorldObj('puzzle', 9, 8, { difficulty: 0.9 });
+createWorldObj('puzzle', -2, -4, { difficulty: 0.5 });
+createWorldObj('toy', -1, -2); createWorldObj('toy', 3, 6);
+createWorldObj('toy', -5, 1);
+createWorldObj('tool', -8, -2); createWorldObj('tool', 6, -6);
 
-// Trees for atmosphere
-for(let i = 0; i < 20; i++) {
-  const angle = Math.random() * π * 2;
-  const dist = 12 + Math.random() * 15;
-  const tx = Math.cos(angle) * dist;
-  const tz = Math.sin(angle) * dist;
-  const treeG = new THREE.Group();
-  const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.1, 0.15, 1.5+Math.random(), 6),
-    new THREE.MeshStandardMaterial({ color: 0x4a3520, roughness: 0.9 })
-  );
-  trunk.position.y = 0.75;
-  treeG.add(trunk);
-  const canopy = new THREE.Mesh(
-    new THREE.SphereGeometry(0.6+Math.random()*0.5, 8, 6),
-    new THREE.MeshStandardMaterial({ color: 0x1a3a10+Math.floor(Math.random()*0x101010), roughness: 0.95 })
-  );
-  canopy.position.y = 1.8 + Math.random() * 0.5;
-  treeG.add(canopy);
-  treeG.position.set(tx, 0, tz);
-  treeG.traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; }});
-  scene.add(treeG);
+for(let i = 0; i < 25; i++) {
+  const a = Math.random()*π*2, d = 14+Math.random()*18;
+  const tg = new THREE.Group();
+  const h = 1.2+Math.random()*1.5;
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.13,h,6),
+    new THREE.MeshStandardMaterial({color:0x3a2a18,roughness:0.9}));
+  trunk.position.set(0,h/2,0);
+  tg.add(trunk);
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.5+Math.random()*0.6,8,6),
+    new THREE.MeshStandardMaterial({color:0x152a0c+Math.floor(Math.random()*0x0a0a0a),roughness:0.95}));
+  canopy.position.set(0,h+0.3+Math.random()*0.4,0);
+  tg.add(canopy);
+  tg.position.set(Math.cos(a)*d,0,Math.sin(a)*d);
+  tg.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true}});
+  scene.add(tg);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// CRR AGENT — THE LIVING SYSTEM
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  CRR AGENT — INSIDE-OUT BODY FROM CORTICAL MAP
+// ═══════════════════════════════════════════════════════════════════════
 
 class CRRAgent {
-  constructor(config) {
-    this.name = config.name;
-    this.role = config.role;
-    this.color = config.color;
-    this.skinColor = config.skinColor || 0xc8956b;
-    this.height = config.height || 1.75;
-    this.age = config.age; // developmental stage 0-100
-    this.personalOmega = config.omega || Ω_Z2; // base Ω personality
+  constructor(cfg) {
+    this.name = cfg.name;
+    this.role = cfg.role;
+    this.color = cfg.color;
+    this.skinColor = cfg.skinColor || 0xc8956b;
+    this.height = cfg.height || 1.75;
+    this.age = cfg.age;
+    this.personalOmega = cfg.omega || Ω_Z2;
     
-    // CRR INTERNAL STATE
-    this.coherence = 0.5;         // C: current coherence level
-    this.coherenceHistory = [];    // C(τ) for memory weighting
-    this.rupturing = false;        // δ active?
+    this.development = cfg.development || 0;
+    this.developmentTarget = cfg.developmentTarget || 1.0;
+    this.developmentRate = cfg.developmentRate || 0.008;
+    
+    this.mirrorCalibration = cfg.mirrorCalibration || 0;
+    this.selfModelAccuracy = 0;
+    
+    this.morphology = {};
+    for(const [part, map] of Object.entries(CORTICAL_MAP)) {
+      this.morphology[part] = morphBlend(map.cortical, map.anatomical, 
+        this.development, this.mirrorCalibration);
+    }
+    
+    this.coherence = 0.5;
+    this.coherenceHistory = [];
+    this.rupturing = false;
     this.ruptureTimer = 0;
     this.regenerating = false;
     this.regenPhase = 0;
-    this.omega = this.personalOmega;  // current Ω (modulated by context)
-    this.omegaSocial = 0;         // social Ω modifier
+    this.omega = this.personalOmega;
+    this.omegaSocial = 0;
+    this.ruptureCount = 0;
     
-    // BRAIN WAVE STATE
-    this.brainAmplitudes = BRAIN_LEVELS.map((l, i) => 
-      i <= 4 ? 0.5 + Math.random() * 0.3 : 0.2
-    );
-    this.brainPhases = BRAIN_LEVELS.map(() => Math.random() * π * 2);
-    this.dominantFreq = 4; // alpha default
+    this.brainAmps = BRAIN.map((l,i) => i <= 4 ? 0.45+Math.random()*0.3 : 0.15);
+    this.brainPhases = BRAIN.map(() => Math.random()*π*2);
+    this.dominantFreq = 4;
+    this.crossFreqCoherence = 0.3;
     
-    // NEEDS (drives that create coherence gradients)
     this.needs = {
-      hunger:    40 + Math.random() * 20,
-      thirst:    50 + Math.random() * 20,
-      rest:      70 + Math.random() * 20,
-      social:    60 + Math.random() * 20,
-      curiosity: 30 + Math.random() * 30,
-      play:      config.age < 50 ? 20 : 60, // children need more play
+      hunger:    40+Math.random()*20,
+      thirst:    50+Math.random()*20,
+      rest:      70+Math.random()*20,
+      social:    60+Math.random()*20,
+      curiosity: 25+Math.random()*30,
+      play:      cfg.age < 50 ? 15 : 55,
     };
     
-    // BEHAVIOR STATE
     this.state = 'idle';
     this.stateDesc = 'Resting';
     this.thought = '';
@@ -345,271 +408,331 @@ class CRRAgent {
     this.hasTool = false;
     this.solvedPuzzles = 0;
     
-    // POSITION & MOVEMENT
-    this.x = config.x || 0;
-    this.z = config.z || 0;
-    this.angle = Math.random() * π * 2;
+    this.x = cfg.x || 0;
+    this.z = cfg.z || 0;
+    this.angle = Math.random()*π*2;
     this.speed = 0;
-    this.maxSpeed = config.height < 1.2 ? 1.2 : 1.8;
-    this.gaitPhase = Math.random() * π * 2;
+    this.maxSpeed = cfg.height < 1.0 ? 0.9 : cfg.height < 1.3 ? 1.3 : 1.8;
+    this.gaitPhase = Math.random()*π*2;
     
-    // MOTOR SYSTEM — joint angles
     this.joints = {
-      hipL: 0, hipR: 0, kneeL: 0, kneeR: 0, ankleL: 0, ankleR: 0,
-      shoulderL: 0, shoulderR: 0, elbowL: 0, elbowR: 0,
-      spine: 0, spineY: 0, head: 0, headY: 0,
+      hipL:0,hipR:0,kneeL:0,kneeR:0,ankleL:0,ankleR:0,
+      shoulderL:0,shoulderR:0,elbowL:0,elbowR:0,
+      wristL:0,wristR:0,
+      spine:0,spineY:0,spineZ:0,
+      head:0,headY:0,headZ:0,
+      jawOpen:0,
     };
     
-    // MIRROR/SOCIAL STATE
-    this.mirrorCalibration = this.age / 100; // M: how well-calibrated
     this.gazeTarget = null;
-    this.expressionState = 'neutral';
+    this.expression = 'neutral';
+    this.bondStrengths = {};
     
-    // BUILD 3D BODY
     this.group = new THREE.Group();
+    this.bodyParts = {};
     this.buildBody();
     this.group.position.set(this.x, 0, this.z);
     scene.add(this.group);
     
-    // Ω FIELD VISUALIZATION
     this.omegaRing = new THREE.Mesh(
-      new THREE.RingGeometry(0.8, 1.0, 32),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color(this.color), transparent: true, opacity: 0, side: THREE.DoubleSide })
+      new THREE.RingGeometry(0.9, 1.1, 32),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(this.color), 
+        transparent: true, opacity: 0, side: THREE.DoubleSide })
     );
     this.omegaRing.rotation.x = -π/2;
     this.omegaRing.position.y = 0.02;
     this.group.add(this.omegaRing);
   }
   
-  // ─── BODY BUILDER ───
   buildBody() {
     const S = this.height / 8;
-    const skinMat = new THREE.MeshStandardMaterial({ color: this.skinColor, roughness: 0.65 });
-    const clothMat = new THREE.MeshStandardMaterial({ color: this.color, roughness: 0.7 });
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1208, roughness: 0.5 });
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0xf0ebe0, roughness: 0.3 });
-    const irisMat = new THREE.MeshStandardMaterial({ color: 0x4a6741, roughness: 0.2 });
+    const skin = new THREE.MeshStandardMaterial({ color: this.skinColor, roughness: 0.6 });
+    const cloth = new THREE.MeshStandardMaterial({ color: this.color, roughness: 0.7 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x18120a, roughness: 0.5 });
+    const eyeW = new THREE.MeshStandardMaterial({ color: 0xf0ebe0, roughness: 0.3 });
+    const iris = new THREE.MeshStandardMaterial({ color: 0x3a5a38, roughness: 0.2 });
+    const lip = new THREE.MeshStandardMaterial({ color: 0xb06050, roughness: 0.5 });
+    const hairMat = new THREE.MeshStandardMaterial({ 
+      color: this.role === 'infant' ? 0x705030 : this.role === 'child' ? 0x5a3a20 : 0x251510,
+      roughness: 0.9 
+    });
     
-    // Skeleton groups
-    this.bones = {};
+    const B = {};
     const mk = (name, parent) => {
-      const g = new THREE.Group();
-      g.name = name;
+      const g = new THREE.Group(); g.name = name;
       (parent || this.group).add(g);
-      this.bones[name] = g;
+      B[name] = g;
       return g;
     };
+    this.bones = B;
     
     const root = mk('root');
     const legLen = S * 3.8;
     root.position.y = legLen * 0.52 + S * 0.3;
     
-    // ─ Pelvis ─
-    const pelvis = new THREE.Mesh(new THREE.SphereGeometry(S*0.55, 10, 8), clothMat);
-    pelvis.scale.set(1.4, 0.6, 0.9);
-    root.add(pelvis);
+    const addPart = (name, geo, mat, parent, pos, scale) => {
+      const m = new THREE.Mesh(geo, mat);
+      if(pos) m.position.copy(pos);
+      if(scale) m.scale.copy(scale);
+      parent.add(m);
+      if(!this.bodyParts[name]) this.bodyParts[name] = [];
+      this.bodyParts[name].push({ mesh: m, baseScale: scale ? scale.clone() : new THREE.Vector3(1,1,1) });
+      return m;
+    };
     
-    // ─ Spine ─
+    addPart('pelvis', new THREE.SphereGeometry(S*0.55, 10, 8), cloth, root,
+      new THREE.Vector3(0,0,0), new THREE.Vector3(1.4, 0.6, 0.9));
+    
     const spine = mk('spine', root);
     spine.position.y = S * 0.2;
     
-    // Torso
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(S*0.45, S*0.5, S*1.6, 10), clothMat);
-    torso.position.y = S * 0.8;
-    spine.add(torso);
+    addPart('torso', new THREE.CylinderGeometry(S*0.42, S*0.48, S*1.6, 10), cloth, spine,
+      new THREE.Vector3(0, S*0.8, 0));
     
-    // ─ Chest ─
     const chest = mk('chest', spine);
     chest.position.y = S * 0.75;
     
-    const chestMesh = new THREE.Mesh(new THREE.CylinderGeometry(S*0.55, S*0.45, S*1.0, 10), clothMat);
-    chestMesh.position.y = S * 0.5;
-    chest.add(chestMesh);
+    addPart('chest', new THREE.CylinderGeometry(S*0.52, S*0.42, S*1.0, 10), cloth, chest,
+      new THREE.Vector3(0, S*0.5, 0));
     
-    // ─ Neck ─
     const neck = mk('neck', chest);
     neck.position.y = S * 1.05;
-    const neckMesh = new THREE.Mesh(new THREE.CylinderGeometry(S*0.13, S*0.15, S*0.3, 8), skinMat);
-    neckMesh.position.y = S * 0.15;
-    neck.add(neckMesh);
+    addPart('neck', new THREE.CylinderGeometry(S*0.12, S*0.14, S*0.3, 8), skin, neck,
+      new THREE.Vector3(0, S*0.15, 0));
     
-    // ─ Head ─
-    const head = mk('head', neck);
-    head.position.y = S * 0.35;
+    const headBone = mk('head', neck);
+    headBone.position.y = S * 0.35;
     
-    // Scale head larger for children (CRR: higher developmental Ω = larger head proportion)
-    const headScale = this.age < 30 ? 1.3 : this.age < 60 ? 1.15 : 1.0;
+    const hs = S * 0.45;
+    addPart('head', new THREE.SphereGeometry(hs, 14, 10), skin, headBone,
+      new THREE.Vector3(0, S*0.35, 0), new THREE.Vector3(0.85, 1.0, 0.88));
     
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(S*0.45*headScale, 14, 10), skinMat);
-    skull.position.y = S * 0.35;
-    skull.scale.set(0.85, 1, 0.88);
-    head.add(skull);
+    const hairGeo = new THREE.SphereGeometry(hs*1.05, 10, 8, 0, π*2, 0, π*0.55);
+    addPart('head', hairGeo, hairMat, headBone,
+      new THREE.Vector3(0, S*0.38, 0), new THREE.Vector3(0.86, 1.0, 0.9));
     
-    // Hair
-    const hairMat = new THREE.MeshStandardMaterial({ color: this.role === 'child-young' ? 0x604020 : 0x2a1a0e, roughness: 0.9 });
-    const hair = new THREE.Mesh(new THREE.SphereGeometry(S*0.47*headScale, 10, 8, 0, π*2, 0, π*0.55), hairMat);
-    hair.position.y = S * 0.37;
-    hair.scale.set(0.86, 1, 0.9);
-    head.add(hair);
-    
-    // Eyes
     [-1,1].forEach(side => {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(S*0.06*headScale, 8, 6), eyeMat);
-      eye.position.set(side*S*0.16*headScale, S*0.4, S*0.35*headScale);
-      head.add(eye);
-      const iris = new THREE.Mesh(new THREE.SphereGeometry(S*0.035*headScale, 6, 4), irisMat);
-      iris.position.set(side*S*0.16*headScale, S*0.4, S*0.39*headScale);
-      head.add(iris);
+      addPart('eyes', new THREE.SphereGeometry(S*0.065, 8, 6), eyeW, headBone,
+        new THREE.Vector3(side*S*0.17, S*0.4, S*0.35));
+      addPart('eyes', new THREE.SphereGeometry(S*0.038, 6, 4), iris, headBone,
+        new THREE.Vector3(side*S*0.17, S*0.4, S*0.39));
     });
     
-    // Nose
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(S*0.045*headScale, 6, 4), skinMat);
-    nose.position.set(0, S*0.3, S*0.4*headScale);
-    head.add(nose);
+    addPart('face', new THREE.SphereGeometry(S*0.05, 6, 4), skin, headBone,
+      new THREE.Vector3(0, S*0.3, S*0.4));
     
-    // Mouth indicator
-    this.mouthMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(S*0.005, S*0.005, S*0.08*headScale, 4), 
-      new THREE.MeshStandardMaterial({ color: 0x9b5040, roughness: 0.5 })
-    );
+    this.mouthMesh = addPart('lips', 
+      new THREE.CylinderGeometry(S*0.005, S*0.005, S*0.09, 4), lip, headBone,
+      new THREE.Vector3(0, S*0.2, S*0.38));
     this.mouthMesh.rotation.z = π/2;
-    this.mouthMesh.position.set(0, S*0.2, S*0.38*headScale);
-    head.add(this.mouthMesh);
     
-    // ─ Arms ─
+    const jaw = mk('jaw', headBone);
+    jaw.position.set(0, S*0.15, S*0.2);
+    addPart('lips', new THREE.SphereGeometry(S*0.15, 8, 4, 0, π*2, π*0.5, π*0.3), skin, jaw,
+      new THREE.Vector3(0, 0, S*0.12), new THREE.Vector3(0.7, 0.4, 0.7));
+    
     ['L','R'].forEach(side => {
       const sign = side === 'L' ? -1 : 1;
       const shoulder = mk('shoulder'+side, chest);
-      shoulder.position.set(sign * S * 0.6, S * 0.85, 0);
+      shoulder.position.set(sign * S * 0.58, S * 0.85, 0);
       
-      // Upper arm
-      const ua = new THREE.Mesh(new THREE.CylinderGeometry(S*0.1, S*0.085, S*1.0, 8), 
-        side === 'L' ? clothMat : skinMat);
-      ua.position.y = -S * 0.5;
-      shoulder.add(ua);
+      addPart('shoulder'+side, new THREE.SphereGeometry(S*0.1, 8, 6), cloth, shoulder);
+      
+      addPart('upperArm'+side, new THREE.CylinderGeometry(S*0.095, S*0.08, S*1.0, 8),
+        cloth, shoulder, new THREE.Vector3(0, -S*0.5, 0));
       
       const elbow = mk('elbow'+side, shoulder);
       elbow.position.y = -S * 1.0;
       
-      // Forearm
-      const fa = new THREE.Mesh(new THREE.CylinderGeometry(S*0.075, S*0.06, S*0.85, 8), skinMat);
-      fa.position.y = -S * 0.42;
-      elbow.add(fa);
+      addPart('forearm'+side, new THREE.CylinderGeometry(S*0.07, S*0.055, S*0.85, 8),
+        skin, elbow, new THREE.Vector3(0, -S*0.42, 0));
       
-      // Hand (high Ω - slightly larger for emphasis)
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(S*0.08, 8, 6), skinMat);
-      hand.position.y = -S * 0.9;
-      hand.scale.set(0.9, 1.2, 0.6);
-      elbow.add(hand);
+      const wrist = mk('wrist'+side, elbow);
+      wrist.position.y = -S * 0.85;
+      
+      addPart('hand'+side, new THREE.SphereGeometry(S*0.08, 8, 6), skin, wrist,
+        new THREE.Vector3(0, -S*0.05, 0), new THREE.Vector3(0.9, 1.2, 0.6));
+      
+      for(let f = 0; f < 5; f++) {
+        const fa = (f - 2) * 0.2;
+        const fl = f === 2 ? S*0.22 : f === 0 || f === 4 ? S*0.14 : S*0.19;
+        addPart('hand'+side,
+          new THREE.CylinderGeometry(S*0.015, S*0.012, fl, 4), skin, wrist,
+          new THREE.Vector3(Math.sin(fa)*S*0.06, -S*0.08-fl/2, Math.cos(fa)*S*0.04));
+      }
     });
     
-    // ─ Legs ─
-    const hipW = S * 0.4;
+    const hipW = S * 0.38;
     ['L','R'].forEach(side => {
       const sign = side === 'L' ? -1 : 1;
       const hip = mk('hip'+side, root);
       hip.position.set(sign * hipW, -S * 0.15, 0);
       
-      // Thigh
-      const thigh = new THREE.Mesh(new THREE.CylinderGeometry(S*0.16, S*0.12, S*1.5, 8), clothMat);
-      thigh.position.y = -S * 0.75;
-      hip.add(thigh);
+      addPart('thigh'+side, new THREE.CylinderGeometry(S*0.15, S*0.11, S*1.5, 8),
+        cloth, hip, new THREE.Vector3(0, -S*0.75, 0));
       
       const knee = mk('knee'+side, hip);
       knee.position.y = -S * 1.5;
       
-      const kneeCap = new THREE.Mesh(new THREE.SphereGeometry(S*0.1, 6, 4), clothMat);
-      knee.add(kneeCap);
+      addPart('thigh'+side, new THREE.SphereGeometry(S*0.09, 6, 4), cloth, knee);
       
-      // Shin
-      const shin = new THREE.Mesh(new THREE.CylinderGeometry(S*0.1, S*0.07, S*1.3, 8), clothMat);
-      shin.position.y = -S * 0.65;
-      knee.add(shin);
+      addPart('shin'+side, new THREE.CylinderGeometry(S*0.09, S*0.065, S*1.3, 8),
+        cloth, knee, new THREE.Vector3(0, -S*0.65, 0));
       
       const ankle = mk('ankle'+side, knee);
       ankle.position.y = -S * 1.3;
       
-      // Foot
-      const foot = new THREE.Mesh(new THREE.BoxGeometry(S*0.14, S*0.06, S*0.28), darkMat);
-      foot.position.set(0, -S*0.03, S*0.06);
-      ankle.add(foot);
+      addPart('foot'+side, new THREE.BoxGeometry(S*0.13, S*0.06, S*0.28), dark, ankle,
+        new THREE.Vector3(0, -S*0.03, S*0.06));
+      
+      for(let t = 0; t < 3; t++) {
+        addPart('foot'+side,
+          new THREE.SphereGeometry(S*0.02, 4, 3), dark, ankle,
+          new THREE.Vector3((t-1)*S*0.04, -S*0.05, S*0.22));
+      }
     });
     
-    // Shadow/expression indicator - ring above head showing CRR state
     this.stateRing = new THREE.Mesh(
-      new THREE.TorusGeometry(S*0.35, S*0.02, 8, 24),
-      new THREE.MeshBasicMaterial({ color: this.color, transparent: true, opacity: 0.5 })
+      new THREE.TorusGeometry(S*0.35, S*0.015, 8, 28),
+      new THREE.MeshBasicMaterial({ color: this.color, transparent: true, opacity: 0.4 })
     );
     this.stateRing.rotation.x = π/2;
     this.stateRing.position.y = this.height * 0.6 + S * 0.9;
-    this.bones.head.add(this.stateRing);
+    B.head.add(this.stateRing);
     
     this.group.traverse(c => { if(c.isMesh) { c.castShadow = true; c.receiveShadow = true; }});
   }
   
-  // ─── CRR BRAIN UPDATE ───
-  updateBrain(dt) {
-    // Advance brain oscillations
-    for(let i = 0; i < BRAIN_LEVELS.length; i++) {
-      this.brainPhases[i] += BRAIN_LEVELS[i].freq * π * 2 * dt;
+  updateMorphology() {
+    for(const [part, map] of Object.entries(CORTICAL_MAP)) {
+      const newScale = morphBlend(map.cortical, map.anatomical, 
+        this.development, this.mirrorCalibration);
+      this.morphology[part] = newScale;
       
-      // Amplitude modulated by state
-      let targetAmp = 0.3;
-      if(this.state === 'moving' && i >= 3 && i <= 5) targetAmp = 0.8; // motor: theta-beta
-      if(this.state === 'thinking' && i === 4) targetAmp = 0.9;       // alpha for attention
-      if(this.state === 'interacting' && i === 3) targetAmp = 0.85;   // theta for social
-      if(this.state === 'resting' && i <= 2) targetAmp = 0.7;         // delta/infra for rest
-      if(this.rupturing && i >= 5) targetAmp = 1.0;                   // gamma burst at rupture
-      if(i === 0) targetAmp = 0.6; // breath always present
-      
-      this.brainAmplitudes[i] += (targetAmp - this.brainAmplitudes[i]) * dt * 2;
-    }
-    
-    // Determine dominant frequency
-    let maxAmp = 0, maxIdx = 0;
-    this.brainAmplitudes.forEach((a, i) => { if(a > maxAmp && i > 0) { maxAmp = a; maxIdx = i; }});
-    this.dominantFreq = maxIdx;
-  }
-  
-  // ─── CRR COHERENCE DYNAMICS ───
-  updateCoherence(dt) {
-    // Coherence accumulates based on current activity alignment
-    let coherenceRate = 0;
-    
-    if(this.state === 'moving' && this.target) {
-      // Moving toward goal: coherence builds proportional to need urgency
-      const urgency = this.targetObj ? (100 - this.needs[this.targetObj.need]) / 100 : 0.3;
-      coherenceRate = 0.15 * urgency;
-    } else if(this.state === 'interacting') {
-      coherenceRate = 0.25; // interaction builds coherence
-    } else if(this.state === 'thinking') {
-      coherenceRate = 0.1;
-    } else if(this.state === 'social') {
-      coherenceRate = 0.2 + this.omegaSocial * 0.3;
-    } else {
-      coherenceRate = -0.05; // idle: slight coherence decay
-    }
-    
-    this.coherence += coherenceRate * dt;
-    this.coherence = Math.max(0, Math.min(1, this.coherence));
-    
-    // Store history
-    this.coherenceHistory.push(this.coherence);
-    if(this.coherenceHistory.length > 200) this.coherenceHistory.shift();
-    
-    // ─── RUPTURE CHECK ───
-    // Rupture occurs when coherence exceeds threshold (1/Ω normalized)
-    // OR when a need becomes critical
-    const ruptureThreshold = 0.7 + this.omega * 0.5;
-    const criticalNeed = Object.values(this.needs).some(n => n < 15);
-    
-    if(!this.rupturing && !this.regenerating) {
-      if(this.coherence > ruptureThreshold || criticalNeed) {
-        this.triggerRupture(criticalNeed ? 'need' : 'coherence');
+      if(this.bodyParts[part]) {
+        this.bodyParts[part].forEach(({ mesh, baseScale }) => {
+          const s = showHomunculus ? map.cortical : newScale;
+          mesh.scale.set(
+            baseScale.x * s,
+            baseScale.y * s,
+            baseScale.z * s
+          );
+        });
       }
     }
     
-    // Rupture dynamics
+    let totalErr = 0, count = 0;
+    for(const [part, map] of Object.entries(CORTICAL_MAP)) {
+      totalErr += Math.abs(this.morphology[part] - map.anatomical);
+      count++;
+    }
+    this.selfModelAccuracy = 1 - (totalErr / count);
+  }
+  
+  updateDevelopment(dt) {
+    if(this.development >= this.developmentTarget) return;
+    
+    const devSpeed = parseFloat(document.getElementById('dev-slider').value) || 1;
+    
+    let rate = this.developmentRate * devSpeed;
+    rate *= (1 + this.omega * 2);
+    
+    const nearOthers = agents.filter(a => a !== this && 
+      dist2d(a.x, a.z, this.x, this.z) < 4);
+    if(nearOthers.length > 0) {
+      rate *= (1 + nearOthers.length * 0.3);
+      
+      nearOthers.forEach(other => {
+        if(other.development > this.development) {
+          const mirrorSignal = (other.development - this.development) * 
+            other.mirrorCalibration * 0.5;
+          this.mirrorCalibration = Math.min(1, 
+            this.mirrorCalibration + mirrorSignal * dt * 0.15);
+          
+          if(!this.bondStrengths[other.name]) this.bondStrengths[other.name] = 0;
+          this.bondStrengths[other.name] = Math.min(1,
+            this.bondStrengths[other.name] + dt * 0.05);
+        }
+      });
+    }
+    
+    const nearMirror = worldObjects.find(o => o.isMirror && o.active &&
+      dist2d(o.x, o.z, this.x, this.z) < 2);
+    if(nearMirror) {
+      this.mirrorCalibration = Math.min(1, 
+        this.mirrorCalibration + dt * 0.08 * this.coherence);
+    }
+    
+    rate *= (0.5 + this.coherence);
+    
+    this.development = Math.min(this.developmentTarget, this.development + rate * dt);
+    this.updateMorphology();
+  }
+  
+  updateBrain(dt) {
+    for(let i = 0; i < BRAIN.length; i++) {
+      this.brainPhases[i] += BRAIN[i].freq * π * 2 * dt;
+      
+      let tgt = 0.25;
+      if(this.state === 'moving' && i >= 3 && i <= 5) tgt = 0.8;
+      if(this.state === 'thinking' && i === 4) tgt = 0.9;
+      if(this.state === 'interacting' && i === 3) tgt = 0.85;
+      if(this.state === 'social' && i >= 2 && i <= 4) tgt = 0.8;
+      if(this.state === 'resting' && i <= 2) tgt = 0.7;
+      if(this.state === 'mirroring' && i === 3) tgt = 0.95;
+      if(this.rupturing && i >= 5) tgt = 1.0;
+      if(i === 0) tgt = 0.55;
+      
+      const devMod = 0.6 + this.development * 0.4;
+      tgt *= devMod;
+      
+      this.brainAmps[i] += (tgt - this.brainAmps[i]) * dt * 2.5;
+    }
+    
+    const thetaAmp = this.brainAmps[3];
+    const thetaPhase = this.brainPhases[3];
+    if(this.development > 0.3) {
+      this.brainAmps[6] *= (0.7 + 0.3 * Math.sin(thetaPhase) * thetaAmp);
+    }
+    
+    this.crossFreqCoherence = 0.2 + this.development * 0.5 + this.coherence * 0.3;
+    
+    let maxA = 0, maxI = 0;
+    this.brainAmps.forEach((a, i) => { if(a > maxA && i > 0) { maxA = a; maxI = i; }});
+    this.dominantFreq = maxI;
+  }
+  
+  updateCoherence(dt) {
+    let cRate = 0;
+    
+    if(this.state === 'moving' && this.target) {
+      const urg = this.targetObj ? (100 - this.needs[this.targetObj.need]) / 100 : 0.3;
+      cRate = 0.15 * urg;
+    } else if(this.state === 'interacting') {
+      cRate = 0.25;
+    } else if(this.state === 'thinking') {
+      cRate = 0.12;
+    } else if(this.state === 'social' || this.state === 'mirroring') {
+      cRate = 0.22 + this.omegaSocial * 0.35;
+    } else {
+      cRate = -0.04;
+    }
+    
+    this.coherence += cRate * dt;
+    this.coherence = Math.max(0, Math.min(1, this.coherence));
+    
+    this.coherenceHistory.push(this.coherence);
+    if(this.coherenceHistory.length > 250) this.coherenceHistory.shift();
+    
+    const ruptThresh = 0.7 + this.omega * 0.5;
+    const critNeed = Object.values(this.needs).some(n => n < 12);
+    
+    if(!this.rupturing && !this.regenerating) {
+      if(this.coherence > ruptThresh || critNeed) {
+        this.triggerRupture(critNeed ? 'need' : 'coherence');
+      }
+    }
+    
     if(this.rupturing) {
       this.ruptureTimer -= dt;
       if(this.ruptureTimer <= 0) {
@@ -620,87 +743,86 @@ class CRRAgent {
       }
     }
     
-    // Regeneration
     if(this.regenerating) {
       this.regenPhase += dt * 2;
-      // Exponential memory weighting: exp(C/Ω)
-      const memoryWeight = Math.exp(this.coherence / this.omega);
+      const memW = Math.exp(this.coherence / this.omega);
       this.coherence = 0.3 + 0.2 * (1 - Math.exp(-this.regenPhase));
-      if(this.regenPhase > 1.5) {
-        this.regenerating = false;
-      }
+      if(this.regenPhase > 1.5) this.regenerating = false;
     }
   }
   
   triggerRupture(reason) {
     this.rupturing = true;
-    this.ruptureTimer = 0.15 + Math.random() * 0.1; // brief δ moment
-    this.coherence *= 0.4; // coherence drops
-    
-    // Gamma burst
-    this.brainAmplitudes[5] = 1.0;
-    this.brainAmplitudes[6] = 0.9;
+    this.ruptureTimer = 0.12 + Math.random() * 0.1;
+    this.coherence *= 0.35;
+    this.brainAmps[5] = 1.0;
+    this.brainAmps[6] = 0.95;
+    this.ruptureCount++;
   }
   
-  // ─── DECISION MAKING (post-rupture regeneration) ───
   makeDecision() {
-    // R = ∫ φ(x,τ) exp(C(x,τ)/Ω) Θ(...) dτ
-    // The regeneration integral selects action based on memory-weighted needs
-    
-    const needScores = {};
+    const scores = {};
     for(const [need, val] of Object.entries(this.needs)) {
-      // Lower need value = higher urgency
-      const urgency = (100 - val) / 100;
-      // Memory weighting: past success with this need type
-      const memWeight = Math.exp(this.coherence / this.omega);
-      needScores[need] = urgency * memWeight * (1 + Math.random() * 0.3);
+      const urg = (100 - val) / 100;
+      const memW = Math.exp(this.coherence / this.omega);
+      scores[need] = urg * memW * (1 + Math.random() * 0.25);
     }
     
-    // Children weight play and curiosity higher
-    if(this.age < 50) {
-      needScores.play *= 1.5;
-      needScores.curiosity *= 1.4;
+    if(this.development < 0.3) {
+      scores.play *= 2.0;
+      scores.social *= 1.8;
+    } else if(this.development < 0.6) {
+      scores.play *= 1.5;
+      scores.curiosity *= 1.5;
     }
     
-    // Social bonus near others
+    if(this.selfModelAccuracy < 0.8 && this.development > 0.2) {
+      scores.curiosity *= 1.3;
+    }
+    
     if(agents.some(a => a !== this && dist2d(a.x, a.z, this.x, this.z) < 4)) {
-      needScores.social *= 1.3;
+      scores.social *= 1.4;
     }
     
-    // Find highest priority need
     let topNeed = 'curiosity', topScore = 0;
-    for(const [need, score] of Object.entries(needScores)) {
+    for(const [need, score] of Object.entries(scores)) {
       if(score > topScore) { topScore = score; topNeed = need; }
     }
     
-    // Find best object for this need
     let bestObj = null, bestDist = Infinity;
     worldObjects.forEach(obj => {
       if(!obj.active || obj.cooldown > 0) return;
       if(obj.need === topNeed || (topNeed === 'play' && obj.type === 'toy') ||
          (topNeed === 'social' && obj.type === 'fire')) {
         const d = dist2d(obj.x, obj.z, this.x, this.z);
-        // Tool check for puzzles
-        if(obj.type === 'puzzle' && obj.difficulty > 0.6 && !this.hasTool) {
-          // Need tool first - redirect
-          return;
-        }
+        if(obj.type === 'puzzle' && obj.difficulty > 0.6 && !this.hasTool) return;
         if(d < bestDist) { bestDist = d; bestObj = obj; }
       }
     });
     
-    // If need is social, target another agent
+    if(this.selfModelAccuracy < 0.85 && Math.random() < 0.2) {
+      const mp = worldObjects.find(o => o.isMirror);
+      if(mp) {
+        this.target = { x: mp.x, z: mp.z };
+        this.targetObj = mp;
+        this.state = 'moving';
+        this.stateDesc = 'Going to reflect';
+        this.thought = 'Who am I...?';
+        return;
+      }
+    }
+    
     if(topNeed === 'social' && (!bestObj || bestDist > 8)) {
-      const nearestAgent = agents
+      const nearest = agents
         .filter(a => a !== this)
         .sort((a, b) => dist2d(a.x, a.z, this.x, this.z) - dist2d(b.x, b.z, this.x, this.z))[0];
-      if(nearestAgent) {
-        this.socialTarget = nearestAgent;
-        this.target = { x: nearestAgent.x, z: nearestAgent.z };
+      if(nearest) {
+        this.socialTarget = nearest;
+        this.target = { x: nearest.x, z: nearest.z };
         this.targetObj = null;
         this.state = 'moving';
-        this.stateDesc = `Seeking ${nearestAgent.name}`;
-        this.thought = `I want to be near ${nearestAgent.name}`;
+        this.stateDesc = `Seeking ${nearest.name}`;
+        this.thought = `I want ${nearest.name}`;
         return;
       }
     }
@@ -710,51 +832,46 @@ class CRRAgent {
       this.targetObj = bestObj;
       this.state = 'moving';
       this.stateDesc = `Going to ${bestObj.type}`;
-      this.thought = needThoughts[topNeed] || 'Exploring...';
+      this.thought = NEED_THOUGHTS[topNeed] || 'Exploring...';
     } else {
-      // Wander
-      const wanderAngle = this.angle + (Math.random() - 0.5) * π;
-      const wanderDist = 3 + Math.random() * 5;
+      const wa = this.angle + (Math.random() - 0.5) * π;
+      const wd = 3 + Math.random() * 5;
       this.target = {
-        x: Math.max(-12, Math.min(12, this.x + Math.cos(wanderAngle) * wanderDist)),
-        z: Math.max(-12, Math.min(12, this.z + Math.sin(wanderAngle) * wanderDist))
+        x: clamp(this.x + Math.cos(wa)*wd, -14, 14),
+        z: clamp(this.z + Math.sin(wa)*wd, -14, 14)
       };
       this.targetObj = null;
       this.state = 'moving';
       this.stateDesc = 'Exploring';
-      this.thought = 'I wonder what\'s over there...';
+      this.thought = 'What\'s over there?';
     }
   }
   
-  // ─── MOVEMENT & MOTOR SYSTEM ───
   updateMotor(dt) {
-    // Deplete needs over time
     for(const need of Object.keys(this.needs)) {
-      let rate = 0.8; // base depletion
-      if(need === 'hunger') rate = 1.2;
-      if(need === 'thirst') rate = 1.5;
-      if(need === 'play' && this.age < 50) rate = 2.0;
-      this.needs[need] = Math.max(0, this.needs[need] - rate * dt);
+      let r = 0.7;
+      if(need === 'hunger') r = 1.1;
+      if(need === 'thirst') r = 1.4;
+      if(need === 'play' && this.development < 0.5) r = 2.2;
+      if(need === 'social' && this.development < 0.3) r = 2.5;
+      this.needs[need] = Math.max(0, this.needs[need] - r * dt);
     }
     
-    // Social need partially met by proximity
     agents.forEach(a => {
-      if(a !== this && dist2d(a.x, a.z, this.x, this.z) < 3) {
-        this.needs.social = Math.min(100, this.needs.social + 3 * dt);
-        // Ω modulation: increase between family members
-        this.omegaSocial = Math.min(0.5, this.omegaSocial + 0.1 * dt);
+      if(a !== this && dist2d(a.x, a.z, this.x, this.z) < 3.5) {
+        this.needs.social = Math.min(100, this.needs.social + 3.5 * dt);
+        this.omegaSocial = Math.min(0.5, this.omegaSocial + 0.12 * dt);
         this.omega = this.personalOmega + this.omegaSocial;
       }
     });
-    this.omegaSocial *= (1 - 0.3 * dt); // decay when alone
+    this.omegaSocial *= (1 - 0.25 * dt);
     
     if(this.state === 'moving' && this.target) {
       const dx = this.target.x - this.x;
       const dz = this.target.z - this.z;
-      const dist = Math.sqrt(dx*dx + dz*dz);
+      const d = Math.sqrt(dx*dx + dz*dz);
       
-      if(dist < 0.8) {
-        // Arrived
+      if(d < 0.8) {
         this.speed = 0;
         if(this.targetObj) {
           this.startInteraction();
@@ -766,74 +883,72 @@ class CRRAgent {
           this.decisionCooldown = 2 + Math.random() * 3;
         }
       } else {
-        // Walk toward target
-        const targetAngle = Math.atan2(dz, dx);
-        // Smooth rotation
-        let angleDiff = targetAngle - this.angle;
-        while(angleDiff > π) angleDiff -= 2*π;
-        while(angleDiff < -π) angleDiff += 2*π;
-        this.angle += angleDiff * Math.min(1, dt * 4);
+        const ta = Math.atan2(dz, dx);
+        let ad = ta - this.angle;
+        while(ad > π) ad -= 2*π;
+        while(ad < -π) ad += 2*π;
+        this.angle += ad * Math.min(1, dt * 4);
         
-        this.speed = Math.min(this.maxSpeed, dist * 0.8);
+        const devSpeedMod = 0.4 + this.development * 0.6;
+        this.speed = Math.min(this.maxSpeed * devSpeedMod, d * 0.8);
         this.x += Math.cos(this.angle) * this.speed * dt;
         this.z += Math.sin(this.angle) * this.speed * dt;
-        
-        // Boundary
-        this.x = Math.max(-14, Math.min(14, this.x));
-        this.z = Math.max(-14, Math.min(14, this.z));
+        this.x = clamp(this.x, -14, 14);
+        this.z = clamp(this.z, -14, 14);
       }
     }
     
-    // Gait phase
-    const gaitFreq2 = f0 * π * π; // heart rate = gait
-    this.gaitPhase += gaitFreq2 * π * 2 * dt * (this.speed / this.maxSpeed);
+    const gaitFreq = f0 * π * π;
+    this.gaitPhase += gaitFreq * π * 2 * dt * (this.speed / Math.max(0.1, this.maxSpeed));
     
-    // CRR asymmetric gait
     const stanceRatio = φ / (1 + φ);
     const phase = this.gaitPhase;
-    const antiPhase = phase + π;
-    const walkAmp = Math.min(1, this.speed / this.maxSpeed);
+    const anti = phase + π;
+    const wA = Math.min(1, this.speed / Math.max(0.1, this.maxSpeed));
     
-    // Hip flexion/extension
-    this.joints.hipL = crrGaitFn(phase, stanceRatio) * walkAmp;
-    this.joints.hipR = crrGaitFn(antiPhase, stanceRatio) * walkAmp;
+    const gaitMaturity = 0.3 + this.development * 0.7;
+    const wobble = (1 - gaitMaturity) * 0.3;
     
-    // Knees
-    this.joints.kneeL = crrKneeFn(phase, stanceRatio) * walkAmp;
-    this.joints.kneeR = crrKneeFn(antiPhase, stanceRatio) * walkAmp;
+    this.joints.hipL = crrGait(phase, stanceRatio) * wA * gaitMaturity
+      + Math.sin(phase * 0.7) * wobble * wA;
+    this.joints.hipR = crrGait(anti, stanceRatio) * wA * gaitMaturity
+      + Math.sin(anti * 0.7) * wobble * wA;
     
-    // Arms counter-swing
-    this.joints.shoulderL = -this.joints.hipL * 0.8;
-    this.joints.shoulderR = -this.joints.hipR * 0.8;
-    this.joints.elbowL = -0.15 - Math.max(0, this.joints.hipL) * 0.3 * walkAmp;
-    this.joints.elbowR = -0.15 - Math.max(0, this.joints.hipR) * 0.3 * walkAmp;
+    this.joints.kneeL = crrKnee(phase, stanceRatio) * wA * gaitMaturity;
+    this.joints.kneeR = crrKnee(anti, stanceRatio) * wA * gaitMaturity;
     
-    // Spine
-    this.joints.spineY = Math.sin(phase) * 0.04 * walkAmp;
+    const armSwing = gaitMaturity * 0.8;
+    this.joints.shoulderL = -this.joints.hipL * armSwing;
+    this.joints.shoulderR = -this.joints.hipR * armSwing;
+    this.joints.elbowL = -0.12 - Math.max(0, this.joints.hipL) * 0.3 * wA;
+    this.joints.elbowR = -0.12 - Math.max(0, this.joints.hipR) * 0.3 * wA;
     
-    // Breathing
+    if(this.development < 0.4) {
+      const infantArm = (1 - this.development / 0.4) * 0.8;
+      this.joints.shoulderL += infantArm * (-0.6 + Math.sin(globalTime * 2) * 0.1);
+      this.joints.shoulderR += infantArm * (-0.6 + Math.sin(globalTime * 2.1) * 0.1);
+      this.joints.elbowL -= infantArm * 0.8;
+      this.joints.elbowR -= infantArm * 0.8;
+    }
+    
+    this.joints.spineY = Math.sin(phase) * 0.04 * wA * gaitMaturity;
+    this.joints.spineZ = wobble * Math.sin(phase * 1.3) * wA * 0.5;
+    
     const breathPhase = globalTime * f0 * π * 2;
-    this.joints.spine = Math.sin(breathPhase) * 0.01;
+    this.joints.spine = Math.sin(breathPhase) * 0.012;
     
-    // Head stabilization
-    this.joints.headY = -this.joints.spineY * 0.5;
+    this.joints.headY = -this.joints.spineY * (0.3 + this.development * 0.4);
     
-    // Apply to skeleton
     this.applyPose();
     
-    // Update position
     this.group.position.set(this.x, 0, this.z);
     this.group.rotation.y = -this.angle + π/2;
     
-    // Idle decision timer
-    if(this.state === 'idle') {
+    if(this.state === 'idle' && !this.rupturing && !this.regenerating) {
       this.decisionCooldown -= dt;
-      if(this.decisionCooldown <= 0) {
-        this.triggerRupture('idle');
-      }
+      if(this.decisionCooldown <= 0) this.triggerRupture('idle');
     }
     
-    // Update social target position
     if(this.socialTarget && this.state === 'moving') {
       this.target.x = this.socialTarget.x;
       this.target.z = this.socialTarget.z;
@@ -841,139 +956,137 @@ class CRRAgent {
   }
   
   applyPose() {
-    const b = this.bones;
-    if(b.hipL) { b.hipL.rotation.x = this.joints.hipL; }
-    if(b.hipR) { b.hipR.rotation.x = this.joints.hipR; }
-    if(b.kneeL) { b.kneeL.rotation.x = this.joints.kneeL; }
-    if(b.kneeR) { b.kneeR.rotation.x = this.joints.kneeR; }
-    if(b.shoulderL) { b.shoulderL.rotation.x = this.joints.shoulderL; }
-    if(b.shoulderR) { b.shoulderR.rotation.x = this.joints.shoulderR; }
-    if(b.elbowL) { b.elbowL.rotation.x = this.joints.elbowL; }
-    if(b.elbowR) { b.elbowR.rotation.x = this.joints.elbowR; }
-    if(b.spine) { 
-      b.spine.rotation.y = this.joints.spineY; 
-      b.spine.rotation.x = this.joints.spine;
+    const B = this.bones;
+    if(B.hipL) B.hipL.rotation.x = this.joints.hipL;
+    if(B.hipR) B.hipR.rotation.x = this.joints.hipR;
+    if(B.kneeL) B.kneeL.rotation.x = this.joints.kneeL;
+    if(B.kneeR) B.kneeR.rotation.x = this.joints.kneeR;
+    if(B.shoulderL) B.shoulderL.rotation.x = this.joints.shoulderL;
+    if(B.shoulderR) B.shoulderR.rotation.x = this.joints.shoulderR;
+    if(B.elbowL) B.elbowL.rotation.x = this.joints.elbowL;
+    if(B.elbowR) B.elbowR.rotation.x = this.joints.elbowR;
+    if(B.spine) {
+      B.spine.rotation.x = this.joints.spine;
+      B.spine.rotation.y = this.joints.spineY;
+      B.spine.rotation.z = this.joints.spineZ || 0;
     }
-    if(b.head) { 
-      b.head.rotation.y = this.joints.headY;
+    if(B.head) {
+      B.head.rotation.y = this.joints.headY;
+      B.head.rotation.x = this.joints.head || 0;
+    }
+    if(B.jaw) {
+      B.jaw.rotation.x = this.joints.jawOpen || 0;
     }
     
-    // Vertical bounce
-    const bounce = Math.abs(Math.sin(this.gaitPhase)) * 0.02 * Math.min(1, this.speed / this.maxSpeed);
-    if(b.root) b.root.position.y = this.height * 0.3 + bounce;
+    const bounce = Math.abs(Math.sin(this.gaitPhase)) * 0.02 * 
+      Math.min(1, this.speed / Math.max(0.1, this.maxSpeed));
+    if(B.root) B.root.position.y = this.height * 0.3 + bounce;
     
-    // State ring visualization
     if(this.stateRing) {
-      let col = new THREE.Color(this.color);
-      let opacity = 0.3;
-      if(this.rupturing) { col = new THREE.Color(0xff4400); opacity = 0.9; }
-      else if(this.regenerating) { col = new THREE.Color(0x44ff88); opacity = 0.7; }
-      else if(this.state === 'interacting') { col = new THREE.Color(0xffcc44); opacity = 0.6; }
-      else if(this.state === 'social') { col = new THREE.Color(0xff88cc); opacity = 0.6; }
-      this.stateRing.material.color = col;
-      this.stateRing.material.opacity = opacity;
+      let c = new THREE.Color(this.color), op = 0.3;
+      if(this.rupturing) { c = new THREE.Color(0xff4400); op = 0.9; }
+      else if(this.regenerating) { c = new THREE.Color(0x44ff88); op = 0.7; }
+      else if(this.state === 'social' || this.state === 'mirroring') { c = new THREE.Color(0xff88cc); op = 0.6; }
+      else if(this.state === 'interacting') { c = new THREE.Color(0xffcc44); op = 0.6; }
+      this.stateRing.material.color = c;
+      this.stateRing.material.opacity = op;
       this.stateRing.rotation.y += 0.02;
     }
     
-    // Omega field ring
-    if(this.omegaRing && showOmegaField) {
-      this.omegaRing.material.opacity = 0.15 + this.omega * 0.3;
+    if(this.omegaRing && showOmega) {
+      this.omegaRing.material.opacity = 0.12 + this.omega * 0.3;
       this.omegaRing.scale.set(1 + this.omega * 2, 1, 1 + this.omega * 2);
     } else if(this.omegaRing) {
       this.omegaRing.material.opacity = 0;
     }
   }
   
-  // ─── INTERACTIONS ───
   startInteraction() {
     this.state = 'interacting';
     this.actionTimer = 2 + Math.random() * 2;
     
     if(this.targetObj) {
-      const obj = this.targetObj;
-      this.stateDesc = `Using ${obj.type}`;
+      const o = this.targetObj;
+      this.stateDesc = `Using ${o.type}`;
       
-      if(obj.type === 'puzzle') {
+      if(o.type === 'puzzle') {
         this.state = 'thinking';
         this.stateDesc = 'Solving puzzle';
-        this.thought = 'Let me think about this...';
-        this.actionTimer = 3 + obj.difficulty * 4;
-        if(this.hasTool) this.actionTimer *= 0.5; // tool helps
-        this.dominantFreq = 4; // alpha for concentration
-      } else if(obj.type === 'tool') {
-        this.thought = 'This could be useful!';
+        this.thought = 'Let me think...';
+        this.actionTimer = 3 + o.difficulty * 4;
+        if(this.hasTool) this.actionTimer *= 0.5;
+      } else if(o.type === 'tool') {
+        this.thought = 'Useful!';
         this.hasTool = true;
         this.actionTimer = 1;
-      } else if(obj.type === 'food') {
-        this.thought = 'Mmm, berries!';
-      } else if(obj.type === 'water') {
-        this.thought = 'Refreshing...';
-      } else if(obj.type === 'toy') {
-        this.thought = 'Fun!';
-        this.state = 'interacting';
-      } else if(obj.type === 'fire') {
-        this.thought = 'Warm and cozy...';
-      }
+      } else if(o.isMirror) {
+        this.state = 'mirroring';
+        this.stateDesc = 'Self-reflecting';
+        this.thought = 'I see myself...';
+        this.actionTimer = 3 + Math.random() * 3;
+      } else if(o.type === 'food') { this.thought = 'Mmm, berries!'; }
+      else if(o.type === 'water') { this.thought = 'Refreshing...'; }
+      else if(o.type === 'toy') { this.thought = 'Fun!'; }
+      else if(o.type === 'fire') { this.thought = 'Warm...'; }
     }
   }
   
   startSocial() {
     this.state = 'social';
-    this.actionTimer = 3 + Math.random() * 4;
+    this.actionTimer = 3 + Math.random() * 5;
     this.stateDesc = `With ${this.socialTarget.name}`;
-    
-    // Dyadic mirroring: mirror calibration increases
-    if(this.socialTarget) {
-      const thoughts = [
-        `Sharing a moment with ${this.socialTarget.name}`,
-        `Looking at ${this.socialTarget.name}`,
-        `Being together feels good`,
-      ];
-      this.thought = thoughts[Math.floor(Math.random() * thoughts.length)];
-    }
+    const thoughts = [
+      `Being with ${this.socialTarget.name}`,
+      `Looking at ${this.socialTarget.name}`,
+      'Together...',
+    ];
+    this.thought = thoughts[Math.floor(Math.random() * thoughts.length)];
   }
   
   updateInteraction(dt) {
-    if(this.state !== 'interacting' && this.state !== 'thinking' && this.state !== 'social') return;
+    if(!['interacting','thinking','social','mirroring'].includes(this.state)) return;
     
     this.actionTimer -= dt;
     
     if(this.state === 'social' && this.socialTarget) {
-      // Face toward social target
       const dx = this.socialTarget.x - this.x;
       const dz = this.socialTarget.z - this.z;
-      const targetAngle = Math.atan2(dz, dx);
-      let angleDiff = targetAngle - this.angle;
-      while(angleDiff > π) angleDiff -= 2*π;
-      while(angleDiff < -π) angleDiff += 2*π;
-      this.angle += angleDiff * dt * 3;
+      const ta = Math.atan2(dz, dx);
+      let ad = ta - this.angle;
+      while(ad > π) ad -= 2*π;
+      while(ad < -π) ad += 2*π;
+      this.angle += ad * dt * 3;
       this.group.rotation.y = -this.angle + π/2;
       
-      // Mutual Ω boosting
       this.needs.social = Math.min(100, this.needs.social + 8 * dt);
       this.omegaSocial = Math.min(0.5, this.omegaSocial + 0.2 * dt);
       
-      // Mirror calibration (children learn from adults)
-      if(this.age < 70) {
-        this.mirrorCalibration = Math.min(1, this.mirrorCalibration + 0.01 * dt);
+      if(this.socialTarget.development > this.development * 0.8) {
+        this.mirrorCalibration = Math.min(1,
+          this.mirrorCalibration + 0.02 * dt * this.omega);
       }
     }
     
+    if(this.state === 'mirroring') {
+      this.mirrorCalibration = Math.min(1,
+        this.mirrorCalibration + 0.05 * dt * this.coherence);
+      this.needs.curiosity = Math.min(100, this.needs.curiosity + 5 * dt);
+    }
+    
     if(this.actionTimer <= 0) {
-      // Complete interaction
       if(this.targetObj) {
-        const obj = this.targetObj;
-        if(obj.need && this.needs[obj.need] !== undefined) {
-          this.needs[obj.need] = Math.min(100, this.needs[obj.need] + obj.value);
+        const o = this.targetObj;
+        if(o.need && this.needs[o.need] !== undefined) {
+          this.needs[o.need] = Math.min(100, this.needs[o.need] + o.value);
         }
-        if(obj.type === 'puzzle') {
+        if(o.type === 'puzzle') {
           this.solvedPuzzles++;
           this.needs.curiosity = Math.min(100, this.needs.curiosity + 40);
-          this.thought = 'Solved it! That felt good.';
-          obj.cooldown = 30 + Math.random() * 20;
+          this.thought = 'Solved!';
+          o.cooldown = 25 + Math.random() * 20;
         }
-        if(obj.type === 'food' || obj.type === 'water') {
-          obj.cooldown = 15 + Math.random() * 10;
+        if(o.type === 'food' || o.type === 'water') {
+          o.cooldown = 12 + Math.random() * 10;
         }
       }
       
@@ -981,284 +1094,403 @@ class CRRAgent {
       this.stateDesc = 'Resting';
       this.targetObj = null;
       this.socialTarget = null;
-      this.decisionCooldown = 1.5 + Math.random() * 3;
+      this.decisionCooldown = 1.5 + Math.random() * 2.5;
     }
   }
   
-  // ─── MAIN UPDATE ───
   update(dt) {
     this.updateBrain(dt);
     this.updateCoherence(dt);
     this.updateMotor(dt);
     this.updateInteraction(dt);
+    this.updateDevelopment(dt);
     
-    // Update world object cooldowns
-    worldObjects.forEach(obj => {
-      if(obj.cooldown > 0) obj.cooldown -= dt;
-      if(obj.flameMesh) {
-        obj.flameMesh.scale.y = 0.8 + Math.sin(globalTime * 8) * 0.3;
-        obj.flameMesh.scale.x = 0.9 + Math.sin(globalTime * 6.3) * 0.15;
+    worldObjects.forEach(o => {
+      if(o.cooldown > 0) o.cooldown -= dt;
+      if(o.flameMesh) {
+        o.flameMesh.scale.y = 0.8 + Math.sin(globalTime * 8) * 0.3;
+        o.flameMesh.scale.x = 0.9 + Math.sin(globalTime * 6.3) * 0.15;
       }
-      if(obj.light) {
-        obj.light.intensity = 1.2 + Math.sin(globalTime * 7) * 0.5;
+      if(o.light) o.light.intensity = 1.2 + Math.sin(globalTime * 7) * 0.5;
+      if(o.ripple) {
+        o.ripple.scale.set(
+          1 + Math.sin(globalTime * 1.5) * 0.3,
+          1,
+          1 + Math.sin(globalTime * 1.5) * 0.3
+        );
+        o.ripple.material.opacity = 0.08 + Math.sin(globalTime * 1.5) * 0.06;
       }
     });
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GAIT FUNCTIONS
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  GAIT FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════
 
-function crrGaitFn(phase, stanceRatio) {
-  const norm = ((phase % (2*π)) + 2*π) % (2*π);
-  const stanceEnd = stanceRatio * 2 * π;
-  if(norm < stanceEnd) {
-    return -Math.sin(norm / stanceEnd * π) * 0.35;
-  } else {
-    return Math.sin((norm - stanceEnd) / (2*π - stanceEnd) * π) * 0.5;
-  }
+function crrGait(phase, stanceRatio) {
+  const n = ((phase % (2*π)) + 2*π) % (2*π);
+  const se = stanceRatio * 2 * π;
+  return n < se
+    ? -Math.sin(n / se * π) * 0.35
+    : Math.sin((n - se) / (2*π - se) * π) * 0.5;
 }
 
-function crrKneeFn(phase, stanceRatio) {
-  const norm = ((phase % (2*π)) + 2*π) % (2*π);
-  const stanceEnd = stanceRatio * 2 * π;
-  if(norm < stanceEnd * 0.3) {
-    return Math.sin(norm / (stanceEnd * 0.3) * π) * 0.15;
-  } else if(norm < stanceEnd) {
-    return 0;
-  } else {
-    return Math.sin((norm - stanceEnd) / (2*π - stanceEnd) * π) * 1.0;
-  }
+function crrKnee(phase, stanceRatio) {
+  const n = ((phase % (2*π)) + 2*π) % (2*π);
+  const se = stanceRatio * 2 * π;
+  if(n < se * 0.3) return Math.sin(n / (se * 0.3) * π) * 0.15;
+  if(n < se) return 0;
+  return Math.sin((n - se) / (2*π - se) * π) * 1.0;
 }
 
-function dist2d(x1, z1, x2, z2) {
-  return Math.sqrt((x1-x2)**2 + (z1-z2)**2);
-}
+function dist2d(x1,z1,x2,z2) { return Math.sqrt((x1-x2)**2+(z1-z2)**2); }
+function clamp(v,a,b) { return Math.max(a, Math.min(b, v)); }
 
-const needThoughts = {
-  hunger: 'I\'m getting hungry...',
-  thirst: 'I need water...',
-  rest: 'Feeling tired...',
-  social: 'I want to be with someone...',
-  curiosity: 'What\'s over there?',
-  play: 'I want to play!',
+const NEED_THOUGHTS = {
+  hunger:'I\'m hungry...', thirst:'Need water...', rest:'Tired...',
+  social:'I need someone...', curiosity:'What\'s that?', play:'Play time!',
 };
 
-// ═══════════════════════════════════════════════════════════════
-// CREATE THE FAMILY
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  CREATE THE FAMILY
+// ═══════════════════════════════════════════════════════════════════════
 
 const agents = [];
 
 agents.push(new CRRAgent({
-  name: 'Rowan', role: 'parent', color: 0x8b6844,
-  skinColor: 0xc89070, height: 1.78, age: 95, omega: Ω_Z2,
-  x: -2, z: 1
+  name:'Rowan', role:'elder', color:0x8b6844,
+  skinColor:0xc89070, height:1.78, age:95, omega:Ω_Z2,
+  x:-2, z:1,
+  development: 0.98, developmentTarget: 1.0,
+  mirrorCalibration: 0.95, developmentRate: 0.001,
 }));
 
 agents.push(new CRRAgent({
-  name: 'Ivy', role: 'parent', color: 0x6b7a5a,
-  skinColor: 0xd4a080, height: 1.65, age: 90, omega: Ω_Z2 * 1.1,
-  x: 2, z: 1
+  name:'Ivy', role:'parent', color:0x5a7a5a,
+  skinColor:0xd4a080, height:1.65, age:88, omega:Ω_Z2*1.1,
+  x:2, z:1,
+  development: 0.92, developmentTarget: 1.0,
+  mirrorCalibration: 0.88, developmentRate: 0.002,
 }));
 
 agents.push(new CRRAgent({
-  name: 'Ash', role: 'child-older', color: 0x5a6a8b,
-  skinColor: 0xc8956b, height: 1.35, age: 55, omega: Ω_Z2 * 1.3,
-  x: 0, z: -1
+  name:'Ash', role:'youth', color:0x5a6a8b,
+  skinColor:0xc8956b, height:1.35, age:55, omega:Ω_Z2*1.3,
+  x:0, z:-1,
+  development: 0.55, developmentTarget: 0.95,
+  mirrorCalibration: 0.5, developmentRate: 0.012,
 }));
 
 agents.push(new CRRAgent({
-  name: 'Wren', role: 'child-young', color: 0x9b5a6a,
-  skinColor: 0xd8a888, height: 0.95, age: 25, omega: Ω_Z2 * 1.6,
-  x: 1, z: -2
+  name:'Wren', role:'child', color:0x9b5a6a,
+  skinColor:0xd8a888, height:0.95, age:25, omega:Ω_Z2*1.6,
+  x:1, z:-2,
+  development: 0.25, developmentTarget: 0.85,
+  mirrorCalibration: 0.15, developmentRate: 0.018,
 }));
 
-// ═══════════════════════════════════════════════════════════════
-// HUD
-// ═══════════════════════════════════════════════════════════════
+agents.push(new CRRAgent({
+  name:'Fern', role:'infant', color:0xaa7a6a,
+  skinColor:0xe0b098, height:0.55, age:5, omega:Ω_Z2*2.0,
+  x:0, z:0,
+  development: 0.05, developmentTarget: 0.6,
+  mirrorCalibration: 0.02, developmentRate: 0.025,
+}));
+
+// ═══════════════════════════════════════════════════════════════════════
+//  UI STATE
+// ═══════════════════════════════════════════════════════════════════════
 
 let selectedAgent = 0;
-let showBrainViz = true;
-let showOmegaField = false;
+let showBrain = true;
+let showOmega = false;
+let showCortical = false;
+let showHomunculus = false;
 let camMode = 'follow';
 let timeScale = 1;
 let globalTime = 0;
+
+// ═══════════════════════════════════════════════════════════════════════
+//  HUD
+// ═══════════════════════════════════════════════════════════════════════
 
 function buildHUD() {
   const hud = document.getElementById('hud');
   hud.innerHTML = '';
   
-  agents.forEach((agent, i) => {
+  agents.forEach((a, i) => {
     const card = document.createElement('div');
     card.className = 'agent-card' + (i === selectedAgent ? ' selected' : '');
     card.onclick = () => { selectedAgent = i; buildHUD(); };
     card.id = 'card-' + i;
     
-    const devLabel = agent.age < 30 ? 'Infant' : agent.age < 60 ? 'Child' : agent.age < 80 ? 'Youth' : 'Adult';
+    const devLabel = a.development < 0.15 ? 'Neonate' :
+      a.development < 0.3 ? 'Infant' : a.development < 0.5 ? 'Toddler' :
+      a.development < 0.7 ? 'Child' : a.development < 0.9 ? 'Youth' : 'Adult';
     
     card.innerHTML = `
       <div class="name">
-        <span style="color:${new THREE.Color(agent.color).getStyle()}">${agent.name}</span>
-        <span class="role">${devLabel} · Ω=${agent.omega.toFixed(3)}</span>
+        <span style="color:${new THREE.Color(a.color).getStyle()}">${a.name}</span>
+        <span class="role">${devLabel} · Ω=${a.omega.toFixed(3)}</span>
       </div>
       <div class="detail">
-        <div class="state">${agent.stateDesc}</div>
-        <div class="thought">${agent.thought}</div>
-        ${Object.entries(agent.needs).map(([need, val]) => `
-          <div class="row"><span class="label">${need}</span><span class="val">${val.toFixed(0)}%</span></div>
-          <div class="bar-bg"><div class="bar" style="width:${val}%;background:${needColor(need, val)}"></div></div>
+        <div class="state">${a.stateDesc}</div>
+        <div class="thought">${a.thought}</div>
+        
+        <div class="section-label">Morphology</div>
+        <div class="row"><span class="label">Development</span><span class="val">${(a.development*100).toFixed(1)}%</span></div>
+        <div class="bar-bg"><div class="bar" style="width:${a.development*100}%;background:#d4a574"></div></div>
+        <div class="row"><span class="label">Mirror M</span><span class="val">${(a.mirrorCalibration*100).toFixed(1)}%</span></div>
+        <div class="bar-bg"><div class="bar" style="width:${a.mirrorCalibration*100}%;background:#aa88cc"></div></div>
+        <div class="row"><span class="label">Self-Model</span><span class="val">${(a.selfModelAccuracy*100).toFixed(1)}%</span></div>
+        <div class="bar-bg"><div class="bar" style="width:${a.selfModelAccuracy*100}%;background:#88ccaa"></div></div>
+        
+        <div class="morph-indicator">
+          ${Object.entries(a.morphology).slice(0,8).map(([p,v]) => 
+            `<div class="morph-dot" style="background:hsl(${(1-Math.abs(v-1))*120},70%,50%)" title="${p}: ${v.toFixed(2)}"></div>`
+          ).join('')}
+        </div>
+        
+        <div class="section-label">Needs</div>
+        ${Object.entries(a.needs).map(([n,v]) => `
+          <div class="row"><span class="label">${n}</span><span class="val">${v.toFixed(0)}%</span></div>
+          <div class="bar-bg"><div class="bar" style="width:${v}%;background:${needCol(n,v)}"></div></div>
         `).join('')}
-        <div class="row"><span class="label">Coherence</span><span class="val">${agent.coherence.toFixed(2)}</span></div>
-        <div class="bar-bg"><div class="bar" style="width:${agent.coherence*100}%;background:#d4a574"></div></div>
-        <div class="row"><span class="label">State</span>
-          <span class="val">${agent.rupturing ? 'δ RUPTURE' : agent.regenerating ? 'R REGEN' : 'C accumulating'}</span></div>
-        <div class="row"><span class="label">Mirror M</span><span class="val">${(agent.mirrorCalibration*100).toFixed(0)}%</span></div>
-        <div class="row"><span class="label">Puzzles</span><span class="val">${agent.solvedPuzzles}</span></div>
-        ${showBrainViz ? `<div class="brain"><canvas id="brain-${i}" width="280" height="40"></canvas></div>` : ''}
+        
+        <div class="section-label">CRR State</div>
+        <div class="row"><span class="label">Coherence</span><span class="val">${a.coherence.toFixed(3)}</span></div>
+        <div class="bar-bg"><div class="bar" style="width:${a.coherence*100}%;background:#d4a574"></div></div>
+        <div class="row"><span class="label">Phase</span>
+          <span class="val">${a.rupturing?'δ RUPTURE':a.regenerating?'R REGEN':'C accum'}</span></div>
+        <div class="row"><span class="label">Cross-freq</span><span class="val">${a.crossFreqCoherence.toFixed(2)}</span></div>
+        <div class="row"><span class="label">Ruptures</span><span class="val">${a.ruptureCount}</span></div>
+        <div class="row"><span class="label">Puzzles</span><span class="val">${a.solvedPuzzles}</span></div>
+        
+        ${showBrain ? `<div class="brain"><canvas id="brain-${i}" width="300" height="36"></canvas></div>` : ''}
       </div>
     `;
     hud.appendChild(card);
   });
 }
 
-function needColor(need, val) {
-  if(val < 20) return '#cc4444';
-  if(val < 40) return '#cc8844';
-  if(val < 60) return '#ccaa44';
-  return '#66aa66';
+function needCol(n, v) {
+  return v < 15 ? '#cc3333' : v < 30 ? '#cc7733' : v < 50 ? '#ccaa33' : '#55aa55';
 }
 
 function updateHUD() {
-  agents.forEach((agent, i) => {
+  agents.forEach((a, i) => {
     const card = document.getElementById('card-' + i);
     if(!card) return;
-    
     card.className = 'agent-card' + (i === selectedAgent ? ' selected' : '');
+    if(i !== selectedAgent) return;
     
-    if(i !== selectedAgent) return; // Only update expanded card
+    const se = card.querySelector('.state');
+    const te = card.querySelector('.thought');
+    if(se) se.textContent = a.stateDesc;
+    if(te) te.textContent = a.thought;
     
-    const stateEl = card.querySelector('.state');
-    const thoughtEl = card.querySelector('.thought');
-    if(stateEl) stateEl.textContent = agent.stateDesc;
-    if(thoughtEl) thoughtEl.textContent = agent.thought;
-    
-    // Update bars
     const bars = card.querySelectorAll('.bar');
     const vals = card.querySelectorAll('.val');
-    let bi = 0;
-    Object.entries(agent.needs).forEach(([need, val], ni) => {
-      if(bars[bi]) {
-        bars[bi].style.width = val + '%';
-        bars[bi].style.background = needColor(need, val);
+    
+    let vi = 1;
+    if(vals[vi]) vals[vi].textContent = (a.development*100).toFixed(1)+'%';
+    if(bars[0]) bars[0].style.width = (a.development*100)+'%';
+    vi++;
+    if(vals[vi]) vals[vi].textContent = (a.mirrorCalibration*100).toFixed(1)+'%';
+    if(bars[1]) bars[1].style.width = (a.mirrorCalibration*100)+'%';
+    vi++;
+    if(vals[vi]) vals[vi].textContent = (a.selfModelAccuracy*100).toFixed(1)+'%';
+    if(bars[2]) bars[2].style.width = (a.selfModelAccuracy*100)+'%';
+    vi++;
+    
+    const dots = card.querySelectorAll('.morph-dot');
+    const parts = Object.entries(a.morphology).slice(0,8);
+    dots.forEach((d,di) => {
+      if(parts[di]) {
+        const v2 = parts[di][1];
+        d.style.background = `hsl(${(1-Math.abs(v2-1))*120},70%,50%)`;
       }
-      if(vals[ni]) vals[ni].textContent = val.toFixed(0) + '%';
+    });
+    
+    let bi = 3;
+    Object.entries(a.needs).forEach(([n,v]) => {
+      if(bars[bi]) { bars[bi].style.width = v+'%'; bars[bi].style.background = needCol(n,v); }
+      vi++;
       bi++;
     });
-    // Coherence bar
-    if(bars[bi]) {
-      bars[bi].style.width = (agent.coherence * 100) + '%';
-    }
     
-    // Brain canvas
-    if(showBrainViz) {
-      drawBrainWaves(agent, i);
-    }
+    if(bars[bi]) bars[bi].style.width = (a.coherence*100)+'%';
+    
+    if(showBrain) drawBrain(a, i);
   });
   
-  // World stats
   const ws = document.getElementById('world-stats');
-  const totalCoherence = agents.reduce((s, a) => s + a.coherence, 0) / agents.length;
-  const totalSocial = agents.reduce((s, a) => s + a.needs.social, 0) / agents.length;
-  const totalPuzzles = agents.reduce((s, a) => s + a.solvedPuzzles, 0);
+  const avgC = agents.reduce((s,a) => s+a.coherence, 0) / agents.length;
+  const avgDev = agents.reduce((s,a) => s+a.development, 0) / agents.length;
+  const avgMirror = agents.reduce((s,a) => s+a.mirrorCalibration, 0) / agents.length;
+  const totalPuzz = agents.reduce((s,a) => s+a.solvedPuzzles, 0);
   ws.innerHTML = `
-    <span class="stat">Avg C: <span>${totalCoherence.toFixed(2)}</span></span>
-    <span class="stat">Social: <span>${totalSocial.toFixed(0)}%</span></span>
-    <span class="stat">Puzzles: <span>${totalPuzzles}</span></span>
-    <span class="stat">Time: <span>${formatTime(globalTime)}</span></span>
+    <span class="stat">C̄: <span>${avgC.toFixed(2)}</span></span>
+    <span class="stat">Dev: <span>${(avgDev*100).toFixed(1)}%</span></span>
+    <span class="stat">Mirror: <span>${(avgMirror*100).toFixed(1)}%</span></span>
+    <span class="stat">Puzzles: <span>${totalPuzz}</span></span>
+    <span class="stat">T: <span>${fmtTime(globalTime)}</span></span>
   `;
 }
 
-function formatTime(t) {
-  const m = Math.floor(t / 60);
-  const s = Math.floor(t % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
+function fmtTime(t) {
+  const m = Math.floor(t/60), s = Math.floor(t%60);
+  return `${m}:${s.toString().padStart(2,'0')}`;
 }
 
-function drawBrainWaves(agent, idx) {
-  const canvas = document.getElementById('brain-' + idx);
+function drawBrain(agent, idx) {
+  const canvas = document.getElementById('brain-'+idx);
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
+  ctx.clearRect(0,0,W,H);
   
-  [0, 2, 3, 4, 5].forEach((li, vi) => {
-    const level = BRAIN_LEVELS[li];
-    const amp = agent.brainAmplitudes[li];
-    const y0 = 4 + vi * (H - 8) / 4;
+  [0,2,3,4,5,6].forEach((li,vi) => {
+    const level = BRAIN[li];
+    const amp = agent.brainAmps[li];
+    const y0 = 3 + vi * (H-6) / 5;
     
     ctx.beginPath();
     ctx.strokeStyle = level.color;
-    ctx.lineWidth = li === agent.dominantFreq ? 2 : 0.8;
-    ctx.globalAlpha = 0.4 + amp * 0.5;
+    ctx.lineWidth = li === agent.dominantFreq ? 1.8 : 0.7;
+    ctx.globalAlpha = 0.35 + amp * 0.5;
     
     for(let x = 0; x < W; x++) {
-      const t = globalTime - (W - x) * 0.008;
-      const phase = t * level.freq * π * 2 + agent.brainPhases[li];
-      const y = y0 + Math.sin(phase) * amp * 4;
-      if(x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      const t = globalTime - (W-x) * 0.007;
+      const ph = t * level.freq * π * 2 + agent.brainPhases[li];
+      const y = y0 + Math.sin(ph) * amp * 3.5;
+      if(x === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
     }
     ctx.stroke();
     ctx.globalAlpha = 1;
   });
   
-  // Rupture flash
   if(agent.rupturing) {
-    ctx.fillStyle = 'rgba(255, 68, 0, 0.2)';
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,68,0,0.2)';
+    ctx.fillRect(0,0,W,H);
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// CONTROLS
-// ═══════════════════════════════════════════════════════════════
+function drawCorticalMap() {
+  if(!showCortical) return;
+  const a = agents[selectedAgent];
+  const canvas = document.getElementById('cortical-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  
+  const parts = [
+    { name:'head', y:0.06, h:0.12 },
+    { name:'face', y:0.1, h:0.06 },
+    { name:'lips', y:0.14, h:0.03 },
+    { name:'neck', y:0.18, h:0.04 },
+    { name:'chest', y:0.25, h:0.1 },
+    { name:'torso', y:0.35, h:0.1 },
+    { name:'pelvis', y:0.44, h:0.05 },
+    { name:'handR', y:0.38, h:0.06 },
+    { name:'handL', y:0.38, h:0.06 },
+    { name:'thighR', y:0.55, h:0.12 },
+    { name:'thighL', y:0.55, h:0.12 },
+    { name:'shinR', y:0.7, h:0.12 },
+    { name:'shinL', y:0.7, h:0.12 },
+    { name:'footR', y:0.85, h:0.06 },
+    { name:'footL', y:0.85, h:0.06 },
+  ];
+  
+  ctx.font = '9px JetBrains Mono';
+  ctx.textAlign = 'center';
+  
+  parts.forEach(p => {
+    const cortical = CORTICAL_MAP[p.name]?.cortical || 1;
+    const current = a.morphology[p.name] || 1;
+    const cy = p.y * H + 10;
+    const ch = p.h * H;
+    
+    const cw = cortical * 20;
+    const aw = current * 20;
+    const isHand = p.name.includes('hand');
+    const isFoot = p.name.includes('foot');
+    const isLeg = p.name.includes('thigh') || p.name.includes('shin');
+    const xOff = (p.name.includes('R') ? 1 : p.name.includes('L') ? -1 : 0) * 
+      (isHand ? 35 : isLeg || isFoot ? 15 : 0);
+    
+    const cx = W/2 + xOff;
+    
+    ctx.fillStyle = 'rgba(204,68,68,0.15)';
+    ctx.fillRect(cx - cw/2, cy, cw, ch);
+    ctx.strokeStyle = 'rgba(204,68,68,0.3)';
+    ctx.strokeRect(cx - cw/2, cy, cw, ch);
+    
+    ctx.fillStyle = 'rgba(68,204,136,0.25)';
+    ctx.fillRect(cx - aw/2, cy, aw, ch);
+    ctx.strokeStyle = 'rgba(68,204,136,0.5)';
+    ctx.strokeRect(cx - aw/2, cy, aw, ch);
+    
+    ctx.fillStyle = '#8a7e6e';
+    ctx.fillText(p.name.replace(/[LR]$/, ''), cx, cy - 2);
+  });
+  
+  ctx.fillStyle = '#6a5e4e';
+  ctx.font = '8px JetBrains Mono';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(204,68,68,0.5)'; ctx.fillText('■ Cortical', 8, H-20);
+  ctx.fillStyle = 'rgba(68,204,136,0.7)'; ctx.fillText('■ Current', 8, H-8);
+}
 
-function toggleCam(mode) {
-  camMode = mode;
+// ═══════════════════════════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════════════════════════
+
+function toggleCam(m) {
+  camMode = m;
   document.querySelectorAll('.ctrl').forEach(b => b.classList.remove('active'));
-  document.getElementById('btn-' + mode).classList.add('active');
+  document.getElementById('btn-'+m)?.classList.add('active');
 }
-
 function toggleSpeed() {
-  timeScale = timeScale === 1 ? 3 : timeScale === 3 ? 5 : 1;
-  document.getElementById('btn-speed').textContent = `Speed: ${timeScale}× `;
+  timeScale = timeScale===1?3:timeScale===3?6:1;
+  document.getElementById('btn-speed').textContent = `Speed ${timeScale}× `;
 }
-
-function toggleBrainViz() {
-  showBrainViz = !showBrainViz;
+function toggleBrain() {
+  showBrain = !showBrain;
   document.getElementById('btn-brain').classList.toggle('active');
   buildHUD();
 }
-
-function toggleOmegaField() {
-  showOmegaField = !showOmegaField;
+function toggleOmega() {
+  showOmega = !showOmega;
   document.getElementById('btn-omega').classList.toggle('active');
+}
+function toggleCortical() {
+  showCortical = !showCortical;
+  document.getElementById('btn-cortical').classList.toggle('active');
+  document.getElementById('cortical-overlay').classList.toggle('visible');
+}
+function toggleHomunculus() {
+  showHomunculus = !showHomunculus;
+  document.getElementById('btn-homunculus').classList.toggle('active');
+  agents.forEach(a => a.updateMorphology());
 }
 
 document.addEventListener('keydown', e => {
-  if(e.key >= '1' && e.key <= '4') { selectedAgent = parseInt(e.key) - 1; buildHUD(); }
+  if(e.key >= '1' && e.key <= '5') { selectedAgent = parseInt(e.key)-1; buildHUD(); }
   if(e.key === 'o') toggleCam('overview');
   if(e.key === 's') toggleSpeed();
-  if(e.key === 'b') toggleBrainViz();
-  if(e.key === 'f') toggleOmegaField();
+  if(e.key === 'b') toggleBrain();
+  if(e.key === 'f') toggleOmega();
+  if(e.key === 'c') toggleCortical();
+  if(e.key === 'h') toggleHomunculus();
 });
 
-// ═══════════════════════════════════════════════════════════════
-// SOCIAL CONNECTION LINES
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  SOCIAL LINES
+// ═══════════════════════════════════════════════════════════════════════
 
-const lineMat = new THREE.LineBasicMaterial({ color: 0xd4a574, transparent: true, opacity: 0.2 });
+const lineMat = new THREE.LineBasicMaterial({ color: 0xd4a574, transparent: true, opacity: 0.15 });
 const socialLines = [];
 for(let i = 0; i < agents.length; i++) {
   for(let j = i+1; j < agents.length; j++) {
@@ -1274,76 +1506,67 @@ for(let i = 0; i < agents.length; i++) {
 function updateSocialLines() {
   socialLines.forEach(({ line, i, j }) => {
     const a = agents[i], b = agents[j];
-    const d = dist2d(a.x, a.z, b.x, b.z);
-    const visible = d < 5;
-    line.visible = visible && showOmegaField;
-    if(visible) {
-      const positions = line.geometry.attributes.position.array;
-      positions[0] = a.x; positions[1] = a.height * 0.5; positions[2] = a.z;
-      positions[3] = b.x; positions[4] = b.height * 0.5; positions[5] = b.z;
+    const d = dist2d(a.x,a.z,b.x,b.z);
+    const vis = d < 6 && showOmega;
+    line.visible = vis;
+    if(vis) {
+      const pos = line.geometry.attributes.position.array;
+      pos[0]=a.x; pos[1]=a.height*0.5; pos[2]=a.z;
+      pos[3]=b.x; pos[4]=b.height*0.5; pos[5]=b.z;
       line.geometry.attributes.position.needsUpdate = true;
-      
-      const socialStrength = Math.min(a.omegaSocial, b.omegaSocial);
-      line.material.opacity = (1 - d/5) * 0.3 * (1 + socialStrength * 3);
+      const ss = Math.min(a.omegaSocial, b.omegaSocial);
+      line.material.opacity = (1-d/6)*0.25*(1+ss*3);
     }
   });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ANIMATION LOOP
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════════════════
 
-let lastTime = 0;
-let hudTimer = 0;
-
+let lastTime = 0, hudTimer = 0;
 buildHUD();
 
-function animate(timestamp) {
+function animate(ts) {
   requestAnimationFrame(animate);
   
-  const rawDt = Math.min(0.05, (timestamp - lastTime) / 1000);
-  lastTime = timestamp;
+  const rawDt = Math.min(0.05, (ts - lastTime) / 1000);
+  lastTime = ts;
   const dt = rawDt * timeScale;
   globalTime += dt;
   
-  // Update agents
-  agents.forEach(agent => agent.update(dt));
-  
-  // Social connections
+  agents.forEach(a => a.update(dt));
   updateSocialLines();
   
-  // Camera
   if(camMode === 'follow') {
-    const target = agents[selectedAgent];
-    const camDist = 6;
-    const camHeight = 3.5;
-    const tx = target.x - Math.sin(target.angle) * camDist;
-    const tz = target.z - Math.cos(target.angle) * camDist;
-    camera.position.x += (tx - camera.position.x) * 0.03;
-    camera.position.y += (camHeight - camera.position.y) * 0.03;
-    camera.position.z += (tz - camera.position.z) * 0.03;
-    camera.lookAt(target.x, target.height * 0.5, target.z);
+    const t = agents[selectedAgent];
+    const cd = 5.5, ch = 3.2;
+    const tx = t.x - Math.sin(t.angle) * cd;
+    const tz = t.z - Math.cos(t.angle) * cd;
+    camera.position.x += (tx - camera.position.x) * 0.035;
+    camera.position.y += (ch - camera.position.y) * 0.035;
+    camera.position.z += (tz - camera.position.z) * 0.035;
+    camera.lookAt(t.x, t.height * 0.45, t.z);
   } else {
-    // Overview
-    const overviewAngle = globalTime * 0.05;
-    camera.position.x = Math.sin(overviewAngle) * 18;
-    camera.position.y = 12;
-    camera.position.z = Math.cos(overviewAngle) * 18;
+    const oa = globalTime * 0.04;
+    camera.position.x = Math.sin(oa) * 20;
+    camera.position.y = 13;
+    camera.position.z = Math.cos(oa) * 20;
     camera.lookAt(0, 0, 0);
   }
   
   renderer.render(scene, camera);
   
-  // Update HUD at lower rate
   hudTimer += rawDt;
-  if(hudTimer > 0.2) {
+  if(hudTimer > 0.18) {
     hudTimer = 0;
     updateHUD();
+    if(showCortical) drawCorticalMap();
   }
 }
 
 window.addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
+  camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
