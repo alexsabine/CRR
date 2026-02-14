@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>EPIDEMIC — Multi-Agent CRR Viral Sonification</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#020208;--panel:rgba(4,4,16,0.97);
+  --v0:#4a9eff;--v1:#ff4a6a;--v2:#2aff6a;--v3:#ffaa2a;
+  --cream:rgba(200,210,230,0.85);--cream-d:rgba(200,210,230,0.35);
+  --safe-b:env(safe-area-inset-bottom,0px)
+}
+html{height:100%;background:var(--bg)}
+body{background:var(--bg);color:var(--cream);font-family:'Cormorant Garamond',Georgia,serif;min-height:100%;margin:0}
+
+#splash{position:fixed;inset:0;z-index:200;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;cursor:pointer;transition:opacity 2.5s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:700px;margin:0 auto;padding:max(16px,3vh) 24px max(24px,5vh);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+@media(max-height:700px){#splash .inner{justify-content:flex-start;min-height:auto;padding-top:16px}}
+#splash h1{font-size:clamp(2rem,7vw,4.5rem);font-weight:300;letter-spacing:.4em;
+  background:linear-gradient(135deg,#4a9eff,#ff4a6a,#2aff6a,#ffaa2a);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:4px;animation:tGlow 4s ease-in-out infinite}
+@keyframes tGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.4)}}
+#splash .sub{font-size:clamp(.65rem,1.1vw,.88rem);font-weight:300;opacity:.36;letter-spacing:.04em;line-height:2;font-style:italic}
+.sl{width:min(260px,70vw);height:1px;margin:10px auto;flex-shrink:0;background:linear-gradient(90deg,transparent,var(--v1),transparent);opacity:.22}
+#splash .tap{font-size:clamp(.55rem,.85vw,.62rem);opacity:.12;margin-top:16px;letter-spacing:.16em;animation:breathe 3s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.08}50%{opacity:.25}}
+#splash .cr{font-family:'IBM Plex Mono',monospace;font-size:clamp(.4rem,.6vw,.48rem);opacity:.12;margin-top:10px;letter-spacing:.02em;line-height:1.8}
+.ex{max-width:640px;width:100%;margin:0 auto;text-align:left;padding:0 6px}
+.ex h3{font-family:'IBM Plex Mono',monospace;font-size:clamp(.5rem,.75vw,.6rem);letter-spacing:.12em;text-transform:uppercase;color:rgba(200,210,230,0.28);margin:10px 0 3px;font-weight:400}
+.ex p{font-size:clamp(.62rem,.92vw,.74rem);font-weight:300;opacity:.28;line-height:1.7;margin-bottom:2px}
+.ex .eq{font-family:'IBM Plex Mono',monospace;font-size:clamp(.46rem,.58vw,.46rem);opacity:.15;letter-spacing:.02em;line-height:1.5}
+
+#app{display:none;width:100%;height:100vh;height:100dvh;position:fixed;inset:0}
+#app.active{display:flex}
+#main-area{flex:1;min-width:0;position:relative;overflow:hidden;background:var(--bg)}
+#bg-cv,#st-cv,#fx-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+#bg-cv{z-index:1}#st-cv{z-index:2}#fx-cv{z-index:3;touch-action:none}
+
+#panel{width:240px;flex-shrink:0;background:var(--panel);z-index:10;border-left:1px solid rgba(74,158,255,0.06);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(74,158,255,0.1) transparent}
+#panel::-webkit-scrollbar{width:3px}#panel::-webkit-scrollbar-thumb{background:rgba(74,158,255,0.12);border-radius:2px}
+.ph{padding:10px 10px 5px;border-bottom:1px solid rgba(74,158,255,0.04)}
+.ph h2{font-family:'IBM Plex Mono',monospace;font-size:7px;letter-spacing:.2em;color:rgba(200,210,230,0.25);font-weight:400;text-transform:uppercase}
+.cr{padding:5px 10px;border-bottom:1px solid rgba(74,158,255,0.03)}
+.crr{display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:6px;padding:1.5px 0;color:rgba(200,210,230,0.18)}
+.crv{letter-spacing:0}
+.bar-wrap{height:4px;background:rgba(255,255,255,0.03);border-radius:2px;margin:2px 0;position:relative;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width 0.3s}
+#pop-graph{width:100%;height:60px;display:block;background:rgba(0,0,0,0.2);border-radius:2px;margin:3px 0}
+
+#sec-label{position:absolute;top:12px;left:16px;font-family:'IBM Plex Mono',monospace;font-size:clamp(.5rem,.85vw,.68rem);font-weight:400;letter-spacing:.14em;opacity:0;color:var(--cream-d);transition:opacity 1s ease;z-index:5;pointer-events:none}
+#sec-label.vis{opacity:1}
+#stats-ov{position:absolute;top:12px;right:254px;font-family:'IBM Plex Mono',monospace;font-size:clamp(.36rem,.58vw,.42rem);color:rgba(200,210,230,0.13);text-align:right;line-height:1.7;z-index:5;pointer-events:none}
+#lyric-d{position:absolute;bottom:14%;left:0;right:240px;text-align:center;pointer-events:none;z-index:5}
+#lyric-t{font-size:clamp(.68rem,1.5vw,1.1rem);font-weight:300;letter-spacing:.08em;font-style:italic;opacity:0;transition:opacity 1.2s ease;text-shadow:0 0 30px rgba(255,74,106,0.15)}
+#lyric-t.vis{opacity:.4}
+
+#ctrls{position:absolute;bottom:12px;left:10px;display:flex;gap:6px;z-index:13;flex-wrap:wrap;max-width:400px;align-items:center}
+.cb{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.05em;padding:7px 13px;cursor:pointer;background:rgba(4,4,16,0.88);border:1px solid rgba(74,158,255,0.1);color:var(--cream-d);border-radius:2px;transition:all .3s;-webkit-tap-highlight-color:transparent}
+.cb:hover,.cb:active{background:rgba(4,4,16,0.98);border-color:var(--v0);color:var(--cream)}
+.sw{display:flex;align-items:center;gap:3px}
+.sw label{font-family:'IBM Plex Mono',monospace;font-size:6.5px;color:rgba(200,210,230,0.2);width:28px}
+.sw input[type=range]{width:45px;height:2px;cursor:pointer;accent-color:var(--v0)}
+.sw .v{font-family:'IBM Plex Mono',monospace;font-size:5.5px;color:rgba(200,210,230,0.12);width:18px;text-align:right}
+#time-d{font-family:'IBM Plex Mono',monospace;font-size:7px;color:rgba(200,210,230,0.14);letter-spacing:.03em}
+
+#ill-btn{position:absolute;bottom:12px;right:254px;z-index:13;font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.08em;padding:8px 16px;cursor:pointer;background:rgba(255,42,74,0.08);border:1px solid rgba(255,74,106,0.15);color:rgba(255,74,106,0.5);border-radius:2px;transition:all .6s;text-transform:uppercase;-webkit-tap-highlight-color:transparent}
+#ill-btn:hover{background:rgba(255,42,74,0.15);border-color:rgba(255,74,106,0.35);color:rgba(255,74,106,0.8)}
+#ill-btn.active{background:rgba(255,42,74,0.2);border-color:rgba(255,74,106,0.5);color:#ff4a6a;box-shadow:0 0 20px rgba(255,42,74,0.15)}
+#ill-label{position:absolute;bottom:36px;right:254px;z-index:13;font-family:'IBM Plex Mono',monospace;font-size:5.5px;color:rgba(255,74,106,0.2);text-align:right;pointer-events:none;opacity:0;transition:opacity 1s}
+#ill-label.vis{opacity:1}
+
+@media(max-width:768px){#ill-btn{right:202px}#ill-label{right:202px}}
+@media(max-width:600px){#ill-btn{right:10px;bottom:52px}#ill-label{right:10px;bottom:72px}}
+@media(max-width:600px){#panel{display:none}#stats-ov{right:10px}#lyric-d{right:0}#lyric-t{padding:0 14px}#ctrls{bottom:10px}.cb{font-size:10px;padding:9px 15px}}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="inner">
+  <h1>EPIDEMIC</h1><div class="sl"></div>
+  <p class="sub">A real-time multi-agent CRR viral simulation.<br>
+  No pre-composed structure. The population dynamics ARE the composition.<br>
+  One virus infects. Replicates. Lyses. Progeny infect new cells.<br>
+  The music is what exponential growth sounds like.</p>
+  <div class="sl"></div>
+  <div class="ex">
+    <h3>How This Works</h3>
+    <p>Patient zero: one virus begins its lifecycle. When it lyses, burst size = exp(C/Ω)
+    new viruses spawn, each starting their own CRR cycle at staggered times. As the population
+    grows, the texture thickens — more bells, more motors, more pressure drones layering.
+    Waves of synchronized lysis create emergent rhythmic patterns no one composed.</p>
+    <h3>What You'll Hear</h3>
+    <p>Early: a single crystalline bell ringing in void. Then: receptor clicks as it attaches.
+    A sweep as it injects. Echoing replication. Motor rhythm as it packages. Pressure building.
+    Then: LYSIS — and suddenly 3-5 new voices appear. They're all at different lifecycle stages.
+    The polyphony is the epidemic. By wave 3, the sound is dense, pulsing, alive.</p>
+    <p class="eq">All parameters from physics · 409.78 Hz root · 93.75 BPM · 5/4 time · 4-note icosahedral scale</p>
+    <h3>Emergence</h3>
+    <p>Nobody composed the moment when three viruses lyse simultaneously and the room
+    fills with capsid bells. That's the population dynamics discovering a chord.
+    The song never plays the same way twice.</p>
+  </div>
+  <div class="sl"></div>
+  <p class="cr">CRR Framework — Alexander Sabine (temporalgrammar.ai)<br>Simulation — Claude (Anthropic)</p>
+  <p class="tap">tap to release patient zero</p>
+</div></div>
+
+<div id="app">
+  <div id="main-area">
+    <canvas id="bg-cv"></canvas><canvas id="st-cv"></canvas><canvas id="fx-cv"></canvas>
+    <div id="sec-label"></div>
+    <div id="stats-ov"></div>
+    <div id="lyric-d"><span id="lyric-t"></span></div>
+    <div id="ctrls">
+      <button class="cb" id="bp">▶ PLAY</button><button class="cb" id="bs">■ STOP</button>
+      <div class="sw"><label>Vol</label><input type="range" id="sl-vol" min="0.05" max="0.5" step="0.01" value="0.22"><span class="v" id="v-vol">.22</span></div>
+      <div class="sw"><label>Speed</label><input type="range" id="sl-spd" min="0.5" max="2" step="0.1" value="1"><span class="v" id="v-spd">1.0</span></div>
+      <span id="time-d">0:00</span>
+    </div>
+    <div id="ill-label">~10⁸ virions · individual CRR cycles → statistical field<br>4 derived textures: capsid shimmer · motor field · pressure noise · lysis crackle</div>
+    <button id="ill-btn">⬡ Sound of Ill</button>
+  </div>
+  <div id="panel">
+    <div class="ph"><h2>🦠 Epidemic State</h2></div>
+    <div class="cr">
+      <div class="crr"><span>Population</span><span class="crv" style="color:var(--v1);font-size:8px" id="p-pop">1</span></div>
+      <div class="crr"><span>Generation</span><span class="crv" style="color:var(--v3)" id="p-gen">0</span></div>
+      <div class="crr"><span>Total lysed</span><span class="crv" style="color:var(--v1)" id="p-lys">0</span></div>
+      <div class="crr"><span>Total spawned</span><span class="crv" style="color:var(--v2)" id="p-spn">1</span></div>
+      <div class="crr"><span>Active voices</span><span class="crv" id="p-vox">0</span></div>
+      <div class="crr"><span>Wave</span><span class="crv" style="color:var(--v0)" id="p-wave">1</span></div>
+    </div>
+    <div class="cr">
+      <div class="ph" style="padding:2px 0 3px;border:none"><h2>📊 Population</h2></div>
+      <canvas id="pop-graph"></canvas>
+    </div>
+    <div class="cr">
+      <div class="ph" style="padding:2px 0 3px;border:none"><h2>⬡ Lifecycle Distribution</h2></div>
+      <div class="crr"><span style="color:var(--v0)">● Virion</span><span class="crv" id="d-vir">0</span></div>
+      <div class="bar-wrap"><div class="bar-fill" id="b-vir" style="background:var(--v0);width:0%"></div></div>
+      <div class="crr"><span style="color:#5ad">● Attach</span><span class="crv" id="d-att">0</span></div>
+      <div class="bar-wrap"><div class="bar-fill" id="b-att" style="background:#5ad;width:0%"></div></div>
+      <div class="crr"><span style="color:var(--v3)">● Hijack</span><span class="crv" id="d-hij">0</span></div>
+      <div class="bar-wrap"><div class="bar-fill" id="b-hij" style="background:var(--v3);width:0%"></div></div>
+      <div class="crr"><span style="color:var(--v2)">● Assembly</span><span class="crv" id="d-asm">0</span></div>
+      <div class="bar-wrap"><div class="bar-fill" id="b-asm" style="background:var(--v2);width:0%"></div></div>
+      <div class="crr"><span style="color:var(--v1)">● Pressure</span><span class="crv" id="d-prs">0</span></div>
+      <div class="bar-wrap"><div class="bar-fill" id="b-prs" style="background:var(--v1);width:0%"></div></div>
+      <div class="crr"><span style="color:#f5f">● Lysis!</span><span class="crv" id="d-lys">0</span></div>
+      <div class="bar-wrap"><div class="bar-fill" id="b-lys" style="background:#f5f;width:0%"></div></div>
+    </div>
+    <div class="cr">
+      <div class="ph" style="padding:2px 0 3px;border:none"><h2>🔊 Sound Budget</h2></div>
+      <div class="crr"><span>Bell voices</span><span class="crv" style="color:var(--v0)" id="s-bell">0</span></div>
+      <div class="crr"><span>Motor clicks</span><span class="crv" style="color:var(--v3)" id="s-mot">0</span></div>
+      <div class="crr"><span>Pressure drones</span><span class="crv" style="color:var(--v1)" id="s-prs">0</span></div>
+      <div class="crr"><span>Lysis bursts</span><span class="crv" style="color:#f5f" id="s-lys">0</span></div>
+    </div>
+    <div class="cr">
+      <div class="ph" style="padding:2px 0 3px;border:none"><h2>⬡ Icosahedral Scale</h2></div>
+      <div class="crr"><span>Root (v0)</span><span class="crv">409.78 Hz</span></div>
+      <div class="crr"><span>θ₁ (adj)</span><span class="crv">523.17 Hz · 423¢</span></div>
+      <div class="crr"><span>θ₂ (next)</span><span class="crv">641.94 Hz · 777¢</span></div>
+      <div class="crr"><span>8ve (anti)</span><span class="crv">819.56 Hz · 1200¢</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PI=Math.PI,TAU=2*PI,PHI=(1+Math.sqrt(5))/2;
+const{sin,cos,sqrt,pow,abs,floor:flr,min,max,round,exp,log,random:rnd}=Math;
+
+// §0 DERIVED CONSTANTS (all from physics)
+const ROOT=55e9/pow(2,27); // 409.78 Hz
+const THETA1=Math.acos(1/sqrt(5));
+const R1=pow(2,THETA1/PI),R2=pow(2,(PI-THETA1)/PI);
+const P0=ROOT,P1=ROOT*R1,P2=ROOT*R2,P3=ROOT*2;
+const BPM=93.75,BEAT_S=60/BPM;
+const FM_MOD=sqrt(5);
+const MOTOR_F=Array.from({length:5},(_,k)=>ROOT*pow(2,k*THETA1/(5*PI)));
+const O_Z2=1/PI,O_C5=5/TAU;
+const REVERB_T=PI;
+const B_MAX=exp(PI-1)/PI;
+
+// Icosahedron
+const VR=[[0,1,PHI],[0,1,-PHI],[0,-1,PHI],[0,-1,-PHI],[1,PHI,0],[1,-PHI,0],[-1,PHI,0],[-1,-PHI,0],[PHI,0,1],[PHI,0,-1],[-PHI,0,1],[-PHI,0,-1]];
+const VN=VR.map(v=>{const r=sqrt(v[0]**2+v[1]**2+v[2]**2);return v.map(x=>x/r);});
+const EDGES=[];
+for(let i=0;i<12;i++)for(let j=i+1;j<12;j++){
+  const d=VN[i][0]*VN[j][0]+VN[i][1]*VN[j][1]+VN[i][2]*VN[j][2];
+  if(Math.acos(min(1,max(-1,d)))<THETA1+0.01)EDGES.push([i,j]);
+}
+const FACES=[];{const es=new Set(EDGES.map(e=>e[0]*12+e[1]));
+function he(a,b){return es.has(min(a,b)*12+max(a,b));}
+for(let i=0;i<12;i++)for(let j=i+1;j<12;j++)for(let k=j+1;k<12;k++)if(he(i,j)&&he(j,k)&&he(i,k))FACES.push([i,j,k]);}
+const ADJ=Array.from({length:12},()=>[]);
+EDGES.forEach(([i,j])=>{ADJ[i].push(j);ADJ[j].push(i);});
+const V_HZ=new Float64Array(12),V_CL=new Int32Array(12),V_PAN=new Float64Array(12);
+for(let i=0;i<12;i++){
+  if(i===0){V_HZ[i]=P0;V_CL[i]=0;}
+  else{const d=VN[0][0]*VN[i][0]+VN[0][1]*VN[i][1]+VN[0][2]*VN[i][2];
+    const th=Math.acos(min(1,max(-1,d)));
+    if(abs(th-THETA1)<0.01){V_HZ[i]=P1;V_CL[i]=1;}
+    else if(abs(th-(PI-THETA1))<0.01){V_HZ[i]=P2;V_CL[i]=2;}
+    else{V_HZ[i]=P3;V_CL[i]=3;}}
+  V_PAN[i]=sin(Math.atan2(VN[i][1],VN[i][0]));
+}
+const V_COL=['#4a9eff','#7bbfff','#ff7baa','#ffaa2a'];
+
+// §1 LIFECYCLE PHASES with duration in beats (from φ29 ratios)
+const PHASES=[
+  {name:'VIRION',   dur:8,  col:'#4a9eff'},
+  {name:'ATTACH',   dur:5,  col:'#5aaddd'},
+  {name:'INJECT',   dur:2,  col:'#ff6aff'},
+  {name:'HIJACK',   dur:20, col:'#ffaa2a'},
+  {name:'ASSEMBLY', dur:50, col:'#2aff6a'},
+  {name:'PRESSURE', dur:20, col:'#ff4a6a'},
+  {name:'LYSIS',    dur:2,  col:'#ffffff'},
+  {name:'DEAD',     dur:0,  col:'#333'},
+];
+const PHASE_TOTAL=PHASES.slice(0,7).reduce((s,p)=>s+p.dur,0); // 107 beats per lifecycle
+
+// §2 VIRUS AGENT
+let virusId=0;
+class Virus{
+  constructor(x,y,gen=0,delay=0){
+    this.id=virusId++;this.x=x;this.y=y;this.gen=gen;
+    this.phase=0;this.phaseBeat=0;this.totalBeat=-delay;
+    this.alive=true;this.walkV=flr(rnd()*12);
+    this.C=0;this.omega=O_C5;this.expCO=1;this.beauty=0;
+    this.size=0.4+rnd()*0.3;this.rotY=rnd()*TAU;this.rotX=rnd()*PI;
+    this.lysisFlash=0;this.burstSize=0;
+  }
+  get phaseName(){return PHASES[this.phase].name;}
+  get phaseCol(){return PHASES[this.phase].col;}
+  get phaseDur(){return PHASES[this.phase].dur;}
+  step(dt){
+    if(!this.alive)return;
+    this.totalBeat+=dt;
+    if(this.totalBeat<0)return; // delayed start
+    this.phaseBeat+=dt;
+    // CRR accumulation
+    const L=0.02+this.phase*0.02;
+    this.C+=L*dt*0.1;
+    this.expCO=exp(min(this.C/this.omega,12));
+    this.beauty=this.expCO*(1-this.C/(this.omega*PI));
+    // Graph walk
+    if(flr(this.phaseBeat)!==flr(this.phaseBeat-dt)){
+      const target=((this.expCO-1)%1)+1;
+      let best=ADJ[this.walkV][0],bd=Infinity;
+      for(const n of ADJ[this.walkV]){
+        let r=V_HZ[n]/V_HZ[this.walkV];while(r>=2)r/=2;while(r<1)r*=2;
+        const d=abs(r-target);if(d<bd){bd=d;best=n;}
+      }
+      this.walkV=best;
+    }
+    // Phase transitions
+    if(this.phaseBeat>=this.phaseDur&&this.phase<7){
+      this.phaseBeat=0;this.phase++;
+      if(this.phase===6){// LYSIS
+        this.burstSize=min(4,max(2,flr(this.expCO*0.5)));
+        this.lysisFlash=1;
+        this.C*=0.05;
+      }
+      if(this.phase===7)this.alive=false;
+    }
+    this.rotY+=0.004;this.rotX+=0.0015;
+  }
+}
+
+// §3 POPULATION
+let population=[],totalLysed=0,totalSpawned=1,maxGen=0,wave=1;
+let popHistory=[];
+const MAX_POP=24; // performance cap — each draws 20 faces + 30 edges
+const MAX_VOICES_PER_BEAT=8; // sound budget
+
+function spawnVirus(x,y,gen,delay){
+  if(population.filter(v=>v.alive).length>=MAX_POP)return;
+  if(population.length>MAX_POP*3)return; // hard cap on array size
+  const v=new Virus(x||rnd()*W*0.6+W*0.2,y||rnd()*H*0.6+H*0.2,gen,delay);
+  population.push(v);totalSpawned++;
+  if(gen>maxGen){maxGen=gen;wave=gen+1;}
+}
+
+function processLysis(v){
+  totalLysed++;
+  const n=v.burstSize;
+  for(let i=0;i<n;i++){
+    const angle=rnd()*TAU;
+    const dist=40+rnd()*80;
+    const nx=v.x+cos(angle)*dist;
+    const ny=v.y+sin(angle)*dist;
+    // Stagger new infections
+    spawnVirus(
+      max(20,min(W-20,nx)),max(20,min(H-20,ny)),
+      v.gen+1,flr(rnd()*15) // random delay 0-15 beats
+    );
+  }
+}
+
+// §4 AUDIO
+let ctx,masterGain,dryGain,wetGain,reverbNode;
+let isPlaying=false,startTime=0,animFrame;
+let beatCount=0,lastBeat=-1;
+let masterVol=0.22,speedMul=1;
+let bellCount=0,motorCount=0,pressCount=0,lysisCount=0;
+
+function mkReverb(c){
+  const r=c.sampleRate,l=flr(r*REVERB_T),b=c.createBuffer(2,l,r);
+  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);
+    for(let i=0;i<l;i++)d[i]=(rnd()*2-1)*exp(-i/(r*REVERB_T/6.9));}
+  const v=c.createConvolver();v.buffer=b;return v;
+}
+function initAudio(){
+  ctx=new(window.AudioContext||window.webkitAudioContext)();
+  masterGain=ctx.createGain();masterGain.gain.value=masterVol;
+  const comp=ctx.createDynamicsCompressor();comp.threshold.value=-20;comp.ratio.value=6;comp.knee.value=8;
+  reverbNode=mkReverb(ctx);
+  dryGain=ctx.createGain();dryGain.gain.value=0.7;
+  wetGain=ctx.createGain();wetGain.gain.value=0.3;
+  masterGain.connect(dryGain).connect(comp).connect(ctx.destination);
+  masterGain.connect(reverbNode).connect(wetGain).connect(comp);
+}
+
+// Cached count for sound volume scaling — set each beat
+let cachedPop=1;
+
+// ═══════════════════════════════════════════════════════════════════
+// §ILL  SOUND OF ILL — statistical field of ~10⁸ simultaneous CRR cycles
+// ═══════════════════════════════════════════════════════════════════
+// When ill: you don't hear individual lifecycles.
+// You hear the FIELD: millions at every phase simultaneously.
+// Assembly harmonics become a shimmering drone (10⁷ capsids assembling).
+// Motor clicks become a dense polyrhythm (10⁷ motors packaging).
+// Pressure becomes a constant filtered roar (10⁶ cells swelling).
+// Lysis becomes stochastic crackle (10⁴ cells bursting per second).
+// Bells become a continuous metallic shimmer (10⁸ capsids vibrating).
+
+let illMode=false;
+let illFade=0; // 0=normal, 1=full ill
+let illNodes=[]; // active audio nodes for ill mode
+
+function startIllSound(){
+  if(!ctx)return;
+  stopIllSound();
+
+  // §ILL-1 CAPSID FIELD: 10⁸ normal modes = continuous FM shimmer
+  // Use multiple detuned oscillators to represent the statistical spread
+  for(let i=0;i<5;i++){
+    const car=ctx.createOscillator(),mod=ctx.createOscillator();
+    const modG=ctx.createGain(),carG=ctx.createGain();
+    // Slight detuning = millions of capsids at slightly different sizes
+    const detune=(i-2)*3; // ±6 cents spread
+    car.frequency.value=V_HZ[i*2%12]; // spread across vertex pitches
+    car.detune.value=detune;
+    mod.frequency.value=car.frequency.value*FM_MOD;
+    mod.detune.value=detune;
+    // β = moderate (average across all CRR states) ≈ 3
+    modG.gain.value=car.frequency.value*3*0.3;
+    carG.gain.value=0; // will fade in
+    const pan=ctx.createStereoPanner();
+    pan.pan.value=V_PAN[i*2%12]*0.6;
+    mod.connect(modG).connect(car.frequency);
+    car.connect(carG).connect(pan).connect(masterGain);
+    mod.start();car.start();
+    illNodes.push({car,mod,carG,modG,pan,type:'bell',targetVol:0.018});
+  }
+
+  // §ILL-2 MOTOR FIELD: 10⁷ pentameric motors = dense rhythmic texture
+  // 5 motor frequencies playing continuously with slight amplitude modulation
+  for(let k=0;k<5;k++){
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type='square';o.frequency.value=MOTOR_F[k];
+    // Amplitude modulation at motor rate creates rhythmic pulse
+    const lfo=ctx.createOscillator(),lfoG=ctx.createGain();
+    lfo.frequency.value=BPM/60/5*(k+1)*0.2; // slow phase drift per subunit
+    lfoG.gain.value=0.3;
+    g.gain.value=0;
+    const pan=ctx.createStereoPanner();
+    pan.pan.value=(k/4-0.5)*0.8;
+    lfo.connect(lfoG).connect(g.gain);
+    o.connect(g).connect(pan).connect(masterGain);
+    lfo.start();o.start();
+    illNodes.push({o,g,lfo,lfoG,pan,type:'motor',targetVol:0.012});
+  }
+
+  // §ILL-3 PRESSURE FIELD: filtered noise = millions of swelling cells
+  // Continuous noise with filter cutoff at ROOT (capsid breathing frequency)
+  const nBuf=ctx.createBuffer(2,ctx.sampleRate*4,ctx.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=nBuf.getChannelData(ch);for(let i=0;i<d.length;i++)d[i]=rnd()*2-1;}
+  const nSrc=ctx.createBufferSource();nSrc.buffer=nBuf;nSrc.loop=true;
+  const filt=ctx.createBiquadFilter();filt.type='lowpass';
+  filt.frequency.value=ROOT; // cutoff = capsid breathing mode — DERIVED
+  filt.Q.value=O_Z2*10; // Q = Ω×10 — DERIVED (same as individual pressure voice)
+  const nG=ctx.createGain();nG.gain.value=0;
+  nSrc.connect(filt).connect(nG).connect(masterGain);
+  nSrc.start();
+  illNodes.push({nSrc,filt,nG,type:'pressure',targetVol:0.035});
+
+  // §ILL-4 LYSIS CRACKLE: stochastic impulses = thousands of cells bursting/sec
+  // Use a noise source with very high-pass filter and gate = crackle texture
+  const cBuf=ctx.createBuffer(1,ctx.sampleRate*4,ctx.sampleRate);
+  {const d=cBuf.getChannelData(0);
+    // Sparse impulses: ~1000/sec out of 44100 samples/sec ≈ 2.3% density
+    for(let i=0;i<d.length;i++)d[i]=rnd()<0.023?(rnd()*2-1)*3:0;}
+  const cSrc=ctx.createBufferSource();cSrc.buffer=cBuf;cSrc.loop=true;
+  const hpf=ctx.createBiquadFilter();hpf.type='highpass';hpf.frequency.value=2000;
+  const cG=ctx.createGain();cG.gain.value=0;
+  cSrc.connect(hpf).connect(cG).connect(masterGain);
+  cSrc.start();
+  illNodes.push({cSrc,hpf,cG,type:'lysis',targetVol:0.025});
+
+  // §ILL-5 REMOVED: Fever drone was pure theatre (sub-bass + heartbeat tremolo).
+  // The virus doesn't know about fever. Fever is the host's immune response.
+}
+
+function stopIllSound(){
+  for(const n of illNodes){
+    try{
+      if(n.car){n.car.stop();n.mod.stop();}
+      if(n.o){n.o.stop();n.lfo.stop();}
+      if(n.nSrc)n.nSrc.stop();
+      if(n.cSrc)n.cSrc.stop();
+    }catch(e){}
+  }
+  illNodes=[];
+}
+
+function updateIllVolumes(){
+  for(const n of illNodes){
+    const vol=n.targetVol*illFade;
+    if(n.carG)n.carG.gain.value=vol;
+    if(n.g)n.g.gain.value=vol;
+    if(n.nG)n.nG.gain.value=vol;
+    if(n.cG)n.cG.gain.value=vol;
+  }
+}
+
+// Sound generators (same as constrained version, scaled for multi-voice)
+function playBell(t,virus){
+  if(!ctx)return;bellCount++;
+  const freq=V_HZ[virus.walkV];
+  const beta=min(virus.expCO,10);
+  const vol=O_C5*0.2/max(1,sqrt(cachedPop)*0.5); // quieter as population grows
+  const dur=BEAT_S*1.5*(1+1/max(1,beta));
+  const car=ctx.createOscillator(),mod=ctx.createOscillator();
+  const modG=ctx.createGain(),carG=ctx.createGain();
+  mod.frequency.value=freq*FM_MOD;
+  modG.gain.setValueAtTime(freq*beta*0.4,t);modG.gain.exponentialRampToValueAtTime(1,t+dur);
+  car.frequency.value=freq;
+  carG.gain.setValueAtTime(0.001,t);
+  carG.gain.linearRampToValueAtTime(vol,t+min(dur*0.2,0.05));
+  carG.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  const pan=ctx.createStereoPanner();
+  // Pan from BOTH vertex azimuth AND virus spatial position
+  const spatialPan=(virus.x/W-0.5)*1.2;
+  pan.pan.value=max(-1,min(1,V_PAN[virus.walkV]*0.4+spatialPan*0.6));
+  mod.connect(modG).connect(car.frequency);
+  car.connect(carG).connect(pan).connect(masterGain);
+  mod.start(t);car.start(t);mod.stop(t+dur+0.1);car.stop(t+dur+0.1);
+}
+
+function playMotor(t,virus,step){
+  if(!ctx)return;motorCount++;
+  const freq=MOTOR_F[step];
+  
+  const vol=O_C5*0.06/max(1,sqrt(cachedPop)*0.4);
+  const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type='square';o.frequency.value=freq;
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.025);
+  const pan=ctx.createStereoPanner();pan.pan.value=(virus.x/W-0.5)*1.2;
+  o.connect(g).connect(pan).connect(masterGain);o.start(t);o.stop(t+0.04);
+}
+
+function playPressure(t,virus){
+  if(!ctx)return;pressCount++;
+  const cutoff=min(10000,ROOT*max(0.5,virus.C*6));
+  
+  const vol=O_Z2*0.04/max(1,sqrt(cachedPop)*0.3);
+  const dur=BEAT_S*0.35;
+  const buf=ctx.createBuffer(1,flr(ctx.sampleRate*dur),ctx.sampleRate);
+  const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=rnd()*2-1;
+  const src=ctx.createBufferSource();src.buffer=buf;
+  const filt=ctx.createBiquadFilter();filt.type='lowpass';filt.frequency.value=cutoff;filt.Q.value=O_Z2*10;
+  const g=ctx.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  const pan=ctx.createStereoPanner();pan.pan.value=(virus.x/W-0.5)*1.2;
+  src.connect(filt).connect(g).connect(pan).connect(masterGain);src.start(t);
+}
+
+function playLysis(t,virus){
+  if(!ctx)return;lysisCount++;
+  
+  const vol=0.15/max(1,sqrt(cachedPop)*0.3);
+  // Noise burst
+  const buf=ctx.createBuffer(2,flr(ctx.sampleRate*1.5),ctx.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);
+    for(let i=0;i<d.length;i++)d[i]=(rnd()*2-1)*exp(-i/(ctx.sampleRate*0.4));}
+  const src=ctx.createBufferSource();src.buffer=buf;
+  const ng=ctx.createGain();ng.gain.setValueAtTime(vol,t);ng.gain.exponentialRampToValueAtTime(0.001,t+1.5);
+  const pan=ctx.createStereoPanner();pan.pan.value=(virus.x/W-0.5)*1.2;
+  src.connect(ng).connect(pan).connect(masterGain);src.start(t);
+  // Sub drop
+  const sub=ctx.createOscillator(),sg=ctx.createGain();
+  sub.type='sine';sub.frequency.setValueAtTime(ROOT,t);sub.frequency.exponentialRampToValueAtTime(ROOT/8,t+1);
+  sg.gain.setValueAtTime(vol*0.8,t);sg.gain.exponentialRampToValueAtTime(0.001,t+1);
+  sub.connect(sg).connect(pan).connect(masterGain);sub.start(t);sub.stop(t+1.5);
+  // Progeny bells — limit to 3
+  for(let i=0;i<min(virus.burstSize,3);i++){
+    const delay=0.3+rnd()*1;
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type='sine';o.frequency.value=V_HZ[flr(rnd()*12)];
+    g.gain.setValueAtTime(vol*0.3,t+delay);g.gain.exponentialRampToValueAtTime(0.001,t+delay+2);
+    o.connect(g).connect(pan).connect(masterGain);o.start(t+delay);o.stop(t+delay+2.5);
+  }
+}
+
+function playReplicEcho(t,virus){
+  if(!ctx)return;
+  const v=flr(rnd()*12);
+  
+  const vol=O_Z2*0.06/max(1,sqrt(cachedPop)*0.4);
+  const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type='sine';o.frequency.value=V_HZ[v];
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+BEAT_S*1.2);
+  const pan=ctx.createStereoPanner();pan.pan.value=(virus.x/W-0.5)*1.2;
+  o.connect(g).connect(pan).connect(masterGain);o.start(t);o.stop(t+BEAT_S*1.5);
+}
+
+// §5 SEQUENCER — processes ALL viruses
+function scheduleBeat(beat,t){
+  bellCount=0;motorCount=0;pressCount=0;lysisCount=0;
+  const motorStep=beat%5;
+  let voicesUsed=0;
+
+  // Step ALL alive viruses (including delayed ones, so their clock advances)
+  const alive=population.filter(v=>v.alive);
+  for(const v of alive)v.step(1);
+  cachedPop=alive.length; // cache for sound generators
+
+  // Only produce sound for viruses past their delay, sorted by priority
+  // In ill mode, reduce individual voices to let continuous textures dominate
+  const maxVoices=illFade>0.5?max(2,flr(MAX_VOICES_PER_BEAT*(1-illFade))):MAX_VOICES_PER_BEAT;
+  const sounding=alive.filter(v=>v.totalBeat>=0).sort((a,b)=>b.phase-a.phase);
+
+  for(const v of sounding){
+    if(voicesUsed>=maxVoices)continue;
+
+    const pb=flr(v.phaseBeat);
+
+    // VIRION: occasional bell
+    if(v.phase===0&&pb%3===0){playBell(t+rnd()*0.05,v);voicesUsed++;}
+
+    // ATTACH: receptor clicks
+    if(v.phase===1&&pb<4){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine';o.frequency.value=P1*(1+rnd()*0.1);
+      const vol=O_Z2*0.06/max(1,sqrt(sounding.length)*0.3);
+      g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.01);
+      o.connect(g).connect(masterGain);o.start(t);o.stop(t+0.02);
+      voicesUsed++;
+    }
+
+    // INJECT: sweep (only on phase entry)
+    if(v.phase===2&&pb===0){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sawtooth';o.frequency.setValueAtTime(P2*3,t);
+      o.frequency.exponentialRampToValueAtTime(ROOT/4,t+BEAT_S*2);
+      const vol=0.08/max(1,sqrt(sounding.length)*0.3);
+      g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+BEAT_S*2);
+      const pan=ctx.createStereoPanner();pan.pan.value=(v.x/W-0.5)*1.2;
+      o.connect(g).connect(pan).connect(masterGain);o.start(t);o.stop(t+BEAT_S*2.5);
+      voicesUsed++;
+    }
+
+    // HIJACK: replication echoes
+    if(v.phase===3&&pb%4===0){playReplicEcho(t,v);voicesUsed++;}
+
+    // ASSEMBLY: bell + occasional motor
+    if(v.phase===4){
+      if(pb%3===0&&voicesUsed<maxVoices){playBell(t,v);voicesUsed++;}
+      if(pb>15&&pb%3===0&&voicesUsed<maxVoices){playMotor(t,v,motorStep);voicesUsed++;}
+    }
+
+    // PRESSURE: motor + pressure drone + bell (stagger across viruses)
+    if(v.phase===5){
+      // Only play motor on this virus's own beat offset to spread load
+      if((motorStep+v.id)%3===0&&voicesUsed<maxVoices){playMotor(t,v,motorStep);voicesUsed++;}
+      if(pb%3===0&&voicesUsed<maxVoices){playPressure(t,v);voicesUsed++;}
+      if(pb%5===0&&voicesUsed<maxVoices){playBell(t,v);voicesUsed++;}
+    }
+
+    // LYSIS: big burst (on phase entry)
+    if(v.phase===6&&pb===0){
+      playLysis(t,v);voicesUsed+=3;
+      processLysis(v);
+    }
+  }
+
+  // Adaptive reverb: more population → more reverb (like a crowded room)
+  const pop=sounding.length;
+  const revMix=min(0.65,0.15+pop*0.02);
+  if(dryGain)dryGain.gain.setValueAtTime(1-revMix,t);
+  if(wetGain)wetGain.gain.setValueAtTime(revMix,t);
+
+  // Clean up dead viruses quickly
+  population=population.filter(v=>v.alive||v.lysisFlash>0.05);
+}
+
+// §6 VISUALISATION
+const bgCv=document.getElementById('bg-cv'),bgC=bgCv.getContext('2d');
+const stCv=document.getElementById('st-cv'),stC=stCv.getContext('2d');
+const fxCv=document.getElementById('fx-cv'),fxC=fxCv.getContext('2d');
+let W=800,H=600,DPR=1;
+
+function resize(){
+  DPR=min(window.devicePixelRatio||1,2);
+  const r=fxCv.parentElement.getBoundingClientRect();W=r.width;H=r.height;
+  [bgCv,stCv,fxCv].forEach(c=>{c.width=W*DPR;c.height=H*DPR;c.getContext('2d').setTransform(DPR,0,0,DPR,0,0);});
+  renderBg();
+}
+function renderBg(){
+  const c=bgC;
+  const g=c.createRadialGradient(W/2,H/2,0,W/2,H/2,max(W,H)*0.7);
+  g.addColorStop(0,'#080815');g.addColorStop(0.5,'#040408');g.addColorStop(1,'#020204');
+  c.fillStyle=g;c.fillRect(0,0,W,H);
+  for(let i=0;i<300;i++){
+    c.fillStyle=`rgba(${140+rnd()*100|0},${150+rnd()*90|0},${190+rnd()*60|0},${0.02+rnd()*0.05})`;
+    c.fillRect(rnd()*W,rnd()*H,rnd()+0.5,rnd()+0.5);
+  }
+}
+
+// Rotation helpers
+function rotY(a){return[[cos(a),0,sin(a)],[0,1,0],[-sin(a),0,cos(a)]];}
+function rotX(a){return[[1,0,0],[0,cos(a),-sin(a)],[0,sin(a),cos(a)]];}
+function mulMV(m,v){return[m[0][0]*v[0]+m[0][1]*v[1]+m[0][2]*v[2],m[1][0]*v[0]+m[1][1]*v[1]+m[1][2]*v[2],m[2][0]*v[0]+m[2][1]*v[1]+m[2][2]*v[2]];}
+function mulMM(a,b){const r=[[0,0,0],[0,0,0],[0,0,0]];for(let i=0;i<3;i++)for(let j=0;j<3;j++)for(let k=0;k<3;k++)r[i][j]+=a[i][k]*b[k][j];return r;}
+
+function drawVirus(c,v,sz){
+  const rot=mulMM(rotY(v.rotY),rotX(v.rotX));
+  const breath=sin(v.totalBeat*0.3)*0.03;
+  const s=1+breath; // unit-scale breathing, NOT multiplied by sz
+  const pr=VN.map(vt=>{
+    const rv=mulMV(rot,vt.map(x=>x*s)); // unit-sphere vertices rotated
+    const z=rv[2]+3;const f=3/z; // z ∈ [2,4], always safe
+    return[v.x+rv[0]*sz*f,v.y-rv[1]*sz*f,z]; // sz applied ONCE here
+  });
+
+  // Faces — only draw if virus is reasonably on screen
+  if(v.x<-50||v.x>W+50||v.y<-50||v.y>H+50)return;
+  const rgb=hexToRgb(v.phaseCol);
+  const sf=FACES.map(f=>{
+    const za=(pr[f[0]][2]+pr[f[1]][2]+pr[f[2]][2])/3;
+    return{f,z:za};
+  }).sort((a,b)=>a.z-b.z);
+  for(const{f}of sf){
+    const pa=pr[f[0]],pb=pr[f[1]],pd=pr[f[2]];
+    c.beginPath();c.moveTo(pa[0],pa[1]);c.lineTo(pb[0],pb[1]);c.lineTo(pd[0],pd[1]);c.closePath();
+    const br=0.03+max(0,(pa[2]+pb[2]+pd[2])/3-1.5)*0.04;
+    c.fillStyle=`rgba(${rgb},${br})`;
+    c.fill();
+  }
+
+  // Edges
+  for(const[i,j]of EDGES){
+    const pa=pr[i],pb=pr[j];
+    const za=(pa[2]+pb[2])/2;
+    const alpha=0.08+max(0,(za-1.5)*0.15);
+    c.beginPath();c.moveTo(pa[0],pa[1]);c.lineTo(pb[0],pb[1]);
+    c.strokeStyle=`rgba(${rgb},${alpha})`;
+    c.lineWidth=0.5;c.stroke();
+  }
+
+  // Active vertex glow
+  const wv=pr[v.walkV];
+  if(wv){
+    c.beginPath();c.arc(wv[0],wv[1],3,0,TAU);
+    c.fillStyle=`rgba(255,255,255,0.4)`;c.fill();
+  }
+}
+
+function hexToRgb(hex){
+  hex=hex.replace('#','');
+  if(hex.length===3)hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  return`${parseInt(hex.slice(0,2),16)},${parseInt(hex.slice(2,4),16)},${parseInt(hex.slice(4,6),16)}`;
+}
+
+// Simplified renderer for large populations — glowing pentagon instead of full icosahedron
+function drawVirusSimple(c,v,sz){
+  if(v.x<-20||v.x>W+20||v.y<-20||v.y>H+20)return;
+  const rgb=hexToRgb(v.phaseCol);
+  const r=sz*0.7;
+  // Glow
+  const gr=c.createRadialGradient(v.x,v.y,0,v.x,v.y,r*2);
+  gr.addColorStop(0,`rgba(${rgb},0.25)`);gr.addColorStop(0.5,`rgba(${rgb},0.06)`);gr.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=gr;c.fillRect(v.x-r*2,v.y-r*2,r*4,r*4);
+  // Pentagon (C₅!)
+  c.beginPath();
+  for(let k=0;k<5;k++){
+    const a=-PI/2+k*TAU/5+v.rotY;
+    const px=v.x+cos(a)*r,py=v.y+sin(a)*r;
+    k===0?c.moveTo(px,py):c.lineTo(px,py);
+  }
+  c.closePath();
+  c.fillStyle=`rgba(${rgb},0.12)`;c.fill();
+  c.strokeStyle=`rgba(${rgb},0.25)`;c.lineWidth=0.5;c.stroke();
+  // Active vertex dot
+  c.beginPath();c.arc(v.x,v.y,2,0,TAU);
+  c.fillStyle=`rgba(255,255,255,0.3)`;c.fill();
+}
+
+function drawFrame(){
+  if(!isPlaying){animFrame=requestAnimationFrame(drawFrame);return;}
+  const songT=ctx?ctx.currentTime-startTime:0;
+  const beat=songT/(BEAT_S/speedMul);
+
+  // ILL MODE: fade transition (audio crossfade only — no theatrical visuals)
+  if(illMode&&illFade<1)illFade=min(1,illFade+0.008);
+  if(!illMode&&illFade>0)illFade=max(0,illFade-0.012);
+  updateIllVolumes();
+
+  // Structure layer — all viruses
+  const c=stC;c.clearRect(0,0,W,H);
+  const active=population.filter(v=>(v.alive&&v.totalBeat>=0)||v.lysisFlash>0.05);
+  const popCount=active.filter(v=>v.alive).length;
+  const simplified=popCount>12;
+
+  for(const v of active){
+    if(v.totalBeat<0)continue;
+    const sz=min(W,H)*(simplified?0.025:0.04)*(v.size+(v.phase>=4?0.1:0));
+    if(v.alive){
+      if(simplified)drawVirusSimple(c,v,sz);
+      else drawVirus(c,v,sz);
+    }
+    // Decay lysis flash (must happen here since step() skips dead viruses)
+    v.lysisFlash*=0.85;
+    // Lysis flash ring
+    if(v.lysisFlash>0.01){
+      const r=sz*(3-v.lysisFlash*2);
+      c.beginPath();c.arc(v.x,v.y,r,0,TAU);
+      c.strokeStyle=`rgba(255,255,255,${v.lysisFlash*0.4})`;
+      c.lineWidth=1.5*v.lysisFlash;c.stroke();
+    }
+  }
+
+  // FX layer
+  const fx=fxC;fx.clearRect(0,0,W,H);
+
+  // ILL MODE: no theatrical visuals. The sound IS the experience.
+  // Ambient glow per virus
+  for(const v of active){
+    if(!v.alive||v.totalBeat<0)continue;
+    const gr=fx.createRadialGradient(v.x,v.y,0,v.x,v.y,30+v.phase*8);
+    gr.addColorStop(0,`rgba(${hexToRgb(v.phaseCol)},${0.01+v.C*0.02})`);
+    gr.addColorStop(1,'rgba(0,0,0,0)');
+    fx.fillStyle=gr;fx.fillRect(v.x-50,v.y-50,100,100);
+  }
+
+  // Update panel
+  const aliveCount=population.filter(v=>v.alive).length;
+  document.getElementById('p-pop').textContent=aliveCount;
+  document.getElementById('p-gen').textContent=maxGen;
+  document.getElementById('p-lys').textContent=totalLysed;
+  document.getElementById('p-spn').textContent=totalSpawned;
+  document.getElementById('p-vox').textContent=bellCount+motorCount+pressCount+lysisCount;
+  document.getElementById('p-wave').textContent=wave;
+  document.getElementById('s-bell').textContent=bellCount;
+  document.getElementById('s-mot').textContent=motorCount;
+  document.getElementById('s-prs').textContent=pressCount;
+  document.getElementById('s-lys').textContent=lysisCount;
+
+  // Phase distribution
+  const dist=[0,0,0,0,0,0,0];
+  for(const v of active)if(v.alive&&v.totalBeat>=0)dist[v.phase]++;
+  const labels=['vir','att','hij','asm','prs','lys'];
+  const ids=['vir','att','hij','asm','prs','lys'];
+  const phases=[0,1,3,4,5,6];
+  for(let i=0;i<ids.length;i++){
+    const cnt=dist[phases[i]]||0;
+    document.getElementById('d-'+ids[i]).textContent=cnt;
+    document.getElementById('b-'+ids[i]).style.width=`${aliveCount?cnt/aliveCount*100:0}%`;
+  }
+
+  // Population graph
+  if(flr(beat)!==flr(beat-1/(BEAT_S/speedMul)*0.016)){
+    popHistory.push(aliveCount);
+    if(popHistory.length>200)popHistory.shift();
+  }
+  drawPopGraph();
+
+  // Section label — describe what's happening
+  let label='';
+  if(illFade>0.5)label='SOUND OF ILL';
+  else if(aliveCount===0)label='EXTINCTION';
+  else if(aliveCount===1&&maxGen===0)label='PATIENT ZERO';
+  else if(maxGen===0)label='FIRST INFECTION';
+  else if(dist[6]>0)label=`LYSIS WAVE ${wave}`;
+  else if(dist[4]+dist[5]>aliveCount*0.5)label='ASSEMBLY PHASE';
+  else if(dist[3]>aliveCount*0.3)label='HIJACK WAVE';
+  else label=`GENERATION ${maxGen}`;
+  document.getElementById('sec-label').textContent=label;
+  document.getElementById('sec-label').classList.toggle('vis',true);
+
+  // Lyric
+  const lyrics=[
+    [1,'one geometry, seeking its lock'],
+    [3,'the code overwrites the cell'],
+    [8,'the room fills with crystalline voices'],
+    [15,'waves of rupture, waves of birth'],
+    [25,'the geometry multiplies beyond counting'],
+    [35,'every surface rings with icosahedral bells'],
+  ];
+  let lyric='';
+  if(illFade>0.5)lyric='10⁸ simultaneous CRR cycles — individual events become statistics';
+  else{for(const[thresh,text]of lyrics)if(aliveCount>=thresh)lyric=text;}
+  document.getElementById('lyric-t').textContent=lyric;
+  document.getElementById('lyric-t').classList.toggle('vis',!!lyric);
+
+  // Stats overlay
+  document.getElementById('stats-ov').innerHTML=
+    `pop=${aliveCount} · gen=${maxGen} · wave=${wave}<br>`
+    +`lysed=${totalLysed} · voices=${bellCount+motorCount+pressCount+lysisCount}`;
+
+  const fmt=s=>`${flr(s/60)}:${String(flr(s%60)).padStart(2,'0')}`;
+  document.getElementById('time-d').textContent=fmt(songT);
+
+  animFrame=requestAnimationFrame(drawFrame);
+}
+
+function drawPopGraph(){
+  const cv=document.getElementById('pop-graph');if(!cv)return;
+  const c=cv.getContext('2d');
+  const w=cv.width=cv.clientWidth*2,h=cv.height=cv.clientHeight*2;
+  c.scale(2,2);const cw=cv.clientWidth,ch=cv.clientHeight;
+  c.clearRect(0,0,cw,ch);
+  if(popHistory.length<2)return;
+  const pk=max(1,...popHistory);
+  c.beginPath();
+  for(let i=0;i<popHistory.length;i++){
+    const x=i/(popHistory.length-1)*cw;
+    const y=ch-popHistory[i]/pk*(ch-4)-2;
+    i===0?c.moveTo(x,y):c.lineTo(x,y);
+  }
+  c.strokeStyle='rgba(255,74,106,0.5)';c.lineWidth=1;c.stroke();
+  // Fill under
+  c.lineTo(cw,ch);c.lineTo(0,ch);c.closePath();
+  c.fillStyle='rgba(255,74,106,0.05)';c.fill();
+  // Max line
+  c.font='5px "IBM Plex Mono"';c.fillStyle='rgba(200,210,230,0.15)';
+  c.fillText(`${pk}`,cw-15,8);
+}
+
+// §7 TRANSPORT
+function play(){
+  if(isPlaying)return;if(!ctx)initAudio();
+  if(ctx.state==='suspended')ctx.resume();
+  document.getElementById('app').classList.add('active');
+  resize();
+  isPlaying=true;startTime=ctx.currentTime;
+  lastBeat=-1;beatCount=0;
+  population=[];totalLysed=0;totalSpawned=1;maxGen=0;wave=1;virusId=0;
+  popHistory=[];illMode=false;illFade=0;stopIllSound();
+  document.getElementById('ill-btn').classList.remove('active');
+  document.getElementById('ill-label').classList.remove('vis');
+  // Patient zero — centre of screen
+  spawnVirus(W/2,H/2,0,0);
+  scheduleLoop();animFrame=requestAnimationFrame(drawFrame);
+}
+function stop(){
+  isPlaying=false;stopIllSound();illMode=false;illFade=0;
+  document.getElementById('ill-btn').classList.remove('active');
+  document.getElementById('ill-label').classList.remove('vis');
+  if(animFrame)cancelAnimationFrame(animFrame);
+  if(ctx){masterGain.gain.linearRampToValueAtTime(0,ctx.currentTime+0.5);
+    setTimeout(()=>{if(masterGain)masterGain.gain.setValueAtTime(masterVol,ctx.currentTime);},600);}
+}
+function scheduleLoop(){
+  if(!isPlaying)return;
+  const now=ctx.currentTime,songT=now-startTime,beatDur=BEAT_S/speedMul;
+  while(beatCount*beatDur<songT+0.15){
+    if(beatCount>lastBeat){scheduleBeat(beatCount,startTime+beatCount*beatDur);lastBeat=beatCount;}
+    beatCount++;
+  }
+  setTimeout(scheduleLoop,50);
+}
+
+// §8 INIT
+window.addEventListener('resize',resize);
+document.getElementById('splash').addEventListener('click',()=>{
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  resize();setTimeout(play,300);
+});
+document.getElementById('bp').addEventListener('click',play);
+document.getElementById('bs').addEventListener('click',stop);
+document.getElementById('sl-vol').addEventListener('input',e=>{masterVol=+e.target.value;document.getElementById('v-vol').textContent=masterVol.toFixed(2);if(masterGain)masterGain.gain.value=masterVol;});
+document.getElementById('sl-spd').addEventListener('input',e=>{speedMul=+e.target.value;document.getElementById('v-spd').textContent=speedMul.toFixed(1);});
+document.getElementById('ill-btn').addEventListener('click',()=>{
+  if(!isPlaying)return;
+  illMode=!illMode;
+  document.getElementById('ill-btn').classList.toggle('active',illMode);
+  document.getElementById('ill-label').classList.toggle('vis',illMode);
+  if(illMode){
+    // Spawn extra viruses if population is sparse, so there's something to see
+    const alive=population.filter(v=>v.alive).length;
+    if(alive<8){for(let i=0;i<12-alive;i++)spawnVirus(W/2+(rnd()-0.5)*100,H/2+(rnd()-0.5)*100,maxGen,flr(rnd()*5));}
+    startIllSound();
+  }else{
+    stopIllSound();
+  }
+});
+</script>
+</body>
+</html>
