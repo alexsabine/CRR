@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Song of the Rainbow · CRR Optical Composition</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --red:#e84545;--orange:#e88a45;--yellow:#e8c547;--green:#5cb88a;
+  --blue:#3a9ebd;--indigo:#6a5fd2;--violet:#a04ed6;
+  --white:#e8e4d8;--prism:rgba(232,197,71,0.08);
+  --bg:#020408;--panel:rgba(4,6,14,0.97);
+  --text:rgba(220,218,230,0.85);--dim:rgba(180,175,200,0.4);
+  --mono:'IBM Plex Mono',monospace;--serif:'Cormorant Garamond',Georgia,serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--serif);
+  overflow:hidden;width:100vw;height:100vh;position:fixed}
+
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;
+  align-items:center;justify-content:center;cursor:pointer;transition:opacity 1.6s ease;
+  overflow-y:auto;-webkit-overflow-scrolling:touch}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:740px;padding:20px 24px}
+#splash .bar{width:320px;height:3px;margin:0 auto 20px;border-radius:2px;position:relative;overflow:hidden}
+#splash .bar::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,var(--red),var(--orange),var(--yellow),var(--green),var(--blue),var(--indigo),var(--violet),var(--red));
+  background-size:200% 100%;animation:specShift 5s linear infinite}
+@keyframes specShift{0%{background-position:0% 0}100%{background-position:200% 0}}
+#splash h1{font-size:clamp(2.2rem,5.5vw,3.8rem);font-weight:300;letter-spacing:.2em;
+  background:linear-gradient(135deg,var(--red),var(--orange),var(--yellow),var(--green),var(--blue),var(--indigo),var(--violet),var(--red));
+  background-size:300% 300%;animation:titleShift 8s ease-in-out infinite;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@keyframes titleShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+#splash .sub{font-size:clamp(.82rem,1.4vw,1.05rem);font-weight:300;opacity:.55;
+  letter-spacing:.04em;line-height:1.9;font-style:italic;margin-top:12px;
+  text-shadow:0 0 20px rgba(0,0,0,.8)}
+#splash .eq{font-family:var(--mono);font-size:clamp(.52rem,.82vw,.68rem);
+  opacity:.35;margin-top:18px;letter-spacing:.01em;line-height:2;
+  text-shadow:0 0 12px rgba(0,0,0,.9)}
+#splash .credit{font-size:.7rem;opacity:.3;margin-top:14px;letter-spacing:.06em}
+#splash .tap{font-size:.8rem;opacity:.35;margin-top:24px;letter-spacing:.16em;
+  font-family:var(--mono);animation:pulse 2s ease-in-out infinite;
+  padding:8px 24px;border:1px solid rgba(232,197,71,.1);border-radius:4px;display:inline-block}
+@keyframes pulse{0%,100%{opacity:.2}50%{opacity:.5}}
+
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#canvas-wrap{flex:1;min-height:0;position:relative;overflow:hidden}
+canvas{display:block;position:absolute;inset:0;width:100%;height:100%}
+#viz{z-index:1}
+#optics{z-index:2;pointer-events:none}
+#flash{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .04s linear}
+
+#info-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+  align-items:flex-start;padding:12px 18px;pointer-events:none;z-index:5}
+#piece-title{font-size:clamp(1rem,1.5vw,1.2rem);font-weight:400;letter-spacing:.12em;
+  color:rgba(232,197,71,.65);text-shadow:0 1px 8px rgba(0,0,0,.7)}
+#piece-title .bpm{font-size:.65em;opacity:.7;display:block;margin-top:3px;
+  font-family:var(--mono);-webkit-text-fill-color:rgba(200,195,220,.5)}
+#crr-data{font-family:var(--mono);font-size:clamp(.56rem,.85vw,.72rem);
+  color:rgba(232,197,71,.55);text-align:right;line-height:1.7;
+  text-shadow:0 1px 6px rgba(0,0,0,.8)}
+
+#section-label{position:absolute;top:22%;left:50%;transform:translate(-50%,-50%);text-align:center;
+  pointer-events:none;z-index:4;font-size:clamp(1.6rem,4.5vw,3.2rem);letter-spacing:.12em;
+  font-weight:300;font-style:italic;opacity:0;transition:opacity 1.6s ease;
+  color:rgba(255,255,255,.88);text-shadow:0 0 40px rgba(232,197,71,.2)}
+#section-desc{position:absolute;top:14%;left:50%;transform:translate(-50%,0);text-align:center;
+  pointer-events:none;z-index:6;font-family:var(--mono);font-size:clamp(.7rem,1.1vw,.88rem);
+  letter-spacing:.05em;opacity:0;transition:opacity 2s ease;color:rgba(232,229,200,.7);
+  text-shadow:0 0 12px rgba(0,0,0,.9);padding:5px 16px;background:rgba(0,0,0,.4);border-radius:4px}
+#bio-panel{position:absolute;bottom:9%;left:14px;pointer-events:none;z-index:5;max-width:420px}
+#bio-text{font-family:var(--mono);font-size:clamp(.62rem,1vw,.82rem);line-height:1.85;
+  transition:opacity .8s ease;opacity:0;
+  background:linear-gradient(90deg,var(--red),var(--yellow),var(--green),var(--blue),var(--violet));
+  background-size:300% 100%;animation:bioShift 7s ease-in-out infinite;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:brightness(1.3)}
+@keyframes bioShift{0%,100%{background-position:0% 0}50%{background-position:100% 0}}
+#crr-explain{position:absolute;top:56px;right:18px;pointer-events:none;z-index:5;
+  max-width:240px;font-family:var(--mono);font-size:clamp(.55rem,.85vw,.72rem);
+  color:rgba(232,197,71,.5);line-height:1.7;text-align:right;transition:opacity 1s ease;
+  text-shadow:0 1px 6px rgba(0,0,0,.8)}
+
+#timeline{height:28px;background:rgba(4,6,14,.96);border-top:1px solid var(--prism);
+  display:flex;align-items:center;padding:0 14px;gap:6px;flex-shrink:0}
+#tl-bar{flex:1;height:4px;background:rgba(255,255,255,.03);border-radius:2px;position:relative;overflow:hidden}
+#tl-fill{height:100%;width:0%;border-radius:2px;transition:width .12s linear;
+  background:linear-gradient(90deg,var(--red),var(--orange),var(--yellow),var(--green),var(--blue),var(--indigo),var(--violet))}
+#tl-sections{position:absolute;inset:0;display:flex;pointer-events:none}
+.t-sec{height:100%;border-right:1px solid rgba(255,255,255,.04)}
+.t-sec-l{position:absolute;top:-13px;left:1px;font-family:var(--mono);font-size:7px;
+  color:rgba(232,197,71,.2);white-space:nowrap}
+#tl-crr{font-family:var(--mono);font-size:.6rem;min-width:52px;
+  background:linear-gradient(90deg,var(--yellow),var(--white));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#tl-time{font-family:var(--mono);font-size:.6rem;color:rgba(232,197,71,.4);
+  min-width:65px;text-align:right}
+
+#controls{border-top:1px solid var(--prism);background:var(--panel);
+  padding:6px 14px 8px;display:flex;flex-direction:column;gap:3px;flex-shrink:0}
+.tr{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap}
+.tb{font-family:var(--mono);font-size:clamp(.7rem,1vw,.85rem);padding:4px 16px;
+  border:1px solid rgba(232,197,71,.15);background:transparent;color:rgba(200,195,220,.55);
+  cursor:pointer;border-radius:3px;letter-spacing:.05em;transition:all .12s;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.tb:hover,.tb:active{border-color:rgba(232,197,71,.35);color:var(--yellow);box-shadow:0 0 10px rgba(232,197,71,.08)}
+.tb.on{border-color:rgba(232,197,71,.45);color:var(--yellow);background:rgba(232,197,71,.05)}
+.sw{display:flex;align-items:center;gap:3px}
+.sw label{font-family:var(--mono);font-size:.58rem;color:rgba(232,197,71,.4);width:38px;letter-spacing:.02em}
+.sw input[type=range]{flex:1;max-width:55px;height:3px;cursor:pointer;accent-color:var(--yellow);
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.sw .v{font-family:var(--mono);font-size:.52rem;color:rgba(232,197,71,.35);width:24px;text-align:right}
+#crr-footer{text-align:center;padding:2px;font-size:clamp(.42rem,.65vw,.52rem);
+  font-family:var(--mono);
+  background:linear-gradient(90deg,rgba(232,69,69,.3),rgba(232,197,71,.3),rgba(92,184,138,.3),rgba(58,158,189,.3),rgba(160,78,214,.3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* ═══ MOBILE ═══ */
+@media(max-width:600px){
+  /* Splash */
+  #splash .inner{padding:16px 16px}
+  #splash .bar{width:200px;margin-bottom:14px}
+  #splash h1{letter-spacing:.08em}
+  #splash .sub{font-size:.72rem;line-height:1.65;margin-top:8px}
+  #splash .eq{font-size:.46rem;line-height:1.6;margin-top:10px}
+  #splash .credit{font-size:.58rem}
+  #splash .tap{font-size:.72rem;padding:10px 28px;margin-top:18px}
+
+  /* Info bar — stack vertically on very narrow */
+  #info-bar{padding:6px 10px;gap:4px}
+  #piece-title{font-size:.85rem;letter-spacing:.06em}
+  #piece-title .bpm{font-size:.55em}
+  #crr-data{font-size:.55rem}
+
+  /* Section labels */
+  #section-label{font-size:1.4rem;top:18%}
+  #section-desc{font-size:.62rem;top:11%;padding:4px 10px}
+
+  /* Bio + explain — prevent overlap */
+  #bio-panel{max-width:55vw;bottom:5%;left:10px}
+  #bio-text{font-size:.58rem;line-height:1.6}
+  #crr-explain{max-width:38vw;top:48px;right:10px;font-size:.5rem;line-height:1.5}
+
+  /* Timeline */
+  #timeline{padding:0 8px;height:26px}
+  #tl-crr{font-size:.55rem;min-width:44px}
+  #tl-time{font-size:.55rem;min-width:58px}
+  .t-sec-l{display:none}
+
+  /* Controls — key mobile layout */
+  #controls{padding:6px 8px 8px;gap:4px}
+
+  /* Buttons row */
+  .tr-btns{gap:6px}
+  .tr-btns .tb{padding:8px 18px;font-size:.78rem;min-height:36px}
+  .tr-btns .sw label{width:34px}
+  .tr-btns .sw input[type=range]{max-width:50px}
+
+  /* Mixer sliders — 3-column grid */
+  .tr-mix{display:grid!important;grid-template-columns:1fr 1fr 1fr;gap:4px 8px;width:100%}
+  .tr-mix .sw{justify-content:center}
+  .tr-mix .sw label{font-size:.6rem;width:36px;text-align:right}
+  .tr-mix .sw input[type=range]{max-width:60px;height:6px}
+  .tr-mix .sw .v{font-size:.5rem;width:22px}
+
+  /* Footer */
+  #crr-footer{font-size:.38rem;line-height:1.4;padding:3px 4px}
+}
+
+/* Small phones (iPhone SE etc) */
+@media(max-width:380px){
+  #splash h1{font-size:1.6rem;letter-spacing:.06em}
+  #splash .sub{font-size:.68rem}
+  #splash .eq{font-size:.42rem}
+  #piece-title{font-size:.75rem}
+  #crr-data{font-size:.48rem}
+  #bio-panel{max-width:50vw}
+  #crr-explain{max-width:35vw;font-size:.44rem}
+  .tr-mix{grid-template-columns:1fr 1fr!important;gap:3px 6px}
+  .tr-btns .tb{padding:7px 14px;font-size:.72rem}
+}
+
+/* Landscape phone */
+@media(max-height:500px){
+  #info-bar{padding:4px 10px}
+  #piece-title{font-size:.8rem}
+  #piece-title .bpm{display:none}
+  #crr-data{font-size:.5rem}
+  #section-label{top:15%;font-size:1.2rem}
+  #section-desc{top:8%;font-size:.55rem}
+  #bio-panel{bottom:3%;max-width:40vw}
+  #bio-text{font-size:.5rem;line-height:1.4}
+  #crr-explain{top:36px;font-size:.46rem}
+  #timeline{height:22px}
+  #controls{padding:3px 8px 5px;gap:2px}
+  .tr-btns .tb{padding:4px 12px;font-size:.68rem;min-height:28px}
+  .tr-mix .sw input[type=range]{height:4px}
+  #crr-footer{font-size:.34rem}
+}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="inner">
+<div class="bar"></div>
+<h1>SONG OF THE RAINBOW</h1>
+<p class="sub">A composition where CRR agents for each optical process —
+white light, refraction, dispersion, internal reflection, caustic emergence —
+accumulate coherence through a single raindrop to create the music.
+Melody derived from Snell's deviation angles. Ω(λ) = 1/(π·n(λ)).</p>
+<p class="eq">
+n(λ) = 1.3199 + 6878/λ² · Ω(λ) = 1/(π·n(λ)) · D = 2i − 4r + π ·
+dD/di = 0 → i* = arccos√((n²−1)/3) · exp(C/Ω) at caustic ≈ e^π ≈ 23.1 ·
+8 nested CRR cycles: Rayleigh sky → Snell boundary → Cauchy dispersion →
+internal reflection → caustic → adaptation bloom → tear film → microsaccade
+</p>
+<p class="credit">CRR Optical Composition · cohere.org.uk</p>
+<p class="tap">tap to refract</p>
+</div></div>
+
+<div id="app">
+<div id="canvas-wrap">
+<canvas id="viz"></canvas>
+<canvas id="optics"></canvas>
+<div id="flash"></div>
+<div id="info-bar">
+  <div id="piece-title">SONG OF THE RAINBOW<span class="bpm">80 BPM · D Lydian · CRR optical · Ω(λ)=1/(π·n(λ))</span></div>
+  <div id="crr-data"></div>
+</div>
+<div id="section-label"></div>
+<div id="section-desc"></div>
+<div id="bio-panel"><div id="bio-text"></div></div>
+<div id="crr-explain"></div>
+</div>
+<div id="timeline">
+  <div id="tl-crr">B=0</div>
+  <div id="tl-bar"><div id="tl-fill"></div><div id="tl-sections"></div></div>
+  <div id="tl-time">0:00 / 0:00</div>
+</div>
+<div id="controls">
+<div class="tr tr-btns">
+  <button class="tb" id="btn-play">▶ REFRACT</button>
+  <button class="tb" id="btn-stop">■ STOP</button>
+  <div class="sw"><label>tempo</label><input type="range" id="sl-tempo" min="0.7" max="1.3" step="0.05" value="1"><span class="v" id="v-tempo">1.0</span></div>
+</div>
+<div class="tr tr-mix">
+  <div class="sw"><label>verb</label><input type="range" id="sl-rev" min="0" max="1" step="0.05" value="0.55"><span class="v" id="v-rev">.55</span></div>
+  <div class="sw"><label>prism</label><input type="range" id="sl-synth" min="0" max="1" step="0.05" value="0.55"><span class="v" id="v-synth">.55</span></div>
+  <div class="sw"><label>snell</label><input type="range" id="sl-acid" min="0" max="1" step="0.05" value="0.45"><span class="v" id="v-acid">.45</span></div>
+  <div class="sw"><label>rain</label><input type="range" id="sl-drum" min="0" max="1" step="0.05" value="0.50"><span class="v" id="v-drum">.50</span></div>
+  <div class="sw"><label>grain</label><input type="range" id="sl-grain" min="0" max="1" step="0.05" value="0.40"><span class="v" id="v-grain">.40</span></div>
+  <div class="sw"><label>choir</label><input type="range" id="sl-choir" min="0" max="1" step="0.05" value="0.50"><span class="v" id="v-choir">.50</span></div>
+</div>
+<div id="crr-footer">
+Ω(λ)=1/(π·n(λ)) · n(λ)=1.3199+6878/λ² · D=2i−4r+π · caustic: dD/di=0
+· exp(C/Ω)≈e^π≈23.1 · 8 CRR cycles: sky→boundary→disperse→reflect→caustic→bloom→spikes→glints
+</div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  SONG OF THE RAINBOW — CRR Optical Composition
+//  Photorealistic raindrop rendered via 8 nested CRR cycles
+//  Light traced through spherical drop using Snell's law
+//  Melody derived from deviation angles D(λ)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PI=Math.PI,TAU=2*PI,PHI=(1+Math.sqrt(5))/2;
+const{sin,cos,sqrt,pow,abs,floor:flr,min,max,round,exp,log,random:rnd,asin,acos,atan2}=Math;
+
+// ══════════════════════════════════════════
+// §0 CRR ENGINE
+// ══════════════════════════════════════════
+class CRR{
+  constructor(sym='Z2',omV){
+    if(omV!==undefined){this.omB=omV;this.omS=1}
+    else{this.omB=sym==='Z2'?1/PI:sym==='SO2'?1/TAU:1/(PI*PHI);this.omS=1}
+    this.sym=sym;this.C=0;this.lRC=0;this.rup=0;this.since=0;this.inR=false;this.rP=0}
+  get omega(){return this.omB*this.omS}
+  get expCO(){return exp(min(12,this.C/max(.001,this.omega)))}
+  get normC(){return min(1,(this.C-this.lRC)/max(.01,1/this.omega))}
+  get beauty(){const co=this.C/max(.001,this.omega);return max(0,exp(min(10,co))*(1-co/PI))}
+  step(L,dt=1){if(this.inR){this.rP=min(1,this.rP+.03);if(this.rP>=1)this.inR=false;return{phase:'R'}}
+    this.C+=L*dt;this.since++;const th=1/this.omega,acc=this.C-this.lRC;
+    const cv=this.sym==='Z2'?this.omega/2:this.omega/4;
+    if(acc>=(th+(rnd()-.5)*2*cv*th)){this.lRC=this.C;this.rup++;this.since=0;this.inR=true;this.rP=0;return{phase:'delta'}}
+    return{phase:'C'}}
+  reset(){this.C=0;this.lRC=0;this.rup=0;this.since=0;this.inR=false;this.rP=0}
+}
+
+// ══════════════════════════════════════════
+// §1 PHYSICAL OPTICS
+// ══════════════════════════════════════════
+const BPM=80,BEAT_S=60/BPM,TOTAL_BEATS=504;
+function m2f(m){return 440*pow(2,(m-69)/12)}
+const CAUCHY_A=1.3199,CAUCHY_B=6878;
+function nW(lam){return CAUCHY_A+CAUCHY_B/(lam*lam)}
+
+// Spectral colour — physically accurate CIE-approximate
+function specRGB(nm){
+  const t=(nm-380)/340;let r,g,b;
+  if(t<.17){const s=t/.17;r=.4*(1-s)+.05*s;g=0;b=.6*(1-s)+s}
+  else if(t<.33){const s=(t-.17)/.16;r=.05*(1-s);g=s*.9;b=1}
+  else if(t<.45){const s=(t-.33)/.12;r=0;g=.9+.1*s;b=1*(1-s)}
+  else if(t<.58){const s=(t-.45)/.13;r=s;g=1;b=0}
+  else if(t<.72){const s=(t-.58)/.14;r=1;g=1-.45*s;b=0}
+  else if(t<.88){const s=(t-.72)/.16;r=1;g=.55*(1-s);b=0}
+  else{const s=(t-.88)/.12;r=1-.2*s;g=0;b=0}
+  let i=1;if(nm<420)i=.3+.7*(nm-380)/40;if(nm>680)i=.3+.7*(720-nm)/40;
+  return[r*i,g*i,b*i]}
+
+// Deviation & rainbow angle
+function deviation(ti,n){const sr=sin(ti)/n;return abs(sr)>1?null:2*ti-4*asin(sr)+PI}
+function rbTheta(n){const c2=(n*n-1)/3;return c2>=0&&c2<=1?acos(sqrt(c2)):null}
+function optPath(ti,n,R){const sr=sin(ti)/n;return abs(sr)>1?0:n*2*2*R*cos(asin(sr))}
+function omegaL(nm){return 1/(PI*nW(nm))}
+
+// Precompute full spectrum data
+function precompute(dR){
+  const data=[];
+  for(let nm=390;nm<=710;nm+=1.5){
+    const n=nW(nm),tr=rbTheta(n);if(!tr)continue;
+    const D=deviation(tr,n);if(D===null)continue;
+    const omega=omegaL(nm),C=optPath(tr,n,dR);
+    const expCO=exp(min(C*omega*0.008,3.5));
+    const[r,g,b]=specRGB(nm);
+    data.push({nm,n,D,omega,C,expCO,r,g,b,tr})}
+  return data}
+
+// Melody from deviation
+const D_red_deg=(() =>{const n=nW(700),tr=rbTheta(n);return deviation(tr,n)*180/PI})();
+const D_vio_deg=(() =>{const n=nW(380),tr=rbTheta(n);return deviation(tr,n)*180/PI})();
+const D_rng=D_vio_deg-D_red_deg;
+function buildSpecMelody(sB,eB,dir,dens){
+  const notes=[],rng=eB-sB,steps=flr(rng*dens);
+  for(let i=0;i<steps;i++){const t=i/steps;
+    let lam;if(dir==='r2v')lam=700-t*320;else if(dir==='v2r')lam=380+t*320;
+    else if(dir==='cycle')lam=700-abs(sin(t*PI))*320;else lam=380+rnd()*320;
+    const n=nW(lam),tr=rbTheta(n),D=deviation(tr,n);if(!D)continue;
+    const midi=60+round((D*180/PI-D_red_deg)/D_rng*12);
+    const cohPos=min(1,t*2%1),expCO=exp(min(PI,cohPos/(1/(PI*n))));
+    const vel=min(.85,.15+expCO/exp(PI)*.7);
+    notes.push({beat:sB+t*rng,midi,vel,dur:max(.5,1.2)*BEAT_S,lambda:lam})}
+  return notes}
+const BASS_SEQ=[38,38,42,45,38,42,45,50];
+const PAD_RV=[50,57,62],PAD_GB=[54,61,66],PAD_FULL=[50,54,57,61,62,66];
+const FMT={a:[{f:800,g:1},{f:1150,g:.5},{f:2800,g:.22}],e:[{f:400,g:1},{f:2000,g:.4},{f:2800,g:.15}],i:[{f:300,g:1},{f:2300,g:.3},{f:3000,g:.1}],o:[{f:450,g:1},{f:800,g:.45},{f:2830,g:.15}],u:[{f:325,g:1},{f:700,g:.35},{f:2700,g:.1}]};
+const FMT_A={a:[{f:700,g:1},{f:1050,g:.5},{f:2600,g:.2}],e:[{f:350,g:1},{f:1800,g:.38},{f:2600,g:.13}],i:[{f:270,g:1},{f:2100,g:.28},{f:2800,g:.09}],o:[{f:400,g:1},{f:720,g:.42},{f:2630,g:.13}],u:[{f:290,g:1},{f:630,g:.32},{f:2500,g:.09}]};
+const FMT_T={a:[{f:650,g:1},{f:1000,g:.45},{f:2400,g:.18}],e:[{f:320,g:1},{f:1700,g:.35},{f:2400,g:.12}],i:[{f:250,g:1},{f:1900,g:.25},{f:2600,g:.08}],o:[{f:380,g:1},{f:680,g:.4},{f:2430,g:.12}],u:[{f:270,g:1},{f:600,g:.3},{f:2300,g:.08}]};
+const FMT_B={a:[{f:600,g:1},{f:950,g:.42},{f:2200,g:.16}],e:[{f:290,g:1},{f:1600,g:.32},{f:2200,g:.1}],i:[{f:230,g:1},{f:1750,g:.22},{f:2400,g:.07}],o:[{f:350,g:1},{f:640,g:.38},{f:2230,g:.1}],u:[{f:250,g:1},{f:560,g:.28},{f:2100,g:.07}]};
+
+// §2 CRR AGENTS
+const agents={
+  white:new CRR('SO2'),refract:new CRR('Z2',1/(PI*nW(550))),
+  red:new CRR('Z2',1/(PI*nW(700))),green:new CRR('Z2',1/(PI*nW(530))),
+  violet:new CRR('Z2',1/(PI*nW(380))),reflect:new CRR('Z2',1/(PI*nW(550))),
+  caustic:new CRR('Z2',1/(PI*nW(530))),arc:new CRR('Z2',omegaL(380)*.8),
+  surface:new CRR('Z2',1/(PI*1.333)),causHL:new CRR('Z2',.15),
+  bloom:new CRR('Z2',.22),tearfilm:new CRR('Z2',.18),
+  piece:new CRR('Z2'),phrase:new CRR('Z2'),
+};
+let totalRuptures=0;
+
+// §3 SECTIONS
+const SECTIONS=[
+  {name:'WHITE LIGHT',start:0,end:56,ar:.06,agents:['white','surface'],
+   bio:'☉ sunlight: blackbody T ≈ 5778 K\nλ_peak = 501.5 nm (Wien)\nall wavelengths superposed: Σ E(λ)\nΩ_white = 1/2π ≈ 0.159 (SO(2))\npre-dispersion: ONE becomes SEVEN',
+   explain:'white CRR: SO(2)\nΩ = 1/2π ≈ 0.159\nCV ≈ 0.080\nsurface CRR: Z₂\nΩ = 1/(π·1.333)',desc:'T = 5778 K · Planck spectrum'},
+  {name:'INCIDENCE',start:56,end:112,ar:.16,agents:['white','refract','surface'],
+   bio:'→ light meets raindrop r ≈ 1 mm\nimpact parameter b = r·sin(i)\ni* = arccos√((n²−1)/3) = 59.4°\nthe geometry of first contact',
+   explain:'refract CRR: Z₂\nΩ = 1/(π·n) ≈ 0.238\nδ at Snell boundary',desc:'i* = 59.4° · approaching boundary'},
+  {name:'REFRACTION',start:112,end:184,ar:.35,agents:['white','refract','red','green','surface'],
+   bio:'◐ SNELL: n₁ sin θ₁ = n₂ sin θ₂\nn(λ) = 1.3199 + 6878/λ² (Cauchy)\nn_red = 1.3312 · n_violet = 1.3435\nv = c/n = 2.25 × 10⁸ m/s',
+   explain:'Snell = acid bass:\nΩ(λ) = 1/(π·n(λ))\ncutoff = Ω boundary\nresonance Q ∝ n(λ)',desc:'n₁sin θ₁ = n₂sin θ₂'},
+  {name:'DISPERSION',start:184,end:264,ar:.55,agents:['white','refract','red','green','violet','surface'],
+   bio:'▲ CAUCHY splits the beam\nΔn ≈ 0.012 · angular spread: 1.72°\neach λ now has its own:\n  n(λ), Ω(λ), D(λ), path, phase\nONE beam → SEVEN CRR agents',
+   explain:'each λ = own Z₂\nΩ(700nm) = 0.2390\nΩ(530nm) = 0.2374\nΩ(380nm) = 0.2368',desc:'Δn ≈ 0.012 · 1.72° spread'},
+  {name:'REFLECTION',start:264,end:336,ar:.72,agents:['white','refract','red','green','violet','reflect','surface','causHL'],
+   bio:'⟳ INTERNAL REFLECTION\nθ_c = arcsin(1/n) ≈ 48.6°\nFresnel R ≈ 0.98\nlight bounces off back wall\nC = ∫L(λ,τ)dτ building',
+   explain:'reflect CRR: Z₂\nθ_c = 48.6° = Ω threshold\ncoherence preserved',desc:'θc = 48.6° · R ≈ 0.98'},
+  {name:'CAUSTIC',start:336,end:400,ar:.88,agents:['white','refract','red','green','violet','reflect','caustic','surface','causHL','bloom'],
+   bio:'⚡ DESCARTES MINIMUM DEVIATION\ndD/di = 0 → i* = arccos√((n²−1)/3)\nD_red = 137.63° → 42.37°\nD_violet = 139.35° → 40.65°\ncaustic = MAX exp(C/Ω) ≈ e^π ≈ 23.1',
+   explain:'caustic = beauty peak:\nB(C/Ω) max at C/Ω = π−1\ndD/di=0 IS the CRR:\ncoherence saturates Ω',desc:'dD/di = 0 · exp(C/Ω) ≈ e^π'},
+  {name:'THE ARC',start:400,end:464,ar:1.0,agents:['white','refract','red','green','violet','reflect','caustic','arc','surface','causHL','bloom','tearfilm'],
+   bio:'✦ 42° — THE RAINBOW\nmillions of drops, each a prism\nred 42.37° · violet 40.65°\nALL CRR agents coupled\nexp(C/Ω) → MAXIMUM\n+ bloom + tear film + microsaccade',
+   explain:'arc CRR: Z₂\nlowest Ω → fastest C\nALL 8 cycles active\n+ Weber-Fechner bloom\n+ tear film spikes',desc:'All 8 CRR cycles coupled'},
+  {name:'DISSOLUTION',start:464,end:504,ar:.08,agents:['white','surface'],
+   bio:'→ rain stops · drops evaporate\narc fades violet-first (highest n)\nR = ∫φ·exp(C/Ω)·Θ dτ\nhighest-coherence moments persist',
+   explain:'dissolution = R:\nΩ-weighted regeneration\nthe rainbow continues\nin memory',desc:'R(τ) = ∫φ·exp(C/Ω)·Θ dτ'},
+];
+function getSec(b){for(let i=SECTIONS.length-1;i>=0;i--)if(b>=SECTIONS[i].start)return SECTIONS[i];return SECTIONS[0]}
+
+// ══════════════════════════════════════════
+// §4 PARTICLE SYSTEM (WebGL) — photon field
+// ══════════════════════════════════════════
+const vizC=document.getElementById('viz');
+const gl=vizC.getContext('webgl',{antialias:false,alpha:true,preserveDrawingBuffer:true});
+const optC=document.getElementById('optics');
+const ox=optC.getContext('2d');
+let W,H,cx,cy,dR;
+const N=12000;
+const px=new Float32Array(N),py=new Float32Array(N);
+const pvx=new Float32Array(N),pvy=new Float32Array(N);
+const coh=new Float32Array(N),phs=new Float32Array(N),pSpec=new Float32Array(N);
+let pTime=0,beatPulse=0;
+let specData=[];
+
+// ═══ DROPLET ORBITAL MOVEMENT ═══
+// CRR: drop position is itself a coherence process
+// C accumulates as the drop drifts, δ occurs at "face the viewer" moments
+// where the beam points directly at the screen (exp(C/Ω) maximum)
+let dropX,dropY; // current drop position (animated)
+let dropOrbitPhase=0;
+let faceViewer=0; // 0-1: how much the drop is pointing at the viewer
+let dropVX=0,dropVY=0;
+const dropOrbitCRR=new CRR('Z2',0.25); // orbital coherence
+
+function updateDropPos(dt,ar){
+  // Slow orbital drift — CRR-driven
+  const orbSt=dropOrbitCRR.step(.3+ar*.4,dt*.02);
+  dropOrbitPhase+=dt*(.15+ar*.25);
+
+  // Base orbit: gentle ellipse around center
+  const orbRx=W*.12*(1+ar*.3);
+  const orbRy=H*.08*(1+ar*.2);
+  const baseX=cx+cos(dropOrbitPhase)*orbRx;
+  const baseY=cy+sin(dropOrbitPhase*.7)*orbRy;
+
+  // Face-the-viewer: at CRR rupture, swing toward dead center
+  // Also triggered during THE ARC and specFlash
+  if(orbSt.phase==='delta'&&ar>.3)faceViewer=min(1,faceViewer+.4);
+  if(ar>.95)faceViewer=min(1,faceViewer+dt*.5); // THE ARC: sustained face
+  faceViewer*=(1-dt*.8); // decay back
+
+  // Target position: lerp between orbit and center
+  const tgtX=baseX*(1-faceViewer)+cx*faceViewer;
+  const tgtY=baseY*(1-faceViewer)+cy*faceViewer;
+
+  // Smooth follow with spring dynamics
+  const spring=.04+faceViewer*.08;
+  dropVX+=(tgtX-dropX)*spring;dropVY+=(tgtY-dropY)*spring;
+  dropVX*=.88;dropVY*=.88;
+  dropX+=dropVX;dropY+=dropVY;
+}
+
+// pState: 0=approaching, 1=inside drop, 2=exiting (holographic swirl)
+const pState=new Uint8Array(N);
+const pHelixPh=new Float32Array(N); // helix phase for swirl
+const pBeamDist=new Float32Array(N); // distance along beam axis
+
+function initP(){dR=min(W,H)*.13;specData=precompute(dR);
+  dropX=cx;dropY=cy;
+  for(let i=0;i<N;i++){pSpec[i]=rnd();pHelixPh[i]=rnd()*TAU;pBeamDist[i]=0;resetP(i)}}
+function resetP(i){
+  const sec=seq.on?getSec(seq.beat):SECTIONS[0];const ar=sec.ar||.05;
+  // Randomize spectral position each reset — full rainbow always present
+  pSpec[i]=rnd();
+  // Spread particles across the whole scene — always visible
+  const role=rnd();
+  const DX=dropX||cx,DY=dropY||cy;
+  if(role<.4){// Approaching beam
+    px[i]=rnd()*DX*.8;py[i]=DY+(rnd()-.5)*dR*3.5;
+    pvx[i]=.3+rnd()*.25;pvy[i]=(rnd()-.5)*.03;
+  }else if(role<.6){// Inside/near drop
+    const a=rnd()*TAU,r=rnd()*dR*1.2;
+    px[i]=DX+cos(a)*r;py[i]=DY+sin(a)*r;
+    pvx[i]=(rnd()-.5)*.1;pvy[i]=(rnd()-.5)*.1;
+  }else{// Scattered ambient — holographic dust
+    px[i]=rnd()*W;py[i]=rnd()*H;
+    pvx[i]=(rnd()-.5)*.08;pvy[i]=(rnd()-.5)*.08;
+  }
+  coh[i]=.02+rnd()*.06+ar*.1;phs[i]=rnd()*TAU;
+  pState[i]=0;pHelixPh[i]=rnd()*TAU;pBeamDist[i]=0;
+}
+
+function updateP(dt){
+  pTime+=dt;beatPulse*=.92;
+  const sec=seq.on?getSec(seq.beat):SECTIONS[0];const ar=sec.ar||.05;
+  const sunAng=PI*.92;
+  updateDropPos(dt,ar);
+  const DX=dropX,DY=dropY; // current drop center
+
+  // Droplet vibration
+  const vibAmp=beatPulse*.06+agents.surface.normC*.03+sin(pTime*BPM/60*TAU)*.008;
+  const vibR=dR*(1+vibAmp);
+
+  // Is it THE ARC? Transition particles to rainbow arc
+  const isArc=ar>.9;
+  const isNearArc=ar>.78;
+
+  for(let i=0;i<N;i++){
+    const dx=px[i]-DX,dy=py[i]-DY,dist=sqrt(dx*dx+dy*dy)+.001;
+    const inDrop=dist<vibR;const spec=pSpec[i];const n=nW(700-spec*320);
+    const tr=rbTheta(n),D=deviation(tr,n);
+    const beamAng=D!==null?(sunAng+PI-D):PI*.3;
+    const bx=cos(beamAng),by=sin(beamAng);
+    let ax=0,ay=0;
+
+    // ── State transitions ──
+    if(pState[i]===0&&inDrop&&ar>.08)pState[i]=1;
+    if(pState[i]===1&&!inDrop&&dx*bx+dy*by>0)pState[i]=2;
+    // Transition to rainbow arc in THE ARC section
+    if(isNearArc&&pState[i]===2&&rnd()<.003)pState[i]=3;
+    if(isArc&&pState[i]!==3&&pState[i]!==1&&rnd()<.002)pState[i]=3;
+    // Dissolve arc in DISSOLUTION
+    if(ar<.1&&pState[i]===3&&rnd()<.01){pState[i]=0;resetP(i);continue}
+    // Recycle far-flung particles
+    if((pState[i]===2||pState[i]===0)&&(dist>max(W,H)*.7)){pState[i]=0;resetP(i);continue}
+
+    // ═══ STATE 0: APPROACHING / AMBIENT ═══
+    if(pState[i]===0){
+      const toCx=DX-px[i],toCy=DY-py[i];
+      const toD=sqrt(toCx*toCx+toCy*toCy)+1;
+      const attract=.001+ar*.004;
+      ax+=toCx/toD*attract*toD*.01;ay+=toCy/toD*attract*toD*.01;
+      ax+=.04+ar*.12;
+      const orbStr=.015+ar*.03;
+      ax+=-dy/dist*orbStr;ay+=dx/dist*orbStr;
+      if(dist<dR*3){ax+=(DX-px[i])*.002;ay+=(DY-py[i])*.002;coh[i]=min(1,coh[i]+.002)}
+      if(dist<vibR*1.1&&px[i]<DX+dR*.3&&ar>.06)pState[i]=1;
+    }
+
+    // ═══ STATE 1: INSIDE DROP — Snell refraction ═══
+    else if(pState[i]===1){
+      const bf=1/(n*n);const tx=-dy/dist,ty=dx/dist;
+      ax+=tx*(.3+ar*.4)*bf*2.5;ay+=ty*(.3+ar*.4)*bf*2.5;
+      if(dist>vibR*.75){ax-=dx/dist*.08;ay-=dy/dist*.08}
+      ax+=bx*(.02+ar*.06);ay+=by*(.02+ar*.06);
+      coh[i]=min(1,coh[i]+.005);
+      if(coh[i]>.6||rnd()<.005){pState[i]=2;pBeamDist[i]=0}
+    }
+
+    // ═══ STATE 2: EXITING — HOLOGRAPHIC SWIRL ═══
+    else if(pState[i]===2){
+      const projLen=dx*bx+dy*by;
+      const perpX=dx-projLen*bx,perpY=dy-projLen*by;
+      const perpDist=sqrt(perpX*perpX+perpY*perpY)+.001;
+      const helixRate=2+spec*4;
+      pHelixPh[i]+=dt*(helixRate+ar*3)*(.5+coh[i]);
+      const helixR=dR*(.12+.3*spec+.15*sin(pTime*.5+spec*3));
+      const cohMod=1+agents.caustic.normC*.5;
+      const perpBasisX=-by,perpBasisY=bx;
+      const tgtOffX=cos(pHelixPh[i])*helixR*cohMod*perpBasisX;
+      const tgtOffY=cos(pHelixPh[i])*helixR*cohMod*perpBasisY;
+      const tgtOffX2=sin(pHelixPh[i])*helixR*cohMod*.4*bx;
+      const tgtOffY2=sin(pHelixPh[i])*helixR*cohMod*.4*by;
+      const helixPull=.06+ar*.08;
+      const tgtX=DX+bx*max(dR*.5,projLen+1)+tgtOffX+tgtOffX2;
+      const tgtY=DY+by*max(dR*.5,projLen+1)+tgtOffY+tgtOffY2;
+      ax+=(tgtX-px[i])*helixPull;ay+=(tgtY-py[i])*helixPull;
+      ax+=bx*(.2+ar*.3+coh[i]*.15);ay+=by*(.2+ar*.3+coh[i]*.15);
+
+      // ── FACE THE VIEWER: when faceViewer > 0, beam points AT screen ──
+      // Particles expand into a spectral circle (as if hitting your retina)
+      if(faceViewer>.05){
+        const fv=faceViewer;
+        // Spectral circle: each wavelength at its ring radius
+        const ringR=dR*(1.5+spec*4)*fv;
+        const ringAng=pHelixPh[i];
+        const ringX=DX+cos(ringAng)*ringR;
+        const ringY=DY+sin(ringAng)*ringR;
+        ax+=(ringX-px[i])*fv*.05;ay+=(ringY-py[i])*fv*.05;
+        // Counteract the beam push so particles stay in the circle
+        ax-=bx*.15*fv;ay-=by*.15*fv;
+      }
+
+      if(beatPulse>.01){ax+=perpX/perpDist*beatPulse*.4;ay+=perpY/perpDist*beatPulse*.4}
+      coh[i]=min(1,coh[i]+.003);pBeamDist[i]=max(0,projLen);
+    }
+
+    // ═══ STATE 3: RAINBOW ARC ═══
+    // Particles arrange into a semicircular arc, red on outside, violet on inside
+    // The full rainbow — all CRR agents at maximum coherence
+    else if(pState[i]===3){
+      // Arc geometry: centered on drop, spanning ~220° below
+      const arcSpan=PI*1.2; // 216° arc
+      const arcStart=-PI*.1; // start just right of top
+      const myArcAng=arcStart+phs[i]%(arcSpan); // position along arc
+      // Red on outside (42.37°), violet inside (40.65°) — map to radii
+      const baseArcR=dR*(5+ar*3);
+      const specR=baseArcR*(1-spec*.18); // red=big, violet=small
+
+      const tgtX=DX+cos(myArcAng)*specR;
+      const tgtY=DY+sin(myArcAng)*specR;
+      const pull=.02+ar*.03;
+      ax+=(tgtX-px[i])*pull;ay+=(tgtY-py[i])*pull;
+      // Gentle drift along arc
+      const tangX=-sin(myArcAng)*.03,tangY=cos(myArcAng)*.03;
+      ax+=tangX;ay+=tangY;
+      // Breathing with music
+      if(beatPulse>.01){
+        const bDist=sqrt((px[i]-DX)**2+(py[i]-DY)**2);
+        ax+=(px[i]-DX)/bDist*beatPulse*.2;ay+=(py[i]-DY)/bDist*beatPulse*.2;
+      }
+      coh[i]=min(1,coh[i]+.008); // maximum coherence in the arc
+    }
+
+    // ── Universal forces ──
+    ax+=sin(pTime*1.1+phs[i]+spec*3)*(.005+ar*.012);
+    ay+=cos(pTime*1.4+phs[i]+spec*3)*(.005+ar*.012);
+    if(dist<vibR*1.5&&dist>vibR*.5){ax+=dx/dist*vibAmp*2;ay+=dy/dist*vibAmp*2}
+
+    pvx[i]=(pvx[i]+ax)*.955;pvy[i]=(pvy[i]+ay)*.955;
+    let sp=sqrt(pvx[i]*pvx[i]+pvy[i]*pvy[i]);
+    const mxS=pState[i]>=2?(1.5+ar*3):(.5+ar*1.5);
+    if(sp>mxS){pvx[i]=pvx[i]/sp*mxS;pvy[i]=pvy[i]/sp*mxS}
+    px[i]+=pvx[i];py[i]+=pvy[i];
+    coh[i]=max(.02+ar*.06,min(1,coh[i]));phs[i]+=.002+coh[i]*.005;
+    if(px[i]<-50||px[i]>W+50||py[i]<-50||py[i]>H+50){resetP(i)}
+  }
+}
+
+// §5 WEBGL
+const vsrc=`attribute vec2 a_pos;attribute float a_coh;attribute float a_spec;
+uniform vec2 u_res;uniform float u_ar;uniform float u_beauty;
+varying float v_coh;varying float v_spec;varying float v_alpha;
+void main(){vec2 p=(a_pos/u_res)*2.0-1.0;p.y*=-1.0;
+  gl_Position=vec4(p,0.0,1.0);
+  gl_PointSize=max(1.0,1.0+a_coh*3.0+u_ar*1.5+u_beauty*0.5);
+  v_coh=a_coh;
+  v_alpha=0.02+a_coh*0.45+u_ar*0.12;
+  // Spectral color: driven by COHERENCE not just arousal
+  // High coherence = has passed through drop = dispersed = show full color
+  // This means exiting/swirling particles always show their wavelength
+  v_spec=a_spec*max(0.12+u_ar*0.88, a_coh*1.2);}`;
+const fsrc=`precision mediump float;varying float v_coh;varying float v_spec;varying float v_alpha;
+vec3 spectral(float t){vec3 r=vec3(1.0,0.12,0.05),o=vec3(1.0,0.54,0.1),y=vec3(1.0,0.82,0.2),
+  g=vec3(0.28,0.82,0.45),b=vec3(0.18,0.55,0.88),ind=vec3(0.38,0.28,0.82),v=vec3(0.58,0.18,0.82);
+  if(t<0.167)return mix(r,o,t/0.167);if(t<0.333)return mix(o,y,(t-0.167)/0.167);
+  if(t<0.5)return mix(y,g,(t-0.333)/0.167);if(t<0.667)return mix(g,b,(t-0.5)/0.167);
+  if(t<0.833)return mix(b,ind,(t-0.667)/0.167);return mix(ind,v,(t-0.833)/0.167);}
+void main(){vec2 c=2.0*gl_PointCoord-1.0;float r=dot(c,c);if(r>1.0)discard;float s=1.0-sqrt(r);
+  vec3 rgb=spectral(v_spec);
+  // White when undispersed (low coh), full spectral when dispersed (high coh)
+  float colorMix=smoothstep(0.15,0.5,v_coh);
+  rgb=mix(vec3(0.96,0.93,0.87),rgb,colorMix);
+  // Hot white center glow on high coherence particles
+  rgb=mix(rgb,vec3(1.0),smoothstep(0.5,0.0,r)*0.35*v_coh);
+  gl_FragColor=vec4(rgb,v_alpha*s);}`;
+let prog,posB,cohB,specB,posL,cohL,specL,resU,arU,beautyU;
+const posD=new Float32Array(N*2);
+function initGL(){if(!gl)return;
+  const vs=gl.createShader(gl.VERTEX_SHADER);gl.shaderSource(vs,vsrc);gl.compileShader(vs);
+  const fs=gl.createShader(gl.FRAGMENT_SHADER);gl.shaderSource(fs,fsrc);gl.compileShader(fs);
+  prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);gl.useProgram(prog);
+  posL=gl.getAttribLocation(prog,'a_pos');cohL=gl.getAttribLocation(prog,'a_coh');specL=gl.getAttribLocation(prog,'a_spec');
+  resU=gl.getUniformLocation(prog,'u_res');arU=gl.getUniformLocation(prog,'u_ar');beautyU=gl.getUniformLocation(prog,'u_beauty');
+  posB=gl.createBuffer();cohB=gl.createBuffer();specB=gl.createBuffer();
+  gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE)}
+function renderP(){if(!gl||!prog)return;const sec=seq.on?getSec(seq.beat):SECTIONS[0];const ar=sec.ar||0;
+  gl.clearColor(.008,.012,.025,.05-.03*ar);gl.clear(gl.COLOR_BUFFER_BIT);
+  for(let i=0;i<N;i++){posD[i*2]=px[i];posD[i*2+1]=py[i]}
+  gl.useProgram(prog);gl.uniform2f(resU,W,H);gl.uniform1f(arU,ar);gl.uniform1f(beautyU,min(5,agents.piece.beauty)/5);
+  gl.bindBuffer(gl.ARRAY_BUFFER,posB);gl.bufferData(gl.ARRAY_BUFFER,posD,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(posL);gl.vertexAttribPointer(posL,2,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,cohB);gl.bufferData(gl.ARRAY_BUFFER,coh,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(cohL);gl.vertexAttribPointer(cohL,1,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,specB);gl.bufferData(gl.ARRAY_BUFFER,pSpec,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(specL);gl.vertexAttribPointer(specL,1,gl.FLOAT,false,0,0);
+  gl.drawArrays(gl.POINTS,0,N)}
+
+// ══════════════════════════════════════════
+// §6 PHOTOREALISTIC RAINDROP — 2D Canvas
+// 8 nested CRR cycles composited
+// ══════════════════════════════════════════
+const offscreen=document.createElement('canvas');let offCtx;
+
+function renderOptics(){
+  const sec=seq.on?getSec(seq.beat):SECTIONS[0];const ar=sec.ar||.05;
+  const t=pTime;const bright=.85+ar*.15;
+  const sunAng=PI*.92; // from upper-left
+  const oW=optC.width,oH=optC.height;
+  const scx=dropX||cx,scy=dropY||cy; // USE MOVING DROP POSITION
+  ox.clearRect(0,0,oW,oH);
+
+  // Step rendering CRR agents
+  const surfSt=agents.surface.step(.3+ar*.5,.016);
+  const sparkSt=agents.causHL.step(.5+ar,.016);
+  const bloomSt=agents.bloom.step(.4+ar*.6,.016);
+  const tearSt=agents.tearfilm.step(.3+ar,.016);
+  const surfN=agents.surface.normC;
+  const isSparkle=sparkSt.phase==='delta'?1:0;
+  const isBloomR=bloomSt.phase==='delta'?1:0;
+
+  // ═══ DROPLET VIBRATION — CRR surface tension oscillation ═══
+  // Surface tension = coherence basin. Music = periodic L input.
+  // beatPulse drives amplitude, surface CRR modulates frequency
+  const vibAmp=beatPulse*.06+surfN*.03+sin(t*BPM/60*TAU)*.008;
+  const R=dR*(1+vibAmp);
+  // Slight wobble: non-circular deformation at CRR rupture
+  const wobble=isSparkle?.015:0;
+  const wobbleAng=t*2.3;
+
+  // ═══ CYCLE 0: AMBIENT GLOW (internal scattering) ═══
+  const glowR=R*(1.6+ar*.6);
+  const glow=ox.createRadialGradient(scx,scy,R*.2,scx,scy,glowR);
+  glow.addColorStop(0,`rgba(180,200,230,${.015+ar*.025})`);
+  glow.addColorStop(.5,`rgba(140,170,210,${.008+ar*.015})`);
+  glow.addColorStop(1,'rgba(0,0,0,0)');
+  ox.fillStyle=glow;ox.beginPath();ox.arc(scx,scy,glowR,0,TAU);ox.fill();
+
+  // ═══ DROPLET BODY — nearly invisible, Fresnel rim, VIBRATING ═══
+  // CRR: surface coherence C modulates transparency
+  // Wobble: slight elliptical deformation at rupture events
+  const ba=.06+surfN*.06+ar*.04;
+  ox.save();
+  ox.translate(scx,scy);
+  ox.rotate(wobbleAng);
+  ox.scale(1+wobble,1-wobble);
+  ox.translate(-scx,-scy);
+
+  const rim=ox.createRadialGradient(scx,scy,R*.84,scx,scy,R);
+  rim.addColorStop(0,'transparent');
+  rim.addColorStop(.6,`rgba(140,180,230,${ba*.3})`);
+  rim.addColorStop(1,`rgba(170,210,255,${ba})`);
+  ox.fillStyle=rim;ox.beginPath();ox.arc(scx,scy,R,0,TAU);ox.fill();
+
+  // Volume — faint interior
+  const vol=ox.createRadialGradient(scx-R*.2,scy-R*.2,0,scx,scy,R);
+  vol.addColorStop(0,`rgba(200,220,255,${ba*.6})`);
+  vol.addColorStop(.6,`rgba(160,190,230,${ba*.25})`);
+  vol.addColorStop(1,'transparent');
+  ox.fillStyle=vol;ox.beginPath();ox.arc(scx,scy,R,0,TAU);ox.fill();
+
+  // Edge stroke
+  ox.beginPath();ox.arc(scx,scy,R,0,TAU);
+  ox.strokeStyle=`rgba(160,200,240,${.06+surfN*.06})`;ox.lineWidth=max(1,R*.015);ox.stroke();
+  ox.restore(); // end wobble deformation
+
+  // ═══ INCIDENT RAYS — white light approaching ═══
+  if(ar>.05){
+    const rayAlpha=min(.08,.02+ar*.06);
+    for(let i=0;i<14;i++){
+      const sp=((i-6.5)/13)*R*1.5;
+      const px2=-sin(sunAng),py2=cos(sunAng);
+      const ex=scx+px2*sp,ey=scy+py2*sp;
+      if(sqrt((ex-scx)**2+(ey-scy)**2)<R*.92){
+        const sunX=scx+R*5*cos(sunAng),sunY=scy+R*5*sin(sunAng);
+        ox.beginPath();ox.moveTo(sunX,sunY);ox.lineTo(ex,ey);
+        ox.strokeStyle=`rgba(255,252,240,${rayAlpha*(0.6+0.4*sin(t*0.3+i))})`;
+        ox.lineWidth=1;ox.stroke()}}
+  }
+
+  // ═══ CYCLE 1: INTERNAL RAYS — Snell's law traced ═══
+  if(ar>.2){
+    const rayNms=[440,490,540,580,620,680];
+    rayNms.forEach(nm=>{
+      const d=specData.find(x=>abs(x.nm-nm)<5);if(!d)return;
+      const n=d.n,sr=sin(d.tr)/n;if(abs(sr)>1)return;
+      const tR=asin(sr);
+      // Entry point
+      const eA=sunAng+d.tr;
+      const eX=scx+R*cos(eA+PI),eY=scy+R*sin(eA+PI);
+      // Internal reflection point
+      const rA=eA+PI+2*(PI/2-tR);
+      const rX=scx+R*cos(rA),rY=scy+R*sin(rA);
+      // Exit point
+      const xA=rA+2*(PI/2-tR);
+      const xX=scx+R*cos(xA),xY=scy+R*sin(xA);
+      const a=min(.3,(.05+ar*.15)*(0.7+0.3*sin(t*0.4+d.nm*0.01)));
+      const cr=d.r*255|0,cg=d.g*255|0,cb=d.b*255|0;
+      // Draw ray path through drop
+      ox.beginPath();ox.moveTo(eX,eY);ox.lineTo(rX,rY);ox.lineTo(xX,xY);
+      ox.strokeStyle=`rgba(${cr},${cg},${cb},${a})`;
+      ox.lineWidth=1.2+ar*.8;ox.setLineDash([2.5,3.5]);ox.stroke();ox.setLineDash([]);
+      // Dots at boundary crossings (δ events)
+      [[eX,eY],[rX,rY],[xX,xY]].forEach(([px3,py3])=>{
+        ox.beginPath();ox.arc(px3,py3,2+ar,0,TAU);
+        ox.fillStyle=`rgba(255,255,255,${a*.6})`;ox.fill()});
+    });
+  }
+
+  // ═══ CYCLE 1: EXIT SPECTRUM — spectral caustic ═══
+  if(ar>.25){
+    const strength=min(1,(ar-.25)/.6);
+    for(const d of specData){
+      const ea=sunAng+PI-d.D;
+      const sh=0.65+0.35*sin(t*2.5+d.nm*0.015);
+      // Contrast: warm colours boosted against cool background
+      let cb=1;if(d.nm>560)cb=1.2+.2*strength;else if(d.nm<480)cb=.7;
+      const a=(d.expCO/exp(3.5))*bright*sh*cb*strength;
+      if(a<.005)continue;
+      const cr=d.r*255|0,cg=d.g*255|0,cb2=d.b*255|0;
+      // Exit point on sphere surface
+      const esA=ea+PI;
+      const eX=scx+R*cos(esA),eY=scy+R*sin(esA);
+      const len=R*(2.5+5*strength)+40*a;
+      const fX=scx+len*cos(ea),fY=scy+len*sin(ea);
+      // Broad glow beam
+      ox.beginPath();ox.moveTo(eX,eY);ox.lineTo(fX,fY);
+      ox.strokeStyle=`rgba(${cr},${cg},${cb2},${a*.06})`;ox.lineWidth=12+a*8;ox.stroke();
+      // Core spectral line
+      const gr=ox.createLinearGradient(eX,eY,fX,fY);
+      gr.addColorStop(0,`rgba(${cr},${cg},${cb2},${a*.7})`);
+      gr.addColorStop(.12,`rgba(${cr},${cg},${cb2},${a*.35})`);
+      gr.addColorStop(.5,`rgba(${cr},${cg},${cb2},${a*.08})`);
+      gr.addColorStop(1,'transparent');
+      ox.beginPath();ox.moveTo(eX,eY);ox.lineTo(fX,fY);
+      ox.strokeStyle=gr;ox.lineWidth=2+a*2;ox.stroke();
+      // Sparkle at exit point
+      const ss=2+4*a*(0.5+0.5*sin(t*0.8+d.nm*0.015));
+      const skG=ox.createRadialGradient(eX,eY,0,eX,eY,ss);
+      skG.addColorStop(0,`rgba(${cr},${cg},${cb2},${a*.8})`);
+      skG.addColorStop(.4,`rgba(255,255,255,${a*.25})`);
+      skG.addColorStop(1,'transparent');
+      ox.fillStyle=skG;ox.beginPath();ox.arc(eX,eY,ss,0,TAU);ox.fill();
+    }
+  }
+
+  // ═══ SPECULAR HIGHLIGHT — sun reflection (top-left) ═══
+  const hlX=scx-R*.3+sin(t*.3)*1.5,hlY=scy-R*.3+cos(t*.25)*1.5;
+  const hlR=R*(.16+isSparkle*.08);
+  const hlA=.35+surfN*.15+isSparkle*.3;
+  const hl=ox.createRadialGradient(hlX,hlY,0,hlX,hlY,hlR);
+  hl.addColorStop(0,`rgba(255,255,255,${hlA})`);
+  hl.addColorStop(.35,`rgba(255,252,240,${hlA*.4})`);
+  hl.addColorStop(1,'transparent');
+  ox.fillStyle=hl;ox.beginPath();ox.arc(hlX,hlY,hlR,0,TAU);ox.fill();
+
+  // ═══ SECONDARY HIGHLIGHT — internal reflection caustic ═══
+  if(ar>.3){
+    const h2X=scx+R*.2,h2Y=scy+R*.25;
+    const h2A=min(.18,(ar-.3)*.25+isSparkle*.12);
+    const h2=ox.createRadialGradient(h2X,h2Y,0,h2X,h2Y,R*.1);
+    h2.addColorStop(0,`rgba(255,250,230,${h2A})`);
+    h2.addColorStop(1,'rgba(255,230,180,0)');
+    ox.fillStyle=h2;ox.beginPath();ox.arc(h2X,h2Y,R*.1,0,TAU);ox.fill();
+  }
+
+  // ═══ CYCLE 6: ADAPTATION BLOOM (Weber-Fechner) ═══
+  if(ar>.5){
+    const bloomStr=min(1,(ar-.5)/.4);
+    const cp=0.83+0.17*sin(t*4.3);
+    // Chromatic halo rings
+    for(let ring=0;ring<6;ring++){
+      const rR=R*(.25+ring*.15),nm=420+ring*55;
+      const[rr,gg,bb]=specRGB(nm);
+      const pulse=0.5+0.5*sin(t*2.5+ring*0.8);
+      const ha=bright*0.08*pulse*bloomStr;
+      const hg=ox.createRadialGradient(scx,scy,rR*.6,scx,scy,rR*1.4);
+      hg.addColorStop(0,`rgba(${rr*255|0},${gg*255|0},${bb*255|0},${ha})`);
+      hg.addColorStop(.5,`rgba(${rr*255|0},${gg*255|0},${bb*255|0},${ha*.3})`);
+      hg.addColorStop(1,'transparent');
+      ox.fillStyle=hg;ox.beginPath();ox.arc(scx,scy,rR*1.4,0,TAU);ox.fill()}
+    // White core bloom
+    const bG=ox.createRadialGradient(scx,scy,0,scx,scy,R*.6);
+    bG.addColorStop(0,`rgba(255,255,250,${.15*bright*cp*bloomStr})`);
+    bG.addColorStop(.15,`rgba(255,240,200,${.06*bright*cp*bloomStr})`);
+    bG.addColorStop(.5,`rgba(255,220,160,${.02*bright*bloomStr})`);
+    bG.addColorStop(1,'transparent');
+    ox.fillStyle=bG;ox.beginPath();ox.arc(scx,scy,R*.6,0,TAU);ox.fill();
+  }
+
+  // ═══ CYCLE 4: TEAR FILM SPIKES (starburst diffraction) ═══
+  if(ar>.65){
+    const spikeStr=min(1,(ar-.65)/.3);
+    const nSpikes=7;const sB=t*0.08;
+    for(let s=0;s<nSpikes;s++){
+      const ang=sB+(s/nSpikes)*TAU;const sdx=cos(ang),sdy=sin(ang);
+      const sLen=R*(1.2+.8*sin(t*1.5+s*1.3))*spikeStr;
+      const flk=0.45+0.55*pow(sin(t*2.2+s*2.7),2);
+      for(let d=3;d<sLen;d+=2){
+        const prog=d/sLen;const nm=430+250*((prog+t*0.3+s*0.15)%1);
+        const[sr,sg,sb]=specRGB(nm);
+        const fo=exp(-prog*prog*3);const a=bright*flk*fo*0.35*spikeStr;
+        if(a<.003)continue;
+        ox.beginPath();ox.arc(scx+sdx*d,scy+sdy*d,1.5+2*(1-prog),0,TAU);
+        ox.fillStyle=`rgba(${sr*255|0},${sg*255|0},${sb*255|0},${a})`;ox.fill()}
+      // White core line
+      const skGr=ox.createLinearGradient(scx,scy,scx+sdx*sLen*.4,scy+sdy*sLen*.4);
+      skGr.addColorStop(0,`rgba(255,252,240,${.35*bright*flk*spikeStr})`);
+      skGr.addColorStop(.2,`rgba(255,240,200,${.1*bright*flk*spikeStr})`);
+      skGr.addColorStop(1,'transparent');
+      ox.beginPath();ox.moveTo(scx+sdx*3,scy+sdy*3);ox.lineTo(scx+sdx*sLen*.4,scy+sdy*sLen*.4);
+      ox.strokeStyle=skGr;ox.lineWidth=1;ox.stroke();
+    }
+  }
+
+  // ═══ CYCLE 5: MICROSACCADE GLINTS ═══
+  if(ar>.7){
+    const glintStr=min(1,(ar-.7)/.25);
+    for(let i=0;i<30;i++){
+      const ph=t*1.8+i*4.1;const fl=pow(max(0,sin(ph)),30);
+      if(fl<.05)continue;
+      const ang=i*2.399+t*0.1;const dist=R*(.3+1.5*pow((i%7)/6,.5));
+      const gx=scx+dist*cos(ang),gy=scy+dist*sin(ang);
+      const nm=400+300*((i*0.137+t*0.05)%1);const[gr2,gg,gb]=specRGB(nm);
+      const a=fl*bright*.55*glintStr;const sz=1+3*fl;
+      const glG=ox.createRadialGradient(gx,gy,0,gx,gy,sz);
+      glG.addColorStop(0,`rgba(255,255,255,${a*.7})`);
+      glG.addColorStop(.3,`rgba(${gr2*255|0},${gg*255|0},${gb*255|0},${a*.5})`);
+      glG.addColorStop(1,'transparent');
+      ox.fillStyle=glG;ox.beginPath();ox.arc(gx,gy,sz,0,TAU);ox.fill()}
+  }
+
+  // ═══ FACE THE VIEWER: spectral rings expanding outward ═══
+  // When the drop points at you, the refracted light appears as
+  // concentric spectral circles — the rainbow seen head-on.
+  // CRR: this is exp(C/Ω) at maximum — all coherence directed at observer
+  if(faceViewer>.03){
+    const fv=faceViewer;
+    // Expanding spectral rings — each wavelength at its own radius
+    for(let ring=0;ring<12;ring++){
+      const nm=400+ring*28;const[rr,gg,bb]=specRGB(nm);
+      const ringR=R*(1.2+ring*1.2)*(1+fv*.5);
+      const pulse=.5+.5*sin(t*3+ring*.5);
+      const a=fv*(.12+pulse*.08)*bright;
+      ox.beginPath();ox.arc(scx,scy,ringR,0,TAU);
+      ox.strokeStyle=`rgba(${rr*255|0},${gg*255|0},${bb*255|0},${a})`;
+      ox.lineWidth=R*.08+fv*R*.1;ox.stroke();
+      // Inner glow
+      const rG=ox.createRadialGradient(scx,scy,ringR*.9,scx,scy,ringR*1.1);
+      rG.addColorStop(0,'transparent');
+      rG.addColorStop(.5,`rgba(${rr*255|0},${gg*255|0},${bb*255|0},${a*.3})`);
+      rG.addColorStop(1,'transparent');
+      ox.fillStyle=rG;ox.beginPath();ox.arc(scx,scy,ringR*1.1,0,TAU);ox.fill();
+    }
+    // Central white flash — point source directly at you
+    const cA=fv*bright*.6*(.7+.3*sin(t*5));
+    const cG=ox.createRadialGradient(scx,scy,0,scx,scy,R*1.5);
+    cG.addColorStop(0,`rgba(255,255,255,${cA})`);
+    cG.addColorStop(.1,`rgba(255,250,230,${cA*.5})`);
+    cG.addColorStop(.4,`rgba(255,230,180,${cA*.1})`);
+    cG.addColorStop(1,'transparent');
+    ox.fillStyle=cG;ox.beginPath();ox.arc(scx,scy,R*1.5,0,TAU);ox.fill();
+  }
+
+  // ═══ CRR LABELS ═══
+  if(ar>.15&&ar<.95){
+    ox.font=`${max(8,R*.08)}px "IBM Plex Mono",monospace`;ox.textAlign='center';
+    ox.fillStyle=`rgba(130,170,210,${.25*min(1,ar)})`;
+    ox.fillText('C(λ,τ) — coherence',scx-R-R*.6,scy-6);
+    ox.fillStyle=`rgba(210,170,110,${.25*min(1,ar)})`;
+    ox.fillText('δ — rupture (Snell)',scx,scy-R-R*.15);
+    ox.fillStyle=`rgba(110,200,130,${.25*min(1,ar)})`;
+    ox.fillText('R = ∫φ·exp(C/Ω)dτ',scx+R+R*.6,scy+10);
+    ox.fillStyle=`rgba(200,180,90,${.2*min(1,ar)})`;
+    ox.fillText('Ω(λ) = 1/πn(λ)',scx,scy+R+R*.2);
+  }
+}
+
+// ══════════════════════════════════════════
+// §7 AUDIO ENGINE
+// ══════════════════════════════════════════
+let ac=null,masterG,masterComp,revConv,revG,scG,synthG,acidG,drumG,grainG,choirG,fxG;
+function mkRev(c,dur=4.5,dec=2){const l=c.sampleRate*dur,b=c.createBuffer(2,l,c.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<l;i++)d[i]=(rnd()*2-1)*pow(1-i/l,dec)}
+  const v=c.createConvolver();v.buffer=b;return v}
+function initAudio(){if(ac)return;ac=new(window.AudioContext||window.webkitAudioContext)();
+  masterG=ac.createGain();masterG.gain.value=.75;
+  masterComp=ac.createDynamicsCompressor();masterComp.threshold.value=-8;masterComp.ratio.value=6;masterComp.knee.value=8;
+  revConv=mkRev(ac);revG=ac.createGain();revG.gain.value=.55;
+  masterG.connect(masterComp);masterComp.connect(ac.destination);masterG.connect(revConv);revConv.connect(revG);revG.connect(ac.destination);
+  scG=ac.createGain();scG.gain.value=1;scG.connect(masterG);
+  synthG=ac.createGain();synthG.gain.value=.55;synthG.connect(scG);
+  acidG=ac.createGain();acidG.gain.value=.45;acidG.connect(scG);
+  drumG=ac.createGain();drumG.gain.value=.50;drumG.connect(masterG);
+  grainG=ac.createGain();grainG.gain.value=.40;grainG.connect(scG);
+  choirG=ac.createGain();choirG.gain.value=.50;choirG.connect(scG);
+  fxG=ac.createGain();fxG.gain.value=.30;fxG.connect(scG);
+  initAcidBass();initChoir()}
+function sidechain(w){if(!scG)return;const t=max(ac.currentTime,w);scG.gain.setValueAtTime(.15,t);scG.gain.linearRampToValueAtTime(1,t+BEAT_S*.6)}
+
+function playKick(w,v=1){if(!ac)return;const t=max(ac.currentTime,w);
+  const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(140*v,t);o.frequency.exponentialRampToValueAtTime(30,t+.08);
+  const g=ac.createGain();g.gain.setValueAtTime(.6*v,t);g.gain.exponentialRampToValueAtTime(.001,t+.35);o.connect(g);g.connect(drumG);o.start(t);o.stop(t+.4);
+  const nb=ac.createBuffer(1,flr(ac.sampleRate*.008),ac.sampleRate);const nd=nb.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=(rnd()*2-1)*(1-i/nd.length);
+  const ns=ac.createBufferSource();ns.buffer=nb;const nf=ac.createBiquadFilter();nf.type='highpass';nf.frequency.value=4500;
+  const ng=ac.createGain();ng.gain.setValueAtTime(.22*v,t);ng.gain.linearRampToValueAtTime(.001,t+.015);ns.connect(nf);nf.connect(ng);ng.connect(drumG);ns.start(t);
+  sidechain(t);beatPulse=max(beatPulse,.6*v)}
+function playSnare(w,v=.8){if(!ac)return;const t=max(ac.currentTime,w);const bl=.22;
+  const buf=ac.createBuffer(1,flr(ac.sampleRate*bl),ac.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(rnd()*2-1)*pow(1-i/d.length,.5);
+  const s=ac.createBufferSource();s.buffer=buf;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=4200;bp.Q.value=1.2;
+  const g=ac.createGain();g.gain.setValueAtTime(.32*v,t);g.gain.exponentialRampToValueAtTime(.001,t+bl);s.connect(bp);bp.connect(g);g.connect(drumG);s.start(t);
+  const o=ac.createOscillator();o.type='triangle';o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(140,t+.04);
+  const og=ac.createGain();og.gain.setValueAtTime(.14*v,t);og.gain.exponentialRampToValueAtTime(.001,t+.1);o.connect(og);og.connect(drumG);o.start(t);o.stop(t+.12);beatPulse=max(beatPulse,.35*v)}
+function playHat(w,open=false,v=.5){if(!ac)return;const t=max(ac.currentTime,w);const bl=open?.2:.04;
+  const buf=ac.createBuffer(1,flr(ac.sampleRate*bl),ac.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(rnd()*2-1)*pow(1-i/d.length,open?1.3:3.5);
+  const s=ac.createBufferSource();s.buffer=buf;const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=7500;
+  const g=ac.createGain();g.gain.setValueAtTime(.09*v,t);g.gain.exponentialRampToValueAtTime(.001,t+bl);s.connect(hp);hp.connect(g);g.connect(drumG);s.start(t)}
+function playPrepared(midi,vel,dur,w){if(!ac)return;const freq=m2f(midi),t=max(ac.currentTime,w);
+  const nG=ac.createGain();nG.gain.setValueAtTime(.001,t);nG.gain.linearRampToValueAtTime(1,t+.003);nG.gain.linearRampToValueAtTime(.15,t+dur*.4);nG.gain.linearRampToValueAtTime(.001,t+dur);nG.connect(synthG);
+  [1,2,3,4,5,6,7,8].forEach((h,idx)=>{const fh=freq*h*(1+(.0006+rnd()*.001)*h*h);
+    const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(fh*(1+(rnd()-.5)*.004),t);
+    const a=[1,.3,.14,.06,.03,.015,.008,.004][idx]*vel*.2;
+    const hG=ac.createGain();hG.gain.setValueAtTime(.001,t);hG.gain.linearRampToValueAtTime(a,t+.002+idx*.004);
+    hG.gain.linearRampToValueAtTime(.001,t+dur*(.25+idx*.06)*(1+rnd()*.4));o.connect(hG);hG.connect(nG);o.start(t);o.stop(t+dur+.05)})}
+let acidOsc,acidShaper,acidFilter,acidEnvG;
+function initAcidBass(){acidOsc=ac.createOscillator();acidOsc.type='sawtooth';acidOsc.frequency.value=m2f(38);
+  acidShaper=ac.createWaveShaper();const curve=new Float32Array(2048);for(let i=0;i<2048;i++){const x=i*2/2048-1;curve[i]=Math.tanh(x*3.5)}
+  acidShaper.curve=curve;acidShaper.oversample='2x';acidFilter=ac.createBiquadFilter();acidFilter.type='lowpass';acidFilter.frequency.value=180;acidFilter.Q.value=10;
+  acidEnvG=ac.createGain();acidEnvG.gain.value=0;acidOsc.connect(acidShaper);acidShaper.connect(acidFilter);acidFilter.connect(acidEnvG);acidEnvG.connect(acidG);
+  const sub=ac.createOscillator();sub.type='sine';sub.frequency.value=m2f(38)/2;const subG=ac.createGain();subG.gain.value=0;sub.connect(subG);subG.connect(acidG);
+  acidOsc._sub=sub;acidOsc._subG=subG;acidOsc.start();sub.start()}
+function setAcid(midi,level,cutoff,resonance){if(!ac||!acidOsc)return;const t=ac.currentTime,f=m2f(midi);
+  acidOsc.frequency.setTargetAtTime(f,t,.04);acidOsc._sub.frequency.setTargetAtTime(f/2,t,.04);
+  acidEnvG.gain.setTargetAtTime(level*.3,t,.06);acidOsc._subG.gain.setTargetAtTime(level*.18,t,.06);
+  acidFilter.frequency.setTargetAtTime(cutoff,t,.08);acidFilter.Q.setTargetAtTime(resonance,t,.1)}
+function acidAccent(w){if(!ac)return;const t=max(ac.currentTime,w);acidFilter.frequency.setValueAtTime(5000,t);acidFilter.frequency.exponentialRampToValueAtTime(acidFilter.frequency.value||180,t+.12)}
+function playSpectralBell(midi,vel,dur,w){if(!ac)return;const fc=m2f(midi),t=max(ac.currentTime,w);
+  const modR=2+(midi-60)*.2,modD=.8+vel*2,fm=fc*modR;
+  const mod=ac.createOscillator();mod.type='sine';mod.frequency.setValueAtTime(fm,t);
+  const modG=ac.createGain();modG.gain.setValueAtTime(modD*fc,t);modG.gain.linearRampToValueAtTime(modD*fc*.06,t+dur);mod.connect(modG);
+  const carr=ac.createOscillator();carr.type='sine';carr.frequency.setValueAtTime(fc,t);modG.connect(carr.frequency);
+  const env=ac.createGain();env.gain.setValueAtTime(.001,t);env.gain.linearRampToValueAtTime(.1*vel,t+.005);
+  env.gain.linearRampToValueAtTime(.03*vel,t+dur*.35);env.gain.linearRampToValueAtTime(.001,t+dur);
+  carr.connect(env);env.connect(synthG);mod.start(t);carr.start(t);mod.stop(t+dur+.05);carr.stop(t+dur+.05)}
+function playGrainCloud(freq,density,duration,w){if(!ac)return;const t=max(ac.currentTime,w);
+  const ng=flr(density*duration*28);for(let i=0;i<min(ng,45);i++){const gT=t+rnd()*duration*BEAT_S;const gL=.004+rnd()*.035;
+    const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(freq*(1+(rnd()-.5)*.12),gT);
+    const env=ac.createGain();env.gain.setValueAtTime(.001,gT);env.gain.linearRampToValueAtTime(.055*density,gT+gL*.2);env.gain.linearRampToValueAtTime(.001,gT+gL);
+    o.connect(env);env.connect(grainG);o.start(gT);o.stop(gT+gL+.01)}}
+function playPad(midi,vel,dur,cutoff,w){if(!ac)return;const f=m2f(midi),t=max(ac.currentTime,w);
+  const nG=ac.createGain();nG.gain.setValueAtTime(.001,t);nG.gain.linearRampToValueAtTime(1,t+.2);nG.gain.setValueAtTime(1,t+dur*.6);nG.gain.linearRampToValueAtTime(.001,t+dur);nG.connect(synthG);
+  [-8,-4,0,4,8].forEach(det=>{const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=f;o.detune.value=det;
+    const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(cutoff||1000,t);lp.frequency.linearRampToValueAtTime(max(180,(cutoff||1000)*.2),t+dur);lp.Q.value=2.5;
+    const hG=ac.createGain();hG.gain.value=vel*.05;o.connect(lp);lp.connect(hG);hG.connect(nG);o.start(t);o.stop(t+dur+.05)})}
+let choir=[];
+function initChoir(){choir=[];
+  [{n:'S',m:[74,78,81,74],f:FMT},{n:'A',m:[62,66,69,62],f:FMT_A},{n:'T',m:[50,54,57,50],f:FMT_T},{n:'B',m:[38,42,45,38],f:FMT_B}].forEach(v=>{
+    const part=[];v.m.forEach(mid=>{const freq=m2f(mid);
+      const o1=ac.createOscillator();o1.type='sawtooth';o1.frequency.value=freq*.998;
+      const o2=ac.createOscillator();o2.type='sawtooth';o2.frequency.value=freq*1.003;
+      const mx=ac.createGain();mx.gain.value=0;o1.connect(mx);o2.connect(mx);
+      const vib=ac.createOscillator();vib.type='sine';vib.frequency.value=4.5+rnd()*1.5;
+      const vibG=ac.createGain();vibG.gain.value=0;vib.connect(vibG);vibG.connect(o1.frequency);vibG.connect(o2.frequency);
+      const flt=[];for(let fi=0;fi<3;fi++){const bp=ac.createBiquadFilter();bp.type='bandpass';bp.Q.value=6+rnd()*3;bp.frequency.value=600;
+        const fG=ac.createGain();fG.gain.value=0;mx.connect(bp);bp.connect(fG);fG.connect(choirG);flt.push({bp,gain:fG})}
+      o1.start();o2.start();vib.start();part.push({o1,o2,mx,vib,vibG,flt,freq,fs:v.f})});choir.push({n:v.n,v:part})})}
+function setCV(vowel,tr){if(!ac||!choir.length)return;const t=ac.currentTime;choir.forEach(p=>{p.v.forEach(v=>{const f=v.fs[vowel]||v.fs.a;v.flt.forEach((fl,i)=>{if(f[i]){fl.bp.frequency.setTargetAtTime(f[i].f,t,tr||1);fl.gain.gain.setTargetAtTime(f[i].g*.28,t,tr||1)}})})})}
+function setCL(lv,tr){if(!ac)return;const t=ac.currentTime;choir.forEach(p=>{p.v.forEach(v=>{v.mx.gain.setTargetAtTime(lv,t,tr||1);v.vibG.gain.setTargetAtTime(lv>0?v.freq*.004:0,t,tr||1)})})}
+function setCP(pn,ma,tr){if(!ac)return;const t=ac.currentTime;const part=choir.find(p=>p.n===pn);if(!part)return;part.v.forEach((v,i)=>{if(ma[i]!==undefined){const f=m2f(ma[i]);v.o1.frequency.setTargetAtTime(f*.998,t,tr||.5);v.o2.frequency.setTargetAtTime(f*1.003,t,tr||.5);v.freq=f}})}
+function playPhotonDrone(w){if(!ac)return;const t=max(ac.currentTime,w);const master=ac.createGain();master.gain.setValueAtTime(.001,t);master.connect(fxG);
+  const fund=38+rnd()*12,dur=5+rnd()*2;[1,2,3,4,5].forEach((h,i)=>{const o=ac.createOscillator();o.type='sine';
+    o.frequency.setValueAtTime(fund*h,t);o.frequency.linearRampToValueAtTime(fund*h*(1+(rnd()-.5)*.02),t+dur*.7);
+    const g=ac.createGain();const a=[.12,.06,.025,.01,.005][i];g.gain.setValueAtTime(.001,t);g.gain.linearRampToValueAtTime(a,t+.6);g.gain.linearRampToValueAtTime(.001,t+dur);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.1)});master.gain.linearRampToValueAtTime(1,t+.5);master.gain.linearRampToValueAtTime(.001,t+dur)}
+function playSpecFlash(w){if(!ac)return;const t=max(ac.currentTime,w);
+  for(let nm=420;nm<=680;nm+=40){const[r,g,b]=specRGB(nm);playSpectralBell(60+round((nm-420)/260*12),.3+rnd()*.15,2+rnd(),t+(nm-420)*.0002)}
+  doFlash('rgba(255,250,230,.15)');faceViewer=min(1,faceViewer+.6); // SWING TO FACE VIEWER
+  for(let i=0;i<N;i++){coh[i]=max(.1,coh[i]*.4);const dx2=px[i]-(dropX||cx),dy2=py[i]-(dropY||cy),dd=sqrt(dx2*dx2+dy2*dy2)+1;pvx[i]+=(dx2/dd)*3;pvy[i]+=(dy2/dd)*3}}
+function playRiser(dur,w){if(!ac)return;const t=max(ac.currentTime,w);const bl=dur*BEAT_S;
+  const buf=ac.createBuffer(1,flr(ac.sampleRate*bl),ac.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(rnd()*2-1)*pow(i/d.length,2.5);
+  const s=ac.createBufferSource();s.buffer=buf;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.Q.value=2.5;
+  bp.frequency.setValueAtTime(180,t);bp.frequency.exponentialRampToValueAtTime(8000,t+bl);
+  const g=ac.createGain();g.gain.setValueAtTime(.001,t);g.gain.linearRampToValueAtTime(.25,t+bl*.9);g.gain.linearRampToValueAtTime(.001,t+bl);
+  s.connect(bp);bp.connect(g);g.connect(fxG);s.start(t)}
+
+// §8 SCORE
+const SCORE=[];
+const MEL_DISP=buildSpecMelody(200,260,'r2v',.25),MEL_REFL=buildSpecMelody(280,332,'v2r',.3);
+const MEL_CAUS=buildSpecMelody(348,396,'cycle',.4),MEL_ARC=buildSpecMelody(408,460,'cycle',.5);
+function buildScore(){SCORE.length=0;const ev=(b,tp,d)=>SCORE.push(Object.assign({beat:b,type:tp},d||{}));
+  for(let b=0;b<56;b+=10)ev(b,'photonDrone',{});for(let b=14;b<56;b+=9)ev(b,'prepared',{midi:60+flr(rnd()*3),vel:.1,dur:5.5*BEAT_S});
+  for(let b=56;b<112;b+=10)ev(b,'photonDrone',{});for(let b=76;b<112;b+=8)PAD_RV.forEach(m=>ev(b,'pad',{midi:m,vel:.2,dur:7*BEAT_S,cutoff:400}));
+  for(let b=112;b<184;b+=4){ev(b,'acid',{midi:BASS_SEQ[flr((b-112)/4)%8],level:.5+((b-112)/72)*.35,cutoff:220+((b-112)/72)*550,resonance:8+((b-112)/72)*5})}
+  for(let b=112;b<184;b+=16)ev(b,'acidAccent',{});for(let b=128;b<184;b+=4){ev(b,'kick',{vel:.3+((b-128)/56)*.25});if(b%8===4)ev(b,'hat',{open:false,vel:.1})}
+  for(let b=112;b<184;b+=8)PAD_RV.forEach(m=>ev(b,'pad',{midi:m,vel:.25,dur:7.5*BEAT_S,cutoff:600}));ev(176,'riser',{dur:8});
+  for(let b=184;b<264;b+=4){ev(b,'kick',{vel:.55+((b-184)/80)*.2});if(b%8===4)ev(b,'snare',{vel:.3+((b-184)/80)*.2});ev(b,'hat',{open:false,vel:.15});ev(b+2,'hat',{open:b%8===6,vel:.1})}
+  MEL_DISP.forEach(n=>ev(n.beat,'spectralBell',{midi:n.midi,vel:n.vel,dur:n.dur}));
+  for(let b=184;b<264;b+=5)ev(b,'grain',{freq:m2f(60+flr(rnd()*12)),density:.4+rnd()*.4,duration:3});
+  for(let b=184;b<264;b+=4){ev(b,'acid',{midi:BASS_SEQ[flr((b-184)/4)%8],level:.7,cutoff:450+rnd()*350,resonance:9});if(b%16===0)ev(b,'acidAccent',{})}
+  for(let b=184;b<264;b+=8)PAD_GB.forEach(m=>ev(b,'pad',{midi:m,vel:.35,dur:7.5*BEAT_S,cutoff:900}));ev(256,'riser',{dur:8});
+  for(let b=264;b<336;b+=4){ev(b,'kick',{vel:.75});if(b%4===2)ev(b,'snare',{vel:.5});for(let h=0;h<4;h++)ev(b+h,'hat',{open:h===3,vel:h%2===0?.18:.08})}
+  MEL_REFL.forEach(n=>ev(n.beat,'spectralBell',{midi:n.midi,vel:n.vel,dur:n.dur}));
+  for(let b=264;b<336;b+=8)PAD_FULL.slice(0,4).forEach(m=>ev(b,'pad',{midi:m,vel:.45,dur:7.5*BEAT_S,cutoff:1400}));
+  for(let b=264;b<336;b+=4)ev(b,'acid',{midi:BASS_SEQ[flr((b-264)/4)%8],level:.65,cutoff:700,resonance:8});
+  for(let b=264;b<336;b+=5)ev(b,'grain',{freq:m2f(60+flr(rnd()*12)),density:.65,duration:3});ev(328,'riser',{dur:8});
+  for(let b=336;b<400;b+=4){ev(b,'kick',{vel:.85});if(b%4===2)ev(b,'snare',{vel:.6});for(let h=0;h<4;h++)ev(b+h,'hat',{open:h===3,vel:.2});if(b%8===6)ev(b,'kick',{vel:.3})}
+  MEL_CAUS.forEach(n=>ev(n.beat,'spectralBell',{midi:n.midi,vel:n.vel*1.2,dur:n.dur}));
+  for(let b=336;b<400;b+=4){const p=(b-336)/64;ev(b,'acid',{midi:BASS_SEQ[flr((b-336)/4)%8],level:.8,cutoff:650+p*2000,resonance:9+p*7});if(b%8===0)ev(b,'acidAccent',{})}
+  for(let b=336;b<400;b+=8)PAD_FULL.slice(0,4).forEach(m=>ev(b,'pad',{midi:m,vel:.5,dur:7.5*BEAT_S,cutoff:2000}));
+  for(let b=336;b<400;b+=4)ev(b,'grain',{freq:m2f(60+flr(rnd()*12)),density:.85+((b-336)/64)*.4,duration:2.5});ev(392,'riser',{dur:8});
+  for(let b=400;b<464;b+=4){ev(b,'kick',{vel:1});if(b%4===2)ev(b,'snare',{vel:.72});for(let h=0;h<4;h++)ev(b+h,'hat',{open:h===3||h===1,vel:.2})}
+  MEL_ARC.forEach(n=>ev(n.beat,'spectralBell',{midi:n.midi,vel:n.vel*1.3,dur:n.dur}));
+  for(let b=400;b<464;b+=4){ev(b,'acid',{midi:BASS_SEQ[flr((b-400)/4)%8],level:1,cutoff:3000,resonance:15});if(b%8===0)ev(b,'acidAccent',{})}
+  for(let b=400;b<464;b+=8)PAD_FULL.forEach(m=>ev(b,'pad',{midi:m,vel:.6,dur:7.5*BEAT_S,cutoff:3000}));
+  for(let b=400;b<464;b+=3)ev(b,'grain',{freq:m2f(60+flr(rnd()*12)),density:1.3,duration:2});
+  ev(424,'specFlash',{});ev(448,'specFlash',{});
+  for(let b=464;b<484;b+=4){const f=1-(b-464)/20;ev(b,'kick',{vel:.2*f})}
+  for(let b=464;b<498;b+=7)ev(b,'prepared',{midi:60+flr(rnd()*12),vel:.07*((504-b)/40),dur:5.5*BEAT_S});
+  for(let b=464;b<504;b+=8)ev(b,'grain',{freq:m2f(60+flr(rnd()*12)),density:.06,duration:5});
+  for(let b=464;b<498;b+=12)ev(b,'photonDrone',{});
+  for(let b=464;b<484;b+=4){const f=1-(b-464)/20;ev(b,'acid',{midi:38,level:.12*f,cutoff:180,resonance:5})}
+  SCORE.sort((a,b)=>a.beat-b.beat)}
+
+// §9 SEQUENCER
+const seq={on:false,beat:0,ts:1,ni:0,prevSec:null};
+function startPlay(){if(seq.on)return;initAudio();buildScore();Object.values(agents).forEach(a=>a.reset());totalRuptures=0;
+  seq.on=true;seq.beat=0;seq.ni=0;seq.prevSec=null;document.getElementById('btn-play').classList.add('on')}
+function stopPlay(){seq.on=false;document.getElementById('btn-play').classList.remove('on');if(ac){setCL(0,.3);setAcid(38,0,180,6)}}
+function schedNotes(){if(!seq.on||!ac)return;const t=ac.currentTime;
+  while(seq.ni<SCORE.length){const e=SCORE[seq.ni];if(e.beat>seq.beat+.2)break;
+    const w=max(t,t+(e.beat-seq.beat)*BEAT_S/seq.ts);
+    switch(e.type){case'kick':playKick(w,e.vel);break;case'snare':playSnare(w,e.vel);break;case'hat':playHat(w,e.open,e.vel);break;
+      case'prepared':playPrepared(e.midi,e.vel,e.dur,w);break;case'pad':playPad(e.midi,e.vel,e.dur,e.cutoff,w);break;
+      case'acid':setAcid(e.midi,e.level,e.cutoff,e.resonance);break;case'acidAccent':acidAccent(w);break;
+      case'grain':playGrainCloud(e.freq,e.density,e.duration,w);break;case'photonDrone':playPhotonDrone(w);break;
+      case'specFlash':playSpecFlash(w);break;case'spectralBell':playSpectralBell(e.midi,e.vel,e.dur,w);break;
+      case'riser':playRiser(e.dur,w);break}seq.ni++}}
+function updateSeq(dt){if(!seq.on)return;const bd=dt*BPM/60*seq.ts;seq.beat+=bd;if(seq.beat>=TOTAL_BEATS){stopPlay();return}
+  const sec=getSec(seq.beat);const ar=sec.ar;const actN=sec.agents||[];
+  Object.entries(agents).forEach(([name,agent])=>{
+    if(name==='piece'||name==='phrase'||actN.includes(name)){
+      const L=name==='piece'?(.2+ar*.3):name==='phrase'?(ar*.5+.1):(ar*.3+.05);
+      const ts=name==='piece'?.005:name==='phrase'?.01:.016;
+      const st=agent.step(L,dt*ts);
+      if(st.phase==='delta'){totalRuptures++;
+        if(name==='violet'&&ar>.4)beatPulse=max(beatPulse,.3);
+        if(name==='arc'&&ar>.8){doFlash('rgba(255,250,230,.1)');beatPulse=max(beatPulse,.5)}
+        if(name==='refract'&&ar>.3&&acidOsc)acidAccent(ac.currentTime)}}});
+  if(sec!==seq.prevSec){seq.prevSec=sec;showSection(sec.name);showDesc(sec.desc);showBio(sec.bio);showExplain(sec.explain);
+    if(ac){if(sec.name==='THE ARC'){doFlash('#ffe8c0');setCV('i',.5);setCL(.6,.4);setCP('S',[78,81,74,78],.3);setCP('A',[66,69,62,66],.3);setCP('T',[54,57,50,54],.3);setCP('B',[42,45,38,42],.3)}
+      else if(sec.name==='CAUSTIC'){setCV('e',1);setCL(.28,.8);setCP('S',[78,81,86,78],.5);setCP('A',[66,69,74,66],.5);setCP('T',[54,57,62,54],.5);setCP('B',[42,45,38,42],.5)}
+      else if(sec.name==='REFLECTION'){setCV('a',1.5);setCL(.16,1)}
+      else if(sec.name==='DISSOLUTION'){setCV('u',3);setCL(.03,2)}
+      else if(sec.name==='REFRACTION'){setCL(.04,2)}else{setCL(0,1.5)}}}
+  agents.phrase.omS=1+ar*.5;schedNotes()}
+
+// §10 UI
+function showSection(n){const e=document.getElementById('section-label');e.textContent=n;e.style.opacity='.85';setTimeout(()=>e.style.opacity='0',2800)}
+function showDesc(t){const e=document.getElementById('section-desc');e.textContent=t;e.style.opacity=t?'.6':'0';setTimeout(()=>e.style.opacity='0',4000)}
+function showBio(t){const e=document.getElementById('bio-text');e.textContent=t;e.style.opacity=t?'1':'0'}
+function showExplain(t){const e=document.getElementById('crr-explain');e.textContent=t;e.style.opacity=t?'1':'0'}
+function doFlash(c){const e=document.getElementById('flash');e.style.background=c||'white';e.style.opacity='.4';setTimeout(()=>e.style.opacity='0',50);beatPulse=max(beatPulse,.7)}
+function buildTL(){const c=document.getElementById('tl-sections');c.innerHTML='';
+  SECTIONS.forEach(s=>{const e=document.createElement('div');e.className='t-sec';e.style.width=((s.end-s.start)/TOTAL_BEATS*100)+'%';
+    const l=document.createElement('div');l.className='t-sec-l';l.textContent=s.name.split(' ')[0];e.appendChild(l);c.appendChild(e)})}
+function updateTL(){const p=seq.on?(seq.beat/TOTAL_BEATS*100):0;document.getElementById('tl-fill').style.width=p+'%';
+  const el=seq.on?seq.beat*BEAT_S/seq.ts:0,tot=TOTAL_BEATS*BEAT_S/seq.ts;
+  const fm=s=>{const m=flr(s/60),ss=flr(s%60);return m+':'+(ss<10?'0':'')+ss};
+  document.getElementById('tl-time').textContent=fm(el)+' / '+fm(tot);
+  document.getElementById('tl-crr').textContent='B='+min(99,agents.piece.beauty).toFixed(1)}
+function updateCRRD(){if(!seq.on)return;const sec=getSec(seq.beat);
+  const act=Object.entries(agents).filter(([n])=>sec.agents&&sec.agents.includes(n)||n==='piece'||n==='phrase');
+  const top=act.length>2?act[act.length-1]:act[0];
+  document.getElementById('crr-data').innerHTML=
+    (top?top[0]+': Ω='+top[1].omega.toFixed(4)+' C/Ω='+min(99,top[1].C/max(.001,top[1].omega)).toFixed(2):'—')+'<br>'+
+    'B='+min(99,agents.piece.beauty).toFixed(1)+' δ='+totalRuptures+'<br>'+sec.name}
+
+// §11 MAIN LOOP
+let lastTime=0;
+function resize(){W=vizC.clientWidth;H=vizC.clientHeight;cx=W/2;cy=H/2;
+  vizC.width=W;vizC.height=H;optC.width=W;optC.height=H;
+  dR=min(W,H)*.13;specData=precompute(dR);
+  if(!dropX){dropX=cx;dropY=cy}
+  if(gl){gl.viewport(0,0,W,H);gl.clearColor(.008,.012,.025,1);gl.clear(gl.COLOR_BUFFER_BIT)}}
+function loop(ts){const dt=min(.033,lastTime?((ts-lastTime)/1000):.016);lastTime=ts;
+  updateSeq(dt);updateP(dt);renderP();renderOptics();updateTL();
+  if(seq.on&&flr(ts/400)%2===0)updateCRRD();
+  requestAnimationFrame(loop)}
+
+document.getElementById('splash').addEventListener('click',()=>{
+  document.getElementById('splash').classList.add('hidden');document.getElementById('app').classList.add('active');
+  resize();initGL();initP();buildTL();requestAnimationFrame(loop)});
+document.getElementById('btn-play').addEventListener('click',startPlay);
+document.getElementById('btn-stop').addEventListener('click',stopPlay);
+document.getElementById('sl-tempo').addEventListener('input',e=>{seq.ts=parseFloat(e.target.value);document.getElementById('v-tempo').textContent=seq.ts.toFixed(1)});
+document.getElementById('sl-rev').addEventListener('input',e=>{const v=parseFloat(e.target.value);document.getElementById('v-rev').textContent=v.toFixed(2);if(revG)revG.gain.setTargetAtTime(v,ac.currentTime,.1)});
+document.getElementById('sl-synth').addEventListener('input',e=>{const v=parseFloat(e.target.value);document.getElementById('v-synth').textContent=v.toFixed(2);if(synthG)synthG.gain.setTargetAtTime(v,ac.currentTime,.1)});
+document.getElementById('sl-acid').addEventListener('input',e=>{const v=parseFloat(e.target.value);document.getElementById('v-acid').textContent=v.toFixed(2);if(acidG)acidG.gain.setTargetAtTime(v,ac.currentTime,.1)});
+document.getElementById('sl-drum').addEventListener('input',e=>{const v=parseFloat(e.target.value);document.getElementById('v-drum').textContent=v.toFixed(2);if(drumG)drumG.gain.setTargetAtTime(v,ac.currentTime,.1)});
+document.getElementById('sl-grain').addEventListener('input',e=>{const v=parseFloat(e.target.value);document.getElementById('v-grain').textContent=v.toFixed(2);if(grainG)grainG.gain.setTargetAtTime(v,ac.currentTime,.1)});
+document.getElementById('sl-choir').addEventListener('input',e=>{const v=parseFloat(e.target.value);document.getElementById('v-choir').textContent=v.toFixed(2);if(choirG)choirG.gain.setTargetAtTime(v,ac.currentTime,.1)});
+window.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,200));
+console.log('═══ SPECTRAL PHYSICS ═══');
+specRGB(550); // warm up
+</script>
+</body>
+</html>
