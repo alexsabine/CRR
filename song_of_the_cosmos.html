@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Song of the Cosmos · Extended CRR Cosmological Composition</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;0,700;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
@@ -15,9 +15,10 @@
   --mono:'IBM Plex Mono',monospace;--serif:'Playfair Display',Georgia,serif;
 }
 body{background:var(--bg);color:var(--text);font-family:var(--serif);
-  overflow:hidden;width:100vw;height:100vh;position:fixed}
+  overflow:hidden;width:100vw;height:100vh;height:var(--vh,100dvh);position:fixed}
 #splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;
-  align-items:center;justify-content:center;cursor:pointer;transition:opacity 1.4s ease}
+  align-items:center;justify-content:center;cursor:pointer;transition:opacity 1.4s ease;
+  height:100vh;height:var(--vh,100dvh)}
 #splash.hidden{opacity:0;pointer-events:none}
 #splash .inner{text-align:center;max-width:760px;padding:0 24px}
 #splash .bar{width:340px;height:2px;margin:0 auto 22px;border-radius:2px;
@@ -38,7 +39,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--serif);
 #splash .tap{font-size:.8rem;opacity:.35;margin-top:22px;letter-spacing:.18em;
   text-transform:uppercase;font-weight:400;animation:tp 1.8s ease-in-out infinite}
 @keyframes tp{0%,100%{opacity:.25}50%{opacity:.55}}
-#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app{display:none;flex-direction:column;width:100%;height:100vh;height:var(--vh,100dvh);overflow:hidden}
 #app.active{display:flex}
 #canvas-wrap{flex:1;min-height:0;position:relative;overflow:hidden}
 #viz{display:block;width:100%;height:100%;touch-action:none}
@@ -88,7 +89,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--serif);
 #tl-time{font-family:var(--mono);font-size:.5rem;color:rgba(139,157,195,.35);
   min-width:52px;text-align:right}
 #controls{border-top:1px solid var(--faint);background:var(--panel);
-  padding:5px 10px 6px;display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+  padding:5px 10px 6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:2px;flex-shrink:0}
 .tr{display:flex;gap:3px;justify-content:center;align-items:center;flex-wrap:wrap}
 .tb{font-family:var(--mono);font-size:clamp(.65rem,.9vw,.78rem);padding:4px 14px;
   border:1px solid rgba(139,157,195,.2);background:transparent;color:rgba(139,157,195,.55);
@@ -120,7 +121,7 @@ Lipid bilayer as the first Markov blanket. DNA as exp(C/Ω) memory.<br>
 Consonance solved: Ω∝1/(p+q). Pentatonic as universal attractor.<br>
 Sacred geometry as coherence basins discovered independently across all cultures.</p>
 <p class="eq">
-H�=(8πG/3)ρ+Λ/3 ≡ C(t)=∫L(x,τ)dτ · Λ/3=Ω · symmetry breaking = nested δ(now)<br>
+H�=(8πG/3)ρ+Λ/3 ≡ C(t)=∫L(x,τ)dτ · Λ/3=Ω · symmetry breaking = nested δ(now)<br>
 Balmer: Hα/Hβ=1.350→aug4th · CMB: l≈220,546,820 → D Lydian chord<br>
 lipid bilayer = FIRST Markov blanket · DNA = exp(C/Ω) memory<br>
 consonance: Ω_interval∝1/(p+q) · pentatonic = highest Ω = attractor<br>
@@ -162,7 +163,7 @@ sacred form = exp(C/Ω) stable basin · hexagon = max 2D packing · φ = most ir
   <div class="sw"><label>choir</label><input type="range" id="sl-choir" min="0" max="1" step="0.05" value="0.55"><span class="v" id="v-choir">.55</span></div>
 </div>
 <div id="crr-footer">
-H�=(8πG/3)ρ+Λ/3 ≡ CRR · lipid bilayer=first Markov blanket · DNA=exp(C/Ω) memory
+H�=(8πG/3)ρ+Λ/3 ≡ CRR · lipid bilayer=first Markov blanket · DNA=exp(C/Ω) memory
 · consonance: Ω∝1/(p+q) · pentatonic=attractor · sacred form=coherence basin · φ=max beauty ratio
 </div>
 </div>
@@ -428,7 +429,9 @@ function getSec(b){for(let i=SECTIONS.length-1;i>=0;i--)if(b>=SECTIONS[i].start)
 // §5 PARTICLE SYSTEM
 const canvas=document.getElementById('viz');
 const gl=canvas.getContext('webgl',{antialias:false,alpha:true,preserveDrawingBuffer:true});
-let W,H,cx,cy;const N=16000;
+let W,H,cx,cy;
+const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||window.innerWidth<768;
+const N=16000;
 const px=new Float32Array(N),py=new Float32Array(N);
 const pvx=new Float32Array(N),pvy=new Float32Array(N);
 const coh=new Float32Array(N),phs=new Float32Array(N);
@@ -459,9 +462,12 @@ function updateP(dt){
     let ax=0,ay=0;
 
     // Form targeting (sacred geometry / cells)
+    // Scale pull relative to screen: on smaller screens, gravity/orbital forces
+    // are proportionally stronger (closer to center), so pull must compensate
     if(hasT[i]){const ddx=txA[i]-px[i],ddy=tyA[i]-py[i],d=sqrt(ddx*ddx+ddy*ddy)+.001;
-      const pull=exp(coh[i]/.12)*.01*min(d*.008,1);
-      ax+=ddx/d*pull;ay+=ddy/d*pull;if(d<25)coh[i]=min(1,coh[i]+.003)}
+      const scaleComp=800/max(300,min(W,H));
+      const pull=exp(coh[i]/.12)*.01*scaleComp*min(d*.008,1);
+      ax+=ddx/d*pull;ay+=ddy/d*pull;if(d<25*scaleComp)coh[i]=min(1,coh[i]+.003*scaleComp)}
 
     if(isInfl){ax+=(dx/dist)*.03*(.3+ar*2);ay+=(dy/dist)*.03*(.3+ar*2);
       ax+=(rnd()-.5)*.5;ay+=(rnd()-.5)*.5;
@@ -494,10 +500,11 @@ function updateP(dt){
 // §6 WebGL SHADERS
 const vsrc=`
 attribute vec2 a_pos;attribute float a_coh;attribute float a_phase;
-uniform vec2 u_res;uniform float u_time;uniform float u_ar;uniform float u_beauty;uniform float u_hue;uniform float u_epoch;
+uniform vec2 u_res;uniform float u_time;uniform float u_ar;uniform float u_beauty;uniform float u_hue;uniform float u_epoch;uniform float u_mobile;
 varying float v_coh;varying float v_hue;varying float v_alpha;
 void main(){vec2 p=(a_pos/u_res)*2.0-1.0;p.y*=-1.0;
-  gl_Position=vec4(p,0.0,1.0);gl_PointSize=1.2+a_coh*3.0+u_beauty*0.3+u_ar*2.5;
+  float mobileMul=1.0+u_mobile*0.25;
+  gl_Position=vec4(p,0.0,1.0);gl_PointSize=(1.2+a_coh*3.0+u_beauty*0.3+u_ar*2.5)*mobileMul;
   v_coh=a_coh;v_alpha=0.08+a_coh*0.5+u_beauty*0.05+u_ar*0.2;
   float dist=length(a_pos/u_res-0.5)*2.0;
   v_hue=u_hue+dist*0.06+a_coh*0.04+sin(a_phase+u_time*0.2)*0.02+u_epoch*0.15;}`;
@@ -512,7 +519,7 @@ void main(){vec2 c=2.0*gl_PointCoord-1.0;float r=dot(c,c);if(r>1.0)discard;
   gl_FragColor=vec4(rgb,v_alpha*s*1.1);}`;
 
 let program,posBuffer,cohBuffer,phaseBuffer;
-let posLoc,cohLoc,phaseLoc,resLoc,timeLoc,arLoc,beautyLoc,hueLoc,epochLoc;
+let posLoc,cohLoc,phaseLoc,resLoc,timeLoc,arLoc,beautyLoc,hueLoc,epochLoc,mobileLoc;
 const posData=new Float32Array(N*2);
 
 function initGL(){if(!gl)return;
@@ -525,6 +532,7 @@ function initGL(){if(!gl)return;
   timeLoc=gl.getUniformLocation(program,'u_time');arLoc=gl.getUniformLocation(program,'u_ar');
   beautyLoc=gl.getUniformLocation(program,'u_beauty');
   hueLoc=gl.getUniformLocation(program,'u_hue');epochLoc=gl.getUniformLocation(program,'u_epoch');
+  mobileLoc=gl.getUniformLocation(program,'u_mobile');
   posBuffer=gl.createBuffer();cohBuffer=gl.createBuffer();phaseBuffer=gl.createBuffer();
   gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE)}
 
@@ -535,6 +543,7 @@ function renderP(){if(!gl||!program)return;
   gl.useProgram(program);gl.uniform2f(resLoc,W,H);gl.uniform1f(timeLoc,pTime);
   gl.uniform1f(arLoc,ar);gl.uniform1f(beautyLoc,min(5,agents.piece.beauty)/5);
   gl.uniform1f(hueLoc,sec.hue||0);gl.uniform1f(epochLoc,(seq.on?seq.beat:0)/TOTAL_BEATS);
+  gl.uniform1f(mobileLoc,isMobile?1.0:0.0);
   gl.bindBuffer(gl.ARRAY_BUFFER,posBuffer);gl.bufferData(gl.ARRAY_BUFFER,posData,gl.DYNAMIC_DRAW);
   gl.enableVertexAttribArray(posLoc);gl.vertexAttribPointer(posLoc,2,gl.FLOAT,false,0,0);
   gl.bindBuffer(gl.ARRAY_BUFFER,cohBuffer);gl.bufferData(gl.ARRAY_BUFFER,coh,gl.DYNAMIC_DRAW);
@@ -1073,6 +1082,9 @@ function updateCRRD(){if(!seq.on)return;const sec=getSec(seq.beat);
 
 // §11 MAIN LOOP
 let lastTime=0;
+// iOS viewport height fix: set CSS custom property to actual inner height
+function setVH(){document.documentElement.style.setProperty('--vh',window.innerHeight+'px')}
+setVH();window.addEventListener('resize',setVH);
 function resize(){W=canvas.width=canvas.clientWidth;H=canvas.height=canvas.clientHeight;cx=W/2;cy=H/2;
   if(gl){gl.viewport(0,0,W,H);gl.clearColor(.012,.012,.028,1);gl.clear(gl.COLOR_BUFFER_BIT)}}
 function loop(ts){const dt=min(.033,lastTime?((ts-lastTime)/1000):.016);lastTime=ts;
@@ -1093,4 +1105,4 @@ document.getElementById('sl-choir').addEventListener('input',e=>{const v=parseFl
 window.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,200));
 </script>
 </body>
-</html>
+</ht
