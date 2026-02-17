@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Song of Water — CRR Hydrodynamic Composition</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Mono:wght@400;700&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--abyss:#030a18;--deep:#0a1e3d;--ocean:#1a4a7a;--surface:#2a8ab8;--teal:#4fd1c5;--foam:#d0eff0;--bio:#38e8a0;--cream:rgba(200,220,235,0.85);--creamD:rgba(160,190,210,0.5);--bg:#020810;--panel:rgba(4,10,24,0.97)}
+body{background:var(--bg);color:var(--cream);font-family:'Cormorant Garamond',Georgia,serif;overflow:hidden;width:100vw;height:100vh;position:fixed}
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity 1.8s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:720px;padding:0 24px}
+#splash .wave-bar{width:min(300px,75vw);height:2px;margin:0 auto 30px;border-radius:2px;background:linear-gradient(90deg,var(--abyss),var(--deep),var(--ocean),var(--teal),var(--foam),var(--bio),var(--ocean),var(--deep));background-size:200% 100%;animation:wavebar 4s ease-in-out infinite}
+@keyframes wavebar{0%,100%{background-position:0% 50%;opacity:.25;transform:scaleX(.9)}50%{background-position:100% 50%;opacity:.65;transform:scaleX(1.08)}}
+#splash h1{font-size:clamp(2rem,5.5vw,3.8rem);font-weight:300;letter-spacing:.3em;margin-bottom:8px;background:linear-gradient(135deg,var(--deep),var(--ocean),var(--teal),var(--foam),var(--bio),var(--ocean));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#splash .sub{font-size:clamp(.74rem,1.3vw,.95rem);font-weight:300;opacity:.38;letter-spacing:.04em;line-height:1.9;font-style:italic}
+#splash .eq{font-family:'Space Mono',monospace;font-size:clamp(.42rem,.72vw,.54rem);opacity:.14;margin-top:18px;letter-spacing:.02em;line-height:1.8}
+#splash .credit{font-size:.6rem;opacity:.16;margin-top:14px;letter-spacing:.06em}
+#splash .tap{font-size:.66rem;opacity:.16;margin-top:22px;letter-spacing:.14em;animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.1}50%{opacity:.3}}
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#canvas-wrap{flex:1;min-height:0;position:relative}
+#viz{display:block;width:100%;height:100%;touch-action:none}
+#overlay{position:absolute;inset:0;pointer-events:none;z-index:2}
+#info-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:10px 16px;pointer-events:none;z-index:5}
+#piece-title{font-size:clamp(.82rem,1.5vw,1.1rem);font-weight:300;letter-spacing:.14em;color:rgba(160,200,230,0.5)}
+#piece-title .composer{font-size:.64em;font-weight:300;opacity:.5;font-style:italic;display:block;margin-top:3px}
+#crr-display{font-family:'Space Mono',monospace;font-size:clamp(.42rem,.72vw,.54rem);color:rgba(120,180,220,0.3);text-align:right;line-height:1.65;white-space:pre-line}
+#section-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:4;font-size:clamp(1rem,2.4vw,1.7rem);font-weight:300;letter-spacing:.26em;font-style:italic;opacity:0;transition:opacity 2s ease;color:rgba(160,210,230,0.5);text-shadow:0 0 50px rgba(80,200,220,0.12)}
+#physics-label{position:absolute;bottom:8%;left:16px;pointer-events:none;z-index:5;max-width:420px}
+#physics-text{font-family:'Space Mono',monospace;font-size:clamp(.54rem,.9vw,.72rem);color:rgba(120,200,220,0.55);line-height:1.8;transition:opacity 1.2s ease;white-space:pre-line;text-shadow:0 0 10px rgba(80,200,220,0.1)}
+#crr-explain{position:absolute;top:52px;right:16px;pointer-events:none;z-index:5;max-width:260px;font-family:'Space Mono',monospace;font-size:clamp(.48rem,.8vw,.62rem);color:rgba(100,180,220,0.4);line-height:1.7;text-align:right;transition:opacity 1.5s ease;white-space:pre-line}
+#timeline-wrap{height:26px;background:rgba(4,10,24,0.95);border-top:1px solid rgba(80,180,220,0.06);display:flex;align-items:center;padding:0 14px;gap:9px;flex-shrink:0}
+#timeline-bar{flex:1;height:5px;background:rgba(255,255,255,0.03);border-radius:3px;position:relative;overflow:hidden}
+#timeline-fill{height:100%;width:0%;border-radius:3px;transition:width 0.3s linear;background:linear-gradient(90deg,rgba(10,30,61,.5),rgba(26,74,122,.5),rgba(42,138,184,.5),rgba(79,209,197,.5),rgba(56,232,160,.4),rgba(42,138,184,.5))}
+#timeline-sections{position:absolute;inset:0;display:flex;pointer-events:none}
+.t-section{height:100%;border-right:1px solid rgba(255,255,255,0.04);position:relative}
+.t-section-label{position:absolute;top:-13px;left:2px;font-family:'Space Mono',monospace;font-size:6px;color:rgba(160,200,230,0.2);letter-spacing:.03em;white-space:nowrap}
+#timeline-time{font-family:'Space Mono',monospace;font-size:.5rem;color:rgba(160,200,230,0.25);min-width:62px;text-align:right}
+#controls{border-top:1px solid rgba(80,180,220,0.08);background:var(--panel);padding:8px 14px 10px;display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.transport-row{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap}
+.tb{font-family:'Cormorant Garamond',serif;font-size:clamp(.68rem,.95vw,.82rem);padding:4px 16px;border:1px solid rgba(80,180,220,0.1);background:transparent;color:var(--creamD);cursor:pointer;border-radius:3px;letter-spacing:.06em;transition:all .25s;touch-action:manipulation}
+.tb:hover{border-color:rgba(80,180,220,0.3);color:var(--cream)}
+.tb.playing{border-color:rgba(79,209,197,0.4);color:rgba(140,220,210,.8);background:rgba(79,209,197,.03)}
+.sw{display:flex;align-items:center;gap:4px}
+.sw label{font-size:.54rem;color:rgba(160,200,230,.3);letter-spacing:.06em;width:38px;flex-shrink:0}
+.sw input[type=range]{flex:1;max-width:70px;height:2px;cursor:pointer;accent-color:rgba(80,180,220,0.45);touch-action:manipulation;min-height:20px}
+.sw .v{font-family:'Space Mono',monospace;font-size:.46rem;color:rgba(160,200,230,.25);width:26px;text-align:right;flex-shrink:0}
+#crr-footer{text-align:center;padding:2px;font-size:clamp(.36rem,.6vw,.46rem);font-family:'Space Mono',monospace;letter-spacing:.02em;background:linear-gradient(90deg,rgba(10,30,61,.2),rgba(26,74,122,.2),rgba(79,209,197,.2),rgba(56,232,160,.2),rgba(42,138,184,.2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@media(max-width:600px){#controls{padding:6px 8px calc(8px + env(safe-area-inset-bottom,0px));gap:3px}.transport-row{flex-wrap:wrap;gap:3px}.tb{padding:8px 16px;font-size:.82rem;min-height:36px}.sw{flex:1 1 calc(50% - 4px);min-width:130px;max-width:50%}.sw label{width:36px;font-size:.48rem}.sw input[type=range]{max-width:none;height:6px;min-height:28px}.sw .v{font-size:.42rem}#info-bar{padding:6px 10px}#piece-title .composer{display:none}#timeline-wrap{padding:0 9px;height:22px}.t-section-label{display:none}#physics-label{bottom:6%;left:10px;max-width:260px}#crr-explain{top:42px;right:10px;max-width:200px}#crr-footer{font-size:.36rem}#section-label{font-size:clamp(.85rem,4vw,1.3rem)}}
+@media(max-width:380px){.sw{flex:1 1 100%;max-width:100%}}
+</style></head><body>
+<div id="splash"><div class="inner"><div class="wave-bar"></div><h1>WATER</h1>
+<p class="sub">The music of water, composed entirely by Coherence, Rupture &amp; Regeneration.<br>H₂O vibration as melody. Hydrogen bonds as harmony. Ocean waves as rhythm.<br>Bubble pop at the Minnaert frequency — surface tension's δ(now).<br>Thermohaline circulation as deep drone. Bioluminescence as memory made light.</p>
+<p class="eq">O-H stretch: Z₂ → Ω=1/π · H-O-H bend: SO(2) → Ω=1/2π · bond angle 104.5°<br>f_M=(1/2πR)√(3γP₀/ρ) → R=3mm:1100Hz · R=5mm:660Hz · R=10mm:330Hz<br>bubble pop = δ(now) of surface tension · exp(C/Ω): larger bubble → louder pop<br>wave break: H/λ>1/7 → δ(now) · thermohaline: 1000yr exp(C/Ω) memory</p>
+<p class="credit">CRR Framework — Alexander Sabine · temporalgrammar.ai</p>
+<p class="tap">tap to enter</p></div></div>
+<div id="app"><div id="canvas-wrap"><canvas id="viz"></canvas><canvas id="overlay"></canvas>
+<div id="info-bar"><div id="piece-title">Song of Water<span class="composer">CRR Hydrodynamic Composition</span></div><div id="crr-display"></div></div>
+<div id="section-label"></div><div id="physics-label"><div id="physics-text"></div></div><div id="crr-explain"></div></div>
+<div id="timeline-wrap"><div id="timeline-bar"><div id="timeline-fill"></div><div id="timeline-sections"></div></div><div id="timeline-time">0:00 / 0:00</div></div>
+<div id="controls"><div class="transport-row">
+<button class="tb" id="btn-play" onclick="startSong()">▶ Play</button><button class="tb" id="btn-stop" onclick="stopSong()">■ Stop</button>
+<div class="sw"><label>tempo</label><input type="range" id="sl-tempo" min="0.7" max="1.3" step="0.05" value="1"><span class="v" id="v-tempo">1.0×</span></div>
+<div class="sw"><label>reverb</label><input type="range" id="sl-rev" min="0" max="1" step="0.05" value="0.65"><span class="v" id="v-rev">.65</span></div>
+<div class="sw"><label>depth</label><input type="range" id="sl-depth" min="0" max="1" step="0.05" value="0.60"><span class="v" id="v-depth">.60</span></div>
+<div class="sw"><label>wave</label><input type="range" id="sl-wave" min="0" max="1" step="0.05" value="0.55"><span class="v" id="v-wave">.55</span></div>
+<div class="sw"><label>bubble</label><input type="range" id="sl-bub" min="0" max="1" step="0.05" value="0.50"><span class="v" id="v-bub">.50</span></div>
+<div class="sw"><label>choir</label><input type="range" id="sl-choir" min="0" max="1" step="0.05" value="0.50"><span class="v" id="v-choir">.50</span></div>
+</div><div id="crr-footer">f_M=(1/2πR)√(3γP₀/ρ) Minnaert resonance · bubble pop=δ(now) of surface tension · R=3mm→1100Hz · R=10mm→330Hz · wave break H/λ>1/7 · exp(C/Ω)=memory of ancient water</div></div></div>
+<script>
+const PI=Math.PI,TAU=2*PI,PHI=(1+Math.sqrt(5))/2;
+const{sin,cos,sqrt,abs,floor,max,min,random:rnd,atan2,exp,pow,log}=Math;
+const OMEGA_Z2=1/PI,OMEGA_SO2=1/TAU;
+// §0 CRR ENGINE
+class CRR{constructor(sym='Z2',s=1,nm=''){this.ob=sym==='Z2'?1/PI:1/TAU;this.os=s;this.C=0;this.lR=0;this.rup=0;this.sR=0;this.inR=false;this.rP=0;this.nm=nm;this.pC=0;this.sA=0}
+get omega(){return this.ob*this.os}get expCO(){return exp(min(12,this.C/max(.001,this.omega)))}
+get normC(){return min(1,(this.C-this.lR)/max(.01,1/this.omega))}
+step(L,dt=1){if(this.inR){this.rP=min(1,this.rP+.02);if(this.rP>=1)this.inR=false;this.sA+=(this.rP-this.sA)*min(1,dt*6);return'R'}
+this.C+=L*dt;this.pC=max(this.pC,this.C);this.sR++;this.sA+=(this.normC-this.sA)*min(1,dt*6);
+const th=1/this.omega,acc=this.C-this.lR,cv=this.omega/2;
+if(acc>=(th+(rnd()-.5)*2*cv*th)){this.lR=this.C;this.rup++;this.sR=0;this.inR=true;this.rP=0;return'delta'}return'C'}
+reset(){this.C=0;this.lR=0;this.rup=0;this.sR=0;this.inR=false;this.rP=0;this.pC=0;this.sA=0}}
+// §1 AGENTS
+const ag={p:new CRR('SO2',2,'Piece'),mol:new CRR('Z2',1,'Molecular'),hb:new CRR('Z2',.5,'H-Bond'),
+wav:new CRR('SO2',1.5,'Wave'),tid:new CRR('SO2',6,'Tide'),th:new CRR('SO2',3,'Thermo'),
+rn:new CRR('Z2',.8,'Rain'),bio:new CRR('Z2',.6,'Bio'),bub:new CRR('Z2',.4,'Bubble')};
+const ALL=Object.values(ag);
+// §2 COMPOSITION
+const BPM=72,BEAT_S=60/BPM,TOTAL_BEATS=352;let tM=1;function bS(){return BEAT_S/tM}
+const Dm=[38,50,53,57,62],Dm9=[38,50,53,57,64],Gm=[43,55,58,62,67],Am=[45,57,60,64,69],Bb=[46,58,62,65,70],Fmaj7=[41,53,57,60,64],C_=[36,48,55,60,64],Em=[40,52,55,59,64],Am9=[45,57,60,64,76],Bbmaj7=[46,58,62,65,69];
+const SECTIONS=[
+{name:'MOLECULE',start:0,end:31,label:'H₂O',ar:0},{name:'HYDROGEN BONDS',start:32,end:63,label:'hydrogen bonds',ar:.1},
+{name:'LIQUID PHASE',start:64,end:103,label:'liquid',ar:.2},{name:'BUBBLE STREAM',start:104,end:135,label:'bubbles rising',ar:.3},
+{name:'OCEAN SWELL',start:136,end:175,label:'ocean swell',ar:.5},{name:'STORM SURGE',start:176,end:207,label:'the storm',ar:.75},
+{name:'WAVE BREAK',start:208,end:223,label:'δ(now)',ar:1},{name:'DEEP CURRENT',start:224,end:255,label:'thermohaline',ar:.45},
+{name:'BIOLUMINESCENCE',start:256,end:279,label:'light in the deep',ar:.3},{name:'TIDAL RETURN',start:280,end:303,label:'the tide returns',ar:.25},
+{name:'EVAPORATION',start:304,end:327,label:'ascending',ar:.15},{name:'STILLNESS',start:328,end:351,label:'one molecule',ar:.05}];
+function gS(b){for(const s of SECTIONS)if(b>=s.start&&b<=s.end)return s;return SECTIONS[0]}
+const PHY={'MOLECULE':'ν₁=3657cm⁻¹ symmetric stretch (Z₂)\nν₂=1595cm⁻¹ bend (SO(2))\nbond angle = 104.5° = 1.824 rad\npermanent dipole → 1.85 Debye',
+'HYDROGEN BONDS':'each H₂O forms ~3.5 bonds\nlifetime τ ≈ 1-20 ps\nnetwork fluctuates 10¹² times/sec\ncooperative bonding',
+'LIQUID PHASE':'density anomaly: ρ_ice < ρ_liquid\nexp(C/Ω)_crystal > exp(C/Ω)_liquid\nice retains MORE memory\n→ anomalous expansion',
+'BUBBLE STREAM':'Minnaert resonance (1933):\nf_M = (1/2πR)√(3γP₀/ρ)\nR=3mm→1100Hz · R=5mm→660Hz\nR=10mm→330Hz\nbubble pop IS δ(now)\nfilm thins to ~100nm\nvan der Waals overcomes γ=72.8mN/m\npressure wave radiates at f_M',
+'OCEAN SWELL':'T=2π√(λ/2πg)\nswell = distant storm memory\nexp(C/Ω) carries energy\nacross entire ocean basins',
+'STORM SURGE':'wave steepens: H/λ→1/7\ncoherence cannot hold\nthe wave MUST break',
+'WAVE BREAK':'δ(now) — steepness exceeds 1/7\ncoherent wave → turbulent foam\nall accumulated C released',
+'DEEP CURRENT':'thermohaline circulation\nwarm C → polar sinking δ\ndeep return R ~1000 years\nexp(C/Ω) = dissolved memory',
+'BIOLUMINESCENCE':'luciferin + O₂ → photon\nchemical C → light δ → dark R\nflash intensity ∝ exp(C/Ω)',
+'TIDAL RETURN':'lunar SO(2): T=12.42 hours\nspring/neap Z₂ alignment\ntidal memory reshapes coastlines',
+'EVAPORATION':'liquid C → vapour δ → cloud R\neach raindrop: velocity C\n→ impact δ → splash R\nthe cycle regenerates',
+'STILLNESS':'one molecule\nvibrating in the void\n104.5° between its arms\nholding the geometry\nof all oceans yet to come'};
+const CRE={'MOLECULE':'C accumulates as\nmolecular vibrations build\nΩ_Z₂=1/π for stretches\nΩ_SO(2)=1/2π for bends',
+'HYDROGEN BONDS':'each bond is a\nmicro C→δ→R cycle\nexp(C/Ω) determines\nbond strength & lifetime',
+'LIQUID PHASE':'liquid = high-Ω state\nporous boundaries\neasy bond exchange',
+'BUBBLE STREAM':'bubble coherence C =\nsurface tension × time\nΩ=1/π (Z₂ radial mode)\nδ(now) when film<100nm\nR radiates at f_Minnaert\nexp(C/Ω): bigger bubble\n= more C = louder pop',
+'OCEAN SWELL':'wave C accumulates\nwith each orbital cycle\nΩ=1/2π SO(2)\nswell = high C/Ω memory',
+'STORM SURGE':'C/Ω → 1/7 threshold\nthe system MUST rupture',
+'WAVE BREAK':'δ(now) = the break\nall C released instantly\nDirac delta in the foam',
+'DEEP CURRENT':'R=∫φ·exp(C/Ω)·Θ dτ\ndeep water carries\n1000 years of memory',
+'BIOLUMINESCENCE':'exp(C/Ω) = flash intensity\nlife discovered that\nchemical coherence\ncan become light',
+'TIDAL RETURN':'SO(2) lunar modulation\nΩ_tide very large\n→ immense tidal memory',
+'EVAPORATION':'water cycle IS CRR\nat planetary scale\nthe Earth breathes',
+'STILLNESS':'C→0 · Ω remains\npotential coherence awaits'};
+// §3 SEQUENCE
+function buildSeq(){const E=[];
+function n(b,m,v,d,ty){E.push({b,midi:m,v,d,ty:ty||'mol'})}
+function bs(ch,b,v,d){E.push({b,midi:ch[0],v,d,ty:'bass'})}
+function db(ch,b,v,d){E.push({b,midi:ch[0]-12,v:v*.35,d,ty:'bass'})}
+function ar(ch,b,p,v,d){p.forEach((x,i)=>{if(x>=0)E.push({b:b+i*.5,midi:ch[x%ch.length],v:v*(i?0.85:1),d,ty:'shim'})})}
+function pd(notes,b,g,d){E.push({b,ty:'pad',pN:notes,pG:g,d})}
+function rn(b,v,c){E.push({b,ty:'rain',v,c:c||3})}
+function wv(b,g,d){E.push({b,ty:'wave',wG:g,d})}
+function dr(b,g,d){E.push({b,ty:'drone',dG:g,d})}
+function cr(b,v,d){E.push({b,ty:'crash',v,d:d||4})}
+function sp(b,v){E.push({b,ty:'spray',v})}
+function bi(b,g){E.push({b,ty:'bio',bG:g})}
+function ch(b,notes,g,d){E.push({b,ty:'choir',cN:notes,cG:g,d:d||4})}
+function sc(b){E.push({b,ty:'sec'})}
+function wh(b,s,e,d,v){E.push({b,ty:'whale',sM:s,eM:e,d,v:v||.3})}
+function bp(b,r,v){E.push({b,ty:'bpop',r,v:v||.5})}
+function bc(b,c,v){E.push({b,ty:'bclust',c:c||5,v:v||.4})}
+// I. MOLECULE 0-31
+sc(0);dr(0,.02,32);
+for(let i=0;i<32;i++){if(i%4===0)n(i,74+floor(rnd()*5),.04+i*.002,3);if(i%8===0)n(i,62,.03+i*.001,5);if(i>16&&i%3===0)bp(i,2+rnd()*2,.04);if(i>20&&i%4===2)n(i,69+floor(rnd()*7),.05,2,'shim')}
+// II. H-BONDS 32-63
+sc(32);dr(32,.05,32);
+for(let i=32;i<64;i++){const l=i-32;if(l%4===0)n(i,74+floor(rnd()*5),.06,2.5);if(l%2===0)n(i,62+floor(rnd()*12),.04+l*.002,1.5,'shim');if(l%8===0)bs(Dm,i,.08+l*.004,3);if(l>16&&l%4===0)pd(Dm9.slice(2),i,.06+l*.003,6);if(l%6===0)bp(i,3+rnd()*3,.06+l*.002);if(l>20&&l%8===4)rn(i,.04,1)}
+// III. LIQUID 64-103
+sc(64);dr(64,.1,40);const lC=[Dm,Dm9,Gm,Am,Fmaj7,Dm,Bb,Am];
+for(let i=64;i<104;i++){const l=i-64,c=lC[floor(l/5)%8];if(l%4===0){bs(c,i,.15+l*.003,2);ar(c,i,[0,2,3,4,3,2],.08+l*.002,.8)}if(l%8===0)pd(c.slice(2),i,.1+l*.002,7);if(l%3===0)n(i,c[2+floor(rnd()*3)],.06+l*.001,1.5,'shim');if(l%6===2)bp(i,4+rnd()*4,.08);if(l>20&&l%4===2)rn(i,.06,2);if(l%16===0)wv(i,.04+l*.003,8)}
+// IV. BUBBLE STREAM 104-135
+sc(104);dr(104,.15,32);const sC=[Am,Fmaj7,Dm,Gm,Am,Bb,Fmaj7,Dm];
+for(let i=104;i<136;i++){const l=i-104,c=sC[floor(l/4)%8];if(l%4===0){bs(c,i,.18+l*.004,1.5);ar(c,i,[0,1,2,3,4,3,2,1],.1+l*.003,.6)}if(l%8===0)pd(c.slice(1),i,.14+l*.003,7);
+if(l%2===0)bp(i,2+rnd()*3,.12+l*.005);if(l%3===0)bp(i+.25,5+rnd()*5,.1+l*.004);if(l%4===0)bp(i+.5,8+rnd()*7,.08+l*.003);
+if(l%8===4)bc(i,4+floor(l/8),.06+l*.003);if(l%4===2)wv(i,.06+l*.003,4);if(l%6===0)rn(i,.06,2);if(l>20&&l%8===4)ch(i,c.slice(2),.04+l*.002,6)}
+// V. OCEAN SWELL 136-175
+sc(136);dr(136,.22,40);const oC=[Dm,Gm,Am,Bb,Fmaj7,C_,Gm,Dm,Am,Bb];
+for(let i=136;i<176;i++){const l=i-136,c=oC[floor(l/4)%10];if(l%4===0){bs(c,i,.3+l*.003,1.8);db(c,i,.3,3)}if(l%2===0)ar(c,i,[0,2,4,3,2,1],.12+l*.002,.7);if(l%8===0){pd(c.slice(1),i,.2+l*.003,7);wv(i,.12+l*.005,6)}if(l%3===0)rn(i,.1+l*.002,3);if(l%8===4)ch(i,c.slice(2),.08+l*.002,5);if(l>24&&l%12===0)wh(i,38,50,6,.15+l*.003);if(l%6===0)bp(i,6+rnd()*8,.06)}
+// VI. STORM 176-207 — C/Ω accelerating toward 1/7 threshold
+sc(176);dr(176,.3,32);const tC=[Dm,Gm,Bb,Am,Fmaj7,Gm,Dm,Bb];
+for(let i=176;i<208;i++){const l=i-176,c=tC[floor(l/4)%8],I=.4+l*.015;if(l%4===0){bs(c,i,I,1.2);db(c,i,.4+l*.008,2.5)}if(l%2===0)ar(c,i,[4,3,2,1,0,2,3,4],I*.6,.5);if(l%4===0)wv(i,.2+l*.01,4);if(l%3===0)rn(i,.15+l*.005,4+floor(l/8));if(l%8===0){pd(c.slice(1),i,.25+l*.005,6);ch(i,c.slice(2),.12+l*.004,5)}if(l%6===0)sp(i,.05+l*.005);if(l%4===2)bc(i,3+floor(l/4),.1+l*.005);if(l%2===1)bp(i,4+rnd()*12,.12+l*.003);
+// Storm crescendo: last 12 beats build relentlessly toward δ
+if(l>=20){const phase=(l-20)/12;E.push({b:i,ty:'sbuild',v:.3+phase*.5,ph:phase})}
+// Intensifying choir and waves in final stretch
+if(l>24&&l%4===0)ch(i,tC[floor(l/4)%8].slice(2),.08+l*.004,4);
+if(l>24&&l%2===0)wv(i,.15+l*.008,3);
+// Final 4 beats: every beat has impact
+if(l>=28){rn(i,.3+l*.01,6+l);sp(i,.15+l*.008);if(l>=30)bp(i,1+rnd()*3,.3)}}
+// VII. WAVE BREAK 208-223 — δ(now) releases ALL accumulated coherence
+sc(208);cr(208,1,10);// Full velocity crash, long decay matching exp(C/Ω) memory
+// Immediate δ: massive spray + bubble cascade
+sp(208,1);sp(208.1,.9);sp(208.2,.7);
+for(let j=0;j<20;j++)bp(208+j*.1,1+rnd()*18,.7-j*.025);// 20 staggered bubble pops
+bc(208.2,15,.8);bc(208.5,12,.6);bc(209,8,.5);bc(209.5,6,.3);
+// Bass impact cascade — the weight of water
+bs(Dm,208,.9,.4);db(Dm,208,.8,.8);db(Dm,208.25,.6,.6);
+for(let j=0;j<5;j++)E.push({b:208+j*.15,midi:Dm[j%5]+12,v:.7-j*.1,d:.3,ty:'shim'});
+// Regeneration emerges: choir rises from the foam (R phase)
+ch(209.5,Dm.slice(1),.22,9);ch(210.5,[50,53,57,62,69],.18,8);ch(212,Am.slice(1),.15,7);
+pd(Dm.slice(1),210,.2,8);pd(Am.slice(1),213,.15,7);
+// Whale calls: deep memory surfacing — exp(C/Ω) of ancient water
+wh(210,33,57,7,.28);wh(212.5,38,53,6,.22);wh(215,31,50,9,.2);
+// Beat-by-beat regeneration arc
+for(let i=208;i<224;i++){const l=i-208;
+if(l<4){sp(i,.7-l*.15);rn(i,.25-l*.05,5-l)}// continuing spray/rain
+if(l>2&&l<10&&l%2===0){bs(Dm,i,.5-l*.03,1.5);ar(Dm,i,[4,3,2,1,0],.3-l*.02,.7)}
+if(l>=10&&l%2===0){bs(Am,i,.25-l*.01,2);ar(Am,i,[0,2,4,2],.15-l*.005,.9)}
+if(l>4&&l%3===0)wv(i,.25-l*.012,5);
+if(l>3&&l<12&&l%2===0)bp(i,2+rnd()*10,.2-l*.012);
+if(l===10)dr(i,.2,14);// drone re-establishes for deep current
+if(l>10&&l%4===0)pd(Dm.slice(2),i,.2-l*.01,6)}
+// VIII. DEEP 224-255
+sc(224);dr(224,.25,32);const dC=[Dm,Em,Am,Dm,Gm,Fmaj7,Em,Dm];
+for(let i=224;i<256;i++){const l=i-224,c=dC[floor(l/4)%8];if(l%4===0){bs(c,i,.25,3);db(c,i,.3,5)}if(l%8===0)pd(c.slice(1),i,.2,8);if(l%4===2)ar(c,i,[0,2,4,2],.08,.9);if(l%6===0)wh(i,34,46,8,.2);if(l>16&&l%4===0)n(i,c[3+floor(rnd()*2)],.07,2.5);if(l%8===4)wv(i,.08,6);if(l%10===0)bp(i,10+rnd()*10,.04)}
+// IX. BIO 256-279
+sc(256);dr(256,.18,24);const bC=[Am,Fmaj7,Dm9,Gm,Am9,Bbmaj7];
+for(let i=256;i<280;i++){const l=i-256,c=bC[floor(l/4)%6];if(l%4===0){bs(c,i,.18,2.5);bi(i,.15+rnd()*.2)}if(l%2===0)n(i,c[2+floor(rnd()*3)],.06+rnd()*.04,2,'shim');if(l%8===0)pd(c.slice(2),i,.15,7);if(l%3===0)bi(i,.08+rnd()*.15);if(l%6===0)bp(i,5+rnd()*5,.05);if(l%8===4)ch(i,c.slice(2),.1,5);if(l>12&&l%4===2)wh(i,40,52,5,.12)}
+// X. TIDAL 280-303
+sc(280);dr(280,.2,24);const tiC=[Dm,Bb,Fmaj7,C_,Am,Gm];
+for(let i=280;i<304;i++){const l=i-280,c=tiC[floor(l/4)%6];if(l%4===0){bs(c,i,.2,2);ar(c,i,[0,2,3,4,3,2],.1,.8)}if(l%8===0){pd(c.slice(1),i,.18,7);wv(i,.1,6)}if(l%4===2)n(i,c[3+floor(rnd()*2)],.08,2,'shim');if(l%6===0)rn(i,.06,2);if(l%8===4)ch(i,c.slice(2),.08,5);if(l%5===0)bp(i,3+rnd()*6,.05)}
+// XI. EVAP 304-327
+sc(304);dr(304,.12,24);const chds=[Dm,Dm9,Gm,Am,Bb,Fmaj7,C_,Em];
+for(let i=304;i<328;i++){const l=i-304,c=chds[floor(l/4)%8];if(l%4===0)bs(c,i,.12-l*.003,2.5);if(l%2===0)n(i,c[3+floor(rnd()*2)]+12,.06+rnd()*.03,2.5);if(l%8===0)pd(c.slice(2),i,.1-l*.003,7);if(l%6===0)bp(i,2+rnd()*2,.04-l*.001);if(l%4===2&&l<16)rn(i,.05-l*.002,1)}
+// XII. STILL 328-351
+sc(328);dr(328,.04,24);for(let i=328;i<352;i++){const l=i-328;if(l%8===0)n(i,74,.03-l*.001,5);if(l%16===0)n(i,62,.02,6);if(l===20)dr(i,.01,4)}
+E.sort((a,b)=>a.b-b.b);return E}
+// §4 AUDIO
+let ac=null,mG,mC,rC,rG,dG,depG,wavG,rnG,chG,molG,shG,bubG,anl,fD,tD,nB;
+let dMx=.6,wMx=.55,bMx=.5,cMx=.5,rMx=.65;
+const AB={sub:0,bass:0,low:0,mid:0,high:0,pres:0,energy:0,peak:0};
+function mtf(m){return 440*pow(2,(m-69)/12)}
+function mkN(c){const b=c.createBuffer(2,c.sampleRate*2,c.sampleRate);for(let h=0;h<2;h++){const d=b.getChannelData(h);for(let i=0;i<d.length;i++)d[i]=rnd()*2-1}return b}
+function mkR(c){const l=c.sampleRate*5|0,b=c.createBuffer(2,l,c.sampleRate);for(let h=0;h<2;h++){const d=b.getChannelData(h);for(let i=0;i<25;i++){const t=(.005+i*.02+rnd()*.015)*c.sampleRate|0;if(t<l)d[t]=.15*pow(.75,i)*(.5+rnd()*.5)}for(let i=0;i<l;i++){const t=i/c.sampleRate;d[i]+=(rnd()*2-1)*.04*(exp(-t*.5)*.6+exp(-t*1.5)*.4)}}const v=c.createConvolver();v.buffer=b;return v}
+function initAudio(){if(ac)return;ac=new(window.AudioContext||window.webkitAudioContext)();nB=mkN(ac);
+mG=ac.createGain();mG.gain.value=.7;mC=ac.createDynamicsCompressor();mC.threshold.value=-12;mC.ratio.value=4;mC.knee.value=8;
+rC=mkR(ac);rG=ac.createGain();rG.gain.value=rMx;dG=ac.createGain();dG.gain.value=1-rMx*.3;
+anl=ac.createAnalyser();anl.fftSize=2048;anl.smoothingTimeConstant=.85;fD=new Uint8Array(anl.frequencyBinCount);tD=new Uint8Array(anl.fftSize);
+mG.connect(mC);mC.connect(dG);mC.connect(rC);rC.connect(rG);dG.connect(anl);rG.connect(anl);anl.connect(ac.destination);
+depG=ac.createGain();depG.gain.value=dMx*.5;depG.connect(mG);
+wavG=ac.createGain();wavG.gain.value=wMx*.5;wavG.connect(mG);
+rnG=ac.createGain();rnG.gain.value=.4;rnG.connect(mG);
+chG=ac.createGain();chG.gain.value=cMx*.5;chG.connect(mG);
+molG=ac.createGain();molG.gain.value=.4;molG.connect(mG);
+shG=ac.createGain();shG.gain.value=.35;shG.connect(mG);
+bubG=ac.createGain();bubG.gain.value=bMx*.5;bubG.connect(mG);initDrone()}
+function uAB(){if(!anl)return;anl.getByteFrequencyData(fD);const n=fD.length,sr=ac?ac.sampleRate:44100,bHz=sr/2/n;
+let s=0,b=0,l=0,m=0,h=0,p=0,tt=0,pk=0;
+for(let i=0;i<n;i++){const v=fD[i]/255,f=i*bHz;tt+=v;if(v>pk)pk=v;if(f<60)s+=v;else if(f<250)b+=v;else if(f<500)l+=v;else if(f<2000)m+=v;else if(f<8000)h+=v;else p+=v}
+const sm=.15;AB.sub+=(s/max(1,60/bHz)-AB.sub)*sm;AB.bass+=(b/max(1,190/bHz)-AB.bass)*sm;AB.low+=(l/max(1,250/bHz)-AB.low)*sm;AB.mid+=(m/max(1,1500/bHz)-AB.mid)*sm;AB.high+=(h/max(1,6000/bHz)-AB.high)*sm;AB.pres+=(p/max(1,12000/bHz)-AB.pres)*sm;AB.energy+=(tt/n-AB.energy)*sm;AB.peak+=(pk-AB.peak)*.25}
+// §4.1 Drone
+let drS={o:[],m:null,a:false};
+function initDrone(){if(!ac)return;drS.m=ac.createGain();drS.m.gain.value=0;drS.m.connect(depG);
+for(const[f,v]of[[36.7,.18],[73.4,.1],[110.1,.05],[146.8,.03],[55,.08],[27.5,.12]]){const o=ac.createOscillator();o.type='sine';o.frequency.value=f;const fl=ac.createBiquadFilter();fl.type='lowpass';fl.frequency.value=f*3;fl.Q.value=.5;const g=ac.createGain();g.gain.value=v;o.connect(fl);fl.connect(g);g.connect(drS.m);o.start();drS.o.push({o,g,f})}
+const lfo=ac.createOscillator();lfo.type='sine';lfo.frequency.value=.04;const lg=ac.createGain();lg.gain.value=1.8;lfo.connect(lg);for(const h of drS.o)lg.connect(h.o.frequency);lfo.start();
+const ns=ac.createBufferSource();ns.buffer=nB;ns.loop=true;const nf=ac.createBiquadFilter();nf.type='lowpass';nf.frequency.value=80;nf.Q.value=.3;const ng=ac.createGain();ng.gain.value=.012;ns.connect(nf);nf.connect(ng);ng.connect(drS.m);ns.start();drS.a=true}
+function setDr(g,tr){if(!drS.a)return;const t=ac.currentTime;drS.m.gain.cancelScheduledValues(t);drS.m.gain.setValueAtTime(drS.m.gain.value,t);drS.m.gain.linearRampToValueAtTime(g,t+(tr||2))}
+// §4.2 Synths
+function pMol(midi,vel,dur){if(!ac)return;const t=ac.currentTime,f=mtf(midi);const o=ac.createOscillator();o.type='sine';o.frequency.value=f;const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=f*1.002;const g=ac.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vel*.3,t+.15);g.gain.linearRampToValueAtTime(vel*.25,t+dur*.3);g.gain.linearRampToValueAtTime(0,t+dur);const g2=ac.createGain();g2.gain.setValueAtTime(0,t);g2.gain.linearRampToValueAtTime(vel*.15,t+.2);g2.gain.linearRampToValueAtTime(0,t+dur*.8);const fl=ac.createBiquadFilter();fl.type='lowpass';fl.frequency.value=f*4;fl.Q.value=2;o.connect(g);o2.connect(g2);g.connect(fl);g2.connect(fl);fl.connect(molG);o.start(t);o2.start(t);o.stop(t+dur+.1);o2.stop(t+dur+.1)}
+function pSh(midi,vel,dur){if(!ac)return;const t=ac.currentTime,f=mtf(midi);const md=ac.createOscillator();md.type='sine';md.frequency.value=f*2.01;const mg=ac.createGain();mg.gain.value=f*.3;const cr=ac.createOscillator();cr.type='sine';cr.frequency.value=f;md.connect(mg);mg.connect(cr.frequency);const e=ac.createGain();e.gain.setValueAtTime(0,t);e.gain.linearRampToValueAtTime(vel*.2,t+.08);e.gain.exponentialRampToValueAtTime(.001,t+dur);cr.connect(e);e.connect(shG);md.start(t);cr.start(t);md.stop(t+dur+.1);cr.stop(t+dur+.1)}
+function pBs(midi,vel,dur){if(!ac)return;const t=ac.currentTime,f=mtf(midi);const o=ac.createOscillator();o.type='triangle';o.frequency.value=f;const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=f*.5;const fl=ac.createBiquadFilter();fl.type='lowpass';fl.frequency.value=f*2.5;fl.Q.value=1;const g=ac.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vel*.35,t+.06);g.gain.linearRampToValueAtTime(vel*.28,t+dur*.3);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(fl);o2.connect(fl);fl.connect(g);g.connect(depG);o.start(t);o2.start(t);o.stop(t+dur+.1);o2.stop(t+dur+.1)}
+function pPd(notes,gain,dur){if(!ac)return;const t=ac.currentTime;const m=ac.createGain();m.gain.setValueAtTime(0,t);m.gain.linearRampToValueAtTime(gain*.25,t+1.5);m.gain.linearRampToValueAtTime(gain*.2,t+dur*.6);m.gain.linearRampToValueAtTime(0,t+dur);m.connect(wavG);for(const n of notes){const f=mtf(n);const o=ac.createOscillator();o.type='sine';o.frequency.value=f;const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=f*1.003;const g=ac.createGain();g.gain.value=.15;o.connect(g);o2.connect(g);g.connect(m);o.start(t);o2.start(t);o.stop(t+dur+.5);o2.stop(t+dur+.5)}}
+function pWv(gain,dur){if(!ac)return;const t=ac.currentTime;const ns=ac.createBufferSource();ns.buffer=nB;ns.loop=true;const fl=ac.createBiquadFilter();fl.type='bandpass';fl.frequency.value=60;fl.Q.value=.8;const g=ac.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(gain*.2,t+dur*.3);g.gain.linearRampToValueAtTime(0,t+dur);ns.connect(fl);fl.connect(g);g.connect(wavG);ns.start(t);ns.stop(t+dur+.1);const sub=ac.createOscillator();sub.type='sine';sub.frequency.value=36.7;const sg=ac.createGain();sg.gain.setValueAtTime(0,t);sg.gain.linearRampToValueAtTime(gain*.12,t+dur*.25);sg.gain.linearRampToValueAtTime(0,t+dur);sub.connect(sg);sg.connect(wavG);sub.start(t);sub.stop(t+dur+.1);bP=max(bP,gain*.5)}
+function pRn(vel,cnt){if(!ac)return;const t=ac.currentTime;for(let i=0;i<cnt;i++){const st=t+rnd()*.3;const ns=ac.createBufferSource();ns.buffer=nB;const fl=ac.createBiquadFilter();fl.type='highpass';fl.frequency.value=4000+rnd()*6000;fl.Q.value=2+rnd()*3;const g=ac.createGain();g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(vel*.15*(.5+rnd()*.5),st+.003);g.gain.exponentialRampToValueAtTime(.001,st+.04+rnd()*.06);ns.connect(fl);fl.connect(g);g.connect(rnG);ns.start(st);ns.stop(st+.15)}}
+function pCr(vel,dur){if(!ac)return;const t=ac.currentTime;
+const expCO=min(50,ag.p.expCO);const memT=2.5+log(max(1,expCO))*1.2;
+// ═══ LAYER 1: SUB-BASS IMPACT — the physical mass of water hitting ═══
+// δ(now) as felt in the body. Real waves shake the ground at 20-60Hz.
+// exp(C/Ω) scales the amplitude: more accumulated coherence → bigger impact
+const subF=28+sin(pT)*.5;
+const sub1=ac.createOscillator();sub1.type='sine';sub1.frequency.setValueAtTime(subF,t);
+sub1.frequency.exponentialRampToValueAtTime(subF*.6,t+memT*.4);
+const sub2=ac.createOscillator();sub2.type='sine';sub2.frequency.setValueAtTime(subF*2,t);
+sub2.frequency.exponentialRampToValueAtTime(subF*1.1,t+.8);
+const subG=ac.createGain();subG.gain.setValueAtTime(vel*.55,t);
+subG.gain.setValueAtTime(vel*.45,t+.03);
+subG.gain.exponentialRampToValueAtTime(vel*.15,t+.5);
+subG.gain.exponentialRampToValueAtTime(.001,t+memT*.5);
+const subG2=ac.createGain();subG2.gain.setValueAtTime(vel*.2,t);
+subG2.gain.exponentialRampToValueAtTime(.001,t+.6);
+const subLP=ac.createBiquadFilter();subLP.type='lowpass';subLP.frequency.value=80;subLP.Q.value=3;
+sub1.connect(subG);sub2.connect(subG2);subG.connect(subLP);subG2.connect(subLP);subLP.connect(mG);
+sub1.start(t);sub2.start(t);sub1.stop(t+memT+.5);sub2.stop(t+memT+.5);
+
+// ═══ LAYER 2: MAIN CRASH BODY — multi-stage C release ═══
+// Phase 1 (0-80ms): Full-spectrum IMPACT — all coherence released at once
+// Phase 2 (80-500ms): ROAR — the main body of turbulence (200-3000Hz)
+// Phase 3 (500ms-2s): FOAM TRANSITION — shifting to higher frequencies
+// Phase 4 (2s+): HISS DECAY — the last foam dissolving
+const mk=(fType,fFreq,fQ,gEnv,dest)=>{
+const ns=ac.createBufferSource();ns.buffer=nB;ns.loop=true;
+const fl=ac.createBiquadFilter();fl.type=fType;fl.Q.value=fQ;
+if(Array.isArray(fFreq)){fl.frequency.setValueAtTime(fFreq[0][1],t);
+for(let j=1;j<fFreq.length;j++){if(fFreq[j][2]==='exp')fl.frequency.exponentialRampToValueAtTime(fFreq[j][1],t+fFreq[j][0]);
+else fl.frequency.linearRampToValueAtTime(fFreq[j][1],t+fFreq[j][0])}}
+else fl.frequency.value=fFreq;
+const g=ac.createGain();g.gain.setValueAtTime(0,t);
+for(const[time,val,type]of gEnv){if(type==='exp'&&val>.0001)g.gain.exponentialRampToValueAtTime(val,t+time);
+else if(type==='exp')g.gain.exponentialRampToValueAtTime(.0001,t+time);
+else g.gain.linearRampToValueAtTime(val,t+time)}
+ns.connect(fl);fl.connect(g);g.connect(dest||mG);ns.start(t);ns.stop(t+memT+1);return{ns,fl,g}};
+// Impact burst — everything at once
+mk('lowpass',[[0,16000],[.08,4000,'exp'],[memT*.4,600,'exp']],.8,
+[[.005,vel*.45],[.08,vel*.3],[.4,vel*.2],[memT*.4,vel*.08,'exp'],[memT,.0001,'exp']]);
+// Roar body — midrange turbulence
+mk('bandpass',[[0,800],[.2,1200],[1,600,'exp'],[memT,200,'exp']],1.5,
+[[.04,vel*.3],[.15,vel*.35],[.6,vel*.25],[memT*.5,vel*.08,'exp'],[memT,.0001,'exp']]);
+// High foam — the bright crashing sound
+mk('highpass',[[0,2000],[.3,3500],[1.5,5000],[memT,8000]],1,
+[[.02,vel*.15],[.1,vel*.22],[.5,vel*.18],[1.5,vel*.1,'exp'],[memT,.0001,'exp']]);
+// Ultra-high spray and spindrift
+mk('bandpass',[[0,8000],[.5,10000],[memT,14000]],2,
+[[.01,vel*.08],[.06,vel*.12],[.3,vel*.08,'exp'],[memT*.5,.0001,'exp']]);
+
+// ═══ LAYER 3: AIR ENTRAINMENT CHORUS — simultaneous Minnaert ruptures ═══
+// The plunging jet traps air. Each air pocket becomes a resonant bubble.
+// This IS CRR: each bubble is surface tension coherence → rupture → Minnaert ring
+// 25 simultaneous bubbles at different sizes = the "fullness" of a real crash
+const bubMix=ac.createGain();bubMix.gain.setValueAtTime(vel*.25,t);
+bubMix.gain.linearRampToValueAtTime(vel*.35,t+.1);
+bubMix.gain.exponentialRampToValueAtTime(vel*.08,t+1.5);
+bubMix.gain.exponentialRampToValueAtTime(.001,t+memT*.7);
+const bubLP=ac.createBiquadFilter();bubLP.type='lowpass';
+bubLP.frequency.setValueAtTime(6000,t);bubLP.frequency.linearRampToValueAtTime(2000,t+memT*.5);
+bubLP.Q.value=1;bubMix.connect(bubLP);bubLP.connect(mG);
+for(let b=0;b<25;b++){
+const rmm=.8+b*1.2+rnd()*2;// bubble radii from ~1mm to ~32mm
+const fM=3287/rmm;const bDur=.03+rmm*.02+rnd()*.04;
+const delay=rnd()*.15+b*.008;// staggered: not all at once
+const bo=ac.createOscillator();bo.type='sine';
+bo.frequency.setValueAtTime(min(fM,8000),t+delay);
+bo.frequency.exponentialRampToValueAtTime(min(fM*.5,4000),t+delay+bDur*2);
+const ba=min(1,rmm/8)*(vel*.15)*(.4+rnd()*.6);
+const bg=ac.createGain();bg.gain.setValueAtTime(0,t);
+bg.gain.setValueAtTime(ba,t+delay);
+bg.gain.setValueAtTime(ba*.7,t+delay+.003);
+bg.gain.exponentialRampToValueAtTime(.001,t+delay+bDur*2.5);
+bo.connect(bg);bg.connect(bubMix);bo.start(t);bo.stop(t+delay+bDur*3+.1)}
+
+// ═══ LAYER 4: HARMONIC MEMORY — exp(C/Ω) releases coherence as tone ═══
+// The wave's accumulated history becomes audible as the noise decays.
+// Dm harmonics with beating (chorusing), emerging through the foam.
+// This is R=∫φ·exp(C/Ω)·Θ dτ — regeneration weighted by memory
+const hMix=ac.createGain();hMix.gain.setValueAtTime(0,t);
+hMix.gain.linearRampToValueAtTime(0,t+.15);// silent during initial impact
+hMix.gain.linearRampToValueAtTime(vel*.28,t+.8);// emerge as noise decays
+hMix.gain.linearRampToValueAtTime(vel*.32,t+memT*.3);// peak during regeneration
+hMix.gain.linearRampToValueAtTime(vel*.15,t+memT*.7);
+hMix.gain.exponentialRampToValueAtTime(.001,t+memT*1.1);
+const hLP=ac.createBiquadFilter();hLP.type='lowpass';
+hLP.frequency.setValueAtTime(200,t);// buried at first
+hLP.frequency.linearRampToValueAtTime(600,t+.5);// slowly revealed
+hLP.frequency.linearRampToValueAtTime(2500,t+2);// full voice
+hLP.frequency.linearRampToValueAtTime(1200,t+memT*.6);// fade back
+hLP.frequency.linearRampToValueAtTime(300,t+memT);
+hLP.Q.value=2.5;hMix.connect(hLP);hLP.connect(mG);
+const hNotes=[[38,.22],[50,.18],[53,.16],[57,.14],[62,.11],[69,.07],[74,.04],[45,.1],[33,.12]];
+for(const[midi,amp]of hNotes){const f=mtf(midi);
+// Three detuned oscillators per note = rich chorusing
+for(const detune of [0,1.5,-1.5]){
+const ho=ac.createOscillator();ho.type='sine';
+ho.frequency.setValueAtTime(f+detune,t);
+ho.frequency.linearRampToValueAtTime((f+detune)*.985,t+memT);// slow pitch descent like real resonance
+const hg=ac.createGain();hg.gain.value=amp*.4;
+ho.connect(hg);hg.connect(hMix);ho.start(t);ho.stop(t+memT*1.2)}}
+// Resonant noise that reveals harmonic structure — the "singing foam"
+for(const[midi,q]of [[38,12],[50,10],[57,8],[62,6],[69,5]]){
+const rns=ac.createBufferSource();rns.buffer=nB;rns.loop=true;
+const rf=ac.createBiquadFilter();rf.type='bandpass';rf.frequency.value=mtf(midi);rf.Q.value=q;
+const rg=ac.createGain();rg.gain.setValueAtTime(0,t);
+rg.gain.linearRampToValueAtTime(vel*.05,t+.3);
+rg.gain.exponentialRampToValueAtTime(.001,t+memT*.6);
+rns.connect(rf);rf.connect(rg);rg.connect(mG);rns.start(t);rns.stop(t+memT+.1)}
+
+// ═══ LAYER 5: CASCADING FOAM — sequential micro-δ(now) events ═══
+// Foam = thousands of tiny bubble ruptures in rapid succession
+// Density starts very high and decays logarithmically
+for(let c=0;c<40;c++){
+const delay=c*.005+pow(c/40,2)*1.5;// logarithmic spacing
+const fPop=1000+rnd()*6000;const pDur=.008+rnd()*.02;
+const pns=ac.createBufferSource();pns.buffer=nB;
+const pfl=ac.createBiquadFilter();pfl.type='bandpass';pfl.frequency.value=fPop;pfl.Q.value=4+rnd()*8;
+const pg=ac.createGain();const pAmp=vel*.12*(1-c/45)*(.3+rnd()*.7);
+pg.gain.setValueAtTime(0,t);pg.gain.setValueAtTime(pAmp,t+delay);
+pg.gain.exponentialRampToValueAtTime(.001,t+delay+pDur+rnd()*.04);
+pns.connect(pfl);pfl.connect(pg);pg.connect(rnG);pns.start(t);pns.stop(t+delay+.2)}
+
+// ═══ LAYER 6: DEEP RESONANCE — the ground vibration ═══
+// The physical mass of tonnes of water creates infrasonic pressure
+const dro=ac.createOscillator();dro.type='sine';dro.frequency.value=22;
+const dro2=ac.createOscillator();dro2.type='sine';dro2.frequency.value=44;
+const drg=ac.createGain();drg.gain.setValueAtTime(vel*.2,t+.01);
+drg.gain.linearRampToValueAtTime(vel*.3,t+.1);
+drg.gain.exponentialRampToValueAtTime(vel*.08,t+1);
+drg.gain.exponentialRampToValueAtTime(.001,t+memT*.6);
+const drg2=ac.createGain();drg2.gain.setValueAtTime(vel*.1,t+.01);
+drg2.gain.exponentialRampToValueAtTime(.001,t+1.5);
+const drLP=ac.createBiquadFilter();drLP.type='lowpass';drLP.frequency.value=60;drLP.Q.value=2;
+dro.connect(drg);dro2.connect(drg2);drg.connect(drLP);drg2.connect(drLP);drLP.connect(mG);
+dro.start(t);dro2.start(t);dro.stop(t+memT+.5);dro2.stop(t+memT+.5);
+
+bP=1}
+function pSp(vel){if(!ac)return;const t=ac.currentTime;for(let i=0;i<8;i++){const st=t+rnd()*.15;const ns=ac.createBufferSource();ns.buffer=nB;const fl=ac.createBiquadFilter();fl.type='bandpass';fl.frequency.value=2000+rnd()*8000;fl.Q.value=3+rnd()*5;const g=ac.createGain();g.gain.setValueAtTime(vel*.08*(.3+rnd()*.7),st);g.gain.exponentialRampToValueAtTime(.001,st+.05+rnd()*.1);ns.connect(fl);fl.connect(g);g.connect(rnG);ns.start(st);ns.stop(st+.2)}}
+
+// §4.8 STORM CRESCENDO — C/Ω approaching 1/7 threshold
+// Called in the final beats before wave break to build tension
+function pStormBuild(vel,phase){if(!ac)return;const t=ac.currentTime;
+// Rising noise pitch — the frequency lifts as steepness increases
+const ns=ac.createBufferSource();ns.buffer=nB;ns.loop=true;
+const fl=ac.createBiquadFilter();fl.type='bandpass';
+fl.frequency.setValueAtTime(100+phase*400,t);
+fl.frequency.linearRampToValueAtTime(300+phase*1200,t+.8);
+fl.Q.value=2+phase*3;
+const g=ac.createGain();g.gain.setValueAtTime(vel*.15,t);
+g.gain.linearRampToValueAtTime(vel*.25*(1+phase),t+.4);
+g.gain.exponentialRampToValueAtTime(.001,t+.8);
+ns.connect(fl);fl.connect(g);g.connect(wavG);ns.start(t);ns.stop(t+1.2);
+// Sub rumble intensifying
+const sr=ac.createOscillator();sr.type='sine';
+sr.frequency.setValueAtTime(30+phase*15,t);
+const sg=ac.createGain();sg.gain.setValueAtTime(vel*.08*(1+phase),t);
+sg.gain.exponentialRampToValueAtTime(.001,t+.6);
+const slp=ac.createBiquadFilter();slp.type='lowpass';slp.frequency.value=60;slp.Q.value=2;
+sr.connect(sg);sg.connect(slp);slp.connect(mG);sr.start(t);sr.stop(t+1);
+// Pitch-rising tone — the wave "screaming" before it breaks
+if(phase>.3){const wo=ac.createOscillator();wo.type='sawtooth';
+wo.frequency.setValueAtTime(mtf(38)+phase*40,t);
+wo.frequency.linearRampToValueAtTime(mtf(38)+phase*80+50,t+.6);
+const wf=ac.createBiquadFilter();wf.type='lowpass';wf.frequency.value=200+phase*300;wf.Q.value=4;
+const wg=ac.createGain();wg.gain.setValueAtTime(vel*.04*phase,t);
+wg.gain.exponentialRampToValueAtTime(.001,t+.5);
+wo.connect(wf);wf.connect(wg);wg.connect(depG);wo.start(t);wo.stop(t+.8)}
+bP=max(bP,phase*.3)}
+function pBi(gain){if(!ac)return;const t=ac.currentTime;const f=mtf(76+floor(rnd()*12));const o=ac.createOscillator();o.type='sine';o.frequency.value=f;const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=f*PHI;const g=ac.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(gain*.15,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+1.5+rnd());o.connect(g);o2.connect(g);g.connect(shG);o.start(t);o2.start(t);o.stop(t+2.5);o2.stop(t+2.5);bioF=1}
+function pCh(notes,gain,dur){if(!ac)return;const t=ac.currentTime;const m=ac.createGain();m.gain.setValueAtTime(0,t);m.gain.linearRampToValueAtTime(gain*.2,t+1);m.gain.linearRampToValueAtTime(gain*.15,t+dur*.5);m.gain.linearRampToValueAtTime(0,t+dur);m.connect(chG);for(const n of notes){const f=mtf(n);for(const[ff,bw,a]of[[800,80,.1],[1200,90,.06],[2500,120,.03]]){const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=f;const fl=ac.createBiquadFilter();fl.type='bandpass';fl.frequency.value=ff;fl.Q.value=ff/bw;fl.frequency.linearRampToValueAtTime(ff*.6,t+dur);const g=ac.createGain();g.gain.value=a;o.connect(fl);fl.connect(g);g.connect(m);o.start(t);o.stop(t+dur+.5)}}}
+function pWh(s,e,dur,vel){if(!ac)return;const t=ac.currentTime;const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(mtf(s),t);o.frequency.exponentialRampToValueAtTime(mtf(e),t+dur*.7);o.frequency.exponentialRampToValueAtTime(mtf(s),t+dur);const fl=ac.createBiquadFilter();fl.type='lowpass';fl.frequency.value=400;fl.Q.value=2;const g=ac.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vel*.25,t+dur*.2);g.gain.linearRampToValueAtTime(0,t+dur);o.connect(fl);fl.connect(g);g.connect(depG);o.start(t);o.stop(t+dur+.5)}
+// §4.13 MINNAERT BUBBLE POP — f_M=(1/2πR)√(3γP₀/ρ)≈3287/R_mm
+function pBP(rmm,vel){if(!ac)return;const t=ac.currentTime;
+const fM=3287/max(.5,rmm),dur=.04+rmm*.015,amp=min(1,rmm/5);
+const o=ac.createOscillator();o.type='sine';o.frequency.setValueAtTime(fM,t);o.frequency.exponentialRampToValueAtTime(fM*.7,t+dur);
+const o2=ac.createOscillator();o2.type='sine';o2.frequency.setValueAtTime(fM*2.08,t);o2.frequency.exponentialRampToValueAtTime(fM*1.5,t+dur);
+const e=ac.createGain();e.gain.setValueAtTime(vel*.3*amp,t);e.gain.setValueAtTime(vel*.25*amp,t+.002);e.gain.exponentialRampToValueAtTime(.001,t+dur);
+const e2=ac.createGain();e2.gain.setValueAtTime(vel*.1*amp,t);e2.gain.exponentialRampToValueAtTime(.001,t+dur*.7);
+const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=min(fM*3,4000);lp.Q.value=1.5;
+const sn=ac.createOscillator();sn.type='square';sn.frequency.value=fM*3;const se=ac.createGain();se.gain.setValueAtTime(vel*.08*amp,t);se.gain.exponentialRampToValueAtTime(.001,t+.008);
+o.connect(e);o2.connect(e2);sn.connect(se);e.connect(lp);e2.connect(lp);se.connect(lp);lp.connect(bubG);
+o.start(t);o2.start(t);sn.start(t);o.stop(t+dur+.05);o2.stop(t+dur+.05);sn.stop(t+.02);
+bubVis.push({x:rnd()*W,y:H*(.3+rnd()*.5),r:rmm,v:vel,t:1})}
+function pBC(vel,cnt){if(!ac)return;for(let i=0;i<cnt;i++){const d=rnd()*.2+i*.03;setTimeout(()=>pBP(1.5+rnd()*4,vel*(.8-i/cnt*.4)),d*1000)}}
+// §5 WEBGL — 40k particles
+const cv=document.getElementById('viz');const gl=cv.getContext('webgl',{antialias:false,alpha:false,preserveDrawingBuffer:true});
+let W,H;const NT=40000;
+const px=new Float32Array(NT),py=new Float32Array(NT),pvx=new Float32Array(NT),pvy=new Float32Array(NT);
+const pc=new Float32Array(NT),pt=new Float32Array(NT),pp=new Float32Array(NT),pl=new Float32Array(NT);
+const pd2=new Float32Array(NT*2);const bubVis=[];
+const pCoh=new Float32Array(NT),pMem=new Float32Array(NT),pGrace=new Float32Array(NT);
+const FG=48,fX=new Float32Array(FG*FG),fY=new Float32Array(FG*FG);
+let pT=0,bP=0,wP=0,bioF=0,breathCycle=0,breathPhase=0,breathAmpG=1,wPG=0,secAgeG=0;
+function initP(){for(let i=0;i<NT;i++){px[i]=rnd()*W;py[i]=rnd()*H;pvx[i]=(rnd()-.5)*.2;pvy[i]=(rnd()-.5)*.2;pc[i]=.05+rnd()*.15;pp[i]=rnd()*TAU;pl[i]=1;pt[i]=i<32000?0:i<38000?1:2;pCoh[i]=0;pMem[i]=1;pGrace[i]=rnd()*.5;if(pt[i]===1)py[i]=H*(.3+rnd()*.15);if(pt[i]===2)pl[i]=0}}
+function uFF(dt,sec){const ar=sec?sec.ar:0,t=pT;for(let gy=0;gy<FG;gy++)for(let gx=0;gx<FG;gx++){const idx=gy*FG+gx,nx=gx/FG,ny=gy/FG;
+let fx=(.15+ar*.4)*(ny>.5?1:-.3),fy=0;const wd=exp(-ny*3);const wp=nx*TAU*2+wP;
+fx+=cos(wp)*(.3+ar*.8)*wd;fy+=sin(wp)*(.4+ar*1.2)*wd;fx+=cos(nx*TAU*3.17-wP*1.37)*(.12+ar*.3)*wd;fy+=sin(nx*TAU*3.17-wP*1.37)*(.15+ar*.4)*wd;
+if(AB.bass>.2){const vx=.5+sin(t*.3)*.3,vy=.4+cos(t*.4)*.15,dx=nx-vx,dy=ny-vy,vD=sqrt(dx*dx+dy*dy)+.001;fx+=(-dy/vD)*AB.bass*.8/(vD*10+1);fy+=(dx/vD)*AB.bass*.8/(vD*10+1)}
+if(AB.mid>.15){const vx=.5-sin(t*.5)*.25,vy=.6+cos(t*.35)*.1,dx=nx-vx,dy=ny-vy,vD=sqrt(dx*dx+dy*dy)+.001;fx+=(dy/vD)*AB.mid*.5/(vD*12+1);fy+=(-dx/vD)*AB.mid*.5/(vD*12+1)}
+fx+=sin(nx*12+t*2+ny*8)*.1*(AB.high*.6+AB.pres*.4);fy+=cos(ny*10+t*1.7+nx*7)*.1*(AB.high*.6+AB.pres*.4);
+if(ar>.6){fx+=sin(t*3+nx*15)*ar*.4;fy+=cos(t*2.7+ny*13)*ar*.35}
+fX[idx]+=(fx-fX[idx])*.08;fY[idx]+=(fy-fY[idx])*.08}}
+function sF(x,y){const gx=min(FG-2,max(0,floor(x/W*FG))),gy=min(FG-2,max(0,floor(y/H*FG)));return{x:fX[gy*FG+gx],y:fY[gy*FG+gx]}}
+
+let curSecName='',secBlend=1,secAge=0;
+// §4.5 FORM ATTRACTORS — liquid morphologies emerging from CRR dynamics
+// Each section defines a force field that shapes particles into forms
+// Forms EMERGE through coherence accumulation, not instant teleportation
+function formTarget(sn,i,x,y,t,ar){
+const isSurf=pt[i]===1,isDeep=pt[i]===0;
+if(!isSurf&&!isDeep)return null;
+const si=isSurf?(i-32000):i;
+const nS=isSurf?6000:32000;
+const ni=si/nS;
+const ha=1.824/2,mol_r=min(W,H)*.14;
+let tx=x,ty=y,str=0,tang=0;
+
+if(isSurf){switch(sn){
+case 'MOLECULE':case 'STILLNESS':{
+// H₂O orbital — three clusters at 104.5° bond angle
+const cx0=W*.5,cy0=H*.5;
+const h1x=cx0-sin(ha)*mol_r,h1y=cy0-cos(ha)*mol_r;
+const h2x=cx0+sin(ha)*mol_r,h2y=cy0-cos(ha)*mol_r;
+let cx,cy,orbR;
+if(ni<.08){// Bond stream O→H1
+const lt=ni/.08;cx=cx0*(1-lt)+h1x*lt;cy=cy0*(1-lt)+h1y*lt;orbR=mol_r*.012;tang=.15}
+else if(ni<.16){// Bond stream O→H2
+const lt=(ni-.08)/.08;cx=cx0*(1-lt)+h2x*lt;cy=cy0*(1-lt)+h2y*lt;orbR=mol_r*.012;tang=.15}
+else if(ni<.55){// O atom cloud
+const lni=(ni-.16)/.39;cx=cx0;cy=cy0;orbR=mol_r*(.03+lni*.06);tang=.3}
+else if(ni<.775){// H1 cloud
+const lni=(ni-.55)/.225;cx=h1x;cy=h1y;orbR=mol_r*(.02+lni*.04);tang=.35}
+else{// H2 cloud
+const lni=(ni-.775)/.225;cx=h2x;cy=h2y;orbR=mol_r*(.02+lni*.04);tang=.35}
+const a=ni*TAU*5+t*(sn==='STILLNESS'?.2:.5)+si*.01;
+tx=cx+cos(a)*orbR*breathAmpG;ty=cy+sin(a)*orbR*breathAmpG;
+str=sn==='STILLNESS'?.02:.012;break}
+
+case 'HYDROGEN BONDS':{
+// Network of 5 molecules connected by bond streams
+const nM=5,netR=min(W,H)*.16;
+const mi=floor(ni*nM)%nM;
+const mni=(ni*nM)%1;
+const ma=mi*TAU/nM+t*.12+sin(t*.08+mi)*.15;
+const mcx=W*.5+cos(ma)*netR*(1+sin(t*.15)*.08);
+const mcy=H*.45+sin(ma)*netR*.55*(1+cos(t*.18)*.08);
+if(mni>.82){// Bond particles connecting to next molecule
+const nmi=(mi+1)%nM;
+const nma=nmi*TAU/nM+t*.12+sin(t*.08+nmi)*.15;
+const ncx=W*.5+cos(nma)*netR*(1+sin(t*.15)*.08);
+const ncy=H*.45+sin(nma)*netR*.55*(1+cos(t*.18)*.08);
+const lt=(mni-.82)/.18;
+tx=mcx*(1-lt)+ncx*lt+sin(t*3+mi*2)*.004*W;
+ty=mcy*(1-lt)+ncy*lt+cos(t*2.7+mi*2)*.003*H;
+str=.008;tang=0}
+else{// Orbital around molecule center
+const orbA=mni*TAU*2+t*.7+mi*1.3;
+const mr=mol_r*(.04+mni*.035)*(1+.15*sin(t*1.5+mi));
+tx=mcx+cos(orbA)*mr;ty=mcy+sin(orbA)*mr;
+str=.008;tang=.25}
+break}
+
+case 'LIQUID PHASE':{
+// Dual weaving ribbons — dance partners
+const ribbon=ni<.5?0:1;
+const rni=ribbon===0?ni*2:(ni-.5)*2;
+const phase=ribbon*PI;
+const meander=sin(rni*TAU*1.5+t*.2)*.12+sin(rni*TAU*2.7-t*.15)*.05;
+const amp=H*(.07+ar*.04)*(1+.1*sin(t*.25));
+const sep=H*(.03+.015*sin(t*.3));
+tx=rni*W;
+ty=H*.38+sin(rni*TAU*2+wPG+phase)*amp+cos(rni*TAU*3.3-wPG*.8+phase)*amp*.3
++(ribbon===0?-sep:sep)+meander*H*.03;
+str=.006+ar*.003;tang=0;break}
+
+case 'BUBBLE STREAM':{
+// Circular bubble formations rising and occasionally popping
+const nBub=8;
+const bi=floor(ni*nBub)%nBub;
+const bni=(ni*nBub)%1;
+const riseSpeed=18+bi*3;
+const bubLife=((t*riseSpeed*.01+bi/nBub)%1);
+const bubY=H*(.85-bubLife*.65);
+const bubX=W*(.12+bi*.098)+sin(t*.5+bi*1.7)*W*.04+sin(bubLife*PI*3+bi)*.01*W;
+const bubR=min(W,H)*(.025+.01*sin(t+bi))*(1-.3*(1-sin(bubLife*PI)));
+const wobble=sin(t*4+bi*2)*.15;
+const a=bni*TAU+t*.8+bi*1.1+wobble;
+tx=bubX+cos(a)*bubR;ty=bubY+sin(a)*bubR*.9;
+str=.007;tang=.15;break}
+
+case 'OCEAN SWELL':{
+// Multi-layer wave with visible depth structure
+const nLay=5;
+const li=floor(ni*nLay);
+const lni=(ni*nLay)%1;
+const depth=li/nLay;
+const depthFade=1-depth*.6;
+const amp=H*(.06+ar*.07)*depthFade;
+const wSpd=1-depth*.3;
+tx=lni*W;
+ty=H*(.28+depth*.12)+sin(lni*TAU*2+wPG*wSpd)*amp
++sin(lni*TAU*3.17-wPG*1.37*wSpd)*amp*.35
++cos(lni*TAU*.7+t*.15)*H*.008*depthFade;
+str=.004+ar*.003;tang=0;break}
+
+case 'STORM SURGE':{
+// Logarithmic spiral vortex — coherence pulled toward center
+const cx=W*.5+sin(t*.2)*W*.03,cy=H*.42+cos(t*.25)*H*.02;
+const spiralA=ni*TAU*4+t*(1+ar*.5);
+const spiralR=min(W,H)*(.02+pow(ni,.7)*.22)*(1.1-ar*.3);
+const wobX=sin(spiralA*2+t)*.008*W*ar;
+const wobY=cos(spiralA*1.7+t)*.006*H*ar;
+tx=cx+cos(spiralA)*spiralR+wobX;
+ty=cy+sin(spiralA)*spiralR*.65+wobY;
+str=.005+ar*.008;tang=.3+ar*.2;break}
+
+case 'WAVE BREAK':{
+// First few beats: explosive scatter. Then: slow re-cohere into calm surface
+const age=secAgeG;
+if(age<2){str=.001;tang=0;tx=x;ty=y}// Let rupture dynamics dominate
+else{// Regeneration — re-form as calm wave
+const calm=min(1,(age-2)/6);
+const rx=ni;
+ty=H*(.38)+sin(rx*TAU*2+wPG)*H*.03*calm+sin(rx*TAU*3.17-wPG*1.37)*H*.012*calm;
+tx=rx*W;str=.002+calm*.005;tang=0}
+break}
+
+case 'DEEP CURRENT':{
+// 4 horizontal ribbons at different depths, alternating directions
+const nStr=4;
+const si2=floor(ni*nStr);
+const sni=(ni*nStr)%1;
+const dir=si2%2===0?1:-1;
+const streamY=H*(.25+si2*.12);
+const undulate=sin(sni*TAU*2.5+t*.4+si2)*.01*H+cos(sni*TAU*4-t*.3+si2)*.004*H;
+tx=((sni*W+dir*t*12)%W+W)%W;
+ty=streamY+undulate+sin(t*.2+si2)*.008*H;
+str=.005;tang=0;break}
+
+case 'BIOLUMINESCENCE':{
+// Pulsing clusters that flash — life discovered coherence can become light
+const nCl=7;
+const ci=floor(ni*nCl)%nCl;
+const cni=(ni*nCl)%1;
+const ca=ci*PHI*TAU+sin(t*.15+ci)*.2;// golden angle spacing
+const clR=min(W,H)*(.22+.03*sin(t*.1));
+const ccx=W*.5+cos(ca)*clR;
+const ccy=H*.45+sin(ca)*clR*.55;
+const pulse=1+.35*sin(t*2.5+ci*1.7);
+const cRad=min(W,H)*(.03+.008*ci/nCl)*pulse;
+const a=cni*TAU+t*.4+ci*.9;
+tx=ccx+cos(a)*cRad;ty=ccy+sin(a)*cRad;
+str=.006;tang=.2;break}
+
+case 'TIDAL RETURN':{
+// Lemniscate (figure-8) — SO(2) lunar resonance
+const lt=ni*TAU+t*.25;
+const scale=min(W,H)*.22;
+const s2=sin(lt)*sin(lt);
+const denom=1+s2;
+tx=W*.5+scale*cos(lt)/denom;
+ty=H*.42+scale*.5*sin(lt)*cos(lt)/denom;
+// Add gentle thickness
+const thick=min(W,H)*.008*(1+.3*sin(t*.3));
+const perp=lt+PI/2;
+tx+=cos(perp)*thick*sin(ni*TAU*30+t);
+ty+=sin(perp)*thick*sin(ni*TAU*30+t);
+str=.006;tang=.1;break}
+
+case 'EVAPORATION':{
+// Rising spiral columns — liquid C → vapour δ → cloud R
+const nCol=5;
+const ci=floor(ni*nCol)%nCol;
+const cni=(ni*nCol)%1;
+const colX=W*(.15+ci*.175);
+const rise=(cni+t*.03+ci*.1)%1;
+const spiralR=W*(.015+.008*sin(rise*PI))*(1-rise*.5);
+const spiralA=rise*TAU*3+t*.5+ci*1.3;
+tx=colX+cos(spiralA)*spiralR;
+ty=H*(1-rise*.85)+sin(rise*PI*2)*H*.01;
+str=.005;tang=0;break}
+}}
+
+// Deep particles get subtler organization
+if(isDeep){const dni=ni;switch(sn){
+case 'MOLECULE':case 'STILLNESS':{
+const d=sqrt(pow(x-W*.5,2)+pow(y-H*.5,2));
+if(d>min(W,H)*.35){tx=W*.5+(x-W*.5)*.99;ty=H*.5+(y-H*.5)*.99;str=.0008}
+break}
+case 'OCEAN SWELL':case 'STORM SURGE':{
+// Orbital motion — wave particles move in circles
+const orbR=max(5,30-ar*20);
+const orbA=dni*TAU*8+t*.3;
+tx=x+cos(orbA)*orbR*.01;ty=y+sin(orbA)*orbR*.01;
+str=.001+ar*.001;tang=.1;break}
+case 'DEEP CURRENT':{
+const layer=floor(dni*6)/6;
+const dir=floor(layer*6)%2===0?1:-1;
+tx=((x+dir*t*3)%W+W)%W;ty=y;str=.0005;break}
+case 'BIOLUMINESCENCE':{
+if(rnd()<.0003){tx=x;ty=y;str=0;pc[i]=min(1,pc[i]+.5)}break}// random flash
+case 'EVAPORATION':{
+if(y<H*.5){ty=y-.02;str=.0003}break}
+}}
+
+return str>0?{tx,ty,str,tang}:null}
+
+function uP(dt,sec){pT+=dt;bP*=.9;wP+=dt*(.3+AB.bass*.2);bioF=max(0,bioF-dt*2);const ar=sec?sec.ar:0;
+const secName=sec?sec.name:'MOLECULE';
+// Section transition: detect change → rupture particles → regenerate into new form
+if(secName!==curSecName){
+if(curSecName!==''){// Rupture: scatter particles at section boundary = δ(now)
+for(let i=0;i<NT;i++){if(pt[i]===2)continue;
+const scatter=pt[i]===1?.8:.15;pvx[i]+=(rnd()-.5)*scatter;pvy[i]+=(rnd()-.5)*scatter*.6;
+pCoh[i]*=.4}}// Coherence partially retained — exp(C/Ω) memory carries across
+curSecName=secName;secAge=0;secBlend=0}
+secAge+=dt;secBlend=min(1,secBlend+dt*.4);// Regeneration ramp: forms emerge gradually
+// Export breath values for formTarget access
+breathCycle+=dt*(.15+ar*.08+AB.bass*.05);
+const bNorm=ag.p.normC;
+breathPhase+=(bNorm*.7+.3-breathPhase)*.03;
+breathAmpG=1+.12*sin(breathPhase*PI)+.06*sin(breathCycle*TAU*.07);
+const breathLift=sin(breathCycle*.13)*H*.008+sin(breathCycle*.31)*H*.003;
+const breathSway=sin(breathCycle*.17)*.015+sin(breathCycle*.41)*.006;
+wPG=wP;secAgeG=secAge;
+const rupPulse=(ag.wav.inR?0.4:0)+(ag.hb.inR?0.15:0)+(ag.rn.inR?0.1:0);
+const isBr=secName==='WAVE BREAK';
+const isBio=secName==='BIOLUMINESCENCE';
+const isBub=secName==='BUBBLE STREAM';
+const sB=H*(.35-ar*.08);
+if(isBub||ar>.3)for(let i=38000;i<NT;i++){if(pl[i]<=0&&rnd()<(isBub?.08:.02)){px[i]=rnd()*W;py[i]=H*(.7+rnd()*.25);pvx[i]=(rnd()-.5)*.2;pvy[i]=-(1+rnd()*2);pl[i]=1;pc[i]=.3+rnd()*.5;pt[i]=2}}
+for(let i=0;i<NT;i++){
+if(pt[i]===2){if(pl[i]<=0)continue;pvy[i]-=.8*dt;pvx[i]+=sin(pT*3+pp[i])*.3*dt;pl[i]-=dt*.15;if(py[i]<sB)pl[i]=0;px[i]+=pvx[i];py[i]+=pvy[i];pc[i]=max(0,pl[i]);continue}
+const f=sF(px[i],py[i]);
+pCoh[i]+=pc[i]*dt*.5;
+const cohOmega=pt[i]===1?ag.wav.omega:ag.p.omega;
+pMem[i]=exp(min(6,pCoh[i]/max(.01,cohOmega)));
+const grace=min(1,pCoh[i]*.08);
+pGrace[i]+=(grace-pGrace[i])*.02;
+const gW=pGrace[i];
+const rupScatter=rupPulse*(1-gW)*.3;
+// Flow field influence — reduced for high-grace particles
+const flowStr=(1-gW*.3)*(pt[i]===1?.4:1);
+pvx[i]+=f.x*dt*60*.015*flowStr;pvy[i]+=f.y*dt*60*.015*flowStr;
+// Grace-based intentional motion (the "dance")
+if(gW>.1){pvx[i]+=sin(pp[i]*1.5+pT*.8)*gW*.03*(1+AB.mid*.4);
+pvy[i]+=cos(pp[i]*1.7+pT*.6)*gW*.025*(1+AB.bass*.25);
+const fA=atan2(pvy[i],pvx[i]),fS=sqrt(pvx[i]*pvx[i]+pvy[i]*pvy[i]);
+pvx[i]+=(cos(fA)*fS*.008)*gW;pvy[i]+=(sin(fA)*fS*.008)*gW}
+// Micro-rupture scatter
+if(rupScatter>.01){pvx[i]+=(rnd()-.5)*rupScatter;pvy[i]+=(rnd()-.5)*rupScatter*.7}
+// *** FORM ATTRACTOR — the core morphology system ***
+const form=formTarget(secName,i,px[i],py[i],pT,ar);
+if(form&&form.str>0){
+const blend=secBlend*(.5+gW*.5);// High-grace particles cohere faster
+const dx=form.tx-px[i],dy=form.ty-py[i];
+const dist=sqrt(dx*dx+dy*dy)+1;
+// CRR-weighted attraction: strength modulated by coherence and breath
+const attract=form.str*blend*(1+.15*sin(breathCycle*.09));
+pvx[i]+=dx*attract;pvy[i]+=dy*attract;
+// Tangential velocity — creates orbital "dance" around target positions
+if(form.tang>0){const tF=form.tang*blend*(.5+gW*.5);
+pvx[i]+=(-dy/dist)*tF;pvy[i]+=(dx/dist)*tF}
+// Breath sway applied to form
+pvx[i]+=breathSway*(1+gW*.4)*blend;
+// Phase coupling — nearby particles on same form influence each other
+const phaseWave=sin((px[i]/W)*TAU*4+pp[i]*.5+pT*.4)*gW*.01*(1+AB.energy*.2);
+pvx[i]+=phaseWave;
+// Brightness: closer to form target = brighter
+const formProx=1-min(1,dist/(min(W,H)*.1));
+pc[i]+=(AB.energy*.3+ar*.2+formProx*.25+gW*.12-pc[i])*.025}
+else{// No form or zero strength — gentle drift
+const nx=px[i]/W;
+const lS=sB+breathLift+sin(nx*TAU*2+wP)*H*(.02+ar*.08)*breathAmpG
++sin(nx*TAU*3.17-wP*1.37)*H*(.008+ar*.03)*breathAmpG;
+if(pt[i]===1){pvy[i]+=(lS-py[i])*.015;pvx[i]+=breathSway}
+else{pvy[i]+=(H*(.4+py[i]/H*.3)-py[i])*.0003}
+pc[i]+=(AB.energy*.2+ar*.15-pc[i])*.02}
+// Burst/break dynamics
+if(bP>.05){const cx=W*.5,cy=H*.4,dx=px[i]-cx,dy=py[i]-cy,d=sqrt(dx*dx+dy*dy)+1;
+pvx[i]+=dx/d*bP*.5;pvy[i]+=dy/d*bP*.35}
+if(isBr&&secAge<2){pvy[i]-=(.2+rnd()*.5)*dt*25;pvx[i]+=(rnd()-.5)*dt*35;pc[i]=min(1,pc[i]+.02);pCoh[i]*=.8}
+if(secName==='EVAPORATION'&&py[i]<H*.5&&pt[i]===0){pvy[i]-=.015;pvx[i]+=(rnd()-.5)*.02}
+// Grace-weighted damping
+const damp=pt[i]===1?(.976-.008*gW):(.972-.004*gW);
+pvx[i]*=damp;pvy[i]*=damp;
+const sp=sqrt(pvx[i]*pvx[i]+pvy[i]*pvy[i]),ms=1.2+ar*3.5+gW*.5;
+if(sp>ms){pvx[i]=pvx[i]/sp*ms;pvy[i]=pvy[i]/sp*ms}
+px[i]+=pvx[i];py[i]+=pvy[i];
+if(px[i]<0)px[i]+=W;if(px[i]>W)px[i]-=W;
+if(py[i]<0){py[i]=0;pvy[i]=abs(pvy[i])*.3}if(py[i]>H){py[i]=H;pvy[i]=-abs(pvy[i])*.3}
+pc[i]=max(0,min(1,pc[i]));pp[i]+=.002+pc[i]*.005+AB.mid*.003+gW*.003;
+if(pt[i]!==2)pl[i]=.3+gW*.7;
+if(isBio&&rnd()<.008)pc[i]=min(1,pc[i]+.5);if(bioF>.3&&rnd()<.03)pc[i]=min(1,pc[i]+.35)}
+for(let i=bubVis.length-1;i>=0;i--){bubVis[i].t-=dt*3;if(bubVis[i].t<=0)bubVis.splice(i,1)}}
+// §5.1 Shaders
+const vs=`attribute vec2 a_p;attribute float a_c;attribute float a_t;attribute float a_ph;attribute float a_l;
+uniform vec2 u_r;uniform float u_tm;uniform float u_ar;uniform float u_bi;uniform float u_en;
+varying float v_c;varying float v_t;varying float v_a;varying float v_h;varying float v_s;
+void main(){vec2 p=(a_p/u_r)*2.0-1.0;p.y*=-1.0;gl_Position=vec4(p,0.0,1.0);
+float sz=1.0+a_c*2.5+u_ar*1.5+u_en*2.0;float iF=step(0.5,a_t)*step(a_t,1.5);float iB=step(1.5,a_t)*step(a_t,2.5);
+float iW=1.0-iF-iB;
+float grace=iW*a_l+iF*a_l;
+sz+=iF*1.5+iB*(2.0+a_l*3.0);
+sz+=grace*1.2*(1.0+0.15*sin(a_ph*2.0+u_tm*0.5));
+gl_PointSize=sz;v_c=a_c;v_t=a_t;
+v_a=0.04+a_c*0.4+u_ar*0.15+u_en*0.15+iF*0.2+iB*a_l*0.4;
+v_a+=grace*0.15*(1.0+0.1*sin(a_ph*1.5+u_tm*0.3));
+v_a*=1.0+u_bi*0.4;
+float dp=a_p.y/u_r.y;v_h=0.58-dp*0.06-a_c*0.1+sin(a_ph+u_tm*0.12)*0.015+iF*(-0.05)+iB*(-0.08)+u_bi*(-0.15)-grace*0.03;
+v_s=0.65-a_c*0.35-iF*0.4-iB*0.3-grace*0.15;}`;
+const fs=`precision mediump float;varying float v_c;varying float v_t;varying float v_a;varying float v_h;varying float v_s;
+vec3 hsv(vec3 c){vec4 K=vec4(1.0,2.0/3.0,1.0/3.0,3.0);vec3 p=abs(fract(c.xxx+K.xyz)*6.0-K.www);return c.z*mix(K.xxx,clamp(p-K.xxx,0.0,1.0),c.y);}
+void main(){float d=length(gl_PointCoord-0.5)*2.0;if(d>1.0)discard;
+float softEdge=1.0-d*d;float glow=exp(-d*d*2.0);
+float a=mix(softEdge,glow,min(1.0,v_c*0.5))*v_a;
+float v=0.3+v_c*0.7;
+float iF=step(0.5,v_t)*step(v_t,1.5);v+=iF*0.4;vec3 col=hsv(vec3(v_h,max(0.0,v_s),min(1.0,v)));
+if(v_c>0.6)col=mix(col,vec3(0.85,0.95,1.0),0.35*(v_c-0.6)/0.4);
+if(v_c>0.8)col+=vec3(0.05,0.08,0.12)*(v_c-0.8)/0.2;
+gl_FragColor=vec4(col,a);}`;
+let prg,pL,cL,tL,phL,lL,rL,tmL,arL,biL,enL,pB,cB,tB,phB,lB;
+function iGL(){if(!gl)return;const v=gl.createShader(gl.VERTEX_SHADER);gl.shaderSource(v,vs);gl.compileShader(v);
+const f=gl.createShader(gl.FRAGMENT_SHADER);gl.shaderSource(f,fs);gl.compileShader(f);
+prg=gl.createProgram();gl.attachShader(prg,v);gl.attachShader(prg,f);gl.linkProgram(prg);gl.useProgram(prg);
+pL=gl.getAttribLocation(prg,'a_p');cL=gl.getAttribLocation(prg,'a_c');tL=gl.getAttribLocation(prg,'a_t');phL=gl.getAttribLocation(prg,'a_ph');lL=gl.getAttribLocation(prg,'a_l');
+rL=gl.getUniformLocation(prg,'u_r');tmL=gl.getUniformLocation(prg,'u_tm');arL=gl.getUniformLocation(prg,'u_ar');biL=gl.getUniformLocation(prg,'u_bi');enL=gl.getUniformLocation(prg,'u_en');
+pB=gl.createBuffer();cB=gl.createBuffer();tB=gl.createBuffer();phB=gl.createBuffer();lB=gl.createBuffer();
+gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE)}
+function rGL(sec){if(!gl||!prg)return;const ar=sec?sec.ar:0;gl.clearColor(.012,.028,.06,max(.01,.04-.025*ar-.015*AB.energy));gl.clear(gl.COLOR_BUFFER_BIT);
+for(let i=0;i<NT;i++){pd2[i*2]=px[i];pd2[i*2+1]=py[i]}gl.useProgram(prg);gl.uniform2f(rL,W,H);gl.uniform1f(tmL,pT);gl.uniform1f(arL,ar);gl.uniform1f(biL,bioF);gl.uniform1f(enL,AB.energy);
+const bA=(l,b,d,s)=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,d,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,s,gl.FLOAT,false,0,0)};
+bA(pL,pB,pd2,2);bA(cL,cB,pc,1);bA(tL,tB,pt,1);bA(phL,phB,pp,1);bA(lL,lB,pl,1);gl.drawArrays(gl.POINTS,0,NT)}
+// §5.2 Canvas overlay
+const ov=document.getElementById('overlay'),c2=ov.getContext('2d');
+function dOv(sec,beat){c2.clearRect(0,0,W,H);const ar=sec?sec.ar:0;
+if(ar>.03||AB.energy>.05){const I=.01+ar*.03+AB.energy*.02;c2.globalAlpha=I;const nR=2+floor(ar*4+AB.bass*3);
+for(let r=0;r<nR;r++){const rx=W*(.15+r*.18+sin(pT*.25+r*1.1)*.12),ry=H*(.25+cos(pT*.3+r*.8)*.12),mR=80+ar*180+AB.bass*150;
+for(let ring=0;ring<3;ring++){const rd=mR*(.3+ring*.3)+sin(pT*1.5+ring+r)*(8+AB.mid*20);c2.strokeStyle=`rgba(120,220,240,${.03-ring*.008+AB.energy*.02})`;c2.lineWidth=1;c2.beginPath();c2.arc(rx,ry,rd,0,TAU);c2.stroke()}}c2.globalAlpha=1}
+for(const bv of bubVis){if(bv.t<=0)continue;const r=bv.r*3+10*(1-bv.t);c2.globalAlpha=bv.t*.5;const gd=c2.createRadialGradient(bv.x,bv.y,0,bv.x,bv.y,r);gd.addColorStop(0,'rgba(180,240,255,0.6)');gd.addColorStop(.5,'rgba(80,200,230,0.2)');gd.addColorStop(1,'rgba(40,140,180,0)');c2.fillStyle=gd;c2.beginPath();c2.arc(bv.x,bv.y,r,0,TAU);c2.fill();c2.globalAlpha=1}
+if(sec&&(sec.name==='MOLECULE'||sec.name==='STILLNESS'))dH2O(W*.5,H*.5,min(W,H)*.12);
+if(sec&&sec.name==='HYDROGEN BONDS')dBN(beat-32);
+if(sec&&sec.name==='BUBBLE STREAM'){c2.globalAlpha=.12;c2.fillStyle='rgba(160,220,240,1)';c2.font=`${12*(window.devicePixelRatio||1)}px "Space Mono"`;c2.textAlign='center';c2.fillText('f_M = (1/2πR)√(3γP₀/ρ)',W*.5,H*.15);c2.font=`${9*(window.devicePixelRatio||1)}px "Space Mono"`;c2.fillText('bubble pop IS δ(now) of surface tension',W*.5,H*.15+16*(window.devicePixelRatio||1));c2.globalAlpha=1}}
+function dH2O(cx,cy,s){const t=pT,ha=1.824/2,bL=s*(1+sin(t*3)*.05),h1x=cx-sin(ha)*bL,h1y=cy-cos(ha)*bL,h2x=cx+sin(ha)*bL,h2y=cy-cos(ha)*bL;
+c2.fillStyle=`rgba(80,180,220,${(.3+sin(t*2)*.1)*.12})`;c2.beginPath();c2.arc(cx,cy,s*1.2,0,TAU);c2.fill();
+c2.strokeStyle=`rgba(120,200,230,${.2+sin(t*4)*.08})`;c2.lineWidth=2;c2.beginPath();c2.moveTo(h1x,h1y);c2.lineTo(cx,cy);c2.lineTo(h2x,h2y);c2.stroke();
+c2.fillStyle=`rgba(220,80,80,${.25+sin(t*1.5)*.08})`;c2.beginPath();c2.arc(cx,cy,s*.25,0,TAU);c2.fill();
+c2.fillStyle=`rgba(100,180,255,${.3+sin(t*2+1)*.08})`;c2.beginPath();c2.arc(h1x,h1y,s*.15,0,TAU);c2.fill();c2.beginPath();c2.arc(h2x,h2y,s*.15,0,TAU);c2.fill();
+c2.fillStyle='rgba(255,255,255,.12)';c2.font=`${s*.2}px "Space Mono"`;c2.textAlign='center';c2.textBaseline='middle';c2.fillText('O',cx,cy);c2.font=`${s*.15}px "Space Mono"`;c2.fillText('H',h1x,h1y);c2.fillText('H',h2x,h2y);c2.fillStyle='rgba(160,200,230,.1)';c2.font=`${s*.12}px "Space Mono"`;c2.fillText('104.5°',cx,cy+s*.45)}
+function dBN(pr){const nM=5+floor(pr/4),cx=W*.5,cy=H*.5;c2.globalAlpha=min(1,pr/16);
+for(let i=0;i<min(nM,12);i++){const a=i*TAU/min(nM,12)+sin(pT*.5+i)*.2,r=min(W,H)*(.08+i*.025);dH2O(cx+cos(a)*r,cy+sin(a)*r,min(W,H)*.035);
+if(i>0){const pa=(i-1)*TAU/min(nM,12)+sin(pT*.5+(i-1))*.2,pr2=min(W,H)*(.08+(i-1)*.025);c2.setLineDash([3,4]);c2.strokeStyle=`rgba(80,200,220,${.06+sin(pT*3+i)*.03})`;c2.lineWidth=1;c2.beginPath();c2.moveTo(cx+cos(a)*r,cy+sin(a)*r);c2.lineTo(cx+cos(pa)*pr2,cy+sin(pa)*pr2);c2.stroke();c2.setLineDash([])}}c2.globalAlpha=1}
+// §6 MAIN
+let playing=false,stT=0,cB2=0,seq=[],aF=null,sT=null,lF=0,eI=0;
+function resize(){const d=window.devicePixelRatio||1,r=cv.parentElement.getBoundingClientRect();W=r.width*d;H=r.height*d;cv.width=W;cv.height=H;cv.style.width=r.width+'px';cv.style.height=r.height+'px';ov.width=W;ov.height=H;ov.style.width=r.width+'px';ov.style.height=r.height+'px';ov.style.position='absolute';ov.style.inset='0';if(gl)gl.viewport(0,0,W,H);initP()}
+function bTL(){const el=document.getElementById('timeline-sections');el.innerHTML='';for(const s of SECTIONS){const w=((s.end-s.start+1)/TOTAL_BEATS)*100;const d=document.createElement('div');d.className='t-section';d.style.width=w+'%';const l=document.createElement('span');l.className='t-section-label';l.textContent=s.name.substring(0,14);d.appendChild(l);el.appendChild(d)}}
+function uUI(b){const s=gS(floor(b)),el=b*bS(),tl=TOTAL_BEATS*bS(),mm=floor(el/60),ss=floor(el%60),tm=floor(tl/60),ts=floor(tl%60);
+document.getElementById('timeline-time').textContent=`${mm}:${ss<10?'0':''}${ss} / ${tm}:${ts<10?'0':''}${ts}`;document.getElementById('timeline-fill').style.width=((b/TOTAL_BEATS)*100)+'%';
+document.getElementById('section-label').textContent=s.label||s.name;document.getElementById('section-label').style.opacity=.5;
+document.getElementById('physics-text').textContent=PHY[s.name]||'';document.getElementById('crr-explain').textContent=CRE[s.name]||'';
+document.getElementById('crr-display').textContent=`C=${ag.p.C.toFixed(3)} Ω=${ag.p.omega.toFixed(4)}\nexp(C/Ω)=${min(9999,ag.p.expCO).toFixed(1)}\nwave:${ag.wav.sA.toFixed(2)} bubble:${ag.bub.sA.toFixed(2)}\nbio:${ag.bio.sA.toFixed(2)} energy:${AB.energy.toFixed(2)}`}
+function schEv(){if(!playing||!ac)return;const now=ac.currentTime;cB2=(now-stT)/bS();if(cB2>=TOTAL_BEATS){stopSong();return}
+const s=gS(floor(cB2)),dt=bS()*.05,ar=s.ar;ag.p.step(ar*.02,dt);ag.mol.step(ar<.1?.02:.005,dt);ag.hb.step(.01+ar*.02,dt);ag.wav.step(ar*.03,dt);ag.tid.step(.005,dt);ag.th.step(ar>.3?.01:.005,dt);ag.rn.step(ar>.2?.015:.005,dt);ag.bio.step(ar>.2&&ar<.5?.02:.005,dt);ag.bub.step(s.name==='BUBBLE STREAM'?.04:ar*.01,dt);
+const lA=cB2+.5;while(eI<seq.length&&seq[eI].b<=lA){const ev=seq[eI];if(stT+ev.b*bS()>=now-.1)doEv(ev);eI++}sT=setTimeout(schEv,25)}
+function doEv(e){const b=bS();switch(e.ty){case'mol':pMol(e.midi,e.v,e.d*b);break;case'shim':pSh(e.midi,e.v,e.d*b);break;case'bass':pBs(e.midi,e.v,e.d*b);break;case'pad':pPd(e.pN,e.pG,e.d*b);break;case'wave':pWv(e.wG,e.d*b);break;case'rain':pRn(e.v,e.c);break;case'crash':pCr(e.v,e.d*b);break;case'spray':pSp(e.v);break;case'bio':pBi(e.bG);break;case'choir':pCh(e.cN,e.cG,e.d*b);break;case'whale':pWh(e.sM,e.eM,e.d*b,e.v);break;case'drone':setDr(e.dG,e.d*b*.5);break;case'bpop':pBP(e.r,e.v);break;case'bclust':pBC(e.v,e.c);break;case'sbuild':pStormBuild(e.v,e.ph);break;case'sec':document.getElementById('section-label').style.opacity=0;setTimeout(()=>{document.getElementById('section-label').style.opacity=.5},300);break}}
+function animate(now){const dt=lF?min(.05,(now-lF)/1000):.016;lF=now;const sec=playing?gS(floor(cB2)):SECTIONS[0];uAB();uFF(dt,sec);uP(dt,sec);rGL(sec);dOv(sec,floor(cB2));if(playing)uUI(cB2);aF=requestAnimationFrame(animate)}
+function startSong(){if(playing)return;initAudio();ac.resume();seq=buildSeq();eI=0;ALL.forEach(a=>a.reset());curSecName='';secBlend=1;secAge=0;for(let i=0;i<NT;i++){pCoh[i]=0;pMem[i]=1;pGrace[i]=rnd()*.2}playing=true;stT=ac.currentTime;cB2=0;document.getElementById('btn-play').classList.add('playing');schEv()}
+function stopSong(){playing=false;if(sT){clearTimeout(sT);sT=null}setDr(0,1);document.getElementById('btn-play').classList.remove('playing');document.getElementById('section-label').style.opacity=0;document.getElementById('physics-text').textContent='';document.getElementById('crr-explain').textContent=''}
+function bSl(id,vI,cb){const s=document.getElementById(id),v=document.getElementById(vI);s.addEventListener('input',()=>{const val=parseFloat(s.value);v.textContent=id==='sl-tempo'?val.toFixed(1)+'×':val.toFixed(2);cb(val)})}
+bSl('sl-tempo','v-tempo',v=>{tM=v});bSl('sl-rev','v-rev',v=>{rMx=v;if(rG)rG.gain.value=v;if(dG)dG.gain.value=1-v*.3});
+bSl('sl-depth','v-depth',v=>{dMx=v;if(depG)depG.gain.value=v*.5});bSl('sl-wave','v-wave',v=>{wMx=v;if(wavG)wavG.gain.value=v*.5});
+bSl('sl-bub','v-bub',v=>{bMx=v;if(bubG)bubG.gain.value=v*.5});bSl('sl-choir','v-choir',v=>{cMx=v;if(chG)chG.gain.value=v*.5});
+function init(){resize();iGL();bTL();animate(0)}
+document.getElementById('splash').addEventListener('click',()=>{document.getElementById('splash').classList.add('hidden');document.getElementById('app').classList.add('active');setTimeout(init,200)});
+window.addEventListener('resize',()=>{if(document.getElementById('app').classList.contains('active'))resize()});
+</script></body></html>
