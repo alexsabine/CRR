@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CRR Mixing Desk · Coherence-Rupture-Regeneration Synthesiser</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,300;0,400;1,300&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#06070c;--panel:rgba(8,10,18,0.97);--panel2:rgba(12,14,24,0.95);
+  --C:#4fd1c5;--delta:#fc8181;--R:#68d391;--omega:#f6ad55;
+  --accent:#8b9dc3;--accent2:#c084fc;--gold:#e8a838;
+  --text:rgba(200,210,225,0.85);--dim:rgba(140,155,175,0.45);--faint:rgba(120,140,180,0.08);
+  --mono:'JetBrains Mono',monospace;--serif:'Playfair Display',Georgia,serif;
+  --ch-kick:#e84040;--ch-snare:#e8a020;--ch-hat:#40c8e8;
+  --ch-bass:#c840e8;--ch-synth:#4080e8;--ch-pad:#40e8a0;
+  --ch-choir:#e8c040;--ch-bird:#80e840;--ch-whale:#4060e8;
+  --ch-mic:#e84080;--ch-fx:#8080e8;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);position:fixed;width:100%;height:100%}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;transition:opacity 1s}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:720px;padding:0 24px}
+#splash .bar{width:min(380px,80vw);height:2px;margin:0 auto 28px;border-radius:1px;
+  background:linear-gradient(90deg,var(--C),var(--delta),var(--R),var(--omega),var(--accent2),var(--C));
+  background-size:300% 100%;animation:sbar 3s linear infinite}
+@keyframes sbar{0%{background-position:0% 0}100%{background-position:300% 0}}
+#splash h1{font-family:var(--serif);font-size:clamp(1.8rem,5vw,3.4rem);font-weight:300;
+  letter-spacing:.18em;margin-bottom:8px;
+  background:linear-gradient(135deg,var(--C),var(--accent),var(--accent2),var(--omega),var(--R));
+  background-size:400% 400%;animation:htxt 6s ease-in-out infinite;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@keyframes htxt{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+#splash .sub{font-size:clamp(.68rem,1.1vw,.85rem);font-weight:300;opacity:.4;
+  letter-spacing:.04em;line-height:1.85;font-style:italic;font-family:var(--serif)}
+#splash .eq{font-size:clamp(.4rem,.65vw,.5rem);opacity:.18;margin-top:14px;line-height:1.8}
+#splash .tap{font-size:.7rem;opacity:.2;margin-top:22px;letter-spacing:.15em;animation:tp 2s ease-in-out infinite}
+@keyframes tp{0%,100%{opacity:.12}50%{opacity:.35}}
+
+/* APP */
+#app{display:none;width:100%;height:100%;overflow:hidden}
+#app.active{display:flex;flex-direction:column}
+
+/* TOP BAR */
+#top-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;
+  background:var(--panel);border-bottom:1px solid var(--faint);flex-shrink:0;min-height:36px}
+#top-bar .title{font-family:var(--serif);font-size:.8rem;letter-spacing:.12em;
+  background:linear-gradient(90deg,var(--C),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#top-bar .crr-info{font-size:.42rem;color:var(--dim);text-align:right;line-height:1.5}
+#top-bar .transport{display:flex;gap:4px;align-items:center}
+.t-btn{font-family:var(--mono);font-size:.65rem;padding:4px 14px;border:1px solid var(--faint);
+  background:transparent;color:var(--dim);cursor:pointer;border-radius:3px;transition:all .15s;letter-spacing:.04em}
+.t-btn:hover{border-color:rgba(140,160,200,.3);color:var(--text)}
+.t-btn.active{border-color:var(--C);color:var(--C);background:rgba(79,209,197,.05)}
+.t-btn.stop{border-color:var(--delta);color:var(--delta)}
+.t-btn.stop:hover{background:rgba(252,129,129,.05)}
+
+/* MAIN LAYOUT */
+#main{flex:1;display:flex;min-height:0;overflow:hidden}
+
+/* VISUALISER */
+#viz-wrap{flex:1;min-width:0;position:relative;background:#030308}
+#viz{display:block;width:100%;height:100%;touch-action:none}
+#viz-overlay{position:absolute;inset:0;pointer-events:none;z-index:2}
+#section-label{position:absolute;top:12%;left:50%;transform:translateX(-50%);text-align:center;
+  pointer-events:none;z-index:3;font-family:var(--serif);font-size:clamp(1rem,2.5vw,1.8rem);
+  letter-spacing:.1em;font-weight:300;font-style:italic;opacity:0;transition:opacity 1.2s;
+  color:rgba(255,255,255,.7);text-shadow:0 0 30px rgba(192,132,252,.2)}
+#crr-readout{position:absolute;top:8px;right:10px;pointer-events:none;z-index:3;
+  font-size:.4rem;color:rgba(139,157,195,.35);text-align:right;line-height:1.5}
+
+/* MIXER PANEL */
+#mixer-panel{width:clamp(340px,35vw,520px);display:flex;flex-direction:column;overflow:hidden;
+  background:var(--panel);border-left:1px solid var(--faint)}
+#mixer-tabs{display:flex;border-bottom:1px solid var(--faint);flex-shrink:0}
+.mtab{flex:1;padding:6px 4px;font-size:.5rem;letter-spacing:.06em;text-align:center;
+  border:none;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s;
+  border-bottom:2px solid transparent}
+.mtab.active{color:var(--text);border-bottom-color:var(--accent2);background:rgba(192,132,252,.03)}
+.mtab:hover{color:var(--text)}
+#mixer-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px;
+  scrollbar-width:thin;scrollbar-color:rgba(140,160,200,.15) transparent}
+#mixer-body::-webkit-scrollbar{width:5px}
+#mixer-body::-webkit-scrollbar-thumb{background:rgba(140,160,200,.15);border-radius:3px}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* GENRE */
+.genre-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px}
+.genre-btn{padding:8px 6px;border:1px solid var(--faint);background:transparent;
+  color:var(--dim);cursor:pointer;border-radius:4px;font-family:var(--mono);font-size:.55rem;
+  letter-spacing:.04em;transition:all .2s;text-align:center}
+.genre-btn:hover{border-color:rgba(140,160,200,.25);color:var(--text)}
+.genre-btn.active{border-color:var(--accent2);color:var(--accent2);background:rgba(192,132,252,.05)}
+.genre-btn .icon{font-size:1.1rem;display:block;margin-bottom:3px}
+
+/* CHANNEL STRIPS */
+.section-title{font-size:.42rem;letter-spacing:.1em;color:var(--dim);margin:10px 0 5px;
+  text-transform:uppercase;border-bottom:1px solid var(--faint);padding-bottom:3px}
+.ch-strip{display:flex;align-items:center;gap:6px;padding:4px 6px;margin-bottom:3px;
+  background:rgba(255,255,255,.01);border-radius:3px;border-left:3px solid transparent}
+.ch-strip .ch-color{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.ch-strip .ch-name{font-size:.48rem;letter-spacing:.04em;flex-shrink:0;width:48px;color:var(--text);opacity:.7}
+.ch-strip input[type=range]{flex:1;height:3px;cursor:pointer;accent-color:var(--accent)}
+.ch-strip .ch-val{font-size:.4rem;color:var(--dim);width:28px;text-align:right;flex-shrink:0}
+.ch-strip .ch-mute{width:18px;height:18px;border:1px solid var(--faint);background:transparent;
+  color:var(--dim);cursor:pointer;border-radius:2px;font-size:.38rem;flex-shrink:0;transition:all .15s}
+.ch-strip .ch-mute.muted{background:var(--delta);border-color:var(--delta);color:#000}
+
+/* MASTER */
+.master-row{display:flex;align-items:center;gap:8px;padding:6px;margin-top:6px;
+  background:rgba(255,255,255,.015);border-radius:4px;border:1px solid var(--faint)}
+.master-row label{font-size:.46rem;color:var(--dim);width:50px;letter-spacing:.04em}
+.master-row input{flex:1;height:3px;cursor:pointer;accent-color:var(--omega)}
+.master-row .v{font-size:.4rem;color:var(--dim);width:28px;text-align:right}
+
+/* LYRICS */
+#lyrics-input{width:100%;height:80px;background:rgba(0,0,0,.3);border:1px solid var(--faint);
+  border-radius:4px;color:var(--text);font-family:var(--mono);font-size:.55rem;
+  padding:8px;resize:vertical;outline:none;margin-bottom:6px;line-height:1.6}
+#lyrics-input:focus{border-color:rgba(140,160,200,.3)}
+#lyrics-input::placeholder{color:var(--dim)}
+.lyrics-controls{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+
+/* MIC */
+#mic-status{font-size:.48rem;color:var(--dim);margin-top:6px;min-height:20px}
+.mic-meter{width:100%;height:6px;background:rgba(0,0,0,.3);border-radius:3px;overflow:hidden;margin:6px 0}
+.mic-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--C),var(--omega),var(--delta));
+  border-radius:3px;transition:width 50ms}
+
+/* SAMPLES */
+.sample-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+.sample-btn{padding:10px 6px;border:1px solid var(--faint);background:transparent;
+  color:var(--dim);cursor:pointer;border-radius:4px;font-size:.5rem;text-align:center;transition:all .2s}
+.sample-btn:hover{border-color:rgba(140,160,200,.25);color:var(--text)}
+.sample-btn:active{background:rgba(192,132,252,.08)}
+.sample-btn .ico{font-size:1.2rem;display:block;margin-bottom:3px}
+
+/* EQ */
+.eq-block{margin-top:6px}
+.eq-block .eq-label{font-size:.4rem;color:var(--dim);margin-bottom:2px}
+
+/* FOOTER */
+#footer{font-size:.36rem;color:rgba(140,160,200,.15);text-align:center;padding:4px;
+  border-top:1px solid var(--faint);background:var(--panel);flex-shrink:0}
+
+/* LYRICS OVERLAY — improved karaoke display */
+#lyrics-display{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
+  text-align:center;pointer-events:none;z-index:3;width:85%;max-width:700px}
+#lyrics-current{font-size:clamp(13px,2.4vw,20px);font-weight:400;color:rgba(180,200,230,.6);
+  letter-spacing:.06em;line-height:1.6;text-shadow:0 0 15px rgba(0,0,0,.8)}
+#lyrics-next{font-size:clamp(9px,1.3vw,13px);font-weight:300;color:rgba(180,200,230,.2);
+  letter-spacing:.04em;margin-top:4px;min-height:16px;font-style:italic}
+
+/* 8-TRACK RECORDER */
+.track-strip{display:flex;align-items:center;gap:4px;padding:5px 6px;margin-bottom:4px;
+  background:rgba(255,255,255,.015);border-radius:4px;border-left:3px solid var(--dim)}
+.track-strip.recording{border-left-color:var(--delta);animation:trec 1s ease infinite}
+.track-strip.has-audio{border-left-color:var(--C)}
+.track-strip.playing-track{border-left-color:var(--R)}
+@keyframes trec{0%,100%{background:rgba(252,129,129,.03)}50%{background:rgba(252,129,129,.08)}}
+.track-num{font-size:.55rem;color:var(--dim);width:16px;text-align:center}
+.track-wave{flex:1;height:28px;background:rgba(0,0,0,.2);border-radius:3px;overflow:hidden;position:relative}
+.track-wave canvas{width:100%;height:100%}
+.track-btns{display:flex;gap:2px}
+.track-btns button{padding:3px 6px;font-size:.42rem;border:1px solid var(--faint);
+  background:transparent;color:var(--dim);cursor:pointer;border-radius:3px;font-family:var(--mono)}
+.track-btns button:hover{border-color:rgba(140,160,200,.25);color:var(--text)}
+.track-btns button.active{border-color:var(--C);color:var(--C)}
+.track-btns button.rec-active{border-color:var(--delta);color:var(--delta);background:rgba(252,129,129,.1)}
+.track-omega{width:40px;height:3px;cursor:pointer}
+.track-label{font-size:.4rem;color:var(--dim);width:50px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track-crr{font-size:.38rem;color:var(--omega);font-family:var(--mono);width:32px;text-align:right}
+
+/* SONG BUTTONS */
+.song-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px}
+.song-btn{padding:8px 6px;border:1px solid var(--faint);background:transparent;
+  color:var(--dim);cursor:pointer;border-radius:4px;font-size:.5rem;text-align:left;transition:all .2s}
+.song-btn:hover{border-color:rgba(140,160,200,.25);color:var(--text)}
+.song-btn.active{border-color:var(--gold);color:var(--gold)}
+.song-btn .song-title{font-weight:500;display:block}
+.song-btn .song-sub{font-size:.4rem;opacity:.5}
+
+@media(max-width:800px){
+  #main{flex-direction:column}
+  #viz-wrap{flex:none;height:40vh}
+  #mixer-panel{width:100%;flex:1;min-height:0}
+  .genre-grid{grid-template-columns:repeat(3,1fr)}
+  #top-bar .crr-info{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="inner">
+<div class="bar"></div>
+<h1>CRR MIXING DESK</h1>
+<p class="sub">Every sound emerges from Coherence, Rupture &amp; Regeneration.<br>
+No samples. No recordings. Pure CRR mathematics creating music.<br>
+Acid bass is a resonant Ω boundary. Drums are Z₂ rupture events.<br>
+Choir is formant coherence basins. Bird song is syrinx δ cascades.</p>
+<p class="eq">C(x,t)=∫L(x,τ)dτ · δ(now) · R=∫φ·exp(C/Ω)·Θ dτ<br>
+Z₂: Ω=1/π, CV≈0.159 · SO(2): Ω=1/2π, CV≈0.080 · C·Ω=1 at rupture<br>
+acid=H(s)=1/(s²+s/(Ω·Q)+1) · grain=δ_micro cascade · choir=exp(C/Ω) formant basin</p>
+<p class="tap">▶ INITIALISE AUDIO</p>
+</div></div>
+
+<div id="app">
+<div id="top-bar">
+  <div class="title">CRR MIXING DESK</div>
+  <div class="transport">
+    <button class="t-btn" id="btn-play" onclick="togglePlay()">▶ PLAY</button>
+    <button class="t-btn stop" id="btn-stop" onclick="stopAll()">■ STOP</button>
+    <span style="font-size:.42rem;color:var(--dim);margin:0 4px" id="bpm-display">120 BPM</span>
+    <span style="font-size:.42rem;color:var(--dim)" id="key-display">D min</span>
+  </div>
+  <div class="crr-info" id="top-crr">C=0.00 · Ω=0.318 · δ=0 · exp(C/Ω)=1.00</div>
+</div>
+
+<div id="main">
+  <div id="viz-wrap">
+    <canvas id="viz"></canvas>
+    <div id="viz-overlay"></div>
+    <div id="section-label"></div>
+    <div id="lyrics-display"><div id="lyrics-current"></div><div id="lyrics-next"></div></div>
+    <div id="crr-readout"></div>
+  </div>
+
+  <div id="mixer-panel">
+    <div id="mixer-tabs">
+      <button class="mtab active" onclick="switchTab('genre')">GENRE</button>
+      <button class="mtab" onclick="switchTab('mixer')">MIXER</button>
+      <button class="mtab" onclick="switchTab('samples')">SAMPLES</button>
+      <button class="mtab" onclick="switchTab('lyrics')">LYRICS</button>
+      <button class="mtab" onclick="switchTab('tracks')">TRACKS</button>
+      <button class="mtab" onclick="switchTab('mic')">MIC</button>
+    </div>
+    <div id="mixer-body">
+
+      <!-- GENRE TAB -->
+      <div class="tab-content active" id="tab-genre">
+        <div class="section-title">SELECT GENRE — CRR configures Ω, symmetry &amp; rhythm</div>
+        <div class="genre-grid">
+          <button class="genre-btn" onclick="setGenre('ambient',event)"><span class="icon">✧</span>Ambient</button>
+          <button class="genre-btn" onclick="setGenre('classical',event)"><span class="icon">♫</span>Classical</button>
+          <button class="genre-btn active" onclick="setGenre('postrock',event)"><span class="icon">◈</span>Post-Rock</button>
+          <button class="genre-btn" onclick="setGenre('pop',event)"><span class="icon">★</span>Pop</button>
+          <button class="genre-btn" onclick="setGenre('dnb',event)"><span class="icon">⟳</span>Drum &amp; Bass</button>
+          <button class="genre-btn" onclick="setGenre('electronic',event)"><span class="icon">∿</span>Electronic</button>
+          <button class="genre-btn" onclick="setGenre('sacred',event)"><span class="icon">✦</span>Sacred</button>
+          <button class="genre-btn" onclick="setGenre('cosmic',event)"><span class="icon">☉</span>Cosmic</button>
+        </div>
+        <div class="section-title">MASTER CONTROLS</div>
+        <div class="master-row"><label>BPM</label><input type="range" id="sl-bpm" min="40" max="200" value="120" oninput="setBPM(this.value)"><span class="v" id="v-bpm">120</span></div>
+        <div class="master-row"><label>Master</label><input type="range" id="sl-master" min="0" max="100" value="70" oninput="setMaster(this.value)"><span class="v" id="v-master">0.70</span></div>
+        <div class="master-row"><label>Reverb</label><input type="range" id="sl-reverb" min="0" max="100" value="45" oninput="setReverb(this.value)"><span class="v" id="v-reverb">0.45</span></div>
+        <div class="master-row"><label>Ω Scale</label><input type="range" id="sl-omega" min="10" max="300" value="100" oninput="setOmegaScale(this.value)"><span class="v" id="v-omega">1.00</span></div>
+        <div class="master-row"><label>Delay</label><input type="range" id="sl-delay" min="0" max="100" value="30" oninput="setDelay(this.value)"><span class="v" id="v-delay">0.30</span></div>
+        <div class="section-title">KEY / SCALE</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+          <button class="t-btn" style="font-size:.45rem;padding:3px 8px" onclick="setKey('C')">C</button>
+          <button class="t-btn" style="font-size:.45rem;padding:3px 8px" onclick="setKey('D')">D</button>
+          <button class="t-btn active" style="font-size:.45rem;padding:3px 8px" onclick="setKey('E')">E</button>
+          <button class="t-btn" style="font-size:.45rem;padding:3px 8px" onclick="setKey('F')">F</button>
+          <button class="t-btn" style="font-size:.45rem;padding:3px 8px" onclick="setKey('G')">G</button>
+          <button class="t-btn" style="font-size:.45rem;padding:3px 8px" onclick="setKey('A')">A</button>
+          <button class="t-btn" style="font-size:.45rem;padding:3px 8px" onclick="setKey('B')">B</button>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="t-btn active" style="font-size:.45rem;padding:3px 8px" onclick="setScale('minor')">Minor</button>
+          <button class="t-btn" style="font-size:.45rem;padding:3px 8px" onclick="setScale('major')">Major</button>
+          <button class="t-btn" style="font-size:.45rem;padding:3px 8px" onclick="setScale('dorian')">Dorian</button>
+          <button class="t-btn" style="font-size:.45rem;padding:3px 8px" onclick="setScale('phrygian')">Phrygian</button>
+          <button class="t-btn" style="font-size:.45rem;padding:3px 8px" onclick="setScale('mixolydian')">Mixolydian</button>
+        </div>
+      </div>
+
+      <!-- MIXER TAB -->
+      <div class="tab-content" id="tab-mixer">
+        <div class="section-title">RHYTHM — Z₂ rupture events</div>
+        <div class="ch-strip" style="border-left-color:var(--ch-kick)"><div class="ch-color" style="background:var(--ch-kick)"></div><span class="ch-name">Kick</span><input type="range" min="0" max="100" value="75" data-ch="kick"><span class="ch-val">0.75</span><button class="ch-mute" data-ch="kick" onclick="toggleMute(this)">M</button></div>
+        <div class="ch-strip" style="border-left-color:var(--ch-snare)"><div class="ch-color" style="background:var(--ch-snare)"></div><span class="ch-name">Snare</span><input type="range" min="0" max="100" value="65" data-ch="snare"><span class="ch-val">0.65</span><button class="ch-mute" data-ch="snare" onclick="toggleMute(this)">M</button></div>
+        <div class="ch-strip" style="border-left-color:var(--ch-hat)"><div class="ch-color" style="background:var(--ch-hat)"></div><span class="ch-name">Hi-Hat</span><input type="range" min="0" max="100" value="50" data-ch="hihat"><span class="ch-val">0.50</span><button class="ch-mute" data-ch="hihat" onclick="toggleMute(this)">M</button></div>
+        <div class="section-title">TONAL — Ω boundary resonance</div>
+        <div class="ch-strip" style="border-left-color:var(--ch-bass)"><div class="ch-color" style="background:var(--ch-bass)"></div><span class="ch-name">Bass</span><input type="range" min="0" max="100" value="70" data-ch="bass"><span class="ch-val">0.70</span><button class="ch-mute" data-ch="bass" onclick="toggleMute(this)">M</button></div>
+        <div class="ch-strip" style="border-left-color:var(--ch-synth)"><div class="ch-color" style="background:var(--ch-synth)"></div><span class="ch-name">Synth</span><input type="range" min="0" max="100" value="55" data-ch="synth"><span class="ch-val">0.55</span><button class="ch-mute" data-ch="synth" onclick="toggleMute(this)">M</button></div>
+        <div class="ch-strip" style="border-left-color:var(--ch-pad)"><div class="ch-color" style="background:var(--ch-pad)"></div><span class="ch-name">Pad</span><input type="range" min="0" max="100" value="45" data-ch="pad"><span class="ch-val">0.45</span><button class="ch-mute" data-ch="pad" onclick="toggleMute(this)">M</button></div>
+        <div class="section-title">VOICE — formant coherence basins</div>
+        <div class="ch-strip" style="border-left-color:var(--ch-choir)"><div class="ch-color" style="background:var(--ch-choir)"></div><span class="ch-name">Choir</span><input type="range" min="0" max="100" value="65" data-ch="choir"><span class="ch-val">0.65</span><button class="ch-mute" data-ch="choir" onclick="toggleMute(this)">M</button></div>
+        <div class="section-title">NATURE — CRR organisms</div>
+        <div class="ch-strip" style="border-left-color:var(--ch-bird)"><div class="ch-color" style="background:var(--ch-bird)"></div><span class="ch-name">Birds</span><input type="range" min="0" max="100" value="30" data-ch="bird"><span class="ch-val">0.30</span><button class="ch-mute" data-ch="bird" onclick="toggleMute(this)">M</button></div>
+        <div class="ch-strip" style="border-left-color:var(--ch-whale)"><div class="ch-color" style="background:var(--ch-whale)"></div><span class="ch-name">Whale</span><input type="range" min="0" max="100" value="25" data-ch="whale"><span class="ch-val">0.25</span><button class="ch-mute" data-ch="whale" onclick="toggleMute(this)">M</button></div>
+        <div class="section-title">INPUT</div>
+        <div class="ch-strip" style="border-left-color:var(--ch-mic)"><div class="ch-color" style="background:var(--ch-mic)"></div><span class="ch-name">Mic In</span><input type="range" min="0" max="100" value="0" data-ch="mic"><span class="ch-val">0.00</span><button class="ch-mute" data-ch="mic" onclick="toggleMute(this)">M</button></div>
+        <div class="section-title">EFFECTS — exp(C/Ω) modulation</div>
+        <div class="ch-strip" style="border-left-color:var(--ch-fx)"><div class="ch-color" style="background:var(--ch-fx)"></div><span class="ch-name">FX Send</span><input type="range" min="0" max="100" value="35" data-ch="fx"><span class="ch-val">0.35</span><button class="ch-mute" data-ch="fx" onclick="toggleMute(this)">M</button></div>
+        <div class="section-title">CHANNEL TUNING</div>
+        <div class="master-row"><label>Acid Q</label><input type="range" min="1" max="100" value="40" id="sl-acid-q" oninput="updateParam('acidQ',this.value)"><span class="v" id="v-acid-q">4.0</span></div>
+        <div class="master-row"><label>Grain Dn</label><input type="range" min="1" max="100" value="30" id="sl-grain" oninput="updateParam('grainDensity',this.value)"><span class="v" id="v-grain">30</span></div>
+        <div class="master-row"><label>FM Depth</label><input type="range" min="0" max="100" value="40" id="sl-fm" oninput="updateParam('fmDepth',this.value)"><span class="v" id="v-fm">0.40</span></div>
+        <div class="master-row"><label>Glitch</label><input type="range" min="0" max="100" value="0" id="sl-glitch" oninput="updateParam('glitch',this.value)"><span class="v" id="v-glitch">0.00</span></div>
+      </div>
+
+      <!-- SAMPLES TAB -->
+      <div class="tab-content" id="tab-samples">
+        <div class="section-title">CRR SAMPLES — trigger live organisms</div>
+        <div class="sample-grid">
+          <button class="sample-btn" onclick="triggerSample('robin')"><span class="ico">🐦</span>Robin</button>
+          <button class="sample-btn" onclick="triggerSample('nightingale')"><span class="ico">🎵</span>Nightingale</button>
+          <button class="sample-btn" onclick="triggerSample('lark')"><span class="ico">☀</span>Skylark</button>
+          <button class="sample-btn" onclick="triggerSample('humpback')"><span class="ico">🐋</span>Humpback</button>
+          <button class="sample-btn" onclick="triggerSample('bluewhale')"><span class="ico">🌊</span>Blue Whale</button>
+          <button class="sample-btn" onclick="triggerSample('orca')"><span class="ico">⬛</span>Orca</button>
+          <button class="sample-btn" onclick="triggerSample('soprano')"><span class="ico">♀</span>Soprano</button>
+          <button class="sample-btn" onclick="triggerSample('tenor')"><span class="ico">♂</span>Tenor</button>
+          <button class="sample-btn" onclick="triggerSample('bass_voice')"><span class="ico">◆</span>Bass Voice</button>
+          <button class="sample-btn" onclick="triggerSample('bell')"><span class="ico">🔔</span>Bell</button>
+          <button class="sample-btn" onclick="triggerSample('thunder')"><span class="ico">⚡</span>Thunder</button>
+          <button class="sample-btn" onclick="triggerSample('rain')"><span class="ico">🌧</span>Rain</button>
+        </div>
+        <div class="section-title" style="margin-top:12px">SUSTAINED TEXTURES</div>
+        <div class="sample-grid">
+          <button class="sample-btn" onclick="toggleTexture('forest',event)"><span class="ico">🌲</span>Forest</button>
+          <button class="sample-btn" onclick="toggleTexture('ocean',event)"><span class="ico">🌊</span>Ocean</button>
+          <button class="sample-btn" onclick="toggleTexture('fire',event)"><span class="ico">🔥</span>Fire</button>
+          <button class="sample-btn" onclick="toggleTexture('wind',event)"><span class="ico">💨</span>Wind</button>
+          <button class="sample-btn" onclick="toggleTexture('cosmos',event)"><span class="ico">✦</span>Cosmos</button>
+          <button class="sample-btn" onclick="toggleTexture('solar',event)"><span class="ico">☉</span>Solar Wind</button>
+        </div>
+      </div>
+
+      <!-- LYRICS TAB -->
+      <div class="tab-content" id="tab-lyrics">
+        <div class="section-title">HYMNS — phoneme-articulated CRR choir</div>
+        <div class="song-grid">
+          <button class="song-btn" onclick="selectSong('jerusalem')"><span class="song-title">Jerusalem</span><span class="song-sub">Blake / Parry</span></button>
+          <button class="song-btn" onclick="selectSong('amazing_grace')"><span class="song-title">Amazing Grace</span><span class="song-sub">Newton / Trad.</span></button>
+          <button class="song-btn" onclick="selectSong('ave_verum')"><span class="song-title">Ave Verum Corpus</span><span class="song-sub">Mozart K.618</span></button>
+          <button class="song-btn" onclick="selectSong('abide')"><span class="song-title">Abide With Me</span><span class="song-sub">Lyte / Monk</span></button>
+        </div>
+        <div class="lyrics-controls">
+          <button class="t-btn" onclick="playSong()" style="font-size:.5rem" id="btn-song-play">▶ SING HYMN</button>
+          <button class="t-btn" onclick="stopSong()" style="font-size:.5rem">■ STOP</button>
+        </div>
+        <div class="section-title" style="margin-top:10px">FREE TEXT — auto-phonemised choir</div>
+        <textarea id="lyrics-input" placeholder="Type lyrics here... each word is auto-phonemised.&#10;Consonants = δ events, Vowels = C coherence basins.&#10;&#10;Example:&#10;Ring the bells that still can ring&#10;There is a crack in everything&#10;That is how the light gets in"></textarea>
+        <div class="lyrics-controls">
+          <button class="t-btn" onclick="singFreeText()" style="font-size:.5rem">▶ SING TEXT</button>
+          <button class="t-btn" onclick="stopSong()" style="font-size:.5rem">■ STOP</button>
+          <button class="t-btn" onclick="setLyricStyle('gregorian')" style="font-size:.5rem">Gregorian</button>
+          <button class="t-btn" onclick="setLyricStyle('hymn')" style="font-size:.5rem">Hymn</button>
+          <button class="t-btn" onclick="setLyricStyle('chant')" style="font-size:.5rem">Chant</button>
+        </div>
+        <div class="master-row"><label>Choir Ω</label><input type="range" min="10" max="200" value="100" id="sl-choir-omega" oninput="updateParam('choirOmega',this.value)"><span class="v" id="v-choir-omega">1.00</span></div>
+        <div class="master-row"><label>Vibrato</label><input type="range" min="0" max="100" value="50" id="sl-vibrato" oninput="updateParam('vibrato',this.value)"><span class="v" id="v-vibrato">0.50</span></div>
+        <div class="master-row"><label>Breath</label><input type="range" min="0" max="100" value="60" id="sl-breath" oninput="updateParam('breath',this.value)"><span class="v" id="v-breath">0.60</span></div>
+      </div>
+
+      <!-- TRACKS TAB -->
+      <div class="tab-content" id="tab-tracks">
+        <div class="section-title">8-TRACK — CRR-integrated recorder</div>
+        <div class="lyrics-controls" style="margin-bottom:8px">
+          <button class="t-btn" onclick="armRecordSource('mic')" id="btn-rec-mic" style="font-size:.45rem">🎤 REC MIC</button>
+          <button class="t-btn" onclick="armRecordSource('internal')" id="btn-rec-int" style="font-size:.45rem">🔊 REC MIX</button>
+          <button class="t-btn" onclick="stopAllTracks()" style="font-size:.45rem">■ STOP ALL</button>
+        </div>
+        <div id="tracks-container"></div>
+        <div class="section-title" style="margin-top:8px">TRACK INTEGRATION — Ω governs blending</div>
+        <div style="font-size:.4rem;color:var(--dim);line-height:1.6;padding:4px 0">
+          Small Ω → track stays separate (overdub)<br>
+          Large Ω → track blends into mix (integration)<br>
+          δ events → stutter / reverse effects on track<br>
+          exp(C/Ω) → track prominence in the mix
+        </div>
+      </div>
+
+      <!-- MIC TAB -->
+      <div class="tab-content" id="tab-mic">
+        <div class="section-title">MICROPHONE INPUT — your voice as CRR agent</div>
+        <button class="t-btn" onclick="toggleMic()" id="mic-btn" style="width:100%;margin-bottom:8px;font-size:.55rem">🎤 ENABLE MICROPHONE</button>
+        <div class="mic-meter"><div class="mic-meter-fill" id="mic-level"></div></div>
+        <div id="mic-status">Microphone disabled</div>
+        <div class="section-title" style="margin-top:10px">MIC PROCESSING</div>
+        <div class="master-row"><label>Input Gain</label><input type="range" min="0" max="200" value="100" id="sl-mic-gain" oninput="updateParam('micGain',this.value)"><span class="v" id="v-mic-gain">1.00</span></div>
+        <div class="master-row"><label>CRR Filter</label><input type="range" min="0" max="100" value="50" id="sl-mic-crr" oninput="updateParam('micCRR',this.value)"><span class="v" id="v-mic-crr">0.50</span></div>
+        <div class="master-row"><label>Pitch Shft</label><input type="range" min="-24" max="24" value="0" id="sl-mic-pitch" oninput="updateParam('micPitch',this.value)"><span class="v" id="v-mic-pitch">0</span></div>
+        <div class="master-row"><label>Formant</label><input type="range" min="0" max="100" value="0" id="sl-mic-formant" oninput="updateParam('micFormant',this.value)"><span class="v" id="v-mic-formant">0.00</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="footer">
+  C(x,t)=∫L(x,τ)dτ · δ(now) · R=∫φ·exp(C/Ω)·Θ dτ · Z₂:Ω=1/π · SO(2):Ω=1/2π · C·Ω=1 · B(C/Ω)=exp(C/Ω)·(1−C/(Ω·π)) peaked at π⁻¹ · CRR MIXING DESK
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+//
+//  CRR MIXING DESK — Full Music Creation Suite
+//
+//  Every sound is derived from the CRR framework:
+//   C(x,t) = ∫L(x,τ)dτ         (coherence accumulates)
+//   δ(now)                       (rupture is instantaneous)
+//   R = ∫φ·exp(C/Ω)·Θ dτ        (regeneration from weighted memory)
+//
+//  Synthesis mapping:
+//   Kick drum    = Z₂ rupture event (convective cell collapse)
+//   Snare        = noise burst δ + resonant body R
+//   Hi-hat       = micro-δ cascade (granular rupture)
+//   Acid bass    = resonant Ω boundary: H(s) = 1/(s² + s/(Ω·Q) + 1)
+//   Synth lead   = FM synthesis: β = exp(C/Ω)
+//   Pad          = SO(2) slow coherence drift (high Ω, rare δ)
+//   Choir        = Z₂ vocal folds → formant basins → consonant δ
+//   Bird song    = syrinx Z₂ oscillator with rapid frequency sweep
+//   Whale song   = SO(2) low-freq with very slow Ω modulation
+//   Guitar/piano = δ(hammer/pluck) → exp(C/Ω) harmonic decay → R
+//
+// ═══════════════════════════════════════════════════════════════════════
+
+const PI=Math.PI,TAU=2*PI,PHI=(1+Math.sqrt(5))/2;
+const{sin,cos,sqrt,pow,abs,floor:flr,min,max,round,exp,log,random:rnd}=Math;
+
+// Safety helpers — prevent non-finite values reaching AudioParam
+function fin(v,fallback=0){return isFinite(v)?v:fallback}
+function sTC(v){return max(.001,fin(v,.01))} // safe time constant (>0 required)
+function sFreq(v){return max(20,fin(v,440))} // safe frequency (>0 required)
+function sGain(v){return fin(v,0)} // safe gain
+function sExp(v){return max(.0001,fin(v,.0001))} // safe value for exponentialRamp (>0 required)
+
+// §0 CRR ENGINE
+class CRR{
+  constructor(sym='Z2',s=1){
+    this.omegaBase=sym==='Z2'?1/PI:sym==='SO2'?1/TAU:1/(PI*PHI);
+    this.omegaScale=s;this.C=0;this.lastRC=0;this.ruptures=0;
+    this.since=0;this.inRegen=false;this.regenP=0;this.phase='C'}
+  get omega(){return this.omegaBase*this.omegaScale}
+  get expCO(){const v=exp(min(10,this.C/max(.001,this.omega)));return isFinite(v)?v:1}
+  get normC(){const v=min(1,(this.C-this.lastRC)/max(.01,1/this.omega));return isFinite(v)?v:0}
+  get beauty(){const co=this.C/max(.001,this.omega);const v=max(0,exp(min(8,co))*(1-co/PI));return isFinite(v)?v:0}
+  step(L,dt=1){
+    if(!isFinite(L))L=.5;if(!isFinite(dt))dt=.016;
+    if(this.inRegen){this.regenP=min(1,this.regenP+.03);
+      if(this.regenP>=1){this.inRegen=false;this.phase='C'}return this.phase='R'}
+    this.C+=L*dt;if(!isFinite(this.C))this.C=0;
+    this.since++;
+    const th=1/max(.001,this.omega),acc=this.C-this.lastRC,cv=this.omega/2;
+    if(acc>=(th+(rnd()-.5)*2*cv*th)){
+      this.lastRC=this.C;this.ruptures++;this.since=0;
+      this.inRegen=true;this.regenP=0;this.phase='delta';return'delta'}
+    this.phase='C';return'C'}
+  reset(){this.C=0;this.lastRC=0;this.ruptures=0;this.since=0;this.inRegen=false;this.regenP=0;this.phase='C'}
+}
+
+// §1 STATE
+let ac=null,playing=false,beat=0,beatTime=0,frame=0,startTime=0;
+const S={
+  bpm:120,masterVol:.7,reverb:.45,omegaScale:1,delay:.3,
+  key:'E',scale:'minor',genre:'postrock',
+  channels:{kick:.75,snare:.65,hihat:.5,bass:.7,synth:.55,pad:.45,
+    choir:.65,bird:.3,whale:.25,mic:0,fx:.35},
+  muted:{},acidQ:4,grainDensity:30,fmDepth:.4,glitch:0,
+  choirOmega:1,vibrato:.5,breath:.6,
+  micGain:1,micCRR:.5,micPitch:0,micFormant:0,
+  lyricStyle:'hymn'
+};
+const BEAT_S=()=>60/S.bpm;
+function m2f(m){if(!isFinite(m))return 440;return 440*pow(2,(m-69)/12)}
+
+// Scale definitions
+const SCALES={
+  minor:[0,2,3,5,7,8,10],major:[0,2,4,5,7,9,11],
+  dorian:[0,2,3,5,7,9,10],phrygian:[0,1,3,5,7,8,10],
+  mixolydian:[0,2,4,5,7,9,10]
+};
+const KEY_OFFSETS={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function getScale(){
+  const base=KEY_OFFSETS[S.key]||0;
+  const intervals=SCALES[S.scale]||SCALES.minor;
+  const notes=[];
+  for(let oct=2;oct<=6;oct++)for(const i of intervals)notes.push(base+i+oct*12);
+  return notes}
+function pickNote(lo=36,hi=84){
+  const sc=getScale().filter(n=>n>=lo&&n<=hi);
+  return sc.length?sc[flr(rnd()*sc.length)]:60}
+function pickChord(){
+  const sc=getScale().filter(n=>n>=48&&n<=72);
+  if(sc.length<5)return[60,64,67];
+  const root=flr(rnd()*min(4,sc.length));
+  return[sc[root],sc[min(root+2,sc.length-1)],sc[min(root+4,sc.length-1)]]}
+
+// CRR Agents
+const agents={
+  master:new CRR('Z2',1),rhythm:new CRR('Z2',.5),
+  bass:new CRR('Z2',1),lead:new CRR('SO2',.8),
+  pad:new CRR('SO2',2),choir:new CRR('SO2',1.5),
+  bird:new CRR('Z2',.3),whale:new CRR('SO2',3),
+  phrase:new CRR('Z2',1.5),section:new CRR('Z2',3)
+};
+
+// Formants now defined in §3.7.1 VOWEL_FORMANTS (Church-quality)
+
+// §2 GENRE PRESETS
+const GENRES={
+  ambient:{bpm:70,reverb:.85,delay:.6,kick:.2,snare:0,hihat:.1,bass:.4,synth:.2,pad:.8,choir:.3,bird:.3,whale:.4,acidQ:2,glitch:0,desc:'High Ω drift — very rare ruptures'},
+  classical:{bpm:90,reverb:.7,delay:.2,kick:0,snare:0,hihat:0,bass:.6,synth:.7,pad:.5,choir:.4,bird:0,whale:0,acidQ:3,glitch:0,desc:'SO(2) contemplation — harmonic coherence'},
+  postrock:{bpm:120,reverb:.55,delay:.45,kick:.65,snare:.6,hihat:.45,bass:.7,synth:.6,pad:.55,choir:.3,bird:.2,whale:0,acidQ:5,glitch:0,desc:'Z₂ build → δ catharsis → R transcendence'},
+  pop:{bpm:128,reverb:.35,delay:.25,kick:.85,snare:.8,hihat:.6,bass:.8,synth:.7,pad:.3,choir:.25,bird:0,whale:0,acidQ:6,glitch:0,desc:'Tight Z₂ cycles — maximum groove coherence'},
+  dnb:{bpm:174,reverb:.3,delay:.2,kick:.9,snare:.85,hihat:.7,bass:.85,synth:.5,pad:.2,choir:0,bird:0,whale:0,acidQ:12,glitch:.15,desc:'Variable-Ω Amen — drill = Ω modulation'},
+  electronic:{bpm:140,reverb:.4,delay:.35,kick:.8,snare:.7,hihat:.6,bass:.8,synth:.65,pad:.35,choir:.15,bird:0,whale:0,acidQ:8,glitch:.08,desc:'FM synthesis = CRR at oscillator scale'},
+  sacred:{bpm:66,reverb:.9,delay:.3,kick:0,snare:0,hihat:0,bass:.3,synth:.2,pad:.6,choir:1,bird:.15,whale:0,acidQ:2,glitch:0,desc:'Formant coherence basins — vowels as C attractors'},
+  cosmic:{bpm:80,reverb:.75,delay:.55,kick:.35,snare:.25,hihat:.2,bass:.5,synth:.4,pad:.7,choir:.35,bird:.1,whale:.5,acidQ:4,glitch:.03,desc:'Helioseismic — solar layers as CRR agents'}
+};
+
+// §3 AUDIO ENGINE
+let masterG,compressor,reverbNode,reverbG,dryG,delayNode,delayG,delayFb;
+let noiseBuffer,analyser;
+let micStream=null,micSource=null,micGainNode=null,micEnabled=false;
+
+function initAudio(){
+  if(ac)return;
+  ac=new(window.AudioContext||window.webkitAudioContext)();
+  // Master chain
+  compressor=ac.createDynamicsCompressor();
+  compressor.threshold.value=-18;compressor.knee.value=10;compressor.ratio.value=4;
+  compressor.attack.value=.01;compressor.release.value=.15;
+  masterG=ac.createGain();masterG.gain.value=S.masterVol;
+  dryG=ac.createGain();dryG.gain.value=1-S.reverb*.5;
+  reverbG=ac.createGain();reverbG.gain.value=S.reverb;
+  // Reverb
+  const rvLen=ac.sampleRate*3|0;
+  const rvBuf=ac.createBuffer(2,rvLen,ac.sampleRate);
+  for(let c=0;c<2;c++){const d=rvBuf.getChannelData(c);
+    for(let i=0;i<14;i++){const t=(.008+i*.007+rnd()*.004)*ac.sampleRate|0;
+      if(t<rvLen)d[t]=.35*pow(.73,i)*(.8+rnd()*.4)}
+    for(let i=0;i<rvLen;i++){const t=i/ac.sampleRate;
+      d[i]+=(rnd()*2-1)*(exp(-t*1.5)*.7+exp(-t*4)*.3)*.08}}
+  reverbNode=ac.createConvolver();reverbNode.buffer=rvBuf;
+  // Delay
+  delayNode=ac.createDelay(2);delayNode.delayTime.value=BEAT_S()*.75;
+  delayG=ac.createGain();delayG.gain.value=S.delay;
+  delayFb=ac.createGain();delayFb.gain.value=.35;
+  // Analyser
+  analyser=ac.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.8;
+  // Noise buffer
+  const nl=ac.sampleRate*2;noiseBuffer=ac.createBuffer(1,nl,ac.sampleRate);
+  const nd=noiseBuffer.getChannelData(0);for(let i=0;i<nl;i++)nd[i]=rnd()*2-1;
+  // Routing
+  masterG.connect(compressor);
+  compressor.connect(dryG);compressor.connect(reverbNode);
+  compressor.connect(delayNode);delayNode.connect(delayG);
+  delayG.connect(delayNode);delayNode.connect(delayFb);delayFb.connect(masterG);
+  reverbNode.connect(reverbG);
+  dryG.connect(analyser);reverbG.connect(analyser);delayG.connect(analyser);
+  analyser.connect(ac.destination);
+}
+
+// §3.1 KICK — Z₂ rupture: convective cell collapse
+function playKick(t){
+  if(S.muted.kick)return;
+  const g=S.channels.kick;if(g<.01)return;
+  const n=t||ac.currentTime;
+  const o=ac.createOscillator();o.type='sine';
+  o.frequency.setValueAtTime(150,n);o.frequency.exponentialRampToValueAtTime(40,n+.12);
+  const eg=ac.createGain();eg.gain.setValueAtTime(sGain(g*.9),n);
+  eg.gain.exponentialRampToValueAtTime(.001,n+.35);
+  const o2=ac.createOscillator();o2.type='sine';
+  o2.frequency.setValueAtTime(60,n);
+  const eg2=ac.createGain();eg2.gain.setValueAtTime(sGain(g*.5),n);
+  eg2.gain.exponentialRampToValueAtTime(.001,n+.25);
+  const ns=ac.createBufferSource();ns.buffer=noiseBuffer;
+  const nf=ac.createBiquadFilter();nf.type='highpass';nf.frequency.value=1000;
+  const ng=ac.createGain();ng.gain.setValueAtTime(sGain(g*.3),n);
+  ng.gain.exponentialRampToValueAtTime(.001,n+.015);
+  o.connect(eg);eg.connect(masterG);o2.connect(eg2);eg2.connect(masterG);
+  ns.connect(nf);nf.connect(ng);ng.connect(masterG);
+  o.start(n);o.stop(n+.4);o2.start(n);o2.stop(n+.3);ns.start(n);ns.stop(n+.03);
+  beatPulse=max(beatPulse,.8*g);
+}
+
+// §3.2 SNARE — noise burst + resonant body
+function playSnare(t){
+  if(S.muted.snare)return;
+  const g=S.channels.snare;if(g<.01)return;
+  const n=t||ac.currentTime;
+  // Body tone
+  const o=ac.createOscillator();o.type='triangle';o.frequency.value=180;
+  const eg=ac.createGain();eg.gain.setValueAtTime(sGain(g*.5),n);
+  eg.gain.exponentialRampToValueAtTime(.001,n+.12);
+  // Noise — δ burst
+  const ns=ac.createBufferSource();ns.buffer=noiseBuffer;
+  const bf=ac.createBiquadFilter();bf.type='bandpass';bf.frequency.value=3000;bf.Q.value=1.2;
+  const ng=ac.createGain();ng.gain.setValueAtTime(sGain(g*.6),n);
+  ng.gain.exponentialRampToValueAtTime(.001,n+.15);
+  o.connect(eg);eg.connect(masterG);ns.connect(bf);bf.connect(ng);ng.connect(masterG);
+  o.start(n);o.stop(n+.15);ns.start(n);ns.stop(n+.2);
+  beatPulse=max(beatPulse,.5*g);
+}
+
+// §3.3 HI-HAT — micro-δ cascade
+function playHihat(t,open=false){
+  if(S.muted.hihat)return;
+  const g=S.channels.hihat;if(g<.01)return;
+  const n=t||ac.currentTime;
+  const ns=ac.createBufferSource();ns.buffer=noiseBuffer;
+  const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=7000;
+  const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=10000;bp.Q.value=1;
+  const eg=ac.createGain();const dur=open?.18:.05;
+  eg.gain.setValueAtTime(sGain(g*.4),n);eg.gain.exponentialRampToValueAtTime(.001,n+dur);
+  ns.connect(hp);hp.connect(bp);bp.connect(eg);eg.connect(masterG);
+  ns.start(n);ns.stop(n+dur+.01);
+}
+
+// §3.4 BASS — acid resonant Ω boundary
+function playBass(note,t,dur){
+  if(S.muted.bass)return;
+  const g=S.channels.bass;if(g<.01||!isFinite(note))return;
+  const n=t||ac.currentTime;const f=sFreq(m2f(note));dur=max(.05,fin(dur,.5));
+  const o1=ac.createOscillator();o1.type='sawtooth';o1.frequency.value=f;
+  const o2=ac.createOscillator();o2.type='square';o2.frequency.value=f*.999;
+  const og=ac.createGain();og.gain.value=sGain(g*.4);
+  const flt=ac.createBiquadFilter();flt.type='lowpass';
+  const cutoff=fin(200+agents.bass.normC*3000,400);
+  flt.frequency.setValueAtTime(sFreq(cutoff),n);
+  flt.frequency.exponentialRampToValueAtTime(sExp(max(80,cutoff*.3)),n+dur*.8);
+  flt.Q.value=fin(S.acidQ,4);
+  const eg=ac.createGain();
+  eg.gain.setValueAtTime(sGain(g*.5),n);eg.gain.setTargetAtTime(.001,n+dur*.7,sTC(dur*.15));
+  o1.connect(og);o2.connect(og);og.connect(flt);flt.connect(eg);eg.connect(masterG);
+  o1.start(n);o1.stop(n+dur+.1);o2.start(n);o2.stop(n+dur+.1);
+}
+
+// §3.5 SYNTH — FM synthesis, β = exp(C/Ω)
+function playSynth(note,t,dur){
+  if(S.muted.synth)return;
+  const g=S.channels.synth;if(g<.01||!isFinite(note))return;
+  const n=t||ac.currentTime;const f=sFreq(m2f(note));dur=max(.05,fin(dur,.5));
+  const carrier=ac.createOscillator();carrier.type='sine';carrier.frequency.value=f;
+  const mod=ac.createOscillator();mod.type='sine';mod.frequency.value=f*2;
+  const modG=ac.createGain();
+  const beta=sGain(min(6,agents.lead.expCO)*S.fmDepth*200);
+  modG.gain.setValueAtTime(beta,n);modG.gain.setTargetAtTime(sGain(beta*.2),n+dur*.5,sTC(dur*.2));
+  mod.connect(modG);modG.connect(carrier.frequency);
+  const eg=ac.createGain();
+  eg.gain.setValueAtTime(0,n);eg.gain.linearRampToValueAtTime(sGain(g*.35),n+.02);
+  eg.gain.setTargetAtTime(.001,n+dur*.7,sTC(dur*.15));
+  carrier.connect(eg);eg.connect(masterG);
+  carrier.start(n);carrier.stop(n+dur+.2);mod.start(n);mod.stop(n+dur+.2);
+}
+
+// §3.6 PAD — SO(2) slow coherence drift
+function playPad(chord,t,dur){
+  if(S.muted.pad)return;
+  const g=S.channels.pad;if(g<.01||!chord||!chord.length)return;
+  const n=t||ac.currentTime;dur=max(.1,fin(dur,2));
+  for(const note of chord){
+    if(!isFinite(note))continue;
+    const f=sFreq(m2f(note));
+    for(let h=1;h<=3;h++){
+      const o=ac.createOscillator();o.type=h===1?'sine':'triangle';
+      o.frequency.value=sFreq(f*h+sin(agents.pad.C*TAU)*2);
+      const hg=ac.createGain();hg.gain.value=sGain(g*.12/h);
+      const eg=ac.createGain();
+      eg.gain.setValueAtTime(0,n);eg.gain.linearRampToValueAtTime(1,n+dur*.3);
+      eg.gain.setTargetAtTime(.001,n+dur*.8,sTC(dur*.15));
+      o.connect(hg);hg.connect(eg);eg.connect(masterG);
+      o.start(n);o.stop(n+dur+.5);
+    }
+  }
+}
+
+// §3.7 CHOIR — Church-quality persistent-oscillator voices with phoneme articulation
+// Architecture: 5 persistent voices (Bass, Baritone, Tenor, Alto, Soprano)
+// Each voice has always-running oscillators → 3 formant filters (F1,F2,F3) → voice gain
+// Consonants = δ(onset), Vowels = C(coherence), Codas = R(regeneration)
+
+// §3.7.1 Expanded vowel formants (ARPABET → F1/F2/F3 Hz + bandwidths)
+const VOWEL_FORMANTS={
+  'iy':{f1:270,f2:2290,f3:3010,b1:50,b2:80},'ih':{f1:390,f2:1990,f3:2550,b1:50,b2:80},
+  'eh':{f1:530,f2:1840,f3:2480,b1:60,b2:80},'ae':{f1:660,f2:1720,f3:2410,b1:70,b2:90},
+  'ah':{f1:520,f2:1190,f3:2390,b1:60,b2:80},'aa':{f1:730,f2:1090,f3:2440,b1:80,b2:90},
+  'ao':{f1:570,f2:840,f3:2410,b1:70,b2:80},'uh':{f1:440,f2:1020,f3:2240,b1:60,b2:70},
+  'uw':{f1:300,f2:870,f3:2240,b1:55,b2:70},'er':{f1:490,f2:1350,f3:1690,b1:60,b2:90},
+  'ax':{f1:490,f2:1350,f3:2390,b1:60,b2:80},'oh':{f1:490,f2:910,f3:2300,b1:65,b2:80}
+};
+// §3.7.2 Diphthongs — smooth formant transitions
+const DIPHTHONGS={
+  'ay':{s:{f1:730,f2:1090,f3:2440},e:{f1:390,f2:1990,f3:2550}},
+  'ey':{s:{f1:530,f2:1840,f3:2480},e:{f1:390,f2:1990,f3:2550}},
+  'aw':{s:{f1:730,f2:1090,f3:2440},e:{f1:440,f2:1020,f3:2240}},
+  'ow':{s:{f1:490,f2:910,f3:2300},e:{f1:440,f2:1020,f3:2240}},
+  'oy':{s:{f1:570,f2:840,f3:2410},e:{f1:390,f2:1990,f3:2550}}
+};
+function isDiphthong(v){return!!DIPHTHONGS[v]}
+function getVowelStart(v){if(DIPHTHONGS[v])return DIPHTHONGS[v].s;
+  const vf=VOWEL_FORMANTS[v];return vf?{f1:vf.f1,f2:vf.f2,f3:vf.f3||2400}:{f1:500,f2:1400,f3:2400}}
+function getVowelEnd(v){return DIPHTHONGS[v]?DIPHTHONGS[v].e:getVowelStart(v)}
+
+// §3.7.3 Consonant synthesis parameters — δ events in vocal signal
+const CONSONANTS={
+  'p':{type:'plosive',voiced:false,freq:800,bw:500,amp:.18,dur:.025},
+  'b':{type:'plosive',voiced:true,freq:800,bw:500,amp:.14,dur:.020},
+  't':{type:'plosive',voiced:false,freq:3200,bw:1200,amp:.20,dur:.020},
+  'd':{type:'plosive',voiced:true,freq:3000,bw:1000,amp:.15,dur:.018},
+  'k':{type:'plosive',voiced:false,freq:1500,bw:900,amp:.18,dur:.025},
+  'g':{type:'plosive',voiced:true,freq:1500,bw:800,amp:.14,dur:.020},
+  'f':{type:'fricative',voiced:false,freq:5500,bw:3500,amp:.07,dur:.055},
+  'v':{type:'fricative',voiced:true,freq:5000,bw:3000,amp:.05,dur:.045},
+  's':{type:'fricative',voiced:false,freq:7000,bw:2200,amp:.12,dur:.060},
+  'z':{type:'fricative',voiced:true,freq:6500,bw:2000,amp:.09,dur:.050},
+  'sh':{type:'fricative',voiced:false,freq:3800,bw:2500,amp:.10,dur:.065},
+  'zh':{type:'fricative',voiced:true,freq:3500,bw:2200,amp:.08,dur:.055},
+  'th':{type:'fricative',voiced:false,freq:6000,bw:4000,amp:.04,dur:.050},
+  'dh':{type:'fricative',voiced:true,freq:5000,bw:3500,amp:.04,dur:.040},
+  'h':{type:'fricative',voiced:false,freq:1500,bw:3000,amp:.05,dur:.040},
+  'ch':{type:'affricate',voiced:false,freq:3800,bw:2200,amp:.14,dur:.060},
+  'jh':{type:'affricate',voiced:true,freq:3200,bw:2000,amp:.11,dur:.050},
+  'n':{type:'nasal',f1:250,f2:1450,dur:.040},'m':{type:'nasal',f1:250,f2:1000,dur:.045},
+  'ng':{type:'nasal',f1:250,f2:1700,dur:.040},
+  'l':{type:'liquid',f1:350,f2:1050,dur:.035},'r':{type:'liquid',f1:350,f2:1300,dur:.030},
+  'w':{type:'glide',f1:300,f2:610,dur:.040},'y':{type:'glide',f1:270,f2:2290,dur:.030}
+};
+
+// §3.7.4 SONGS — phoneme-annotated hymns (from Church)
+const SONGS={
+  jerusalem:{title:"Jerusalem",tempo:88,notes:[
+    {m:62,d:2,l:"And",ph:{c:null,v:'ae',x:'n'}},{m:62,d:1,l:"did",ph:{c:'d',v:'ih',x:'d'}},
+    {m:64,d:1,l:"those",ph:{c:'dh',v:'ow',x:'z'}},{m:66,d:2,l:"feet",ph:{c:'f',v:'iy',x:'t'}},
+    {m:66,d:1,l:"in",ph:{c:null,v:'ih',x:'n'}},{m:69,d:1,l:"an-",ph:{c:null,v:'ey',x:'n'}},
+    {m:69,d:1.5,l:"cient",ph:{c:'sh',v:'ax',x:'n'}},{m:67,d:1,l:"",ph:{c:null,v:'ax',x:null}},
+    {m:66,d:1.5,l:"time,",ph:{c:'t',v:'ay',x:'m'}},{m:0,d:1,l:""},
+    {m:64,d:2,l:"Walk",ph:{c:'w',v:'ao',x:'k'}},{m:64,d:1,l:"u-",ph:{c:null,v:'ah',x:null}},
+    {m:66,d:1,l:"pon",ph:{c:'p',v:'aa',x:'n'}},{m:67,d:2,l:"Eng-",ph:{c:null,v:'eh',x:'ng'}},
+    {m:67,d:1,l:"land's",ph:{c:'l',v:'ae',x:'n'}},{m:71,d:1.5,l:"moun-",ph:{c:'m',v:'aw',x:'n'}},
+    {m:69,d:1,l:"tains",ph:{c:'t',v:'ih',x:'n'}},{m:67,d:2,l:"green:",ph:{c:'g',v:'iy',x:'n'}},
+    {m:0,d:1.5,l:""},{m:69,d:1.5,l:"And",ph:{c:null,v:'ae',x:'n'}},{m:69,d:1,l:"was",ph:{c:'w',v:'ah',x:'z'}},
+    {m:71,d:1,l:"the",ph:{c:'dh',v:'ax',x:null}},{m:69,d:1.5,l:"ho-",ph:{c:'h',v:'ow',x:null}},
+    {m:67,d:1,l:"ly",ph:{c:'l',v:'iy',x:null}},{m:66,d:1.5,l:"Lamb",ph:{c:'l',v:'ae',x:'m'}},
+    {m:64,d:1,l:"of",ph:{c:null,v:'ah',x:'v'}},{m:62,d:2,l:"God",ph:{c:'g',v:'aa',x:'d'}},
+    {m:0,d:1,l:""},{m:62,d:1,l:"On",ph:{c:null,v:'aa',x:'n'}},{m:64,d:1,l:"Eng-",ph:{c:null,v:'eh',x:'ng'}},
+    {m:66,d:1,l:"land's",ph:{c:'l',v:'ae',x:'n'}},{m:67,d:1.5,l:"plea-",ph:{c:'p',v:'eh',x:null}},
+    {m:69,d:1,l:"sant",ph:{c:'z',v:'ah',x:'n'}},{m:71,d:1.5,l:"pas-",ph:{c:'p',v:'ae',x:'s'}},
+    {m:69,d:1.5,l:"tures",ph:{c:'ch',v:'er',x:'z'}},{m:67,d:3,l:"seen?",ph:{c:'s',v:'iy',x:'n'}},
+    {m:0,d:2,l:""},{m:74,d:2,l:"Bring",ph:{c:'b',v:'ih',x:'ng'}},{m:74,d:1,l:"me",ph:{c:'m',v:'iy',x:null}},
+    {m:73,d:1,l:"my",ph:{c:'m',v:'ay',x:null}},{m:74,d:2.5,l:"bow",ph:{c:'b',v:'ow',x:null}},
+    {m:71,d:1,l:"of",ph:{c:null,v:'ah',x:'v'}},{m:69,d:1.5,l:"burn-",ph:{c:'b',v:'er',x:'n'}},
+    {m:71,d:1,l:"ing",ph:{c:null,v:'ih',x:'ng'}},{m:74,d:3,l:"gold!",ph:{c:'g',v:'ow',x:'l'}},
+    {m:0,d:1,l:""},{m:74,d:2,l:"Bring",ph:{c:'b',v:'ih',x:'ng'}},{m:73,d:1,l:"me",ph:{c:'m',v:'iy',x:null}},
+    {m:71,d:1,l:"my",ph:{c:'m',v:'ay',x:null}},{m:69,d:2,l:"ar-",ph:{c:null,v:'ae',x:'r'}},
+    {m:71,d:1,l:"rows",ph:{c:'r',v:'ow',x:'z'}},{m:74,d:1.5,l:"of",ph:{c:null,v:'ah',x:'v'}},
+    {m:73,d:1,l:"de-",ph:{c:'d',v:'ih',x:null}},{m:71,d:3,l:"sire!",ph:{c:'z',v:'ay',x:'r'}},
+    {m:0,d:1,l:""},{m:67,d:2,l:"Bring",ph:{c:'b',v:'ih',x:'ng'}},{m:69,d:1,l:"me",ph:{c:'m',v:'iy',x:null}},
+    {m:71,d:1,l:"my",ph:{c:'m',v:'ay',x:null}},{m:74,d:3,l:"spear!",ph:{c:'s',v:'iy',x:'r'}},
+    {m:0,d:.5,l:""},{m:76,d:1,l:"O",ph:{c:null,v:'ow',x:null}},
+    {m:74,d:1.5,l:"clouds,",ph:{c:'k',v:'aw',x:'d'}},{m:73,d:1,l:"un-",ph:{c:null,v:'ah',x:'n'}},
+    {m:71,d:3,l:"fold!",ph:{c:'f',v:'ow',x:'l'}},{m:0,d:1,l:""},
+    {m:74,d:2,l:"Bring",ph:{c:'b',v:'ih',x:'ng'}},{m:76,d:2,l:"me",ph:{c:'m',v:'iy',x:null}},
+    {m:74,d:1,l:"my",ph:{c:'m',v:'ay',x:null}},{m:73,d:1.5,l:"cha-",ph:{c:'ch',v:'ae',x:null}},
+    {m:71,d:1,l:"ri-",ph:{c:'r',v:'iy',x:null}},{m:69,d:1,l:"ot",ph:{c:null,v:'ah',x:'t'}},
+    {m:71,d:1,l:"of",ph:{c:null,v:'ah',x:'v'}},{m:74,d:4,l:"fire!",ph:{c:'f',v:'ay',x:'r'}},{m:0,d:3,l:""}
+  ]},
+  amazing_grace:{title:"Amazing Grace",tempo:72,notes:[
+    {m:62,d:1,l:"A-",ph:{c:null,v:'ax',x:null}},{m:67,d:2,l:"ma-",ph:{c:'m',v:'ey',x:null}},
+    {m:71,d:1,l:"zing",ph:{c:'z',v:'ih',x:'ng'}},{m:69,d:2,l:"Grace,",ph:{c:'g',v:'ey',x:'s'}},
+    {m:67,d:1,l:"how",ph:{c:'h',v:'aw',x:null}},{m:69,d:2,l:"sweet",ph:{c:'s',v:'iy',x:'t'}},
+    {m:67,d:1,l:"the",ph:{c:'dh',v:'ax',x:null}},{m:64,d:2,l:"sound,",ph:{c:'s',v:'aw',x:'n'}},
+    {m:0,d:1,l:""},{m:62,d:1,l:"That",ph:{c:'dh',v:'ae',x:'t'}},
+    {m:67,d:2,l:"saved",ph:{c:'s',v:'ey',x:'v'}},{m:71,d:1,l:"a",ph:{c:null,v:'ax',x:null}},
+    {m:69,d:2,l:"wretch",ph:{c:'r',v:'eh',x:'ch'}},{m:67,d:1,l:"like",ph:{c:'l',v:'ay',x:'k'}},
+    {m:71,d:4,l:"me.",ph:{c:'m',v:'iy',x:null}},{m:0,d:1,l:""},
+    {m:71,d:1,l:"I",ph:{c:null,v:'ay',x:null}},{m:74,d:2,l:"once",ph:{c:'w',v:'ah',x:'n'}},
+    {m:71,d:1,l:"was",ph:{c:'w',v:'ah',x:'z'}},{m:74,d:2,l:"lost,",ph:{c:'l',v:'ao',x:'s'}},
+    {m:71,d:1,l:"but",ph:{c:'b',v:'ah',x:'t'}},{m:69,d:2,l:"now",ph:{c:'n',v:'aw',x:null}},
+    {m:67,d:1,l:"am",ph:{c:null,v:'ae',x:'m'}},{m:64,d:2,l:"found,",ph:{c:'f',v:'aw',x:'n'}},
+    {m:0,d:1,l:""},{m:62,d:1,l:"Was",ph:{c:'w',v:'ah',x:'z'}},
+    {m:67,d:2,l:"blind,",ph:{c:'b',v:'ay',x:'n'}},{m:71,d:1,l:"but",ph:{c:'b',v:'ah',x:'t'}},
+    {m:69,d:2,l:"now",ph:{c:'n',v:'aw',x:null}},{m:67,d:1,l:"I",ph:{c:null,v:'ay',x:null}},
+    {m:67,d:4,l:"see.",ph:{c:'s',v:'iy',x:null}},{m:0,d:3,l:""}
+  ]},
+  ave_verum:{title:"Ave Verum Corpus",tempo:66,notes:[
+    {m:62,d:2,l:"A-",ph:{c:null,v:'aa',x:null}},{m:66,d:2,l:"ve,",ph:{c:'v',v:'ey',x:null}},
+    {m:69,d:2,l:"a-",ph:{c:null,v:'aa',x:null}},{m:66,d:2,l:"ve",ph:{c:'v',v:'ey',x:null}},
+    {m:0,d:.5,l:""},{m:67,d:1.5,l:"ve-",ph:{c:'v',v:'ey',x:null}},
+    {m:69,d:1.5,l:"rum",ph:{c:'r',v:'uw',x:'m'}},{m:71,d:2,l:"cor-",ph:{c:'k',v:'ao',x:'r'}},
+    {m:69,d:2,l:"pus,",ph:{c:'p',v:'uw',x:'s'}},{m:0,d:1,l:""},
+    {m:69,d:1.5,l:"na-",ph:{c:'n',v:'aa',x:null}},{m:71,d:1.5,l:"tum",ph:{c:'t',v:'uw',x:'m'}},
+    {m:73,d:2,l:"de",ph:{c:'d',v:'ey',x:null}},{m:71,d:1,l:"Ma-",ph:{c:'m',v:'aa',x:null}},
+    {m:69,d:1.5,l:"ri-",ph:{c:'r',v:'iy',x:null}},{m:71,d:1.5,l:"a",ph:{c:null,v:'aa',x:null}},
+    {m:69,d:2,l:"Vir-",ph:{c:'v',v:'iy',x:'r'}},{m:67,d:1,l:"gi-",ph:{c:'jh',v:'iy',x:null}},
+    {m:66,d:2.5,l:"ne:",ph:{c:'n',v:'ey',x:null}},{m:0,d:3,l:""}
+  ]},
+  abide:{title:"Abide With Me",tempo:72,notes:[
+    {m:63,d:2,l:"A-",ph:{c:null,v:'ax',x:null}},{m:63,d:1,l:"bide",ph:{c:'b',v:'ay',x:'d'}},
+    {m:62,d:1,l:"with",ph:{c:'w',v:'ih',x:'th'}},{m:63,d:2,l:"me;",ph:{c:'m',v:'iy',x:null}},
+    {m:65,d:1,l:"fast",ph:{c:'f',v:'ae',x:'s'}},{m:67,d:1,l:"falls",ph:{c:'f',v:'ao',x:'l'}},
+    {m:68,d:1,l:"the",ph:{c:'dh',v:'ax',x:null}},{m:67,d:1,l:"e-",ph:{c:null,v:'iy',x:null}},
+    {m:65,d:1,l:"ven-",ph:{c:'v',v:'eh',x:'n'}},{m:63,d:3,l:"tide;",ph:{c:'t',v:'ay',x:'d'}},
+    {m:0,d:1,l:""},{m:70,d:2,l:"The",ph:{c:'dh',v:'ax',x:null}},
+    {m:70,d:1,l:"dark-",ph:{c:'d',v:'aa',x:'r'}},{m:68,d:1,l:"ness",ph:{c:'n',v:'eh',x:'s'}},
+    {m:67,d:2,l:"deep-",ph:{c:'d',v:'iy',x:'p'}},{m:68,d:1,l:"ens;",ph:{c:null,v:'eh',x:'n'}},
+    {m:65,d:1,l:"Lord,",ph:{c:'l',v:'ao',x:'r'}},{m:67,d:1.5,l:"with",ph:{c:'w',v:'ih',x:'th'}},
+    {m:67,d:1,l:"me",ph:{c:'m',v:'iy',x:null}},{m:65,d:1,l:"a-",ph:{c:null,v:'ax',x:null}},
+    {m:67,d:3,l:"bide.",ph:{c:'b',v:'ay',x:'d'}},{m:0,d:2,l:""}
+  ]}
+};
+
+// §3.7.5 Auto-phonemiser — maps English words to approximate ARPABET
+function autoPhoneme(word){
+  const w=word.toLowerCase().replace(/[^a-z']/g,'');
+  if(!w)return{c:null,v:'ax',x:null};
+  // Onset consonant extraction
+  const onsets=['th','sh','ch','wh','ph','wr','kn','gn','str','spr','spl','scr','tr','dr','br','cr','fr','gr','pr','bl','cl','fl','gl','pl','sl','sk','sm','sn','sp','st','sw'];
+  let onset=null,rest=w;
+  for(const o of onsets){if(w.startsWith(o)){
+    const cm={'th':'th','sh':'sh','ch':'ch','wh':'w','ph':'f','wr':'r','kn':'n','gn':'n'};
+    onset=cm[o]||CONSONANTS[o[0]]?o[0]:null;rest=w.slice(o.length);break}}
+  if(!onset&&w.length>0&&!'aeiou'.includes(w[0])){
+    const cm={c:'k',q:'k',x:'k',j:'jh'};onset=cm[w[0]]||w[0];rest=w.slice(1);
+    if(!CONSONANTS[onset])onset=null}
+  // Vowel nucleus extraction
+  const vmap={'igh':'ay','ight':'ay','ire':'ay','ire':'ay','ough':'ow','oo':'uw','ou':'aw','ow':'aw',
+    'ea':'iy','ee':'iy','ie':'iy','ai':'ey','ay':'ey','oi':'oy','oy':'oy',
+    'a':'ae','e':'eh','i':'ih','o':'aa','u':'ah','y':'iy'};
+  let vowel='ax';
+  for(const[k,v] of Object.entries(vmap)){if(rest.includes(k)){vowel=v;
+    const vi=rest.indexOf(k);rest=rest.slice(vi+k.length);break}}
+  // Coda consonant
+  let coda=null;
+  if(rest.length>0){const last=rest[rest.length-1];
+    const cm={c:'k',x:'k',j:'jh'};coda=cm[last]||last;
+    if(!CONSONANTS[coda])coda=null}
+  return{c:onset&&CONSONANTS[onset]?onset:null,v:vowel,x:coda&&CONSONANTS[coda]?coda:null};
+}
+
+// §3.7.6 Persistent choir voices
+let choirAudio=null;
+const CHOIR_VOICES=[
+  {name:'Bass',baseHz:65.41,nHarm:8,role:'bass'},
+  {name:'Baritone',baseHz:98.00,nHarm:6,role:'baritone'},
+  {name:'Tenor',baseHz:130.81,nHarm:6,role:'tenor'},
+  {name:'Alto',baseHz:196.00,nHarm:5,role:'alto'},
+  {name:'Soprano',baseHz:523.25,nHarm:4,role:'soprano'}
+];
+
+function initChoirAudio(){
+  if(!ac||choirAudio)return;
+  const choirMaster=ac.createGain();choirMaster.gain.value=0;
+  const choirComp=ac.createDynamicsCompressor();
+  choirComp.threshold.value=-12;choirComp.knee.value=20;choirComp.ratio.value=2;
+  choirComp.attack.value=.01;choirComp.release.value=.15;
+  choirMaster.connect(choirComp);choirComp.connect(masterG);
+  const voices=[];
+  for(const cv of CHOIR_VOICES){
+    const vGain=ac.createGain();vGain.gain.value=0;
+    const f1=ac.createBiquadFilter();f1.type='bandpass';f1.frequency.value=730;f1.Q.value=730/120;
+    const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1090;f2.Q.value=1090/140;
+    const f3=ac.createBiquadFilter();f3.type='bandpass';f3.frequency.value=2440;f3.Q.value=2440/160;
+    const f1g=ac.createGain();f1g.gain.value=.70;
+    const f2g=ac.createGain();f2g.gain.value=.40;
+    const f3g=ac.createGain();f3g.gain.value=.20;
+    const oscs=[];
+    for(let h=1;h<=cv.nHarm;h++){
+      const osc=ac.createOscillator();osc.type='sine';osc.frequency.value=sFreq(cv.baseHz*h);
+      const hGain=ac.createGain();hGain.gain.value=sGain(1/pow(h,1.1)*(h===1?1:.9));
+      osc.connect(hGain);hGain.connect(f1);hGain.connect(f2);hGain.connect(f3);
+      osc.start();oscs.push({osc,gain:hGain,harmonic:h});
+    }
+    const vibLFO=ac.createOscillator();vibLFO.type='sine';
+    vibLFO.frequency.value=cv.role==='soprano'?6.2:cv.role==='alto'?5.8:cv.role==='tenor'?5.2:4.5;
+    const vibGain=ac.createGain();vibGain.gain.value=0;
+    vibLFO.connect(vibGain);
+    for(const o of oscs)vibGain.connect(o.osc.frequency);vibLFO.start();
+    f1.connect(f1g);f2.connect(f2g);f3.connect(f3g);
+    f1g.connect(vGain);f2g.connect(vGain);f3g.connect(vGain);
+    vGain.connect(choirMaster);
+    voices.push({vGain,f1,f2,f3,f1g,f2g,f3g,oscs,vibLFO,vibGain,cv,
+      targetGain:0,currentGain:0,agent:new CRR(cv.role==='bass'?'Z2':'SO2',1)});
+  }
+  choirAudio={master:choirMaster,voices};
+}
+
+// §3.7.7 Consonant noise burst (δ event)
+function scheduleNoiseBurst(voice,cDef,time,dur,level){
+  if(!ac||!noiseBuffer)return;
+  const noise=ac.createBufferSource();noise.buffer=noiseBuffer;
+  noise.playbackRate.value=.8+rnd()*.4;
+  const bp=ac.createBiquadFilter();bp.type='bandpass';
+  bp.frequency.value=sFreq(cDef.freq);bp.Q.value=max(1,cDef.freq/(cDef.bw||1000));
+  const env=ac.createGain();const amp=sGain(cDef.amp*level);
+  env.gain.setValueAtTime(0,time);env.gain.linearRampToValueAtTime(amp,time+.003);
+  env.gain.exponentialRampToValueAtTime(.001,time+max(.005,dur));
+  noise.connect(bp);bp.connect(env);env.connect(voice.vGain);
+  noise.start(time);noise.stop(time+dur+.01);
+}
+
+// §3.7.8 Sustained consonant noise (fricatives)
+function scheduleNoiseSustain(voice,cDef,time,dur,level){
+  if(!ac||!noiseBuffer)return;
+  const noise=ac.createBufferSource();noise.buffer=noiseBuffer;
+  noise.playbackRate.value=.8+rnd()*.4;
+  const bp=ac.createBiquadFilter();bp.type='bandpass';
+  bp.frequency.value=sFreq(cDef.freq);bp.Q.value=max(.5,cDef.freq/(cDef.bw||1500));
+  const env=ac.createGain();const amp=sGain(cDef.amp*level);
+  const ramp=min(.01,dur*.2);
+  env.gain.setValueAtTime(0,time);env.gain.linearRampToValueAtTime(amp,time+ramp);
+  if(dur>ramp*2){env.gain.setValueAtTime(amp,time+dur-ramp);env.gain.linearRampToValueAtTime(0,time+dur)}
+  noise.connect(bp);bp.connect(env);env.connect(voice.vGain);
+  noise.start(time);noise.stop(time+dur+.01);
+}
+
+// §3.7.9 Schedule full phoneme — onset δ → vowel C → coda R
+function schedulePhoneme(voice,ph,durSec){
+  if(!ac||!ph||!ph.v)return;
+  const now=ac.currentTime;const cLevel=.65;
+  const onsetC=ph.c?CONSONANTS[ph.c]:null;const codaC=ph.x?CONSONANTS[ph.x]:null;
+  const onsetDur=onsetC?min(onsetC.dur||.03,durSec*.15):0;
+  const codaDur=codaC?min(codaC.dur||.03,durSec*.12):0;
+  const vowelStart=now+onsetDur;const vowelDur=max(.05,durSec-onsetDur-codaDur);
+  const codaStart=now+durSec-codaDur;
+  // ONSET — δ(onset)
+  if(onsetC&&cLevel>0){
+    const cType=onsetC.type;
+    if(cType==='plosive'||cType==='affricate'){
+      voice.vGain.gain.cancelScheduledValues(now);
+      const curG=max(.001,voice.vGain.gain.value);
+      voice.vGain.gain.setValueAtTime(curG*.15,now);
+      voice.vGain.gain.setValueAtTime(curG*.15,now+onsetDur*.7);
+      voice.vGain.gain.linearRampToValueAtTime(curG,now+onsetDur+.015);
+      scheduleNoiseBurst(voice,onsetC,now+onsetDur*.3,.015,cLevel);
+      if(cType==='affricate')scheduleNoiseSustain(voice,onsetC,now+onsetDur*.5,onsetDur*.5,cLevel*.7);
+    }else if(cType==='fricative'){
+      scheduleNoiseSustain(voice,onsetC,now,onsetDur,cLevel);
+    }else if(cType==='nasal'||cType==='liquid'||cType==='glide'){
+      voice.f1.frequency.cancelScheduledValues(now);voice.f2.frequency.cancelScheduledValues(now);
+      voice.f1.frequency.setValueAtTime(sFreq(onsetC.f1||300),now);
+      voice.f2.frequency.setValueAtTime(sFreq(onsetC.f2||1200),now);
+    }
+  }
+  // VOWEL NUCLEUS — C(t) coherence
+  const vStart=getVowelStart(ph.v);const vEnd=getVowelEnd(ph.v);
+  const isD=isDiphthong(ph.v);const transTime=.035;
+  voice.f1.frequency.cancelScheduledValues(vowelStart);voice.f2.frequency.cancelScheduledValues(vowelStart);
+  voice.f3.frequency.cancelScheduledValues(vowelStart);
+  voice.f1.frequency.setValueAtTime(voice.f1.frequency.value,vowelStart);
+  voice.f1.frequency.linearRampToValueAtTime(sFreq(vStart.f1),vowelStart+transTime);
+  voice.f2.frequency.setValueAtTime(voice.f2.frequency.value,vowelStart);
+  voice.f2.frequency.linearRampToValueAtTime(sFreq(vStart.f2),vowelStart+transTime);
+  voice.f3.frequency.setValueAtTime(voice.f3.frequency.value,vowelStart);
+  voice.f3.frequency.linearRampToValueAtTime(sFreq(vStart.f3||2400),vowelStart+transTime);
+  if(isD){
+    const glideS=vowelStart+vowelDur*.5,glideE=vowelStart+vowelDur*.85;
+    voice.f1.frequency.setValueAtTime(sFreq(vStart.f1),glideS);
+    voice.f1.frequency.linearRampToValueAtTime(sFreq(vEnd.f1),glideE);
+    voice.f2.frequency.setValueAtTime(sFreq(vStart.f2),glideS);
+    voice.f2.frequency.linearRampToValueAtTime(sFreq(vEnd.f2),glideE);
+    voice.f3.frequency.setValueAtTime(sFreq(vStart.f3||2400),glideS);
+    voice.f3.frequency.linearRampToValueAtTime(sFreq(vEnd.f3||2400),glideE);
+  }
+  // CODA — R phase
+  if(codaC&&cLevel>0){
+    const cType=codaC.type;
+    if(cType==='plosive'||cType==='affricate')scheduleNoiseBurst(voice,codaC,codaStart,.012,cLevel*.7);
+    else if(cType==='fricative')scheduleNoiseSustain(voice,codaC,codaStart,codaDur,cLevel*.6);
+    else if(cType==='nasal'||cType==='liquid'){
+      voice.f1.frequency.setValueAtTime(voice.f1.frequency.value,codaStart);
+      voice.f1.frequency.linearRampToValueAtTime(sFreq(codaC.f1||300),codaStart+codaDur*.7);
+      voice.f2.frequency.setValueAtTime(voice.f2.frequency.value,codaStart);
+      voice.f2.frequency.linearRampToValueAtTime(sFreq(codaC.f2||1200),codaStart+codaDur*.7);
+    }
+  }
+}
+
+// §3.7.10 Song/lyrics state
+const songState={playing:false,songKey:null,noteIdx:0,beatTimer:0,currentDuration:0,
+  looping:true,tempo:88,freeText:false,freeNotes:[]};
+
+function selectSong(key){
+  stopSong();songState.songKey=key;songState.freeText=false;
+  if(SONGS[key])songState.tempo=SONGS[key].tempo;
+  document.querySelectorAll('.song-btn').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase().includes(key.replace('_',' '))));
+}
+function playSong(){
+  if(!songState.songKey&&!songState.freeText)return;
+  if(!choirAudio)initChoirAudio();
+  stopSong();songState.playing=true;songState.noteIdx=0;
+  songState.beatTimer=0;songState.currentDuration=0;
+  const pb=document.getElementById('btn-song-play');if(pb)pb.classList.add('active');
+}
+function stopSong(){
+  songState.playing=false;songState.noteIdx=0;songState.beatTimer=0;
+  const pb=document.getElementById('btn-song-play');if(pb)pb.classList.remove('active');
+  document.getElementById('lyrics-current').innerHTML='';
+  document.getElementById('lyrics-next').textContent='';
+  if(choirAudio)for(const v of choirAudio.voices){v.targetGain=0;v.currentGain*=.3;
+    if(isFinite(v.currentGain))v.vGain.gain.value=v.currentGain}
+}
+
+// §3.7.11 Convert free text to song notes
+function singFreeText(){
+  const text=document.getElementById('lyrics-input').value.trim();
+  if(!text||!ac)return;
+  const words=text.split(/\s+/).filter(w=>w.length>0);
+  const sc=getScale().filter(n=>n>=48&&n<=72);
+  const beatMul=S.lyricStyle==='gregorian'?2:S.lyricStyle==='chant'?1.5:1;
+  const notes=[];
+  let noteIdx=0;
+  for(const word of words){
+    const ph=autoPhoneme(word);
+    const note=sc.length?sc[noteIdx%sc.length]:60;noteIdx++;
+    notes.push({m:note,d:beatMul,l:word,ph});
+    // Add brief rest between phrases (after punctuation)
+    if(/[,.;:!?]$/.test(word))notes.push({m:0,d:.5,l:""});
+  }
+  songState.freeNotes=notes;songState.freeText=true;songState.songKey=null;
+  songState.tempo=S.bpm;
+  playSong();
+}
+
+// §3.7.12 Step the song/lyrics engine
+function stepSongEngine(dt){
+  if(!songState.playing||!choirAudio)return;
+  const notes=songState.freeText?songState.freeNotes:(SONGS[songState.songKey]||{notes:[]}).notes;
+  if(!notes.length)return;
+  const ca=choirAudio;
+  if(songState.noteIdx>=notes.length){
+    if(songState.looping){songState.noteIdx=0;songState.beatTimer=0}
+    else{stopSong();return}
+  }
+  const bpf=(songState.tempo/60)*dt;
+  songState.beatTimer+=bpf;
+  if(songState.beatTimer>=songState.currentDuration){
+    const n=notes[songState.noteIdx];
+    songState.currentDuration=n.d;songState.beatTimer=0;
+    if(n.m>0){
+      const durSec=n.d*(60/songState.tempo);
+      const melodyHz=sFreq(m2f(n.m));
+      const voiceOffsets=[-24,-5,0,0,12];
+      if(n.m>71){voiceOffsets[3]=-12;voiceOffsets[4]=0}
+      const g=S.channels.choir;const presence=min(1,g*2);
+      ca.master.gain.value=sGain(g*1.8);
+      for(let vi=0;vi<ca.voices.length;vi++){
+        const v=ca.voices[vi];const offset=voiceOffsets[vi];
+        const voiceHz=sFreq(melodyHz*pow(2,offset/12));
+        const clampedHz=max(v.cv.baseHz*.5,min(v.cv.baseHz*4,voiceHz));
+        for(const o of v.oscs){
+          const targetF=sFreq(clampedHz*o.harmonic);
+          o.osc.frequency.cancelScheduledValues(ac.currentTime);
+          o.osc.frequency.setValueAtTime(o.osc.frequency.value,ac.currentTime);
+          o.osc.frequency.linearRampToValueAtTime(targetF,ac.currentTime+.04);
+        }
+        if(n.ph)schedulePhoneme(v,n.ph,durSec);
+        const vibDepth=min(4,v.agent.expCO)/4;
+        const vibVal=sGain(clampedHz*(v.cv.role==='soprano'?.008:.005)*vibDepth*S.vibrato);
+        v.vibGain.gain.value=vibVal;
+        // Boosted role scales for clean audibility during songs
+        const roleScale=v.cv.role==='bass'?.7:v.cv.role==='tenor'?.85:
+          v.cv.role==='baritone'?.6:v.cv.role==='soprano'?.65:.55;
+        v.targetGain=roleScale*presence;
+        v.currentGain+=(v.targetGain-v.currentGain)*.12;
+        if(isFinite(v.currentGain))v.vGain.gain.value=sGain(v.currentGain);
+        v.agent.step(fin(presence*.8,.5),.016);
+      }
+    }else{
+      // Rest — gentle dip, not silence, so choir sustains between phrases
+      for(const v of ca.voices){v.targetGain*=.7;
+        v.currentGain+=(v.targetGain-v.currentGain)*.04;
+        if(isFinite(v.currentGain))v.vGain.gain.value=sGain(v.currentGain)}
+    }
+    // Update lyrics display
+    updateLyricsDisplay(songState.noteIdx,notes);
+    songState.noteIdx++;
+  }
+}
+
+function updateLyricsDisplay(idx,notes){
+  const cur=document.getElementById('lyrics-current');
+  const nxt=document.getElementById('lyrics-next');
+  if(!cur||!nxt)return;
+  let phrase='',start=idx;
+  while(start>0&&idx-start<12){if(notes[start-1].l===''&&notes[start-1].m===0)break;start--}
+  for(let i=start;i<min(notes.length,idx+8);i++){
+    if(notes[i].l){
+      if(i===idx)phrase+=`<span style="color:rgba(200,220,255,.9);text-shadow:0 0 12px rgba(192,132,252,.3)">${notes[i].l}</span> `;
+      else if(i<idx)phrase+=`<span style="opacity:.35">${notes[i].l}</span> `;
+      else phrase+=`<span style="opacity:.5">${notes[i].l}</span> `;
+    }
+  }
+  cur.innerHTML=phrase;
+  let nextPhrase='',ni=idx+8;
+  while(ni<notes.length&&notes[ni].m===0)ni++;
+  for(let i=ni;i<min(notes.length,ni+12);i++){if(notes[i].l)nextPhrase+=notes[i].l+' '}
+  nxt.textContent=nextPhrase.trim();
+}
+
+// §4.5 8-TRACK RECORDER — CRR-integrated multitrack
+const NUM_TRACKS=8;
+const tracks=[];
+let recSource='mic'; // 'mic' or 'internal'
+let recDestNode=null; // MediaStreamDestination for internal recording
+
+function initTracks(){
+  const container=document.getElementById('tracks-container');
+  if(!container)return;container.innerHTML='';
+  for(let i=0;i<NUM_TRACKS;i++){
+    const tr={
+      id:i,buffer:null,source:null,gainNode:null,
+      recording:false,playing:false,muted:false,
+      vol:1,omega:1,
+      agent:new CRR(i%2===0?'Z2':'SO2',1),
+      mediaRecorder:null,chunks:[],
+      el:null
+    };
+    tracks.push(tr);
+    // Create UI
+    const strip=document.createElement('div');strip.className='track-strip';strip.id='track-'+i;
+    strip.innerHTML=`<span class="track-num">${i+1}</span>
+      <div class="track-wave"><canvas id="tw-${i}" width="200" height="28"></canvas></div>
+      <span class="track-label" id="tl-${i}">Empty</span>
+      <span class="track-crr" id="tc-${i}">—</span>
+      <input type="range" class="track-omega" min="10" max="300" value="100" title="Track Ω"
+        oninput="tracks[${i}].omega=this.value/100">
+      <div class="track-btns">
+        <button onclick="toggleTrackRec(${i})" id="tbr-${i}" title="Record">⏺</button>
+        <button onclick="toggleTrackPlay(${i})" id="tbp-${i}" title="Play">▶</button>
+        <button onclick="toggleTrackMute(${i})" id="tbm-${i}" title="Mute">M</button>
+        <button onclick="clearTrack(${i})" title="Clear">✕</button>
+      </div>`;
+    container.appendChild(strip);tr.el=strip;
+  }
+}
+
+function armRecordSource(src){
+  recSource=src;
+  document.getElementById('btn-rec-mic').classList.toggle('active',src==='mic');
+  document.getElementById('btn-rec-int').classList.toggle('active',src==='internal');
+  // Create internal recording node if needed
+  if(src==='internal'&&ac&&!recDestNode){
+    recDestNode=ac.createMediaStreamDestination();
+    masterG.connect(recDestNode);
+  }
+}
+
+function toggleTrackRec(idx){
+  const tr=tracks[idx];if(!ac)return;
+  if(tr.recording){stopTrackRec(idx);return}
+  // Stop any other recording track
+  tracks.forEach((t,i)=>{if(t.recording)stopTrackRec(i)});
+  // Get recording stream
+  let stream;
+  if(recSource==='mic'){
+    if(!micStream){document.getElementById('tl-'+idx).textContent='Enable mic first';return}
+    stream=micStream;
+  }else{
+    if(!recDestNode){armRecordSource('internal')}
+    stream=recDestNode.stream;
+  }
+  tr.chunks=[];
+  try{
+    tr.mediaRecorder=new MediaRecorder(stream,{mimeType:'audio/webm;codecs=opus'});
+  }catch(e){
+    try{tr.mediaRecorder=new MediaRecorder(stream)}catch(e2){
+      document.getElementById('tl-'+idx).textContent='Rec failed';return}}
+  tr.mediaRecorder.ondataavailable=e=>{if(e.data.size>0)tr.chunks.push(e.data)};
+  tr.mediaRecorder.onstop=async()=>{
+    if(!tr.chunks.length)return;
+    const blob=new Blob(tr.chunks,{type:tr.mediaRecorder.mimeType});
+    const arrayBuf=await blob.arrayBuffer();
+    try{
+      tr.buffer=await ac.decodeAudioData(arrayBuf);
+      document.getElementById('tl-'+idx).textContent=
+        (tr.buffer.duration).toFixed(1)+'s '+(recSource==='mic'?'🎤':'🔊');
+      tr.el.classList.add('has-audio');
+      drawTrackWaveform(idx);
+      // Auto-play after recording
+      playTrack(idx);
+    }catch(e){document.getElementById('tl-'+idx).textContent='Decode err'}
+  };
+  tr.mediaRecorder.start(100); // 100ms chunks for responsive recording
+  tr.recording=true;tr.el.classList.add('recording');
+  document.getElementById('tbr-'+idx).classList.add('rec-active');
+  document.getElementById('tl-'+idx).textContent='Recording...';
+}
+
+function stopTrackRec(idx){
+  const tr=tracks[idx];
+  if(tr.mediaRecorder&&tr.recording){
+    tr.mediaRecorder.stop();tr.recording=false;
+    tr.el.classList.remove('recording');
+    document.getElementById('tbr-'+idx).classList.remove('rec-active');
+  }
+}
+
+function playTrack(idx){
+  const tr=tracks[idx];if(!tr.buffer||!ac||tr.muted)return;
+  stopTrackSource(idx);
+  tr.source=ac.createBufferSource();tr.source.buffer=tr.buffer;tr.source.loop=true;
+  tr.gainNode=ac.createGain();
+  // CRR integration: exp(C/Ω) governs prominence
+  const prominence=sGain(min(3,tr.agent.expCO)/3*tr.vol);
+  tr.gainNode.gain.value=prominence;
+  tr.source.connect(tr.gainNode);tr.gainNode.connect(masterG);
+  tr.source.start();tr.playing=true;
+  tr.el.classList.add('playing-track');
+  document.getElementById('tbp-'+idx).classList.add('active');
+}
+
+function stopTrackSource(idx){
+  const tr=tracks[idx];
+  if(tr.source){try{tr.source.stop()}catch(e){}}
+  tr.source=null;tr.playing=false;
+  tr.el.classList.remove('playing-track');
+  document.getElementById('tbp-'+idx).classList.remove('active');
+}
+
+function toggleTrackPlay(idx){
+  const tr=tracks[idx];
+  if(tr.playing)stopTrackSource(idx);else playTrack(idx);
+}
+
+function toggleTrackMute(idx){
+  const tr=tracks[idx];tr.muted=!tr.muted;
+  document.getElementById('tbm-'+idx).classList.toggle('active',tr.muted);
+  if(tr.gainNode)tr.gainNode.gain.value=tr.muted?0:sGain(min(3,tr.agent.expCO)/3*tr.vol);
+}
+
+function clearTrack(idx){
+  stopTrackSource(idx);stopTrackRec(idx);
+  const tr=tracks[idx];tr.buffer=null;tr.chunks=[];
+  tr.el.classList.remove('has-audio','recording','playing-track');
+  document.getElementById('tl-'+idx).textContent='Empty';
+  document.getElementById('tc-'+idx).textContent='—';
+  // Clear waveform
+  const c=document.getElementById('tw-'+idx);
+  if(c){const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height)}
+}
+
+function stopAllTracks(){tracks.forEach((t,i)=>{stopTrackSource(i);stopTrackRec(i)})}
+
+function drawTrackWaveform(idx){
+  const tr=tracks[idx];if(!tr.buffer)return;
+  const c=document.getElementById('tw-'+idx);if(!c)return;
+  const ctx=c.getContext('2d');const w=c.width,h=c.height;
+  ctx.clearRect(0,0,w,h);
+  const data=tr.buffer.getChannelData(0);
+  const step=flr(data.length/w);
+  ctx.strokeStyle='rgba(79,209,197,.5)';ctx.lineWidth=1;
+  ctx.beginPath();
+  for(let x=0;x<w;x++){
+    let mn=1,mx=-1;
+    for(let j=0;j<step;j++){const v=data[x*step+j];if(v<mn)mn=v;if(v>mx)mx=v}
+    ctx.moveTo(x,h/2+mn*h/2);ctx.lineTo(x,h/2+mx*h/2);
+  }
+  ctx.stroke();
+}
+
+// Step tracks CRR + update gain in real-time
+function stepTracks(dt){
+  for(let i=0;i<tracks.length;i++){
+    const tr=tracks[i];if(!tr.buffer)continue;
+    // Step CRR agent — luminosity from track volume & playback state
+    const L=tr.playing?.7+tr.vol*.3:.1;
+    tr.agent.omegaScale=tr.omega*S.omegaScale;
+    tr.agent.step(fin(L,.5),dt);
+    // Update gain from CRR integration
+    if(tr.playing&&tr.gainNode&&!tr.muted){
+      const prominence=sGain(min(3,tr.agent.expCO)/3*tr.vol);
+      tr.gainNode.gain.value=prominence;
+    }
+    // CRR δ events → stutter effect
+    if(tr.agent.phase==='delta'&&tr.playing&&tr.source){
+      // Brief gain dip on rupture
+      if(tr.gainNode){
+        const now=ac.currentTime;
+        tr.gainNode.gain.setValueAtTime(tr.gainNode.gain.value*.1,now);
+        tr.gainNode.gain.linearRampToValueAtTime(sGain(min(3,tr.agent.expCO)/3*tr.vol),now+.05);
+      }
+    }
+    // Update CRR readout
+    if(frame%15===0){
+      const tc=document.getElementById('tc-'+i);
+      if(tc)tc.textContent=tr.agent.normC.toFixed(2);
+    }
+  }
+}
+
+// §3.8 BIRD SONG — syrinx Z₂ oscillator
+function playBirdCall(type,t){
+  if(S.muted.bird)return;
+  const g=S.channels.bird;if(g<.01)return;
+  const n=t||ac.currentTime;
+  const patterns={
+    robin:{freqs:[2800,3200,2600,3400,2800],durs:[.08,.06,.1,.05,.12],gap:.02},
+    nightingale:{freqs:[1800,2400,3000,2200,2800,3200,2000],durs:[.12,.08,.06,.1,.08,.06,.15],gap:.03},
+    lark:{freqs:[3500,4000,3200,4200,3800,3500,4000],durs:[.05,.04,.06,.04,.05,.06,.04],gap:.015}
+  };
+  const p=patterns[type]||patterns.robin;
+  let offset=0;
+  for(let i=0;i<p.freqs.length;i++){
+    const o=ac.createOscillator();o.type='sine';
+    const f=sFreq(p.freqs[i]*(1+(rnd()-.5)*.1));
+    o.frequency.setValueAtTime(f,n+offset);
+    if(i<p.freqs.length-1){
+      o.frequency.exponentialRampToValueAtTime(sExp(f*(1+(rnd()-.5)*.15)),n+offset+p.durs[i]*.7);
+    }
+    const eg=ac.createGain();
+    eg.gain.setValueAtTime(0,n+offset);
+    eg.gain.linearRampToValueAtTime(sGain(g*.15),n+offset+.005);
+    eg.gain.setTargetAtTime(.001,n+offset+p.durs[i]*.7,sTC(p.durs[i]*.15));
+    const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=sFreq(f*2.02);
+    const h2g=ac.createGain();h2g.gain.value=sGain(g*.04);
+    o.connect(eg);eg.connect(masterG);o2.connect(h2g);h2g.connect(eg);
+    o.start(n+offset);o.stop(n+offset+p.durs[i]+.02);
+    o2.start(n+offset);o2.stop(n+offset+p.durs[i]+.02);
+    offset+=p.durs[i]+p.gap;
+  }
+}
+
+// §3.9 WHALE SONG — SO(2) low-frequency modulation
+function playWhaleCall(type,t){
+  if(S.muted.whale)return;
+  const g=S.channels.whale;if(g<.01)return;
+  const n=t||ac.currentTime;
+  const configs={
+    humpback:{f0:200,f1:800,dur:3,harmonics:4},
+    bluewhale:{f0:14,f1:25,dur:6,harmonics:2},
+    orca:{f0:500,f1:5000,dur:1.5,harmonics:3}
+  };
+  const c=configs[type]||configs.humpback;
+  const dur=c.dur;
+  for(let h=1;h<=c.harmonics;h++){
+    const o=ac.createOscillator();o.type=h===1?'sine':'triangle';
+    o.frequency.setValueAtTime(sFreq(c.f0*h),n);
+    o.frequency.exponentialRampToValueAtTime(sExp(c.f1*h),n+dur*.4);
+    o.frequency.exponentialRampToValueAtTime(sExp(c.f0*h*.8),n+dur*.8);
+    const eg=ac.createGain();
+    eg.gain.setValueAtTime(0,n);
+    eg.gain.linearRampToValueAtTime(sGain(g*.2/h),n+dur*.15);
+    eg.gain.setTargetAtTime(.001,n+dur*.75,sTC(dur*.12));
+    const lfo=ac.createOscillator();lfo.frequency.value=.5+rnd()*.5;
+    const lfoG=ac.createGain();lfoG.gain.value=sGain(c.f0*h*.08);
+    lfo.connect(lfoG);lfoG.connect(o.frequency);
+    o.connect(eg);eg.connect(masterG);
+    o.start(n);o.stop(n+dur+.5);lfo.start(n);lfo.stop(n+dur+.5);
+  }
+}
+
+// §3.10 TEXTURES — sustained CRR environments
+const activeTextures={};
+function playTexture(type){
+  if(activeTextures[type])return;
+  const configs={
+    forest:{freqs:[200,400,800,1600,3200],type:'bandpass',level:.06,breathe:true},
+    ocean:{freqs:[80,160,320,600],type:'lowpass',level:.08,breathe:true},
+    fire:{freqs:[400,800,1600,3000,5000],type:'bandpass',level:.05,breathe:false},
+    wind:{freqs:[300,600,1200,2400],type:'highpass',level:.04,breathe:true},
+    cosmos:{freqs:[40,80,120,180,260],type:'lowpass',level:.05,breathe:false},
+    solar:{freqs:[200,340,480,620,760],type:'bandpass',level:.04,breathe:false}
+  };
+  const c=configs[type]||configs.ocean;
+  const nodes=[];
+  const ns=ac.createBufferSource();ns.buffer=noiseBuffer;ns.loop=true;
+  const mg=ac.createGain();mg.gain.value=c.level*S.masterVol;
+  for(const f of c.freqs){
+    const bf=ac.createBiquadFilter();bf.type=c.type;bf.frequency.value=f;bf.Q.value=2;
+    ns.connect(bf);bf.connect(mg);nodes.push(bf);
+  }
+  // Breathing modulation
+  if(c.breathe){
+    const lfo=ac.createOscillator();lfo.frequency.value=.08+rnd()*.04;
+    const lfoG=ac.createGain();lfoG.gain.value=c.level*.3;
+    lfo.connect(lfoG);lfoG.connect(mg.gain);lfo.start();nodes.push(lfo);
+  }
+  mg.connect(masterG);ns.start();
+  activeTextures[type]={source:ns,gain:mg,nodes};
+}
+function stopTexture(type){
+  if(!activeTextures[type])return;
+  const t=activeTextures[type];
+  t.gain.gain.setTargetAtTime(0,ac.currentTime,.5);
+  setTimeout(()=>{try{t.source.stop()}catch(e){}},2000);
+  delete activeTextures[type];
+}
+
+// §3.11 SOLO VOICE SAMPLES — triggers a note on the persistent choir
+function playSoloVoice(type,t){
+  if(!choirAudio)initChoirAudio();
+  if(!choirAudio)return;
+  const sc=getScale();
+  const configs={
+    soprano:{range:[72,84],voiceIdx:4,vowels:['iy','aa','ow','ey'],dur:2},
+    tenor:{range:[60,72],voiceIdx:2,vowels:['aa','oh','uw','eh'],dur:2.5},
+    bass_voice:{range:[42,54],voiceIdx:0,vowels:['oh','aa','uw'],dur:3}
+  };
+  const c=configs[type];if(!c)return;
+  const inRange=sc.filter(n=>n>=c.range[0]&&n<c.range[1]);
+  const note=inRange.length?inRange[flr(rnd()*inRange.length)]:c.range[0];
+  const hz=sFreq(m2f(note));
+  const vowel=c.vowels[flr(rnd()*c.vowels.length)];
+  const v=choirAudio.voices[c.voiceIdx];
+  choirAudio.master.gain.value=sGain(S.channels.choir*1.5);
+  // Set pitch
+  for(const o of v.oscs){
+    const tf=sFreq(hz*o.harmonic);
+    o.osc.frequency.cancelScheduledValues(ac.currentTime);
+    o.osc.frequency.setValueAtTime(o.osc.frequency.value,ac.currentTime);
+    o.osc.frequency.linearRampToValueAtTime(tf,ac.currentTime+.04);
+  }
+  // Schedule phoneme
+  schedulePhoneme(v,{c:null,v:vowel,x:null},c.dur);
+  // Fade in then out
+  v.vGain.gain.cancelScheduledValues(ac.currentTime);
+  v.vGain.gain.setValueAtTime(sGain(v.vGain.gain.value),ac.currentTime);
+  v.vGain.gain.linearRampToValueAtTime(.65,ac.currentTime+.08);
+  v.vGain.gain.setTargetAtTime(.001,ac.currentTime+c.dur*.7,sTC(c.dur*.15));
+}
+
+// §3.12 FX SAMPLES
+function playBell(t){
+  const n=t||ac.currentTime;const f=sFreq(m2f(pickNote(60,84)));
+  const ratios=[1,2.09,3.01,4.16,5.43];
+  for(const r of ratios){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=sFreq(f*r);
+    const eg=ac.createGain();const vol=sGain(.12/r);
+    eg.gain.setValueAtTime(vol,n);eg.gain.exponentialRampToValueAtTime(.001,n+3/r);
+    o.connect(eg);eg.connect(masterG);o.start(n);o.stop(n+4);
+  }
+}
+function playThunder(t){
+  const n=t||ac.currentTime;
+  const ns=ac.createBufferSource();ns.buffer=noiseBuffer;
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=200;
+  const eg=ac.createGain();eg.gain.setValueAtTime(0,n);
+  eg.gain.linearRampToValueAtTime(.4,n+.05);eg.gain.exponentialRampToValueAtTime(.001,n+3);
+  ns.connect(lp);lp.connect(eg);eg.connect(masterG);ns.start(n);ns.stop(n+4);
+  beatPulse=max(beatPulse,1.5);
+}
+function playRain(){
+  if(activeTextures.rain_tex){stopTexture('rain_tex');return}
+  const ns=ac.createBufferSource();ns.buffer=noiseBuffer;ns.loop=true;
+  const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=4000;
+  const mg=ac.createGain();mg.gain.value=.04;
+  ns.connect(hp);hp.connect(mg);mg.connect(masterG);ns.start();
+  activeTextures.rain_tex={source:ns,gain:mg,nodes:[]};
+}
+
+// §4 SEQUENCER
+let seqBeat=0,seqTime=0,lastBeatTime=0;
+let beatPulse=0,currentChord=[],chordDur=0;
+let nextBirdTime=0,nextWhaleTime=0;
+
+function stepSequencer(dt){
+  if(!playing||!ac)return;
+  seqTime+=dt;
+  const bs=BEAT_S();
+  if(seqTime-lastBeatTime>=bs){
+    lastBeatTime=seqTime;seqBeat++;
+    const t=ac.currentTime;
+    // Step all CRR agents
+    const chMap={master:'bass',rhythm:'kick',lead:'synth',phrase:'pad',section:'bass'};
+    for(const k in agents){
+      agents[k].omegaScale=S.omegaScale*(k==='whale'?3:k==='pad'?2:k==='bird'?.3:1);
+      const ch=chMap[k]||k;
+      const lum=.3+(S.channels[ch]||0)*.7;
+      agents[k].step(fin(lum,.5),.016);
+    }
+    const b4=seqBeat%4,b8=seqBeat%8,b16=seqBeat%16;
+    // Rhythm
+    if(b4===0)playKick(t);
+    if(b4===2&&S.genre!=='ambient'&&S.genre!=='classical'&&S.genre!=='sacred')playSnare(t);
+    if(S.genre==='dnb'){
+      if(b8===0||b8===3||b8===6)playKick(t);
+      if(b8===2||b8===5)playSnare(t);
+      if(b4===0||b4===1||b4===2||b4===3)playHihat(t,b4===2);
+    }else{
+      if(b8%2===0)playHihat(t,b8===4);
+    }
+    // Bass
+    if(b4===0||b8===5){
+      const bn=pickNote(30,48);
+      playBass(bn,t,bs*2);
+    }
+    // Synth — on beats that feel right per genre
+    if(b8===0||(b8===4&&rnd()>.4)){
+      playSynth(pickNote(54,78),t,bs*1.5);
+    }
+    // Chord changes every 4 bars
+    if(b16===0){
+      currentChord=pickChord();
+      chordDur=bs*16;
+      playPad(currentChord,t,chordDur);
+    }
+    // Choir — now driven by persistent voices in §3.7
+    // Auto-chant when no song is playing
+    if(b16===0&&S.channels.choir>.1&&!S.muted.choir&&!songState.playing&&currentChord.length&&choirAudio){
+      const vowels=['aa','oh','uw','eh','iy','oh','aa','uw'];
+      const v=vowels[flr(rnd()*vowels.length)];
+      const melodyHz=sFreq(m2f((currentChord[0]||60)));
+      const durSec=bs*8;const ca=choirAudio;
+      ca.master.gain.value=sGain(S.channels.choir*1.2);
+      const offsets=[-24,-5,0,0,12];
+      for(let vi=0;vi<ca.voices.length;vi++){
+        const voice=ca.voices[vi];
+        const voiceHz=sFreq(melodyHz*pow(2,offsets[vi]/12));
+        const clampedHz=max(voice.cv.baseHz*.5,min(voice.cv.baseHz*4,voiceHz));
+        for(const o of voice.oscs){
+          const tf=sFreq(clampedHz*o.harmonic);
+          o.osc.frequency.cancelScheduledValues(ac.currentTime);
+          o.osc.frequency.setValueAtTime(o.osc.frequency.value,ac.currentTime);
+          o.osc.frequency.linearRampToValueAtTime(tf,ac.currentTime+.06);
+        }
+        // Set vowel formants
+        const vs=getVowelStart(v);
+        voice.f1.frequency.linearRampToValueAtTime(sFreq(vs.f1),ac.currentTime+.05);
+        voice.f2.frequency.linearRampToValueAtTime(sFreq(vs.f2),ac.currentTime+.05);
+        voice.f3.frequency.linearRampToValueAtTime(sFreq(vs.f3||2400),ac.currentTime+.05);
+        voice.targetGain=.55*S.channels.choir;
+        voice.currentGain+=(voice.targetGain-voice.currentGain)*.06;
+        if(isFinite(voice.currentGain))voice.vGain.gain.value=sGain(voice.currentGain);
+        voice.agent.step(.6,.016);
+      }
+    }else if(!songState.playing&&choirAudio){
+      // Gentle decay between chant phrases
+      for(const v of choirAudio.voices){v.targetGain*=.995;
+        v.currentGain+=(v.targetGain-v.currentGain)*.04;
+        if(isFinite(v.currentGain)&&v.currentGain>.001)v.vGain.gain.value=sGain(v.currentGain)}
+    }
+    // Bird calls — stochastic based on agent
+    if(seqTime>nextBirdTime&&S.channels.bird>.05){
+      const types=['robin','nightingale','lark'];
+      playBirdCall(types[flr(rnd()*3)],t);
+      nextBirdTime=seqTime+3+rnd()*8;
+    }
+    // Whale calls — very sparse
+    if(seqTime>nextWhaleTime&&S.channels.whale>.05){
+      const types=['humpback','bluewhale','orca'];
+      playWhaleCall(types[flr(rnd()*3)],t);
+      nextWhaleTime=seqTime+8+rnd()*20;
+    }
+    // Glitch — forced δ at non-natural times
+    if(S.glitch>.01&&rnd()<S.glitch){
+      const gn=ac.createOscillator();gn.type='square';
+      gn.frequency.value=sFreq(m2f(pickNote(30,90)));
+      const gg=ac.createGain();gg.gain.setValueAtTime(sGain(S.glitch*.2),t);
+      gg.gain.exponentialRampToValueAtTime(.001,t+.02+rnd()*.03);
+      gn.connect(gg);gg.connect(masterG);gn.start(t);gn.stop(t+.06);
+    }
+  }
+}
+
+// §5 LYRICS ENGINE — now integrated into §3.7.12 stepSongEngine
+// Kept for backward compatibility — setLyricStyle
+function setLyricStyle(s){S.lyricStyle=s}
+
+// §6 MICROPHONE
+async function toggleMic(){
+  if(micEnabled){
+    if(micStream)micStream.getTracks().forEach(t=>t.stop());
+    micEnabled=false;
+    document.getElementById('mic-btn').textContent='🎤 ENABLE MICROPHONE';
+    document.getElementById('mic-status').textContent='Microphone disabled';
+    return;
+  }
+  try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    micSource=ac.createMediaStreamSource(micStream);
+    micGainNode=ac.createGain();micGainNode.gain.value=S.channels.mic*S.micGain;
+    // CRR processing on mic
+    const flt=ac.createBiquadFilter();flt.type='bandpass';flt.frequency.value=1000;flt.Q.value=S.micCRR*10;
+    micSource.connect(micGainNode);micGainNode.connect(flt);flt.connect(masterG);
+    micEnabled=true;
+    document.getElementById('mic-btn').textContent='🎤 DISABLE MICROPHONE';
+    document.getElementById('mic-status').textContent='Microphone active — CRR processing enabled';
+  }catch(e){
+    document.getElementById('mic-status').textContent='Microphone access denied';
+  }
+}
+
+// §7 PARTICLE VISUALISER — CRR-reactive
+const canvas=document.getElementById('viz');
+const gl=canvas.getContext('webgl',{antialias:false,alpha:true,preserveDrawingBuffer:true});
+let W,H,cx,cy;
+const N=12000;
+const px=new Float32Array(N),py=new Float32Array(N);
+const pvx=new Float32Array(N),pvy=new Float32Array(N);
+const coh=new Float32Array(N),phs=new Float32Array(N);
+let pTime=0;beatPulse=0;
+
+function initP(){
+  for(let i=0;i<N;i++){
+    const a=(i/N)*TAU*3,r=min(W,H)*(.05+rnd()*.25);
+    px[i]=cx+cos(a)*r+(rnd()-.5)*50;py[i]=cy+sin(a)*r+(rnd()-.5)*50;
+    pvx[i]=(rnd()-.5)*.8;pvy[i]=(rnd()-.5)*.8;
+    coh[i]=.15+rnd()*.35;phs[i]=rnd()*TAU;
+  }
+}
+
+function updateP(dt){
+  pTime+=dt;beatPulse*=.88;
+  const en=playing?agents.master.normC:0;
+  const sR=min(W,H)*(.15+en*.12);
+  const breathMod=1+agents.phrase.normC*.15;
+  for(let i=0;i<N;i++){
+    const dx=px[i]-cx,dy=py[i]-cy,dist=sqrt(dx*dx+dy*dy)+.001;
+    const grav=.5/(dist*.008+1);
+    let ax=-dx/dist*grav*.1*breathMod,ay=-dy/dist*grav*.1*breathMod;
+    ax+=(-dy/dist)*.3*(en*.5+.1);ay+=(dx/dist)*.3*(en*.5+.1);
+    if(dist<sR*.3){const rep=(sR*.3-dist)/sR;ax+=dx/dist*rep*2;ay+=dy/dist*rep*2}
+    if(beatPulse>.01){ax+=dx/dist*beatPulse*.5;ay+=dy/dist*beatPulse*.5}
+    ax+=sin(pTime*1.3+phs[i])*(.03+en*.08);ay+=cos(pTime*1.5+phs[i])*(.03+en*.08);
+    pvx[i]=(pvx[i]+ax)*.97;pvy[i]=(pvy[i]+ay)*.97;
+    let sp=sqrt(pvx[i]*pvx[i]+pvy[i]*pvy[i]);
+    const mxS=1.5+en*3;if(sp>mxS){pvx[i]=pvx[i]/sp*mxS;pvy[i]=pvy[i]/sp*mxS}
+    px[i]+=pvx[i];py[i]+=pvy[i];
+    if(dist>min(W,H)*.48){px[i]=cx+(rnd()-.5)*sR*.8;py[i]=cy+(rnd()-.5)*sR*.8;coh[i]=.1}
+    coh[i]=min(1,max(0,coh[i]+(.4-dist/sR)*.003+en*.001));
+    phs[i]+=.004+coh[i]*.01;
+  }
+}
+
+// WebGL shaders
+const vsrc=`attribute vec2 a_pos;attribute float a_coh;attribute float a_phase;
+uniform vec2 u_res;uniform float u_time;uniform float u_en;uniform float u_hue;
+varying float v_coh;varying float v_hue;varying float v_alpha;
+void main(){vec2 p=(a_pos/u_res)*2.0-1.0;p.y*=-1.0;
+  gl_Position=vec4(p,0.0,1.0);gl_PointSize=1.5+a_coh*3.5+u_en*0.5;
+  v_coh=a_coh;v_hue=u_hue+a_coh*0.2+sin(a_phase+u_time*0.3)*0.08;
+  v_alpha=0.12+a_coh*0.55+u_en*0.15;}`;
+const fsrc=`precision mediump float;varying float v_coh;varying float v_hue;varying float v_alpha;
+vec3 hsv2rgb(vec3 c){vec4 K=vec4(1.0,2.0/3.0,1.0/3.0,3.0);
+  vec3 p=abs(fract(c.xxx+K.xyz)*6.0-K.www);return c.z*mix(K.xxx,clamp(p-K.xxx,0.0,1.0),c.y);}
+void main(){vec2 c=2.0*gl_PointCoord-1.0;float r=dot(c,c);if(r>1.0)discard;
+  float s=1.0-sqrt(r);vec3 rgb=hsv2rgb(vec3(v_hue,0.5+v_coh*0.3,0.7+v_coh*0.3));
+  rgb=mix(rgb,vec3(1.0),smoothstep(0.4,0.0,r)*0.4*v_coh);gl_FragColor=vec4(rgb,v_alpha*s);}`;
+
+let prog,posAttr,cohAttr,phsAttr,resUni,timeUni,enUni,hueUni;
+let posBuf,cohBuf,phsBuf,quadProg,quadBuf;
+const posData=new Float32Array(N*2);
+
+function mkShader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s}
+function mkProg(vs,fs){const p=gl.createProgram();gl.attachShader(p,mkShader(gl.VERTEX_SHADER,vs));
+  gl.attachShader(p,mkShader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);return p}
+
+const qvs=`attribute vec2 a_p;void main(){gl_Position=vec4(a_p,0,1);}`;
+const qfs=`precision mediump float;uniform vec4 u_c;void main(){gl_FragColor=u_c;}`;
+
+function initGL(){
+  quadProg=mkProg(qvs,qfs);quadBuf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+  prog=mkProg(vsrc,fsrc);
+  posAttr=gl.getAttribLocation(prog,'a_pos');cohAttr=gl.getAttribLocation(prog,'a_coh');
+  phsAttr=gl.getAttribLocation(prog,'a_phase');
+  resUni=gl.getUniformLocation(prog,'u_res');timeUni=gl.getUniformLocation(prog,'u_time');
+  enUni=gl.getUniformLocation(prog,'u_en');hueUni=gl.getUniformLocation(prog,'u_hue');
+  posBuf=gl.createBuffer();cohBuf=gl.createBuffer();phsBuf=gl.createBuffer();
+  gl.enable(gl.BLEND);
+}
+
+function getHue(){
+  const hues={ambient:.55,classical:.08,postrock:.6,pop:.85,dnb:.95,
+    electronic:.72,sacred:.12,cosmic:.45};
+  return hues[S.genre]||.5;
+}
+
+function renderGL(){
+  // Fade trail
+  gl.useProgram(quadProg);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  const qp=gl.getAttribLocation(quadProg,'a_p');
+  gl.bindBuffer(gl.ARRAY_BUFFER,quadBuf);gl.enableVertexAttribArray(qp);
+  gl.vertexAttribPointer(qp,2,gl.FLOAT,false,0,0);
+  gl.uniform4f(gl.getUniformLocation(quadProg,'u_c'),.012,.015,.03,.06);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);gl.disableVertexAttribArray(qp);
+  // Particles
+  gl.useProgram(prog);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+  gl.uniform2f(resUni,W,H);gl.uniform1f(timeUni,pTime);
+  gl.uniform1f(enUni,playing?agents.master.normC:0);
+  gl.uniform1f(hueUni,getHue());
+  for(let i=0;i<N;i++){posData[i*2]=px[i];posData[i*2+1]=py[i]}
+  gl.bindBuffer(gl.ARRAY_BUFFER,posBuf);gl.bufferData(gl.ARRAY_BUFFER,posData,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(posAttr);gl.vertexAttribPointer(posAttr,2,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,cohBuf);gl.bufferData(gl.ARRAY_BUFFER,coh,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(cohAttr);gl.vertexAttribPointer(cohAttr,1,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,phsBuf);gl.bufferData(gl.ARRAY_BUFFER,phs,gl.DYNAMIC_DRAW);
+  gl.enableVertexAttribArray(phsAttr);gl.vertexAttribPointer(phsAttr,1,gl.FLOAT,false,0,0);
+  gl.drawArrays(gl.POINTS,0,N);
+}
+
+// §8 UI FUNCTIONS
+function switchTab(name){
+  document.querySelectorAll('.mtab').forEach((t,i)=>{
+    const tabs=['genre','mixer','samples','lyrics','tracks','mic'];
+    t.classList.toggle('active',tabs[i]===name)});
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function setGenre(g,evt){
+  S.genre=g;
+  const preset=GENRES[g];if(!preset)return;
+  S.bpm=preset.bpm;S.reverb=preset.reverb;S.delay=preset.delay;
+  S.acidQ=preset.acidQ;S.glitch=preset.glitch;
+  S.channels.kick=preset.kick;S.channels.snare=preset.snare;
+  S.channels.hihat=preset.hihat;S.channels.bass=preset.bass;
+  S.channels.synth=preset.synth;S.channels.pad=preset.pad;
+  S.channels.choir=preset.choir;S.channels.bird=preset.bird;
+  S.channels.whale=preset.whale;
+  // Update UI
+  document.getElementById('sl-bpm').value=S.bpm;document.getElementById('v-bpm').textContent=S.bpm;
+  document.getElementById('sl-reverb').value=S.reverb*100;document.getElementById('v-reverb').textContent=S.reverb.toFixed(2);
+  document.getElementById('sl-delay').value=S.delay*100;document.getElementById('v-delay').textContent=S.delay.toFixed(2);
+  document.getElementById('bpm-display').textContent=S.bpm+' BPM';
+  // Update channel strips
+  document.querySelectorAll('.ch-strip input[type=range]').forEach(inp=>{
+    const ch=inp.dataset.ch;if(ch&&S.channels[ch]!==undefined){
+      inp.value=S.channels[ch]*100;
+      inp.nextElementSibling.textContent=S.channels[ch].toFixed(2)}});
+  // Update active genre button
+  document.querySelectorAll('.genre-btn').forEach(b=>b.classList.remove('active'));
+  if(evt){const btn=evt.target.closest('.genre-btn');if(btn)btn.classList.add('active')}
+  else{document.querySelectorAll('.genre-btn').forEach(b=>{if(b.textContent.toLowerCase().includes(g))b.classList.add('active')})}
+  // Update audio params
+  if(ac){
+    if(reverbG)reverbG.gain.value=S.reverb;
+    if(dryG)dryG.gain.value=1-S.reverb*.5;
+    if(delayG)delayG.gain.value=S.delay;
+    if(delayNode)delayNode.delayTime.value=BEAT_S()*.75;
+  }
+  // Show section label
+  const sl=document.getElementById('section-label');
+  sl.textContent=g.toUpperCase()+' — '+preset.desc;sl.style.opacity='.6';
+  setTimeout(()=>sl.style.opacity='0',3000);
+}
+
+function setBPM(v){S.bpm=+v;document.getElementById('v-bpm').textContent=v;
+  document.getElementById('bpm-display').textContent=v+' BPM';
+  if(delayNode)delayNode.delayTime.value=BEAT_S()*.75}
+function setMaster(v){S.masterVol=v/100;document.getElementById('v-master').textContent=(v/100).toFixed(2);
+  if(masterG)masterG.gain.value=S.masterVol}
+function setReverb(v){S.reverb=v/100;document.getElementById('v-reverb').textContent=(v/100).toFixed(2);
+  if(reverbG)reverbG.gain.value=S.reverb;if(dryG)dryG.gain.value=1-S.reverb*.5}
+function setOmegaScale(v){S.omegaScale=v/100;document.getElementById('v-omega').textContent=(v/100).toFixed(2)}
+function setDelay(v){S.delay=v/100;document.getElementById('v-delay').textContent=(v/100).toFixed(2);
+  if(delayG)delayG.gain.value=S.delay}
+function setKey(k){S.key=k;document.getElementById('key-display').textContent=k+' '+S.scale;
+  document.querySelectorAll('[onclick^="setKey"]').forEach(b=>b.classList.toggle('active',b.textContent.trim()===k))}
+function setScale(s){S.scale=s;document.getElementById('key-display').textContent=S.key+' '+s;
+  document.querySelectorAll('[onclick^="setScale"]').forEach(b=>b.classList.toggle('active',b.textContent.trim()===s.charAt(0).toUpperCase()+s.slice(1)))}
+function setLyricStyle(s){S.lyricStyle=s}
+
+function updateParam(name,v){
+  const map={
+    acidQ:{set:()=>S.acidQ=v/10,el:'v-acid-q',fmt:v=>(v/10).toFixed(1)},
+    grainDensity:{set:()=>S.grainDensity=+v,el:'v-grain',fmt:v=>v},
+    fmDepth:{set:()=>S.fmDepth=v/100,el:'v-fm',fmt:v=>(v/100).toFixed(2)},
+    glitch:{set:()=>S.glitch=v/100,el:'v-glitch',fmt:v=>(v/100).toFixed(2)},
+    choirOmega:{set:()=>S.choirOmega=v/100,el:'v-choir-omega',fmt:v=>(v/100).toFixed(2)},
+    vibrato:{set:()=>S.vibrato=v/100,el:'v-vibrato',fmt:v=>(v/100).toFixed(2)},
+    breath:{set:()=>S.breath=v/100,el:'v-breath',fmt:v=>(v/100).toFixed(2)},
+    micGain:{set:()=>S.micGain=v/100,el:'v-mic-gain',fmt:v=>(v/100).toFixed(2)},
+    micCRR:{set:()=>S.micCRR=v/100,el:'v-mic-crr',fmt:v=>(v/100).toFixed(2)},
+    micPitch:{set:()=>S.micPitch=+v,el:'v-mic-pitch',fmt:v=>v},
+    micFormant:{set:()=>S.micFormant=v/100,el:'v-mic-formant',fmt:v=>(v/100).toFixed(2)}
+  };
+  if(map[name]){map[name].set();document.getElementById(map[name].el).textContent=map[name].fmt(v)}
+}
+
+function toggleMute(btn){
+  const ch=btn.dataset.ch;S.muted[ch]=!S.muted[ch];
+  btn.classList.toggle('muted',S.muted[ch])}
+
+function triggerSample(type){
+  if(!ac)return;
+  if(['robin','nightingale','lark'].includes(type))playBirdCall(type);
+  else if(['humpback','bluewhale','orca'].includes(type))playWhaleCall(type);
+  else if(['soprano','tenor','bass_voice'].includes(type))playSoloVoice(type);
+  else if(type==='bell')playBell();
+  else if(type==='thunder')playThunder();
+  else if(type==='rain')playRain();
+}
+function toggleTexture(type,evt){
+  if(activeTextures[type]){stopTexture(type);if(evt){const btn=evt.target.closest('.sample-btn');if(btn)btn.style.borderColor=''}}
+  else{playTexture(type);if(evt){const btn=evt.target.closest('.sample-btn');if(btn)btn.style.borderColor='var(--C)'}}
+}
+
+function togglePlay(){
+  if(!ac)initAudio();
+  playing=!playing;
+  document.getElementById('btn-play').classList.toggle('active',playing);
+  document.getElementById('btn-play').textContent=playing?'❚❚ PAUSE':'▶ PLAY';
+  if(playing){seqTime=0;lastBeatTime=0;seqBeat=0}
+}
+function stopAll(){
+  playing=false;seqBeat=0;seqTime=0;lastBeatTime=0;
+  stopSong();stopAllTracks();
+  document.getElementById('btn-play').classList.remove('active');
+  document.getElementById('btn-play').textContent='▶ PLAY';
+  for(const k in agents)agents[k].reset();
+  Object.keys(activeTextures).forEach(k=>stopTexture(k));
+}
+
+// Channel strip event listeners
+document.querySelectorAll('.ch-strip input[type=range]').forEach(inp=>{
+  inp.addEventListener('input',()=>{
+    const ch=inp.dataset.ch;S.channels[ch]=inp.value/100;
+    inp.nextElementSibling.textContent=(inp.value/100).toFixed(2);
+    if(ch==='mic'&&micGainNode)micGainNode.gain.value=S.channels.mic*S.micGain;
+  });
+});
+
+// §9 RESIZE & MAIN LOOP
+function resize(){
+  const wrap=document.getElementById('viz-wrap');
+  W=canvas.width=wrap.clientWidth;H=canvas.height=wrap.clientHeight;
+  cx=W/2;cy=H/2;gl.viewport(0,0,W,H);
+}
+
+let lastFrame=0;
+function loop(ts){
+  const dt=min(.05,(ts-lastFrame)/1000);lastFrame=ts;frame++;
+  stepSequencer(dt);
+  stepSongEngine(dt);
+  stepTracks(dt);
+  updateP(dt);
+  renderGL();
+  // CRR readout
+  if(frame%10===0){
+    const m=agents.master;
+    document.getElementById('top-crr').textContent=
+      `C=${m.C.toFixed(2)} · Ω=${m.omega.toFixed(3)} · δ=${m.ruptures} · exp(C/Ω)=${min(999,m.expCO).toFixed(2)}`;
+    const rd=document.getElementById('crr-readout');
+    rd.textContent=`phase: ${m.phase}\nbeauty: ${m.beauty.toFixed(2)}\nΩ_scale: ${S.omegaScale.toFixed(2)}\nruptures: ${m.ruptures}`;
+  }
+  // Mic level meter
+  if(micEnabled&&analyser&&frame%3===0){
+    const data=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(data);
+    let sum=0;for(let i=0;i<data.length;i++)sum+=data[i];
+    const avg=sum/data.length/255*100;
+    document.getElementById('mic-level').style.width=avg+'%';
+  }
+  requestAnimationFrame(loop);
+}
+
+// §10 INIT
+document.getElementById('splash').addEventListener('click',()=>{
+  initAudio();
+  initChoirAudio();
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  resize();initP();initGL();initTracks();
+  setGenre('postrock',null);
+  requestAnimationFrame(loop);
+});
+window.addEventListener('resize',()=>{if(document.getElementById('app').classList.contains('active')){resize();initP()}});
+</script>
+</body>
+</html>
