@@ -811,32 +811,372 @@ const SONGS={
   ]}
 };
 
-// §3.7.5 Auto-phonemiser — maps English words to approximate ARPABET
+// §3.7.5 PHONEME DICTIONARY — common words pre-annotated like the hymns
+// Each entry: array of syllables, each {l:lyric, ph:{c,v,x}, stress:0|1|2}
+const PHDICT={
+  // Articles, prepositions, pronouns
+  'the':[{l:'the',ph:{c:'dh',v:'ax',x:null},s:0}],
+  'a':[{l:'a',ph:{c:null,v:'ax',x:null},s:0}],
+  'an':[{l:'an',ph:{c:null,v:'ae',x:'n'},s:0}],
+  'and':[{l:'and',ph:{c:null,v:'ae',x:'n'},s:0}],
+  'of':[{l:'of',ph:{c:null,v:'ah',x:'v'},s:0}],
+  'in':[{l:'in',ph:{c:null,v:'ih',x:'n'},s:0}],
+  'to':[{l:'to',ph:{c:'t',v:'uw',x:null},s:0}],
+  'for':[{l:'for',ph:{c:'f',v:'ao',x:'r'},s:0}],
+  'is':[{l:'is',ph:{c:null,v:'ih',x:'z'},s:0}],
+  'it':[{l:'it',ph:{c:null,v:'ih',x:'t'},s:0}],
+  'on':[{l:'on',ph:{c:null,v:'aa',x:'n'},s:0}],
+  'at':[{l:'at',ph:{c:null,v:'ae',x:'t'},s:0}],
+  'by':[{l:'by',ph:{c:'b',v:'ay',x:null},s:0}],
+  'my':[{l:'my',ph:{c:'m',v:'ay',x:null},s:1}],
+  'me':[{l:'me',ph:{c:'m',v:'iy',x:null},s:1}],
+  'we':[{l:'we',ph:{c:'w',v:'iy',x:null},s:1}],
+  'he':[{l:'he',ph:{c:'h',v:'iy',x:null},s:1}],
+  'she':[{l:'she',ph:{c:'sh',v:'iy',x:null},s:1}],
+  'you':[{l:'you',ph:{c:'y',v:'uw',x:null},s:1}],
+  'your':[{l:'your',ph:{c:'y',v:'ao',x:'r'},s:1}],
+  'our':[{l:'our',ph:{c:null,v:'aw',x:'r'},s:1}],
+  'i':[{l:'I',ph:{c:null,v:'ay',x:null},s:1}],
+  'that':[{l:'that',ph:{c:'dh',v:'ae',x:'t'},s:1}],
+  'this':[{l:'this',ph:{c:'dh',v:'ih',x:'s'},s:1}],
+  'with':[{l:'with',ph:{c:'w',v:'ih',x:'th'},s:0}],
+  'from':[{l:'from',ph:{c:'f',v:'ah',x:'m'},s:0}],
+  'but':[{l:'but',ph:{c:'b',v:'ah',x:'t'},s:0}],
+  'not':[{l:'not',ph:{c:'n',v:'aa',x:'t'},s:1}],
+  'all':[{l:'all',ph:{c:null,v:'ao',x:'l'},s:1}],
+  'was':[{l:'was',ph:{c:'w',v:'ah',x:'z'},s:0}],
+  'are':[{l:'are',ph:{c:null,v:'aa',x:'r'},s:0}],
+  'be':[{l:'be',ph:{c:'b',v:'iy',x:null},s:1}],
+  'been':[{l:'been',ph:{c:'b',v:'ih',x:'n'},s:1}],
+  'have':[{l:'have',ph:{c:'h',v:'ae',x:'v'},s:1}],
+  'has':[{l:'has',ph:{c:'h',v:'ae',x:'z'},s:1}],
+  'had':[{l:'had',ph:{c:'h',v:'ae',x:'d'},s:1}],
+  'do':[{l:'do',ph:{c:'d',v:'uw',x:null},s:1}],
+  'did':[{l:'did',ph:{c:'d',v:'ih',x:'d'},s:1}],
+  'will':[{l:'will',ph:{c:'w',v:'ih',x:'l'},s:1}],
+  'no':[{l:'no',ph:{c:'n',v:'ow',x:null},s:1}],
+  'so':[{l:'so',ph:{c:'s',v:'ow',x:null},s:1}],
+  'or':[{l:'or',ph:{c:null,v:'ao',x:'r'},s:0}],
+  'if':[{l:'if',ph:{c:null,v:'ih',x:'f'},s:0}],
+  'up':[{l:'up',ph:{c:null,v:'ah',x:'p'},s:1}],
+  'out':[{l:'out',ph:{c:null,v:'aw',x:'t'},s:1}],
+  // Common verbs
+  'come':[{l:'come',ph:{c:'k',v:'ah',x:'m'},s:1}],
+  'go':[{l:'go',ph:{c:'g',v:'ow',x:null},s:1}],
+  'know':[{l:'know',ph:{c:'n',v:'ow',x:null},s:1}],
+  'see':[{l:'see',ph:{c:'s',v:'iy',x:null},s:1}],
+  'say':[{l:'say',ph:{c:'s',v:'ey',x:null},s:1}],
+  'said':[{l:'said',ph:{c:'s',v:'eh',x:'d'},s:1}],
+  'take':[{l:'take',ph:{c:'t',v:'ey',x:'k'},s:1}],
+  'make':[{l:'make',ph:{c:'m',v:'ey',x:'k'},s:1}],
+  'give':[{l:'give',ph:{c:'g',v:'ih',x:'v'},s:1}],
+  'let':[{l:'let',ph:{c:'l',v:'eh',x:'t'},s:1}],
+  'sing':[{l:'sing',ph:{c:'s',v:'ih',x:'ng'},s:1}],
+  'ring':[{l:'ring',ph:{c:'r',v:'ih',x:'ng'},s:1}],
+  'bring':[{l:'bring',ph:{c:'b',v:'ih',x:'ng'},s:1}],
+  'love':[{l:'love',ph:{c:'l',v:'ah',x:'v'},s:1}],
+  'live':[{l:'live',ph:{c:'l',v:'ih',x:'v'},s:1}],
+  'die':[{l:'die',ph:{c:'d',v:'ay',x:null},s:1}],
+  'fall':[{l:'fall',ph:{c:'f',v:'ao',x:'l'},s:1}],
+  'rise':[{l:'rise',ph:{c:'r',v:'ay',x:'z'},s:1}],
+  'shine':[{l:'shine',ph:{c:'sh',v:'ay',x:'n'},s:1}],
+  'burn':[{l:'burn',ph:{c:'b',v:'er',x:'n'},s:1}],
+  'turn':[{l:'turn',ph:{c:'t',v:'er',x:'n'},s:1}],
+  'walk':[{l:'walk',ph:{c:'w',v:'ao',x:'k'},s:1}],
+  'stand':[{l:'stand',ph:{c:'s',v:'ae',x:'n'},s:1}],
+  'keep':[{l:'keep',ph:{c:'k',v:'iy',x:'p'},s:1}],
+  'hold':[{l:'hold',ph:{c:'h',v:'ow',x:'l'},s:1}],
+  'find':[{l:'find',ph:{c:'f',v:'ay',x:'n'},s:1}],
+  'feel':[{l:'feel',ph:{c:'f',v:'iy',x:'l'},s:1}],
+  'hear':[{l:'hear',ph:{c:'h',v:'iy',x:'r'},s:1}],
+  'still':[{l:'still',ph:{c:'s',v:'ih',x:'l'},s:1}],
+  // Common nouns
+  'light':[{l:'light',ph:{c:'l',v:'ay',x:'t'},s:1}],
+  'night':[{l:'night',ph:{c:'n',v:'ay',x:'t'},s:1}],
+  'day':[{l:'day',ph:{c:'d',v:'ey',x:null},s:1}],
+  'time':[{l:'time',ph:{c:'t',v:'ay',x:'m'},s:1}],
+  'life':[{l:'life',ph:{c:'l',v:'ay',x:'f'},s:1}],
+  'world':[{l:'world',ph:{c:'w',v:'er',x:'l'},s:1}],
+  'heart':[{l:'heart',ph:{c:'h',v:'aa',x:'r'},s:1}],
+  'soul':[{l:'soul',ph:{c:'s',v:'ow',x:'l'},s:1}],
+  'mind':[{l:'mind',ph:{c:'m',v:'ay',x:'n'},s:1}],
+  'love':[{l:'love',ph:{c:'l',v:'ah',x:'v'},s:1}],
+  'god':[{l:'God',ph:{c:'g',v:'aa',x:'d'},s:1}],
+  'lord':[{l:'Lord',ph:{c:'l',v:'ao',x:'r'},s:1}],
+  'man':[{l:'man',ph:{c:'m',v:'ae',x:'n'},s:1}],
+  'fire':[{l:'fire',ph:{c:'f',v:'ay',x:'r'},s:1}],
+  'water':[{l:'wa-',ph:{c:'w',v:'ao',x:null},s:1},{l:'ter',ph:{c:'t',v:'er',x:null},s:0}],
+  'earth':[{l:'earth',ph:{c:null,v:'er',x:'th'},s:1}],
+  'wind':[{l:'wind',ph:{c:'w',v:'ih',x:'n'},s:1}],
+  'rain':[{l:'rain',ph:{c:'r',v:'ey',x:'n'},s:1}],
+  'star':[{l:'star',ph:{c:'s',v:'aa',x:'r'},s:1}],
+  'sun':[{l:'sun',ph:{c:'s',v:'ah',x:'n'},s:1}],
+  'moon':[{l:'moon',ph:{c:'m',v:'uw',x:'n'},s:1}],
+  'sky':[{l:'sky',ph:{c:'s',v:'ay',x:null},s:1}],
+  'sea':[{l:'sea',ph:{c:'s',v:'iy',x:null},s:1}],
+  'tree':[{l:'tree',ph:{c:'t',v:'iy',x:null},s:1}],
+  'song':[{l:'song',ph:{c:'s',v:'ao',x:'ng'},s:1}],
+  'voice':[{l:'voice',ph:{c:'v',v:'oy',x:'s'},s:1}],
+  'word':[{l:'word',ph:{c:'w',v:'er',x:'d'},s:1}],
+  'name':[{l:'name',ph:{c:'n',v:'ey',x:'m'},s:1}],
+  'hope':[{l:'hope',ph:{c:'h',v:'ow',x:'p'},s:1}],
+  'peace':[{l:'peace',ph:{c:'p',v:'iy',x:'s'},s:1}],
+  'grace':[{l:'grace',ph:{c:'g',v:'ey',x:'s'},s:1}],
+  'dream':[{l:'dream',ph:{c:'d',v:'iy',x:'m'},s:1}],
+  'home':[{l:'home',ph:{c:'h',v:'ow',x:'m'},s:1}],
+  'hand':[{l:'hand',ph:{c:'h',v:'ae',x:'n'},s:1}],
+  'eye':[{l:'eye',ph:{c:null,v:'ay',x:null},s:1}],
+  'face':[{l:'face',ph:{c:'f',v:'ey',x:'s'},s:1}],
+  'way':[{l:'way',ph:{c:'w',v:'ey',x:null},s:1}],
+  'door':[{l:'door',ph:{c:'d',v:'ao',x:'r'},s:1}],
+  'stone':[{l:'stone',ph:{c:'s',v:'ow',x:'n'},s:1}],
+  'road':[{l:'road',ph:{c:'r',v:'ow',x:'d'},s:1}],
+  'gold':[{l:'gold',ph:{c:'g',v:'ow',x:'l'},s:1}],
+  // Adjectives
+  'dark':[{l:'dark',ph:{c:'d',v:'aa',x:'r'},s:1}],
+  'deep':[{l:'deep',ph:{c:'d',v:'iy',x:'p'},s:1}],
+  'bright':[{l:'bright',ph:{c:'b',v:'ay',x:'t'},s:1}],
+  'sweet':[{l:'sweet',ph:{c:'s',v:'iy',x:'t'},s:1}],
+  'long':[{l:'long',ph:{c:'l',v:'ao',x:'ng'},s:1}],
+  'old':[{l:'old',ph:{c:null,v:'ow',x:'l'},s:1}],
+  'new':[{l:'new',ph:{c:'n',v:'uw',x:null},s:1}],
+  'true':[{l:'true',ph:{c:'t',v:'uw',x:null},s:1}],
+  'free':[{l:'free',ph:{c:'f',v:'iy',x:null},s:1}],
+  'green':[{l:'green',ph:{c:'g',v:'iy',x:'n'},s:1}],
+  'white':[{l:'white',ph:{c:'w',v:'ay',x:'t'},s:1}],
+  'black':[{l:'black',ph:{c:'b',v:'ae',x:'k'},s:1}],
+  'high':[{l:'high',ph:{c:'h',v:'ay',x:null},s:1}],
+  'low':[{l:'low',ph:{c:'l',v:'ow',x:null},s:1}],
+  'first':[{l:'first',ph:{c:'f',v:'er',x:'s'},s:1}],
+  'last':[{l:'last',ph:{c:'l',v:'ae',x:'s'},s:1}],
+  'every':[{l:'ev-',ph:{c:null,v:'eh',x:'v'},s:1},{l:'ry',ph:{c:'r',v:'iy',x:null},s:0}],
+  // Multi-syllable
+  'never':[{l:'ne-',ph:{c:'n',v:'eh',x:null},s:1},{l:'ver',ph:{c:'v',v:'er',x:null},s:0}],
+  'ever':[{l:'e-',ph:{c:null,v:'eh',x:null},s:1},{l:'ver',ph:{c:'v',v:'er',x:null},s:0}],
+  'over':[{l:'o-',ph:{c:null,v:'ow',x:null},s:1},{l:'ver',ph:{c:'v',v:'er',x:null},s:0}],
+  'under':[{l:'un-',ph:{c:null,v:'ah',x:'n'},s:1},{l:'der',ph:{c:'d',v:'er',x:null},s:0}],
+  'only':[{l:'on-',ph:{c:null,v:'ow',x:'n'},s:1},{l:'ly',ph:{c:'l',v:'iy',x:null},s:0}],
+  'away':[{l:'a-',ph:{c:null,v:'ax',x:null},s:0},{l:'way',ph:{c:'w',v:'ey',x:null},s:1}],
+  'again':[{l:'a-',ph:{c:null,v:'ax',x:null},s:0},{l:'gain',ph:{c:'g',v:'eh',x:'n'},s:1}],
+  'before':[{l:'be-',ph:{c:'b',v:'iy',x:null},s:0},{l:'fore',ph:{c:'f',v:'ao',x:'r'},s:1}],
+  'after':[{l:'af-',ph:{c:null,v:'ae',x:'f'},s:1},{l:'ter',ph:{c:'t',v:'er',x:null},s:0}],
+  'morning':[{l:'morn-',ph:{c:'m',v:'ao',x:'r'},s:1},{l:'ing',ph:{c:null,v:'ih',x:'ng'},s:0}],
+  'evening':[{l:'eve-',ph:{c:null,v:'iy',x:'v'},s:1},{l:'ning',ph:{c:'n',v:'ih',x:'ng'},s:0}],
+  'heaven':[{l:'hea-',ph:{c:'h',v:'eh',x:null},s:1},{l:'ven',ph:{c:'v',v:'eh',x:'n'},s:0}],
+  'garden':[{l:'gar-',ph:{c:'g',v:'aa',x:'r'},s:1},{l:'den',ph:{c:'d',v:'eh',x:'n'},s:0}],
+  'mother':[{l:'mo-',ph:{c:'m',v:'ah',x:null},s:1},{l:'ther',ph:{c:'dh',v:'er',x:null},s:0}],
+  'father':[{l:'fa-',ph:{c:'f',v:'aa',x:null},s:1},{l:'ther',ph:{c:'dh',v:'er',x:null},s:0}],
+  'brother':[{l:'bro-',ph:{c:'b',v:'ah',x:null},s:1},{l:'ther',ph:{c:'dh',v:'er',x:null},s:0}],
+  'sister':[{l:'sis-',ph:{c:'s',v:'ih',x:'s'},s:1},{l:'ter',ph:{c:'t',v:'er',x:null},s:0}],
+  'children':[{l:'chil-',ph:{c:'ch',v:'ih',x:'l'},s:1},{l:'dren',ph:{c:'d',v:'eh',x:'n'},s:0}],
+  'together':[{l:'to-',ph:{c:'t',v:'ax',x:null},s:0},{l:'ge-',ph:{c:'g',v:'eh',x:null},s:1},{l:'ther',ph:{c:'dh',v:'er',x:null},s:0}],
+  'forever':[{l:'for-',ph:{c:'f',v:'ao',x:'r'},s:0},{l:'e-',ph:{c:null,v:'eh',x:null},s:1},{l:'ver',ph:{c:'v',v:'er',x:null},s:0}],
+  'remember':[{l:'re-',ph:{c:'r',v:'iy',x:null},s:0},{l:'mem-',ph:{c:'m',v:'eh',x:'m'},s:1},{l:'ber',ph:{c:'b',v:'er',x:null},s:0}],
+  'nothing':[{l:'no-',ph:{c:'n',v:'ah',x:null},s:1},{l:'thing',ph:{c:'th',v:'ih',x:'ng'},s:0}],
+  'something':[{l:'some-',ph:{c:'s',v:'ah',x:'m'},s:1},{l:'thing',ph:{c:'th',v:'ih',x:'ng'},s:0}],
+  'everything':[{l:'ev-',ph:{c:null,v:'eh',x:'v'},s:1},{l:'ry-',ph:{c:'r',v:'iy',x:null},s:0},{l:'thing',ph:{c:'th',v:'ih',x:'ng'},s:0}],
+  'beautiful':[{l:'beau-',ph:{c:'b',v:'uw',x:null},s:1},{l:'ti-',ph:{c:'t',v:'ih',x:null},s:0},{l:'ful',ph:{c:'f',v:'uh',x:'l'},s:0}],
+  'wonderful':[{l:'won-',ph:{c:'w',v:'ah',x:'n'},s:1},{l:'der-',ph:{c:'d',v:'er',x:null},s:0},{l:'ful',ph:{c:'f',v:'uh',x:'l'},s:0}],
+  'hallelujah':[{l:'hal-',ph:{c:'h',v:'ae',x:'l'},s:0},{l:'le-',ph:{c:'l',v:'ey',x:null},s:1},{l:'lu-',ph:{c:'l',v:'uw',x:null},s:0},{l:'jah',ph:{c:'jh',v:'aa',x:null},s:1}],
+  'amen':[{l:'a-',ph:{c:null,v:'aa',x:null},s:0},{l:'men',ph:{c:'m',v:'eh',x:'n'},s:1}],
+  'glory':[{l:'glo-',ph:{c:'g',v:'ao',x:null},s:1},{l:'ry',ph:{c:'r',v:'iy',x:null},s:0}],
+  'holy':[{l:'ho-',ph:{c:'h',v:'ow',x:null},s:1},{l:'ly',ph:{c:'l',v:'iy',x:null},s:0}],
+  'mercy':[{l:'mer-',ph:{c:'m',v:'er',x:null},s:1},{l:'cy',ph:{c:'s',v:'iy',x:null},s:0}],
+  'spirit':[{l:'spi-',ph:{c:'s',v:'ih',x:null},s:1},{l:'rit',ph:{c:'r',v:'ih',x:'t'},s:0}],
+  'silence':[{l:'si-',ph:{c:'s',v:'ay',x:null},s:1},{l:'lence',ph:{c:'l',v:'eh',x:'n'},s:0}],
+  'darkness':[{l:'dark-',ph:{c:'d',v:'aa',x:'r'},s:1},{l:'ness',ph:{c:'n',v:'eh',x:'s'},s:0}],
+  'mountain':[{l:'moun-',ph:{c:'m',v:'aw',x:'n'},s:1},{l:'tain',ph:{c:'t',v:'ih',x:'n'},s:0}],
+  'river':[{l:'ri-',ph:{c:'r',v:'ih',x:null},s:1},{l:'ver',ph:{c:'v',v:'er',x:null},s:0}],
+  'ocean':[{l:'o-',ph:{c:null,v:'ow',x:null},s:1},{l:'cean',ph:{c:'sh',v:'ah',x:'n'},s:0}],
+  'ancient':[{l:'an-',ph:{c:null,v:'ey',x:'n'},s:1},{l:'cient',ph:{c:'sh',v:'ax',x:'n'},s:0}],
+  'broken':[{l:'bro-',ph:{c:'b',v:'ow',x:null},s:1},{l:'ken',ph:{c:'k',v:'eh',x:'n'},s:0}],
+  'golden':[{l:'gol-',ph:{c:'g',v:'ow',x:'l'},s:1},{l:'den',ph:{c:'d',v:'eh',x:'n'},s:0}],
+  'sacred':[{l:'sa-',ph:{c:'s',v:'ey',x:null},s:1},{l:'cred',ph:{c:'k',v:'eh',x:'d'},s:0}],
+  'gentle':[{l:'gen-',ph:{c:'jh',v:'eh',x:'n'},s:1},{l:'tle',ph:{c:'t',v:'ax',x:'l'},s:0}],
+  'slowly':[{l:'slow-',ph:{c:'s',v:'ow',x:null},s:1},{l:'ly',ph:{c:'l',v:'iy',x:null},s:0}],
+  'falling':[{l:'fal-',ph:{c:'f',v:'ao',x:null},s:1},{l:'ling',ph:{c:'l',v:'ih',x:'ng'},s:0}],
+  'rising':[{l:'ri-',ph:{c:'r',v:'ay',x:null},s:1},{l:'sing',ph:{c:'z',v:'ih',x:'ng'},s:0}],
+  'burning':[{l:'burn-',ph:{c:'b',v:'er',x:'n'},s:1},{l:'ing',ph:{c:null,v:'ih',x:'ng'},s:0}],
+  'shining':[{l:'shi-',ph:{c:'sh',v:'ay',x:null},s:1},{l:'ning',ph:{c:'n',v:'ih',x:'ng'},s:0}],
+  'waiting':[{l:'wait-',ph:{c:'w',v:'ey',x:null},s:1},{l:'ing',ph:{c:null,v:'ih',x:'ng'},s:0}],
+  'breathing':[{l:'brea-',ph:{c:'b',v:'iy',x:null},s:1},{l:'thing',ph:{c:'dh',v:'ih',x:'ng'},s:0}],
+  'sleeping':[{l:'sleep-',ph:{c:'s',v:'iy',x:null},s:1},{l:'ing',ph:{c:null,v:'ih',x:'ng'},s:0}],
+  'waking':[{l:'wa-',ph:{c:'w',v:'ey',x:null},s:1},{l:'king',ph:{c:'k',v:'ih',x:'ng'},s:0}],
+  'singing':[{l:'sing-',ph:{c:'s',v:'ih',x:null},s:1},{l:'ing',ph:{c:null,v:'ih',x:'ng'},s:0}],
+  // Cohen lyrics common words
+  'bells':[{l:'bells',ph:{c:'b',v:'eh',x:'l'},s:1}],
+  'crack':[{l:'crack',ph:{c:'k',v:'ae',x:'k'},s:1}],
+  'gets':[{l:'gets',ph:{c:'g',v:'eh',x:'t'},s:1}],
+  'how':[{l:'how',ph:{c:'h',v:'aw',x:null},s:1}],
+  'there':[{l:'there',ph:{c:'dh',v:'eh',x:'r'},s:1}],
+  'where':[{l:'where',ph:{c:'w',v:'eh',x:'r'},s:1}],
+  'here':[{l:'here',ph:{c:'h',v:'iy',x:'r'},s:1}],
+  'when':[{l:'when',ph:{c:'w',v:'eh',x:'n'},s:1}],
+  'then':[{l:'then',ph:{c:'dh',v:'eh',x:'n'},s:1}],
+  'now':[{l:'now',ph:{c:'n',v:'aw',x:null},s:1}],
+  'can':[{l:'can',ph:{c:'k',v:'ae',x:'n'},s:0}],
+  'down':[{l:'down',ph:{c:'d',v:'aw',x:'n'},s:1}],
+  'through':[{l:'through',ph:{c:'th',v:'uw',x:null},s:1}],
+  'into':[{l:'in-',ph:{c:null,v:'ih',x:'n'},s:1},{l:'to',ph:{c:'t',v:'uw',x:null},s:0}],
+  'like':[{l:'like',ph:{c:'l',v:'ay',x:'k'},s:1}],
+  'would':[{l:'would',ph:{c:'w',v:'uh',x:'d'},s:0}],
+  'could':[{l:'could',ph:{c:'k',v:'uh',x:'d'},s:0}],
+  'should':[{l:'should',ph:{c:'sh',v:'uh',x:'d'},s:0}],
+  'just':[{l:'just',ph:{c:'jh',v:'ah',x:'s'},s:1}],
+  'than':[{l:'than',ph:{c:'dh',v:'ae',x:'n'},s:0}],
+  'more':[{l:'more',ph:{c:'m',v:'ao',x:'r'},s:1}],
+  'them':[{l:'them',ph:{c:'dh',v:'eh',x:'m'},s:0}],
+  'each':[{l:'each',ph:{c:null,v:'iy',x:'ch'},s:1}],
+  "that's":[{l:"that's",ph:{c:'dh',v:'ae',x:'t'},s:1}],
+};
+
+// §3.7.5b Syllable splitter for words not in dictionary
+function splitSyllables(word){
+  const w=word.toLowerCase().replace(/[^a-z]/g,'');
+  if(w.length<=3)return[w];
+  const vowels='aeiouy';const syls=[];let cur='';let prevV=false;
+  for(let i=0;i<w.length;i++){
+    const isV=vowels.includes(w[i]);cur+=w[i];
+    if(prevV&&!isV&&i<w.length-1){
+      // Split before consonant cluster if next is vowel-consonant
+      const ahead=w.slice(i+1);
+      if(ahead.length>0&&vowels.includes(ahead[0])){syls.push(cur.slice(0,-1));cur=w[i]}
+      else if(ahead.length>1&&!vowels.includes(ahead[0])&&vowels.includes(ahead[1])){
+        syls.push(cur);cur=''}
+    }
+    prevV=isV;
+  }
+  if(cur)syls.push(cur);
+  // Merge tiny trailing syllables
+  if(syls.length>1&&syls[syls.length-1].length===1)
+    syls[syls.length-2]+=syls.pop();
+  return syls.length?syls:[w];
+}
+
+// §3.7.5c Improved autoPhoneme — handles multi-consonant onsets, silent-e, common patterns
 function autoPhoneme(word){
   const w=word.toLowerCase().replace(/[^a-z']/g,'');
   if(!w)return{c:null,v:'ax',x:null};
-  // Onset consonant extraction
-  const onsets=['th','sh','ch','wh','ph','wr','kn','gn','str','spr','spl','scr','tr','dr','br','cr','fr','gr','pr','bl','cl','fl','gl','pl','sl','sk','sm','sn','sp','st','sw'];
+  // Onset: try multi-char then single
+  const onsetMap={th:'th',sh:'sh',ch:'ch',wh:'w',ph:'f',wr:'r',kn:'n',gn:'n',
+    tr:'t',dr:'d',br:'b',cr:'k',fr:'f',gr:'g',pr:'p',bl:'b',cl:'k',fl:'f',gl:'g',pl:'p',sl:'s',
+    sk:'s',sm:'s',sn:'s',sp:'s',st:'s',sw:'s',str:'s',spr:'s',scr:'s'};
   let onset=null,rest=w;
-  for(const o of onsets){if(w.startsWith(o)){
-    const cm={'th':'th','sh':'sh','ch':'ch','wh':'w','ph':'f','wr':'r','kn':'n','gn':'n'};
-    onset=cm[o]||CONSONANTS[o[0]]?o[0]:null;rest=w.slice(o.length);break}}
-  if(!onset&&w.length>0&&!'aeiou'.includes(w[0])){
-    const cm={c:'k',q:'k',x:'k',j:'jh'};onset=cm[w[0]]||w[0];rest=w.slice(1);
+  for(const o of ['str','spr','scr','spl','th','sh','ch','wh','ph','wr','kn','gn','tr','dr','br','cr','fr','gr','pr','bl','cl','fl','gl','pl','sl','sk','sm','sn','sp','st','sw']){
+    if(w.startsWith(o)){onset=onsetMap[o]||o[0];rest=w.slice(o.length);break}}
+  if(!onset&&rest.length>0&&!'aeiouy'.includes(rest[0])){
+    const cm={c:'k',q:'k',x:'k',j:'jh'};onset=cm[rest[0]]||rest[0];rest=rest.slice(1);
     if(!CONSONANTS[onset])onset=null}
-  // Vowel nucleus extraction
-  const vmap={'igh':'ay','ight':'ay','ire':'ay','ire':'ay','ough':'ow','oo':'uw','ou':'aw','ow':'aw',
-    'ea':'iy','ee':'iy','ie':'iy','ai':'ey','ay':'ey','oi':'oy','oy':'oy',
-    'a':'ae','e':'eh','i':'ih','o':'aa','u':'ah','y':'iy'};
-  let vowel='ax';
-  for(const[k,v] of Object.entries(vmap)){if(rest.includes(k)){vowel=v;
-    const vi=rest.indexOf(k);rest=rest.slice(vi+k.length);break}}
-  // Coda consonant
-  let coda=null;
-  if(rest.length>0){const last=rest[rest.length-1];
-    const cm={c:'k',x:'k',j:'jh'};coda=cm[last]||last;
-    if(!CONSONANTS[coda])coda=null}
+  // Vowel: check digraphs first, then silent-e pattern, then singles
+  const vDigraphs={igh:'ay',ight:'ay',ough:'ow',oo:'uw',ou:'aw',ow:'aw',ea:'iy',ee:'iy',
+    ie:'iy',ai:'ey',ay:'ey',oi:'oy',oy:'oy',au:'ao',aw:'ao',ew:'uw',ue:'uw'};
+  let vowel='ax',vEnd=0;
+  // Try digraphs
+  for(const[k,v] of Object.entries(vDigraphs)){
+    const idx=rest.indexOf(k);if(idx>=0&&idx<2){vowel=v;vEnd=idx+k.length;break}}
+  if(vowel==='ax'){
+    // Silent-e pattern: xCe → long vowel
+    const sE=rest.match(/^([aeiou])([^aeiouy]+)e$/);
+    if(sE){const longV={a:'ey',e:'iy',i:'ay',o:'ow',u:'uw'};
+      vowel=longV[sE[1]]||'ax';vEnd=1}
+    else{// Single vowel
+      for(let i=0;i<rest.length;i++){
+        if('aeiouy'.includes(rest[i])){
+          const sv={a:'ae',e:'eh',i:'ih',o:'aa',u:'ah',y:'iy'};
+          vowel=sv[rest[i]]||'ax';vEnd=i+1;break}}}
+  }
+  // Coda: everything after vowel
+  const coda_str=rest.slice(vEnd);let coda=null;
+  if(coda_str.length>0){
+    // Multi-char codas
+    const codaMap={ng:'ng',nk:'ng',ck:'k',sh:'sh',ch:'ch',th:'th',gh:null};
+    for(const[k,v] of Object.entries(codaMap)){if(coda_str.endsWith(k)){coda=v;break}}
+    if(coda===undefined){const last=coda_str[coda_str.length-1];
+      const cm={c:'k',x:'k',j:'jh'};coda=cm[last]||last}
+    if(coda&&!CONSONANTS[coda])coda=null}
   return{c:onset&&CONSONANTS[onset]?onset:null,v:vowel,x:coda&&CONSONANTS[coda]?coda:null};
+}
+
+// §3.7.5d Word → annotated syllables (dictionary first, then split+phonemise)
+function wordToSyllables(word){
+  const clean=word.toLowerCase().replace(/[^a-z']/g,'');
+  // Dictionary lookup
+  if(PHDICT[clean])return PHDICT[clean].map(s=>({...s}));
+  // Check with trailing punctuation stripped
+  const stripped=clean.replace(/[^a-z]/g,'');
+  if(PHDICT[stripped])return PHDICT[stripped].map(s=>({...s}));
+  // Split into syllables and phonemise each
+  const syls=splitSyllables(stripped);
+  return syls.map((syl,i)=>{
+    const ph=autoPhoneme(syl);
+    const isStressed=(i===0&&syls.length<=2)||(i===1&&syls.length>2);
+    return{l:syls.length>1?(i<syls.length-1?syl+'-':syl):word,ph,s:isStressed?1:0};
+  });
+}
+
+// §3.7.5e Melodic contour generator — creates singable melodies from scale
+function generateMelody(syllableCount,scale,style){
+  const sc=scale.filter(n=>n>=55&&n<=74); // comfortable singing range
+  if(!sc.length)return Array(syllableCount).fill(60);
+  const mid=flr(sc.length/2);
+  const melody=[];
+  let pos=mid; // start in middle of range
+  // Phrase shape: arch (rise then fall), with occasional leaps on stressed syllables
+  const phraseLen=max(4,min(12,syllableCount));
+  for(let i=0;i<syllableCount;i++){
+    const phrasePos=(i%phraseLen)/phraseLen; // 0-1 within phrase
+    // Arch: rise to peak at 0.4, then descend
+    let target;
+    if(phrasePos<.4)target=mid+flr((phrasePos/.4)*(sc.length*.3));
+    else target=mid+flr((1-(phrasePos-.4)/.6)*(sc.length*.3));
+    // Stepwise motion with occasional leaps
+    const step=target>pos?1:target<pos?-1:0;
+    const leap=(rnd()>.85)?flr(rnd()*3)+1:0;
+    pos=max(0,min(sc.length-1,pos+step+step*leap));
+    // On phrase boundaries, allow bigger moves
+    if(i%phraseLen===0&&i>0)pos=max(0,min(sc.length-1,mid+flr((rnd()-.5)*4)));
+    melody.push(sc[pos]);
+  }
+  return melody;
+}
+
+// §3.7.5f REBUILT singFreeText — syllable-split, melodically contoured, stress-timed
+function singFreeText(){
+  const text=document.getElementById('lyrics-input').value.trim();
+  if(!text||!ac)return;
+  const words=text.split(/\s+/).filter(w=>w.length>0);
+  const beatMul=S.lyricStyle==='gregorian'?2.2:S.lyricStyle==='chant'?1.6:1.1;
+  // Convert all words to annotated syllables
+  const allSyls=[];
+  for(const word of words){
+    const syls=wordToSyllables(word);
+    allSyls.push(...syls);
+    // Phrase rest after punctuation
+    if(/[,.;:!?]$/.test(word))allSyls.push({l:'',ph:null,s:0,rest:true});
+  }
+  // Generate melodic contour
+  const nonRest=allSyls.filter(s=>!s.rest);
+  const melody=generateMelody(nonRest.length,getScale(),S.lyricStyle);
+  // Build note array like the hymns
+  const notes=[];let mIdx=0;
+  for(const syl of allSyls){
+    if(syl.rest){notes.push({m:0,d:1,l:""});continue}
+    const m=melody[mIdx++]||60;
+    // Stressed syllables get longer duration
+    const dur=syl.s?beatMul*1.4:beatMul*.85;
+    notes.push({m,d:dur,l:syl.l,ph:syl.ph});
+  }
+  // Add breathing rests every ~8-12 syllables if none exist
+  let sinceRest=0;
+  for(let i=notes.length-1;i>=0;i--){
+    if(notes[i].m===0)sinceRest=0;
+    else{sinceRest++;
+      if(sinceRest>10&&notes[i].l&&/[-,.]/.test(notes[i].l)){
+        notes.splice(i+1,0,{m:0,d:.6,l:""});sinceRest=0}}
+  }
+  songState.freeNotes=notes;songState.freeText=true;songState.songKey=null;
+  songState.tempo=S.bpm;
+  playSong();
 }
 
 // §3.7.6 Persistent choir voices
@@ -1000,27 +1340,6 @@ function stopSong(){
   document.getElementById('lyrics-next').textContent='';
   if(choirAudio)for(const v of choirAudio.voices){v.targetGain=0;v.currentGain*=.3;
     if(isFinite(v.currentGain))v.vGain.gain.value=v.currentGain}
-}
-
-// §3.7.11 Convert free text to song notes
-function singFreeText(){
-  const text=document.getElementById('lyrics-input').value.trim();
-  if(!text||!ac)return;
-  const words=text.split(/\s+/).filter(w=>w.length>0);
-  const sc=getScale().filter(n=>n>=48&&n<=72);
-  const beatMul=S.lyricStyle==='gregorian'?2:S.lyricStyle==='chant'?1.5:1;
-  const notes=[];
-  let noteIdx=0;
-  for(const word of words){
-    const ph=autoPhoneme(word);
-    const note=sc.length?sc[noteIdx%sc.length]:60;noteIdx++;
-    notes.push({m:note,d:beatMul,l:word,ph});
-    // Add brief rest between phrases (after punctuation)
-    if(/[,.;:!?]$/.test(word))notes.push({m:0,d:.5,l:""});
-  }
-  songState.freeNotes=notes;songState.freeText=true;songState.songKey=null;
-  songState.tempo=S.bpm;
-  playSong();
 }
 
 // §3.7.12 Step the song/lyrics engine
