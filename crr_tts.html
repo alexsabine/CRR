@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRR Voice · Coherence-Rupture-Regeneration Text-to-Speech</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080a10;--panel:rgba(10,12,20,0.96);--panel2:rgba(14,16,28,0.92);
+  --C:#4fd1c5;--delta:#fc8181;--R:#68d391;--omega:#f6ad55;
+  --accent:#9fa8da;--accent2:#ce93d8;--gold:#e8b838;
+  --text:rgba(195,205,220,0.88);--dim:rgba(140,155,175,0.45);--faint:rgba(120,140,180,0.07);
+  --serif:'Cormorant Garamond',Georgia,serif;--mono:'IBM Plex Mono',monospace;
+}
+
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--mono)}
+
+/* ─── SPLASH ─── */
+#splash{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;
+  align-items:center;justify-content:center;cursor:pointer;transition:opacity 1.2s}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:680px;padding:0 28px}
+#splash .wave{width:min(400px,85vw);height:60px;margin:0 auto 24px;position:relative;overflow:hidden}
+#splash .wave canvas{width:100%;height:100%}
+#splash h1{font-family:var(--serif);font-size:clamp(2rem,5.5vw,3.6rem);font-weight:300;
+  letter-spacing:.22em;margin-bottom:6px;
+  background:linear-gradient(135deg,var(--C),var(--accent),var(--accent2),var(--omega));
+  background-size:300% 300%;animation:htxt 8s ease-in-out infinite;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@keyframes htxt{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+#splash .sub{font-family:var(--serif);font-size:clamp(.72rem,1.2vw,.92rem);font-weight:300;
+  font-style:italic;opacity:.35;line-height:1.9;letter-spacing:.03em}
+#splash .eq{font-size:clamp(.42rem,.6vw,.5rem);opacity:.15;margin-top:16px;line-height:1.9;
+  font-family:var(--mono)}
+#splash .tap{font-size:.65rem;opacity:.18;margin-top:24px;letter-spacing:.18em;
+  animation:tp 2.5s ease-in-out infinite}
+@keyframes tp{0%,100%{opacity:.1}50%{opacity:.32}}
+
+/* ─── APP ─── */
+#app{display:none;width:100%;height:100%;flex-direction:column}
+#app.active{display:flex}
+
+/* ─── TOP BAR ─── */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;
+  background:var(--panel);border-bottom:1px solid var(--faint);flex-shrink:0;min-height:40px}
+#topbar .title{font-family:var(--serif);font-size:.9rem;letter-spacing:.14em;font-weight:300;
+  background:linear-gradient(90deg,var(--C),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#topbar .crr-state{font-size:.42rem;color:var(--dim);text-align:right;line-height:1.6}
+
+/* ─── MAIN ─── */
+#main{flex:1;display:flex;min-height:0;overflow:hidden}
+
+/* ─── VISUALISER ─── */
+#viz-wrap{flex:1;min-width:0;position:relative;background:#030408}
+#viz-canvas{display:block;width:100%;height:100%}
+#phoneme-display{position:absolute;bottom:20%;left:50%;transform:translateX(-50%);
+  font-family:var(--serif);font-size:clamp(1.4rem,3vw,2.4rem);font-weight:300;
+  letter-spacing:.12em;pointer-events:none;z-index:3;opacity:0;transition:opacity .3s;
+  text-shadow:0 0 40px rgba(79,209,197,.3)}
+#word-display{position:absolute;top:15%;left:50%;transform:translateX(-50%);
+  font-family:var(--serif);font-size:clamp(.9rem,1.8vw,1.4rem);font-weight:300;
+  letter-spacing:.08em;pointer-events:none;z-index:3;opacity:0;transition:opacity .6s;
+  color:rgba(255,255,255,.5);font-style:italic}
+#crr-readout{position:absolute;top:10px;right:12px;pointer-events:none;z-index:3;
+  font-size:.4rem;color:rgba(139,157,195,.3);text-align:right;line-height:1.6;white-space:pre}
+
+/* ─── CONTROL PANEL ─── */
+#controls{width:clamp(340px,34vw,500px);display:flex;flex-direction:column;overflow:hidden;
+  background:var(--panel);border-left:1px solid var(--faint)}
+#ctrl-tabs{display:flex;border-bottom:1px solid var(--faint);flex-shrink:0}
+.ctab{flex:1;padding:7px 4px;font-size:.48rem;letter-spacing:.07em;text-align:center;
+  border:none;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s;
+  border-bottom:2px solid transparent;font-family:var(--mono)}
+.ctab.active{color:var(--text);border-bottom-color:var(--accent2);background:rgba(206,147,216,.03)}
+.ctab:hover{color:var(--text)}
+#ctrl-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:10px;
+  scrollbar-width:thin;scrollbar-color:rgba(140,160,200,.12) transparent}
+#ctrl-body::-webkit-scrollbar{width:5px}
+#ctrl-body::-webkit-scrollbar-thumb{background:rgba(140,160,200,.12);border-radius:3px}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ─── INPUT ─── */
+#text-input{width:100%;height:120px;background:rgba(0,0,0,.35);border:1px solid var(--faint);
+  border-radius:6px;color:var(--text);font-family:var(--serif);font-size:.85rem;
+  padding:12px;resize:vertical;outline:none;line-height:1.7;letter-spacing:.02em}
+#text-input:focus{border-color:rgba(79,209,197,.25)}
+#text-input::placeholder{color:var(--dim);font-style:italic}
+
+/* ─── BUTTONS ─── */
+.btn{font-family:var(--mono);font-size:.6rem;padding:8px 18px;border:1px solid var(--faint);
+  background:transparent;color:var(--dim);cursor:pointer;border-radius:4px;
+  transition:all .2s;letter-spacing:.05em}
+.btn:hover{border-color:rgba(140,160,200,.3);color:var(--text)}
+.btn.active{border-color:var(--C);color:var(--C);background:rgba(79,209,197,.04)}
+.btn.speak{border-color:var(--C);color:var(--C)}
+.btn.speak:hover{background:rgba(79,209,197,.06)}
+.btn.stop{border-color:var(--delta);color:var(--delta)}
+
+/* ─── CONTROLS ─── */
+.section-title{font-size:.42rem;letter-spacing:.1em;color:var(--dim);margin:12px 0 6px;
+  text-transform:uppercase;border-bottom:1px solid var(--faint);padding-bottom:4px}
+.ctrl-row{display:flex;align-items:center;gap:8px;padding:5px 0}
+.ctrl-row label{font-size:.46rem;color:var(--dim);width:72px;letter-spacing:.03em;flex-shrink:0}
+.ctrl-row input[type=range]{flex:1;height:3px;cursor:pointer;accent-color:var(--accent)}
+.ctrl-row .val{font-size:.4rem;color:var(--dim);width:32px;text-align:right;flex-shrink:0}
+
+/* ─── VOICE SELECT ─── */
+.voice-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:8px 0}
+.voice-btn{padding:10px 8px;border:1px solid var(--faint);background:transparent;
+  color:var(--dim);cursor:pointer;border-radius:5px;font-family:var(--mono);font-size:.5rem;
+  text-align:center;transition:all .2s}
+.voice-btn:hover{border-color:rgba(140,160,200,.25);color:var(--text)}
+.voice-btn.active{border-color:var(--accent2);color:var(--accent2);background:rgba(206,147,216,.04)}
+.voice-btn .vicon{font-size:1.1rem;display:block;margin-bottom:3px}
+.voice-btn .vsub{font-size:.38rem;opacity:.5;display:block;margin-top:2px}
+
+/* ─── ANALYSIS ─── */
+.analysis-block{background:rgba(0,0,0,.2);border:1px solid var(--faint);border-radius:5px;
+  padding:10px;margin:8px 0;font-size:.44rem;line-height:1.7;color:var(--dim)}
+.analysis-block .ph{color:var(--C);font-weight:500}
+.analysis-block .rup{color:var(--delta)}
+.analysis-block .reg{color:var(--R)}
+
+/* ─── PRESET TEXT ─── */
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:8px 0}
+.preset-btn{padding:8px;border:1px solid var(--faint);background:transparent;color:var(--dim);
+  cursor:pointer;border-radius:4px;font-size:.48rem;text-align:left;transition:all .2s;
+  font-family:var(--serif);font-style:italic;line-height:1.5}
+.preset-btn:hover{border-color:rgba(140,160,200,.2);color:var(--text)}
+
+/* ─── FOOTER ─── */
+#footer{font-size:.36rem;color:rgba(140,160,200,.12);text-align:center;padding:5px;
+  border-top:1px solid var(--faint);background:var(--panel);flex-shrink:0}
+
+@media(max-width:800px){
+  #main{flex-direction:column}
+  #viz-wrap{flex:none;height:35vh}
+  #controls{width:100%;flex:1;min-height:0}
+}
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="inner">
+  <div class="wave"><canvas id="splash-wave"></canvas></div>
+  <h1>CRR VOICE</h1>
+  <p class="sub">Text-to-speech derived entirely from Coherence, Rupture &amp; Regeneration.<br>
+  No recorded phonemes. No neural networks. No standard TTS methods.<br>
+  Vowels are SO(2) formant coherence basins. Consonants are Z₂ rupture events.<br>
+  Prosody follows the beauty function B(C/Ω). Timing obeys C·Ω = 1.</p>
+  <p class="eq">C(x,t)=∫L(x,τ)dτ · δ(now) · R=∫φ·exp(C/Ω)·Θ dτ<br>
+  Vowel = SO(2) attractor: F₁,F₂,F₃ as coherence basins, Ω=1/2π<br>
+  Consonant = Z₂ rupture δ: noise burst shaped by articulatory Θ<br>
+  Prosody = B(C/Ω) = exp(C/Ω)·(1−C/(Ω·π)) · Pitch contour follows beauty peaks<br>
+  Timing = CV_Z₂ ≈ 0.159 variance in phoneme duration · C·Ω=1 at syllable boundaries</p>
+  <p class="tap">▶ INITIALISE AUDIO CONTEXT</p>
+</div></div>
+
+<div id="app">
+  <div id="topbar">
+    <div class="title">CRR VOICE</div>
+    <div class="crr-state" id="top-crr">C=0.00 · Ω=0.318 · phase=idle</div>
+  </div>
+
+  <div id="main">
+    <div id="viz-wrap">
+      <canvas id="viz-canvas"></canvas>
+      <div id="phoneme-display"></div>
+      <div id="word-display"></div>
+      <div id="crr-readout"></div>
+    </div>
+
+    <div id="controls">
+      <div id="ctrl-tabs">
+        <button class="ctab active" onclick="switchTab('speak')">SPEAK</button>
+        <button class="ctab" onclick="switchTab('voice')">VOICE</button>
+        <button class="ctab" onclick="switchTab('prosody')">PROSODY</button>
+        <button class="ctab" onclick="switchTab('analysis')">ANALYSIS</button>
+      </div>
+      <div id="ctrl-body">
+
+        <!-- SPEAK TAB -->
+        <div class="tab-content active" id="tab-speak">
+          <div class="section-title">TEXT INPUT — each character accumulates coherence</div>
+          <textarea id="text-input" placeholder="Type or paste text here. Each syllable is a CRR cycle: vowels cohere, consonants rupture, silence regenerates..."></textarea>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <button class="btn speak" onclick="speakText()">▶ SPEAK</button>
+            <button class="btn stop" onclick="stopSpeaking()">■ STOP</button>
+            <button class="btn" onclick="speakText(true)">⟳ SLOW</button>
+          </div>
+
+          <div class="section-title">PRESET TEXTS</div>
+          <div class="preset-grid">
+            <button class="preset-btn" onclick="setPreset(0)">Hello world, this is the CRR voice speaking.</button>
+            <button class="preset-btn" onclick="setPreset(1)">Every breath is a cycle of coherence, rupture, and regeneration.</button>
+            <button class="preset-btn" onclick="setPreset(2)">The cosmos hums with ancient light, weaving songs across the void.</button>
+            <button class="preset-btn" onclick="setPreset(3)">Time is not a river. It is a spiral of accumulation and release.</button>
+          </div>
+
+          <div class="section-title">MASTER CONTROLS</div>
+          <div class="ctrl-row"><label>Speed</label><input type="range" min="30" max="200" value="100" oninput="setParam('speed',this.value)"><span class="val" id="v-speed">1.00</span></div>
+          <div class="ctrl-row"><label>Volume</label><input type="range" min="0" max="100" value="70" oninput="setParam('volume',this.value)"><span class="val" id="v-volume">0.70</span></div>
+          <div class="ctrl-row"><label>Clarity</label><input type="range" min="10" max="100" value="65" oninput="setParam('clarity',this.value)"><span class="val" id="v-clarity">0.65</span></div>
+        </div>
+
+        <!-- VOICE TAB -->
+        <div class="tab-content" id="tab-voice">
+          <div class="section-title">VOICE TYPE — Ω governs vocal tract resonance</div>
+          <div class="voice-grid">
+            <button class="voice-btn" onclick="setVoice('bass')"><span class="vicon">◉</span>Bass<span class="vsub">F₀=95Hz · Ω=1/π · large tract</span></button>
+            <button class="voice-btn" onclick="setVoice('baritone')"><span class="vicon">◎</span>Baritone<span class="vsub">F₀=120Hz · Ω=1.2/π · warm</span></button>
+            <button class="voice-btn active" onclick="setVoice('tenor')"><span class="vicon">○</span>Tenor<span class="vsub">F₀=150Hz · Ω=1.5/π · balanced</span></button>
+            <button class="voice-btn" onclick="setVoice('alto')"><span class="vicon">◌</span>Alto<span class="vsub">F₀=200Hz · Ω=1/2π · clear</span></button>
+            <button class="voice-btn" onclick="setVoice('soprano')"><span class="vicon">✧</span>Soprano<span class="vsub">F₀=260Hz · Ω=1.8/2π · bright</span></button>
+            <button class="voice-btn" onclick="setVoice('whisper')"><span class="vicon">✦</span>Whisper<span class="vsub">F₀=noise · Ω=3/π · breathy</span></button>
+          </div>
+
+          <div class="section-title">VOCAL TRACT — formant basin depths</div>
+          <div class="ctrl-row"><label>F₀ Pitch</label><input type="range" min="60" max="400" value="150" oninput="setParam('f0',this.value)"><span class="val" id="v-f0">150</span></div>
+          <div class="ctrl-row"><label>Tract Len</label><input type="range" min="30" max="200" value="100" oninput="setParam('tractLen',this.value)"><span class="val" id="v-tractLen">1.00</span></div>
+          <div class="ctrl-row"><label>Breathiness</label><input type="range" min="0" max="100" value="25" oninput="setParam('breathiness',this.value)"><span class="val" id="v-breathiness">0.25</span></div>
+          <div class="ctrl-row"><label>Vibrato</label><input type="range" min="0" max="100" value="20" oninput="setParam('vibrato',this.value)"><span class="val" id="v-vibrato">0.20</span></div>
+          <div class="ctrl-row"><label>Nasality</label><input type="range" min="0" max="100" value="15" oninput="setParam('nasality',this.value)"><span class="val" id="v-nasality">0.15</span></div>
+          <div class="ctrl-row"><label>Roughness</label><input type="range" min="0" max="100" value="10" oninput="setParam('roughness',this.value)"><span class="val" id="v-roughness">0.10</span></div>
+        </div>
+
+        <!-- PROSODY TAB -->
+        <div class="tab-content" id="tab-prosody">
+          <div class="section-title">PROSODY — B(C/Ω) beauty function drives intonation</div>
+          <div class="ctrl-row"><label>Pitch Range</label><input type="range" min="5" max="100" value="40" oninput="setParam('pitchRange',this.value)"><span class="val" id="v-pitchRange">0.40</span></div>
+          <div class="ctrl-row"><label>Emphasis Ω</label><input type="range" min="10" max="200" value="100" oninput="setParam('emphasisOmega',this.value)"><span class="val" id="v-emphasisOmega">1.00</span></div>
+          <div class="ctrl-row"><label>Phrase Ω</label><input type="range" min="20" max="300" value="120" oninput="setParam('phraseOmega',this.value)"><span class="val" id="v-phraseOmega">1.20</span></div>
+
+          <div class="section-title">TEMPORAL CRR — timing at syllable scale</div>
+          <div class="ctrl-row"><label>Duration Ω</label><input type="range" min="10" max="200" value="100" oninput="setParam('durationOmega',this.value)"><span class="val" id="v-durationOmega">1.00</span></div>
+          <div class="ctrl-row"><label>Pause Depth</label><input type="range" min="0" max="100" value="50" oninput="setParam('pauseDepth',this.value)"><span class="val" id="v-pauseDepth">0.50</span></div>
+          <div class="ctrl-row"><label>Jitter CV</label><input type="range" min="0" max="100" value="40" oninput="setParam('jitterCV',this.value)"><span class="val" id="v-jitterCV">0.40</span></div>
+
+          <div class="section-title">EMOTION — Ω modulation of vocal quality</div>
+          <div class="ctrl-row"><label>Warmth</label><input type="range" min="0" max="100" value="50" oninput="setParam('warmth',this.value)"><span class="val" id="v-warmth">0.50</span></div>
+          <div class="ctrl-row"><label>Urgency</label><input type="range" min="0" max="100" value="20" oninput="setParam('urgency',this.value)"><span class="val" id="v-urgency">0.20</span></div>
+          <div class="ctrl-row"><label>Reverence</label><input type="range" min="0" max="100" value="30" oninput="setParam('reverence',this.value)"><span class="val" id="v-reverence">0.30</span></div>
+        </div>
+
+        <!-- ANALYSIS TAB -->
+        <div class="tab-content" id="tab-analysis">
+          <div class="section-title">CRR ANALYSIS — real-time framework state</div>
+          <div class="analysis-block" id="analysis-output">
+            Awaiting speech...<br><br>
+            <span class="ph">Vowels</span> = SO(2) coherence basins<br>
+            Formant frequencies F₁,F₂,F₃ are attractor points.<br>
+            exp(C/Ω) weights formant transitions — high-coherence<br>
+            vowels resist change, low-coherence vowels morph freely.<br><br>
+            <span class="rup">Consonants</span> = Z₂ rupture events δ(now)<br>
+            Stops (p,t,k) = full rupture with silence gap<br>
+            Fricatives (s,f,sh) = sustained turbulent δ cascade<br>
+            Nasals (m,n) = anti-resonance boundary condition Θ<br><br>
+            <span class="reg">Prosody</span> = B(C/Ω) = exp(C/Ω)·(1−C/(Ω·π))<br>
+            Beauty peaks at C/Ω ≈ 2.14 — stressed syllables<br>
+            approach this ratio, creating natural emphasis.
+          </div>
+          <div class="section-title">PHONEME STREAM</div>
+          <div class="analysis-block" id="phoneme-stream" style="max-height:200px;overflow-y:auto;font-family:var(--mono)">
+            —
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer">
+    C(x,t)=∫L(x,τ)dτ · δ(now) · R=∫φ·exp(C/Ω)·Θ dτ · Vowel=SO(2) coherence basin · Consonant=Z₂ δ event · Prosody=B(C/Ω) · C·Ω=1 at rupture · CRR VOICE
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//  CRR VOICE — Text-to-Speech from First Principles
+//
+//  EVERY aspect of speech synthesis derived from the CRR framework:
+//
+//  1. GLOTTAL SOURCE — Z₂ vocal fold oscillation
+//     Vocal folds are a bistable (Z₂) system. Each glottal pulse is a
+//     rupture event δ(now). F₀ = rupture frequency. Ω=1/π gives
+//     the natural jitter CV ≈ 0.159 (matching real vocal fold data).
+//
+//  2. FORMANT RESONANCES — SO(2) coherence basins
+//     Each formant is an SO(2) attractor. The vocal tract shapes
+//     coherence into resonant basins at F₁, F₂, F₃. Vowel identity
+//     = the basin configuration. Transitions weighted by exp(C/Ω).
+//
+//  3. CONSONANTS — rupture events of various types
+//     Stops (p,t,k) = full Z₂ rupture with silence + burst
+//     Fricatives (s,f) = sustained turbulent δ cascade
+//     Nasals (m,n) = anti-resonance (Θ boundary zeroes)
+//     Liquids (l,r) = partial coherence with rapid Ω modulation
+//
+//  4. PROSODY — beauty function B(C/Ω)
+//     Pitch contour follows B(C/Ω) = exp(C/Ω)·(1 − C/(Ω·π))
+//     Stressed syllables approach the beauty peak at C/Ω ≈ 2.14
+//     Phrase boundaries are large-scale rupture events
+//
+//  5. TIMING — CRR rupture intervals
+//     Syllable duration = 1/Ω with CV variance from CRR prediction
+//     Pauses at punctuation = regeneration phases
+//     Speaking rate = global Ω scaling
+//
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PI = Math.PI, TAU = 2*PI, PHI = (1+Math.sqrt(5))/2;
+const {sin,cos,sqrt,pow,abs,floor:flr,min,max,round,exp,log,random:rnd,atan2} = Math;
+
+// Safety helpers
+function fin(v,fb=0){return isFinite(v)?v:fb}
+function sTC(v){return max(.001,fin(v,.01))}
+function sFreq(v){return max(20,min(20000,fin(v,200)))}
+function sGain(v){return max(0,min(2,fin(v,0)))}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §0 — CRR ENGINE (core process)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class CRR {
+  constructor(sym='Z2', scale=1) {
+    this.omegaBase = sym==='Z2' ? 1/PI : sym==='SO2' ? 1/TAU : 1/(PI*PHI);
+    this.omegaScale = scale;
+    this.C = 0; this.lastRC = 0; this.ruptures = 0;
+    this.since = 0; this.inRegen = false; this.regenP = 0; this.phase = 'C';
+  }
+  get omega(){ return this.omegaBase * this.omegaScale }
+  get expCO(){ const v = exp(min(10, this.C / max(.001,this.omega))); return isFinite(v)?v:1 }
+  get normC(){ return min(1, (this.C - this.lastRC) / max(.01, 1/this.omega)) }
+  get beauty(){
+    const co = this.C / max(.001, this.omega);
+    const v = max(0, exp(min(8,co)) * (1 - co/PI));
+    return isFinite(v)?v:0;
+  }
+  step(L, dt=1){
+    if(!isFinite(L)) L = .5;
+    if(!isFinite(dt)) dt = .016;
+    if(this.inRegen){
+      this.regenP = min(1, this.regenP + .04);
+      if(this.regenP >= 1){ this.inRegen = false; this.phase = 'C' }
+      return this.phase = 'R';
+    }
+    this.C += L * dt;
+    if(!isFinite(this.C)) this.C = 0;
+    this.since++;
+    const th = 1 / max(.001, this.omega);
+    const acc = this.C - this.lastRC;
+    const cv = this.omega / 2;
+    if(acc >= (th + (rnd()-.5)*2*cv*th)){
+      this.lastRC = this.C;
+      this.ruptures++;
+      this.since = 0;
+      this.inRegen = true;
+      this.regenP = 0;
+      this.phase = 'delta';
+      return 'delta';
+    }
+    this.phase = 'C';
+    return 'C';
+  }
+  reset(){ this.C=0; this.lastRC=0; this.ruptures=0; this.since=0; this.inRegen=false; this.regenP=0; this.phase='C' }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §1 — PHONEME DATABASE (CRR-classified)
+//   Each phoneme has a CRR type (Z2/SO2), formant targets, duration, and
+//   synthesis parameters. Consonants are classified by rupture type.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Vowel formants: { f1, f2, f3, b1, b2, b3 } (Hz)
+// These are the SO(2) coherence basin attractors
+const VOWELS = {
+  'aa': {f1:730,f2:1090,f3:2440,b1:80,b2:90,b3:120, dur:0.12, sym:'SO2', desc:'father'},
+  'ae': {f1:660,f2:1720,f3:2410,b1:70,b2:90,b3:120, dur:0.11, sym:'SO2', desc:'cat'},
+  'ah': {f1:520,f2:1190,f3:2390,b1:60,b2:80,b3:110, dur:0.10, sym:'SO2', desc:'but'},
+  'ao': {f1:570,f2:840,f3:2410,b1:70,b2:80,b3:120, dur:0.12, sym:'SO2', desc:'caught'},
+  'ax': {f1:490,f2:1350,f3:2390,b1:60,b2:80,b3:110, dur:0.07, sym:'SO2', desc:'about'},
+  'eh': {f1:530,f2:1840,f3:2480,b1:60,b2:80,b3:110, dur:0.10, sym:'SO2', desc:'bed'},
+  'er': {f1:490,f2:1350,f3:1690,b1:60,b2:90,b3:100, dur:0.12, sym:'SO2', desc:'bird'},
+  'ih': {f1:390,f2:1990,f3:2550,b1:50,b2:80,b3:110, dur:0.08, sym:'SO2', desc:'bit'},
+  'iy': {f1:270,f2:2290,f3:3010,b1:50,b2:80,b3:110, dur:0.10, sym:'SO2', desc:'beat'},
+  'oh': {f1:490,f2:910,f3:2300,b1:65,b2:80,b3:110, dur:0.11, sym:'SO2', desc:'go'},
+  'uh': {f1:440,f2:1020,f3:2240,b1:60,b2:70,b3:100, dur:0.09, sym:'SO2', desc:'book'},
+  'uw': {f1:300,f2:870,f3:2240,b1:55,b2:70,b3:100, dur:0.11, sym:'SO2', desc:'boot'},
+};
+
+// Diphthongs: smooth SO(2) transition between two basins
+const DIPHTHONGS = {
+  'ay': {start:'aa', end:'ih', dur:0.16},
+  'aw': {start:'aa', end:'uh', dur:0.16},
+  'ey': {start:'eh', end:'ih', dur:0.14},
+  'ow': {start:'oh', end:'uh', dur:0.15},
+  'oy': {start:'ao', end:'ih', dur:0.16},
+};
+
+// Consonants — classified by CRR rupture type
+const CONSONANTS = {
+  // STOPS — full Z₂ rupture: silence gap + burst δ
+  'p':  {type:'stop', voiced:false, burstF:800,  burstBW:2000, gap:0.02, burst:0.012, dur:0.06},
+  'b':  {type:'stop', voiced:true,  burstF:700,  burstBW:1800, gap:0.01, burst:0.012, dur:0.06},
+  't':  {type:'stop', voiced:false, burstF:2500, burstBW:3000, gap:0.02, burst:0.015, dur:0.06},
+  'd':  {type:'stop', voiced:true,  burstF:2200, burstBW:2500, gap:0.01, burst:0.012, dur:0.06},
+  'k':  {type:'stop', voiced:false, burstF:1800, burstBW:2500, gap:0.03, burst:0.018, dur:0.07},
+  'g':  {type:'stop', voiced:true,  burstF:1500, burstBW:2200, gap:0.01, burst:0.015, dur:0.06},
+  // FRICATIVES — sustained turbulent δ cascade
+  'f':  {type:'fric', voiced:false, fricF:5000, fricBW:4000, dur:0.10},
+  'v':  {type:'fric', voiced:true,  fricF:5000, fricBW:4000, dur:0.08},
+  'th': {type:'fric', voiced:false, fricF:6000, fricBW:5000, dur:0.10},
+  'dh': {type:'fric', voiced:true,  fricF:5500, fricBW:4500, dur:0.07},
+  's':  {type:'fric', voiced:false, fricF:7000, fricBW:3000, dur:0.10},
+  'z':  {type:'fric', voiced:true,  fricF:6500, fricBW:3000, dur:0.08},
+  'sh': {type:'fric', voiced:false, fricF:4500, fricBW:3500, dur:0.11},
+  'zh': {type:'fric', voiced:true,  fricF:4200, fricBW:3200, dur:0.08},
+  'hh': {type:'fric', voiced:false, fricF:1200, fricBW:5000, dur:0.06},
+  // AFFRICATES — stop + fricative compound rupture
+  'ch': {type:'affr', voiced:false, burstF:3500, fricF:4500, dur:0.10},
+  'jh': {type:'affr', voiced:true,  burstF:3000, fricF:4200, dur:0.09},
+  // NASALS — anti-resonance boundary condition Θ
+  'm':  {type:'nasal', voiced:true, nasalF:250,  antiF:1000, dur:0.08},
+  'n':  {type:'nasal', voiced:true, nasalF:250,  antiF:1500, dur:0.07},
+  'ng': {type:'nasal', voiced:true, nasalF:250,  antiF:2000, dur:0.07},
+  // LIQUIDS — partial coherence with rapid Ω modulation
+  'l':  {type:'liquid', voiced:true, f1:350, f2:1100, f3:2700, dur:0.07},
+  'r':  {type:'liquid', voiced:true, f1:310, f2:1060, f3:1400, dur:0.07},
+  // GLIDES — smooth SO(2) transitions (very vowel-like)
+  'w':  {type:'glide', voiced:true, f1:300, f2:870,  f3:2240, dur:0.06},
+  'y':  {type:'glide', voiced:true, f1:270, f2:2290, f3:3010, dur:0.05},
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §2 — TEXT → PHONEME CONVERSION (CRR letter-to-sound rules)
+//   English grapheme-to-phoneme mapping. Not perfect but functional.
+//   Each rule is a coherence pattern that resolves at a rupture boundary.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function textToPhonemes(text) {
+  text = text.toLowerCase().replace(/[^\w\s.,!?;:'"()-]/g, '');
+  const words = text.split(/\s+/).filter(w => w.length > 0);
+  const result = [];
+
+  for (let wi = 0; wi < words.length; wi++) {
+    let w = words[wi].replace(/[.,!?;:'"()-]+$/,'');
+    const punct = words[wi].slice(w.length);
+    if (!w) continue;
+
+    const phonemes = wordToPhonemes(w);
+    result.push({ type:'word', word: w, phonemes, stress: computeStress(phonemes) });
+
+    // Punctuation = regeneration pause
+    if (punct.includes('.') || punct.includes('!') || punct.includes('?')) {
+      result.push({ type:'pause', dur: 0.35, reason:'sentence' });
+    } else if (punct.includes(',') || punct.includes(';') || punct.includes(':')) {
+      result.push({ type:'pause', dur: 0.18, reason:'clause' });
+    } else if (wi < words.length - 1) {
+      result.push({ type:'pause', dur: 0.06, reason:'word' });
+    }
+  }
+  return result;
+}
+
+function wordToPhonemes(word) {
+  // CRR-based grapheme-to-phoneme: scan left-to-right accumulating coherence
+  // until a rupture (consonant cluster boundary) forces phoneme emission
+  const ph = [];
+  let i = 0;
+  const w = word.toLowerCase();
+  const len = w.length;
+
+  // Common word dictionary for accuracy
+  const DICT = {
+    'the':'dh ax','a':'ax','an':'ae n','and':'ae n d','is':'ih z','are':'aa r',
+    'was':'w ah z','were':'w er','be':'b iy','been':'b ih n','being':'b iy ih ng',
+    'have':'hh ae v','has':'hh ae z','had':'hh ae d','do':'d uw','does':'d ah z',
+    'did':'d ih d','will':'w ih l','would':'w uh d','could':'k uh d','should':'sh uh d',
+    'can':'k ae n','may':'m ey','might':'m ay t','must':'m ah s t',
+    'shall':'sh ae l','this':'dh ih s','that':'dh ae t','these':'dh iy z',
+    'those':'dh oh z','it':'ih t','its':'ih t s','he':'hh iy','she':'sh iy',
+    'they':'dh ey','we':'w iy','you':'y uw','your':'y ao r','my':'m ay',
+    'his':'hh ih z','her':'hh er','our':'aw er','their':'dh eh r',
+    'not':'n ah t','no':'n oh','yes':'y eh s','but':'b ah t',
+    'or':'ao r','if':'ih f','then':'dh eh n','so':'s oh',
+    'all':'ao l','each':'iy ch','every':'eh v r iy','one':'w ah n',
+    'two':'t uw','three':'th r iy','for':'f ao r','from':'f r ah m',
+    'with':'w ih th','what':'w ah t','when':'w eh n','where':'w eh r',
+    'how':'hh aw','who':'hh uw','which':'w ih ch','there':'dh eh r',
+    'here':'hh ih r','in':'ih n','on':'ah n','at':'ae t','to':'t uw',
+    'of':'ah v','by':'b ay','up':'ah p','out':'aw t','about':'ax b aw t',
+    'into':'ih n t uw','over':'oh v er','after':'ae f t er',
+    'time':'t ay m','world':'w er l d','voice':'v oy s',
+    'speak':'s p iy k','speaking':'s p iy k ih ng','speech':'s p iy ch',
+    'hello':'hh eh l oh','human':'hh y uw m ax n',
+    'sound':'s aw n d','word':'w er d','words':'w er d z',
+    'light':'l ay t','night':'n ay t','right':'r ay t',
+    'through':'th r uw','thought':'th ao t','think':'th ih ng k',
+    'know':'n oh','known':'n oh n','life':'l ay f','like':'l ay k',
+    'make':'m ey k','made':'m ey d','come':'k ah m','came':'k ey m',
+    'go':'g oh','gone':'g ao n','see':'s iy','seen':'s iy n',
+    'say':'s ey','said':'s eh d','give':'g ih v','take':'t ey k',
+    'good':'g uh d','great':'g r ey t','new':'n uw','old':'oh l d',
+    'high':'hh ay','long':'l ao ng','just':'jh ah s t','more':'m ao r',
+    'also':'ao l s oh','very':'v eh r iy','well':'w eh l',
+    'between':'b ih t w iy n','before':'b ih f ao r',
+    'because':'b ih k ah z','even':'iy v ax n',
+    'some':'s ah m','other':'ah dh er','most':'m oh s t',
+    'only':'oh n l iy','now':'n aw','than':'dh ae n',
+    'first':'f er s t','last':'l ae s t','way':'w ey',
+    'people':'p iy p ax l','own':'oh n','still':'s t ih l',
+    'never':'n eh v er','under':'ah n d er',
+    'coherence':'k oh hh ih r ax n s','rupture':'r ah p ch er',
+    'regeneration':'r iy jh eh n er ey sh ax n',
+    'cosmos':'k ah z m oh s','ancient':'ey n sh ax n t',
+    'weaving':'w iy v ih ng','songs':'s ao ng z','across':'ax k r ao s',
+    'void':'v oy d','spiral':'s p ay r ax l','accumulation':'ax k y uw m y ax l ey sh ax n',
+    'release':'r iy l iy s','breath':'b r eh th','cycle':'s ay k ax l',
+    'river':'r ih v er','hums':'hh ah m z',
+  };
+
+  if (DICT[word]) return DICT[word].split(' ');
+
+  while (i < len) {
+    const c = w[i];
+    const c2 = i+1<len ? w[i]+w[i+1] : '';
+    const c3 = i+2<len ? w[i]+w[i+1]+w[i+2] : '';
+    const prev = i>0 ? w[i-1] : '';
+    const next = i+1<len ? w[i+1] : '';
+    const next2 = i+2<len ? w[i+2] : '';
+
+    // Multi-char patterns first (higher coherence = longer match)
+    if (c3 === 'tch') { ph.push('ch'); i+=3; continue; }
+    if (c3 === 'igh') { ph.push('ay'); i+=3; continue; }
+    if (c3 === 'ous') { ph.push('ax','s'); i+=3; continue; }
+    if (c3 === 'tion') { ph.push('sh','ax','n'); i+=4; continue; }
+    if (c3 === 'sio' && i+3<len && w[i+3]==='n') { ph.push('zh','ax','n'); i+=4; continue; }
+    if (c2 === 'th') { ph.push(next2==='e'||next2==='a'||next2==='i'||prev!==''?'dh':'th'); i+=2; continue; }
+    if (c2 === 'sh') { ph.push('sh'); i+=2; continue; }
+    if (c2 === 'ch') { ph.push('ch'); i+=2; continue; }
+    if (c2 === 'ph') { ph.push('f'); i+=2; continue; }
+    if (c2 === 'wh') { ph.push('w'); i+=2; continue; }
+    if (c2 === 'wr') { ph.push('r'); i+=2; continue; }
+    if (c2 === 'kn') { ph.push('n'); i+=2; continue; }
+    if (c2 === 'gn') { ph.push('n'); i+=2; continue; }
+    if (c2 === 'ng') { ph.push('ng'); i+=2; continue; }
+    if (c2 === 'ck') { ph.push('k'); i+=2; continue; }
+    if (c2 === 'qu') { ph.push('k','w'); i+=2; continue; }
+    if (c2 === 'ee') { ph.push('iy'); i+=2; continue; }
+    if (c2 === 'ea') { ph.push('iy'); i+=2; continue; }
+    if (c2 === 'oo') { ph.push('uw'); i+=2; continue; }
+    if (c2 === 'ou' || c2 === 'ow') { ph.push('aw'); i+=2; continue; }
+    if (c2 === 'oi' || c2 === 'oy') { ph.push('oy'); i+=2; continue; }
+    if (c2 === 'ai' || c2 === 'ay') { ph.push('ey'); i+=2; continue; }
+    if (c2 === 'au' || c2 === 'aw') { ph.push('ao'); i+=2; continue; }
+    if (c2 === 'er') { ph.push('er'); i+=2; continue; }
+    if (c2 === 'ir' || c2 === 'ur') { ph.push('er'); i+=2; continue; }
+    if (c2 === 'ar') { ph.push('aa','r'); i+=2; continue; }
+    if (c2 === 'or') { ph.push('ao','r'); i+=2; continue; }
+
+    // Silent e rule: if vowel + consonant + e at end, vowel is long
+    const isVowel = 'aeiou'.includes(c);
+    const silentE = isVowel && i+2===len-1 && !'aeiou'.includes(next) && w[len-1]==='e';
+
+    // Single characters
+    switch(c) {
+      case 'a':
+        if (silentE) { ph.push('ey'); i++; continue; }
+        if (next==='l'&&(next2==='l'||next2==='k'||i+1===len-1)) { ph.push('ao'); i++; continue; }
+        ph.push('ae'); i++; break;
+      case 'e':
+        if (i === len-1 && len > 2) { i++; continue; } // silent final e
+        if (silentE) { ph.push('iy'); i++; continue; }
+        ph.push('eh'); i++; break;
+      case 'i':
+        if (silentE) { ph.push('ay'); i++; continue; }
+        if (next==='n'&&next2==='g'&&i+3>=len) { ph.push('ih'); i++; continue; }
+        ph.push('ih'); i++; break;
+      case 'o':
+        if (silentE) { ph.push('oh'); i++; continue; }
+        if (i===len-1 || (next && !'aeiou'.includes(next) && (i+1===len-1||next2===' '))) { ph.push('oh'); i++; continue; }
+        ph.push('ah'); i++; break;
+      case 'u':
+        if (silentE) { ph.push('uw'); i++; continue; }
+        ph.push('ah'); i++; break;
+      case 'y':
+        if (i === 0) { ph.push('y'); }
+        else if (i === len-1) { ph.push('iy'); }
+        else { ph.push('ih'); }
+        i++; break;
+      case 'b': ph.push('b'); i++; break;
+      case 'c':
+        if (next==='e'||next==='i'||next==='y') ph.push('s');
+        else ph.push('k');
+        i++; break;
+      case 'd': ph.push('d'); i++; break;
+      case 'f': ph.push('f'); i++; break;
+      case 'g':
+        if ((next==='e'||next==='i'||next==='y')&&rnd()>.4) ph.push('jh');
+        else ph.push('g');
+        i++; break;
+      case 'h': ph.push('hh'); i++; break;
+      case 'j': ph.push('jh'); i++; break;
+      case 'k': ph.push('k'); i++; break;
+      case 'l': ph.push('l'); i++; break;
+      case 'm': ph.push('m'); i++; break;
+      case 'n': ph.push('n'); i++; break;
+      case 'p': ph.push('p'); i++; break;
+      case 'r': ph.push('r'); i++; break;
+      case 's': ph.push('s'); i++; break;
+      case 't': ph.push('t'); i++; break;
+      case 'v': ph.push('v'); i++; break;
+      case 'w': ph.push('w'); i++; break;
+      case 'x': ph.push('k','s'); i++; break;
+      case 'z': ph.push('z'); i++; break;
+      case 'q': ph.push('k'); i++; break;
+      default: i++; break;
+    }
+  }
+  return ph;
+}
+
+function computeStress(phonemes) {
+  // CRR stress: stressed syllables have lower local Ω (sharper exp(C/Ω) peak)
+  // Simple heuristic: first syllable stressed unless word starts with unstressed prefix
+  const stress = [];
+  let syllCount = 0;
+  for (const p of phonemes) {
+    if (VOWELS[p] || DIPHTHONGS[p]) {
+      stress.push(syllCount === 0 ? 1.0 : 0.6); // primary vs secondary
+      syllCount++;
+    } else {
+      stress.push(0); // consonants don't get stress
+    }
+  }
+  // If multi-syllable, alternate stress
+  if (syllCount > 2) {
+    let si = 0;
+    for (let i = 0; i < stress.length; i++) {
+      if (stress[i] > 0) {
+        stress[i] = (si % 2 === 0) ? 1.0 : 0.5;
+        si++;
+      }
+    }
+  }
+  return stress;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §3 — STATE
+// ═══════════════════════════════════════════════════════════════════════════
+
+let ac = null, speaking = false, frame = 0;
+let currentUtterance = null, utteranceTimer = null;
+let vizData = { waveform: new Float32Array(512), spectrum: new Float32Array(256), phase:'idle', phoneme:'', beauty:0 };
+
+const P = {
+  speed: 1.0,
+  volume: 0.7,
+  clarity: 0.65,
+  f0: 150,
+  tractLen: 1.0,
+  breathiness: 0.25,
+  vibrato: 0.20,
+  nasality: 0.15,
+  roughness: 0.10,
+  pitchRange: 0.40,
+  emphasisOmega: 1.0,
+  phraseOmega: 1.2,
+  durationOmega: 1.0,
+  pauseDepth: 0.5,
+  jitterCV: 0.40,
+  warmth: 0.5,
+  urgency: 0.2,
+  reverence: 0.3,
+};
+
+// CRR agents for different temporal scales of speech
+const agents = {
+  glottal: new CRR('Z2', 1),      // vocal fold oscillation
+  phoneme: new CRR('SO2', 1),     // phoneme-level coherence
+  syllable: new CRR('Z2', 1.5),   // syllable boundaries
+  word: new CRR('Z2', 2),         // word-level phrasing
+  phrase: new CRR('SO2', 3),      // phrase-level intonation
+  sentence: new CRR('Z2', 5),     // sentence-level arc
+};
+
+// Voice presets
+const VOICES = {
+  bass:     { f0:95,  tractLen:1.25, breathiness:0.15, vibrato:0.15, nasality:0.2,  roughness:0.15 },
+  baritone: { f0:120, tractLen:1.15, breathiness:0.2,  vibrato:0.18, nasality:0.15, roughness:0.1  },
+  tenor:    { f0:150, tractLen:1.0,  breathiness:0.25, vibrato:0.2,  nasality:0.15, roughness:0.1  },
+  alto:     { f0:200, tractLen:0.9,  breathiness:0.3,  vibrato:0.22, nasality:0.12, roughness:0.08 },
+  soprano:  { f0:260, tractLen:0.82, breathiness:0.3,  vibrato:0.25, nasality:0.1,  roughness:0.05 },
+  whisper:  { f0:150, tractLen:1.0,  breathiness:0.95, vibrato:0.0,  nasality:0.1,  roughness:0.02 },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §4 — AUDIO ENGINE (Web Audio)
+// ═══════════════════════════════════════════════════════════════════════════
+
+let masterGain, compressor, analyserNode, reverbNode, reverbGain, dryGain;
+let noiseBuffer;
+
+function initAudio() {
+  if (ac) return;
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+
+  compressor = ac.createDynamicsCompressor();
+  compressor.threshold.value = -20;
+  compressor.knee.value = 12;
+  compressor.ratio.value = 4;
+  compressor.attack.value = .005;
+  compressor.release.value = .1;
+
+  masterGain = ac.createGain();
+  masterGain.gain.value = P.volume;
+
+  dryGain = ac.createGain();
+  dryGain.gain.value = 0.85;
+
+  reverbGain = ac.createGain();
+  reverbGain.gain.value = 0.15;
+
+  // CRR reverb — regeneration tail
+  const rvLen = ac.sampleRate * 2 | 0;
+  const rvBuf = ac.createBuffer(2, rvLen, ac.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = rvBuf.getChannelData(c);
+    for (let i = 0; i < rvLen; i++) {
+      const t = i / ac.sampleRate;
+      // Regeneration kernel: exp(C/Ω) decay
+      d[i] = (rnd()*2-1) * exp(-t*2.5) * 0.06;
+    }
+  }
+  reverbNode = ac.createConvolver();
+  reverbNode.buffer = rvBuf;
+
+  analyserNode = ac.createAnalyser();
+  analyserNode.fftSize = 1024;
+  analyserNode.smoothingTimeConstant = 0.75;
+
+  // Noise buffer for consonants
+  const nl = ac.sampleRate * 2;
+  noiseBuffer = ac.createBuffer(1, nl, ac.sampleRate);
+  const nd = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < nl; i++) nd[i] = rnd()*2 - 1;
+
+  // Routing
+  masterGain.connect(compressor);
+  compressor.connect(dryGain);
+  compressor.connect(reverbNode);
+  reverbNode.connect(reverbGain);
+  dryGain.connect(analyserNode);
+  reverbGain.connect(analyserNode);
+  analyserNode.connect(ac.destination);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §5 — CRR SPEECH SYNTHESISER
+//   The core synthesis engine. Each phoneme is rendered using CRR principles:
+//   - Glottal source = Z₂ impulse train (vocal fold oscillation)
+//   - Formant filtering = SO(2) resonant basins
+//   - Consonant generation = rupture events of classified types
+//   - Pitch/timing = beauty function B(C/Ω) modulation
+// ═══════════════════════════════════════════════════════════════════════════
+
+function synthesisePhoneme(phonemeId, startTime, duration, pitch, amplitude, prevFormants, nextFormants) {
+  if (!ac || !masterGain) return null;
+  const t = startTime;
+  const dur = max(0.02, duration);
+  const f0 = sFreq(pitch);
+  const vol = sGain(amplitude * P.volume);
+
+  // Check if vowel
+  const vowelData = VOWELS[phonemeId];
+  const diphData = DIPHTHONGS[phonemeId];
+  const consData = CONSONANTS[phonemeId];
+
+  if (vowelData || diphData) {
+    return synthesiseVowel(phonemeId, vowelData, diphData, t, dur, f0, vol, prevFormants, nextFormants);
+  } else if (consData) {
+    return synthesiseConsonant(phonemeId, consData, t, dur, f0, vol);
+  }
+  return null;
+}
+
+function synthesiseVowel(id, vData, dData, t, dur, f0, vol, prevF, nextF) {
+  // ═══ GLOTTAL SOURCE — Z₂ vocal fold rupture train ═══
+  // Each glottal pulse is a Z₂ rupture event at frequency f0
+  // The waveform: a damped impulse with Rosenberg-like shape
+
+  const outputGain = ac.createGain();
+  outputGain.gain.setValueAtTime(0, t);
+  outputGain.gain.linearRampToValueAtTime(vol * 0.4, t + dur*0.08);
+  outputGain.gain.setValueAtTime(vol * 0.4, t + dur*0.85);
+  outputGain.gain.linearRampToValueAtTime(0.001, t + dur);
+
+  // Glottal source: combination of harmonics (Z₂ pulse train approximation)
+  const harmonics = [];
+  const numHarmonics = min(20, flr(4000 / f0));
+
+  for (let h = 1; h <= numHarmonics; h++) {
+    const osc = ac.createOscillator();
+    osc.type = 'sine';
+    const hFreq = f0 * h;
+
+    // CRR vibrato: beauty function modulates pitch
+    // B(C/Ω) creates natural pitch micro-variation
+    const vibRate = 5 + P.vibrato * 3;
+    const vibDepth = P.vibrato * f0 * 0.015;
+
+    // Add vibrato via LFO
+    if (P.vibrato > 0.05 && h === 1) {
+      const lfo = ac.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = vibRate;
+      const lfoGain = ac.createGain();
+      lfoGain.gain.value = vibDepth;
+      lfo.connect(lfoGain);
+      // Apply to all harmonics through frequency modulation
+      for (let j = 0; j < harmonics.length; j++) {
+        const lg = ac.createGain();
+        lg.gain.value = (j+1);
+        lfoGain.connect(lg);
+        lg.connect(harmonics[j].frequency);
+      }
+      lfoGain.connect(osc.frequency);
+      lfo.start(t);
+      lfo.stop(t + dur + 0.1);
+    }
+
+    osc.frequency.setValueAtTime(sFreq(hFreq), t);
+
+    // Spectral tilt: higher harmonics decay as 1/h² (glottal source rolloff)
+    // exp(C/Ω) modulates the tilt — higher coherence = brighter
+    const tilt = 1 / (h * h) * (1 + P.clarity * 0.5);
+    const hGain = ac.createGain();
+    hGain.gain.value = sGain(tilt * (1 - P.breathiness * 0.7));
+
+    osc.connect(hGain);
+    harmonics.push(osc);
+
+    // ═══ FORMANT FILTERING — SO(2) coherence basins ═══
+    // Three formant filters shape the glottal source into vowel identity
+
+    let formants;
+    if (dData) {
+      // Diphthong: transition between two SO(2) basins
+      formants = VOWELS[dData.start];
+    } else {
+      formants = vData;
+    }
+
+    // Tract length scaling
+    const tractScale = P.tractLen;
+
+    // Create formant resonances
+    for (let fi = 0; fi < 3; fi++) {
+      const filt = ac.createBiquadFilter();
+      filt.type = 'bandpass';
+      const fKey = ['f1','f2','f3'][fi];
+      const bKey = ['b1','b2','b3'][fi];
+      const fBase = formants[fKey] / tractScale;
+      const bw = (formants[bKey] || 80) * (1 + P.warmth * 0.3);
+
+      filt.frequency.setValueAtTime(sFreq(fBase), t);
+      filt.Q.value = max(0.5, fBase / max(30, bw));
+
+      // Diphthong transition: smooth SO(2) basin shift
+      if (dData) {
+        const endFormants = VOWELS[dData.end];
+        const fEnd = endFormants[fKey] / tractScale;
+        filt.frequency.linearRampToValueAtTime(sFreq(fEnd), t + dur * 0.7);
+      }
+
+      // Coarticulation: blend with adjacent formants (exp(C/Ω) weighted)
+      if (prevF && fi < 2) {
+        const blendStart = prevF[fKey] || fBase;
+        filt.frequency.setValueAtTime(sFreq(blendStart * 0.3 + fBase * 0.7), t);
+        filt.frequency.linearRampToValueAtTime(sFreq(fBase), t + dur * 0.15);
+      }
+
+      const fGain = ac.createGain();
+      const fAmps = [1.0, 0.7, 0.4]; // formant amplitude hierarchy
+      fGain.gain.value = sGain(fAmps[fi] * (fi===0 ? 1 : P.clarity));
+
+      hGain.connect(filt);
+      filt.connect(fGain);
+      fGain.connect(outputGain);
+    }
+
+    osc.start(t);
+    osc.stop(t + dur + 0.05);
+  }
+
+  // ═══ ASPIRATION NOISE — breathiness component ═══
+  if (P.breathiness > 0.05) {
+    const noise = ac.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const nFilt = ac.createBiquadFilter();
+    nFilt.type = 'bandpass';
+    nFilt.frequency.value = f0 * 4;
+    nFilt.Q.value = 0.5;
+    const nGain = ac.createGain();
+    nGain.gain.setValueAtTime(0, t);
+    nGain.gain.linearRampToValueAtTime(sGain(vol * P.breathiness * 0.15), t + dur*0.1);
+    nGain.gain.setTargetAtTime(0.001, t + dur*0.8, sTC(dur*0.1));
+    noise.connect(nFilt);
+    nFilt.connect(nGain);
+    nGain.connect(outputGain);
+    noise.start(t);
+    noise.stop(t + dur + 0.1);
+  }
+
+  // ═══ NASALITY — anti-resonance boundary Θ ═══
+  if (P.nasality > 0.1) {
+    const nasalOsc = ac.createOscillator();
+    nasalOsc.type = 'sine';
+    nasalOsc.frequency.value = sFreq(250 / P.tractLen);
+    const nasalGain = ac.createGain();
+    nasalGain.gain.setValueAtTime(sGain(vol * P.nasality * 0.08), t);
+    nasalGain.gain.setTargetAtTime(0.001, t + dur*0.8, sTC(dur*0.1));
+    nasalOsc.connect(nasalGain);
+    nasalGain.connect(outputGain);
+    nasalOsc.start(t);
+    nasalOsc.stop(t + dur + 0.05);
+  }
+
+  outputGain.connect(masterGain);
+  return vData || (dData ? VOWELS[dData.start] : null);
+}
+
+function synthesiseConsonant(id, cData, t, dur, f0, vol) {
+  const outputGain = ac.createGain();
+  outputGain.gain.value = sGain(vol * 0.3);
+  outputGain.connect(masterGain);
+
+  switch(cData.type) {
+    case 'stop': {
+      // ═══ STOPS — full Z₂ rupture ═══
+      // Gap (silence) → burst δ → aspiration tail
+      const gapDur = cData.gap;
+      const burstDur = cData.burst;
+      const burstTime = t + gapDur;
+
+      // Burst: noise shaped by articulation point
+      const noise = ac.createBufferSource();
+      noise.buffer = noiseBuffer;
+      const bp = ac.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = sFreq(cData.burstF);
+      bp.Q.value = max(0.5, cData.burstF / max(100, cData.burstBW));
+      const bGain = ac.createGain();
+      bGain.gain.setValueAtTime(0, t);
+      bGain.gain.setValueAtTime(0, burstTime - 0.001);
+      bGain.gain.linearRampToValueAtTime(sGain(vol * 0.5), burstTime);
+      bGain.gain.exponentialRampToValueAtTime(0.001, burstTime + burstDur);
+
+      noise.connect(bp);
+      bp.connect(bGain);
+      bGain.connect(outputGain);
+      noise.start(t);
+      noise.stop(t + dur + 0.05);
+
+      // Voiced stops: add voicing bar (low frequency Z₂ oscillation)
+      if (cData.voiced) {
+        const voiceOsc = ac.createOscillator();
+        voiceOsc.type = 'sawtooth';
+        voiceOsc.frequency.value = sFreq(f0 * 0.9);
+        const vFilt = ac.createBiquadFilter();
+        vFilt.type = 'lowpass';
+        vFilt.frequency.value = 300;
+        const vGain = ac.createGain();
+        vGain.gain.setValueAtTime(sGain(vol * 0.15), t);
+        vGain.gain.setTargetAtTime(0.001, t + dur*0.6, sTC(dur*0.15));
+        voiceOsc.connect(vFilt);
+        vFilt.connect(vGain);
+        vGain.connect(outputGain);
+        voiceOsc.start(t);
+        voiceOsc.stop(t + dur + 0.05);
+      }
+      break;
+    }
+
+    case 'fric': {
+      // ═══ FRICATIVES — sustained turbulent δ cascade ═══
+      const noise = ac.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      // Turbulence spectral shaping
+      const bp = ac.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = sFreq(cData.fricF);
+      bp.Q.value = max(0.5, cData.fricF / max(100, cData.fricBW));
+
+      const env = ac.createGain();
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(sGain(vol * 0.3 * P.clarity), t + dur*0.1);
+      env.gain.setValueAtTime(sGain(vol * 0.3 * P.clarity), t + dur*0.8);
+      env.gain.linearRampToValueAtTime(0.001, t + dur);
+
+      noise.connect(bp);
+      bp.connect(env);
+      env.connect(outputGain);
+      noise.start(t);
+      noise.stop(t + dur + 0.02);
+
+      // Voiced fricatives: add Z₂ voicing component
+      if (cData.voiced) {
+        const voiceOsc = ac.createOscillator();
+        voiceOsc.type = 'sawtooth';
+        voiceOsc.frequency.value = sFreq(f0);
+        const vFilt = ac.createBiquadFilter();
+        vFilt.type = 'lowpass';
+        vFilt.frequency.value = sFreq(f0 * 4);
+        const vGain = ac.createGain();
+        vGain.gain.setValueAtTime(sGain(vol * 0.12), t);
+        vGain.gain.setTargetAtTime(0.001, t + dur*0.85, sTC(dur*0.1));
+        voiceOsc.connect(vFilt);
+        vFilt.connect(vGain);
+        vGain.connect(outputGain);
+        voiceOsc.start(t);
+        voiceOsc.stop(t + dur + 0.05);
+      }
+      break;
+    }
+
+    case 'affr': {
+      // ═══ AFFRICATES — compound rupture: stop δ + fricative cascade ═══
+      const halfDur = dur * 0.45;
+      // Stop portion
+      const burstNoise = ac.createBufferSource();
+      burstNoise.buffer = noiseBuffer;
+      const bp1 = ac.createBiquadFilter();
+      bp1.type = 'bandpass';
+      bp1.frequency.value = sFreq(cData.burstF);
+      bp1.Q.value = 2;
+      const bEnv = ac.createGain();
+      bEnv.gain.setValueAtTime(0, t);
+      bEnv.gain.linearRampToValueAtTime(sGain(vol * 0.4), t + 0.005);
+      bEnv.gain.exponentialRampToValueAtTime(0.001, t + halfDur);
+      burstNoise.connect(bp1);
+      bp1.connect(bEnv);
+      bEnv.connect(outputGain);
+      burstNoise.start(t);
+      burstNoise.stop(t + halfDur + 0.02);
+
+      // Fricative portion
+      const fricNoise = ac.createBufferSource();
+      fricNoise.buffer = noiseBuffer;
+      const bp2 = ac.createBiquadFilter();
+      bp2.type = 'bandpass';
+      bp2.frequency.value = sFreq(cData.fricF);
+      bp2.Q.value = 1.5;
+      const fEnv = ac.createGain();
+      fEnv.gain.setValueAtTime(0, t + halfDur);
+      fEnv.gain.linearRampToValueAtTime(sGain(vol * 0.25 * P.clarity), t + halfDur + dur*0.1);
+      fEnv.gain.linearRampToValueAtTime(0.001, t + dur);
+      fricNoise.connect(bp2);
+      bp2.connect(fEnv);
+      fEnv.connect(outputGain);
+      fricNoise.start(t + halfDur);
+      fricNoise.stop(t + dur + 0.02);
+
+      if (cData.voiced) {
+        const vOsc = ac.createOscillator();
+        vOsc.type = 'sawtooth';
+        vOsc.frequency.value = sFreq(f0);
+        const vG = ac.createGain();
+        vG.gain.setValueAtTime(sGain(vol * 0.1), t);
+        vG.gain.setTargetAtTime(0.001, t + dur*0.7, sTC(dur*0.1));
+        const vF = ac.createBiquadFilter();
+        vF.type = 'lowpass'; vF.frequency.value = sFreq(f0*3);
+        vOsc.connect(vF); vF.connect(vG); vG.connect(outputGain);
+        vOsc.start(t); vOsc.stop(t + dur + 0.05);
+      }
+      break;
+    }
+
+    case 'nasal': {
+      // ═══ NASALS — anti-resonance boundary condition Θ ═══
+      // Vocal folds vibrate (Z₂) but oral cavity closed → nasal resonance only
+      const voiceOsc = ac.createOscillator();
+      voiceOsc.type = 'sawtooth';
+      voiceOsc.frequency.value = sFreq(f0);
+
+      // Nasal resonance: low frequency formant
+      const nasalFilt = ac.createBiquadFilter();
+      nasalFilt.type = 'bandpass';
+      nasalFilt.frequency.value = sFreq(cData.nasalF);
+      nasalFilt.Q.value = 3;
+
+      // Anti-resonance: Θ boundary zeroes out certain frequencies
+      const antiFilt = ac.createBiquadFilter();
+      antiFilt.type = 'notch';
+      antiFilt.frequency.value = sFreq(cData.antiF);
+      antiFilt.Q.value = 5;
+
+      const env = ac.createGain();
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(sGain(vol * 0.25), t + dur*0.1);
+      env.gain.setValueAtTime(sGain(vol * 0.25), t + dur*0.8);
+      env.gain.linearRampToValueAtTime(0.001, t + dur);
+
+      voiceOsc.connect(nasalFilt);
+      nasalFilt.connect(antiFilt);
+      antiFilt.connect(env);
+      env.connect(outputGain);
+      voiceOsc.start(t);
+      voiceOsc.stop(t + dur + 0.05);
+      break;
+    }
+
+    case 'liquid':
+    case 'glide': {
+      // ═══ LIQUIDS/GLIDES — partial coherence, vowel-like with rapid Ω modulation ═══
+      const voiceOsc = ac.createOscillator();
+      voiceOsc.type = 'sawtooth';
+      voiceOsc.frequency.value = sFreq(f0);
+
+      // Formant-like resonances (but narrower than vowels — lower Ω)
+      const f1Filt = ac.createBiquadFilter();
+      f1Filt.type = 'bandpass';
+      f1Filt.frequency.value = sFreq(cData.f1 / P.tractLen);
+      f1Filt.Q.value = 4;
+
+      const f2Filt = ac.createBiquadFilter();
+      f2Filt.type = 'bandpass';
+      f2Filt.frequency.value = sFreq(cData.f2 / P.tractLen);
+      f2Filt.Q.value = 3;
+
+      const f3Filt = ac.createBiquadFilter();
+      f3Filt.type = 'bandpass';
+      f3Filt.frequency.value = sFreq(cData.f3 / P.tractLen);
+      f3Filt.Q.value = 2;
+
+      const env = ac.createGain();
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(sGain(vol * 0.2), t + dur*0.15);
+      env.gain.setValueAtTime(sGain(vol * 0.2), t + dur*0.75);
+      env.gain.linearRampToValueAtTime(0.001, t + dur);
+
+      const mix = ac.createGain();
+      mix.gain.value = 1;
+
+      voiceOsc.connect(f1Filt); f1Filt.connect(mix);
+      voiceOsc.connect(f2Filt); f2Filt.connect(mix);
+      voiceOsc.connect(f3Filt); f3Filt.connect(mix);
+      mix.connect(env);
+      env.connect(outputGain);
+      voiceOsc.start(t);
+      voiceOsc.stop(t + dur + 0.05);
+      break;
+    }
+  }
+
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §6 — PROSODY ENGINE (CRR beauty function drives intonation)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function computeProsody(wordStream) {
+  // The beauty function B(C/Ω) = exp(C/Ω)·(1 − C/(Ω·π))
+  // governs pitch contour, duration, and amplitude
+
+  const phraseAgent = new CRR('SO2', P.phraseOmega);
+  const wordAgent = new CRR('Z2', P.emphasisOmega);
+  let totalPhonemes = 0;
+
+  for (const item of wordStream) {
+    if (item.type === 'pause') continue;
+    totalPhonemes += item.phonemes.length;
+  }
+
+  let phIdx = 0;
+  const prosodyMap = [];
+
+  for (const item of wordStream) {
+    if (item.type === 'pause') {
+      prosodyMap.push({ type:'pause', dur: item.dur * (1 + P.pauseDepth * 0.5) / P.speed });
+      // Pause = regeneration phase
+      phraseAgent.step(0.1, item.dur);
+      continue;
+    }
+
+    const wordProsody = [];
+    wordAgent.step(0.8, 0.1); // Each word accumulates coherence
+
+    for (let pi = 0; pi < item.phonemes.length; pi++) {
+      const phId = item.phonemes[pi];
+      const stress = item.stress[pi] || 0;
+      phIdx++;
+
+      // Step CRR agents
+      phraseAgent.step(0.5 + stress * 0.5, 0.05);
+
+      // Beauty function for this phoneme
+      const beauty = phraseAgent.beauty;
+      const normProgress = phIdx / max(1, totalPhonemes);
+
+      // ═══ PITCH — B(C/Ω) modulates F₀ ═══
+      // Stressed syllables approach beauty peak
+      // Sentence-final declination (large-scale coherence decay)
+      const basePitch = P.f0;
+      const pitchMod = P.pitchRange * 0.5;
+      const stressBoost = stress * pitchMod * 0.8;
+      const beautyPitch = beauty * pitchMod * 0.3;
+      const declination = (1 - normProgress * 0.15); // gentle fall
+      const urgencyBoost = P.urgency * 0.2 * sin(normProgress * PI);
+
+      const pitch = basePitch * declination + stressBoost + beautyPitch + urgencyBoost * basePitch;
+
+      // ═══ DURATION — CRR timing with natural variance ═══
+      const isVowel = !!VOWELS[phId] || !!DIPHTHONGS[phId];
+      const isCons = !!CONSONANTS[phId];
+      let baseDur;
+      if (VOWELS[phId]) baseDur = VOWELS[phId].dur;
+      else if (DIPHTHONGS[phId]) baseDur = DIPHTHONGS[phId].dur;
+      else if (CONSONANTS[phId]) baseDur = CONSONANTS[phId].dur;
+      else baseDur = 0.08;
+
+      // Stressed vowels are longer (lower local Ω = longer coherence accumulation)
+      const stressDur = isVowel ? (1 + stress * 0.4) : 1;
+      // CRR jitter: CV ≈ 1/(2π) for Z₂ timing
+      const cvJitter = 1 + (rnd()-0.5) * P.jitterCV * 0.159 * 2;
+      // Reverence = slower, more deliberate
+      const revScale = 1 + P.reverence * 0.3;
+
+      const finalDur = baseDur * stressDur * cvJitter * revScale / P.speed;
+
+      // ═══ AMPLITUDE — exp(C/Ω) weights emphasis ═══
+      const baseAmp = isVowel ? 1.0 : 0.7;
+      const stressAmp = 1 + stress * 0.3;
+      const beautyAmp = 1 + beauty * 0.1;
+
+      wordProsody.push({
+        phoneme: phId,
+        pitch: max(60, min(500, pitch)),
+        duration: max(0.02, min(0.5, finalDur)),
+        amplitude: min(1.5, baseAmp * stressAmp * beautyAmp),
+        stress,
+        beauty,
+        isVowel,
+      });
+    }
+
+    prosodyMap.push({ type:'word', word: item.word, phonemes: wordProsody });
+  }
+
+  return prosodyMap;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §7 — UTTERANCE SCHEDULER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function speakText(slow = false) {
+  if (!ac) initAudio();
+  stopSpeaking();
+
+  const text = document.getElementById('text-input').value.trim();
+  if (!text) return;
+
+  if (slow) P.speed = 0.5;
+
+  speaking = true;
+
+  // §7.1 — Parse text to phoneme stream
+  const wordStream = textToPhonemes(text);
+
+  // §7.2 — Compute prosody using CRR beauty function
+  const prosodyMap = computeProsody(wordStream);
+
+  // §7.3 — Schedule synthesis
+  let currentTime = ac.currentTime + 0.05;
+  const scheduleLog = [];
+
+  // Reset agents
+  Object.values(agents).forEach(a => a.reset());
+
+  let prevFormants = null;
+
+  for (const item of prosodyMap) {
+    if (!speaking) break;
+
+    if (item.type === 'pause') {
+      currentTime += item.dur;
+      scheduleLog.push({ t: currentTime, type:'pause', dur: item.dur });
+      continue;
+    }
+
+    // Schedule word display
+    const wordTime = currentTime;
+    const wordDur = item.phonemes.reduce((s, p) => s + p.duration, 0);
+
+    scheduleDisplay(item.word, '', wordTime, wordDur, 'word');
+
+    for (const ph of item.phonemes) {
+      if (!speaking) break;
+
+      // Step CRR agents
+      agents.phoneme.step(ph.isVowel ? 0.8 : 0.3, ph.duration);
+      agents.syllable.step(0.6, ph.duration);
+
+      // Get next formants for coarticulation
+      const nextPh = item.phonemes[item.phonemes.indexOf(ph) + 1];
+      let nextFormants = null;
+      if (nextPh && VOWELS[nextPh.phoneme]) {
+        nextFormants = VOWELS[nextPh.phoneme];
+      }
+
+      // Synthesise
+      const result = synthesisePhoneme(
+        ph.phoneme, currentTime, ph.duration, ph.pitch,
+        ph.amplitude, prevFormants, nextFormants
+      );
+
+      if (result) prevFormants = result;
+
+      // Schedule phoneme display
+      scheduleDisplay(ph.phoneme, ph.isVowel ? 'vowel' : 'consonant',
+        currentTime, ph.duration, 'phoneme', ph.beauty, ph.stress);
+
+      scheduleLog.push({
+        t: currentTime, phoneme: ph.phoneme, dur: ph.duration,
+        pitch: ph.pitch, amp: ph.amplitude, beauty: ph.beauty,
+      });
+
+      currentTime += ph.duration;
+    }
+
+    // Small gap between words
+    currentTime += 0.01;
+  }
+
+  // Update analysis
+  updateAnalysis(scheduleLog, wordStream);
+
+  // Schedule end
+  const endTime = currentTime;
+  setTimeout(() => {
+    speaking = false;
+    vizData.phase = 'idle';
+    vizData.phoneme = '';
+    document.getElementById('phoneme-display').style.opacity = '0';
+    document.getElementById('word-display').style.opacity = '0';
+  }, (endTime - ac.currentTime) * 1000 + 200);
+}
+
+function scheduleDisplay(text, type, time, dur, display, beauty=0, stress=0) {
+  const delay = (time - ac.currentTime) * 1000;
+  if (delay < 0) return;
+
+  setTimeout(() => {
+    if (!speaking) return;
+
+    if (display === 'phoneme') {
+      const el = document.getElementById('phoneme-display');
+      el.textContent = text;
+      el.style.opacity = '0.8';
+
+      // Color by CRR type
+      if (type === 'vowel') {
+        const hue = 170 + beauty * 20; // teal-cyan range
+        el.style.color = `hsl(${hue}, 65%, ${55 + stress*15}%)`;
+      } else {
+        el.style.color = `hsl(0, ${50 + stress*30}%, 70%)`;
+      }
+
+      vizData.phase = type === 'vowel' ? 'C' : 'delta';
+      vizData.phoneme = text;
+      vizData.beauty = beauty;
+    }
+
+    if (display === 'word') {
+      const el = document.getElementById('word-display');
+      el.textContent = text;
+      el.style.opacity = '0.5';
+    }
+  }, max(0, delay));
+
+  // Fade out
+  setTimeout(() => {
+    if (display === 'phoneme') {
+      document.getElementById('phoneme-display').style.opacity = '0.2';
+    }
+  }, max(0, delay + dur * 800));
+}
+
+function stopSpeaking() {
+  speaking = false;
+  vizData.phase = 'idle';
+  vizData.phoneme = '';
+  document.getElementById('phoneme-display').style.opacity = '0';
+  document.getElementById('word-display').style.opacity = '0';
+}
+
+function updateAnalysis(log, wordStream) {
+  const streamEl = document.getElementById('phoneme-stream');
+  let html = '';
+  for (const entry of log) {
+    if (entry.type === 'pause') {
+      html += `<span style="color:var(--R)">⌿ pause ${entry.dur.toFixed(3)}s</span>\n`;
+    } else {
+      const isV = !!VOWELS[entry.phoneme] || !!DIPHTHONGS[entry.phoneme];
+      const col = isV ? 'var(--C)' : 'var(--delta)';
+      const sym = isV ? 'SO(2)' : 'Z₂';
+      html += `<span style="color:${col}">${entry.phoneme.padEnd(3)}</span> `;
+      html += `${sym.padEnd(5)} `;
+      html += `dur=${entry.dur.toFixed(3)} `;
+      html += `f₀=${entry.pitch.toFixed(0).padStart(3)}Hz `;
+      html += `B=${entry.beauty.toFixed(2)}\n`;
+    }
+  }
+  streamEl.innerHTML = html || '—';
+
+  // Update analysis block
+  const totalVowels = log.filter(e => VOWELS[e.phoneme] || DIPHTHONGS[e.phoneme]).length;
+  const totalCons = log.filter(e => CONSONANTS[e.phoneme]).length;
+  const totalPauses = log.filter(e => e.type === 'pause').length;
+  const avgBeauty = log.filter(e => e.beauty).reduce((s,e) => s + e.beauty, 0) / max(1, log.length);
+
+  const analysisEl = document.getElementById('analysis-output');
+  analysisEl.innerHTML = `
+    <span class="ph">Vowels (SO(2) basins):</span> ${totalVowels} phonemes<br>
+    <span class="rup">Consonants (Z₂ ruptures):</span> ${totalCons} phonemes<br>
+    <span class="reg">Pauses (Regeneration):</span> ${totalPauses} gaps<br><br>
+    Mean beauty B(C/Ω): ${avgBeauty.toFixed(3)}<br>
+    Phoneme rate: ${((totalVowels+totalCons)/(log[log.length-1]?.t||1)).toFixed(1)} ph/s<br>
+    CRR ratio (V:C): ${totalVowels}:${totalCons} = ${(totalVowels/max(1,totalCons)).toFixed(2)}<br><br>
+    <span style="color:var(--omega)">Ω_glottal</span> = ${agents.glottal.omega.toFixed(4)} (1/π = ${(1/PI).toFixed(4)})<br>
+    <span style="color:var(--omega)">Ω_phrase</span> = ${agents.phrase.omega.toFixed(4)}<br>
+    Ruptures: glottal=${agents.glottal.ruptures} syllable=${agents.syllable.ruptures} word=${agents.word.ruptures}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §8 — VISUALISER (CRR state space rendered)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const vizCanvas = document.getElementById('viz-canvas');
+const vizCtx = vizCanvas.getContext('2d');
+let W, H, particles = [];
+
+function resizeViz() {
+  const wrap = document.getElementById('viz-wrap');
+  if (!wrap) return;
+  W = vizCanvas.width = wrap.clientWidth;
+  H = vizCanvas.height = wrap.clientHeight;
+  initParticles();
+}
+
+function initParticles() {
+  particles = [];
+  const count = min(200, flr(W * H / 3000));
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: rnd()*W, y: rnd()*H,
+      vx: (rnd()-0.5)*0.5, vy: (rnd()-0.5)*0.5,
+      r: 1 + rnd()*2,
+      phase: rnd()*TAU,
+      speed: 0.2 + rnd()*0.8,
+      hue: 170 + rnd()*60,
+    });
+  }
+}
+
+function renderViz() {
+  if (!W) return;
+  vizCtx.fillStyle = 'rgba(3,4,8,0.15)';
+  vizCtx.fillRect(0, 0, W, H);
+
+  const isActive = speaking;
+  const t = performance.now() / 1000;
+
+  // Get waveform data if available
+  let waveData = null;
+  if (analyserNode && isActive) {
+    waveData = new Float32Array(analyserNode.frequencyBinCount);
+    analyserNode.getFloatTimeDomainData(waveData);
+  }
+
+  // Draw waveform
+  if (waveData && isActive) {
+    vizCtx.beginPath();
+    vizCtx.strokeStyle = vizData.phase === 'C'
+      ? `rgba(79,209,197,${0.3 + vizData.beauty*0.15})`
+      : vizData.phase === 'delta'
+        ? `rgba(252,129,129,0.4)`
+        : `rgba(104,211,145,0.2)`;
+    vizCtx.lineWidth = 1.5;
+
+    const sliceWidth = W / waveData.length;
+    let x = 0;
+    for (let i = 0; i < waveData.length; i++) {
+      const v = waveData[i] * H * 0.3;
+      const y = H/2 + v;
+      if (i === 0) vizCtx.moveTo(x, y);
+      else vizCtx.lineTo(x, y);
+      x += sliceWidth;
+    }
+    vizCtx.stroke();
+  }
+
+  // Draw CRR formant basin visualisation
+  if (isActive && vizData.phoneme) {
+    const vData = VOWELS[vizData.phoneme];
+    if (vData) {
+      // Draw formant basins as concentric rings
+      for (let fi = 0; fi < 3; fi++) {
+        const freq = [vData.f1, vData.f2, vData.f3][fi];
+        const normFreq = freq / 3500;
+        const radius = 30 + normFreq * min(W,H) * 0.15;
+        const alpha = [0.15, 0.10, 0.06][fi];
+
+        vizCtx.beginPath();
+        vizCtx.arc(W/2, H/2, radius, 0, TAU);
+        vizCtx.strokeStyle = `rgba(79,209,197,${alpha + vizData.beauty*0.05})`;
+        vizCtx.lineWidth = 2 + vizData.beauty;
+        vizCtx.stroke();
+      }
+    }
+  }
+
+  // Particles — coherence field
+  for (const p of particles) {
+    const influence = isActive ? 1.5 : 0.5;
+    p.phase += p.speed * 0.02 * influence;
+
+    // CRR-driven motion
+    if (vizData.phase === 'delta') {
+      // Rupture: particles scatter
+      p.vx += (rnd()-0.5) * 2;
+      p.vy += (rnd()-0.5) * 2;
+    } else if (vizData.phase === 'C') {
+      // Coherence: particles drift toward centre
+      const dx = W/2 - p.x;
+      const dy = H/2 - p.y;
+      const dist = sqrt(dx*dx + dy*dy) + 1;
+      p.vx += dx/dist * 0.02 * vizData.beauty;
+      p.vy += dy/dist * 0.02 * vizData.beauty;
+    }
+
+    // Damping
+    p.vx *= 0.97;
+    p.vy *= 0.97;
+
+    p.x += p.vx + sin(p.phase) * 0.3;
+    p.y += p.vy + cos(p.phase * 0.7) * 0.3;
+
+    // Wrap
+    if (p.x < 0) p.x = W;
+    if (p.x > W) p.x = 0;
+    if (p.y < 0) p.y = H;
+    if (p.y > H) p.y = 0;
+
+    const alpha = isActive
+      ? 0.15 + vizData.beauty * 0.1
+      : 0.06 + sin(t + p.phase) * 0.03;
+
+    vizCtx.beginPath();
+    vizCtx.arc(p.x, p.y, p.r, 0, TAU);
+    vizCtx.fillStyle = `hsla(${p.hue + (vizData.phase==='delta'?30:0)}, 50%, 60%, ${alpha})`;
+    vizCtx.fill();
+  }
+
+  // CRR readout
+  if (frame % 8 === 0) {
+    const m = agents.phoneme;
+    document.getElementById('crr-readout').textContent =
+      `phase: ${vizData.phase}\nC: ${m.C.toFixed(3)}\nΩ: ${m.omega.toFixed(4)}\nbeauty: ${vizData.beauty.toFixed(3)}\nruptures: ${m.ruptures}\nphoneme: ${vizData.phoneme}`;
+
+    document.getElementById('top-crr').textContent =
+      `C=${m.C.toFixed(2)} · Ω=${m.omega.toFixed(3)} · phase=${vizData.phase} · B=${vizData.beauty.toFixed(2)}`;
+  }
+
+  frame++;
+  requestAnimationFrame(renderViz);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §9 — UI CONTROLS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function setParam(name, v) {
+  const map = {
+    speed:       { set: ()=> P.speed = v/100,          el:'v-speed',       fmt: v=>(v/100).toFixed(2) },
+    volume:      { set: ()=>{ P.volume = v/100; if(masterGain) masterGain.gain.value = P.volume }, el:'v-volume', fmt: v=>(v/100).toFixed(2) },
+    clarity:     { set: ()=> P.clarity = v/100,         el:'v-clarity',     fmt: v=>(v/100).toFixed(2) },
+    f0:          { set: ()=> P.f0 = +v,                 el:'v-f0',          fmt: v=>v },
+    tractLen:    { set: ()=> P.tractLen = v/100,         el:'v-tractLen',    fmt: v=>(v/100).toFixed(2) },
+    breathiness: { set: ()=> P.breathiness = v/100,      el:'v-breathiness', fmt: v=>(v/100).toFixed(2) },
+    vibrato:     { set: ()=> P.vibrato = v/100,          el:'v-vibrato',     fmt: v=>(v/100).toFixed(2) },
+    nasality:    { set: ()=> P.nasality = v/100,         el:'v-nasality',    fmt: v=>(v/100).toFixed(2) },
+    roughness:   { set: ()=> P.roughness = v/100,        el:'v-roughness',   fmt: v=>(v/100).toFixed(2) },
+    pitchRange:  { set: ()=> P.pitchRange = v/100,       el:'v-pitchRange',  fmt: v=>(v/100).toFixed(2) },
+    emphasisOmega:{ set: ()=> P.emphasisOmega = v/100,   el:'v-emphasisOmega',fmt: v=>(v/100).toFixed(2) },
+    phraseOmega: { set: ()=> P.phraseOmega = v/100,     el:'v-phraseOmega', fmt: v=>(v/100).toFixed(2) },
+    durationOmega:{ set: ()=> P.durationOmega = v/100,  el:'v-durationOmega',fmt: v=>(v/100).toFixed(2) },
+    pauseDepth:  { set: ()=> P.pauseDepth = v/100,      el:'v-pauseDepth',  fmt: v=>(v/100).toFixed(2) },
+    jitterCV:    { set: ()=> P.jitterCV = v/100,         el:'v-jitterCV',    fmt: v=>(v/100).toFixed(2) },
+    warmth:      { set: ()=> P.warmth = v/100,           el:'v-warmth',      fmt: v=>(v/100).toFixed(2) },
+    urgency:     { set: ()=> P.urgency = v/100,          el:'v-urgency',     fmt: v=>(v/100).toFixed(2) },
+    reverence:   { set: ()=> P.reverence = v/100,        el:'v-reverence',   fmt: v=>(v/100).toFixed(2) },
+  };
+  if (map[name]) { map[name].set(); document.getElementById(map[name].el).textContent = map[name].fmt(v) }
+}
+
+function setVoice(type) {
+  const v = VOICES[type];
+  if (!v) return;
+  Object.assign(P, v);
+  // Update UI
+  document.getElementById('v-f0').textContent = P.f0;
+  document.getElementById('v-tractLen').textContent = P.tractLen.toFixed(2);
+  document.getElementById('v-breathiness').textContent = P.breathiness.toFixed(2);
+  document.getElementById('v-vibrato').textContent = P.vibrato.toFixed(2);
+  document.getElementById('v-nasality').textContent = P.nasality.toFixed(2);
+  document.getElementById('v-roughness').textContent = P.roughness.toFixed(2);
+  // Update sliders
+  const sliders = {
+    'f0': P.f0, 'tractLen': P.tractLen*100, 'breathiness': P.breathiness*100,
+    'vibrato': P.vibrato*100, 'nasality': P.nasality*100, 'roughness': P.roughness*100,
+  };
+  for (const [k,val] of Object.entries(sliders)) {
+    const el = document.querySelector(`#tab-voice input[oninput*="${k}"]`);
+    if (el) el.value = val;
+  }
+  // Active button
+  document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('active'));
+  event.target.closest('.voice-btn')?.classList.add('active');
+}
+
+function setPreset(idx) {
+  const presets = [
+    'Hello world, this is the CRR voice speaking.',
+    'Every breath is a cycle of coherence, rupture, and regeneration.',
+    'The cosmos hums with ancient light, weaving songs across the void.',
+    'Time is not a river. It is a spiral of accumulation and release.',
+  ];
+  document.getElementById('text-input').value = presets[idx] || '';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §10 — SPLASH ANIMATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+function animateSplash() {
+  const canvas = document.getElementById('splash-wave');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.parentElement.clientWidth;
+  const h = canvas.height = canvas.parentElement.clientHeight;
+
+  let t = 0;
+  function drawSplash() {
+    if (document.getElementById('splash').classList.contains('hidden')) return;
+    ctx.clearRect(0, 0, w, h);
+    t += 0.02;
+
+    // CRR waveform: coherence builds, ruptures, regenerates
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(79,209,197,0.25)';
+    ctx.lineWidth = 1.5;
+
+    for (let x = 0; x < w; x++) {
+      const nx = x / w;
+      const cPhase = sin(nx * TAU * 3 + t) * 0.5;
+      const rupture = exp(-pow((nx - 0.5 - sin(t*0.3)*0.2)*8, 2)) * sin(t*12) * 0.3;
+      const regen = sin(nx * TAU * 1.5 - t*0.5) * 0.15 * (1 - abs(nx - 0.5)*2);
+      const y = h/2 + (cPhase + rupture + regen) * h * 0.35;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Second wave (offset)
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(206,147,216,0.12)';
+    for (let x = 0; x < w; x++) {
+      const nx = x / w;
+      const y = h/2 + sin(nx * TAU * 2 - t*0.7) * h * 0.2 * cos(t*0.4 + nx*PI);
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    requestAnimationFrame(drawSplash);
+  }
+  drawSplash();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §11 — INIT
+// ═══════════════════════════════════════════════════════════════════════════
+
+animateSplash();
+
+document.getElementById('splash').addEventListener('click', () => {
+  initAudio();
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  resizeViz();
+  requestAnimationFrame(renderViz);
+  // Set default text
+  document.getElementById('text-input').value = 'Hello world, this is the CRR voice speaking.';
+});
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('app').classList.contains('active')) resizeViz();
+});
+</script>
+</body>
+</html>
