@@ -133,7 +133,7 @@ ECG melody: P→E(H9) · R→D'(H16) · T→F♯(H10) · systole:diastole ≈ φ
 <div id="controls"><div class="transport-row">
 <button class="tb" id="btn-play" onclick="startSong()">▶ Play</button>
 <button class="tb" id="btn-stop" onclick="stopSong()">■ Stop</button>
-<div class="sw"><label>tempo</label><input type="range" id="sl-tempo" min="0.7" max="1.3" step="0.05" value="1"><span class="v" id="v-tempo">1.0×</span></div>
+<div class="sw"><label>bpm</label><input type="range" id="sl-tempo" min="0.7" max="1.3" step="0.05" value="1"><span class="v" id="v-tempo">72♡</span></div>
 <div class="sw"><label>reverb</label><input type="range" id="sl-rev" min="0" max="1" step="0.05" value="0.7"><span class="v" id="v-rev">.70</span></div>
 <div class="sw"><label>heart</label><input type="range" id="sl-heart" min="0" max="1" step="0.05" value="0.65"><span class="v" id="v-heart">.65</span></div>
 <div class="sw"><label>blood</label><input type="range" id="sl-blood" min="0" max="1" step="0.05" value="0.55"><span class="v" id="v-blood">.55</span></div>
@@ -429,7 +429,8 @@ function updateCardiac(dt){
   const bNorm=HEART.breathPhase%1;
   HEART.breathAmp=bNorm<0.4?sin(bNorm/0.4*PI/2):bNorm<0.5?1:cos((bNorm-0.5)/0.5*PI/2);
   const rsaMod=1+HEART.breathAmp*0.06*(ag.vagal.normC*0.5+0.5);
-  HEART.currentBPM=HEART.bpm*rsaMod;
+  // Tempo slider IS heart rate — everything is one system
+  HEART.currentBPM=HEART.bpm*tM*rsaMod;
   const beatDur=60/HEART.currentBPM;
   HEART.cycleTime+=dt;
   HEART.phase=(HEART.cycleTime/beatDur)%1;
@@ -997,9 +998,9 @@ function buildSeq(){
 let ac=null,mG,mC,dG,rC,rG,anl,fD;
 let melG,bassG,padG,heartG,flowG,choirG,brthG;
 let nB;
-let drS={o:[],m:null,a:false};
+let drS={o:[],m:null,a:false,lfo:null};
 let hMx=0.65,bMx=0.55,mMx=0.6,cMx=0.5,rMx=0.7;
-let playing=false,pT=0,seq=[],seqI=0,curSec=null,prevSec=null;
+let playing=false,beatPos=0,pT=0,seq=[],seqI=0,curSec=null,prevSec=null;
 const AB={sub:0,bass:0,low:0,mid:0,high:0,pres:0,energy:0,peak:0};
 
 function initAudio(){
@@ -1075,10 +1076,11 @@ function initDrone(){
     const g=ac.createGain();g.gain.value=h.g;
     o.connect(fl);fl.connect(g);g.connect(drS.m);o.start();drS.o.push({o,g,f:h.f});
   }
-  // LFO at cardiac rate: 72/60 = 1.2 Hz
-  const lfo=ac.createOscillator();lfo.type='sine';lfo.frequency.value=HEART.bpm/60;
+  // LFO at cardiac rate — tracks current BPM
+  const lfo=ac.createOscillator();lfo.type='sine';lfo.frequency.value=HEART.bpm*tM/60;
   const lg=ac.createGain();lg.gain.value=1.5;
   lfo.connect(lg);for(const h of drS.o)lg.connect(h.o.frequency);lfo.start();
+  drS.lfo=lfo;
   // Blood flow sub-noise
   const ns=ac.createBufferSource();ns.buffer=nB;ns.loop=true;
   const nf=ac.createBiquadFilter();nf.type='lowpass';nf.frequency.value=60;nf.Q.value=.4;
@@ -1492,7 +1494,7 @@ function render(ts){
 function startSong(){
   if(playing)return;initAudio();
   if(ac.state==='suspended')ac.resume();
-  playing=true;pT=0;seqI=0;seq=buildSeq();
+  playing=true;pT=0;beatPos=0;seqI=0;seq=buildSeq();
   HEART.cycleTime=0;HEART.phase=0;HEART.beatCount=0;HEART.ecgHistory=[];
   initBlood();ALL.forEach(a=>a.reset());
   document.getElementById('btn-play').classList.add('playing');
@@ -1502,7 +1504,11 @@ function stopSong(){playing=false;document.getElementById('btn-play').classList.
 
 function scheduleLoop(){
   if(!playing)return;const bs=bS(),now=ac.currentTime;
-  while(seqI<seq.length&&seq[seqI].b<=pT/bs){
+  // Advance beat position by dt in beats (not seconds)
+  // This means tempo changes only affect FUTURE rate, not current position
+  beatPos+=1/60/bs;
+  pT+=1/60;
+  while(seqI<seq.length&&seq[seqI].b<=beatPos){
     const e=seq[seqI];
     switch(e.ty){
       case 'note': pNote(e.fHz,e.v,e.d*bs); break;
@@ -1530,7 +1536,7 @@ function scheduleLoop(){
     seqI++;
   }
   ag.p.step(0.3,0.001);
-  const beatNow=pT/bs,pct=beatNow/TOTAL_BEATS*100;
+  const pct=beatPos/TOTAL_BEATS*100;
   document.getElementById('timeline-fill').style.width=pct+'%';
   const fmt=t=>`${floor(t/60)}:${('0'+floor(t%60)).slice(-2)}`;
   document.getElementById('timeline-time').textContent=`${fmt(pT)} / ${fmt(TOTAL_BEATS*bs)}`;
@@ -1538,8 +1544,7 @@ function scheduleLoop(){
     `C=${ag.p.C.toFixed(2)} Ω=${ag.p.omega.toFixed(3)}\n`+
     `exp(C/Ω)=${min(9999,ag.p.expCO).toFixed(1)}\n`+
     `S1=${S1_FUND}Hz S2=${S2_FUND}Hz 3:2`;
-  pT+=1/60;
-  if(beatNow>=TOTAL_BEATS){stopSong();return;}
+  if(beatPos>=TOTAL_BEATS){stopSong();return;}
   setTimeout(scheduleLoop,1000/60);
 }
 
@@ -1560,7 +1565,8 @@ function initUI(){
     sl.addEventListener('input',()=>{const val=parseFloat(sl.value);
       v.textContent=val.toFixed(val===floor(val)?1:2).replace(/^0/,'');cb(val);});
   };
-  bind('sl-tempo','v-tempo',v=>tM=v);
+  bind('sl-tempo','v-tempo',v=>{tM=v;if(drS.lfo)drS.lfo.frequency.value=HEART.bpm*v/60;
+    document.getElementById('v-tempo').textContent=round(HEART.bpm*v)+'♡'});
   bind('sl-rev','v-rev',v=>{rMx=v;if(rG)rG.gain.value=v;if(dG)dG.gain.value=1-v*.3});
   bind('sl-heart','v-heart',v=>{hMx=v;if(heartG)heartG.gain.value=v*.5});
   bind('sl-blood','v-blood',v=>{bMx=v;if(flowG)flowG.gain.value=v*.4});
