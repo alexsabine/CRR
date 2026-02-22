@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Song of the Heart — CRR Cardiac Composition</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Mono:wght@400;700&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --arterial:#c62828;--venous:#1565c0;--deoxy:#4a148c;
+  --neural:#ffd54f;--valve:#e65100;--muscle:#b71c1c;
+  --sinus:#ffab00;--ecg:#00e676;--purkinje:#ff6d00;
+  --coherence:#ef5350;--rupture:#ff1744;--regen:#e57373;
+  --cream:rgba(220,200,200,0.85);--creamD:rgba(200,180,180,0.5);
+  --bg:#0a0404;--panel:rgba(12,4,4,0.97)
+}
+body{background:var(--bg);color:var(--cream);font-family:'Cormorant Garamond',Georgia,serif;
+overflow:hidden;width:100vw;height:100vh;position:fixed}
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;
+justify-content:center;cursor:pointer;transition:opacity 1.8s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:720px;padding:0 24px}
+#splash .pulse-bar{width:min(300px,75vw);height:2px;margin:0 auto 28px;border-radius:2px;
+background:linear-gradient(90deg,var(--venous),var(--deoxy),var(--arterial),var(--rupture),var(--arterial),var(--deoxy),var(--venous));
+background-size:200% 100%;animation:heartbar 1.0s ease-in-out infinite}
+@keyframes heartbar{0%,100%{opacity:.2;transform:scaleX(.94)}
+12%{opacity:.9;transform:scaleX(1.12)}24%{opacity:.3;transform:scaleX(.97)}
+36%{opacity:.65;transform:scaleX(1.06)}50%,100%{opacity:.2;transform:scaleX(.94)}}
+#splash h1{font-size:clamp(2.2rem,5.5vw,3.8rem);font-weight:300;letter-spacing:.3em;
+margin-bottom:8px;background:linear-gradient(135deg,var(--venous),var(--arterial),var(--rupture),var(--sinus),var(--arterial),var(--venous));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+#splash .sub{font-size:clamp(.74rem,1.3vw,.95rem);font-weight:300;opacity:.38;
+letter-spacing:.04em;line-height:1.9;font-style:italic}
+#splash .eq{font-family:'Space Mono',monospace;font-size:clamp(.42rem,.72vw,.54rem);
+opacity:.14;margin-top:18px;letter-spacing:.02em;line-height:1.8}
+#splash .credit{font-size:.6rem;opacity:.16;margin-top:14px;letter-spacing:.06em}
+#splash .tap{font-size:.66rem;opacity:.16;margin-top:22px;letter-spacing:.14em;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.1}15%{opacity:.35}30%{opacity:.12}42%{opacity:.28}55%,100%{opacity:.1}}
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#canvas-wrap{flex:1;min-height:0;position:relative}
+#viz{display:block;width:100%;height:100%;touch-action:none}
+#info-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+align-items:flex-start;padding:10px 16px;pointer-events:none;z-index:5}
+#piece-title{font-size:clamp(.82rem,1.5vw,1.1rem);font-weight:300;letter-spacing:.14em;
+color:rgba(200,160,160,0.5)}
+#piece-title .composer{font-size:.64em;font-weight:300;opacity:.5;font-style:italic;display:block;margin-top:3px}
+#crr-display{font-family:'Space Mono',monospace;font-size:clamp(.42rem,.72vw,.54rem);
+color:rgba(200,140,140,0.3);text-align:right;line-height:1.65;white-space:pre-line}
+#section-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+text-align:center;pointer-events:none;z-index:4;font-size:clamp(1rem,2.4vw,1.7rem);
+font-weight:300;letter-spacing:.26em;font-style:italic;opacity:0;transition:opacity 2s ease;
+color:rgba(220,160,160,0.45);text-shadow:0 0 50px rgba(180,60,60,0.12)}
+#physics-label{position:absolute;bottom:8%;left:16px;pointer-events:none;z-index:5;max-width:420px}
+#physics-text{font-family:'Space Mono',monospace;font-size:clamp(.5rem,.85vw,.68rem);
+color:rgba(200,140,140,0.45);line-height:1.8;transition:opacity 1.2s ease;white-space:pre-line;
+text-shadow:0 0 10px rgba(180,60,60,0.08)}
+#crr-explain{position:absolute;top:52px;right:16px;pointer-events:none;z-index:5;max-width:260px;
+font-family:'Space Mono',monospace;font-size:clamp(.44rem,.76vw,.58rem);
+color:rgba(180,120,120,0.35);line-height:1.7;text-align:right;transition:opacity 1.5s ease;white-space:pre-line}
+#timeline-wrap{height:26px;background:rgba(12,4,4,0.95);border-top:1px solid rgba(180,60,60,0.06);
+display:flex;align-items:center;padding:0 14px;gap:9px;flex-shrink:0}
+#timeline-bar{flex:1;height:5px;background:rgba(255,255,255,0.03);border-radius:3px;
+position:relative;overflow:hidden}
+#timeline-fill{height:100%;width:0%;border-radius:3px;transition:width 0.3s linear;
+background:linear-gradient(90deg,rgba(21,101,192,.4),rgba(74,20,140,.4),rgba(198,40,40,.5),rgba(255,23,68,.5),rgba(198,40,40,.5),rgba(21,101,192,.4))}
+#timeline-sections{position:absolute;inset:0;display:flex;pointer-events:none}
+.t-section{height:100%;border-right:1px solid rgba(255,255,255,0.04);position:relative}
+.t-section-label{position:absolute;top:-13px;left:2px;font-family:'Space Mono',monospace;
+font-size:6px;color:rgba(200,160,160,0.2);letter-spacing:.03em;white-space:nowrap}
+#timeline-time{font-family:'Space Mono',monospace;font-size:.5rem;color:rgba(200,160,160,0.25);
+min-width:62px;text-align:right}
+#controls{border-top:1px solid rgba(180,60,60,0.08);background:var(--panel);
+padding:8px 14px 10px;display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.transport-row{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap}
+.tb{font-family:'Cormorant Garamond',serif;font-size:clamp(.68rem,.95vw,.82rem);
+padding:4px 16px;border:1px solid rgba(180,60,60,0.1);background:transparent;
+color:var(--creamD);cursor:pointer;border-radius:3px;letter-spacing:.06em;transition:all .25s;touch-action:manipulation}
+.tb:hover{border-color:rgba(180,60,60,0.3);color:var(--cream)}
+.tb.playing{border-color:rgba(198,40,40,0.4);color:rgba(220,140,140,.8);background:rgba(198,40,40,.03)}
+.sw{display:flex;align-items:center;gap:4px}
+.sw label{font-size:.54rem;color:rgba(200,160,160,.3);letter-spacing:.06em;width:42px;flex-shrink:0}
+.sw input[type=range]{flex:1;max-width:70px;height:2px;cursor:pointer;accent-color:rgba(180,60,60,0.45);
+touch-action:manipulation;min-height:20px}
+.sw .v{font-family:'Space Mono',monospace;font-size:.46rem;color:rgba(200,160,160,.25);
+width:26px;text-align:right;flex-shrink:0}
+#crr-footer{text-align:center;padding:2px;font-size:clamp(.36rem,.6vw,.46rem);
+font-family:'Space Mono',monospace;letter-spacing:.02em;
+background:linear-gradient(90deg,rgba(21,101,192,.3),rgba(74,20,140,.3),rgba(198,40,40,.3),rgba(255,23,68,.3),rgba(198,40,40,.3),rgba(21,101,192,.3));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@media(max-width:600px){
+#controls{padding:6px 8px calc(8px + env(safe-area-inset-bottom,0px));gap:3px}
+.transport-row{flex-wrap:wrap;gap:3px}
+.tb{padding:8px 16px;font-size:.82rem;min-height:36px}
+.sw{flex:1 1 calc(50% - 4px);min-width:130px;max-width:50%}
+.sw label{width:36px;font-size:.48rem}
+.sw input[type=range]{max-width:none;height:6px;min-height:28px}
+.sw .v{font-size:.42rem}
+#info-bar{padding:6px 10px}
+#piece-title .composer{display:none}
+#timeline-wrap{padding:0 9px;height:22px}
+.t-section-label{display:none}
+#physics-label{bottom:6%;left:10px;max-width:260px}
+#crr-explain{top:42px;right:10px;max-width:200px}
+#crr-footer{font-size:.36rem}
+#section-label{font-size:clamp(.85rem,4vw,1.3rem)}
+}
+@media(max-width:380px){.sw{flex:1 1 100%;max-width:100%}}
+</style></head><body>
+<div id="splash"><div class="inner"><div class="pulse-bar"></div><h1>HEART</h1>
+<p class="sub">Every sound derived from cardiac physics. No arbitrary musical choices.<br>
+S1 (lub) resonates at 36 Hz. S2 (dub) at 54 Hz. Their ratio: 3:2 — a perfect fifth.<br>
+The heart's two sounds define the most consonant interval in music.<br>
+Melody follows the ECG voltage contour: P-wave, QRS spike, T-wave resolution.<br>
+All harmony from the overtone series of these two frequencies.<br>
+Rhythm from systole:diastole = 3:5, close to the golden ratio.</p>
+<p class="eq">S1=36Hz (D) · S2=54Hz (A) · ratio=3/2=perfect fifth<br>
+overtone series: H4=144(D) H5=180(F♯) H6=216(A) H7=252(♭7) H8=288(D) H9=324(E) H10=360(F♯)<br>
+cardiac scale: D E F♯ A — pentatonic from harmonics 8,9,10,12<br>
+ECG melody: P→E(H9) · R→D'(H16) · T→F♯(H10) · systole:diastole ≈ φ</p>
+<p class="credit">CRR Framework — Alexander Sabine · temporalgrammar.ai</p>
+<p class="tap">tap to enter</p></div></div>
+
+<div id="app"><div id="canvas-wrap"><canvas id="viz"></canvas>
+<div id="info-bar"><div id="piece-title">Song of the Heart<span class="composer">CRR Cardiac Composition</span></div>
+<div id="crr-display"></div></div>
+<div id="section-label"></div>
+<div id="physics-label"><div id="physics-text"></div></div>
+<div id="crr-explain"></div></div>
+<div id="timeline-wrap"><div id="timeline-bar"><div id="timeline-fill"></div>
+<div id="timeline-sections"></div></div><div id="timeline-time">0:00 / 0:00</div></div>
+<div id="controls"><div class="transport-row">
+<button class="tb" id="btn-play" onclick="startSong()">▶ Play</button>
+<button class="tb" id="btn-stop" onclick="stopSong()">■ Stop</button>
+<div class="sw"><label>tempo</label><input type="range" id="sl-tempo" min="0.7" max="1.3" step="0.05" value="1"><span class="v" id="v-tempo">1.0×</span></div>
+<div class="sw"><label>reverb</label><input type="range" id="sl-rev" min="0" max="1" step="0.05" value="0.7"><span class="v" id="v-rev">.70</span></div>
+<div class="sw"><label>heart</label><input type="range" id="sl-heart" min="0" max="1" step="0.05" value="0.65"><span class="v" id="v-heart">.65</span></div>
+<div class="sw"><label>blood</label><input type="range" id="sl-blood" min="0" max="1" step="0.05" value="0.55"><span class="v" id="v-blood">.55</span></div>
+<div class="sw"><label>melody</label><input type="range" id="sl-mel" min="0" max="1" step="0.05" value="0.60"><span class="v" id="v-mel">.60</span></div>
+<div class="sw"><label>choir</label><input type="range" id="sl-choir" min="0" max="1" step="0.05" value="0.50"><span class="v" id="v-choir">.50</span></div>
+</div>
+<div id="crr-footer">S1=36Hz(D) · S2=54Hz(A) · 54/36=3/2=♩perfect fifth · cardiac scale from overtone series: D(H8) E(H9) F♯(H10) A(H12) · ECG contour→melody · systole:diastole=3:5≈1/φ · all harmony from S1+S2 harmonics · no arbitrary pitches</div>
+</div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  SONG OF THE HEART — CRR Cardiac Composition
+//  Alexander Sabine · CRR Framework · temporalgrammar.ai
+//
+//  FUNDAMENTAL PRINCIPLE: Every musical element derives from
+//  measurable cardiac physics. No arbitrary choices.
+//
+//  ═══════════════════════════════════════════════════════════════
+//  DERIVATION OF ALL MUSICAL MATERIAL FROM CARDIAC PHYSICS
+//  ═══════════════════════════════════════════════════════════════
+//
+//  1. PITCH — from heart sound resonances
+//  ───────────────────────────────────────
+//  S1 (lub): mitral + tricuspid valve closure
+//    Dominant frequency: ~36 Hz (measured in phonocardiography)
+//    This is the heart's fundamental tone.
+//    36 Hz ≈ D1 (MIDI 26)
+//
+//  S2 (dub): aortic + pulmonary valve closure
+//    Dominant frequency: ~54 Hz (measured)
+//    54 Hz ≈ A1 (MIDI 33)
+//
+//  THE CRITICAL RATIO: S2/S1 = 54/36 = 3/2 = PERFECT FIFTH
+//
+//  The most consonant interval in music (after the octave)
+//  emerges directly from the physics of valve closure.
+//  The mitral valve (larger, lower pressure) produces a lower
+//  fundamental. The aortic valve (smaller, higher pressure)
+//  produces a higher fundamental. Their ratio is 3:2.
+//
+//  2. SCALE — from S1 overtone series
+//  ───────────────────────────────────
+//  Every physical oscillator produces harmonics at integer
+//  multiples of its fundamental. S1 at 36 Hz produces:
+//
+//  H1:  36 Hz  (D1 — sub-audible fundamental)
+//  H2:  72 Hz  (D2)
+//  H3:  108 Hz (A2 — confirms the fifth!)
+//  H4:  144 Hz (D3)
+//  H5:  180 Hz (F#3 — the major third emerges)
+//  H6:  216 Hz (A3 — the fifth again)
+//  H7:  252 Hz (natural seventh, between Bb3 and B3)
+//  H8:  288 Hz (D4 — melodic root)
+//  H9:  324 Hz (E4 — the second)
+//  H10: 360 Hz (F#4 — the third)
+//  H11: 396 Hz (≈G4 — the fourth, from 11th partial)
+//  H12: 432 Hz (A4 — the fifth)
+//
+//  THE CARDIAC SCALE (from cleanest harmonics H8-H12):
+//    D(288) - E(324) - F#(360) - A(432)
+//  This is a MAJOR PENTATONIC on D, missing only B.
+//
+//  Adding S2 overtones: S2*H3=162≈E, S2*H5=270≈C#, S2*H6=324=E
+//  confirms E and adds C# for the A major chord.
+//
+//  These are JUST INTONATION frequencies — not equal temperament.
+//  The drone and harmony use exact overtone Hz for the natural
+//  warmth that equal temperament cannot achieve.
+//
+//  3. HARMONY — from S1 and S2 overtone series
+//  ─────────────────────────────────────────────
+//  S1 chord (H4, H5, H6): D-F#-A = D MAJOR
+//  S1 chord + H7: D-F#-A-natural7th = D DOMINANT 7th
+//  S2 chord (H4, H5, H6): A-C#-E = A MAJOR
+//
+//  The heart's two sounds produce the I and V chords.
+//  D major and A major. Tonic and dominant.
+//  The most fundamental harmonic relationship in music
+//  is literally encoded in the cardiac cycle.
+//
+//  lub = D major (tonic, home, rest)
+//  dub = A major (dominant, tension, away)
+//  lub-dub = I → V = home → away → home → away
+//
+//  4. MELODY — from ECG voltage contour
+//  ─────────────────────────────────────
+//  The ECG waveform IS a melodic shape:
+//
+//  P wave:  gentle rise to +0.15mV → E (H9=324Hz, scale degree 2)
+//           atrial depolarization, a soft opening
+//  Q wave:  dip to -0.1mV → A below (H6=216Hz, scale degree -1)
+//           brief downward motion
+//  R wave:  SPIKE to +1.0mV → D octave (H16=576Hz, degree 7)
+//           ventricular depolarization — THE dramatic moment
+//  S wave:  dip to -0.25mV → F# below (H5=180Hz, degree -2)
+//           the deepest point
+//  T wave:  rise to +0.3mV → F# (H10=360Hz, degree 3)
+//           repolarization — warm resolution
+//  baseline: 0mV → D (H8=288Hz, degree 0) — home
+//
+//  ECG MELODY MOTIF: D → E → A(low) → D(high!) → F#(low) → D → F# → D
+//
+//  The R-wave leap to the octave is the dramatic moment of each beat.
+//  The T-wave resolution to F# is the warm aftermath.
+//  The return to D baseline is coming home.
+//
+//  5. RHYTHM — from cardiac timing ratios
+//  ────────────────────────────────────────
+//  At 72 BPM, one cardiac cycle = 833ms
+//  Systole duration: ~300ms (36% of cycle)
+//  Diastole duration: ~533ms (64% of cycle)
+//  Ratio: 300/533 ≈ 0.563 ≈ 1/φ (close to golden ratio!)
+//
+//  Within systole:
+//    P wave: 80ms (10%)
+//    PR interval: 80ms (10%)
+//    QRS complex: 100ms (12%) — the fastest event
+//    ST segment: 40ms
+//  Within diastole:
+//    T wave: 160ms (20%)
+//    Rest: 373ms (45%) — silence, coherence building
+//
+//  The musical bar IS one heartbeat.
+//  The rhythm within each bar follows these physical ratios.
+//
+//  6. TIMBRE — from pressure waveforms
+//  ────────────────────────────────────
+//  Ventricular pressure: rapid rise, plateau, rapid fall
+//    → used as amplitude envelope for systolic sounds
+//  Aortic pressure: dicrotic notch at valve closure
+//    → shapes the attack of the "dub" sound
+//  Atrial pressure: a, c, v waves
+//    → gentle undulating contour for pad sounds
+//
+//  7. TEMPO — from heart rate
+//  ──────────────────────────
+//  72 BPM = resting heart rate. Not chosen — measured.
+//  Respiratory sinus arrhythmia modulates this ±6%.
+//  The breath modulates Ω, which modulates the tempo.
+//
+// ═══════════════════════════════════════════════════════════════════
+
+const PI=Math.PI,TAU=2*PI,PHI=(1+Math.sqrt(5))/2;
+const{sin,cos,sqrt,abs,floor,max,min,random:rnd,atan2,exp,pow,log,round,ceil}=Math;
+
+// ═══════════════════════════════════════════════════════════════════
+// §0 CARDIAC ACOUSTICS — all frequencies from physics
+// ═══════════════════════════════════════════════════════════════════
+
+// Measured heart sound fundamentals (phonocardiography)
+const S1_FUND = 36;   // Hz — mitral+tricuspid valve closure
+const S2_FUND = 54;   // Hz — aortic+pulmonary valve closure
+// S2/S1 = 54/36 = 3/2 = PERFECT FIFTH
+
+// S1 overtone series (integer multiples of 36 Hz)
+const S1H = []; for(let h=1;h<=16;h++) S1H.push(S1_FUND*h);
+// [36, 72, 108, 144, 180, 216, 252, 288, 324, 360, 396, 432, 468, 504, 540, 576]
+//  D1  D2   A2   D3   F#3  A3  ~Bb3  D4   E4   F#4  ~G4  A4  ~Bb4 ~B4  C#5   D5
+
+// S2 overtone series (integer multiples of 54 Hz)
+const S2H = []; for(let h=1;h<=8;h++) S2H.push(S2_FUND*h);
+// [54, 108, 162, 216, 270, 324, 378, 432]
+//  A1  A2   E3   A3   C#4  E4  ~G4  A4
+
+// ─── Cardiac scale (Hz, just intonation from overtones) ───
+// Melodic range: H8-H12 of S1
+const D4=S1H[7], E4=S1H[8], Fs4=S1H[9], G4=S1H[10], A4=S1H[11];
+// D4=288, E4=324, F#4=360, G4=396, A4=432
+// Lower octave (H4-H6)
+const D3=S1H[3], Fs3=S1H[4], A3=S1H[5], N7=S1H[6]; // N7=natural seventh=252
+// Higher octave
+const D5=S1H[14]; // 540 Hz (H15, close to D5)
+const D5x=S1H[15]; // 576 Hz (H16, exact 2*D4)
+// S2-derived notes
+const Cs4=S2H[4]; // 270 Hz (C#4, from S2 H5)
+const E3=S2H[2];  // 162 Hz (E3, from S2 H3)
+
+// ─── Chords — all from overtone series ───
+// D major: S1 harmonics 4,5,6 = D,F#,A
+// A major: S2 harmonics 4,5,6 = A,C#,E
+// These are the ONLY two chords the heart produces.
+// All harmony is built from these.
+const CH_D  = [D3, Fs3, A3];             // D major (S1 H4,5,6)
+const CH_D4 = [D4, Fs4, A4];             // D major upper (S1 H8,10,12)
+const CH_D7 = [D3, Fs3, A3, N7];         // D7 (S1 H4,5,6,7) — the "cardiac chord"
+const CH_A  = [A3, Cs4, E4];             // A major (S2 H4,5,6)
+const CH_AE = [S2H[1], E3, A3, Cs4, E4]; // A with bass (S2 H2,3,4,5,6)
+// Open fifth: the heartbeat interval itself
+const CH_5  = [S1H[1], S2H[0], S1H[3], S1H[5]]; // D2,A1,D3,A3
+// Sub-bass: the fundamental
+const BASS_D = [S1H[0], S1H[1]]; // 36, 72 Hz
+const BASS_A = [S2H[0], S2H[1]]; // 54, 108 Hz
+
+// ─── ECG melody — voltage contour mapped to cardiac scale ───
+// The ECG waveform sampled at key points becomes a melodic phrase.
+// Each heartbeat generates this motif:
+//   P-peak → E(H9)
+//   R-peak → D octave(H16) — THE dramatic leap
+//   T-peak → F#(H10) — warm resolution
+//   baseline → D(H8) — home
+const ECG_MOTIF = [
+  {t:0.00, f:D4,   v:0.3},  // baseline: beginning of cycle
+  {t:0.04, f:E4,   v:0.5},  // P-wave peak: atrial depolarization
+  {t:0.10, f:D4,   v:0.2},  // PR segment: brief return
+  {t:0.14, f:A3,   v:0.4},  // Q-dip: below baseline
+  {t:0.17, f:D5x,  v:1.0},  // R-peak: THE LEAP — ventricular δ!
+  {t:0.20, f:Fs3,  v:0.5},  // S-dip: the deepest point
+  {t:0.25, f:D4,   v:0.2},  // ST return: brief stability
+  {t:0.42, f:Fs4,  v:0.6},  // T-peak: repolarization — warm third
+  {t:0.55, f:D4,   v:0.15}, // baseline return: home, diastole begins
+];
+
+// ─── Cardiac timing ratios ───
+const SYSTOLE_FRAC = 0.35;  // systole is 35% of cardiac cycle
+const DIASTOLE_FRAC = 0.65; // diastole is 65%
+// ratio ≈ 1:1.86 ≈ 1:φ (close to golden ratio)
+
+// ═══════════════════════════════════════════════════════════════════
+// §1 CRR ENGINE
+// ═══════════════════════════════════════════════════════════════════
+const OMEGA_Z2=1/PI,OMEGA_SO2=1/TAU;
+class CRR{
+  constructor(sym='Z2',s=1,nm=''){
+    this.ob=sym==='Z2'?1/PI:1/TAU;
+    this.os=s;this.C=0;this.lR=0;this.rup=0;this.sR=0;
+    this.inR=false;this.rP=0;this.nm=nm;this.pC=0;this.sA=0;
+  }
+  get omega(){return this.ob*this.os}
+  get expCO(){return exp(min(12,this.C/max(.001,this.omega)))}
+  get normC(){return min(1,(this.C-this.lR)/max(.01,1/this.omega))}
+  step(L,dt=1){
+    if(this.inR){this.rP=min(1,this.rP+.02);if(this.rP>=1)this.inR=false;
+      this.sA+=(this.rP-this.sA)*min(1,dt*6);return'R'}
+    this.C+=L*dt;this.pC=max(this.pC,this.C);this.sR++;
+    this.sA+=(this.normC-this.sA)*min(1,dt*6);
+    const th=1/this.omega,acc=this.C-this.lR,cv=this.omega/2;
+    if(acc>=(th+(rnd()-.5)*2*cv*th)){
+      this.lR=this.C;this.rup++;this.sR=0;this.inR=true;this.rP=0;return'delta'}
+    return'C'
+  }
+  reset(){this.C=0;this.lR=0;this.rup=0;this.sR=0;this.inR=false;this.rP=0;this.pC=0;this.sA=0}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §2 CRR AGENTS
+// ═══════════════════════════════════════════════════════════════════
+const ag={
+  p:    new CRR('SO2',2,'Piece'),
+  sa:   new CRR('Z2',0.6,'SA Node'),
+  av:   new CRR('Z2',0.8,'AV Node'),
+  his:  new CRR('Z2',1.2,'His Bundle'),
+  purk: new CRR('SO2',1.5,'Purkinje'),
+  myo:  new CRR('Z2',1.0,'Myocardium'),
+  atri: new CRR('SO2',0.9,'Atria'),
+  vent: new CRR('SO2',1.1,'Ventricles'),
+  mitV: new CRR('Z2',0.5,'Mitral'),
+  aoV:  new CRR('Z2',0.5,'Aortic'),
+  flow: new CRR('SO2',1.3,'Blood Flow'),
+  brth: new CRR('SO2',1.8,'Breath'),
+  vagal:new CRR('SO2',2.0,'Vagal'),
+};
+const ALL=Object.values(ag);
+
+// ═══════════════════════════════════════════════════════════════════
+// §3 CARDIAC PHYSIOLOGY
+// ═══════════════════════════════════════════════════════════════════
+const HEART={
+  phase:0, bpm:72, currentBPM:72, systole:false, diastole:true,
+  cycleTime:0, beatCount:0, lastBeatTime:0,
+  saFired:false, avFired:false, hisFired:false, purkFired:false,
+  conductionPhase:0, conductionTime:0,
+  aorticPressure:0, atrialPressure:0, ventPressure:0,
+  mitralOpen:true, aorticOpen:false, tricuspidOpen:true, pulmonicOpen:false,
+  preload:0.5, strokeVolume:0.5,
+  ecgPhase:'rest', ecgValue:0, ecgHistory:[],
+  breathPhase:0, breathAmp:0, breathRate:14,
+  depolWaves:[], contraction:0, targetContraction:0,
+};
+
+function ecgFromPhase(hp){
+  if(hp<0.08) return 0.15*sin(hp/0.08*PI);
+  if(hp<0.12) return 0;
+  if(hp<0.14) return -0.1*sin((hp-0.12)/0.02*PI);
+  if(hp<0.18){ const t=(hp-0.14)/0.04; return t<0.5?1.0*sin(t*PI):1.0*sin(t*PI); }
+  if(hp<0.21) return -0.25*sin((hp-0.18)/0.03*PI);
+  if(hp<0.35) return 0.02;
+  if(hp<0.50) return 0.3*sin((hp-0.35)/0.15*PI);
+  return 0;
+}
+
+function updateCardiac(dt){
+  HEART.breathPhase+=dt*HEART.breathRate/60;
+  const bNorm=HEART.breathPhase%1;
+  HEART.breathAmp=bNorm<0.4?sin(bNorm/0.4*PI/2):bNorm<0.5?1:cos((bNorm-0.5)/0.5*PI/2);
+  const rsaMod=1+HEART.breathAmp*0.06*(ag.vagal.normC*0.5+0.5);
+  HEART.currentBPM=HEART.bpm*rsaMod;
+  const beatDur=60/HEART.currentBPM;
+  HEART.cycleTime+=dt;
+  HEART.phase=(HEART.cycleTime/beatDur)%1;
+  const hp=HEART.phase;
+  HEART.systole=hp<0.35;HEART.diastole=!HEART.systole;
+  // Conduction cascade
+  if(hp<0.02&&!HEART.saFired){
+    HEART.saFired=true;HEART.conductionPhase=1;HEART.conductionTime=0;
+    ag.sa.step(1,0.1);
+    HEART.depolWaves.push({pos:0,speed:0.8,birth:HEART.cycleTime,type:'sa'});
+    HEART.beatCount++;HEART.lastBeatTime=HEART.cycleTime;
+  }
+  if(hp>0.1)HEART.saFired=false;
+  if(HEART.conductionPhase===1){
+    HEART.conductionTime+=dt;
+    if(HEART.conductionTime>0.12&&!HEART.avFired){
+      HEART.avFired=true;HEART.conductionPhase=2;ag.av.step(1,0.1);
+      HEART.depolWaves.push({pos:0.25,speed:1.5,birth:HEART.cycleTime,type:'av'});
+    }
+  }
+  if(hp>0.15)HEART.avFired=false;
+  if(HEART.conductionPhase===2){
+    HEART.conductionTime+=dt;
+    if(HEART.conductionTime>0.18&&!HEART.hisFired){
+      HEART.hisFired=true;HEART.conductionPhase=3;ag.his.step(1,0.1);
+      HEART.depolWaves.push({pos:0.5,speed:2.5,birth:HEART.cycleTime,type:'his'});
+    }
+  }
+  if(hp>0.2)HEART.hisFired=false;
+  if(HEART.conductionPhase===3){
+    HEART.conductionTime+=dt;
+    if(HEART.conductionTime>0.22&&!HEART.purkFired){
+      HEART.purkFired=true;HEART.conductionPhase=4;ag.purk.step(1,0.1);
+      HEART.depolWaves.push({pos:0.75,speed:3,birth:HEART.cycleTime,type:'purk'});
+    }
+  }
+  if(hp>0.3)HEART.purkFired=false;
+  if(hp>0.5)HEART.conductionPhase=0;
+  HEART.preload=HEART.diastole?min(1,HEART.preload+dt*0.8):max(0,HEART.preload-dt*2.5);
+  HEART.strokeVolume=0.3+0.7*HEART.preload;
+  HEART.targetContraction=HEART.systole?(hp<0.15?hp/0.15:hp<0.25?1:1-(hp-0.25)/0.10):0;
+  HEART.contraction+=(HEART.targetContraction-HEART.contraction)*min(1,dt*15);
+  HEART.ventPressure=HEART.systole?sin(hp/0.35*PI)*HEART.strokeVolume:0.05;
+  HEART.aorticPressure=hp<0.15?HEART.aorticPressure*(1-dt*2):
+    hp<0.35?max(HEART.aorticPressure,HEART.ventPressure*0.9):HEART.aorticPressure*(1-dt*1.2);
+  HEART.atrialPressure=hp<0.08?0.15*sin(hp/0.08*PI):hp>0.7?0.1*(hp-0.7)/0.3:0.02;
+  const prevMitral=HEART.mitralOpen,prevAortic=HEART.aorticOpen;
+  HEART.mitralOpen=HEART.ventPressure<HEART.atrialPressure+0.05;
+  HEART.aorticOpen=HEART.ventPressure>0.4;
+  HEART.tricuspidOpen=HEART.mitralOpen;HEART.pulmonicOpen=HEART.aorticOpen;
+  HEART.ecgPhase=hp<0.08?'P':hp<0.12?'PR':hp<0.21?'QRS':hp<0.35?'ST':hp<0.50?'T':'rest';
+  HEART.ecgValue=ecgFromPhase(hp);
+  HEART.ecgHistory.push(HEART.ecgValue);
+  if(HEART.ecgHistory.length>400)HEART.ecgHistory.shift();
+  const beatDurNow=60/HEART.currentBPM;
+  HEART.depolWaves=HEART.depolWaves.filter(w=>{
+    let age=HEART.cycleTime-w.birth;if(age<0)age+=beatDurNow;return age<0.5;
+  });
+  for(const w of HEART.depolWaves)w.pos+=w.speed*dt*0.3;
+  ag.myo.step(HEART.contraction*0.3,dt*0.01);
+  ag.atri.step(hp<0.1?0.6:0.2,dt*0.01);
+  ag.vent.step(HEART.systole?0.8:0.2,dt*0.01);
+  ag.flow.step(HEART.aorticPressure*0.5,dt*0.01);
+  ag.brth.step(HEART.breathAmp*0.3,dt*0.01);
+  ag.vagal.step(HEART.breathAmp*0.2,dt*0.01);
+  if(HEART.cycleTime>=beatDur)HEART.cycleTime-=beatDur;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §4 BLOOD PARTICLES
+// ═══════════════════════════════════════════════════════════════════
+const BLOOD_COUNT=800;const blood=[];
+function initBlood(){
+  blood.length=0;
+  for(let i=0;i<BLOOD_COUNT;i++){
+    const p=rnd();
+    blood.push({phase:p,speed:0.2+rnd()*0.1,size:1.5+rnd()*2,
+      ox:p>0.3&&p<0.8?1:0,wobble:rnd()*TAU,wobbleFreq:2+rnd()*3,
+      lane:(rnd()-0.5)*0.6,crr:new CRR('SO2',0.8+rnd()*0.4),brightness:0.6+rnd()*0.4});
+  }
+}
+function updateBlood(dt){
+  const flowMult=0.3+HEART.aorticPressure*1.5+HEART.contraction*0.5;
+  for(const b of blood){
+    const state=b.crr.step(flowMult*0.1,dt*0.01);
+    const turb=state==='delta'?0.5:state==='R'?0.2:0;
+    const pulse=HEART.systole?1.5+HEART.contraction:0.4;
+    b.speed=(0.15+pulse*0.15)*(1+turb);
+    b.phase=(b.phase+b.speed*dt*0.3)%1;
+    if(b.phase>0.25&&b.phase<0.35)b.ox=min(1,b.ox+dt*3);
+    if(b.phase>0.7&&b.phase<0.9)b.ox=max(0,b.ox-dt*2);
+    b.wobble+=b.wobbleFreq*dt;
+  }
+}
+function bloodPos(phase,cx,cy,hs){
+  const t=phase;let x,y;
+  if(t<0.1){const p=t/0.1;x=cx+hs*(0.25-p*0.05);y=cy+hs*(-0.4+p*0.25)}
+  else if(t<0.15){const p=(t-0.1)/0.05;x=cx+hs*(0.20-p*0.02);y=cy+hs*(-0.15+p*0.25)}
+  else if(t<0.25){const p=(t-0.15)/0.1;x=cx+hs*(0.18-p*0.1);y=cy+hs*(0.1-p*0.35)}
+  else if(t<0.35){const p=(t-0.25)/0.1;const a=PI*(1-p);x=cx+hs*cos(a)*0.35;y=cy+hs*(-0.35-sin(a)*0.15)}
+  else if(t<0.4){const p=(t-0.35)/0.05;x=cx+hs*(-0.25+p*0.05);y=cy+hs*(-0.4+p*0.25)}
+  else if(t<0.45){const p=(t-0.4)/0.05;x=cx+hs*(-0.20+p*0.02);y=cy+hs*(-0.15+p*0.28)}
+  else if(t<0.55){const p=(t-0.45)/0.1;x=cx+hs*(-0.18+p*0.05);y=cy+hs*(0.13-p*0.48)}
+  else if(t<0.7){const p=(t-0.55)/0.15;const a=PI*p-PI/2;x=cx+hs*(-0.1+cos(a)*0.15);y=cy+hs*(-0.38-sin(a)*0.08+p*0.1)}
+  else if(t<0.85){const p=(t-0.7)/0.15;x=cx+hs*(0.05+sin(p*PI)*0.35);y=cy+hs*(-0.3+p*0.4)}
+  else{const p=(t-0.85)/0.15;x=cx+hs*(0.35-p*0.1);y=cy+hs*(0.1-p*0.5)}
+  return{x,y};
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §5 COMPOSITION — all material from cardiac physics
+// ═══════════════════════════════════════════════════════════════════
+
+// Tempo = resting heart rate. Not chosen — measured.
+const BPM=72,BEAT_S=60/BPM,TOTAL_BEATS=384;
+let tM=1;function bS(){return BEAT_S/tM}
+
+const SECTIONS=[
+  {name:'SILENCE',        start:0,   end:7,    label:'stillness before the first beat'},
+  {name:'FIRST BEAT',     start:8,   end:31,   label:'SA node fires — δ(now)'},
+  {name:'COHERENCE',      start:32,  end:71,   label:'diastole fills · D(H4)'},
+  {name:'CONDUCTION',     start:72,  end:111,  label:'the cascade propagates'},
+  {name:'SYSTOLE',        start:112, end:151,  label:'contraction · D→A · lub-dub'},
+  {name:'BLOOD SONG',     start:152, end:199,  label:'exp(C/Ω) flows · ECG melody'},
+  {name:'FRANK-STARLING', start:200, end:239,  label:'more filling → harder beat'},
+  {name:'BREATH',         start:240, end:279,  label:'vagal Ω modulates the fifth'},
+  {name:'FULL RHYTHM',    start:280, end:327,  label:'lub-dub · D→A · 3:2'},
+  {name:'RUPTURE',        start:328, end:351,  label:'δ(now) — arrhythmia'},
+  {name:'REGENERATION',   start:352, end:375,  label:'R — exp(C/Ω) memory restores'},
+  {name:'CODA',           start:376, end:383,  label:'2.5 billion beats'},
+];
+function getSection(b){for(const s of SECTIONS)if(b>=s.start&&b<=s.end)return s;return SECTIONS[0]}
+
+const PHY={
+  'SILENCE':'S1 dominant: 36 Hz (D)\nS2 dominant: 54 Hz (A)\nratio: 54/36 = 3/2\n= perfect fifth\nthe heart defines\nthe most consonant interval',
+  'FIRST BEAT':'SA node: pacemaker If current\nphase 4 depolarization\nthreshold: -40mV → δ(now)\nCa²⁺ channels open\nfirst sound: 36 Hz — D',
+  'COHERENCE':'diastole: C = ∫ filling dτ\nEDV ≈ 120 mL\nharmonics accumulate:\nH4=144(D) H5=180(F♯) H6=216(A)\nthe D major chord\nemerges from valve resonance',
+  'CONDUCTION':'SA→AV: 120ms (P wave → E)\nAV→His: 60ms (Q dip → A)\nHis→Purkinje: 40ms\ntotal: 240ms\neach δ mapped to scale degree',
+  'SYSTOLE':'S1(lub)=36Hz=D · S2(dub)=54Hz=A\nlub-dub IS D→A\ntonic→dominant\nthe I-V relationship\nliterally encoded\nin the cardiac cycle',
+  'BLOOD SONG':'5L blood · 100,000 km vessels\npulse wave: 5 m/s in aorta\nmelody from ECG contour:\nP→E R→D\' T→F♯\nevery note = cardiac harmonic',
+  'FRANK-STARLING':'↑EDV → ↑sarcomere stretch\n→ ↑force → ↑amplitude\nlouder lub, louder dub\nexp(C/Ω) = Frank-Starling\nmore filling → more sound',
+  'BREATH':'RSA: inspiration ↑HR\nexpiration ↓HR\nvagal tone = Ω\nhigh Ω → large HRV\n→ flexible, healthy heart\nbreath modulates the fifth',
+  'FULL RHYTHM':'S1: 25-45 Hz (lub) → D\nS2: 50-70 Hz (dub) → A\nsystole:diastole = 3:5\n≈ 1/φ (golden ratio)\n100,000 beats per day',
+  'RUPTURE':'ectopic focus fires\nbypassing SA node\nC·Ω=1 at wrong threshold\nQRS widens\nthe fifth distorts\nD and A desynchronize',
+  'REGENERATION':'R = ∫ φ exp(C/Ω) Θ dτ\nSA recaptures rhythm\nthe fifth re-emerges:\n36:54 = 2:3\nhigh-C beats remembered\nnormal sinus restored',
+  'CODA':'2.5 billion beats\neach one: lub-dub\neach one: D→A\neach one: C → δ → R\nthe first rhythm you heard\nwas this one',
+};
+const CRE={
+  'SILENCE':'before coherence\nΩ rests at baseline\nall overtones latent\nin the silent valve',
+  'FIRST BEAT':'C accumulates as If\nΩ_Z₂ = 1/π\nthreshold: C·Ω = 1\nδ(now): S1 at 36 Hz\nthe root is born',
+  'COHERENCE':'filling IS coherence\nC = ∫ L(volume,τ) dτ\neach mL of blood\nadds to the integral\nH4,H5,H6 build',
+  'CONDUCTION':'cascade of δ events\nSA→AV→His→Purkinje\neach reaches C·Ω=1\nthen fires\nECG = the melody',
+  'SYSTOLE':'S1 = valve δ at 36 Hz\nS2 = valve δ at 54 Hz\n36:54 = 2:3 = P5\nD major from S1 overtones\nA major from S2 overtones',
+  'BLOOD SONG':'laminar = C phase\nturbulence = δ (Re>2300)\nrestoration = R\nmelody follows ECG:\nvoltage → scale degree',
+  'FRANK-STARLING':'preload C → δ force\nexp(C/Ω) weights memory\nstronger filling →\nstronger contraction →\nlouder harmonics',
+  'BREATH':'vagal tone IS Ω\nhigh vagal → large Ω\n→ wide harmonic access\nlow vagal → small Ω\n→ rigid, narrowed\nHRV CV < 1/(2π)→regulated',
+  'FULL RHYTHM':'nested CRR scales:\nion: Z₂ Na⁺/K⁺ gating\ncell: Z₂ action potential\ncycle: SO(2) rotation\nbreath: SO(2) modulation\nall producing D and A',
+  'RUPTURE':'ectopic δ breaks\nthe 3:2 ratio\nS1 and S2 misalign\nthe fifth collapses\ncoherence fragments',
+  'REGENERATION':'exp(C/Ω) remembers\nthe strongest fifth\n36:54 Hz reasserts\nfrom weighted memory\nof 2.5 billion cycles',
+  'CODA':'D → A → D → A\nlub → dub → lub → dub\nC → δ → R → C → δ → R\nthe simplest song\nthe deepest truth',
+};
+
+// ─── Build sequence using ONLY cardiac-derived material ───
+function buildSeq(){
+  const E=[];
+  // All helper functions take Hz directly — no MIDI conversion
+  // Every frequency is a cardiac harmonic
+
+  // Heartbeat: S1 at 36 Hz, S2 at 54 Hz
+  function hb(b,v,ty){E.push({b,ty:'heartbeat',v,hbTy:ty||'lub'})}
+
+  // Drone: S1 overtone series
+  function dr(b,g,d){E.push({b,ty:'drone',dG:g,d})}
+
+  // ECG melody: plays the ECG motif at given intensity
+  // The motif frequencies ARE cardiac harmonics
+  function ecgMel(b,v,octShift){E.push({b,ty:'ecgmel',v,octShift:octShift||0})}
+
+  // Pad: sustained chord (array of Hz from overtone series)
+  function pd(hz,b,g,d){E.push({b,ty:'pad',pHz:hz,pG:g,d})}
+
+  // Bass: single Hz from S1 or S2 fundamental
+  function bs(hz,b,v,d){E.push({b,ty:'bass',fHz:hz,v,d})}
+
+  // Choir: voices on cardiac harmonics
+  function ch(hz,b,g,d){E.push({b,ty:'choir',cHz:hz,cG:g,d:d||4})}
+
+  // Blood flow noise
+  function fl(b,g,d){E.push({b,ty:'flow',fG:g,d})}
+
+  // Breath
+  function brth(b,g,d){E.push({b,ty:'breath',bG:g,d})}
+
+  // Section marker
+  function sc(b){E.push({b,ty:'sec'})}
+
+  // ECG click (conduction)
+  function ec(b,v){E.push({b,ty:'ecg',v})}
+
+  // Valve click
+  function vc(b,g){E.push({b,ty:'valve',vG:g})}
+
+  // Storm/rupture build
+  function sb(b,v){E.push({b,ty:'sbuild',v})}
+
+  // ════════════════════════════════════════════════════════════════
+  // I. SILENCE (0-7) — before the first beat
+  // Physics: SA node ion channels drifting toward threshold
+  // Sound: only sub-audible electrical noise
+  // ════════════════════════════════════════════════════════════════
+  sc(0);
+  dr(0,0.008,8);
+  for(let i=0;i<8;i++) ec(i,0.015+i*0.003);
+
+  // ════════════════════════════════════════════════════════════════
+  // II. FIRST BEAT (8-31) — SA node reaches threshold → δ(now)
+  // Physics: S1 at 36 Hz emerges. The root note D is born.
+  // Musical: heartbeat alone, then S1 harmonics creep in
+  // ════════════════════════════════════════════════════════════════
+  sc(8);
+  dr(8,0.03,24);
+  for(let i=0;i<24;i++){
+    const l=i;
+    // Heartbeat: S1 (lub at 36 Hz) and S2 (dub at 54 Hz)
+    hb(8+i, 0.06+l*0.018, 'lub');
+    // S2 arrives at systole:diastole ratio = 0.35 of the beat
+    hb(8+i+0.35, 0.04+l*0.015, 'dub');
+    ec(8+i, 0.02+l*0.006);
+    // From beat 16: first overtone appears — H4 (D3=144Hz)
+    if(l>8 && l%4===0) E.push({b:8+i,ty:'note',fHz:D3,v:0.02+l*0.003,d:3});
+    // From beat 20: H5 (F#3=180Hz) and H6 (A3=216Hz) — D major emerges
+    if(l>12 && l%8===0) pd([D3,Fs3,A3], 8+i, 0.03+l*0.002, 6);
+    if(l>16) fl(8+i, 0.01+l*0.002, 3);
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // III. COHERENCE (32-71) — diastole fills, overtones build
+  // Physics: S1 harmonics accumulating. D major chord emerges.
+  // Musical: D chord (S1 H4,5,6), bass on D (S1 H2=72Hz)
+  // ════════════════════════════════════════════════════════════════
+  sc(32);
+  dr(32,0.07,40);
+  // Alternate between S1-chord (D) and S2-chord (A)
+  // This IS the lub-dub harmonic relationship
+  for(let i=32;i<72;i++){
+    const l=i-32;
+    hb(i, 0.3+l*0.004, 'lub');
+    hb(i+0.35, 0.24+l*0.003, 'dub');
+    ec(i, 0.04+l*0.002);
+    // Bass alternates D(S1) and A(S2) — the heartbeat fifth
+    if(l%4===0) bs(S1H[1], i, 0.1+l*0.003, 2); // D2 = 72 Hz on lub
+    if(l%4===2) bs(S2H[1], i, 0.06+l*0.002, 2); // A2 = 108 Hz on dub
+    // S1 chord pad building
+    if(l%8===0) pd(CH_D, i, 0.06+l*0.002, 7);
+    // Individual overtones appearing one by one
+    if(l>8 && l%6===0) E.push({b:i,ty:'note',fHz:D4,v:0.04+l*0.001,d:2});
+    if(l>16 && l%6===3) E.push({b:i,ty:'note',fHz:Fs4,v:0.03+l*0.001,d:2});
+    if(l>24 && l%6===0) E.push({b:i,ty:'note',fHz:A4,v:0.03+l*0.001,d:1.5});
+    if(l>20) fl(i, 0.03+l*0.002, 4);
+    if(l>28 && l%8===4) brth(i, 0.02+l*0.001, 5);
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // IV. CONDUCTION (72-111) — the cascade propagates
+  // Physics: SA→AV→His→Purkinje, each a δ event
+  // Musical: ECG melody motif begins (P→E, R→D', T→F#)
+  //          conduction clicks as rhythm
+  // ════════════════════════════════════════════════════════════════
+  sc(72);
+  dr(72,0.1,40);
+  for(let i=72;i<112;i++){
+    const l=i-72;
+    hb(i, 0.38+l*0.005, 'lub');
+    hb(i+0.35, 0.3+l*0.004, 'dub');
+    ec(i, 0.06+l*0.003);
+    // Bass: heartbeat fifth D→A
+    if(l%4===0) bs(S1H[1], i, 0.15+l*0.003, 1.8);
+    if(l%4===2) bs(S2H[1], i, 0.1+l*0.002, 1.8);
+    // S1/S2 chord alternation
+    if(l%8===0) pd(CH_D, i, 0.1+l*0.003, 7);
+    if(l%8===4) pd(CH_A, i, 0.06+l*0.002, 5);
+    // ECG melody begins — first just fragments
+    if(l>8 && l%4===0) ecgMel(i, 0.04+l*0.003, 0);
+    // Conduction clicks: SA(0), AV(+120ms), His(+180ms), Purkinje(+220ms)
+    // Mapped to cardiac timing within each beat
+    if(l%4===0){
+      vc(i+0.00, 0.04+l*0.002);  // SA fires at beat start
+      vc(i+0.14, 0.05+l*0.002);  // AV fires 120ms later
+      vc(i+0.22, 0.03+l*0.001);  // His bundle
+    }
+    if(l>20) fl(i, 0.05+l*0.003, 3);
+    if(l>24 && l%8===0) brth(i, 0.03+l*0.002, 5);
+    if(l>32 && l%8===4) ch([D4,A4], i, 0.03+l*0.002, 4);
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // V. SYSTOLE (112-151) — contraction, the heart speaks
+  // Physics: S1(D) and S2(A) fully present. lub-dub IS D→A.
+  // Musical: Full D→A harmonic movement, ECG melody developing
+  // ════════════════════════════════════════════════════════════════
+  sc(112);
+  dr(112,0.15,40);
+  for(let i=112;i<152;i++){
+    const l=i-112;
+    const I=0.4+l*0.006;
+    hb(i, min(0.7,I), 'lub');
+    hb(i+0.35, min(0.6,I*0.85), 'dub');
+    ec(i, 0.08+l*0.003);
+    // Strong bass alternation: the fifth IS the heartbeat
+    if(l%2===0) bs(S1H[1], i, I*0.5, 1.5);     // lub = D
+    if(l%2===1) bs(S2H[1], i, I*0.35, 1.5);    // dub = A
+    // Deep sub-bass on strong beats
+    if(l%4===0) bs(S1H[0], i, I*0.25, 2.5);     // sub D = 36 Hz
+    // Chord alternation: D(systole) → A(diastole)
+    if(l%8===0) pd(CH_D7, i, I*0.3, 6);  // D7 during systole
+    if(l%8===4) pd(CH_A, i, I*0.2, 5);   // A during diastole
+    // ECG melody — now full motif
+    if(l%4===0) ecgMel(i, I*0.3, 0);
+    // Conduction accents
+    if(l%4===0) vc(i+0.17, I*0.08); // R-wave click
+    if(l>20) fl(i, I*0.12, 3);
+    if(l>16 && l%8===0) ch([D4,Fs4,A4], i, I*0.1, 5);
+    if(l>24 && l%4===2) brth(i, I*0.06, 4);
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // VI. BLOOD SONG (152-199) — exp(C/Ω) flows through every vessel
+  // Physics: full circulatory hemodynamics, ECG melody at all octaves
+  // Musical: ECG melody in canon at different octave shifts,
+  //          D and A chords in rich voicings
+  // ════════════════════════════════════════════════════════════════
+  sc(152);
+  dr(152,0.2,48);
+  for(let i=152;i<200;i++){
+    const l=i-152;
+    const I=0.5+l*0.005;
+    hb(i, I*0.8, 'lub');
+    hb(i+0.35, I*0.7, 'dub');
+    ec(i, 0.1+l*0.002);
+    // Bass: the fifth
+    if(l%2===0) bs(S1H[1], i, I*0.4, 2);
+    if(l%2===1) bs(S2H[1], i, I*0.3, 2);
+    if(l%4===0) bs(S1H[0], i, I*0.2, 3);
+    // Chords: D and A voicings from overtone series
+    if(l%8===0) pd(CH_D4, i, I*0.3, 7);
+    if(l%8===4) pd(CH_AE, i, I*0.2, 6);
+    // ECG melody in two octaves (canon with self)
+    if(l%4===0) ecgMel(i, I*0.3, 0);      // original register
+    if(l%4===2) ecgMel(i, I*0.15, -1);     // octave below
+    // Blood flow noise — modulated by hemodynamics
+    if(l%2===0) fl(i, I*0.15, 3);
+    // Choir on the cardiac fifth
+    if(l%8===0) ch([D4,A4,D5x], i, I*0.12, 5);
+    if(l>24 && l%8===4) ch([A3,E4,A4], i, I*0.08, 4);
+    if(l%5===0) brth(i, I*0.06, 5);
+    // Individual overtone ornaments — like blood cells catching light
+    if(l%3===0){
+      const ornHz = [D4,E4,Fs4,A4,D5x][floor(rnd()*5)];
+      E.push({b:i+rnd()*0.5,ty:'note',fHz:ornHz,v:I*0.08,d:1.5});
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // VII. FRANK-STARLING (200-239) — more filling → harder beat
+  // Physics: ↑EDV → ↑stretch → ↑force. exp(C/Ω) = stretch memory.
+  // Musical: crescendo driven by increasing preload.
+  //          The heartbeat gets louder. The fifth gets wider.
+  // ════════════════════════════════════════════════════════════════
+  sc(200);
+  dr(200,0.22,40);
+  for(let i=200;i<240;i++){
+    const l=i-200;
+    // Intensity grows with each beat — Frank-Starling in action
+    const I=0.55+l*0.008;
+    hb(i, min(0.9,I*0.85), 'lub');
+    hb(i+0.35, min(0.8,I*0.75), 'dub');
+    ec(i, 0.12+l*0.003);
+    // Bass: sub D with increasing power
+    if(l%2===0) bs(S1H[1], i, I*0.5, 1.5);
+    if(l%2===1) bs(S2H[1], i, I*0.4, 1.5);
+    if(l%4===0) bs(S1H[0], i, I*0.3, 2.5);
+    // Full overtone chord
+    if(l%8===0) pd(CH_D7, i, I*0.35, 7);
+    if(l%8===4) pd(CH_A, i, I*0.25, 5);
+    // ECG melody — getting louder with Frank-Starling
+    if(l%4===0) ecgMel(i, I*0.35, 0);
+    if(l%4===2) ecgMel(i, I*0.2, -1);
+    if(l%3===0) fl(i, I*0.18, 3);
+    // Choir builds
+    if(l%8===0) ch([D3,D4,A4,D5x], i, I*0.15, 5);
+    if(l>20 && l%4===0) ch([A3,Cs4,E4,A4], i, I*0.1, 4);
+    if(l%5===0) brth(i, I*0.08, 5);
+    // Overtone cascades
+    if(l>20 && l%2===0){
+      E.push({b:i,ty:'note',fHz:[D4,E4,Fs4,A4][l%4],v:I*0.12,d:1.5});
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // VIII. BREATH (240-279) — vagal modulation
+  // Physics: RSA modulates HR by ±6%. Vagal tone IS Ω.
+  // Musical: intensity breathes — swells and recedes with
+  //          respiratory cycle. The fifth gently pulses.
+  // ════════════════════════════════════════════════════════════════
+  sc(240);
+  dr(240,0.18,40);
+  for(let i=240;i<280;i++){
+    const l=i-240;
+    // Intensity follows breath cycle
+    const breathMod=sin(l/10*PI);
+    const I=0.5+breathMod*0.15;
+    hb(i, I*0.75, 'lub');
+    hb(i+0.35, I*0.65, 'dub');
+    ec(i, 0.1+breathMod*0.04);
+    // Bass: the fifth, breathing
+    if(l%2===0) bs(S1H[1], i, I*0.4, 2);
+    if(l%2===1) bs(S2H[1], i, I*0.3, 2);
+    // Chords breathe
+    if(l%8===0) pd(CH_D, i, I*0.25, 8);
+    if(l%8===4) pd(CH_A, i, I*0.18, 6);
+    // Breath sounds prominent here
+    if(l%5===0) brth(i, I*0.15, 5);
+    // ECG melody gently present
+    if(l%4===0) ecgMel(i, I*0.2, 0);
+    if(l%3===0) fl(i, I*0.1, 4);
+    // Choir: the fifth breathes
+    if(l%8===0) ch([D4,A4], i, I*0.1, 5);
+    if(l%6===3) E.push({b:i,ty:'note',fHz:[E4,Fs4,A4][l%3],v:I*0.08,d:2.5});
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // IX. FULL RHYTHM (280-327) — everything together
+  // Physics: all systems at full expression. lub-dub in glory.
+  // Musical: D→A at full power, ECG melody at multiple octaves,
+  //          full choir on overtone series, building to climax
+  // ════════════════════════════════════════════════════════════════
+  sc(280);
+  dr(280,0.25,48);
+  for(let i=280;i<328;i++){
+    const l=i-280;
+    const I=0.6+l*0.006;
+    hb(i, min(0.95,I*0.9), 'lub');
+    hb(i+0.35, min(0.85,I*0.8), 'dub');
+    ec(i, 0.13+l*0.002);
+    // Full bass: D and A
+    if(l%2===0) bs(S1H[1], i, I*0.5, 1.5);
+    if(l%2===1) bs(S2H[1], i, I*0.4, 1.5);
+    if(l%4===0) bs(S1H[0], i, I*0.3, 2.5);
+    // Rich chords
+    if(l%8===0) pd(CH_D7, i, I*0.35, 7);
+    if(l%8===4) pd(CH_AE, i, I*0.25, 6);
+    // ECG melody at three octaves
+    if(l%4===0) ecgMel(i, I*0.3, 0);
+    if(l%4===1) ecgMel(i, I*0.15, -1);
+    if(l%4===2) ecgMel(i, I*0.12, 1);
+    // Flowing overtones
+    if(l%2===0) fl(i, I*0.18, 3);
+    // Full choir
+    if(l%8===0) ch([D3,A3,D4,Fs4,A4,D5x], i, I*0.18, 5);
+    if(l%8===4) ch([A3,E4,A4], i, I*0.12, 4);
+    if(l%4===2) brth(i, I*0.08, 4);
+    // Building toward climax
+    if(l>32){
+      const phase=(l-32)/16;
+      sb(i, 0.15+phase*0.35);
+      if(l%4===0) ch([D3,D4,A4,D5x], i, I*0.15*phase, 4);
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // X. RUPTURE (328-351) — arrhythmia
+  // Physics: ectopic focus fires, bypassing SA node.
+  //          The 3:2 ratio (S1:S2 fifth) distorts.
+  //          QRS widens. Rhythm becomes irregular.
+  // Musical: the fifth breaks apart. D and A desynchronize.
+  //          Heartbeat becomes chaotic. ECG melody fragments.
+  // ════════════════════════════════════════════════════════════════
+  sc(328);
+  for(let i=328;i<352;i++){
+    const l=i-328;
+    const chaos=l/24;
+    // Irregular heartbeat — the rhythm breaks
+    if(rnd()>chaos*0.3){
+      hb(i, 0.6+rnd()*0.35, 'lub');
+      hb(i+0.2+rnd()*0.3, 0.45+rnd()*0.3, 'dub'); // S2 timing shifts!
+    }
+    if(l%3===0 && l<18) hb(i+0.6, 0.35+rnd()*0.3, 'lub'); // premature beats
+    ec(i, 0.18+chaos*0.1);
+    // Bass: the fifth warps
+    if(l%2===0){
+      // S1 frequency drifts from 36 Hz (detuned D)
+      const drift = 1 + (rnd()-0.5)*chaos*0.15;
+      E.push({b:i,ty:'bass',fHz:S1H[1]*drift,v:0.4+chaos*0.2,d:1});
+    }
+    if(l%4===0) pd(CH_D7, i, 0.25+chaos*0.1, 3);
+    if(l%2===0) fl(i, 0.15+chaos*0.12, 2);
+    if(l<12 && l%4===0) ecgMel(i, 0.2-chaos*0.1, 0); // melody fragmenting
+    // The rupture peak
+    if(l>=18){
+      const p=(l-18)/6;
+      sb(i, 0.4+p*0.5);
+      if(l===20){
+        for(let j=0;j<8;j++) hb(i+j*0.12, 0.8-j*0.08, j%2?'dub':'lub');
+        fl(i, 0.5, 4);
+      }
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // XI. REGENERATION (352-375) — the heart remembers
+  // Physics: exp(C/Ω) recalls highest-coherence memory.
+  //          The 3:2 ratio (perfect fifth) is the strongest memory.
+  //          SA node recaptures rhythm. The fifth re-emerges.
+  // Musical: D and A gradually realign. The fifth returns.
+  //          ECG melody reconstitutes from memory.
+  // ════════════════════════════════════════════════════════════════
+  sc(352);
+  dr(352,0.18,24);
+  for(let i=352;i<376;i++){
+    const l=i-352;
+    const recovery=l/24;
+    // Heartbeat normalizes — the fifth returns
+    hb(i, 0.25+recovery*0.4, 'lub');
+    hb(i+0.35, 0.2+recovery*0.32, 'dub'); // S2 back at 0.35!
+    ec(i, 0.14-recovery*0.05);
+    // Bass: D and A re-emerge clean
+    if(l%2===0) bs(S1H[1], i, 0.1+recovery*0.25, 2.5);
+    if(l%2===1) bs(S2H[1], i, 0.08+recovery*0.2, 2.5);
+    // Chords return
+    if(l%8===0) pd(CH_D, i, 0.08+recovery*0.15, 8);
+    if(l%8===4) pd(CH_A, i, 0.05+recovery*0.1, 6);
+    // ECG melody reconstitutes
+    if(l>8 && l%4===0) ecgMel(i, 0.03+recovery*0.15, 0);
+    if(l%3===0) fl(i, 0.04+recovery*0.08, 4);
+    if(l%5===0) brth(i, 0.02+recovery*0.05, 5);
+    if(l>12 && l%8===0) ch([D4,A4], i, 0.04+recovery*0.1, 6);
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // XII. CODA (376-383) — 2.5 billion beats
+  // Physics: returning to rest. The fundamental persists.
+  // Musical: lub-dub fading. D→A → silence.
+  // ════════════════════════════════════════════════════════════════
+  sc(376);
+  dr(376,0.1,8);
+  for(let i=376;i<384;i++){
+    const l=i-376;
+    const fade=1-l/8;
+    hb(i, 0.45*fade, 'lub');
+    hb(i+0.35, 0.35*fade, 'dub');
+    if(l%4===0){
+      pd(CH_D, i, 0.12*fade, 6);
+      ch([D4,A4], i, 0.06*fade, 8);
+    }
+    if(l<6) E.push({b:i,ty:'note',fHz:[D4,E4,Fs4,D4,A3,D4][l],v:0.04*fade,d:3});
+  }
+
+  E.sort((a,b)=>a.b-b.b);
+  return E;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §6 AUDIO ENGINE — all synthesis from cardiac frequencies
+// ═══════════════════════════════════════════════════════════════════
+let ac=null,mG,mC,dG,rC,rG,anl,fD;
+let melG,bassG,padG,heartG,flowG,choirG,brthG;
+let nB;
+let drS={o:[],m:null,a:false};
+let hMx=0.65,bMx=0.55,mMx=0.6,cMx=0.5,rMx=0.7;
+let playing=false,pT=0,seq=[],seqI=0,curSec=null,prevSec=null;
+const AB={sub:0,bass:0,low:0,mid:0,high:0,pres:0,energy:0,peak:0};
+
+function initAudio(){
+  if(ac)return;
+  ac=new(window.AudioContext||window.webkitAudioContext)();
+  const sr=ac.sampleRate;
+  const nb=ac.createBuffer(1,sr*2,sr);
+  const nd=nb.getChannelData(0);
+  for(let i=0;i<nd.length;i++)nd[i]=rnd()*2-1;
+  nB=nb;
+  fD=new Uint8Array(256);
+  mG=ac.createGain();mG.gain.value=0.7;
+  mC=ac.createDynamicsCompressor();mC.threshold.value=-18;mC.ratio.value=4;mC.knee.value=8;
+  // Reverb — chest cavity resonance
+  rC=ac.createConvolver();
+  const rl=sr*4|0;const rb=ac.createBuffer(2,rl,sr);
+  for(let ch=0;ch<2;ch++){
+    const d=rb.getChannelData(ch);
+    for(let i=0;i<20;i++){
+      const t=(0.003+i*0.015+rnd()*0.01)*sr|0;
+      if(t<rl)d[t]=0.25*pow(0.65,i)*(0.5+rnd()*0.5);
+    }
+    for(let i=0;i<rl;i++){const t=i/sr;d[i]+=(rnd()*2-1)*0.06*(exp(-t*1.0)*0.5+exp(-t*2.8)*0.5)}
+  }
+  rC.buffer=rb;
+  rG=ac.createGain();rG.gain.value=rMx;
+  dG=ac.createGain();dG.gain.value=1-rMx*.3;
+  anl=ac.createAnalyser();anl.fftSize=512;
+  mG.connect(mC);mC.connect(dG);mC.connect(rC);rC.connect(rG);
+  dG.connect(anl);rG.connect(anl);anl.connect(ac.destination);
+  melG=ac.createGain();melG.gain.value=mMx*.45;melG.connect(mG);
+  bassG=ac.createGain();bassG.gain.value=0.35;bassG.connect(mG);
+  padG=ac.createGain();padG.gain.value=0.35;padG.connect(mG);
+  heartG=ac.createGain();heartG.gain.value=hMx*.5;heartG.connect(mG);
+  flowG=ac.createGain();flowG.gain.value=bMx*.4;flowG.connect(mG);
+  choirG=ac.createGain();choirG.gain.value=cMx*.4;choirG.connect(mG);
+  brthG=ac.createGain();brthG.gain.value=0.2;brthG.connect(mG);
+  initDrone();
+}
+
+function uAB(){
+  if(!anl)return;anl.getByteFrequencyData(fD);
+  const n=fD.length,sr=ac?ac.sampleRate:44100,bHz=sr/2/n;
+  let s=0,b=0,l=0,m=0,h=0,p=0,tt=0,pk=0;
+  for(let i=0;i<n;i++){const v=fD[i]/255,f=i*bHz;tt+=v;if(v>pk)pk=v;
+    if(f<60)s+=v;else if(f<250)b+=v;else if(f<500)l+=v;
+    else if(f<2000)m+=v;else if(f<8000)h+=v;else p+=v;}
+  const sm=.15;
+  AB.sub+=(s/max(1,60/bHz)-AB.sub)*sm;AB.bass+=(b/max(1,190/bHz)-AB.bass)*sm;
+  AB.low+=(l/max(1,250/bHz)-AB.low)*sm;AB.mid+=(m/max(1,1500/bHz)-AB.mid)*sm;
+  AB.high+=(h/max(1,6000/bHz)-AB.high)*sm;AB.pres+=(p/max(1,12000/bHz)-AB.pres)*sm;
+  AB.energy+=(tt/n-AB.energy)*sm;AB.peak+=(pk-AB.peak)*.25;
+}
+
+// §6.1 Drone — EXACT S1 overtone series (just intonation)
+function initDrone(){
+  if(!ac)return;
+  drS.m=ac.createGain();drS.m.gain.value=0;drS.m.connect(bassG);
+  // These are the actual resonant frequencies of S1 (36 Hz) and S2 (54 Hz)
+  // Using exact integer multiples — NOT equal temperament
+  // This produces natural just-intonation warmth
+  const harmonics=[
+    {f:S1_FUND,   g:0.15}, // H1: 36 Hz (D fundamental — sub-audible)
+    {f:S1H[1],    g:0.12}, // H2: 72 Hz (D2 — first audible)
+    {f:S2_FUND,   g:0.06}, // S2 H1: 54 Hz (A — the fifth, sub)
+    {f:S1H[2],    g:0.08}, // H3: 108 Hz (A2 — confirms the fifth!)
+    {f:S1H[3],    g:0.05}, // H4: 144 Hz (D3)
+    {f:S1H[4],    g:0.03}, // H5: 180 Hz (F#3 — the major third)
+  ];
+  for(const h of harmonics){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=h.f;
+    const fl=ac.createBiquadFilter();fl.type='lowpass';fl.frequency.value=h.f*3;fl.Q.value=.5;
+    const g=ac.createGain();g.gain.value=h.g;
+    o.connect(fl);fl.connect(g);g.connect(drS.m);o.start();drS.o.push({o,g,f:h.f});
+  }
+  // LFO at cardiac rate: 72/60 = 1.2 Hz
+  const lfo=ac.createOscillator();lfo.type='sine';lfo.frequency.value=HEART.bpm/60;
+  const lg=ac.createGain();lg.gain.value=1.5;
+  lfo.connect(lg);for(const h of drS.o)lg.connect(h.o.frequency);lfo.start();
+  // Blood flow sub-noise
+  const ns=ac.createBufferSource();ns.buffer=nB;ns.loop=true;
+  const nf=ac.createBiquadFilter();nf.type='lowpass';nf.frequency.value=60;nf.Q.value=.4;
+  const ng=ac.createGain();ng.gain.value=.008;
+  ns.connect(nf);nf.connect(ng);ng.connect(drS.m);ns.start();drS.a=true;
+}
+function setDr(g,tr){
+  if(!drS.a)return;const t=ac.currentTime;
+  drS.m.gain.cancelScheduledValues(t);drS.m.gain.setValueAtTime(drS.m.gain.value,t);
+  drS.m.gain.linearRampToValueAtTime(g,t+(tr||2));
+}
+
+// §6.2 Heartbeat — S1 at 36 Hz, S2 at 54 Hz
+// These frequencies are the MEASURED resonant frequencies of the heart valves
+function pHeartbeat(vel,hbType){
+  if(!ac)return;const t=ac.currentTime;
+  if(hbType==='lub'){
+    // S1: mitral+tricuspid closure. Fundamental at S1_FUND=36 Hz
+    const sub=ac.createOscillator();sub.type='sine';
+    sub.frequency.setValueAtTime(S1_FUND,t);
+    sub.frequency.exponentialRampToValueAtTime(S1_FUND*0.78,t+0.15);
+    const subG=ac.createGain();
+    subG.gain.setValueAtTime(vel*0.5,t);subG.gain.setValueAtTime(vel*0.45,t+0.015);
+    subG.gain.exponentialRampToValueAtTime(0.001,t+0.2);
+    sub.connect(subG);subG.connect(heartG);sub.start(t);sub.stop(t+0.3);
+    // S1 second harmonic (72 Hz = D2)
+    const h2=ac.createOscillator();h2.type='sine';
+    h2.frequency.setValueAtTime(S1H[1],t);
+    h2.frequency.exponentialRampToValueAtTime(S1H[1]*0.7,t+0.08);
+    const h2G=ac.createGain();
+    h2G.gain.setValueAtTime(vel*0.2,t);h2G.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+    h2.connect(h2G);h2G.connect(heartG);h2.start(t);h2.stop(t+0.2);
+    // Valve snap transient
+    const ns=ac.createBufferSource();ns.buffer=nB;
+    const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=S1H[2];nf.Q.value=3;
+    const ng=ac.createGain();
+    ng.gain.setValueAtTime(vel*0.12,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.03);
+    ns.connect(nf);nf.connect(ng);ng.connect(heartG);ns.start(t);ns.stop(t+0.1);
+  } else {
+    // S2: aortic+pulmonary closure. Fundamental at S2_FUND=54 Hz
+    // S2/S1 = 3/2 = perfect fifth. THIS IS THE HEARTBEAT INTERVAL.
+    const sub=ac.createOscillator();sub.type='sine';
+    sub.frequency.setValueAtTime(S2_FUND,t);
+    sub.frequency.exponentialRampToValueAtTime(S2_FUND*0.78,t+0.08);
+    const subG=ac.createGain();
+    subG.gain.setValueAtTime(vel*0.35,t);subG.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+    sub.connect(subG);subG.connect(heartG);sub.start(t);sub.stop(t+0.2);
+    // S2 second harmonic (108 Hz = A2 — same as S1 H3!)
+    const h2=ac.createOscillator();h2.type='sine';
+    h2.frequency.setValueAtTime(S2H[1],t);
+    h2.frequency.exponentialRampToValueAtTime(S2H[1]*0.7,t+0.06);
+    const h2G=ac.createGain();
+    h2G.gain.setValueAtTime(vel*0.15,t);h2G.gain.exponentialRampToValueAtTime(0.001,t+0.08);
+    h2.connect(h2G);h2G.connect(heartG);h2.start(t);h2.stop(t+0.15);
+    // Sharper valve snap (higher frequency for semilunar valves)
+    const ns=ac.createBufferSource();ns.buffer=nB;
+    const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=S2H[2];nf.Q.value=4;
+    const ng=ac.createGain();
+    ng.gain.setValueAtTime(vel*0.08,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.02);
+    ns.connect(nf);nf.connect(ng);ng.connect(heartG);ns.start(t);ns.stop(t+0.08);
+  }
+}
+
+// §6.3 Melodic note — takes Hz directly (cardiac harmonic frequency)
+function pNote(freq,vel,dur){
+  if(!ac||freq<20)return;const t=ac.currentTime;
+  const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+  const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq*1.003;
+  // FM at cardiac rate — the melody literally pulses with the heart
+  const fm=ac.createOscillator();fm.type='sine';fm.frequency.value=HEART.currentBPM/60;
+  const fmG=ac.createGain();fmG.gain.value=freq*0.004;
+  fm.connect(fmG);fmG.connect(o.frequency);
+  const g=ac.createGain();
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vel*.22,t+.1);
+  g.gain.linearRampToValueAtTime(vel*.18,t+dur*.4);g.gain.linearRampToValueAtTime(0,t+dur);
+  const fl=ac.createBiquadFilter();fl.type='lowpass';fl.frequency.value=freq*5;fl.Q.value=1.5;
+  o.connect(fl);o2.connect(fl);fl.connect(g);g.connect(melG);
+  o.start(t);o2.start(t);fm.start(t);
+  o.stop(t+dur+.1);o2.stop(t+dur+.1);fm.stop(t+dur+.1);
+}
+
+// §6.4 ECG Melody — the ECG voltage contour played as music
+// Each note in the motif IS a cardiac harmonic. The contour IS the ECG.
+function pEcgMel(vel,octShift){
+  if(!ac)return;const t=ac.currentTime;
+  const bs=bS();
+  const octMult=pow(2,octShift||0);
+  for(const note of ECG_MOTIF){
+    const freq=note.f*octMult;
+    if(freq<30||freq>8000)continue;
+    const noteT=t+note.t*bs*2; // stretch to fill beat
+    const v=vel*note.v;
+    const dur=bs*0.25;
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq*1.004;
+    const g=ac.createGain();
+    g.gain.setValueAtTime(0,noteT);
+    g.gain.linearRampToValueAtTime(v*0.2,noteT+0.04);
+    g.gain.linearRampToValueAtTime(v*0.15,noteT+dur*0.5);
+    g.gain.linearRampToValueAtTime(0,noteT+dur);
+    o.connect(g);o2.connect(g);g.connect(melG);
+    o.start(noteT);o2.start(noteT);
+    o.stop(noteT+dur+.1);o2.stop(noteT+dur+.1);
+  }
+}
+
+// §6.5 Bass — takes Hz directly (S1 or S2 fundamental/harmonic)
+function pBass(freq,vel,dur){
+  if(!ac||freq<20)return;const t=ac.currentTime;
+  const o=ac.createOscillator();o.type='triangle';o.frequency.value=freq;
+  const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq*0.5;
+  const fl=ac.createBiquadFilter();fl.type='lowpass';fl.frequency.value=freq*2.5;fl.Q.value=1;
+  const g=ac.createGain();
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vel*.3,t+.05);
+  g.gain.linearRampToValueAtTime(vel*.25,t+dur*.3);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(fl);o2.connect(fl);fl.connect(g);g.connect(bassG);
+  o.start(t);o2.start(t);o.stop(t+dur+.1);o2.stop(t+dur+.1);
+}
+
+// §6.6 Pad — array of Hz (cardiac overtone chord)
+function pPad(hzArr,gain,dur){
+  if(!ac)return;const t=ac.currentTime;
+  const m=ac.createGain();
+  m.gain.setValueAtTime(0,t);m.gain.linearRampToValueAtTime(gain*.18,t+1.5);
+  m.gain.linearRampToValueAtTime(gain*.14,t+dur*.6);m.gain.linearRampToValueAtTime(0,t+dur);
+  m.connect(padG);
+  for(const freq of hzArr){
+    if(freq<20)continue;
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq*1.004;
+    // Cardiac LFO
+    const lfo=ac.createOscillator();lfo.type='sine';lfo.frequency.value=HEART.bpm/60;
+    const lg=ac.createGain();lg.gain.value=freq*0.002;
+    lfo.connect(lg);lg.connect(o.frequency);
+    const g=ac.createGain();g.gain.value=.12;
+    o.connect(g);o2.connect(g);g.connect(m);
+    o.start(t);o2.start(t);lfo.start(t);
+    o.stop(t+dur+.5);o2.stop(t+dur+.5);lfo.stop(t+dur+.5);
+  }
+}
+
+// §6.7 Choir — formant synthesis on cardiac harmonics
+function pChoir(hzArr,gain,dur){
+  if(!ac)return;const t=ac.currentTime;
+  const m=ac.createGain();
+  m.gain.setValueAtTime(0,t);m.gain.linearRampToValueAtTime(gain*.15,t+0.8);
+  m.gain.linearRampToValueAtTime(gain*.12,t+dur*.5);m.gain.linearRampToValueAtTime(0,t+dur);
+  m.connect(choirG);
+  const formants=[{f:800,q:8,g:1},{f:1200,q:10,g:0.6},{f:2500,q:12,g:0.2}];
+  for(const freq of hzArr){
+    if(freq<40)continue;
+    const saw=ac.createOscillator();saw.type='sawtooth';saw.frequency.value=freq;
+    const saw2=ac.createOscillator();saw2.type='sawtooth';saw2.frequency.value=freq*1.005;
+    const mix=ac.createGain();mix.gain.value=0.08;
+    saw.connect(mix);saw2.connect(mix);
+    const vib=ac.createOscillator();vib.type='sine';vib.frequency.value=4.5;
+    const vibG=ac.createGain();vibG.gain.value=freq*0.004;
+    vib.connect(vibG);vibG.connect(saw.frequency);vibG.connect(saw2.frequency);
+    let prev=mix;
+    for(const fm of formants){
+      const bf=ac.createBiquadFilter();bf.type='peaking';
+      bf.frequency.value=fm.f;bf.Q.value=fm.q;bf.gain.value=fm.g*12;
+      prev.connect(bf);prev=bf;
+    }
+    const bns=ac.createBufferSource();bns.buffer=nB;bns.loop=true;
+    const bng=ac.createGain();bng.gain.value=0.005*gain;
+    const bnf=ac.createBiquadFilter();bnf.type='bandpass';bnf.frequency.value=2000;bnf.Q.value=0.5;
+    bns.connect(bnf);bnf.connect(bng);bng.connect(prev);
+    prev.connect(m);
+    saw.start(t);saw2.start(t);vib.start(t);bns.start(t);
+    saw.stop(t+dur+.5);saw2.stop(t+dur+.5);vib.stop(t+dur+.5);bns.stop(t+dur+.5);
+  }
+}
+
+// §6.8 Blood flow, breath, ECG click, valve click, storm build
+function pFlow(gain,dur){
+  if(!ac)return;const t=ac.currentTime;
+  const ns=ac.createBufferSource();ns.buffer=nB;ns.loop=true;
+  const fl=ac.createBiquadFilter();fl.type='bandpass';
+  fl.frequency.value=S1_FUND*2+HEART.aorticPressure*S1H[3];fl.Q.value=1.2;
+  const g=ac.createGain();
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(gain*.15,t+dur*.2);
+  g.gain.linearRampToValueAtTime(0,t+dur);
+  ns.connect(fl);fl.connect(g);g.connect(flowG);ns.start(t);ns.stop(t+dur+.1);
+}
+function pBreath(gain,dur){
+  if(!ac)return;const t=ac.currentTime;
+  const ns=ac.createBufferSource();ns.buffer=nB;ns.loop=true;
+  const fl=ac.createBiquadFilter();fl.type='bandpass';fl.frequency.value=800;fl.Q.value=0.5;
+  const g=ac.createGain();
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(gain*0.08,t+dur*0.4);
+  g.gain.linearRampToValueAtTime(gain*0.05,t+dur*0.5);g.gain.linearRampToValueAtTime(0,t+dur);
+  ns.connect(fl);fl.connect(g);g.connect(brthG);ns.start(t);ns.stop(t+dur+.1);
+}
+function pECG(vel){
+  if(!ac)return;const t=ac.currentTime;
+  // Click at S1 third harmonic (108 Hz = A2, confirming the fifth even in the click)
+  const o=ac.createOscillator();o.type='sine';o.frequency.value=S1H[2];
+  const g=ac.createGain();
+  g.gain.setValueAtTime(vel*0.02,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.02);
+  o.connect(g);g.connect(melG);o.start(t);o.stop(t+0.05);
+}
+function pValve(gain){
+  if(!ac)return;const t=ac.currentTime;
+  const ns=ac.createBufferSource();ns.buffer=nB;
+  // Valve click centered at S2 frequency region
+  const fl=ac.createBiquadFilter();fl.type='bandpass';fl.frequency.value=S2H[2];fl.Q.value=5;
+  const g=ac.createGain();
+  g.gain.setValueAtTime(gain*0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.04);
+  ns.connect(fl);fl.connect(g);g.connect(heartG);ns.start(t);ns.stop(t+0.15);
+}
+function pSBuild(vel){
+  if(!ac)return;const t=ac.currentTime;
+  const ns=ac.createBufferSource();ns.buffer=nB;ns.loop=true;
+  const fl=ac.createBiquadFilter();fl.type='lowpass';
+  fl.frequency.value=S1_FUND*4+vel*S1H[7];fl.Q.value=2;
+  const g=ac.createGain();
+  g.gain.setValueAtTime(vel*0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.5);
+  ns.connect(fl);fl.connect(g);g.connect(mG);ns.start(t);ns.stop(t+0.8);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §7 VISUALIZATION
+// ═══════════════════════════════════════════════════════════════════
+const canvas=document.getElementById('viz');
+const ctx=canvas.getContext('2d');
+let W,H;
+function resize(){
+  const dpr=window.devicePixelRatio||1;const r=canvas.getBoundingClientRect();
+  W=r.width;H=r.height;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener('resize',resize);
+
+function drawHeart(cx,cy,scale,contraction,phase,depolWaves,breathAmp){
+  const s=scale*(1-contraction*0.12);
+  ctx.save();ctx.translate(cx,cy);
+  const breathScale=1+breathAmp*0.02;ctx.scale(breathScale,breathScale);
+  // Pericardium glow
+  const pg=ctx.createRadialGradient(0,0,s*0.3,0,0,s*0.7);
+  pg.addColorStop(0,`rgba(180,20,20,${0.03+contraction*0.04})`);
+  pg.addColorStop(1,'rgba(180,20,20,0)');
+  ctx.fillStyle=pg;ctx.beginPath();ctx.arc(0,0,s*0.7,0,TAU);ctx.fill();
+  // Heart outline
+  const N=100;ctx.beginPath();
+  for(let i=0;i<=N;i++){
+    const t=(i/N)*TAU;
+    let hx=16*pow(sin(t),3),hy=-(13*cos(t)-5*cos(2*t)-2*cos(3*t)-cos(4*t));
+    const cm=1-contraction*0.08*(1+0.3*sin(t*2));
+    hx*=s/40*cm;hy*=s/40*cm;hy+=s*0.05;
+    i===0?ctx.moveTo(hx,hy):ctx.lineTo(hx,hy);
+  }
+  ctx.closePath();
+  const hg=ctx.createLinearGradient(-s*0.4,0,s*0.4,0);
+  const ar=0.35+contraction*0.35;
+  hg.addColorStop(0,`rgba(${floor(80+contraction*60)},${floor(20+contraction*30)},${floor(60+contraction*40)},${ar})`);
+  hg.addColorStop(0.45,`rgba(${floor(120+contraction*80)},${floor(15+contraction*15)},${floor(15+contraction*15)},${ar+0.05})`);
+  hg.addColorStop(1,`rgba(${floor(180+contraction*60)},${floor(20+contraction*30)},${floor(15+contraction*10)},${ar})`);
+  ctx.fillStyle=hg;ctx.fill();
+  // Muscle fibers
+  ctx.save();ctx.clip();
+  ctx.strokeStyle=`rgba(100,15,15,${0.08+contraction*0.06})`;ctx.lineWidth=0.5;
+  for(let i=0;i<30;i++){
+    const angle=i/30*TAU+phase*0.1;
+    ctx.beginPath();
+    for(let j=0;j<20;j++){
+      const t=j/20,r=s*0.1+(s*0.35-s*0.1)*t,a=angle+sin(t*PI*2+phase)*0.3;
+      j===0?ctx.moveTo(cos(a)*r,sin(a)*r+s*0.05):ctx.lineTo(cos(a)*r,sin(a)*r+s*0.05);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+  // Septum
+  ctx.beginPath();ctx.moveTo(0,-s*0.2);ctx.quadraticCurveTo(s*0.02,s*0.05,0,s*0.3);
+  ctx.strokeStyle=`rgba(140,30,30,${0.25+contraction*0.15})`;ctx.lineWidth=2;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,-s*0.35);ctx.lineTo(0,-s*0.2);
+  ctx.strokeStyle=`rgba(120,25,25,${0.2+contraction*0.1})`;ctx.lineWidth=1.5;ctx.stroke();
+  // Valves
+  drawValve(ctx,-s*0.12,-s*0.15,s*0.06,HEART.mitralOpen,contraction,'rgba(200,80,30,');
+  drawValve(ctx,s*0.12,-s*0.15,s*0.06,HEART.tricuspidOpen,contraction,'rgba(180,70,25,');
+  drawValve(ctx,-s*0.08,-s*0.32,s*0.04,HEART.aorticOpen,contraction,'rgba(220,100,30,');
+  drawValve(ctx,s*0.1,-s*0.32,s*0.04,HEART.pulmonicOpen,contraction,'rgba(160,60,20,');
+  // SA node
+  const saGlow=HEART.conductionPhase>=1?1:0;
+  if(saGlow>0){ctx.fillStyle=`rgba(255,${170+floor(saGlow*85)},0,${saGlow*0.8})`;
+    ctx.beginPath();ctx.arc(s*0.15,-s*0.28,s*0.025*(1+saGlow*0.5),0,TAU);ctx.fill();}
+  ctx.fillStyle='rgba(255,170,0,0.15)';ctx.beginPath();ctx.arc(s*0.15,-s*0.28,s*0.018,0,TAU);ctx.fill();
+  // AV node
+  const avGlow=HEART.conductionPhase>=2?1:0;
+  ctx.fillStyle=`rgba(255,${120+floor(avGlow*100)},0,${0.1+avGlow*0.7})`;
+  ctx.beginPath();ctx.arc(0,-s*0.18,s*0.02*(1+avGlow*0.4),0,TAU);ctx.fill();
+  // His bundle
+  if(HEART.conductionPhase>=3){ctx.strokeStyle='rgba(255,109,0,0.6)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(0,-s*0.18);ctx.lineTo(0,-s*0.05);ctx.stroke();}
+  // Purkinje
+  if(HEART.conductionPhase>=4){ctx.strokeStyle='rgba(255,109,0,0.4)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,-s*0.05);ctx.quadraticCurveTo(-s*0.1,s*0.05,-s*0.18,s*0.2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-s*0.1,s*0.05);ctx.quadraticCurveTo(-s*0.15,s*0.15,-s*0.12,s*0.25);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,-s*0.05);ctx.quadraticCurveTo(s*0.1,s*0.05,s*0.18,s*0.2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(s*0.1,s*0.05);ctx.quadraticCurveTo(s*0.15,s*0.15,s*0.12,s*0.25);ctx.stroke();}
+  // Depolarization waves
+  for(const w of depolWaves){
+    let age=HEART.cycleTime-w.birth;
+    if(age<0)age+=60/HEART.currentBPM;
+    const alpha=max(0,1-age*3);
+    const radius=max(0.5,s*0.05+age*s*1.5);
+    ctx.strokeStyle=`rgba(255,200,50,${alpha*0.4})`;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(0,-s*0.2+w.pos*s*0.5,radius,0,TAU);ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawValve(ctx,x,y,sz,isOpen,c,cb){
+  const a=0.4+c*0.3;ctx.save();ctx.translate(x,y);
+  ctx.fillStyle=cb+a+')';
+  ctx.beginPath();ctx.moveTo(0,0);
+  ctx.quadraticCurveTo(-sz*0.6,sz*(isOpen?0.5:0.15),-sz*0.3,sz*(isOpen?0.8:0.1));
+  ctx.quadraticCurveTo(-sz*0.1,sz*(isOpen?0.3:0.05),0,0);ctx.fill();
+  ctx.beginPath();ctx.moveTo(0,0);
+  ctx.quadraticCurveTo(sz*0.6,sz*(isOpen?0.5:0.15),sz*0.3,sz*(isOpen?0.8:0.1));
+  ctx.quadraticCurveTo(sz*0.1,sz*(isOpen?0.3:0.05),0,0);ctx.fill();
+  ctx.restore();
+}
+function drawBlood(cx,cy,hs){
+  for(const b of blood){
+    const pos=bloodPos(b.phase,cx,cy,hs);
+    const wx=sin(b.wobble)*2*b.lane,wy=cos(b.wobble*0.7)*1.5*b.lane;
+    const r=floor(120+b.ox*120),g=floor(10+b.ox*15),bl=floor(60-b.ox*40+(1-b.ox)*140);
+    const alpha=b.brightness*(0.3+HEART.aorticPressure*0.4);
+    ctx.fillStyle=`rgba(${r},${g},${bl},${alpha})`;
+    ctx.beginPath();const sz=b.size*(0.8+HEART.contraction*0.3);
+    ctx.arc(pos.x+wx,pos.y+wy,sz,0,TAU);ctx.fill();
+    if(b.ox>0.7){ctx.fillStyle=`rgba(${r+30},${g+10},${bl},${alpha*0.2})`;
+      ctx.beginPath();ctx.arc(pos.x+wx,pos.y+wy,sz*2,0,TAU);ctx.fill();}
+  }
+}
+function drawECG(x,y,w,h){
+  const history=HEART.ecgHistory;if(history.length<2)return;
+  ctx.strokeStyle='rgba(0,230,118,0.04)';ctx.lineWidth=0.5;
+  for(let i=0;i<5;i++){const gy=y+h*i/4;ctx.beginPath();ctx.moveTo(x,gy);ctx.lineTo(x+w,gy);ctx.stroke();}
+  for(let i=0;i<10;i++){const gx=x+w*i/9;ctx.beginPath();ctx.moveTo(gx,y);ctx.lineTo(gx,y+h);ctx.stroke();}
+  ctx.strokeStyle='rgba(0,230,118,0.7)';ctx.lineWidth=1.5;ctx.beginPath();
+  const len=min(history.length,floor(w));const startI=max(0,history.length-len);
+  for(let i=0;i<len;i++){const px=x+(i/len)*w,val=history[startI+i],py=y+h/2-val*h*0.4;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
+  ctx.stroke();
+  ctx.strokeStyle='rgba(0,230,118,0.15)';ctx.lineWidth=4;ctx.beginPath();
+  for(let i=0;i<len;i++){const px=x+(i/len)*w,val=history[startI+i],py=y+h/2-val*h*0.4;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
+  ctx.stroke();
+  ctx.fillStyle='rgba(0,230,118,0.4)';ctx.font='9px "Space Mono"';
+  ctx.fillText(HEART.ecgPhase.toUpperCase(),x+w-40,y+12);
+}
+function drawVessels(cx,cy,s){
+  ctx.strokeStyle=`rgba(180,30,30,${0.15+HEART.aorticPressure*0.3})`;
+  ctx.lineWidth=3+HEART.aorticPressure*2;
+  ctx.beginPath();ctx.moveTo(cx-s*0.08,cy-s*0.32);
+  ctx.quadraticCurveTo(cx-s*0.15,cy-s*0.55,cx-s*0.05,cy-s*0.5);
+  ctx.quadraticCurveTo(cx+s*0.1,cy-s*0.58,cx+s*0.2,cy-s*0.45);ctx.stroke();
+  ctx.strokeStyle=`rgba(40,40,140,${0.12+HEART.ventPressure*0.2})`;ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(cx+s*0.1,cy-s*0.32);
+  ctx.quadraticCurveTo(cx+s*0.2,cy-s*0.5,cx+s*0.35,cy-s*0.42);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+s*0.1,cy-s*0.32);
+  ctx.quadraticCurveTo(cx-s*0.05,cy-s*0.48,cx-s*0.25,cy-s*0.4);ctx.stroke();
+  ctx.strokeStyle='rgba(30,30,120,0.15)';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(cx+s*0.18,cy-s*0.28);ctx.lineTo(cx+s*0.22,cy-s*0.5);ctx.stroke();
+  ctx.strokeStyle='rgba(140,25,25,0.12)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx-s*0.2,cy-s*0.25);
+  ctx.quadraticCurveTo(cx-s*0.35,cy-s*0.35,cx-s*0.4,cy-s*0.3);ctx.stroke();
+}
+
+let lastFrame=0,bP=0;
+function render(ts){
+  if(!lastFrame)lastFrame=ts;const dt=min(0.05,(ts-lastFrame)/1000);lastFrame=ts;
+  ctx.fillStyle=`rgba(10,4,4,${playing?0.15:0.3})`;ctx.fillRect(0,0,W,H);
+  if(playing)updateCardiac(dt);
+  updateBlood(dt);
+  const cx=W*0.5,cy=H*0.48,hs=min(W,H)*0.35;
+  if(playing){bP*=0.95;
+    const bg=ctx.createRadialGradient(cx,cy,0,cx,cy,hs*1.5);
+    bg.addColorStop(0,`rgba(120,15,15,${0.02+bP*0.08+HEART.contraction*0.03})`);
+    bg.addColorStop(0.5,`rgba(80,8,8,${0.01+bP*0.03})`);bg.addColorStop(1,'rgba(10,4,4,0)');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);}
+  drawVessels(cx,cy,hs);drawBlood(cx,cy,hs);
+  drawHeart(cx,cy,hs,HEART.contraction,HEART.phase,HEART.depolWaves,HEART.breathAmp);
+  const ecgW=min(300,W*0.35),ecgH=60,ecgX=W-ecgW-20,ecgY=H-ecgH-100;
+  drawECG(ecgX,ecgY,ecgW,ecgH);
+  if(playing){
+    const barX=20,barW=6,barH=80,barY=H-barH-100;
+    ctx.fillStyle=`rgba(198,40,40,${0.15+HEART.ventPressure*0.5})`;
+    ctx.fillRect(barX,barY+barH*(1-HEART.ventPressure),barW,barH*HEART.ventPressure);
+    ctx.fillStyle='rgba(200,140,140,0.2)';ctx.font='8px "Space Mono"';ctx.fillText('LV',barX,barY-4);
+    ctx.fillStyle=`rgba(180,30,30,${0.15+HEART.aorticPressure*0.5})`;
+    ctx.fillRect(barX+12,barY+barH*(1-HEART.aorticPressure),barW,barH*HEART.aorticPressure);
+    ctx.fillText('Ao',barX+12,barY-4);
+    ctx.fillStyle=`rgba(120,20,80,${0.15+HEART.atrialPressure*3})`;
+    ctx.fillRect(barX+24,barY+barH*(1-HEART.atrialPressure*3),barW,barH*HEART.atrialPressure*3);
+    ctx.fillText('LA',barX+24,barY-4);
+    ctx.fillStyle='rgba(200,140,140,0.25)';ctx.font='10px "Space Mono"';
+    ctx.fillText(`${round(HEART.currentBPM)} BPM`,20,H-190);
+    ctx.fillText(`beat ${HEART.beatCount}`,20,H-178);
+    // Show cardiac frequencies
+    ctx.fillStyle='rgba(200,140,140,0.15)';ctx.font='8px "Space Mono"';
+    ctx.fillText(`S1=${S1_FUND}Hz(D) S2=${S2_FUND}Hz(A) 3:2`,20,H-200);
+  }
+  if(playing)uAB();
+  requestAnimationFrame(render);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §8 PLAYBACK ENGINE
+// ═══════════════════════════════════════════════════════════════════
+function startSong(){
+  if(playing)return;initAudio();
+  if(ac.state==='suspended')ac.resume();
+  playing=true;pT=0;seqI=0;seq=buildSeq();
+  HEART.cycleTime=0;HEART.phase=0;HEART.beatCount=0;HEART.ecgHistory=[];
+  initBlood();ALL.forEach(a=>a.reset());
+  document.getElementById('btn-play').classList.add('playing');
+  scheduleLoop();
+}
+function stopSong(){playing=false;document.getElementById('btn-play').classList.remove('playing')}
+
+function scheduleLoop(){
+  if(!playing)return;const bs=bS(),now=ac.currentTime;
+  while(seqI<seq.length&&seq[seqI].b<=pT/bs){
+    const e=seq[seqI];
+    switch(e.ty){
+      case 'note': pNote(e.fHz,e.v,e.d*bs); break;
+      case 'bass': pBass(e.fHz,e.v,e.d*bs); break;
+      case 'pad': pPad(e.pHz,e.pG,e.d*bs); break;
+      case 'heartbeat': pHeartbeat(e.v,e.hbTy); bP=max(bP,e.v*0.6); break;
+      case 'ecgmel': pEcgMel(e.v,e.octShift); break;
+      case 'choir': pChoir(e.cHz,e.cG,e.d*bs); break;
+      case 'drone': setDr(e.dG,e.d*bs); break;
+      case 'flow': pFlow(e.fG,e.d*bs); break;
+      case 'breath': pBreath(e.bG,e.d*bs); break;
+      case 'ecg': pECG(e.v); break;
+      case 'valve': pValve(e.vG); break;
+      case 'sbuild': pSBuild(e.v); break;
+      case 'sec':{
+        const s=getSection(e.b);
+        if(s!==curSec){prevSec=curSec;curSec=s;
+          const sl=document.getElementById('section-label');
+          sl.textContent=s.label;sl.style.opacity=0.5;
+          setTimeout(()=>sl.style.opacity=0,3000);
+          document.getElementById('physics-text').textContent=PHY[s.name]||'';
+          document.getElementById('crr-explain').textContent=CRE[s.name]||'';
+        }break;}
+    }
+    seqI++;
+  }
+  ag.p.step(0.3,0.001);
+  const beatNow=pT/bs,pct=beatNow/TOTAL_BEATS*100;
+  document.getElementById('timeline-fill').style.width=pct+'%';
+  const fmt=t=>`${floor(t/60)}:${('0'+floor(t%60)).slice(-2)}`;
+  document.getElementById('timeline-time').textContent=`${fmt(pT)} / ${fmt(TOTAL_BEATS*bs)}`;
+  document.getElementById('crr-display').textContent=
+    `C=${ag.p.C.toFixed(2)} Ω=${ag.p.omega.toFixed(3)}\n`+
+    `exp(C/Ω)=${min(9999,ag.p.expCO).toFixed(1)}\n`+
+    `S1=${S1_FUND}Hz S2=${S2_FUND}Hz 3:2`;
+  pT+=1/60;
+  if(beatNow>=TOTAL_BEATS){stopSong();return;}
+  setTimeout(scheduleLoop,1000/60);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §9 UI SETUP
+// ═══════════════════════════════════════════════════════════════════
+function initUI(){
+  const tsc=document.getElementById('timeline-sections');
+  SECTIONS.forEach(s=>{
+    const div=document.createElement('div');div.className='t-section';
+    div.style.width=((s.end-s.start+1)/TOTAL_BEATS*100)+'%';
+    const lbl=document.createElement('span');lbl.className='t-section-label';
+    lbl.textContent=s.name.toLowerCase().replace(/_/g,' ');
+    div.appendChild(lbl);tsc.appendChild(div);
+  });
+  const bind=(id,vId,cb)=>{
+    const sl=document.getElementById(id),v=document.getElementById(vId);
+    sl.addEventListener('input',()=>{const val=parseFloat(sl.value);
+      v.textContent=val.toFixed(val===floor(val)?1:2).replace(/^0/,'');cb(val);});
+  };
+  bind('sl-tempo','v-tempo',v=>tM=v);
+  bind('sl-rev','v-rev',v=>{rMx=v;if(rG)rG.gain.value=v;if(dG)dG.gain.value=1-v*.3});
+  bind('sl-heart','v-heart',v=>{hMx=v;if(heartG)heartG.gain.value=v*.5});
+  bind('sl-blood','v-blood',v=>{bMx=v;if(flowG)flowG.gain.value=v*.4});
+  bind('sl-mel','v-mel',v=>{mMx=v;if(melG)melG.gain.value=v*.45});
+  bind('sl-choir','v-choir',v=>{cMx=v;if(choirG)choirG.gain.value=v*.4});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §10 INIT
+// ═══════════════════════════════════════════════════════════════════
+document.getElementById('splash').addEventListener('click',()=>{
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  resize();initUI();initBlood();requestAnimationFrame(render);
+});
+document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+</script>
+</body>
+</html>
