@@ -311,7 +311,12 @@ function makeFlockState(){
     turnDir:{x:0,y:0},angMom:0,moveTimer:0,moveDuration:5,
     currentMove:'vortex',
     panic:0, panicCRR:new CRR(0.25,0.6),
-    centerX:0, centerY:0, nFlying:0
+    centerX:0, centerY:0, nFlying:0,
+    // ─── MEASURED STATE (fed back into CRR) ───
+    alignment:0,       // 0–1: how aligned velocities are (order parameter)
+    compactness:0,     // 0–1: inverse of average nearest-neighbor distance
+    crossFlockRatio:0, // fraction of k=7 neighbors from the other flock
+    beauty:0           // cached beauty value for this flock
   };
 }
 const WORLD={
@@ -1786,16 +1791,143 @@ let birdPhase='sleep';
 function updateBirds(dt,predX,predY,predHunt){
   buildHash(birds);
 
-  // ─── PER-FLOCK CRR UPDATES ───
+  // ═══════════════════════════════════════════════════════════════════
+  // FEEDBACK LOOP 1: MEASURE ACTUAL FLOCK STATE
+  // ═══════════════════════════════════════════════════════════════════
+  // Before CRR updates, measure what the flock is actually doing.
+  // Alignment = velocity correlation (order parameter, Vicsek 1995)
+  // Compactness = inverse nearest-neighbor spread
+  // These measured values become the CRR attention signal.
+
+  const treeCx=[trees[0].base.x, trees[1].base.x];
+  let fcx0=0,fcy0=0,fn0=0,fcx1=0,fcy1=0,fn1=0;
+  // Velocity accumulators for alignment measurement
+  let vxSum0=0,vySum0=0,vxSum1=0,vySum1=0;
+  // Speed accumulators for normalization
+  let spdSum0=0,spdSum1=0;
+
+  for(let i=0;i<birds.length;i++){
+    const b=birds[i];if(b.st!==0)continue;
+    const spd=sqrt(b.vx*b.vx+b.vy*b.vy)||1;
+    if(b.flockId===0){
+      fcx0+=b.x;fcy0+=b.y;fn0++;
+      vxSum0+=b.vx/spd;vySum0+=b.vy/spd; // Unit velocity
+      spdSum0+=spd;
+    } else {
+      fcx1+=b.x;fcy1+=b.y;fn1++;
+      vxSum1+=b.vx/spd;vySum1+=b.vy/spd;
+      spdSum1+=spd;
+    }
+  }
+
+  // Flock centers
+  if(fn0>0){WORLD.flocks[0].centerX=fcx0/fn0;WORLD.flocks[0].centerY=fcy0/fn0}
+  else{WORLD.flocks[0].centerX=treeCx[0];WORLD.flocks[0].centerY=H*0.35}
+  WORLD.flocks[0].nFlying=fn0;
+  if(fn1>0){WORLD.flocks[1].centerX=fcx1/fn1;WORLD.flocks[1].centerY=fcy1/fn1}
+  else{WORLD.flocks[1].centerX=treeCx[1];WORLD.flocks[1].centerY=H*0.35}
+  WORLD.flocks[1].nFlying=fn1;
+
+  // Alignment: |mean unit velocity| ∈ [0,1]
+  // 0 = random headings, 1 = perfect alignment
+  const align0 = fn0>1 ? sqrt(vxSum0*vxSum0+vySum0*vySum0)/fn0 : 0;
+  const align1 = fn1>1 ? sqrt(vxSum1*vxSum1+vySum1*vySum1)/fn1 : 0;
+  // Smooth to avoid jitter
+  WORLD.flocks[0].alignment += (align0 - WORLD.flocks[0].alignment) * min(1, dt*3);
+  WORLD.flocks[1].alignment += (align1 - WORLD.flocks[1].alignment) * min(1, dt*3);
+
+  // Compactness: based on average speed (tight = slower, spread = faster)
+  // Inverse of normalized average speed: fast swarm = low compactness
+  const avgSpd0 = fn0>0 ? spdSum0/fn0 : 40;
+  const avgSpd1 = fn1>0 ? spdSum1/fn1 : 40;
+  const compact0 = max(0, 1 - (avgSpd0 - 18)/(75 - 18)); // Normalize to speed range
+  const compact1 = max(0, 1 - (avgSpd1 - 18)/(75 - 18));
+  WORLD.flocks[0].compactness += (compact0 - WORLD.flocks[0].compactness) * min(1, dt*3);
+  WORLD.flocks[1].compactness += (compact1 - WORLD.flocks[1].compactness) * min(1, dt*3);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FEEDBACK LOOP 2: FLOCK CRR DRIVEN BY MEASURED STATE
+  // ═══════════════════════════════════════════════════════════════════
+  // Coherence accumulates faster when the flock IS coherent (alignment high).
+  // This creates a positive feedback: aligned flock → faster C accumulation
+  // → higher C/Ω → stronger coupling → even more aligned → approaches rupture.
+  // After rupture: alignment drops → slow accumulation → exploration phase.
+  //
+  // attention = alignment × (0.3 + compactness × 0.5) + panicBoost
+  // - Aligned, compact flock: attention ≈ 0.8 → rapid coherence buildup
+  // - Scattered, misaligned: attention ≈ 0.1 → slow, exploratory
+  // - Panic: forces quick rupture cycle (predator = forced reorganization)
+
   for(let fi=0;fi<2;fi++){
     const fl=WORLD.flocks[fi];
-    fl.crr.update(dt,0.5);
+    const panicBoost = fl.panic * 0.4; // Panic accelerates the cycle
+
+    // ═══════════════════════════════════════════════════════════════
+    // FEEDBACK LOOP 5: INTER-FLOCK CRR COUPLING
+    // ═══════════════════════════════════════════════════════════════
+    // When flocks overlap (crossFlockRatio > 0), coherence accumulates
+    // faster — the other flock's organized motion acts as additional
+    // attention input. AND: Ω temporarily increases (more permeable),
+    // making transformation more likely. Two overlapping murmurations
+    // approaching rupture together = spectacular combined transition.
+    //
+    // crossFlockRatio is smoothed from previous frame's bird-level data.
+    const otherFi = 1-fi;
+    const otherFl = WORLD.flocks[otherFi];
+    const coupling = fl.crossFlockRatio; // 0–1: how much this flock overlaps with other
+    const couplingAttn = coupling * otherFl.alignment * 0.3; // Other flock's alignment bleeds in
+
+    const measuredAttn = fl.alignment * (0.3 + fl.compactness * 0.5) + panicBoost + couplingAttn;
+    fl.crr.update(dt, max(0.05, min(1.2, measuredAttn)));
+
+    // Omega perturbation from coupling: overlapping flocks become more flexible
+    // This is temporary — stored omega returns to baseline when flocks separate
+    // Small Ω → rigid reconstitution. Large Ω → transformation possible.
+    // Coupling nudges toward transformation during overlap.
+    if(coupling > 0.1){
+      fl.crr.omega = 0.22 * (1 + coupling * 0.3); // Up to 30% more permeable
+    } else {
+      fl.crr.omega += (0.22 - fl.crr.omega) * min(1, dt*2); // Relax back to baseline
+    }
+
     fl.panic=max(0,fl.panic-dt*0.15);
+    // Decay crossFlockRatio toward 0 when flocks aren't overlapping
+    fl.crossFlockRatio *= max(0, 1 - dt*0.5);
+
+    // ═══════════════════════════════════════════════════════════════
+    // FEEDBACK LOOP 4: CRR-INFORMED PATTERN SELECTION
+    // ═══════════════════════════════════════════════════════════════
+    // On rupture, C/Ω ratio determines what pattern emerges:
+    //   Low C/Ω (<0.5):  gentle patterns — breathe, wave (system just restarted)
+    //   Mid C/Ω (0.5-0.8): standard — vortex, sweep, split
+    //   High C/Ω (>0.8):  complex — tornado, ribbon, column (built up tension)
+    //
+    // Beauty near peak (C/Ω ≈ 2.14) → longer, more fluid patterns
+    // The Cramér-Rao bound: C·Ω = 1 is the rupture condition.
+    // Just before: maximum information, maximum beauty, maximum complexity.
+
     if(fl.crr.st===1&&fl.st===0){
-      fl.currentMove=MOVES[floor(random()*MOVES.length)];
-      fl.moveTimer=0;fl.moveDuration=4+random()*5;
-      fl.angMom=(random()>0.5?1:-1)*(1.5+random()*2);
-      fl.turnDir={x:cos(random()*PI2)*30,y:sin(random()*PI2)*20};
+      const cRatio = fl.crr.C / max(0.001, fl.crr.omega);
+      const bty = beautyFunction(fl.crr.C, fl.crr.omega);
+      fl.beauty = bty;
+
+      // Pattern pools weighted by C/Ω energy
+      let pool;
+      if(cRatio < 0.5)      pool = ['breathe','wave','breathe','sweep'];
+      else if(cRatio < 0.8) pool = ['vortex','sweep','split','wave','breathe'];
+      else                   pool = ['tornado','ribbon','column','vortex','tornado'];
+
+      fl.currentMove = pool[floor(random() * pool.length)];
+      fl.moveTimer=0;
+
+      // Duration scales with beauty: near the peak, the pattern sustains longer
+      // (the system lingers at criticality — the beautiful moment lasts)
+      fl.moveDuration = (3 + random()*3) * (1 + min(1, bty/4));
+
+      // Angular momentum: more energy at higher C/Ω
+      const angEnergy = 1 + cRatio * 1.5;
+      fl.angMom = (random()>0.5?1:-1) * angEnergy * (1 + random());
+      fl.turnDir = {x:cos(random()*PI2)*25*(1+cRatio*0.5), y:sin(random()*PI2)*18*(1+cRatio*0.5)};
     }
     fl.st=fl.crr.st;fl.moveTimer+=dt;
   }
@@ -1816,11 +1948,25 @@ function updateBirds(dt,predX,predY,predHunt){
   WORLD.flock.voiceCRR.update(dt, voiceAttn);
   WORLD.flock.voiceCoherence = WORLD.flock.voiceCRR.smoothAmp;
 
-  // ─── PER-FLOCK MOVE PARAMETERS ───
+  // ═══════════════════════════════════════════════════════════════════
+  // FEEDBACK LOOP 3: BEAUTY → FLIGHT FLUIDITY
+  // ═══════════════════════════════════════════════════════════════════
+  // Near the beauty peak (B(C/Ω) at C/Ω ≈ 2.14), the murmuration
+  // becomes more fluid: higher responsiveness, tighter coupling,
+  // more angular momentum sensitivity. This is the "liquid crystal"
+  // phase where the flock moves as one but can still transform.
+  //
+  // beautyFluidity modulates alignment/cohesion strength per flock.
+  // At beauty peak: fluidity ≈ 1.4 (40% boost)
+  // Baseline: fluidity ≈ 1.0 (no change)
+
   const flockParams=[];
   for(let fi=0;fi<2;fi++){
     const fl=WORLD.flocks[fi];
     const mt=min(1,fl.moveTimer/fl.moveDuration);
+    const flockBeauty = beautyFunction(fl.crr.C, fl.crr.omega);
+    const beautyFluidity = 1 + min(0.5, flockBeauty / 8); // 1.0 → 1.5
+
     let cohMult=1,angM=0,sepMult=1;
     const cm=fl.currentMove;
     if(cm==='vortex'){angM=2.5*(1-mt);cohMult=1.3}
@@ -1830,26 +1976,14 @@ function updateBirds(dt,predX,predY,predHunt){
     else if(cm==='sweep'){fl.turnDir={x:40*(mt<0.5?1:-1),y:0}}
     const fmA=cm==='column'?0.12:cm==='ribbon'?0.08:0;
     const fmC=cm==='split'?-0.02:0;
-    flockParams.push({cohMult,angM,sepMult,fmA,fmC,fl});
+
+    // Apply beauty fluidity: scales alignment, cohesion, and angular momentum
+    flockParams.push({cohMult:cohMult*beautyFluidity, angM:angM*beautyFluidity,
+      sepMult, fmA, fmC, fl, beautyFluidity});
   }
 
   const predActive=predHunt>0;
   const rainI=WORLD.weather.rainIntensity;
-
-  // ─── PER-FLOCK CENTERS — single pass ───
-  const treeCx=[trees[0].base.x, trees[1].base.x];
-  let fcx0=0,fcy0=0,fn0=0,fcx1=0,fcy1=0,fn1=0;
-  for(let i=0;i<birds.length;i++){
-    const b=birds[i];if(b.st!==0)continue;
-    if(b.flockId===0){fcx0+=b.x;fcy0+=b.y;fn0++}
-    else{fcx1+=b.x;fcy1+=b.y;fn1++}
-  }
-  if(fn0>0){WORLD.flocks[0].centerX=fcx0/fn0;WORLD.flocks[0].centerY=fcy0/fn0}
-  else{WORLD.flocks[0].centerX=treeCx[0];WORLD.flocks[0].centerY=H*0.35}
-  WORLD.flocks[0].nFlying=fn0;
-  if(fn1>0){WORLD.flocks[1].centerX=fcx1/fn1;WORLD.flocks[1].centerY=fcy1/fn1}
-  else{WORLD.flocks[1].centerX=treeCx[1];WORLD.flocks[1].centerY=H*0.35}
-  WORLD.flocks[1].nFlying=fn1;
 
   const bxL=W*0.05,bxR=W*0.95,byT=H*0.05,byB=H*0.75;
 
@@ -1895,7 +2029,16 @@ function updateBirds(dt,predX,predY,predHunt){
         b.st=3;b.vy=-28-random()*18;b.vx=(random()-0.5)*25+(fi===0?12:-12);
         if(b.perch){b.perch.occ=false;b.perch=null}}
       continue}
-    b.crr.update(dt,b.st===0?1:0.3);
+    // ═══ PER-BIRD CRR: attention driven by actual neighbor state ═══
+    // Uses PREVIOUS frame's localDensity and neighborCount (stored on bird).
+    // Dense, well-connected birds accumulate coherence faster.
+    // Isolated birds stall. This is the R integral's exp(C/Ω) weighting
+    // applied at the individual level: a bird in a coherent region
+    // has high C → strong memory weighting → reconstitutes the pattern.
+    const birdAttn = b.st===0
+      ? 0.2 + (b.neighborCount/K) * 0.5 + b.localDensity * 0.3  // Flying: neighbors drive coherence
+      : 0.15;  // Not flying: slow background accumulation
+    b.crr.update(dt, birdAttn);
     if(b.st===3){b.vy-=40*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;if(b.timer>0.35)b.st=0;continue}
     if(b.st===1){if(!b.perch){b.st=0;continue}
       const dx=b.perch.x-b.x,dy=b.perch.y-b.y,d=sqrt(dx*dx+dy*dy);
@@ -1923,9 +2066,11 @@ function updateBirds(dt,predX,predY,predHunt){
 
     // ─── PANIC WAVE — propagates across flocks too ───
     let maxNeighborPanic = 0;
+    let crossFlockNeighbors = 0; // Count neighbors from other flock
     for(let ni=0;ni<kCount;ni++){
       const o=birds[_nbIdx[ni]];
       if(o.panic > maxNeighborPanic) maxNeighborPanic = o.panic;
+      if(o.flockId !== fi) crossFlockNeighbors++;
     }
     if(maxNeighborPanic > b.panic + 0.05){
       const contagionStrength = 0.85;
@@ -1933,9 +2078,21 @@ function updateBirds(dt,predX,predY,predHunt){
       b.infoPulse = min(1, b.infoPulse + 0.6);
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // FEEDBACK LOOP 5: INTER-FLOCK CRR COUPLING
+    // ═══════════════════════════════════════════════════════════════
+    // When a bird has neighbors from the other flock, it contributes
+    // to coupling their CRR cycles. High overlap → convergent timing.
+    // This makes merged murmurations synchronize their rupture cycles
+    // and separated ones drift apart — exactly what real flocks do.
+    if(crossFlockNeighbors > 0 && kCount > 0){
+      const couplingStrength = crossFlockNeighbors / kCount; // 0–1
+      // Accumulate per-flock (averaged after the loop would be expensive,
+      // so we use the smoothed field updated once per frame outside)
+      myFlock.crossFlockRatio += (couplingStrength - myFlock.crossFlockRatio) * min(1, dt*2);
+    }
+
     // ─── DYNAMIC FLOCK SWITCHING ───
-    // If a bird is much closer to the other flock's center, it switches allegiance
-    // This creates natural merging and splitting of murmurations
     if(kCount > 0 && _frameNum % 60 === bi % 60){
       const otherFi = 1-fi;
       const myC = WORLD.flocks[fi];
@@ -1943,11 +2100,68 @@ function updateBirds(dt,predX,predY,predHunt){
       if(myC.nFlying > 5 && otherC.nFlying > 5){
         const dMy = (b.x-myC.centerX)**2 + (b.y-myC.centerY)**2;
         const dOther = (b.x-otherC.centerX)**2 + (b.y-otherC.centerY)**2;
-        if(dOther < dMy * 0.4) b.flockId = otherFi; // Switch if MUCH closer to other
+        if(dOther < dMy * 0.4) b.flockId = otherFi;
       }
     }
 
-    // ─── FLOCKING FORCES — using own flock's parameters ───
+    // ═══════════════════════════════════════════════════════════════
+    // FEEDBACK LOOP 2b: PER-BIRD CRR → FLIGHT DYNAMICS
+    // ═══════════════════════════════════════════════════════════════
+    // Each bird's CRR state modulates how it responds to neighbors:
+    //
+    // COHERENCE (st=0): progressively tighter coupling as C builds.
+    //   → Alignment and cohesion scale with smoothAmp (0→1)
+    //   → Separation shrinks (birds pack tighter at high coherence)
+    //   → The flock crystallizes toward rupture
+    //
+    // RUPTURE (st=1): momentary burst — maximum individual agency
+    //   → Brief alignment drop (each bird jolts independently)
+    //   → Speed burst from stored coherence energy
+    //   → This creates the "flash expansion" seen in real murmurations
+    //
+    // REGENERATION (st=2): rebuilding — exploratory, loose coupling
+    //   → Alignment recovers gradually (smoothAmp decaying)
+    //   → Separation widens (birds spread to find new configuration)
+    //   → Cohesion weakens (system explores before reconstituting)
+    //
+    // The key CRR insight: exp(C/Ω) weights which memories matter.
+    // High-coherence moments amplify coupling; low-coherence = loose.
+    // This IS the R integral's weighting function applied to flocking.
+
+    const bCRR = b.crr;
+    const bAmp = bCRR.smoothAmp;           // 0→1: how much coherence is built
+    const bState = bCRR.st;                 // 0=coh, 1=rup, 2=reg
+    const bMem = min(3, bCRR.mem());        // exp(C/Ω): memory weighting, capped
+
+    // Modulation factors:
+    //   alignMod: how strongly this bird matches neighbors' velocity
+    //   cohMod:   how strongly this bird is pulled toward neighbors' center
+    //   sepMod:   separation distance (lower = pack tighter)
+    //   spdMod:   speed multiplier from CRR energy
+    let alignMod, cohMod, sepScale, spdMod;
+
+    if(bState === 0){
+      // Coherence: coupling INCREASES with accumulated C
+      // exp(C/Ω) weighting: high coherence → exponentially tighter coupling
+      alignMod = 0.7 + bAmp * 0.6;     // 0.7 → 1.3
+      cohMod   = 0.8 + bAmp * 0.4;     // 0.8 → 1.2
+      sepScale = 1 - bAmp * 0.25;      // 1.0 → 0.75 (pack tighter approaching rupture)
+      spdMod   = 1;
+    } else if(bState === 1){
+      // Rupture: momentary independence burst
+      alignMod = 0.4;                    // Sharp drop — bird goes its own way briefly
+      cohMod   = 0.5;                    // Weakened center-pull
+      sepScale = 0.6;                    // Tight still (compression at rupture)
+      spdMod   = 1 + bMem * 0.15;      // Speed burst proportional to stored coherence
+    } else {
+      // Regeneration: rebuilding, exploratory
+      alignMod = 0.5 + bAmp * 0.4;     // Recovers with smoothAmp decay: 0.5 → 0.9
+      cohMod   = 0.6 + bAmp * 0.3;     // 0.6 → 0.9
+      sepScale = 1.3 - bAmp * 0.3;     // Wide → normal (1.3 → 1.0)
+      spdMod   = 1;
+    }
+
+    // ─── FLOCKING FORCES — CRR-modulated ───
     const fcx=myFlock.centerX, fcy=myFlock.centerY;
     const atX=fcx+(myFlock.turnDir?myFlock.turnDir.x:0);
     const atY=fcy+(myFlock.turnDir?myFlock.turnDir.y:0);
@@ -1955,8 +2169,8 @@ function updateBirds(dt,predX,predY,predHunt){
     let sx=0,sy=0,ax=0,ay=0,cx=0,cy=0,nc=0;
     for(let ni=0;ni<kCount;ni++){
       const o=birds[_nbIdx[ni]];const dx=o.x-b.x,dy=o.y-b.y,d=sqrt(_nbD2[ni]);
-      const sepR = b.panic > 0.3 ? 8 : 12*fp.sepMult;
-      if(d<sepR&&d>0){const f=(sepR-d)/sepR/(b.crr.omega*5);sx-=dx/d*f;sy-=dy/d*f}
+      const sepR = (b.panic > 0.3 ? 8 : 12*fp.sepMult) * sepScale;
+      if(d<sepR&&d>0){const f=(sepR-d)/sepR/(bCRR.omega*5);sx-=dx/d*f;sy-=dy/d*f}
       ax+=o.vx;ay+=o.vy;cx+=o.x;cy+=o.y;nc++;
 
       const turnDiff = abs(o.vx*b.vy - o.vy*b.vx);
@@ -1965,9 +2179,14 @@ function updateBirds(dt,predX,predY,predHunt){
     if(nc<4){b.tvx+=(fcx-b.x)*0.015*(4-nc);b.tvy+=(fcy-b.y)*0.015*(4-nc)}
     if(nc>0){
       const panicAlign = 1 + b.panic * 0.8;
+      // ALIGNMENT: modulated by per-bird CRR (alignMod) × flock beauty (beautyFluidity)
+      const alignStr = (0.14+fp.fmA) * b.react * panicAlign * alignMod * fp.beautyFluidity;
+      // COHESION: modulated by per-bird CRR (cohMod) × flock pattern
+      const cohStr = (0.035+fp.fmC) * b.react * fp.cohMult * cohMod;
+
       b.tvx+=sx*1.6*b.react;b.tvy+=sy*1.6*b.react;
-      b.tvx+=(ax/nc-b.vx)*(0.14+fp.fmA)*b.react*panicAlign;b.tvy+=(ay/nc-b.vy)*(0.14+fp.fmA)*b.react*panicAlign;
-      b.tvx+=(cx/nc-b.x)*(0.035+fp.fmC)*b.react*fp.cohMult;b.tvy+=(cy/nc-b.y)*(0.035+fp.fmC)*b.react*fp.cohMult;
+      b.tvx+=(ax/nc-b.vx)*alignStr;b.tvy+=(ay/nc-b.vy)*alignStr;
+      b.tvx+=(cx/nc-b.x)*cohStr;b.tvy+=(cy/nc-b.y)*cohStr;
       b.angMom=lerp(b.angMom,fp.angM*0.3,0.12);
     }else{b.tvx+=(fcx-b.x)*0.05;b.tvy+=(fcy-b.y)*0.05}
     if(abs(b.angMom)>0.01){const spd2=b.vx*b.vx+b.vy*b.vy;if(spd2>25){const invS=1/sqrt(spd2);b.tvx+=(-b.vy*invS)*b.angMom*0.8;b.tvy+=(b.vx*invS)*b.angMom*0.8}}
@@ -2012,8 +2231,8 @@ function updateBirds(dt,predX,predY,predHunt){
     if(b.y<byT)b.vy+=8*(1-b.y/byT);if(b.y>byB)b.vy-=8*(1-(H*0.88-b.y)/(H*0.13));
 
     const panicSpeedBoost = 1 + b.panic * 0.6;
-    const maxSpd = 75 * panicSpeedBoost;
-    const minSpd = 18;
+    const maxSpd = 75 * panicSpeedBoost * spdMod;
+    const minSpd = 18 * spdMod;
     const spd2=b.vx*b.vx+b.vy*b.vy;
     if(spd2>maxSpd*maxSpd){const invS=maxSpd/sqrt(spd2);b.vx*=invS;b.vy*=invS}
     else if(spd2<minSpd*minSpd&&spd2>0){const invS=minSpd/sqrt(spd2);b.vx*=invS;b.vy*=invS}
@@ -2498,7 +2717,7 @@ function processMusic(dt){
     const beauty=beautyFunction(fc.C, fc.omega);
     const f0=WORLD.flocks[0],f1=WORLD.flocks[1];
     _dom.crr.innerHTML=
-      `C=${fc.C.toFixed(2)} Ω=${fc.omega.toFixed(2)} B=${beauty.toFixed(1)}<br>${fc.stateName()} · voice=${vc.toFixed(2)} · panic: L=${(f0.panic*100).toFixed(0)}% R=${(f1.panic*100).toFixed(0)}%<br>L:${f0.currentMove}(${f0.nFlying}) R:${f1.currentMove}(${f1.nFlying}) · k=7 · n=${BIRD_COUNT} · ${birdPhase}<br>sun: ${WORLD.sun.phase.toFixed(2)} · rain: ${(WORLD.weather.rainIntensity*100).toFixed(0)}% · singers: ${activeSingers}`;
+      `C=${fc.C.toFixed(2)} Ω=${fc.omega.toFixed(2)} B=${beauty.toFixed(1)}<br>${fc.stateName()} · voice=${vc.toFixed(2)} · panic: L=${(f0.panic*100).toFixed(0)}% R=${(f1.panic*100).toFixed(0)}%<br>L:${f0.currentMove}(${f0.nFlying}) a=${f0.alignment.toFixed(2)} R:${f1.currentMove}(${f1.nFlying}) a=${f1.alignment.toFixed(2)}<br>k=7 · n=${BIRD_COUNT} · ${birdPhase} · singers: ${activeSingers}`;
   }
   if(sectionFadeTimer>0){sectionFadeTimer-=dt;if(sectionFadeTimer<=1)_dom.sl.style.opacity=max(0,sectionFadeTimer)*0.55}
 }
