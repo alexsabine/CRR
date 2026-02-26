@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CRR Flame — Song of Fire</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0806;font-family:'JetBrains Mono',monospace;color:#b8a080;
+  min-height:100vh;min-height:100dvh;overflow-x:hidden}
+
+/* ── Desktop: side-by-side, vertically centered ── */
+#wrap{display:flex;gap:0;align-items:flex-end;height:560px;
+  margin:0 auto;width:max-content;position:relative;top:50vh;transform:translateY(-50%)}
+canvas#f{width:160px;height:400px;touch-action:none;display:block}
+#panel{width:260px;height:560px;display:flex;flex-direction:column;
+  padding:10px 14px;border-left:1px solid #1a1510;background:#0d0b08;
+  gap:5px;overflow-y:auto;overflow-x:hidden}
+
+/* ── Mobile: stacked, scrollable ── */
+@media(max-width:480px){
+  body{overflow-y:auto}
+  #wrap{flex-direction:column;align-items:center;height:auto;
+    width:100%;top:0;transform:none;padding:12px 0 24px}
+  canvas#f{width:140px;height:350px}
+  #panel{width:100%;max-width:340px;height:auto;border-left:none;
+    border-top:1px solid #1a1510;padding:12px 16px 20px;gap:6px}
+  canvas.chart{height:auto}
+  .abtn{padding:10px 0;font-size:9px}
+  input[type=range]{height:6px;margin:8px 0 4px}
+  input[type=range]::-webkit-slider-thumb{width:20px;height:20px}
+}
+
+/* ── Tablet / narrow desktop ── */
+@media(min-width:481px) and (max-width:768px){
+  #wrap{height:auto;top:0;transform:none;padding:20px 0}
+  canvas#f{width:150px;height:380px}
+  #panel{height:auto;max-height:90vh;overflow-y:auto}
+}
+
+.sec{border-bottom:1px solid #1a1510;padding-bottom:5px}
+.sec:last-child{border:none}
+.lbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#5a4a38;margin-bottom:2px}
+.val{font-size:13px;font-weight:500;color:#d4a55a;line-height:1.3}
+.row{display:flex;justify-content:space-between;align-items:baseline}
+.eq{font-size:10px;color:#3a3028;font-style:italic;margin-top:2px}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:#1a1510;
+  border-radius:2px;outline:none;margin:5px 0 2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;
+  border-radius:50%;background:#d4a55a;cursor:pointer;border:2px solid #0d0b08}
+canvas.chart{width:100%;border:1px solid #1a1510;border-radius:3px;display:block;background:#080604}
+.meter{height:4px;background:#1a1510;border-radius:2px;overflow:hidden;margin-top:3px}
+.meter-fill{height:100%;border-radius:2px;transition:width .1s}
+.warn{color:#e85030}
+.tag{display:inline-block;font-size:8px;padding:1px 5px;border-radius:2px;background:#1a1510;color:#5a4a38;margin-left:6px;vertical-align:middle}
+.legend{display:flex;gap:10px;margin-top:3px}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:7px;color:#3a3028}
+.legend-swatch{width:12px;height:2px;border-radius:1px}
+.btn-row{display:flex;gap:6px}
+.abtn{flex:1;background:none;border:1px solid #2a2018;border-radius:3px;color:#5a4a38;
+  font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.08em;padding:6px 0;cursor:pointer;
+  transition:all .25s;text-transform:uppercase;text-align:center}
+.abtn:hover{border-color:#d4a55a;color:#d4a55a}
+.abtn.on{border-color:#d4a55a;color:#d4a55a;background:rgba(212,165,90,.06)}
+.abtn .ico{display:inline-block;margin-right:3px;font-size:10px;vertical-align:-1px}
+#freqDisplay{font-size:8px;color:#3a3028;margin-top:3px;text-align:center;line-height:1.4}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="f" width="160" height="400"></canvas>
+<div id="panel">
+
+  <div class="sec">
+    <div class="btn-row">
+      <button class="abtn" id="btnHarm"><span class="ico">◯</span>Harmonic</button>
+      <button class="abtn" id="btnReal"><span class="ico">◯</span>Hyper-Real</button>
+    </div>
+    <div id="freqDisplay">B(r) spectral envelope · Kolmogorov roar + CRR crackle</div>
+  </div>
+
+  <div class="sec">
+    <div class="lbl">Ω — System Variance</div>
+    <div class="row"><span class="val" id="omVal">0.800</span><span class="tag" id="omTag">chaotic</span></div>
+    <input type="range" id="omSlider" min="0.04" max="0.8" step="0.001" value="0.8">
+    <div class="eq">rigid ← Ω → flexible</div>
+  </div>
+
+  <div class="sec">
+    <div class="lbl">Coherence Rate — dC/dt</div>
+    <div class="row"><span class="val" id="rateVal">0.20</span><span class="tag">× 2π</span></div>
+    <input type="range" id="rateSlider" min="0.2" max="2.5" step="0.01" value="0.2">
+    <div class="eq">slow ← dC/dt → fast</div>
+  </div>
+
+  <div class="sec">
+    <div class="lbl">Phase Portrait — C·Ω vs Intensity</div>
+    <canvas id="phase" class="chart" width="232" height="120"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#3a2a18"></div>theory</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#d4a55a"></div>measured</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#5a2a18;border:none;width:8px;height:8px;border-left:1px dashed #5a2a18"></div>δ rupture</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="lbl">C·Ω at Tip — Timeline</div>
+    <canvas id="chart" class="chart" width="232" height="34"></canvas>
+    <div class="row" style="margin-top:2px">
+      <span class="val" id="coVal" style="font-size:11px">0.000</span>
+      <span class="val" id="coState" style="font-size:9px;color:#5a4a38">accumulating</span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="lbl">Beauty B(C/Ω)</div>
+    <div class="row">
+      <span class="val" id="beautyVal">0.000</span>
+      <span class="val" style="font-size:9px;color:#3a3028">peak at π−1 ≈ 2.14</span>
+    </div>
+    <div class="meter"><div class="meter-fill" id="beautyBar" style="width:0%;background:#d4a55a"></div></div>
+  </div>
+
+  <div class="sec">
+    <div class="lbl">Diagnostics</div>
+    <div class="row"><span style="font-size:9px;color:#5a4a38">CV predicted</span><span class="val" id="cvVal" style="font-size:11px">0.159</span></div>
+    <div class="row" style="margin-top:2px"><span style="font-size:9px;color:#5a4a38">C at rupture</span><span class="val" id="cRupt" style="font-size:11px">π</span></div>
+    <div class="row" style="margin-top:2px"><span style="font-size:9px;color:#5a4a38">Symmetry</span><span class="val" id="symVal" style="font-size:11px">Z₂</span></div>
+  </div>
+
+</div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+//
+//  CRR FLAME — SONG OF FIRE
+//  Alexander Sabine · temporalgrammar.ai
+//
+//  COHERENCE-RUPTURE-REGENERATION: Three equations.
+//
+//    C(x,t) = ∫ L(x,τ) dτ              coherence accumulates
+//    δ(now)                              rupture is instantaneous
+//    R = ∫ φ·exp(C/Ω)·Θ dτ              regeneration from weighted memory
+//
+//  Universal condition: C·Ω = 1 at rupture.
+//  Beauty function:     B(r) = exp(r)·(1 − r/π), peak at r = π−1 ≈ 2.14
+//  Key parameter:       Ω = system variance (boundary permeability)
+//    Z₂ bistable:  Ω = 1/π   → C = π at rupture  → CV = 1/(2π) ≈ 0.159
+//    SO(2) rotational: Ω = 1/2π → C = 2π at rupture → CV = 1/(4π) ≈ 0.080
+//
+//  HOW CRR GENERATES THE FLAME
+//
+//  Every parameter — visual, acoustic, temporal — is computed from
+//  the CRR equations. Two modes of evaluation are used:
+//
+//  ANALYTIC (closed-form): The CRR equations admit stationary-state
+//  solutions when the coherence integral is mapped to a spatial
+//  coordinate (height y ↦ C). The flame field is then a single
+//  evaluation of these solutions per pixel per frame:
+//
+//    w(y)    = 0.35·(1 − C·Ω)^(1/φ)     width from rupture proximity
+//    I(x,y)  = B(r)·exp(−r²/2Ω)          beauty envelope × regeneration kernel
+//    T(x,t)  = Σ Ω^g · sin(…)            turbulence: nested CRR, amplitude ∝ Ω^g
+//    f₀      = 2π·Ω·rate·2⁶              natural flicker scaled to audible range
+//    aₙ      = B(n·rP/N)·profile[n]/√n   B(r) as spectral envelope
+//    E(k)    ∝ k^(−5/3)                   Kolmogorov cascade (scale-invariant CRR)
+//
+//  NUMERIC (time-integrated): The crackle agents integrate the CRR
+//  ODE dC/dt = L(t) forward in real time, rupturing stochastically
+//  at C·Ω = 1 ± CV with CV ≈ Ω/2 (the Z₂ prediction). These are
+//  genuine C → δ(now) → R cycles running at audio rate.
+//
+//  Both modes are CRR. The distinction is analytic vs numerical
+//  evaluation of the same three equations.
+//
+//  Two audio modes:
+//    HARMONIC:   B(r) spectral envelope, φ sub-harmonics, Ω-chorus, CRR reverb
+//    HYPER-REAL: Kolmogorov roar, CRR crackle agents, thermal hiss, rumble
+//
+// ═══════════════════════════════════════════════════════════════════════
+
+const π = Math.PI, φ = (1+Math.sqrt(5))/2, invφ = 1/φ;
+
+// CRR constants — all derived, none arbitrary
+const Bn  = Math.exp(π-1)/π,  // B(r) normalisation so peak = 1
+      rP  = π-1,               // beauty peak location (≈ 2.14)
+      Δθ  = π/3;               // turbulence rotation = 60° (hexagonal symmetry)
+
+// Canvas
+const cv  = document.getElementById('f'), ctx = cv.getContext('2d'),
+      W   = 160, H = 400, img = ctx.createImageData(W,H);
+
+// Mutable CRR parameters
+let Ω = 0.8, rate = 0.2;
+
+// B(r) — the single generating function for visual AND acoustic domains
+function B(r) { return r < 0 ? 0 : Math.min(1, Math.exp(r) * Math.max(0, 1 - r/π) / Bn) }
+
+// Safe audio helpers (prevent NaN reaching Web Audio)
+function sF(v) { return Math.max(20, Math.min(18000, isFinite(v) ? v : 440)) }
+function sG(v) { return isFinite(v) ? Math.max(0, Math.min(1, v)) : 0 }
+function sE(v) { return Math.max(.0001, isFinite(v) ? v : .0001) }
+
+
+// ─── DOM ────────────────────────────────────────────────────────────
+
+const $ = id => document.getElementById(id);
+const omSlider=$('omSlider'), rateSlider=$('rateSlider');
+const omVal=$('omVal'), omTag=$('omTag'), rateValEl=$('rateVal');
+const coVal=$('coVal'), coState=$('coState');
+const beautyValEl=$('beautyVal'), beautyBar=$('beautyBar');
+const cvVal=$('cvVal'), cRuptEl=$('cRupt'), symVal=$('symVal');
+const freqDisplay=$('freqDisplay');
+const btnHarm=$('btnHarm'), btnReal=$('btnReal');
+
+omSlider.addEventListener('input', e => { Ω = +e.target.value });
+rateSlider.addEventListener('input', e => { rate = +e.target.value });
+
+
+// ─── STRIP CHART ────────────────────────────────────────────────────
+
+const sch = $('chart'), scx = sch.getContext('2d'),
+      SW = 232, SH = 34, hist = new Float32Array(SW);
+let hPtr = 0;
+
+function drawChart() {
+  scx.fillStyle = '#080604'; scx.fillRect(0, 0, SW, SH);
+  const thY = SH * (1 - 1/1.5); // C·Ω = 1 threshold line
+  scx.strokeStyle = '#2a1a10'; scx.lineWidth = 1;
+  scx.setLineDash([3,3]); scx.beginPath(); scx.moveTo(0, thY); scx.lineTo(SW, thY); scx.stroke();
+  scx.setLineDash([]);
+  scx.beginPath();
+  for (let i = 0; i < SW; i++) {
+    const y = SH * (1 - hist[(hPtr+i) % SW] / 1.5);
+    i === 0 ? scx.moveTo(i, y) : scx.lineTo(i, y);
+  }
+  scx.strokeStyle = '#d4a55a'; scx.lineWidth = 1.2; scx.stroke();
+  scx.fillStyle = '#3a3028'; scx.font = '7px JetBrains Mono'; scx.fillText('1.0', 2, thY-2);
+}
+
+
+// ─── PHASE PORTRAIT ─────────────────────────────────────────────────
+
+const phCv = $('phase'), phCx = phCv.getContext('2d'),
+      PW = 232, PH = 120,
+      PM = {l:24, r:6, t:8, b:16},
+      PA = {w: PW-30, h: PH-24};
+const profile = new Float32Array(H); // centerline intensity — sampled from rendered pixels
+
+function sampleCenterline(d) {
+  const cx = W >> 1;
+  for (let py = 0; py < H; py++) {
+    let sum = 0;
+    for (let dx = -2; dx <= 2; dx++) {
+      const px = Math.max(0, Math.min(W-1, cx+dx)), idx = (py*W+px)*4;
+      sum += (d[idx]*.35 + d[idx+1]*.50 + d[idx+2]*.15) / 255;
+    }
+    profile[py] = sum / 5;
+  }
+}
+
+function drawPhasePortrait() {
+  phCx.fillStyle = '#080604'; phCx.fillRect(0, 0, PW, PH);
+  const CMax = 2*π*rate, CMaxΩ = CMax*Ω, xMax = Math.max(1.4, CMaxΩ*1.08);
+  const toX = cΩ => PM.l + (cΩ/xMax) * PA.w;
+  const toY = I  => PM.t + (1 - Math.min(1, I)) * PA.h;
+
+  // Grid
+  phCx.strokeStyle = '#131110'; phCx.lineWidth = 0.5;
+  for (let v = 0.5; v < xMax; v += 0.5) { phCx.beginPath(); phCx.moveTo(toX(v), PM.t); phCx.lineTo(toX(v), PM.t+PA.h); phCx.stroke() }
+  for (let v = 0.25; v < 1; v += 0.25) { phCx.beginPath(); phCx.moveTo(PM.l, toY(v)); phCx.lineTo(PM.l+PA.w, toY(v)); phCx.stroke() }
+
+  // δ rupture boundary at C·Ω = 1
+  if (1 <= xMax) {
+    const rx = toX(1);
+    phCx.strokeStyle = '#5a2a18'; phCx.lineWidth = 1; phCx.setLineDash([4,3]);
+    phCx.beginPath(); phCx.moveTo(rx, PM.t); phCx.lineTo(rx, PM.t+PA.h); phCx.stroke();
+    phCx.setLineDash([]);
+    phCx.fillStyle = '#5a2a18'; phCx.font = '8px JetBrains Mono';
+    phCx.textAlign = 'center'; phCx.fillText('C·Ω=1', rx, PM.t+PA.h+12); phCx.textAlign = 'left';
+  }
+
+  // Theory curve — B(r) evaluated along centerline, no turbulence
+  phCx.beginPath(); let first = true;
+  for (let ny = 0.005; ny < 1; ny += 0.005) {
+    const cΩ = ny * CMaxΩ; if (cΩ > xMax) break;
+    const vB = B(rP * (.25 + .75*Math.pow(Math.sin(ny*π*.78), 1.3)));
+    const I = vB * Math.max(0, 1 - Math.pow(ny*rate, 4)*1.3);
+    first ? (phCx.moveTo(toX(cΩ), toY(I)), first = false) : phCx.lineTo(toX(cΩ), toY(I));
+  }
+  phCx.strokeStyle = '#3a2a18'; phCx.lineWidth = 2; phCx.stroke();
+
+  // Measured curve — actual rendered pixels
+  phCx.beginPath(); first = true;
+  for (let py = H-1; py >= 0; py -= 2) {
+    const cΩ = (1 - py/H) * CMaxΩ; if (cΩ > xMax) break;
+    first ? (phCx.moveTo(toX(cΩ), toY(profile[py])), first = false) : phCx.lineTo(toX(cΩ), toY(profile[py]));
+  }
+  phCx.strokeStyle = '#d4a55a'; phCx.lineWidth = 1.3; phCx.stroke();
+
+  // Measurement dot at 75% height
+  const mCΩ = 0.75 * CMaxΩ, mI = profile[Math.round(H*0.25)] || 0;
+  if (mCΩ <= xMax) {
+    const dx = toX(mCΩ), dy = toY(mI);
+    phCx.beginPath(); phCx.arc(dx, dy, 6, 0, 2*π); phCx.fillStyle = 'rgba(212,165,90,0.15)'; phCx.fill();
+    phCx.beginPath(); phCx.arc(dx, dy, 2.5, 0, 2*π); phCx.fillStyle = '#f0d080'; phCx.fill();
+    phCx.strokeStyle = 'rgba(212,165,90,0.2)'; phCx.lineWidth = 0.5;
+    phCx.beginPath(); phCx.moveTo(dx, PM.t); phCx.lineTo(dx, PM.t+PA.h); phCx.stroke();
+    phCx.beginPath(); phCx.moveTo(PM.l, dy); phCx.lineTo(PM.l+PA.w, dy); phCx.stroke();
+  }
+
+  // Axis labels
+  phCx.fillStyle = '#3a3028'; phCx.font = '8px JetBrains Mono';
+  phCx.textAlign = 'right'; phCx.fillText('C·Ω →', PM.l+PA.w, PM.t+PA.h+12); phCx.textAlign = 'left';
+  phCx.save(); phCx.translate(7, PM.t+PA.h/2); phCx.rotate(-π/2);
+  phCx.textAlign = 'center'; phCx.fillText('I(x)', 0, 0); phCx.restore();
+  phCx.fillStyle = '#2a2018'; phCx.font = '7px JetBrains Mono'; phCx.textAlign = 'center';
+  phCx.fillText('0', toX(0), PM.t+PA.h+12);
+  for (let v = 0.5; v < xMax; v += 0.5) { if (Math.abs(v-1) < 0.01) continue; phCx.fillText(v.toFixed(1), toX(v), PM.t+PA.h+12) }
+  phCx.textAlign = 'right'; phCx.fillText('1', PM.l-3, toY(1)+3); phCx.fillText('0', PM.l-3, toY(0)+3); phCx.textAlign = 'left';
+}
+
+
+// ─── DISTURBANCE GRID (mouse interaction) ───────────────────────────
+
+const GW = 20, GH = 50, grid = new Float32Array(GW*GH*2);
+let mx = .5, my = .5, pvx = 0, pvy = 0, mIn = false;
+cv.addEventListener('pointerenter', () => mIn = true);
+cv.addEventListener('pointerleave', () => { mIn = false; pvx = pvy = 0 });
+cv.addEventListener('pointermove', e => {
+  const r = cv.getBoundingClientRect();
+  const nx = (e.clientX-r.left)/r.width, ny = (e.clientY-r.top)/r.height;
+  pvx = nx - mx; pvy = ny - my; mx = nx; my = ny; mIn = true;
+});
+
+// Turbulence: fractal noise where amplitude decays as Ω^g
+// CRR derivation: each octave g is a nested CRR scale; amplitude ∝ Ω^g
+// because higher scales have proportionally smaller variance contribution.
+function turb(px, py, tt) {
+  let v = 0, a = 1, f = 1;
+  for (let g = 0; g < 5; g++) {
+    const s = f*px + tt*(g&1 ? Ω : Ω/2)*2*π*π;
+    const q = f*py + tt*(g&1 ? Ω/2 : Ω)*π*π;
+    const cs = Math.cos(Δθ*g), sn = Math.sin(Δθ*g);
+    const u = s*cs - q*sn, w = s*sn + q*cs;
+    v += a * (Math.sin(u + Math.sin(w*φ)) * Math.cos(w*invφ + Math.sin(u*invφ)));
+    a *= Ω; f *= φ; // ← CRR: amplitude decays as Ω, frequency grows as φ
+  }
+  return v;
+}
+
+function updateGrid() {
+  let i, j;
+  // Upward advection + diffusion
+  for (let y = 0; y < GH-1; y++) for (let x = 0; x < GW; x++) {
+    i = (y*GW+x)*2; j = ((y+1)*GW+x)*2;
+    grid[i] = grid[j]*.82 + grid[i]*.11; grid[i+1] = grid[j+1]*.82 + grid[i+1]*.11;
+  }
+  for (let x = 0; x < GW; x++) { i = ((GH-1)*GW+x)*2; grid[i] *= .65; grid[i+1] *= .65 }
+  // Lateral diffusion
+  for (let y = 0; y < GH; y++) for (let x = 1; x < GW-1; x++) {
+    i = (y*GW+x)*2;
+    grid[i] = grid[i]*.82 + (grid[i-2]+grid[i+2])*.09;
+    grid[i+1] = grid[i+1]*.82 + (grid[i-2+1]+grid[i+2+1])*.09;
+  }
+  if (!mIn) return;
+  // Mouse disturbance
+  const gfx = mx*(GW-1), gfy = my*(GH-1), R2 = 6.25;
+  for (let dy = -6; dy <= 6; dy++) {
+    const gy = Math.round(gfy+dy); if (gy < 0 || gy >= GH) continue;
+    for (let dx = -6; dx <= 6; dx++) {
+      const gx = Math.round(gfx+dx); if (gx < 0 || gx >= GW) continue;
+      const d2 = dx*dx + dy*dy; if (d2 > R2*6) continue;
+      const p = Math.exp(-d2/(2*R2)), dist = Math.sqrt(d2) + .01;
+      i = (gy*GW+gx)*2;
+      grid[i] += dx/dist*p*.45 + pvx*(GW-1)*p*.4;
+      grid[i+1] = Math.min(1, grid[i+1] + p*.75);
+    }
+  }
+}
+
+function samp(sx, sy) {
+  const gx = sx*(GW-1), gy = sy*(GH-1);
+  const x0 = Math.max(0, Math.min(GW-2, gx|0)), y0 = Math.max(0, Math.min(GH-2, gy|0));
+  const fx = gx-x0, fy = gy-y0;
+  const a = (y0*GW+x0)*2, b = a+2, c = a+GW*2, e = c+2;
+  const w0 = (1-fx)*(1-fy), w1 = fx*(1-fy), w2 = (1-fx)*fy, w3 = fx*fy;
+  return [grid[a]*w0 + grid[b]*w1 + grid[c]*w2 + grid[e]*w3,
+          grid[a+1]*w0 + grid[b+1]*w1 + grid[c+1]*w2 + grid[e+1]*w3];
+}
+
+
+// ─── AUDIO: SHARED INFRASTRUCTURE ───────────────────────────────────
+
+let ac = null, noiseBuf = null, audioMode = null;
+let masterGain = null, compressor = null, limiter = null;
+let reverbConv = null, reverbGain = null, waveshaper = null;
+let smoothB = 0;
+
+function mkNoise(ctx, dur) {
+  const len = ctx.sampleRate * dur, buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = Math.random()*2-1 }
+  return buf;
+}
+
+// CRR reverb: impulse response = regeneration kernel exp(−τ·2π√(π·2π))
+function mkReverb(ctx) {
+  const dur = 3, sr = ctx.sampleRate, len = sr*dur|0, buf = ctx.createBuffer(2, len, sr);
+  const decay = 2*π*Math.sqrt(π*2*π); // ← from CRR regeneration decay rate
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      const τ = i/sr;
+      const early = τ < 0.12 ? Math.sin(τ*2*π*180/(ch+1)) * Math.exp(-τ*35) * 0.3 : 0;
+      d[i] = ((Math.random()*2-1)*0.65 + early) * Math.exp(-τ*decay);
+    }
+  }
+  const conv = ctx.createConvolver(); conv.buffer = buf; return conv;
+}
+
+// Waveshaper: tanh(1.5x) — gentle saturation (blackbody analogue)
+function mkShaper(ctx) {
+  const ws = ctx.createWaveShaper(), n = 256, c = new Float32Array(n);
+  for (let i = 0; i < n; i++) c[i] = Math.tanh(((i/(n-1))*2-1) * 1.5);
+  ws.curve = c; ws.oversample = '2x'; return ws;
+}
+
+// Signal chain: sources → waveshaper → master → compressor → limiter → out
+//                                       ↘ reverb → reverbGain → limiter
+function initAudio() {
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  noiseBuf = mkNoise(ac, 2);
+  limiter = ac.createDynamicsCompressor();
+  limiter.threshold.value = -1; limiter.ratio.value = 20; limiter.knee.value = 0;
+  limiter.attack.value = 0.001; limiter.release.value = 0.05; limiter.connect(ac.destination);
+  compressor = ac.createDynamicsCompressor();
+  compressor.threshold.value = -20; compressor.ratio.value = 5; compressor.knee.value = 10;
+  compressor.attack.value = 0.005; compressor.release.value = 0.15; compressor.connect(limiter);
+  reverbConv = mkReverb(ac); reverbGain = ac.createGain(); reverbGain.gain.value = 0;
+  reverbConv.connect(reverbGain); reverbGain.connect(limiter);
+  masterGain = ac.createGain(); masterGain.gain.value = 0;
+  masterGain.connect(compressor); masterGain.connect(reverbConv);
+  waveshaper = mkShaper(ac); waveshaper.connect(masterGain);
+}
+
+function shutdownAudio() {
+  if (!ac) return;
+  masterGain.gain.setTargetAtTime(0, ac.currentTime, 0.08);
+  setTimeout(() => { teardownHarm(); teardownReal(); ac.close(); ac = null; audioMode = null;
+    btnHarm.classList.remove('on'); btnReal.classList.remove('on');
+    btnHarm.innerHTML = '<span class="ico">◯</span>Harmonic';
+    btnReal.innerHTML = '<span class="ico">◯</span>Hyper-Real';
+  }, 300);
+}
+
+
+// ─── AUDIO MODE A: HARMONIC ─────────────────────────────────────────
+// f₀ = 2πΩr·64: flicker freq ×2⁶. Z₂→128Hz (C3), SO(2)→64Hz (C2).
+// 8 harmonics: amplitude = B(n·rP/N) × profile[n] / √n
+// Ω-chorus: detuned pairs at ±Ω·50 cents (variance IS stereo width)
+// 3 φ sub-harmonics: f₀/φ, f₀/φ², f₀/φ³ (irrational warmth)
+// Breath: bandpass noise at f₀·φ (air feeding combustion)
+// Volume ∝ Beauty B(C/Ω) — loudest approaching rupture
+
+const NH = 8, NS = 3;
+let hOsc = [], sOsc = [], hBreath = null;
+
+function setupHarm() {
+  hOsc = [];
+  for (let n = 1; n <= NH; n++) {
+    const gL = ac.createGain(), gR = ac.createGain();
+    const oL = ac.createOscillator(), oR = ac.createOscillator();
+    oL.type = oR.type = 'sine'; oL.frequency.value = oR.frequency.value = n*128;
+    oL.detune.value = -Ω*50; oR.detune.value = Ω*50;
+    gL.gain.value = gR.gain.value = 0;
+    oL.connect(gL); oR.connect(gR); gL.connect(waveshaper); gR.connect(waveshaper);
+    oL.start(); oR.start();
+    hOsc.push({oL, oR, gL, gR, n});
+  }
+  sOsc = [];
+  const φR = [φ, φ*φ, φ*φ*φ];
+  for (let i = 0; i < NS; i++) {
+    const gL = ac.createGain(), gR = ac.createGain();
+    const oL = ac.createOscillator(), oR = ac.createOscillator();
+    oL.type = oR.type = 'sine'; oL.frequency.value = oR.frequency.value = 128/φR[i];
+    oL.detune.value = -Ω*30; oR.detune.value = Ω*30;
+    gL.gain.value = gR.gain.value = 0;
+    oL.connect(gL); oR.connect(gR); gL.connect(waveshaper); gR.connect(waveshaper);
+    oL.start(); oR.start();
+    sOsc.push({oL, oR, gL, gR, ratio: φR[i]});
+  }
+  const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+  const flt = ac.createBiquadFilter(); flt.type = 'bandpass'; flt.frequency.value = 200; flt.Q.value = 1;
+  const gn = ac.createGain(); gn.gain.value = 0;
+  src.connect(flt); flt.connect(gn); gn.connect(waveshaper); src.start();
+  hBreath = {src, flt, gn};
+}
+
+function teardownHarm() {
+  hOsc.forEach(h => { try { h.oL.stop(); h.oR.stop() } catch(e) {} }); hOsc = [];
+  sOsc.forEach(s => { try { s.oL.stop(); s.oR.stop() } catch(e) {} }); sOsc = [];
+  if (hBreath) { try { hBreath.src.stop() } catch(e) {} hBreath = null }
+}
+
+function updateHarm() {
+  if (!ac || audioMode !== 'harmonic') return;
+  const now = ac.currentTime, sm = 0.06;
+  const f0 = 2*π*Ω*rate*64, cc = Ω*50;
+
+  for (let i = 0; i < NH; i++) {
+    const h = hOsc[i], n = h.n;
+    const ny = n/(NH+1), py = Math.round(H*(1-ny));
+    const measured = py >= 0 && py < H ? profile[py] : 0;
+    const bEnv = B(n * rP / (NH+1));          // ← B(r) as spectral envelope
+    const amp = (bEnv*0.4 + measured*0.6) * (1/Math.sqrt(n)) * 0.08;
+    const turbFM = turb(0, ny*3, t) * Ω * 4;  // ← turbulence as FM
+    const freq = sF(n * f0 + turbFM);
+    h.oL.frequency.setTargetAtTime(freq, now, sm); h.oR.frequency.setTargetAtTime(freq, now, sm);
+    h.oL.detune.setTargetAtTime(-cc, now, 0.15); h.oR.detune.setTargetAtTime(cc, now, 0.15);
+    const g = sG(Math.min(0.1, amp));
+    h.gL.gain.setTargetAtTime(g, now, sm); h.gR.gain.setTargetAtTime(g, now, sm);
+  }
+
+  const baseI = profile[Math.round(H*0.88)] || 0;
+  for (let i = 0; i < NS; i++) {
+    const s = sOsc[i], freq = sF(f0 / s.ratio);
+    const amp = sG(B((i+1)*0.5) * baseI * 0.04 / (i+1));
+    s.oL.frequency.setTargetAtTime(freq, now, 0.12); s.oR.frequency.setTargetAtTime(freq, now, 0.12);
+    s.oL.detune.setTargetAtTime(-cc*0.6, now, 0.15); s.oR.detune.setTargetAtTime(cc*0.6, now, 0.15);
+    s.gL.gain.setTargetAtTime(amp, now, 0.12); s.gR.gain.setTargetAtTime(amp, now, 0.12);
+  }
+
+  hBreath.flt.frequency.setTargetAtTime(sF(f0*φ + 40), now, 0.15);
+  hBreath.flt.Q.setTargetAtTime(Math.max(0.3, π/(Ω*2*π + 0.01)), now, 0.15);
+  hBreath.gn.gain.setTargetAtTime(sG(baseI * 0.012), now, sm);
+
+  reverbGain.gain.setTargetAtTime(sG(Math.min(0.5, Ω*0.8)), now, 0.2); // wet ∝ Ω (more variance = more spatial memory)
+  smoothB += (currentBeauty - smoothB) * 0.06;
+  masterGain.gain.setTargetAtTime(sG(Math.min(0.55, smoothB*0.5)), now, 0.12);
+}
+
+
+// ─── AUDIO MODE B: HYPER-REAL ───────────────────────────────────────
+// Kolmogorov roar: 6 octave-spaced bands, gain ∝ f^(−5/6) — analytic CRR (cascade)
+// CRR crackle: 8 agents with diverse Ω — numeric CRR (dC/dt integrated in real time)
+// Thermal hiss: narrow bandpass (laminar = coherent = narrow spectrum)
+// Convection rumble: ~30Hz, modulated by slow turbulence (plume sway)
+// Gust: broadband noise ∝ mouse velocity
+// Volume ∝ mean intensity (bigger flame = louder)
+
+const KOLMO = [40, 80, 160, 320, 640, 1280]; // octave-spaced Kolmogorov bands
+const N_CR = 8;
+
+// CRR crackle agent — numeric mode: integrates dC/dt = L(t), ruptures at C·Ω = 1
+class Crackle {
+  constructor(omF) {
+    this.omF = omF;                           // Ω scale factor (pocket size diversity)
+    this.Ω = omF / π;                         // effective Ω
+    this.C = Math.random() * 0.8 / this.Ω;   // stochastic phase offset
+  }
+  step(L, dt) {
+    this.Ω = Ω * π * this.omF / π;           // track global Ω
+    const thresh = 1 / this.Ω;                // C·Ω = 1 → C = 1/Ω
+    this.C += L * dt;
+    const cv = this.Ω / 2;                    // CV = Ω/2 (Z₂ prediction)
+    if (this.C >= thresh + (Math.random()-0.5) * 2 * cv * thresh) {
+      this.C = 0; return true;                // δ(now) — rupture
+    }
+    return false;
+  }
+}
+
+let kolmoS = [], kolmoF = [], kolmoG = [];
+let crAgents = [];
+let hissN = null, rumbleN = null, gustN = null;
+
+function setupReal() {
+  // Kolmogorov bands — E(k) ∝ k^(−5/3) → amplitude ∝ f^(−5/6)
+  kolmoS = []; kolmoF = []; kolmoG = [];
+  for (let i = 0; i < KOLMO.length; i++) {
+    const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = KOLMO[i]; bp.Q.value = 0.7 + i*0.15;
+    const g = ac.createGain(); g.gain.value = 0;
+    src.connect(bp); bp.connect(g); g.connect(waveshaper); src.start();
+    kolmoS.push(src); kolmoF.push(bp); kolmoG.push(g);
+  }
+
+  // Crackle agents — diverse Ω (pocket sizes)
+  const omFactors = [0.5, 0.65, 0.8, 1.0, 1.0, 1.2, 1.4, 1.8];
+  crAgents = omFactors.map(f => new Crackle(f));
+
+  // Helper: noise → filter → gain → waveshaper
+  function nfg(type, freq, Q) {
+    const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    const flt = ac.createBiquadFilter(); flt.type = type; flt.frequency.value = freq; flt.Q.value = Q;
+    const gn = ac.createGain(); gn.gain.value = 0;
+    src.connect(flt); flt.connect(gn); gn.connect(waveshaper); src.start();
+    return {src, flt, gn};
+  }
+  hissN   = nfg('bandpass', 2500, 3);    // thermal hiss (laminar, narrow)
+  rumbleN = nfg('lowpass', 60, 0.8);     // convection rumble (~30Hz)
+  gustN   = nfg('highpass', 800, 0.5);   // mouse gust
+}
+
+function teardownReal() {
+  kolmoS.forEach(s => { try { s.stop() } catch(e) {} }); kolmoS = []; kolmoF = []; kolmoG = [];
+  [hissN, rumbleN, gustN].forEach(n => { if (n) try { n.src.stop() } catch(e) {} });
+  hissN = rumbleN = gustN = null; crAgents = [];
+}
+
+function firePop(agent) {
+  if (!ac) return;
+  const now = ac.currentTime, aΩ = agent.Ω;
+  const src = ac.createBufferSource(); src.buffer = noiseBuf;
+  const f = ac.createBiquadFilter(); f.type = 'bandpass';
+  f.frequency.value = sF(800 + 3000/(aΩ*π + 0.1)); // small Ω → bright, large → thuddy
+  f.Q.value = 1 + 2*aΩ*π;
+  const g = ac.createGain();
+  const dur = Math.max(0.003, aΩ * 0.015);           // 3–25ms (Ω-scaled)
+  g.gain.setValueAtTime(sG(0.15 + Math.random()*0.15), now);
+  g.gain.exponentialRampToValueAtTime(sE(0.0005), now + dur + 0.002);
+  src.connect(f); f.connect(g); g.connect(waveshaper);
+  src.start(now); src.stop(now + dur + 0.02);
+}
+
+function updateReal() {
+  if (!ac || audioMode !== 'real') return;
+  const now = ac.currentTime, sm = 0.08;
+
+  let meanI = 0; for (let py = 0; py < H; py += 4) meanI += profile[py]; meanI /= (H/4);
+
+  // Kolmogorov bands — modulated by flame intensity at corresponding height
+  for (let i = 0; i < KOLMO.length; i++) {
+    const fk = KOLMO[i];
+    const kolmoAmp = Math.pow(fk/40, -5/6);                  // ← k^(−5/3) → amplitude^(−5/6)
+    const ny = (i+1) / (KOLMO.length+2);
+    const py = Math.round(H*(1-ny));
+    const flameI = py >= 0 && py < H ? profile[py] : 0;
+    const turbAM = 1 + turb(0, ny*2, t) * 0.3 * Ω * π;      // visual turbulence → acoustic AM
+    kolmoG[i].gain.setTargetAtTime(sG(kolmoAmp * flameI * turbAM * rate * 0.08), now, sm);
+    kolmoF[i].frequency.setTargetAtTime(sF(fk * (0.8 + 0.4*Ω*π)), now, 0.2);
+  }
+
+  // Step crackle agents — genuine CRR cycles
+  for (const a of crAgents) {
+    if (a.step(rate * 1.5 * (0.7 + Math.random()*0.6) * meanI, 0.033)) firePop(a);
+  }
+
+  // Thermal, rumble, gust
+  const baseI = profile[Math.round(H*0.88)] || 0;
+  hissN.flt.frequency.setTargetAtTime(sF(1500 + 1500*rate), now, 0.2);
+  hissN.gn.gain.setTargetAtTime(sG(baseI * rate * 0.02), now, sm);
+  rumbleN.flt.frequency.setTargetAtTime(sF(25 + 35*rate), now, 0.2);
+  rumbleN.gn.gain.setTargetAtTime(sG(meanI * rate * (1 + turb(0, 0.1, t*0.3)*0.5) * 0.06), now, sm);
+  const vel = Math.sqrt(pvx*pvx + pvy*pvy);
+  gustN.gn.gain.setTargetAtTime(sG(mIn ? vel*3 : 0), now, 0.05);
+  gustN.flt.frequency.setTargetAtTime(sF(600 + 2000*vel), now, 0.05);
+
+  reverbGain.gain.setTargetAtTime(sG(Math.min(0.2, Ω*0.3)), now, 0.2);
+  smoothB += (meanI - smoothB) * 0.08;
+  masterGain.gain.setTargetAtTime(sG(Math.min(0.6, smoothB * rate * 0.7)), now, 0.12);
+}
+
+
+// ─── MODE SWITCHING ─────────────────────────────────────────────────
+
+function activate(mode) {
+  if (audioMode === mode) { shutdownAudio(); return }
+  if (ac) { if (audioMode === 'harmonic') teardownHarm(); if (audioMode === 'real') teardownReal() }
+  else initAudio();
+  audioMode = mode;
+  const isH = mode === 'harmonic';
+  if (isH) setupHarm(); else setupReal();
+  btnHarm.classList.toggle('on', isH); btnReal.classList.toggle('on', !isH);
+  btnHarm.innerHTML = `<span class="ico">${isH ? '◉' : '◯'}</span>Harmonic`;
+  btnReal.innerHTML = `<span class="ico">${isH ? '◯' : '◉'}</span>Hyper-Real`;
+  freqDisplay.textContent = isH
+    ? 'B(r) spectral envelope · φ subs · Ω chorus · CRR reverb'
+    : 'E(k)∝k⁻⁵ᐟ³ roar · CRR crackle agents · thermal hiss · rumble';
+}
+btnHarm.addEventListener('click', () => activate('harmonic'));
+btnReal.addEventListener('click', () => activate('real'));
+
+
+// ─── UI UPDATE ──────────────────────────────────────────────────────
+
+let t = 0, frame = 0, currentBeauty = 0;
+
+function updateUI(tipCΩ, tipB) {
+  hist[hPtr % SW] = tipCΩ; hPtr++;
+  if (frame % 2 === 0) drawChart();
+  currentBeauty = tipB;
+
+  if (frame % 6 === 0) {
+    omVal.textContent = Ω.toFixed(3);
+    const dZ = Math.abs(Ω - 1/π), dS = Math.abs(Ω - 1/(2*π));
+    omTag.textContent = dZ < .02 ? 'Z₂ = 1/π' : dS < .01 ? 'SO(2) = 1/2π'
+      : Ω < 1/(2*π) ? 'sub-SO(2)' : Ω < 1/π ? 'Z₂–SO(2)' : Ω < .5 ? 'supra-Z₂' : 'chaotic';
+    rateValEl.textContent = rate.toFixed(2);
+    coVal.textContent = tipCΩ.toFixed(3);
+    coVal.className = 'val' + (tipCΩ > .85 ? ' warn' : '');
+    coState.textContent = tipCΩ > .95 ? 'RUPTURE' : tipCΩ > .7 ? 'approaching' : tipCΩ > .4 ? 'building' : 'accumulating';
+    coState.className = 'val' + (tipCΩ > .85 ? ' warn' : ''); coState.style.fontSize = '9px';
+    beautyValEl.textContent = tipB.toFixed(3);
+    beautyBar.style.width = (tipB*100).toFixed(1) + '%';
+    beautyBar.style.background = tipB > .85 ? '#f0d080' : tipB > .5 ? '#d4a55a' : '#8a7050';
+    cvVal.textContent = (Ω/2).toFixed(3);           // CV = Ω/2 (exact CRR prediction)
+    cRuptEl.textContent = (1/Ω < 10) ? (1/Ω).toFixed(2) : '∞';  // C = 1/Ω at rupture
+    symVal.textContent = dZ < .02 ? 'Z₂ bistable' : dS < .01 ? 'SO(2) rotational'
+      : Ω < 1/(2*π) ? 'hyper-rigid' : Ω < 1/π ? 'intermediate' : 'hyper-flexible';
+  }
+}
+
+
+// ─── RENDER ─────────────────────────────────────────────────────────
+
+function render() {
+  updateGrid();
+  const d = img.data, CMax = 2*π*rate;
+  const p1 = Math.sin(t*π) * (1 + .2*Math.sin(t*π*φ));
+  const p2 = .5 + .5*Math.sin(t*π*φ + Math.sin(t*π)*.8);
+  const sny = .75, sB = B(rP * (1 - Math.abs(sny*CMax*Ω - 1)*.5));
+
+  for (let py = 0; py < H; py++) {
+    const ny = 1 - py/H;
+    const C = ny * CMax;
+    const CΩ = C * Ω;                                                  // ← C·Ω: the universal product
+
+    // Flame width: analytic CRR — narrows as C·Ω → 1 (coherence approaching rupture)
+    const w0 = .35 * Math.pow(Math.max(.001, 1 - Math.min(.999, CΩ)), invφ); // ← exponent 1/φ from CRR
+    const w = w0 * (1 + .06*p1*ny);
+
+    for (let px = 0; px < W; px++) {
+      const nx = (px/W - .5)*2, i = (py*W + px)*4;
+      if (Math.abs(nx) / Math.max(.005, w) > 4) { d[i] = d[i+1] = d[i+2] = 0; d[i+3] = 255; continue }
+
+      const [gdx, gcool] = samp(px/W, py/H);
+      const h2 = ny*ny, ddx = gdx*.28*h2, cool = Math.min(.95, gcool*h2);
+      const dnx = nx - ddx, dny = Math.max(0, Math.min(.999, ny));
+      const dCΩ = dny * CMax * Ω;
+      const dw = .35 * Math.pow(Math.max(.001, 1 - Math.min(.999, dCΩ)), invφ) * (1 + .06*p1*dny);
+      const rad = Math.abs(dnx) / Math.max(.005, dw);
+      if (rad > 3.5 && cool < .01) { d[i] = d[i+1] = d[i+2] = 0; d[i+3] = 255; continue }
+
+      const tb = turb(dnx*3 + Math.sin(dny*5 + t*2.5)*.25*dny, (dny + t*2)*3, t);
+      const er = Math.max(0, rad + tb*.22*dny*(1+dny)*Math.sqrt(Ω*π));
+
+      // Intensity: B(r) visual envelope × exp(−er²/2Ω) regeneration kernel
+      const radB = B(rP * (1 - er*.7));
+      const vB = B(rP * (.25 + .75*Math.pow(Math.sin(dny*π*.78), 1.3)));
+      let I = radB * vB * (1 + .1*(p2-.5)*dny);
+      I *= Math.exp(-er*er / (2*Ω));                                   // ← regeneration kernel
+      I *= Math.max(0, 1 - Math.pow(dny*rate, 4) * (1.3 + tb*.3));    // tip cutoff (coherence rate)
+      I *= (1 - cool);
+
+      // Colour: blackbody-inspired mapping
+      const glow = Math.exp(-er*1.8)*.12*(1-dny)*(1-cool);
+      const tot = Math.max(0, I + glow), core = Math.max(0, 1 - er*1.5);
+      const t2 = tot*tot, t3 = t2*tot;
+      let r = tot*1.4 + core*.3;
+      let g = t2*1.8 * (.2 + core*.8);
+      let bl = t3*3*core;
+      const blue = (1-dny)*(1-dny) * Math.max(0, 1-er*10) * .25;
+      bl += blue*.7; g += blue*.15;
+      r += Math.exp(-er*er/Ω) * .08 * (1 - dny*.5);                   // ← regeneration glow
+
+      d[i]   = Math.min(255, r*255) | 0;
+      d[i+1] = Math.min(255, g*255) | 0;
+      d[i+2] = Math.min(255, bl*130) | 0;
+      d[i+3] = 255;
+    }
+  }
+
+  ctx.putImageData(img, 0, 0);
+  sampleCenterline(d);
+  if (frame % 2 === 0) drawPhasePortrait();
+  updateUI(sny * CMax * Ω, sB);
+
+  if (audioMode === 'harmonic') updateHarm();
+  else if (audioMode === 'real') updateReal();
+
+  t += .033; frame++;
+  requestAnimationFrame(render);
+}
+
+render();
+</script>
+</body>
+</html>
