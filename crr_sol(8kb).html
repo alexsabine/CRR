@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>CRR Sol</title>
+<style>*{margin:0;padding:0}body{background:#000;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden}canvas{width:min(96vw,96vh);height:min(96vw,96vh);cursor:crosshair}.lbl{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);color:#ff6a2244;font:11px monospace;pointer-events:none}</style>
+</head><body>
+<canvas id="c"></canvas><div class="lbl" id="lb">click to start</div>
+<script>
+// ══════════════════════════════════════════════════════════════════
+// CRR SOL — SDO 304Å chromosphere + Kosovichev p-mode sonification
+// Every constant from C·Ω = 1.  Click = flare.
+// ══════════════════════════════════════════════════════════════════
+//
+// VISUAL — two N() calls per pixel, all else is nonlinear extraction:
+//   mag = N(slow)       → field lines: sin(mag·5π)  AR: B(|mag|)
+//   tex = N(fast,6oct)  → network: tanh  ridges: |tex|  filaments: exp(-mag²)
+//   EUV limb brightening (optically thin: path ∝ 1/μ)
+//
+// SOUND — 17 p-mode eigenfrequencies from asymptotic formula:
+//   ν(n,l) = Δν(n+l/2+ε) − δν·l(l+1)/6
+//   Δν×42000 = 5.67 Hz (beating → warmth)  δν×42000 = 0.38 Hz (slow pulse)
+//   Each mode = damped stochastic oscillator kicked by CRR turbulence
+//   As modes independently rise/decay, spectral centroid wanders → "singing"
+
+const cv=document.getElementById('c'),cx=cv.getContext('2d'),lb=document.getElementById('lb'),
+  π=Math.PI,τ=2*π,φ=(1+Math.sqrt(5))/2,invφ=1/φ,
+  ΩZ=1/π,ΩS=1/τ,Δθ=π/3,Bn=Math.exp(π-1)/π,rP=π-1,
+  S=400,HS=S/2;
+cv.width=S;cv.height=S;
+const img=cx.createImageData(S,S),d=img.data;
+
+function B(r){return r>0&&r<π?Math.exp(r)*(1-r/π)/Bn:0}
+
+// CRR noise: 6 φ-octaves, Δθ-rotated, ΩZ-attenuated, φ-time cascade
+function N(px,py,t){
+  let v=0,a=1,f=1,ts=1;
+  for(let g=0;g<6;g++){
+    const s=f*px+t*ts*(g&1?ΩZ:ΩS)*π,q=f*py+t*ts*(g&1?ΩS:ΩZ)*π,
+      c=Math.cos(Δθ*g),sn=Math.sin(Δθ*g),u=s*c-q*sn,w=s*sn+q*c;
+    v+=a*Math.sin(u+Math.sin(w*φ))*Math.cos(w*invφ+Math.sin(u*invφ));
+    a*=ΩZ;f*=φ;ts*=φ;
+  }
+  return v;
+}
+
+// ═══ SOUND ═══
+let ac,modes=[],masterG,breathG,breathF;
+const QI=new Float32Array(4),QN=new Float32Array(4);
+
+cv.onclick=e=>{
+  const rc=cv.getBoundingClientRect(),
+    nx=(e.clientX-rc.left)/rc.width*S-HS,ny=(e.clientY-rc.top)/rc.height*S-HS;
+  if(nx*nx+ny*ny<(HS*.82)*(HS*.82)){fX=nx;fY=ny;fT=t}
+  if(!ac) startAudio();
+};
+
+function startAudio(){
+  ac=new (window.AudioContext||window.webkitAudioContext)();
+  const comp=ac.createDynamicsCompressor();
+  comp.threshold.value=-18;comp.ratio.value=5;
+  comp.connect(ac.destination);
+  masterG=ac.createGain();masterG.gain.value=0;masterG.connect(comp);
+
+  // p-mode eigenfrequencies: ν(n,l) = Δν(n+l/2+ε) − δν·l(l+1)/6
+  const DA=5.67,ds=.38,eps=1.5;
+  for(let l=0;l<3;l++){
+    const nA=l===2?18:19,nB=l===0?24:23;
+    for(let n=nA;n<=nB;n++){
+      const freq=DA*(n+l/2+eps)-ds*l*(l+1)/6,
+        df=(freq-128)/12,peak=Math.exp(-(df*df)),
+        osc=ac.createOscillator(),g=ac.createGain();
+      osc.type='sine';osc.frequency.value=freq;
+      g.gain.value=0;osc.connect(g);g.connect(masterG);osc.start();
+      modes.push({osc,g,l,freq,peak,
+        sx:n*φ+l*π,sy:l*φ+n*ΩZ,amp:0,vel:0});
+    }
+  }
+  // Solar wind (bandpass noise)
+  const buf=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate),bd=buf.getChannelData(0);
+  for(let i=0;i<bd.length;i++) bd[i]=Math.random()*2-1;
+  const src=ac.createBufferSource();src.buffer=buf;src.loop=true;
+  breathF=ac.createBiquadFilter();breathF.type='bandpass';
+  breathF.frequency.value=160;breathF.Q.value=.6;
+  breathG=ac.createGain();breathG.gain.value=0;
+  src.connect(breathF);breathF.connect(breathG);breathG.connect(masterG);src.start();
+  lb.textContent='';
+}
+
+function updateAudio(){
+  if(!ac)return;
+  const now=ac.currentTime,dt=.018,bty=B(rP*(.5+.5*Math.sin(t*.3)));
+  masterG.gain.setTargetAtTime(.15+bty*.05,now,.1);
+  // l=0,1,2 from 4-quadrant brightness (spherical harmonic decomposition)
+  const avg=(QI[0]+QI[1]+QI[2]+QI[3])/4,
+    hemi=Math.abs(QI[0]+QI[1]-QI[2]-QI[3])/4+.01,
+    quad=Math.abs(QI[0]+QI[2]-QI[1]-QI[3])/4+.01,
+    lA=[.6+avg*.8,.3+hemi*3,.3+quad*3];
+  for(const m of modes){
+    const kick=N(m.sx,m.sy,t*.15),              // independent stochastic forcing
+      gamma=.08+.06*(1-m.peak);                  // damping (τ≈7.6s at peak)
+    m.vel+=(kick*.4-m.amp*gamma)*dt*5;           // dA/dt = -γA + σξ(t)
+    m.amp=Math.max(0,m.amp+m.vel*dt*5);m.vel*=.97;
+    m.g.gain.setTargetAtTime(Math.min(.07,m.amp*m.peak*.04*lA[m.l]),now,.06);
+    m.osc.frequency.setTargetAtTime(m.freq*(1+avg*ΩZ*.003*(m.l+1)),now,.3);
+  }
+  breathG.gain.setTargetAtTime(.01+bty*.006,now,.1);
+  breathF.frequency.setTargetAtTime(140+bty*120,now,.1);
+}
+
+// ═══ RENDER ═══
+let fX=0,fY=0,fT=-99,t=0;
+
+function render(){
+  const pm=1+.003*Math.sin(t*τ)+.001*Math.sin(t*τ*φ),
+    R=HS*.82*pm,iR=1/R,rot=t*.008;
+  QI.fill(0);QN.fill(0);
+
+  for(let py=0;py<S;py++){
+    const dy=py-HS;
+    for(let px=0;px<S;px++){
+      const dx=px-HS,i=(py*S+px)*4,
+        dist=Math.sqrt(dx*dx+dy*dy),r=dist*iR,ang=Math.atan2(dy,dx);
+
+      // ── OFF-DISK: corona + 5 prominences ──
+      if(r>1.01){
+        let co=.002/((r-.7)*(r-.7)),p=0;
+        if(r<1.045) co+=Math.exp(-(r-1.01)*100)*.55;
+        if(r<1.30) for(let k=0;k<5;k++){
+          const ba=k*τ*invφ+Math.sin(t*ΩS+k*φ)*.18,
+            na=ang-ba-τ*Math.round((ang-ba)/τ),hw=.07+.04*Math.sin(t*ΩZ*2+k),al=na/hw;
+          if(al>-1&&al<1){const al2=al*al,
+            ht=(.08+.06*B(rP*Math.abs(Math.sin(t*ΩS*π+k*invφ))))*(1-al2),
+            tb=N(al*7+k*3,r*14+t*2.5,t*.6)*.012*(1-al2),ex=r-1;
+            for(let s=0;s<3;s++){const sh=ht*(.5+.25*s)+N(al*9+s*5,r*16+k,t*.5+s)*.007,
+              ds=Math.abs(ex-sh-tb),ts=(.006+.005*(1-al2))*(.4+.35*s);
+              if(ds<ts*3) p+=Math.exp(-(ds*ds)/(ts*ts))*(1-al2)*.45*
+                (1+.15*Math.sin(t*τ*1.5+al*π*7+k*φ+s));
+            }
+          }
+        }
+        const I=Math.min(1.4,co+Math.min(2.5,p));
+        d[i]=Math.min(255,(Math.pow(Math.max(.001,I),.5)*310)|0);
+        d[i+1]=Math.min(255,(Math.pow(Math.max(.001,I),1.8)*190)|0);
+        d[i+2]=Math.min(255,(Math.pow(Math.max(.001,I),3.2)*90)|0);
+        d[i+3]=255;continue;
+      }
+
+      // ── CHROMOSPHERE: 2 noise calls → everything ──
+      const mu=Math.sqrt(Math.max(.001,1-Math.min(.998,r)*Math.min(.998,r))),
+        lat=Math.asin(Math.max(-1,Math.min(1,dy*iR))),
+        lon=Math.atan2(dx,mu*R)+rot*(1-.25*lat*lat),
+        mag=N(lon*1.3,lat*1.3,t*.03),amag=Math.abs(mag),    // magnetic field
+        tex=N(lon*π*φ,lat*π*φ,t*.2),                         // texture
+
+        fLine=Math.pow(1-Math.pow(Math.abs(Math.sin(mag*π*5)),.15),2),  // field lines
+        arGate=amag>.18?Math.min(1,(amag-.18)*3):0,
+        arI=B(rP*Math.min(1,amag*2.5))*arGate,               // active regions
+        fil=Math.exp(-((mag+tex*.1)*(mag+tex*.1))/.01),       // filaments at B≈0
+        net=.5+.5*Math.tanh(tex*3),                           // network (Z₂)
+
+        base=(.18+net*.2+Math.abs(tex)*.07+fLine*.06*(1-arGate))*(1+tex*tex*.2),
+        limbEUV=.5+.5*Math.pow(1/Math.max(.1,mu),.4),
+        spic=r>.98?Math.max(0,tex)*.15*Math.min(1,(r-.98)*60):0,
+        edge=r>.998?Math.exp(-(r-.998)*300):1,
+
+        fA=t-fT,fDist=Math.sqrt((dx-fX)*(dx-fX)+(dy-fY)*(dy-fY))*iR,
+        flash=fA>0&&fA<3?Math.exp(-fA*5)*Math.exp(-fDist*fDist/.004)*1.5+
+          Math.exp(-fA*1.2)*Math.exp(-(((fDist-fA*.2)/(.015+.007*fA))**2))*.6:0,
+
+        raw=(base*(1-fil*.65)+arI*(1+tex*.3+Math.abs(tex)*.3)*1.1+spic+flash)*limbEUV*edge,
+        I=Math.max(0,Math.min(1.5,raw<.01?raw:raw*(.7+B(rP*Math.min(1,raw*1.8))*.5))),
+        Ip=Math.min(1.35,I);
+
+      d[i]=Math.min(255,(Math.pow(Math.max(.001,Ip),.5)*310)|0);
+      d[i+1]=Math.min(255,(Math.pow(Math.max(.001,Ip),1.8)*190)|0);
+      d[i+2]=Math.min(255,(Math.pow(Math.max(.001,Ip),3.2)*90)|0);
+      d[i+3]=255;
+      QI[(dx<0?1:0)+(dy<0?2:0)]+=I; QN[(dx<0?1:0)+(dy<0?2:0)]++;
+    }
+  }
+  for(let n=0;n<4;n++) if(QN[n]>0) QI[n]/=QN[n];
+
+  cx.putImageData(img,0,0);
+  cx.save();cx.globalCompositeOperation='lighter';
+  cx.filter='blur(4px)';cx.globalAlpha=.07;cx.drawImage(cv,0,0);
+  cx.filter='blur(16px)';cx.globalAlpha=.04;cx.drawImage(cv,0,0);
+  cx.restore();
+
+  updateAudio();
+  t+=.018;
+  requestAnimationFrame(render);
+}
+render();
+</script></body></html>
