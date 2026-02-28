@@ -1,0 +1,141 @@
+<!DOCTYPE html><html><head><style>*{margin:0}body{background:#000;overflow:hidden}canvas{width:100vw;height:100vh;object-fit:contain}#s{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#888;font:13px monospace;z-index:1}</style></head><body><canvas id=c></canvas><div id=s>click — CRR quantum gravity</div><script>
+/* CRR×QG — R(x)=φ·exp(C/Ω)·Θ per pixel. C·Ω=1 at photon ring */
+const W=640,H=400,c=document.getElementById('c');c.width=W;c.height=H;
+const g=c.getContext('2d'),im=g.createImageData(W,H),D=im.data,P2=Math.PI*2;
+const rp=1.5,ri=3,bsh=2.6,inc=1.15,ci=Math.cos(inc),si=Math.sin(inc),
+  CV=1/(4*Math.PI),cx=W*.5,cy=H*.47,sc=28;
+const NS=500,sx=[],sy=[],sb=[],st=[];
+for(var i=0;i<NS;i++){sx[i]=Math.random()*W;sy[i]=Math.random()*H;
+  sb[i]=.3+Math.random()*.7;st[i]=Math.random()}
+var pts=[],T=0;
+// Hash for per-pixel turbulence
+function N(a,b){var n=Math.sin(a*127.1+b*311.7)*43758.5;return n-Math.floor(n)}
+// Blackbody: CRR T_eff=C/Ω → Planck → RGB
+function bb(K){K=Math.max(2e3,Math.min(2e4,K))/100;
+  var r=K<=66?255:329.7*Math.pow(K-60,-.1332),
+    g=K<=66?99.47*Math.log(K)-161.1:288.1*Math.pow(K-60,-.0755),
+    b=K>=66?255:K<=19?0:138.5*Math.log(K-10)-305;
+  return[r<0?0:r>255?255:r|0,g<0?0:g>255?255:g|0,b<0?0:b>255?255:b|0]}
+
+function render(t){
+  for(var py=0;py<H;py++)for(var px=0;px<W;px++){
+    var i=(py*W+px)*4,x=(px-cx)/sc,y=(py-cy)/sc,
+      b=Math.sqrt(x*x+y*y),th=Math.atan2(y,x),R=0,G=0,B=0;
+    // Shadow: Θ=0 with horizon shimmer (Ω boundary fluctuations)
+    var sh=.03*Math.sin(th*8+t*3)+.02*Math.sin(th*13-t*5);
+    if(b<(bsh+sh)*.97){D[i]=D[i+1]=D[i+2]=0;D[i+3]=255;continue}
+    // Photon ring: C·Ω→1 with quantum noise per pixel
+    var db=b-bsh,rn=(.8+.4*N(th*10+t*.5,b*8))*(.06/(db*db+3e-4)),
+      rc=bb(9e3+3e3*Math.sin(th*3+t*.7));
+    R+=rc[0]/255*rn;G+=rc[1]/255*rn;B+=rc[2]/255*rn;
+    // Secondary ring (first lensed image)
+    var d2=b-bsh*1.07,r2=.015/(d2*d2+5e-4);
+    R+=rc[0]/255*r2;G+=rc[1]/255*r2;B+=rc[2]/255*r2;
+    // Accretion disk with turbulent coherence fluctuations
+    var y3=y/Math.max(ci,.01),rd=Math.sqrt(x*x+y3*y3);
+    if(b>bsh&&b<10)rd/=(1+.5*bsh*bsh/(b*b));
+    if(rd>rp&&rd<10){
+      var tb=.7+.6*N(rd*5+t*.3,th*3+t*.2),q=ri/rd,
+        Cd=Math.pow(q,.75)*Math.pow(Math.max(1-Math.sqrt(q*.5),.01),.25),
+        Om=CV*(rd/ri),lum=Math.exp(Math.min(Cd/Om,8))/Math.exp(8),
+        v=.6/Math.sqrt(rd),phi=Math.atan2(y3,x)+t*.12,
+        dp=1/(1-v*Math.sin(phi)*si),dp3=dp*dp*dp,
+        col=bb(2500+6e3*Cd*Math.max(Math.min(dp3,3),.3)*tb),
+        L=lum*Math.max(Math.min(dp3,4),.15)*(.4+.6*Math.abs(Math.sin(phi)))*tb,
+        yw=Math.abs(y)/(rd*.1+.25),op=Math.max(0,Math.min(1,1.5-yw*yw));
+      R+=col[0]/255*L*op*.7;G+=col[1]/255*L*op*.7;B+=col[2]/255*L*op*.7}
+    // Ω-halo: σ² glow at blanket boundary
+    if(b>bsh&&b<bsh+4){var bw=(b-bsh)/.8,gl=.04*Math.exp(-(bw*bw));
+      rc=bb(6e3);R+=rc[0]/255*gl;G+=rc[1]/255*gl;B+=rc[2]/255*gl}
+    if(b>3&&b<18){R+=.002/(b-2.4);G+=.0012/(b-2.4);B+=.0005/(b-2.4)}
+    D[i]=Math.min(255,Math.sqrt(R)*255)|0;
+    D[i+1]=Math.min(255,Math.sqrt(G)*255)|0;
+    D[i+2]=Math.min(255,Math.sqrt(B)*255)|0;D[i+3]=255}
+  // Stars: lensed δ(now) vacuum ruptures
+  for(i=0;i<NS;i++){var dx=sx[i]-cx,dy=sy[i]-cy,
+    b2=Math.sqrt(dx*dx+dy*dy)/sc;if(b2<bsh)continue;
+    var mg=Math.min(.5/(1-Math.pow(bsh/b2,4)),5)*sb[i];if(mg<=0)continue;
+    var fl=.7+.3*Math.sin(t*3+st[i]*50),cl=bb(4e3+st[i]*12e3),
+      px2=sx[i]|0,py2=sy[i]|0;
+    if(px2>=0&&px2<W&&py2>=0&&py2<H){var j=(py2*W+px2)*4;
+      D[j]=Math.min(255,D[j]+cl[0]*mg*fl*.3)|0;
+      D[j+1]=Math.min(255,D[j+1]+cl[1]*mg*fl*.3)|0;
+      D[j+2]=Math.min(255,D[j+2]+cl[2]*mg*fl*.3)|0}}
+  // Hawking particles: δ(now) with soft glow
+  if(Math.random()<.22){var a=Math.random()*P2;
+    pts.push({x:cx+bsh*sc*Math.cos(a),y:cy+bsh*sc*Math.sin(a),
+      vx:Math.cos(a)*(.3+Math.random()*.5),vy:Math.sin(a)*(.3+Math.random()*.5),
+      l:90+Math.random()*60,c:bb(5e3+Math.random()*1e4)})}
+  for(i=pts.length-1;i>=0;i--){var p=pts[i];p.x+=p.vx;p.y+=p.vy;p.l--;
+    if(p.l<0||pts.length>70){pts.splice(i,1);continue}
+    var al=p.l/90,qx=p.x|0,qy=p.y|0;
+    if(qx>=2&&qx<W-2&&qy>=2&&qy<H-2)
+      for(var gy=-2;gy<=2;gy++)for(var gx=-2;gx<=2;gx++){
+        var dd=gx*gx+gy*gy;if(dd>5)continue;
+        var k=((qy+gy)*W+(qx+gx))*4,f=al*(1-dd/6)*.45;
+        D[k]=Math.min(255,D[k]+p.c[0]*f)|0;
+        D[k+1]=Math.min(255,D[k+1]+p.c[1]*f)|0;
+        D[k+2]=Math.min(255,D[k+2]+p.c[2]*f)|0}}
+  g.putImageData(im,0,0);
+  // ═══ HUD ═══
+  g.save();var fa=.55+.15*Math.sin(t*.5);
+  g.lineWidth=1;g.setLineDash([3,3]);
+  // Shadow annotation
+  g.strokeStyle=g.fillStyle='rgba(255,255,255,'+fa*.5+')';
+  g.beginPath();g.moveTo(cx-35,cy-20);g.lineTo(cx-100,cy-70);g.stroke();
+  g.font='10px monospace';g.fillText('Θ=0',cx-130,cy-73);
+  g.font='9px monospace';g.fillStyle='rgba(255,255,255,'+fa*.3+')';
+  g.fillText('no causal access',cx-166,cy-62);
+  // Photon ring
+  var rx=cx+bsh*sc+6,ry=cy-bsh*sc*.4;
+  g.strokeStyle=g.fillStyle='rgba(120,220,255,'+fa*.7+')';
+  g.beginPath();g.moveTo(rx,ry);g.lineTo(rx+35,ry-25);g.stroke();
+  g.font='bold 10px monospace';g.fillText('C·Ω=1',rx+39,ry-27);
+  g.font='9px monospace';g.fillStyle='rgba(120,220,255,'+fa*.4+')';
+  g.fillText('photon sphere',rx+39,ry-15);
+  // Disk
+  var lx=cx+ri*sc+25,ly=cy+15;
+  g.strokeStyle=g.fillStyle='rgba(255,180,80,'+fa*.6+')';
+  g.beginPath();g.moveTo(lx,ly);g.lineTo(lx+45,ly+30);g.stroke();
+  g.font='10px monospace';g.fillText('exp(C/Ω)',lx+49,ly+28);
+  // Doppler
+  var ax=cx-bsh*sc-40,ay=cy+8;
+  g.strokeStyle=g.fillStyle='rgba(255,130,60,'+fa*.5+')';
+  g.beginPath();g.moveTo(ax,ay);g.lineTo(ax-40,ay+25);g.stroke();
+  g.fillText('Doppler',ax-80,ay+23);
+  // Blanket circle
+  g.strokeStyle='rgba(100,200,255,'+fa*.2+')';g.setLineDash([1,4]);
+  g.beginPath();g.arc(cx,cy,bsh*sc,0,P2);g.stroke();
+  g.fillStyle='rgba(100,200,255,'+fa*.2+')';g.font='8px monospace';
+  g.fillText('temporal Markov blanket',cx-55,cy+bsh*sc+12);
+  // Top bar
+  g.setLineDash([]);g.font='11px monospace';
+  g.fillStyle='rgba(255,255,255,'+fa*.5+')';g.fillText('PAST',12,16);
+  g.fillStyle='rgba(100,200,255,'+fa*.6+')';g.fillText('| NOW (horizon) |',55,16);
+  g.fillStyle='rgba(255,200,100,'+fa*.5+')';g.fillText('FUTURE',230,16);
+  // Bottom: live C·Ω + particle count
+  g.fillStyle='rgba(255,255,255,'+fa*.35+')';g.font='9px monospace';
+  var os=.85+.3*(.5+.5*Math.sin(t*.8));
+  g.fillText('C·Ω='+os.toFixed(3)+(os>.98?' RUPTURE':' accumulating'),12,H-12);
+  g.fillStyle='rgba(180,255,180,'+fa*.4+')';
+  g.fillText('δ(now):'+pts.length,W-90,H-12);
+  g.fillStyle='rgba(80,255,180,'+fa*.3+')';g.fillText('M=2Mₚ',W-60,16);
+  g.restore()}
+
+// Audio: QNM s(t)=exp(-ωI·t)·sin(ωR·t)
+function initAudio(){
+  var ac=new AudioContext(),sr=ac.sampleRate,dur=6,
+    buf=ac.createBuffer(2,sr*dur,sr),fR=82,fI=fR*.238,fR2=fR*2.67;
+  for(var ch=0;ch<2;ch++){var d=buf.getChannelData(ch);
+    for(var i=0;i<d.length;i++){var t=i/sr,cy2=t%dur,
+      env=Math.exp(-fI*cy2),
+      qnm=env*Math.sin(P2*fR*cy2)+env*.3*Math.sin(P2*fR2*cy2),
+      dr=.15*Math.sin(P2*27.5*t+ch*.3)*(1+.3*Math.sin(P2*.1*t)),
+      ns=(Math.random()-.5)*.025*Math.exp(-2*cy2);
+      d[i]=Math.tanh((qnm+dr+ns)*.32)}}
+  var src=ac.createBufferSource();src.buffer=buf;src.loop=true;
+  var f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=400;f.Q.value=2;
+  src.connect(f);f.connect(ac.destination);src.start()}
+function frame(){T+=.016;render(T);requestAnimationFrame(frame)}
+document.getElementById('s').onclick=function(){this.style.display='none';initAudio();frame()};
+</script></body></html>

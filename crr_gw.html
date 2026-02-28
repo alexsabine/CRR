@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>CRR Gravitational Waves</title>
+<style>*{margin:0;padding:0}body{background:#000;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden}canvas{width:min(96vw,96vh);height:min(96vw,96vh);cursor:crosshair}.lbl{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);color:#4488cc44;font:11px monospace;pointer-events:none}</style>
+</head><body>
+<canvas id="c"></canvas><div class="lbl" id="lb">click to start</div>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CRR GRAVITATIONAL WAVES — Binary BH: inspiral → merger → ringdown
+// Every physics constant from C·Ω=1.  Click = start chirp.
+// ═══════════════════════════════════════════════════════════════
+// SO(2): Ω=1/2π, C_rup=2π  |  f_QNM/f_peak = φ (verified: 3.3% of GW150914)
+// Phase partition: invφ + invφ³ + invφ⁴ = 1
+// Chirp exponent 3/8: GR import (not CRR-derived)
+// BH shadow: invφ·Rs | photon sphere: φ·Rs | accretion peak: rP·Rs
+// Beauty B(r)=exp(r)·(1−r/π)/Bn peaks at r=π−1 ≈ 2.14
+
+const cv=document.getElementById('c'),cx=cv.getContext('2d'),
+  π=Math.PI,τ=2*π,φ=(1+Math.sqrt(5))/2,invφ=1/φ,
+  ΩZ=1/π,ΩS=1/τ,Δθ=π/3,Bn=Math.exp(π-1)/π,rP=π-1,
+  S=380,HS=S/2,
+  bhR=HS*ΩZ*ΩS*invφ, maxSep=HS*ΩZ, cW=HS*τ, cyc=π*τ,
+  invφ3=invφ*invφ*invφ, invφ4=invφ3*invφ,
+  RE2k=4*π, softK=ΩZ;
+cv.width=S;cv.height=S;
+const img=cx.createImageData(S,S),d=img.data;
+
+function B(r){return r>0&&r<π?Math.exp(r)*(1-r/π)/Bn:0}
+
+// CRR noise: 5 φ-octaves, Δθ-rotated, ΩZ-attenuated
+function N(px,py,t){
+  let v=0,a=1,f=1;
+  for(let g=0;g<5;g++){
+    const s=f*px+t*(g&1?ΩZ:ΩS)*π,q=f*py+t*(g&1?ΩS:ΩZ)*π,
+      c=Math.cos(Δθ*g),sn=Math.sin(Δθ*g),u=s*c-q*sn,w=s*sn+q*c;
+    v+=a*Math.sin(u+Math.sin(w*φ))*Math.cos(w*invφ+Math.sin(u*invφ));
+    a*=ΩZ;f*=φ;
+  }
+  return v;
+}
+
+// ═══ BACKGROUND: starfield + CRR nebula ═══
+const bgR=new Float32Array(S*S),bgG=new Float32Array(S*S),bgB=new Float32Array(S*S);
+function H(x,y){x=Math.imul((x*374761393+y*668265263)>>>0,1274126177);return(x^(x>>>16))>>>0}
+
+for(let py=0;py<S;py++)for(let px=0;px<S;px++){
+  const nx=(px-HS)/S*τ,ny=(py-HS)/S*τ,i=py*S+px,
+    n1=N(nx,ny,0),n2=N(nx*φ+π,ny*φ-rP,0),
+    band=Math.exp(-Math.pow((ny*ΩS+nx*ΩZ+n1*ΩZ)/invφ,2)),
+    neb=Math.max(0,ΩS+n1*ΩS+n2*ΩZ)*(ΩZ+band*invφ)*φ*φ, // ×φ² luminosity boost
+    h=H(px,py),h2=H(py+7,px+13),
+    sk=Math.round(Bn*Bn*τ),st=Math.round(τ),
+    isStar=(h%sk)<st,
+    sB=isStar?Math.pow(((h%sk)+1)/(st+1),invφ)*(invφ+ΩZ*((h2%100)/100))*φ:0, // ×φ
+    sT=((h>>8)%100)/100;
+  bgR[i]=neb*ΩZ+sB*(invφ+sT*ΩZ);
+  bgG[i]=neb*ΩS+sB*(invφ-sT*ΩS);
+  bgB[i]=neb*invφ+sB*(1-sT*invφ);
+}
+
+function bg(x,y){
+  x=Math.max(0,Math.min(S-1.01,x));y=Math.max(0,Math.min(S-1.01,y));
+  const x0=x|0,y0=y|0,fx=x-x0,fy=y-y0,
+    x1=Math.min(S-1,x0+1),y1=Math.min(S-1,y0+1),
+    a=y0*S+x0,b=y0*S+x1,c=y1*S+x0,e=y1*S+x1,
+    w0=(1-fx)*(1-fy),w1=fx*(1-fy),w2=(1-fx)*fy,w3=fx*fy;
+  return[bgR[a]*w0+bgR[b]*w1+bgR[c]*w2+bgR[e]*w3,
+         bgG[a]*w0+bgG[b]*w1+bgG[c]*w2+bgG[e]*w3,
+         bgB[a]*w0+bgB[b]*w1+bgB[c]*w2+bgB[e]*w3];
+}
+
+// ═══ DYNAMICS ═══
+let t=0,orbPh=0,cAge=0,mFlash=0;
+
+function getState(){
+  const p=(cAge%cyc)/cyc;
+  if(p<invφ){ // INSPIRAL (C) — coherence accumulates
+    const q=p*φ,rm=Math.max(.001,1-q);
+    return{ph:'C',sep:maxSep*Math.pow(rm,.25),
+      amp:Math.min(ΩZ,ΩS*Math.pow(rm,-.25)),
+      freq:Math.min(π*φ,ΩZ*Math.pow(rm,-.375))}
+  }
+  if(p<invφ+invφ3){ // RINGDOWN (R) — regeneration
+    const q=(p-invφ)/invφ3,dc=Math.exp(-q*π*invφ);
+    if(q<ΩS)mFlash=Math.max(mFlash,(1-q/ΩS)*(1-q/ΩS));
+    else mFlash*=invφ;
+    return{ph:'R',sep:0,amp:ΩZ*dc,freq:π*φ*(ΩS+invφ*dc)}
+  }
+  // QUIET — new binary seeds
+  mFlash*=invφ;
+  const q=Math.min(1,(p-invφ-invφ3)/invφ4);
+  return{ph:'Q',sep:maxSep*Math.pow(q,invφ),amp:0,freq:ΩZ}
+}
+
+// ═══ SOUND — LIGO chirp sonification ═══
+let ac,osc1,g1,osc2,g2,oscR,gR,nSrc,nG,nF,mG;
+
+cv.onclick=()=>{
+  if(ac)return;
+  ac=new(window.AudioContext||window.webkitAudioContext)();
+  ac.resume();
+  const comp=ac.createDynamicsCompressor();
+  comp.threshold.value=-14;comp.ratio.value=4;comp.connect(ac.destination);
+  mG=ac.createGain();mG.gain.value=0;mG.connect(comp);
+
+  const fB=Bn*Bn*π; // ≈23 Hz audio base: Bn²·π
+  // Chirp: quadrupole at 2×f_orb
+  osc1=ac.createOscillator();osc1.type='sine';osc1.frequency.value=fB*π;
+  g1=ac.createGain();g1.gain.value=0;
+  osc1.connect(g1);g1.connect(mG);osc1.start();
+
+  // Sub: orbital fundamental at f_orb/φ
+  osc2=ac.createOscillator();osc2.type='sine';osc2.frequency.value=fB*invφ;
+  g2=ac.createGain();g2.gain.value=0;
+  osc2.connect(g2);g2.connect(mG);osc2.start();
+
+  // Ringdown QNM at f_peak·φ (CRR prediction: verified 3.3%)
+  oscR=ac.createOscillator();oscR.type='sine';oscR.frequency.value=fB*π*φ;
+  gR=ac.createGain();gR.gain.value=0;
+  oscR.connect(gR);gR.connect(mG);oscR.start();
+
+  // Merger burst noise
+  const buf=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate),bd=buf.getChannelData(0);
+  for(let j=0;j<bd.length;j++)bd[j]=Math.random()*2-1;
+  nSrc=ac.createBufferSource();nSrc.buffer=buf;nSrc.loop=true;
+  nF=ac.createBiquadFilter();nF.type='bandpass';
+  nF.frequency.value=Bn*Bn*π;nF.Q.value=invφ;
+  nG=ac.createGain();nG.gain.value=0;
+  nSrc.connect(nF);nF.connect(nG);nG.connect(mG);nSrc.start();
+
+  mG.gain.setTargetAtTime(ΩZ,ac.currentTime,ΩZ); // master: Z₂ variance
+  lb.textContent='';
+};
+
+function updateAudio(st){
+  if(!ac)return;
+  const now=ac.currentTime,fB=Bn*Bn*π,
+    // freq mapping: Bn²π·(1 + f_orb·φ) → [23, 212] Hz, QNM at ×φ → 344 Hz
+    fA=fB*(1+st.freq*φ),
+    vol=st.ph==='C'?Math.min(ΩZ,st.amp*φ):0;
+  osc1.frequency.setTargetAtTime(fA,now,ΩS);
+  g1.gain.setTargetAtTime(vol,now,ΩS);
+  osc2.frequency.setTargetAtTime(fA*invφ,now,ΩS);
+  g2.gain.setTargetAtTime(vol*ΩZ,now,ΩS);
+  // Merger burst
+  nG.gain.setTargetAtTime(mFlash>ΩS?mFlash*ΩS:0,now,ΩS*ΩZ);
+  nF.frequency.setTargetAtTime(fB*(1+mFlash*φ),now,ΩS);
+  // Ringdown QNM: f_peak × φ
+  oscR.frequency.setTargetAtTime(fA*φ,now,ΩZ);
+  gR.gain.setTargetAtTime(st.ph==='R'?st.amp*invφ:
+    mFlash>invφ?mFlash*ΩS:0,now,ΩS);
+}
+
+// ═══ RENDER ═══
+const outK=Bn*Bn*τ*τ,outB=outK*(1+ΩS); // Bn²τ²≈290 (R,G), ×(1+ΩS)≈336 (B)
+
+function render(){
+  const st=getState(),dt=.018,
+    sng=st.ph==='R'||(st.ph==='Q'&&st.sep<maxSep*ΩS),
+    bx1=sng?0:Math.cos(orbPh)*st.sep,
+    by1=sng?0:Math.sin(orbPh)*st.sep,
+    bx2=sng?9e3:-bx1,by2=sng?9e3:-by1,
+    Rs=bhR*(sng?1+ΩZ:1),Rph=Rs*φ,RE2=Rs*Rs*RE2k;
+
+  orbPh+=st.freq*dt*τ;
+
+  for(let py=0;py<S;py++){
+    const dy=py-HS;
+    for(let px=0;px<S;px++){
+      const dx=px-HS,i=(py*S+px)*4,r=Math.sqrt(dx*dx+dy*dy);
+
+      // GW tidal displacement: spin-2 quadrupolar
+      const phR=orbPh-r*st.freq*τ/cW,
+        fall=1/(1+r*r/(HS*HS*ΩZ)),
+        hp=st.amp*Math.cos(2*phR)*fall,
+        hx=st.amp*Math.sin(2*phR)*fall,
+        tdx=(hp*dx+hx*dy)*π, tdy=(hx*dx-hp*dy)*π;
+
+      // BH lensing
+      let lx=0,ly=0,shd=0,pR=0,acc=0;
+      const bhs=[[bx1,by1],[bx2,by2]];
+      for(let k=0;k<2;k++){
+        const bx=bhs[k][0],by=bhs[k][1],
+          ddx=dx-bx,ddy=dy-by,rb2=ddx*ddx+ddy*ddy,rb=Math.sqrt(rb2);
+        if(rb>HS)continue;
+        if(rb<Rs*invφ){shd=1;break}
+        if(rb<Rs*τ){
+          const al=RE2/(rb2+Rs*Rs*softK);
+          lx+=ddx/rb*al*rb*invφ;ly+=ddy/rb*al*rb*invφ;
+          const rn=rb/Rph;
+          pR+=B(rP*Math.max(0,1-Math.abs(rn-1)*π*φ))*
+            Math.max(0,1-Math.abs(rn-1)*π)*invφ;
+          const ar=rb/Rs;
+          if(ar<π*φ) acc+=B(rP*Math.max(0,1-(ar-rP)*ΩZ))*
+            Math.exp(-((ar-rP)*(ar-rP))/invφ)*ΩZ;
+        }
+      }
+      if(shd>.5){d[i]=d[i+1]=d[i+2]=0;d[i+3]=255;continue}
+
+      const[br,bbg,bb]=bg(px+tdx+lx,py+tdy+ly);
+      const flash=mFlash*Math.exp(-r*r/(HS*HS*ΩS))*(1+ΩZ);
+      let rip=0;
+      if(st.ph==='R'&&st.amp>ΩS*ΩZ){
+        const rW=Math.sin(r/(HS*ΩS*ΩZ)-orbPh*τ)*st.amp;
+        rip=Math.max(0,rW)*Math.exp(-r/(HS*(invφ+ΩZ)))*ΩZ;
+      }
+
+      let cr=br,cg=bbg,cb=bb;
+      const hM=Math.sqrt(hp*hp+hx*hx),sM=1+hM*φ;
+      cr*=sM;cg*=sM;cb*=sM;
+      cr+=pR*ΩS;cg+=pR*ΩZ;cb+=pR*invφ;
+      cr+=acc*invφ;cg+=acc*ΩZ;cb+=acc*ΩS;
+      cr+=flash*invφ;cg+=flash*invφ;cb+=flash*(invφ+ΩZ);
+      cr+=rip*ΩZ*ΩS;cg+=rip*ΩS;cb+=rip*ΩZ;
+
+      const lum=cr*ΩZ+cg*invφ+cb*ΩS;
+      if(lum>ΩS*ΩZ){const bt=B(rP*Math.min(1,lum*rP)),
+        tm=invφ+bt*invφ;cr*=tm;cg*=tm;cb*=tm}
+
+      d[i]=Math.min(255,(cr*outK)|0);
+      d[i+1]=Math.min(255,(cg*outK)|0);
+      d[i+2]=Math.min(255,(cb*outB)|0);
+      d[i+3]=255;
+    }
+  }
+  cx.putImageData(img,0,0);
+  cx.save();cx.globalCompositeOperation='lighter';
+  cx.filter='blur(3px)';cx.globalAlpha=ΩZ;cx.drawImage(cv,0,0);
+  cx.filter='blur(14px)';cx.globalAlpha=ΩS+mFlash*ΩZ;cx.drawImage(cv,0,0);
+  if(mFlash>ΩZ){cx.filter='blur(30px)';cx.globalAlpha=mFlash*ΩS;cx.drawImage(cv,0,0)}
+  cx.restore();
+
+  updateAudio(st);cAge+=dt;t+=dt;
+  requestAnimationFrame(render);
+}
+render();
+</script></body></html>
