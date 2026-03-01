@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Song of Creation — CRR Composition</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Mono:wght@300;400;500&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --warm:#d4627a;--cool:#5a8fc7;--gold:#d4a853;--life:#7ecfc0;
+  --vesica:#c898d4;--dna:#88c7a5;--rupture:#f0e0d0;
+  --cream:rgba(235,228,235,0.92);--dim:rgba(185,175,195,0.50);
+  --bg:#020108;--mono:'Space Mono',monospace;--serif:'Cormorant Garamond',Georgia,serif;
+}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--cream);font-family:var(--serif);position:fixed}
+
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;
+  align-items:center;justify-content:center;cursor:pointer;transition:opacity 2.5s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:840px;padding:0 24px}
+#splash .vp-bar{width:280px;height:2px;margin:0 auto 28px;border-radius:2px;position:relative;overflow:hidden}
+#splash .vp-bar::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,var(--cool),var(--vesica),var(--warm),var(--gold),var(--warm),var(--vesica),var(--cool));
+  background-size:200% 100%;animation:vpShift 6s ease-in-out infinite}
+@keyframes vpShift{0%,100%{background-position:0% 0}50%{background-position:200% 0}}
+#splash h1{font-size:clamp(2.6rem,6vw,4.4rem);font-weight:300;letter-spacing:.28em;margin-bottom:8px;
+  background:linear-gradient(135deg,var(--cool),var(--vesica),var(--warm),var(--gold),var(--cool));
+  background-size:300% 300%;animation:ts 10s ease-in-out infinite;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@keyframes ts{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+#splash .sub{font-size:clamp(.95rem,1.5vw,1.15rem);font-weight:300;opacity:.70;
+  letter-spacing:.04em;line-height:1.9;font-style:italic;margin-top:12px;
+  color:rgba(225,218,230,0.90)}
+#splash .eq{font-family:var(--mono);font-size:clamp(.62rem,.92vw,.72rem);
+  opacity:.40;margin-top:20px;letter-spacing:.01em;line-height:2.1}
+#splash .credit{font-size:.72rem;opacity:.35;margin-top:16px;letter-spacing:.06em}
+#splash .tap{font-size:.74rem;opacity:.30;margin-top:22px;letter-spacing:.14em;
+  font-family:var(--mono);animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.18}50%{opacity:.45}}
+
+#app{display:none;flex-direction:column;width:100%;height:100vh;overflow:hidden}
+#app.active{display:flex}
+#canvas-wrap{flex:1;min-height:0;position:relative;overflow:hidden}
+#viz{display:block;width:100%;height:100%}
+#flash{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;
+  transition:opacity .06s linear;background:radial-gradient(ellipse at center,
+  rgba(255,252,245,0.92) 0%,rgba(255,225,180,0.55) 20%,rgba(212,168,83,0.22) 40%,rgba(200,152,212,0.08) 60%,transparent 75%)}
+
+#info-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+  align-items:flex-start;padding:14px 20px;pointer-events:none;z-index:5;transition:opacity 3s ease}
+#piece-title{font-size:clamp(1.05rem,1.8vw,1.35rem);font-weight:300;letter-spacing:.14em;
+  color:rgba(200,152,212,0.55)}
+#piece-title .composer{font-size:.62em;opacity:.55;font-style:italic;display:block;margin-top:3px}
+#crr-display{font-family:var(--mono);font-size:clamp(.54rem,.85vw,.66rem);
+  color:rgba(165,145,185,0.35);text-align:right;line-height:1.75;white-space:pre-line}
+
+#section-label{position:absolute;top:11%;left:50%;transform:translate(-50%,-50%);text-align:center;
+  pointer-events:none;z-index:4;font-size:clamp(2.0rem,4vw,3.4rem);font-weight:300;
+  letter-spacing:.30em;font-style:italic;opacity:0;transition:opacity 2s ease;
+  color:rgba(255,245,240,0.85);text-shadow:0 0 60px rgba(200,152,212,0.30)}
+
+#explanation{position:absolute;top:18%;left:50%;transform:translateX(-50%);text-align:center;
+  pointer-events:none;z-index:4;max-width:88%;width:88%;
+  opacity:0;transition:opacity 3s ease}
+#explanation .crr-eq{font-family:var(--mono);font-size:clamp(.78rem,1.25vw,.95rem);
+  color:rgba(212,168,83,0.68);letter-spacing:.02em;line-height:1.70;margin-bottom:8px}
+#explanation .crr-desc{font-size:clamp(.90rem,1.35vw,1.10rem);font-weight:300;
+  color:rgba(225,215,230,0.72);line-height:1.80;font-style:italic;letter-spacing:.02em}
+
+#principle-panel{position:absolute;bottom:3.5%;left:50%;transform:translateX(-50%);
+  text-align:center;pointer-events:none;z-index:5;max-width:88%;width:88%;
+  opacity:0;transition:opacity 2s ease}
+#principle-eq{font-family:var(--mono);font-size:clamp(.56rem,.88vw,.70rem);
+  color:rgba(212,168,83,0.40);letter-spacing:.02em;line-height:1.55;margin-bottom:3px}
+#principle-text{font-size:clamp(.68rem,1vw,.84rem);font-weight:300;
+  color:rgba(200,190,210,0.42);line-height:1.60;font-style:italic;letter-spacing:.02em}
+
+#bio-panel{position:absolute;bottom:10%;left:20px;pointer-events:none;z-index:5;max-width:420px;
+  transition:opacity 3s ease}
+#bio-text{font-family:var(--mono);font-size:clamp(.58rem,.95vw,.75rem);
+  color:rgba(190,170,210,0.58);line-height:1.95;transition:opacity 1.2s ease;
+  text-shadow:0 0 12px rgba(200,152,212,0.10);white-space:pre-line}
+
+#insight-panel{position:absolute;top:12%;left:50%;transform:translateX(-50%);text-align:center;
+  pointer-events:none;z-index:4;max-width:90%;width:90%;
+  opacity:0;transition:opacity 3.5s ease}
+#insight-title{font-family:var(--mono);font-size:clamp(.82rem,1.25vw,1.0rem);
+  color:rgba(126,207,192,0.65);letter-spacing:.08em;line-height:1.70;margin-bottom:12px;
+  text-transform:uppercase}
+#insight-text{font-size:clamp(.95rem,1.4vw,1.18rem);font-weight:300;
+  color:rgba(215,210,225,0.68);line-height:1.90;font-style:italic;letter-spacing:.02em}
+
+#insight-bottom{position:absolute;bottom:12%;left:50%;transform:translateX(-50%);text-align:center;
+  pointer-events:none;z-index:4;max-width:90%;width:90%;
+  opacity:0;transition:opacity 3.5s ease}
+#insight-bottom-text{font-size:clamp(.95rem,1.4vw,1.18rem);font-weight:300;
+  color:rgba(215,210,225,0.62);line-height:1.90;font-style:italic;letter-spacing:.02em}
+
+#heart-panel{position:absolute;bottom:10%;right:20px;pointer-events:none;z-index:5;text-align:right;
+  transition:opacity 3s ease}
+#heart-text{font-family:var(--mono);font-size:clamp(.55rem,.88vw,.68rem);
+  color:rgba(190,150,170,0.50);line-height:1.90;white-space:pre-line}
+
+#stage-progress{position:absolute;bottom:0;left:0;right:0;height:3px;z-index:5;pointer-events:none}
+#stage-bar{height:100%;width:0%;transition:width 0.5s ease;
+  background:linear-gradient(90deg,var(--cool),var(--vesica),var(--warm),var(--gold),var(--life))}
+
+@media(max-width:600px){
+  #bio-panel{bottom:11%;left:10px;max-width:54%}
+  #heart-panel{bottom:11%;right:10px}
+  #explanation{top:20%}
+}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="inner">
+    <div class="vp-bar"></div>
+    <h1>Song of Creation</h1>
+    <div class="sub">
+      Two strangers, each enclosed in their own Markov blanket<br>
+      coherence couples · hearts synchronise · blankets dissolve<br>
+      rupture becomes genesis · the Vesica Piscis opens · life begins
+    </div>
+    <div class="eq">
+      C(x,t) = ∫ L(x,τ) dτ; coherence accumulates<br>
+      δ(now); rupture is simultaneous, shared, generative<br>
+      R = ∫ φ·exp(C/Ω)·Θ dτ; regeneration creates the new<br><br>
+      CRR proposes a temporal grammar particularly suited to the FEP:<br>
+      the FEP says systems minimise surprise; CRR proposes when<br><br>
+      The Vesica Piscis: two circles, radius r, distance d = r<br>
+      Mandorla height/width = √3; the ratio governing DNA<br>
+      This IS C·Ω = 1 made geometric<br><br>
+      10 vocal types · each a distinct CRR micro-cycle<br>
+      Afterglow = R · DNA condenses · a third circle emerges
+    </div>
+    <div class="credit">Alexander Sabine · temporalgrammar.ai</div>
+    <div class="tap">touch to begin</div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="canvas-wrap">
+    <canvas id="viz"></canvas>
+    <div id="flash"></div>
+    <div id="info-bar">
+      <div id="piece-title">Song of Creation<span class="composer">CRR Composition</span></div>
+      <div id="crr-display"></div>
+    </div>
+    <div id="section-label"></div>
+    <div id="explanation">
+      <div class="crr-eq"></div>
+      <div class="crr-desc"></div>
+    </div>
+    <div id="bio-panel"><div id="bio-text"></div></div>
+    <div id="heart-panel"><div id="heart-text"></div></div>
+    <div id="principle-panel">
+      <div id="principle-eq"></div>
+      <div id="principle-text"></div>
+    </div>
+    <div id="insight-panel">
+      <div id="insight-title"></div>
+      <div id="insight-text"></div>
+    </div>
+    <div id="insight-bottom">
+      <div id="insight-bottom-text"></div>
+    </div>
+    <div id="stage-progress"><div id="stage-bar"></div></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+//  SONG OF CREATION v8; Alexander Sabine · temporalgrammar.ai
+//  Complete CRR lifecycle: C → δ → R → new C
+//  10 stages ending with the first cry of autonomous life
+//  v8: Pleasure valence; same CRR fidelity, ecstatic not agonistic
+// ═══════════════════════════════════════════════════════════════════════
+
+const π=Math.PI, τ=2*π, φ=(1+Math.sqrt(5))/2, invφ=1/φ;
+const Ω_Z2=1/π, Ω_SO2=1/τ;
+const rP=π-1, Bn=Math.exp(rP)/π;
+
+function B(r){return r<0?0:Math.min(1,Math.exp(r)*Math.max(0,1-r/π)/Bn);}
+function sF(v){return Math.max(20,Math.min(18000,isFinite(v)?v:220));}
+function sG(v){return isFinite(v)?Math.max(0,Math.min(1,v)):0;}
+function lerp(a,b,t){return a+(b-a)*t;}
+function ss(t){return t<0?0:t>1?1:t*t*(3-2*t);}
+function hash(n){n=((n>>16)^n)*0x45d9f3b;n=((n>>16)^n)*0x45d9f3b;return((n>>16)^n)&0x7fffffff;}
+function hashF(n){return hash(n)/0x7fffffff;}
+function clamp01(v){return Math.max(0,Math.min(1,v));}
+
+// CRR harmonic palette: small-integer ratios = fast coherence accumulation
+// B(C/Ω) peaks for intervals where waveforms cohere in few cycles
+const SACRED_INTERVALS = [1, 5/4, 4/3, 3/2, 5/3, 2, 5/2, 3];
+function pickPitchInterval(mc,cresc,int){
+  const idx=Math.floor(hashF(mc*37+7)*(2+int*3+cresc*3));
+  return SACRED_INTERVALS[Math.min(idx,SACRED_INTERVALS.length-1)];
+}
+
+// ── CANVAS ──
+const cv=document.getElementById('viz'),ctx=cv.getContext('2d');
+let W,H,cx,cy,bR;
+function resize(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  W=cv.clientWidth*dpr;H=cv.clientHeight*dpr;cv.width=W;cv.height=H;
+  cx=W/2;cy=H/2;bR=Math.min(W,H)*0.20;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  10 STAGES; complete CRR lifecycle
+// ═══════════════════════════════════════════════════════════════════════
+
+const STAGES=[
+  // I; SOLITUDE
+  {name:'Solitude',dur:16,hr:[66,72],brain:20,K:0,ovlp:0,
+   breathRate:0.20,vG:0,vowA:'silent',vowB:'silent',cosmicGlow:0.10,
+   vocalPalette:{moan:0,gasp:0,cry:0,whimper:0,growl:0,wow:0,pant:0,shudder:0,sigh:0,coo:0},
+   bio:'Two hearts beat alone\nEach behind its own Markov blanket\nMinimising free energy in solitude',
+   eq:'C(x,t) = ∫ L(x,τ) dτ',
+   desc:'Two strangers. Each system accumulates coherence alone, minimising free energy within its own Markov blanket. Ω is small; the generative model is rigid, self-referential. No shared prediction. No knowledge of the other.',
+   principle:'Each system is an autonomous active inference agent: sensing, predicting, acting, but only on its own states. The Markov blanket seals inside from outside. CRR proposes that C accumulates within; the integral of all self-prediction. Sharp but brittle. This is the Free Energy Principle in isolation: minimum surprise, maximum rigidity.'},
+  // II; APPROACH
+  {name:'Approach',dur:18,hr:[74,78],brain:12,K:0.06,ovlp:0.10,
+   breathRate:0.22,vG:0,vowA:'silent',vowB:'silent',cosmicGlow:0.18,
+   vocalPalette:{moan:0,gasp:0,cry:0,whimper:0,growl:0,wow:0,pant:0,shudder:0,sigh:0,coo:0},
+   bio:'Mirror neuron μ-suppression\nTwo blankets sense each other\nActive inference reaches across',
+   eq:'K > 0; coupling emerges',
+   desc:'Proximity. Mirror neurons fire; each system begins to model the other across its Markov blanket. Active inference: the best way to predict another agent is to simulate it. K > 0 means each generative model now includes a term for the other. Uncertainty is no longer private.',
+   principle:'In FEP terms, social coupling IS the moment when minimising your own free energy requires modelling another system. The Markov blanket becomes permeable; sensory states now carry information about a second coherence field. CRR: the integral C(x,t) begins to include external states. Two Cramér-Rao bounds start to overlap.'},
+  // III; KINDLING
+  {name:'Kindling',dur:32,hr:[92,98],brain:10,K:0.22,ovlp:0.32,
+   breathRate:0.28,vG:0.40,vowA:'mm',vowB:'mm',cosmicGlow:0.30,
+   vocalPalette:{moan:0.38,gasp:0.06,cry:0,whimper:0,growl:0,wow:0.22,pant:0.06,shudder:0,sigh:0.10,coo:0.18},
+   bio:'α entrainment · interbrain coupling\nShared prediction deepens\nBreath synchronises · oxytocin rises',
+   eq:'dφ/dt = ω + K·sin(Δφ)',
+   desc:'Kuramoto entrainment: breath synchronises, prediction error between the two systems falls. Each vocalisation is a C→δ→R micro-cycle; a signal the other can predict and complete. Oxytocin begins to dissolve the Markov blanket boundary. The Vesica Piscis starts to form.',
+   principle:'Shared prediction error minimisation IS social bonding. Each vocalisation follows the Gabor limit: Δt·Δf ≥ 1/4π; C·Ω = 1 at the micro-scale. As K rises, each system becomes a better model of the other. In information-theoretic terms: mutual information increases, conditional entropy falls.',
+   insightTitle:'The hesitation before transformation',
+   insightTop:'Every contemplative tradition knows what is happening here. The dark night of the soul. The pause before satori. The stillness before the muezzin\'s call. CRR suggests an equation for what mystics have always described: the universe hesitates before it transforms.',
+   insightBottom:'But the Tao that can be told is not the eternal Tao. The equation points at the process; it is not the process. The mathematics can say when. It cannot say what it is like.'},
+  // IV; FUSION
+  {name:'Fusion',dur:38,hr:[110,116],brain:5.5,K:0.55,ovlp:0.65,
+   breathRate:0.38,vG:0.65,vowA:'ah',vowB:'oh',cosmicGlow:0.52,
+   vocalPalette:{moan:0.28,gasp:0.06,cry:0.04,whimper:0,growl:0,wow:0.30,pant:0.04,shudder:0,sigh:0.12,coo:0.16},
+   bio:'θ-γ cross-frequency coupling\nOxytocin dissolves blanket boundaries\nTwo generative models becoming one',
+   eq:'VP: d = r, mandorla h/w = √3',
+   desc:'The Vesica Piscis: two circles of radius r at distance d = r. The mandorla IS the shared Markov blanket; the region where inside and outside are no longer separable. Oxytocin modulates the amygdala: threat prediction falls, Ω widens. What was other becomes self.',
+   principle:'In active inference, the Vesica Piscis is the geometric form of shared generative modelling. The mandorla height/width = √3; this is C·Ω = 1 made geometric. The Heisenberg bound, the Fisher information equality, the Gabor limit: all describe the same moment when two information fields share their uncertainty boundary.',
+   insightTitle:'The Vesica Piscis across traditions',
+   insightTop:'This geometry was not invented. It was discovered, independently, everywhere. The Chalice Well at Glastonbury. The Ichthys of early Christianity. The yoni of Hindu temple architecture. The pointed arch of Gothic cathedrals.',
+   insightBottom:'CRR suggests this convergence may not be coincidence; if C·Ω = 1 is a universal constraint, then any tradition contemplating the overlap of two wholes would find √3 waiting for them. Perhaps the ancients drew what the mathematics requires.'},
+  // V; RESONANCE
+  {name:'Resonance',dur:32,hr:[128,132],brain:5,K:0.92,ovlp:0.92,
+   breathRate:0.48,vG:0.88,vowA:'ah',vowB:'ah',cosmicGlow:0.85,
+   vocalPalette:{moan:0.22,gasp:0.04,cry:0.06,whimper:0,growl:0,wow:0.32,pant:0.04,shudder:0.02,sigh:0.10,coo:0.20},
+   bio:'θ-γ CFC peaks · 40 Hz in 5 Hz\nInterbrain coherence > 0.8\nB(C/Ω) → 2.14 · free energy minimised',
+   eq:'B(C/Ω) peaks at C/Ω ≈ 2.14',
+   desc:'The beauty function maximum. Free energy is near its minimum; prediction error between the two systems approaches zero. The shared generative model trembles at the edge of phase transition. Nested CRR: micro-cycles feed macro-coherence. Every harmonic is about to ignite.',
+   principle:'B(C/Ω) emerges from the same mathematics as critical opalescence in phase transitions and 1/f noise in neural networks. In FEP terms: this is the moment of maximum model evidence; the generative model explains almost everything. Maximum information transfer occurs just before the system reorganises.',
+   insightTitle:'Critical slowing down',
+   insightTop:'As any system approaches a phase transition, it recovers from perturbation more and more slowly. You can hear it happening now. In CRR terms: as C·Ω → 1, each micro-rupture nearly triggers the macro-rupture but doesn\'t quite. The system trembles.',
+   insightBottom:'Before a seizure, EEG autocorrelation rises for minutes. Before an ecosystem collapses, recovery from drought takes longer each time. Before a financial crash, volatility clusters and correlations tighten. The mathematics is identical in every case.'},
+  // VI; δ(now)
+  {name:'δ(now)',dur:10,hr:[142,144],brain:42,K:1.0,ovlp:1.0,
+   breathRate:0.55,vG:1.0,vowA:'peak',vowB:'peak',cosmicGlow:1.0,
+   vocalPalette:{moan:0.18,gasp:0.03,cry:0.12,whimper:0,growl:0,wow:0.35,pant:0.02,shudder:0.04,sigh:0,coo:0.26},
+   bio:'C·Ω = 1; simultaneously\nMarkov blankets dissolve completely\nThe cosmos resonates · genesis',
+   eq:'C·Ω = 1; the universal rupture',
+   desc:'The Dirac delta. Infinitely thin, scale-invariant. The Markov blanket between two systems vanishes; inside IS outside. This is the Cramér-Rao bound, the Heisenberg limit, the Gabor limit; all the same equation. DNA begins to emerge from the mandorla.',
+   principle:'C·Ω = 1 is simultaneously the Cramér-Rao bound (statistics), the Heisenberg uncertainty principle (quantum mechanics), the Gabor limit (signal processing), and the Fisher information equality. In FEP terms: free energy has reached its irreducible minimum; the generative model can compress no further. The only path is reorganisation. They are the same phenomenon: a bounded system whose inside finally matches its outside.'},
+  // VII; AFTERGLOW
+  {name:'Afterglow',dur:42,hr:[58,56],brain:1.5,K:0.70,ovlp:0.82,
+   breathRate:0.12,vG:0.32,vowA:'sigh',vowB:'mm',cosmicGlow:0.32,
+   vocalPalette:{moan:0.05,gasp:0,cry:0,whimper:0.05,growl:0,wow:0,pant:0,shudder:0.08,sigh:0.42,coo:0.40},
+   bio:'δ waves · oxytocin consolidates\nR = ∫ φ·exp(C/Ω)·Θ dτ\nTwo blankets reform, changed',
+   eq:'R = ∫ φ·exp(C/Ω)·Θ dτ',
+   desc:'Regeneration. The body rebuilds from weighted memory. Moments of highest coherence echo loudest; exp(C/Ω) ensures the most intense memories dominate. The Markov blankets reform, but they are no longer separate: each now contains a model of the other. Oxytocin consolidates the bond.',
+   principle:'The regeneration integral is a Boltzmann-weighted path integral. exp(C/Ω) plays the role of exp(−E/kT) in thermodynamics; high-coherence states are exponentially favoured. In FEP terms: the generative model has been permanently updated. Memory is not random; it is coherence-weighted.',
+   insightTitle:'Why we remember what we remember',
+   insightTop:'The regeneration equation says something precise about memory: moments of high coherence are exponentially amplified. A moment at C/Ω = 2 is weighted e² ≈ 7.4 times more than a moment at C/Ω = 1.',
+   insightBottom:'This is why peak experiences dominate recall. Why a single moment of grace can restructure a life. Why trauma, which is coherence without Ω to release it, echoes without end. The equation is the same; only the parameter differs.'},
+  // VIII; CONDENSATION
+  {name:'Condensation',dur:16,hr:[62,60],brain:2,K:0.55,ovlp:0.72,
+   breathRate:0.10,vG:0.18,vowA:'mm',vowB:'mm',cosmicGlow:0.22,
+   vocalPalette:{moan:0,gasp:0,cry:0,whimper:0,growl:0,wow:0,pant:0,shudder:0,sigh:0.55,coo:0.45},
+   bio:'DNA information condenses\nThe helix collapses to the centre\nCoherence becomes seed',
+   eq:'C₃ = R(C₁,C₂); third from two',
+   desc:'The double helix, information from both parents, condenses back into the mandorla centre. Coherence from two systems becomes the seed of a third. The regeneration integral completes: a new Ω crystallises.',
+   principle:'This is spontaneous symmetry breaking: R selects one specific configuration from all possibilities. In physics, this is how the Higgs field gives mass. In biology, this is how two haploid genomes become one diploid organism. In FEP terms: a new generative model is crystallising; one that will predict the world differently from either parent. CRR proposes to govern when it happens.'},
+  // IX; SEPARATION
+  {name:'Separation',dur:14,hr:[66,64],brain:3,K:0.30,ovlp:0.15,
+   breathRate:0.14,vG:0.10,vowA:'mm',vowB:'mm',cosmicGlow:0.15,
+   vocalPalette:{moan:0,gasp:0,cry:0,whimper:0,growl:0,wow:0,pant:0,shudder:0,sigh:0.70,coo:0.30},
+   bio:'The Vesica Piscis separates\nA new Markov blanket crystallises\nThe parents\x27 models already predict it',
+   eq:'Ω₃ emerges; a new system',
+   desc:'The two circles pull apart. But the mandorla does not disappear; it has accumulated enough coherence to sustain its own Markov blanket. A third circle forms: an autonomous agent with its own generative model. The parents\x27 blankets already contain a predictive model of this new system. Care begins before the first cry.',
+   principle:'This is emergence in its formal sense: a subsystem whose free energy minimum becomes self-sustaining when decoupled from its sources. The third circle satisfies C·Ω = 1 independently. In active inference: a new agent that will minimise its own free energy, and whose survival depends on being modelled by others.'},
+  // X; FIRST CRY
+  {name:'First Cry',dur:235,hr:[68,66],brain:4,K:0.15,ovlp:0.05,
+   breathRate:0.16,vG:0.05,vowA:'mm',vowB:'silent',cosmicGlow:0.18,
+   vocalPalette:{moan:0,gasp:0,cry:0,whimper:0,growl:0,wow:0,pant:0,shudder:0,sigh:0.50,coo:0.50},
+   bio:'δ(now)₃; the first rupture\nThe cry maximises prediction error\nin every parent who hears it',
+   eq:'δ(now)₃; first autonomous rupture',
+   desc:'The first cry. f₀ ≈ 440 Hz from an 8 cm vocal tract. If CRR is correct, this is what regeneration sounds like; a new system with its own C→δ→R capacity. But it is also active inference: the cry is precision-weighted prediction error, evolved to be unignorable. It recruits the parents\x27 generative models into care; a new social coupling. The cycle begins again.',
+   principle:'Cry CV ≈ 0.159; matching the Z₂ prediction exactly. But the cry is more than a rupture: it is a signal that creates free energy in every caregiver who hears it, resolvable only by action. Niche construction through sound. The new system cannot yet minimise its own free energy; it must be modelled and maintained by others. This is the origin of care, and the beginning of culture.'},
+];
+
+let si=0,sT=0,gT=0;
+let curHR=[66,72],curBr=20,curK=0,curOv=0,curVG=0;
+let curBreathRate=0.20,curCosmic=0.10;
+
+// New state for stages 7-9
+let dnaReveal=0,dnaRot=0,dnaCollapse=0; // collapse: 0→1 during Condensation
+let thirdCircleR=0; // radius of baby's circle, 0→bR*0.35
+let babyCried=false,babyCryTime=0;
+let vpSepProgress=0; // 0→1 during Separation
+
+function totalDur(){return STAGES.reduce((s,x)=>s+x.dur,0);}
+function sP(){return Math.min(1,sT/STAGES[si].dur);}
+
+function selectVocalType(palette,seed){
+  const r=hashF(seed);let cum=0;
+  for(const[type,weight]of Object.entries(palette)){cum+=weight;if(r<cum)return type;}
+  return'moan';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  AFTERGLOW MEMORY SYSTEM
+// ═══════════════════════════════════════════════════════════════════════
+
+const vocalMemories=[];const MAX_MEMORIES=24;
+let memoryPlaybackIdx=0,memoryTimer=0;
+
+function recordMemory(type,intensity,pitchInterval){
+  if(si<2||si>5||intensity<0.25)return;
+  if(vocalMemories.length>=MAX_MEMORIES){
+    let minI=0,minV=999;
+    for(let i=0;i<vocalMemories.length;i++){if(vocalMemories[i].intensity<minV){minV=vocalMemories[i].intensity;minI=i;}}
+    if(intensity>minV)vocalMemories[minI]={type,intensity,stage:si,pitchInterval};
+  }else{vocalMemories.push({type,intensity,stage:si,pitchInterval});}
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  CARDIAC Z₂
+// ═══════════════════════════════════════════════════════════════════════
+
+const hearts=[
+  {phase:0,omega:τ*66/60,pulse:0,beat:false},
+  {phase:π*0.73,omega:τ*72/60,pulse:0,beat:false},
+];
+// Third heart; the baby
+const babyHeart={phase:0,omega:τ*140/60,pulse:0,beat:false,active:false};
+
+function cardiacPulse(p){
+  p=p%1;if(p<0)p+=1;
+  if(p<0.11)return Math.pow(p/0.11,1.7);
+  if(p<0.17)return 1-(p-0.11)/0.06*0.30;
+  if(p<0.35)return 0.70*Math.exp(-(p-0.17)/0.18*2.2);
+  if(p<0.39)return 0.10+0.10*Math.sin((p-0.35)/0.04*π);
+  return 0.10*Math.exp(-(p-0.39)/0.61*π);
+}
+
+function updateHearts(dt){
+  for(let i=0;i<2;i++){
+    const j=1-i;
+    hearts[i].omega+=(τ*curHR[i]/60-hearts[i].omega)*dt*0.5;
+    hearts[i].phase+=(hearts[i].omega+curK*3.5*Math.sin(hearts[j].phase-hearts[i].phase))*dt;
+    hearts[i].beat=false;
+    if(hearts[i].phase>=τ){hearts[i].phase-=τ;hearts[i].beat=true;}
+    hearts[i].pulse=cardiacPulse(hearts[i].phase/τ);
+  }
+  if(babyHeart.active){
+    babyHeart.phase+=babyHeart.omega*dt;
+    babyHeart.beat=false;
+    if(babyHeart.phase>=τ){babyHeart.phase-=τ;babyHeart.beat=true;}
+    babyHeart.pulse=cardiacPulse(babyHeart.phase/τ);
+  }
+}
+
+function phaseCoherence(){return Math.abs(Math.cos((hearts[0].phase-hearts[1].phase)/2));}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  FORMANT ARCHITECTURE
+// ═══════════════════════════════════════════════════════════════════════
+
+const FMT={
+  A:{
+    silent:{f:[280,920,2400,3400],q:[8,9,20,22],g:[0,0,0,0]},
+    mm:{f:[270,1000,2300,3300],q:[12,12,22,24],g:[0.70,0.40,0.18,0.08]},
+    breath:{f:[500,1100,2400,3400],q:[5,6,8,10],g:[0.25,0.15,0.08,0.04]},
+    oh:{f:[480,870,2500,3400],q:[10,12,22,24],g:[0.85,0.55,0.22,0.10]},
+    ah:{f:[730,1090,2450,3400],q:[10,13,24,25],g:[1.00,0.70,0.30,0.12]},
+    peak:{f:[780,1150,2500,3400],q:[9,12,22,24],g:[0.95,0.72,0.32,0.12]},
+    sigh:{f:[600,950,2350,3300],q:[8,10,18,20],g:[0.55,0.35,0.14,0.06]},
+    gasp:{f:[850,1350,2700,3600],q:[6,7,10,12],g:[0.90,0.50,0.20,0.08]},
+    ee:{f:[310,2100,2800,3400],q:[10,14,22,22],g:[0.75,0.65,0.30,0.12]},
+    uh:{f:[520,1200,2500,3400],q:[8,10,18,20],g:[0.65,0.40,0.16,0.06]},
+    nasal:{f:[320,1050,2300,3200],q:[14,14,24,24],g:[0.50,0.30,0.12,0.05]},
+    growl:{f:[420,850,2300,3100],q:[7,9,14,16],g:[0.70,0.45,0.18,0.07]},
+    wowOpen:{f:[750,1050,2500,3400],q:[10,12,22,24],g:[1.00,0.70,0.30,0.12]},
+    wowClose:{f:[320,2100,2600,3400],q:[10,14,22,24],g:[0.70,0.55,0.22,0.09]},
+    creak:{f:[380,1050,2400,3300],q:[8,10,16,18],g:[0.45,0.28,0.12,0.05]},
+  },
+  B:{
+    silent:{f:[310,1050,2600,3900],q:[8,9,20,22],g:[0,0,0,0]},
+    mm:{f:[300,1080,2500,3800],q:[12,12,22,24],g:[0.65,0.38,0.16,0.07]},
+    breath:{f:[550,1200,2600,3800],q:[5,6,8,10],g:[0.22,0.12,0.07,0.03]},
+    oh:{f:[530,920,2600,3800],q:[10,12,22,24],g:[0.80,0.50,0.20,0.09]},
+    ah:{f:[820,1220,2700,3900],q:[10,13,24,25],g:[0.95,0.65,0.28,0.11]},
+    peak:{f:[850,1280,2750,3900],q:[9,12,22,24],g:[0.95,0.68,0.30,0.12]},
+    sigh:{f:[650,1000,2500,3600],q:[8,10,18,20],g:[0.50,0.30,0.12,0.05]},
+    gasp:{f:[920,1400,2900,3900],q:[6,7,10,12],g:[0.85,0.48,0.18,0.07]},
+    ee:{f:[360,2300,3000,3900],q:[10,14,22,22],g:[0.70,0.60,0.28,0.11]},
+    uh:{f:[580,1300,2700,3800],q:[8,10,18,20],g:[0.60,0.38,0.14,0.05]},
+    nasal:{f:[350,1150,2500,3700],q:[14,14,24,24],g:[0.45,0.28,0.10,0.04]},
+    growl:{f:[480,920,2500,3600],q:[7,9,14,16],g:[0.65,0.40,0.16,0.06]},
+    wowOpen:{f:[820,1150,2700,3900],q:[10,12,22,24],g:[0.95,0.65,0.28,0.11]},
+    wowClose:{f:[360,2300,2800,3900],q:[10,14,22,24],g:[0.65,0.50,0.20,0.08]},
+    creak:{f:[430,1150,2600,3700],q:[8,10,16,18],g:[0.40,0.25,0.10,0.04]},
+  },
+};
+
+function lerpFmt(a,b,t){
+  return{f:a.f.map((v,i)=>lerp(v,b.f[i],t)),q:a.q.map((v,i)=>lerp(v,b.q[i],t)),g:a.g.map((v,i)=>lerp(v,b.g[i],t))};
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  VOCAL CRR ENGINE; 10 CONTOUR TYPES
+// ═══════════════════════════════════════════════════════════════════════
+
+const voiceState={
+  A:{breath:0,moanCount:0,vocalType:'moan',crescendo:0,crescendoWave:0,pitchInterval:1},
+  B:{breath:0.42,moanCount:0,vocalType:'moan',crescendo:0,crescendoWave:0,pitchInterval:1},
+};
+
+function contourMoan(p,int,vowel,label,mc){
+  const j=Math.sin(mc*φ*7.3)*0.03*int;
+  const inhE=0.22+j,onE=0.30+j,risE=0.52+j*0.5,pkE=0.66-j*0.3,flE=0.84;
+  const fmt=FMT[label];
+  let ve,ps,ft,asp,hv,sub=0,am=0;
+  if(p<inhE){ve=0.02;ps=0;ft=fmt.mm;asp=Math.sin(p/inhE*π)*0.6;hv=0;}
+  else if(p<onE){const t=Math.pow((p-inhE)/(onE-inhE),0.7);ve=t*0.5;ps=t*0.04;ft=lerpFmt(fmt.mm,fmt.breath,t);asp=0.3*(1-t);hv=0;}
+  else if(p<risE){const t=ss((p-onE)/(risE-onE));ve=0.5+t*0.45;ps=0.04+t*int*0.18;ft=lerpFmt(fmt.breath,fmt[vowel]||fmt.ah,t);asp=0.05+t*0.08;hv=int>0.4?(int-0.4)*t*0.5:0;}
+  else if(p<pkE){const t=(p-risE)/(pkE-risE);ve=0.95+0.05*Math.sin(t*π);ps=int*0.22;const pv=int>0.75?'peak':vowel==='silent'?'mm':vowel;ft=fmt[pv]||fmt.ah;asp=0.10+int*0.06;hv=int>0.35?(int-0.35)*0.7:0;sub=int>0.6?(int-0.6)*0.4:0;
+    if(int>0.8&&t>0.3&&t<0.7&&Math.sin(mc*13.7+t*φ*11)>0.6){ps+=0.08;hv=Math.min(1,hv+0.2);}
+  }
+  else if(p<flE){const t=ss((p-pkE)/(flE-pkE));ve=0.95-t*0.55;ps=int*0.22*(1-t*0.85);ft=lerpFmt(fmt[vowel]||fmt.ah,fmt.oh,t*0.7);asp=0.08*(1-t*0.3);hv=int>0.35?(int-0.35)*0.5*(1-t):0;}
+  else{const t=ss((p-flE)/(1-flE));ve=0.40*(1-t*0.9);ps=int*0.03*(1-t);ft=lerpFmt(fmt.oh,fmt.sigh,t);asp=0.15+t*0.3;hv=0;}
+  return{voiceEnv:ve,pitchSweep:ps,formantTarget:ft,aspiration:asp,headVoice:hv,subHarm:sub,amTremor:am};
+}
+
+function contourGasp(p,int,vowel,label,mc){
+  // Wonder-gasp; intake of surprise/delight, not distress
+  const fmt=FMT[label];let ve,ps,ft,asp,hv=0,sub=0,am=0;
+  if(p<0.08){const t=p/0.08;ve=0.01;ps=0;ft=lerpFmt(fmt.mm,fmt.oh,Math.pow(t,0.3));asp=Math.pow(t,0.3)*0.55;}
+  else if(p<0.25){const t=(p-0.08)/0.17;ve=ss(t)*0.55;ps=int*0.16;ft=lerpFmt(fmt.oh,fmt.ah,t*0.5);asp=0.3*(1-t*0.6);hv=int>0.3?0.30:0;}
+  else if(p<0.50){const t=ss((p-0.25)/0.25);ve=0.55*(1-t*0.5);ps=int*0.16*(1-t);ft=lerpFmt(fmt.ah,fmt.oh,t);asp=0.12*(1-t*0.5);}
+  else{const t=ss((p-0.50)/0.50);ve=0.28*(1-t*0.9);ps=0;ft=lerpFmt(fmt.oh,fmt.sigh,t);asp=0.15+t*0.12;}
+  return{voiceEnv:ve,pitchSweep:ps,formantTarget:ft,aspiration:asp,headVoice:hv,subHarm:sub,amTremor:am};
+}
+
+function contourCry(p,int,vowel,label,mc){
+  // Ecstatic cry; soaring, open, joyful rather than distressed
+  // CRR micro-cycle preserved: build → peak → release
+  const fmt=FMT[label];let ve,ps,ft,asp,hv=0,sub=0,am=0;
+  if(p<0.15){const t=p/0.15;ve=0.02;ps=0;ft=fmt.mm;asp=Math.sin(t*π)*0.3;}
+  else if(p<0.28){const t=ss((p-0.15)/0.13);ve=t*0.75;ps=t*int*0.18;ft=lerpFmt(fmt.mm,fmt.oh,t);asp=0.08*(1-t);hv=t*0.45;}
+  else if(p<0.75){const t=(p-0.28)/0.47;const tr=Math.sin(t*π*4)*0.03+Math.sin(t*π*3.2*φ)*0.02;ve=0.75+tr*int+0.15*Math.sin(t*π);ps=int*0.18+tr*0.25*int;ft=lerpFmt(fmt.oh,fmt[int>0.7?'ah':'oh'],Math.sin(t*π)*0.6);asp=0.04+int*0.03;hv=0.45+int*0.35;sub=0;am=0.04+int*0.03;}
+  else{const t=ss((p-0.75)/0.25);ve=0.80*(1-t*0.75);ps=int*0.14*(1-t);ft=lerpFmt(fmt.oh,fmt.sigh,t);asp=0.06+t*0.15;hv=0.4*(1-t);}
+  return{voiceEnv:ve,pitchSweep:ps,formantTarget:ft,aspiration:asp,headVoice:hv,subHarm:sub,amTremor:am};
+}
+
+function contourWhimper(p,int,vowel,label,mc){
+  // Tender murmur; soft, repeated gentle vocalisations
+  const fmt=FMT[label];const n=2+Math.floor(int*2);const sp=(p*n)%1;
+  let ve,ps,ft,asp,hv=0,sub=0,am=0;
+  if(sp<0.15){ve=0.02;ps=int*0.04;ft=fmt.mm;asp=0.18;}
+  else if(sp<0.35){const t=ss((sp-0.15)/0.20);ve=t*0.32;ps=int*0.04+t*int*0.03;ft=lerpFmt(fmt.mm,fmt.oh,t*0.4);asp=0.08*(1-t);hv=0.10;}
+  else if(sp<0.60){ve=0.30+0.04*Math.sin(((sp-0.35)/0.25)*π);ps=int*0.07;ft=lerpFmt(fmt.oh,fmt.mm,((sp-0.35)/0.25)*0.25);asp=0.04;hv=0.08;}
+  else{const t=ss((sp-0.60)/0.40);ve=0.30*(1-t*0.85);ps=int*0.04*(1-t);ft=fmt.mm;asp=0.06+t*0.08;}
+  return{voiceEnv:ve,pitchSweep:ps,formantTarget:ft,aspiration:asp,headVoice:hv,subHarm:sub,amTremor:am};
+}
+
+function contourGrowl(p,int,vowel,label,mc){
+  // Warm, deep satisfied hum; like a contented purr, not menace
+  const fmt=FMT[label];let ve,ps,ft,asp,hv=0,sub=0,am=0;
+  if(p<0.18){const t=p/0.18;ve=0.02;ps=-0.04*int;ft=fmt.mm;asp=Math.sin(t*π)*0.25;}
+  else if(p<0.30){const t=ss((p-0.18)/0.12);ve=t*0.50;ps=-0.04*int;ft=lerpFmt(fmt.mm,fmt.oh,t);asp=0.12*(1-t);sub=t*0.20;}
+  else if(p<0.75){const t=(p-0.30)/0.45;ve=0.50+Math.sin(t*π*4)*0.02*int;ps=-0.04*int+t*int*0.04;ft=lerpFmt(fmt.oh,fmt.uh,Math.sin(t*π)*0.3);asp=0.05;sub=0.20+int*0.12;am=0.06;}
+  else{const t=ss((p-0.75)/0.25);ve=0.50*(1-t*0.8);ps=-0.04*int*(1-t);ft=lerpFmt(fmt.uh,fmt.mm,t);asp=0.06+t*0.10;sub=0.20*(1-t);am=0.03*(1-t);}
+  return{voiceEnv:ve,pitchSweep:ps,formantTarget:ft,aspiration:asp,headVoice:hv,subHarm:sub,amTremor:am};
+}
+
+function contourWow(p,int,vowel,label,mc){
+  const fmt=FMT[label];let ve,ps,ft,asp,hv=0,sub=0,am=0;
+  if(p<0.15){const t=p/0.15;ve=0.02;ps=0;ft=fmt.wowClose;asp=Math.sin(t*π)*0.5;}
+  else if(p<0.28){const t=ss((p-0.15)/0.13);ve=t*0.78;ps=t*int*0.14;ft=lerpFmt(fmt.wowClose,fmt.wowOpen,t);asp=0.15*(1-t);}
+  else if(p<0.48){ve=0.78+0.18*Math.sin(((p-0.28)/0.20)*π);ps=int*0.16;ft=fmt.wowOpen;asp=0.06;hv=int>0.4?(int-0.4)*0.3:0;}
+  else if(p<0.65){const t=ss((p-0.48)/0.17);ve=0.82*(1-t*0.15);ps=int*0.16*(1-t*0.4);ft=lerpFmt(fmt.wowOpen,fmt.wowClose,t);asp=0.05+t*0.05;}
+  else if(p<0.80){const t=(p-0.65)/0.15;if(int>0.5){const tS=Math.sin(t*π);ve=0.55*tS;ps=int*0.10*tS;ft=lerpFmt(fmt.wowClose,fmt.wowOpen,tS*0.6);asp=0.08;}
+    else{const tX=ss(t);ve=0.65*(1-tX*0.6);ps=int*0.08*(1-tX);ft=lerpFmt(fmt.wowClose,fmt.oh,tX);asp=0.10;}}
+  else{const t=ss((p-0.80)/0.20);ve=0.30*(1-t*0.85);ps=0;ft=lerpFmt(fmt.oh,fmt.sigh,t);asp=0.15+t*0.25;}
+  return{voiceEnv:ve,pitchSweep:ps,formantTarget:ft,aspiration:asp,headVoice:hv,subHarm:sub,amTremor:am};
+}
+
+function contourPant(p,int,vowel,label,mc){
+  // Gentle excited breathing; warm, not hyperventilating
+  const fmt=FMT[label];const n=2+Math.floor(int*0.5);const sp=(p*n)%1;
+  let ve,ps,ft,asp,hv=0,sub=0,am=0;
+  if(sp<0.30){const t=sp/0.30;ve=0.03;ps=0;ft=fmt.breath;asp=Math.sin(t*π)*0.45;}
+  else if(sp<0.50){const t=ss((sp-0.30)/0.20);ve=t*0.28;ps=int*0.04;ft=lerpFmt(fmt.breath,fmt.oh,t*0.4);asp=0.18*(1-t*0.5);}
+  else{const t=ss((sp-0.50)/0.50);ve=0.28*(1-t*0.9);ps=int*0.02*(1-t);ft=lerpFmt(fmt.oh,fmt.breath,t);asp=0.15+t*0.18;}
+  return{voiceEnv:ve,pitchSweep:ps,formantTarget:ft,aspiration:asp,headVoice:hv,subHarm:sub,amTremor:am};
+}
+
+function contourShudder(p,int,vowel,label,mc){
+  // Gentle shiver; soft trembling pleasure, not harsh gating
+  const fmt=FMT[label];
+  const tHz=2.8+int*0.8;const tremor=Math.sin(p*τ*tHz/Math.max(0.05,curBreathRate));
+  const gate=0.55+0.45*Math.max(0,tremor); // soft gating, never fully off
+  let ve,ps,ft,asp,hv=0,sub=0,am=0;
+  if(p<0.10){ve=0.02;ps=0;ft=fmt.breath;asp=0.25;am=0;}
+  else if(p<0.25){const t=ss((p-0.10)/0.15);ve=t*0.35*gate;ps=int*0.05*gate;ft=lerpFmt(fmt.breath,fmt.oh,t);asp=0.15*(1-t*0.4);am=0.06;}
+  else if(p<0.80){const t=(p-0.25)/0.55;ve=(0.30+0.08*Math.sin(t*π))*gate;ps=int*0.05+Math.sin(p*τ*tHz*0.7/Math.max(0.05,curBreathRate))*int*0.02;ft=lerpFmt(fmt.oh,fmt.sigh,(0.5+0.5*tremor)*0.35);asp=0.08+0.04*(1-gate);am=0.08+int*0.04;sub=int*0.08;}
+  else{const t=ss((p-0.80)/0.20);ve=0.25*(1-t*0.85)*gate;ps=int*0.02*(1-t);ft=lerpFmt(fmt.oh,fmt.sigh,t);asp=0.10+t*0.18;am=0.04*(1-t);}
+  return{voiceEnv:ve,pitchSweep:ps,formantTarget:ft,aspiration:asp,headVoice:hv,subHarm:sub,amTremor:am};
+}
+
+function contourSigh(p,int,vowel,label,mc){
+  const fmt=FMT[label];let ve,ps,ft,asp,hv=0,sub=0,am=0;
+  if(p<0.08){ve=0.01;ps=0;ft=fmt.breath;asp=Math.sin(p/0.08*π)*0.45;}
+  else if(p<0.20){const t=ss((p-0.08)/0.12);ve=t*0.40;ps=int*0.08;ft=lerpFmt(fmt.breath,fmt.oh,t*0.6);asp=0.35*(1-t*0.3);hv=t*0.15;}
+  else if(p<0.55){const t=(p-0.20)/0.35;ve=0.40-t*0.12;ps=int*0.08*(1-t*0.9);ft=lerpFmt(fmt.oh,fmt.sigh,t*0.7);asp=0.20+t*0.10;hv=0.15*(1-t*0.7);}
+  else{const t=ss((p-0.55)/0.45);ve=0.28*(1-t*0.88);ps=int*0.01*(1-t);ft=lerpFmt(fmt.sigh,fmt.mm,t*0.5);asp=0.30+t*0.25;}
+  return{voiceEnv:ve,pitchSweep:ps,formantTarget:ft,aspiration:asp,headVoice:hv,subHarm:sub,amTremor:am};
+}
+
+function contourCoo(p,int,vowel,label,mc){
+  const fmt=FMT[label];const n=2;const sp=(p*n)%1;const which=Math.floor(p*n);
+  let ve,ps,ft,asp,hv=0,sub=0,am=0;
+  if(sp<0.12){ve=0.02;ps=0;ft=fmt.mm;asp=0.20;}
+  else if(sp<0.30){const t=ss((sp-0.12)/0.18);ve=t*0.38;ps=t*int*0.05;ft=lerpFmt(fmt.mm,fmt.nasal,t*0.4);asp=0.10*(1-t);}
+  else if(sp<0.55){const t=(sp-0.30)/0.25;const openAmt=0.3+which*0.15;ve=0.35+0.08*Math.sin(t*π);ps=int*0.05+t*int*0.03;ft=lerpFmt(fmt.nasal,fmt.oh,Math.sin(t*π)*openAmt);asp=0.06;hv=int>0.2?0.08:0;}
+  else if(sp<0.75){const t=ss((sp-0.55)/0.20);ve=0.35*(1-t*0.3);ps=int*0.06*(1-t*0.5);ft=lerpFmt(fmt.oh,fmt.mm,t*0.6);asp=0.08+t*0.05;}
+  else{const t=ss((sp-0.75)/0.25);ve=0.25*(1-t*0.8);ps=int*0.02*(1-t);ft=fmt.mm;asp=0.10+t*0.12;}
+  return{voiceEnv:ve,pitchSweep:ps,formantTarget:ft,aspiration:asp,headVoice:hv,subHarm:sub,amTremor:am};
+}
+
+function getContour(type,p,int,vowel,label,mc){
+  switch(type){
+    case'gasp':return contourGasp(p,int,vowel,label,mc);
+    case'cry':return contourCry(p,int,vowel,label,mc);
+    case'whimper':return contourWhimper(p,int,vowel,label,mc);
+    case'growl':return contourGrowl(p,int,vowel,label,mc);
+    case'wow':return contourWow(p,int,vowel,label,mc);
+    case'pant':return contourPant(p,int,vowel,label,mc);
+    case'shudder':return contourShudder(p,int,vowel,label,mc);
+    case'sigh':return contourSigh(p,int,vowel,label,mc);
+    case'coo':return contourCoo(p,int,vowel,label,mc);
+    default:return contourMoan(p,int,vowel,label,mc);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  SACRED GEOMETRY PARTICLES
+// ═══════════════════════════════════════════════════════════════════════
+
+const particles=[],MAX_P=300;
+const DNA_N=24;
+
+function spawnGeometryParticle(){
+  if(particles.length>=MAX_P||curK<0.02)return;
+  const fromL=Math.random()<0.5;
+  // Condense role during stage 7; particles flow inward to centre
+  const role=si===7?'condense':curOv<0.3?'orbit':curOv<0.7?'flow':curOv<0.95?'sacred':'helix';
+  particles.push({fromL,t:0,life:1.5+Math.random()*3,
+    angle:Math.random()*τ,speed:0.18+Math.random()*0.4,
+    size:0.4+Math.random()*1.8,type:Math.random()<0.32?'vascular':'neural',
+    role,phase:Math.random()*τ,orbitR:0.85+Math.random()*0.3});
+}
+
+function updateParticles(dt){
+  const rate=Math.max(curK,si>=7?0.3:0)*(10+curOv*8);
+  if(Math.random()<rate*dt)spawnGeometryParticle();
+  if(Math.random()<rate*dt*0.5)spawnGeometryParticle();
+  for(let i=particles.length-1;i>=0;i--){
+    particles[i].t+=dt*particles[i].speed;
+    if(particles[i].t>=particles[i].life)particles.splice(i,1);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MUSICAL CONSTANTS & AUDIO
+// ═══════════════════════════════════════════════════════════════════════
+
+// A MAJOR harmonic palette; CRR: major 3rd (5:4) has faster coherence than minor 3rd (6:5)
+const A2=110,Cs3=138.59,D3=146.83,E3=164.81,Fs3=185.00;
+const A3=220,B3=246.94,Cs4=277.18,E4=329.63,Fs4=369.99,A4=440;
+// Arpeggios: A major pentatonic (A B C# E F#); warm, open, luminous
+const ARP=[[A2],[A2,E3],[A2,Cs3,E3,A3],[A2,Cs3,E3,Fs3,A3,B3],
+  [A3,Fs3,E3,Cs3,A2,E3,Fs3,A3],[A2,Cs3,E3,Fs3,A3,B3,Cs4,E4,Fs4,A4],
+  [A4,E4,Cs4,A3,Fs3,E3,Cs3,A2],[A3,E3,Cs3,A2],[A2,E3],[A2]];
+// Pad chords: A major → D major/A (IV) → A major → return to pure 5ths
+const CHORDS=[[110,110,164.81,164.81,220,220],[110,138.59,164.81,220,220,329.63],
+  [110,138.59,164.81,220,277.18,329.63],[110,146.83,185.00,220,293.66,369.99],
+  [110,138.59,164.81,220,329.63,440],[110,164.81,220,277.18,329.63,440],
+  [55,110,138.59,164.81,220,277.18],[55,110,164.81,220,220,329.63],
+  [55,110,138.59,164.81,220,220],[55,82.41,110,110,164.81,164.81]];
+
+let ac=null,masterGain,compressor,limiter;
+let reverbConv,reverbGain,delayL,delayR,delayGL,delayGR;
+let echoReverb,echoReverbGain;
+let noiseBuf=null;
+
+function mkNoise(c,dur){
+  const len=c.sampleRate*dur|0,buf=c.createBuffer(2,len,c.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;}
+  return buf;
+}
+
+function mkReverb(c,dur,warmth){
+  const sr=c.sampleRate,len=sr*dur|0,buf=c.createBuffer(2,len,sr);
+  for(let ch=0;ch<2;ch++){
+    const d=buf.getChannelData(ch);
+    for(let i=0;i<len;i++){
+      const t=i/sr;
+      const e1=t<0.08?Math.sin(t*τ*80/(ch+1))*Math.exp(-t*30)*0.12:0;
+      const e2=t<0.15?Math.sin(t*τ*55*(ch+1.3))*Math.exp(-t*20)*0.08:0;
+      const e3=t<0.25?Math.sin(t*τ*33/(ch+0.7))*Math.exp(-t*12)*0.06:0;
+      d[i]=((Math.random()*2-1)*0.22+e1+e2+e3)*Math.exp(-t*π*warmth);
+    }
+  }
+  const conv=c.createConvolver();conv.buffer=buf;return conv;
+}
+
+const aud={
+  heartOsc:[null,null],heartG:[null,null],heartSub:[null,null],heartSubG:[null,null],
+  notes:[],noteIdx:0,arpPos:[0,0],
+  pad:[],padFlt:null,padG:null,
+  voiceA:null,voiceB:null,
+  breathSrc:null,breathFlt:null,breathG:null,
+  neuralL:null,neuralR:null,neuralGL:null,neuralGR:null,
+  shimmer:[],shimmerG:null,
+  cosmicDrone:[],cosmicBus:null,cosmicG:null,cosmicFlt:null,
+  subBass:null,subBassG:null,
+  bowlOscs:[],bowlG:null,
+  babyCryOsc:null,babyCryG:null,babyCryFmts:[], // baby cry voice
+  babyHeartOsc:null,babyHeartG:null, // baby heartbeat
+  bloomOscs:[],
+};
+
+const NOTE_POOL=10;
+
+function mkGlottalWave(c){
+  const N=64,real=new Float32Array(N),imag=new Float32Array(N);
+  for(let n=1;n<N;n++){imag[n]=(n%2===0?0.82:1.0)/Math.pow(n,1.15);}
+  return c.createPeriodicWave(real,imag,{disableNormalization:false});
+}
+
+function createVoice(f0,label){
+  const glotWave=mkGlottalWave(ac);
+  const glot1=ac.createOscillator();glot1.setPeriodicWave(glotWave);glot1.frequency.value=f0;
+  const glot2=ac.createOscillator();glot2.setPeriodicWave(glotWave);glot2.frequency.value=f0*1.003;
+  const gG1=ac.createGain();gG1.gain.value=0;
+  const gG2=ac.createGain();gG2.gain.value=0;
+  const sub=ac.createOscillator();sub.type='sine';sub.frequency.value=f0/2;
+  const gSub=ac.createGain();gSub.gain.value=0;
+  const head1=ac.createOscillator();head1.type='sine';head1.frequency.value=f0*2;
+  const head2=ac.createOscillator();head2.type='sine';head2.frequency.value=f0*2*1.002;
+  const gHead1=ac.createGain();gHead1.gain.value=0;
+  const gHead2=ac.createGain();gHead2.gain.value=0;
+  const bright=ac.createOscillator();bright.type='sine';bright.frequency.value=f0*3;
+  const gBright=ac.createGain();gBright.gain.value=0;
+  const fry=ac.createOscillator();fry.setPeriodicWave(glotWave);fry.frequency.value=f0*0.25;
+  const gFry=ac.createGain();gFry.gain.value=0;
+
+  const glotMix=ac.createGain();glotMix.gain.value=1;
+  glot1.connect(gG1);gG1.connect(glotMix);
+  glot2.connect(gG2);gG2.connect(glotMix);
+  sub.connect(gSub);gSub.connect(glotMix);
+  head1.connect(gHead1);gHead1.connect(glotMix);
+  head2.connect(gHead2);gHead2.connect(glotMix);
+  bright.connect(gBright);gBright.connect(glotMix);
+  fry.connect(gFry);gFry.connect(glotMix);
+
+  const formantSum=ac.createGain();formantSum.gain.value=1;
+  const formants=[];
+  for(let i=0;i<4;i++){
+    const bp=ac.createBiquadFilter();bp.type='bandpass';
+    bp.frequency.value=FMT[label].silent.f[i];bp.Q.value=8;
+    const fg=ac.createGain();fg.gain.value=0;
+    glotMix.connect(bp);bp.connect(fg);fg.connect(formantSum);
+    formants.push({bp,fg});
+  }
+  const warmthBp=ac.createBiquadFilter();warmthBp.type='bandpass';warmthBp.frequency.value=1700;warmthBp.Q.value=3;
+  const warmthG=ac.createGain();warmthG.gain.value=0;
+  glotMix.connect(warmthBp);warmthBp.connect(warmthG);warmthG.connect(formantSum);
+
+  const aspSrc=ac.createBufferSource();aspSrc.buffer=noiseBuf;aspSrc.loop=true;
+  const aspG=ac.createGain();aspG.gain.value=0;
+  aspSrc.connect(aspG);for(let i=0;i<4;i++)aspG.connect(formants[i].bp);aspG.connect(warmthBp);
+
+  const vibLFO=ac.createOscillator();vibLFO.type='sine';vibLFO.frequency.value=4.8;
+  const vibG=ac.createGain();vibG.gain.value=0;
+  vibLFO.connect(vibG);vibG.connect(glot1.frequency);vibG.connect(glot2.frequency);
+  vibG.connect(head1.frequency);vibG.connect(head2.frequency);vibG.connect(bright.frequency);
+
+  const amLFO=ac.createOscillator();amLFO.type='sine';amLFO.frequency.value=0.4;
+  const amG=ac.createGain();amG.gain.value=0;
+  const amNode=ac.createGain();amNode.gain.value=1;
+  amLFO.connect(amG);amG.connect(amNode.gain);formantSum.connect(amNode);
+
+  const pan=ac.createStereoPanner?ac.createStereoPanner():ac.createGain();
+  if(pan.pan)pan.pan.value=label==='A'?-0.4:0.4;
+
+  const master=ac.createGain();master.gain.value=0;
+  amNode.connect(master);master.connect(pan);
+
+  [glot1,glot2,sub,head1,head2,bright,fry,aspSrc,vibLFO,amLFO].forEach(s=>s.start());
+
+  return{glot1,glot2,sub,head1,head2,bright,fry,gG1,gG2,gSub,gHead1,gHead2,gBright,gFry,
+    glotMix,formants,formantSum,warmthBp,warmthG,aspSrc,aspG,vibLFO,vibG,amLFO,amG,amNode,
+    pan,master,f0,label,basePitch:f0};
+}
+
+// ── BABY CRY SYNTHESIS ──────────────────────────────────────────────
+// f₀ ≈ 440 Hz (8 cm neonatal vocal tract, quarter-wavelength resonance)
+// Neonatal formants: F1≈1100, F2≈3200, F3≈5000, F4≈7000
+// Cry pattern: 1-2s burst with warbling pitch, brief pause, repeat
+// Very high subglottal pressure, breathy-tense phonation
+// This is the system's FIRST δ(now); never before has this oscillator ruptured
+
+function createBabyCry(){
+  // ── NEONATAL CRY SYNTHESIS; CRR micro-cycles ──────────────────
+  // Each cry burst IS a C→δ→R cycle:
+  //   C phase (0-10%): inhale builds subglottal pressure (silence→noise)
+  //   δ (10-15%): phonation onset; sharp glottal attack, pitch jumps to peak
+  //   R phase (15-100%): pitch descends as system regenerates, volume decreases
+  //
+  // f₀ ≈ 400-550 Hz (8cm neonatal vocal tract, quarter-wavelength resonance)
+  // Neonatal formants: F1≈1100, F2≈3200, F3≈5000, F4≈7000
+  // Subharmonics from immature vocal fold coupling (period doubling)
+  // 2-3 Hz diaphragmatic tremor
+  // Phonation breaks at peak intensity (glottal slam)
+
+  const glotWave=mkGlottalWave(ac);
+  // Main glottal pair; slightly detuned for immature fold asymmetry
+  const osc1=ac.createOscillator();osc1.setPeriodicWave(glotWave);osc1.frequency.value=440;
+  const osc2=ac.createOscillator();osc2.setPeriodicWave(glotWave);osc2.frequency.value=443;
+  const g1=ac.createGain();g1.gain.value=0;
+  const g2=ac.createGain();g2.gain.value=0;
+  osc1.connect(g1);osc2.connect(g2);
+
+  // Subharmonic; period doubling from immature folds
+  // Neonatal vocal folds are ~2.5mm, irregular mass distribution causes
+  // subharmonic regime: f₀/2 component adds that characteristic roughness
+  const subH=ac.createOscillator();subH.setPeriodicWave(glotWave);subH.frequency.value=220;
+  const gSub=ac.createGain();gSub.gain.value=0;
+  subH.connect(gSub);
+
+  // Second harmonic emphasis; newborns have strong H2
+  const h2=ac.createOscillator();h2.type='sine';h2.frequency.value=880;
+  const gH2=ac.createGain();gH2.gain.value=0;
+  h2.connect(gH2);
+
+  const mix=ac.createGain();mix.gain.value=1;
+  g1.connect(mix);g2.connect(mix);gSub.connect(mix);gH2.connect(mix);
+
+  // Neonatal formants; 8cm vocal tract
+  const fmtFreqs=[1100,3200,5000,7000];
+  const fmtQs=[8,10,12,14];
+  const fmtBaseGs=[0.90,0.55,0.28,0.12];
+  const fmts=[];
+  const sum=ac.createGain();sum.gain.value=1;
+  for(let i=0;i<4;i++){
+    const bp=ac.createBiquadFilter();bp.type='bandpass';
+    bp.frequency.value=fmtFreqs[i];bp.Q.value=fmtQs[i];
+    const fg=ac.createGain();fg.gain.value=fmtBaseGs[i];
+    mix.connect(bp);bp.connect(fg);fg.connect(sum);
+    fmts.push({bp,fg});
+  }
+
+  // Aspiration noise; neonatal cry has significant turbulence
+  // from incomplete glottal closure and turbulent airflow
+  const nSrc=ac.createBufferSource();nSrc.buffer=noiseBuf;nSrc.loop=true;
+  const nG=ac.createGain();nG.gain.value=0;
+  nSrc.connect(nG);for(let i=0;i<4;i++)nG.connect(fmts[i].bp);
+
+  // Vibrato/warble LFO; 5-7 Hz, characteristic of neonatal cry
+  const vib=ac.createOscillator();vib.type='sine';vib.frequency.value=5.5;
+  const vibG=ac.createGain();vibG.gain.value=0;
+  vib.connect(vibG);vibG.connect(osc1.frequency);vibG.connect(osc2.frequency);
+  vibG.connect(subH.frequency);vibG.connect(h2.frequency);
+
+  // Diaphragmatic tremor; 2.5 Hz amplitude modulation
+  const tremor=ac.createOscillator();tremor.type='sine';tremor.frequency.value=2.5;
+  const tremorG=ac.createGain();tremorG.gain.value=0;
+  const tremorNode=ac.createGain();tremorNode.gain.value=1;
+  tremor.connect(tremorG);tremorG.connect(tremorNode.gain);
+  sum.connect(tremorNode);
+
+  const master=ac.createGain();master.gain.value=0;
+  tremorNode.connect(master);
+
+  [osc1,osc2,subH,h2,nSrc,vib,tremor].forEach(s=>s.start());
+
+  aud.babyCryOsc={osc1,osc2,subH,h2,g1,g2,gSub,gH2,nG,vib,vibG,tremorG,fmts,master};
+  aud.babyCryG=master;
+  master.connect(masterGain);master.connect(reverbConv); // room reverb
+
+  // Baby heartbeat; ~140 bpm
+  const bh=ac.createOscillator();bh.type='sine';bh.frequency.value=70;
+  const bhg=ac.createGain();bhg.gain.value=0;
+  bh.connect(bhg);bhg.connect(masterGain);bh.start();
+  aud.babyHeartOsc=bh;aud.babyHeartG=bhg;
+}
+
+function triggerBabyCry(){
+  if(!ac||babyCried)return;
+  babyCried=true;babyCryTime=gT;
+  babyHeart.active=true;
+  const fl=document.getElementById('flash');
+  fl.style.transition='opacity .1s linear';fl.style.opacity='0.65';
+  setTimeout(()=>{fl.style.transition='opacity 3s ease';fl.style.opacity='0';},120);
+  triggerBowl();
+}
+
+function updateBabyCry(){
+  if(!babyCried||!ac)return;
+  const now=ac.currentTime;
+  const elapsed=gT-babyCryTime;
+  const cry=aud.babyCryOsc;
+
+  // ── CRR MICRO-CYCLE PER CRY BURST ──
+  // Each cry-silence pair = one C→δ→R cycle
+  //   Silence = C accumulation (inhale, subglottal pressure builds)
+  //   Cry onset = δ(now) (phonation rupture)
+  //   Cry body+fall = R (regeneration, pitch descends, system recovers)
+  //
+  // Cycle length varies per burst (CV ≈ 0.159, the Z₂ prediction)
+  const cryNum=Math.floor(elapsed/2.2);
+  // Each cry has slightly different timing; hash-based variation
+  // CV ≈ 0.159 means σ/μ ≈ 0.159, so for μ=2.2s, σ≈0.35s
+  const thisCycleLen=2.2+Math.sin(cryNum*7.3+0.5)*0.35;
+  const inCycle=elapsed%thisCycleLen;
+  const cryDur=thisCycleLen*0.65; // 65% crying, 35% silence (C accumulation)
+  const isCrying=inCycle<cryDur;
+
+  // Progressive calming; baby adapts, each cry quieter
+  const calmFactor=Math.max(0.08,1-cryNum*0.10);
+
+  if(isCrying){
+    const cp=inCycle/cryDur; // 0→1 within cry burst
+
+    // ── PITCH CONTOUR: the CRR shape ──
+    // C→δ: pitch rises sharply (0→15%); tension building, then snapping to phonation
+    // δ: peak pitch (~500 Hz) at 15%
+    // R: pitch descends (15→100%); regeneration, system returning to rest
+    // Each cry starts at slightly different base (immature pitch control)
+    const basePitch=420+Math.sin(cryNum*3.7+1.2)*35; // 385-455 Hz range
+    let pitchMod;
+    if(cp<0.04){
+      pitchMod=0.85+cp/0.04*0.15; // pre-phonation: sub-threshold, quiet
+    } else if(cp<0.15){
+      // δ(now); sharp rise to peak
+      const t=(cp-0.04)/0.11;
+      pitchMod=1.0+t*0.22; // rises ~22% above base
+    } else if(cp<0.35){
+      // Post-rupture plateau with warble
+      const t=(cp-0.15)/0.20;
+      pitchMod=1.22-t*0.08; // slight descent from peak
+    } else {
+      // R phase; descending pitch, system regenerating
+      const t=(cp-0.35)/0.65;
+      pitchMod=1.14*(1-t*0.25); // gradual pitch descent
+    }
+    const f0=basePitch*pitchMod;
+
+    // Warble: 5-7 Hz modulation, stronger at peak, weaker during R
+    const warbleDepth=cp<0.15?8:cp<0.35?15+calmFactor*10:10*(1-cp);
+    cry.vibG.gain.setTargetAtTime(warbleDepth,now,0.02);
+    cry.vib.frequency.setTargetAtTime(sF(5.5+Math.sin(cryNum*2.1)*1),now,0.05);
+
+    // Apply pitch to all oscillators
+    cry.osc1.frequency.setTargetAtTime(sF(f0),now,0.015);
+    cry.osc2.frequency.setTargetAtTime(sF(f0*1.007),now,0.015); // asymmetric folds
+    cry.subH.frequency.setTargetAtTime(sF(f0*0.502),now,0.02); // slight subharmonic detuning
+    cry.h2.frequency.setTargetAtTime(sF(f0*2),now,0.02);
+
+    // ── ENVELOPE: CRR-shaped ──
+    let env;
+    if(cp<0.04){
+      env=cp/0.04*0.15; // pre-phonation whisper
+    } else if(cp<0.08){
+      // δ(now); explosive onset
+      env=0.15+((cp-0.04)/0.04)*0.85;
+    } else if(cp<0.35){
+      // Sustained peak with tremor
+      const t=(cp-0.08)/0.27;
+      env=0.95+0.05*Math.sin(t*π*3);
+      // Gentle micro-variations instead of harsh glottal slams
+      if(calmFactor>0.5&&Math.sin(cp*τ*12+cryNum*5.3)>0.92)env*=0.65;
+    } else {
+      // R phase; gradual descent
+      const t=(cp-0.35)/0.65;
+      env=0.95*(1-t*0.75);
+    }
+
+    const gain=env*calmFactor*0.22;
+    cry.g1.gain.setTargetAtTime(sG(gain),now,0.008);
+    cry.g2.gain.setTargetAtTime(sG(gain*0.30),now,0.008);
+
+    // Subharmonic: gentler; less roughness
+    const subLevel=cp>0.35?gain*0.15*(cp-0.35)/0.65:gain*0.04;
+    cry.gSub.gain.setTargetAtTime(sG(subLevel),now,0.02);
+
+    // H2 emphasis; softer
+    cry.gH2.gain.setTargetAtTime(sG(gain*0.10*(cp<0.35?1:0.5)),now,0.02);
+
+    // Aspiration: reduced turbulence
+    const aspLevel=cp<0.08?gain*0.20:cp<0.35?gain*0.06:gain*0.10+cp*gain*0.06;
+    cry.nG.gain.setTargetAtTime(sG(aspLevel),now,0.015);
+
+    // Formant shifts; mouth opens wider at peak intensity
+    // F1 rises ~200 Hz at peak (jaw opening), returns during R
+    const f1Shift=cp<0.35?200*env:200*(1-((cp-0.35)/0.65));
+    cry.fmts[0].bp.frequency.setTargetAtTime(sF(1100+f1Shift),now,0.03);
+    cry.fmts[1].bp.frequency.setTargetAtTime(sF(3200+f1Shift*0.3),now,0.03);
+
+    // Diaphragmatic tremor; gentler
+    cry.tremorG.gain.setTargetAtTime(cp>0.08&&cp<0.6?0.05*calmFactor:0.01,now,0.05);
+
+    cry.master.gain.setTargetAtTime(sG(0.35*calmFactor),now,0.03);
+
+  } else {
+    // ── SILENCE = C ACCUMULATION ──
+    // The pause between cries. Inhale. Subglottal pressure rebuilds.
+    // Faint aspiration noise of the inhale at the start
+    const silP=(inCycle-cryDur)/(thisCycleLen-cryDur);
+    const inhaleNoise=silP<0.4?Math.sin(silP/0.4*π)*0.025*calmFactor:0;
+    cry.g1.gain.setTargetAtTime(0,now,0.03);
+    cry.g2.gain.setTargetAtTime(0,now,0.03);
+    cry.gSub.gain.setTargetAtTime(0,now,0.03);
+    cry.gH2.gain.setTargetAtTime(0,now,0.03);
+    cry.nG.gain.setTargetAtTime(sG(inhaleNoise),now,0.02);
+    cry.tremorG.gain.setTargetAtTime(0,now,0.05);
+    cry.master.gain.setTargetAtTime(sG(inhaleNoise>0?0.3:0),now,0.06);
+  }
+
+  // Baby heartbeat pulse
+  if(babyHeart.active){
+    aud.babyHeartG.gain.setTargetAtTime(sG(babyHeart.pulse*0.03),now,0.01);
+  }
+}
+
+function initAudio(){
+  ac=new(window.AudioContext||window.webkitAudioContext)();
+  noiseBuf=mkNoise(ac,3);
+
+  limiter=ac.createDynamicsCompressor();
+  limiter.threshold.value=-1;limiter.ratio.value=20;limiter.knee.value=0;
+  limiter.attack.value=0.001;limiter.release.value=0.05;
+  limiter.connect(ac.destination);
+
+  compressor=ac.createDynamicsCompressor();
+  compressor.threshold.value=-14;compressor.ratio.value=4;compressor.knee.value=10;
+  compressor.attack.value=0.005;compressor.release.value=0.15;
+  compressor.connect(limiter);
+
+  reverbConv=mkReverb(ac,11,0.45);
+  reverbGain=ac.createGain();reverbGain.gain.value=0.35;
+  reverbConv.connect(reverbGain);reverbGain.connect(limiter);
+
+  echoReverb=mkReverb(ac,16,0.22);
+  echoReverbGain=ac.createGain();echoReverbGain.gain.value=0;
+  const echoFilter=ac.createBiquadFilter();
+  echoFilter.type='lowpass';echoFilter.frequency.value=2200;echoFilter.Q.value=0.5;
+  echoReverb.connect(echoFilter);echoFilter.connect(echoReverbGain);echoReverbGain.connect(limiter);
+
+  delayL=ac.createDelay(2);delayL.delayTime.value=0.375;
+  delayR=ac.createDelay(2);delayR.delayTime.value=0.5;
+  delayGL=ac.createGain();delayGL.gain.value=0;
+  delayGR=ac.createGain();delayGR.gain.value=0;
+  const dPanL=ac.createStereoPanner?ac.createStereoPanner():ac.createGain();
+  const dPanR=ac.createStereoPanner?ac.createStereoPanner():ac.createGain();
+  if(dPanL.pan){dPanL.pan.value=-0.7;dPanR.pan.value=0.7;}
+  delayL.connect(delayGL);delayGL.connect(dPanL);dPanL.connect(limiter);
+  delayR.connect(delayGR);delayGR.connect(dPanR);dPanR.connect(limiter);
+  const fbL=ac.createGain();fbL.gain.value=0.22;
+  const fbR=ac.createGain();fbR.gain.value=0.22;
+  delayL.connect(fbR);fbR.connect(delayR);delayR.connect(fbL);fbL.connect(delayL);
+
+  masterGain=ac.createGain();masterGain.gain.value=0;
+  masterGain.connect(compressor);masterGain.connect(reverbConv);
+  masterGain.connect(delayL);masterGain.connect(delayR);
+
+  // Cosmic drone
+  aud.cosmicBus=ac.createGain();aud.cosmicBus.gain.value=1;
+  aud.cosmicG=ac.createGain();aud.cosmicG.gain.value=0;
+  aud.cosmicFlt=ac.createBiquadFilter();
+  aud.cosmicFlt.type='lowpass';aud.cosmicFlt.frequency.value=2800;aud.cosmicFlt.Q.value=0.4;
+  aud.cosmicBus.connect(aud.cosmicFlt);aud.cosmicFlt.connect(aud.cosmicG);
+  aud.cosmicG.connect(masterGain);
+  for(let n=1;n<=24;n++){
+    const o=ac.createOscillator();o.type=n<=4?'sine':n<=12?'triangle':'sine';
+    o.frequency.value=55*n;
+    const amp=B(n*rP/24)/Math.pow(n,0.6)*0.007;
+    const g=ac.createGain();g.gain.value=amp;o.detune.value=(Math.random()-0.5)*4;
+    const p=ac.createStereoPanner?ac.createStereoPanner():ac.createGain();
+    if(p.pan)p.pan.value=Math.sin(n*φ)*0.45;
+    o.connect(g);g.connect(p);p.connect(aud.cosmicBus);o.start();
+    aud.cosmicDrone.push({o,g,n,baseAmp:amp});
+  }
+
+  aud.subBass=ac.createOscillator();aud.subBass.type='sine';aud.subBass.frequency.value=27.5;
+  aud.subBassG=ac.createGain();aud.subBassG.gain.value=0;
+  aud.subBass.connect(aud.subBassG);aud.subBassG.connect(masterGain);aud.subBass.start();
+
+  // Tibetan bowl
+  aud.bowlG=ac.createGain();aud.bowlG.gain.value=0;aud.bowlG.connect(masterGain);
+  for(const ratio of[1,2.71,4.07,5.94]){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=164.81*ratio;
+    const g=ac.createGain();g.gain.value=0;o.connect(g);g.connect(aud.bowlG);o.start();
+    aud.bowlOscs.push({o,g,ratio});
+  }
+
+  // Hearts
+  for(let i=0;i<2;i++){
+    const hz=i===0?55:58;
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=hz;
+    const g=ac.createGain();g.gain.value=0;o.connect(g);g.connect(masterGain);o.start();
+    aud.heartOsc[i]=o;aud.heartG[i]=g;
+    const s=ac.createOscillator();s.type='sine';s.frequency.value=hz*2;
+    const sg=ac.createGain();sg.gain.value=0;s.connect(sg);sg.connect(masterGain);s.start();
+    aud.heartSub[i]=s;aud.heartSubG[i]=sg;
+  }
+
+  // Arpeggiator
+  for(let i=0;i<NOTE_POOL;i++){
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=220;
+    const h2=ac.createOscillator();h2.type='sine';h2.frequency.value=440;
+    const h3=ac.createOscillator();h3.type='sine';h3.frequency.value=660;
+    const g=ac.createGain();g.gain.value=0;
+    const g2=ac.createGain();g2.gain.value=0;
+    const g3=ac.createGain();g3.gain.value=0;
+    const pan=ac.createStereoPanner?ac.createStereoPanner():ac.createGain();
+    if(pan.pan)pan.pan.value=(i%2===0?-0.3:0.3)*(i<NOTE_POOL/2?1:0.6);
+    o.connect(g);g.connect(pan);pan.connect(masterGain);
+    h2.connect(g2);g2.connect(pan);h3.connect(g3);g3.connect(pan);
+    o.start();h2.start();h3.start();
+    aud.notes.push({o,h2,h3,g,g2,g3,pan});
+  }
+
+  // Pad
+  aud.padG=ac.createGain();aud.padG.gain.value=0;
+  aud.padFlt=ac.createBiquadFilter();aud.padFlt.type='lowpass';aud.padFlt.frequency.value=1200;aud.padFlt.Q.value=0.5;
+  aud.padFlt.connect(aud.padG);aud.padG.connect(masterGain);
+  for(let i=0;i<6;i++){
+    const o=ac.createOscillator();o.type='triangle';
+    o.frequency.value=CHORDS[0][i];o.detune.value=(i-2.5)*5;
+    const g=ac.createGain();g.gain.value=0.022;
+    o.connect(g);g.connect(aud.padFlt);o.start();aud.pad.push({o,g});
+  }
+
+  // Shimmer; harmonic series of A3 (220 Hz)
+  // CRR: integer-ratio overtones have finite coherence periods → B peaks naturally
+  // Golden ratio intervals have Ω→∞ at waveform scale, never cohere → eerie
+  aud.shimmerG=ac.createGain();aud.shimmerG.gain.value=0;
+  const shimPan=ac.createStereoPanner?ac.createStereoPanner():ac.createGain();
+  aud.shimmerG.connect(shimPan);shimPan.connect(masterGain);
+  const shimmerFreqs=[440, 554.37, 659.26, 880, 1108.73, 1318.51, 1760, 2217.46];
+  // A4, C#5(5/4), E5(3/2), A5, C#6, E6, A6, C#7; A major triad in harmonics
+  for(let n=0;n<8;n++){
+    const freq=shimmerFreqs[n];
+    const o=ac.createOscillator();o.type='sine';o.frequency.value=freq;
+    o.detune.value=(Math.random()-0.5)*3; // gentle chorus shimmer
+    const g=ac.createGain();g.gain.value=B(n*rP/8)/(n+1)*0.006;
+    o.connect(g);g.connect(aud.shimmerG);o.start();
+    aud.shimmer.push({o,g,baseFreq:freq});
+  }
+
+  // Voices
+  aud.voiceA=createVoice(110,'A');aud.voiceA.pan.connect(masterGain);aud.voiceA.pan.connect(echoReverb);
+  aud.voiceB=createVoice(220,'B');aud.voiceB.pan.connect(masterGain);aud.voiceB.pan.connect(echoReverb);
+
+  // Breath
+  aud.breathSrc=ac.createBufferSource();aud.breathSrc.buffer=noiseBuf;aud.breathSrc.loop=true;
+  aud.breathFlt=ac.createBiquadFilter();aud.breathFlt.type='bandpass';aud.breathFlt.frequency.value=500;aud.breathFlt.Q.value=0.4;
+  aud.breathG=ac.createGain();aud.breathG.gain.value=0;
+  aud.breathSrc.connect(aud.breathFlt);aud.breathFlt.connect(aud.breathG);aud.breathG.connect(masterGain);aud.breathSrc.start();
+
+  // Neural
+  aud.neuralL=ac.createOscillator();aud.neuralL.type='sine';aud.neuralL.frequency.value=220;
+  aud.neuralR=ac.createOscillator();aud.neuralR.type='sine';aud.neuralR.frequency.value=230;
+  aud.neuralGL=ac.createGain();aud.neuralGL.gain.value=0;
+  aud.neuralGR=ac.createGain();aud.neuralGR.gain.value=0;
+  const npL=ac.createStereoPanner?ac.createStereoPanner():ac.createGain();
+  const npR=ac.createStereoPanner?ac.createStereoPanner():ac.createGain();
+  if(npL.pan){npL.pan.value=-0.95;npR.pan.value=0.95;}
+  aud.neuralL.connect(aud.neuralGL);aud.neuralGL.connect(npL);npL.connect(masterGain);
+  aud.neuralR.connect(aud.neuralGR);aud.neuralGR.connect(npR);npR.connect(masterGain);
+  aud.neuralL.start();aud.neuralR.start();
+
+  // Baby cry
+  createBabyCry();
+
+  masterGain.gain.setTargetAtTime(0.72,ac.currentTime,2.0);
+}
+
+function triggerBowl(){
+  if(!ac)return;const now=ac.currentTime;
+  aud.bowlG.gain.setTargetAtTime(0.05,now,0.1);
+  aud.bowlG.gain.setTargetAtTime(0,now+6,2.0);
+  for(const b of aud.bowlOscs){
+    b.g.gain.cancelScheduledValues(now);b.g.gain.setValueAtTime(0,now);
+    b.g.gain.linearRampToValueAtTime(0.5/Math.pow(b.ratio,0.8),now+0.08);
+    b.g.gain.setTargetAtTime(0,now+0.5,1.5+b.ratio*0.3);
+  }
+}
+
+function triggerNote(freq,vel,dec){
+  if(!ac)return;const v=aud.notes[aud.noteIdx];aud.noteIdx=(aud.noteIdx+1)%NOTE_POOL;
+  const now=ac.currentTime;
+  v.o.frequency.setValueAtTime(sF(freq),now);v.h2.frequency.setValueAtTime(sF(freq*2),now);
+  v.h3.frequency.setValueAtTime(sF(freq*3),now);
+  v.g.gain.cancelScheduledValues(now);v.g.gain.setValueAtTime(0,now);
+  v.g.gain.linearRampToValueAtTime(sG(vel*0.065),now+0.01);
+  v.g.gain.exponentialRampToValueAtTime(0.0001,now+dec);
+  v.g2.gain.cancelScheduledValues(now);v.g2.gain.setValueAtTime(0,now);
+  v.g2.gain.linearRampToValueAtTime(sG(vel*0.018),now+0.015);
+  v.g2.gain.exponentialRampToValueAtTime(0.0001,now+dec*0.7);
+}
+
+function onBeat(hi){
+  if(!ac||si<1||si>=STAGES.length)return;
+  const idx=Math.min(si,ARP.length-1);
+  const pat=ARP[idx],beauty=B(rP*curOv);
+  if(si===5){for(let n=0;n<pat.length;n++)setTimeout(()=>triggerNote(pat[n],0.85+beauty*0.15,3.5+n*0.25),n*25);return;}
+  const pos=aud.arpPos[hi];
+  const off=hi===1?Math.round((1-curK)*pat.length*0.35):0;
+  const i=(pos+off)%pat.length;
+  let freq=pat[i];if(hi===1&&curK<0.4)freq*=2; // second heart plays octave above when uncoupled; always consonant
+  const vel=si<=1?0.25:0.35+beauty*0.5+hearts[hi].pulse*0.1;
+  const dec=si<=2?0.55:si<=4?0.8+beauty*0.5:1.8;
+  triggerNote(freq,Math.min(1,vel),dec);
+  aud.arpPos[hi]=(pos+1);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  VOICE UPDATE
+// ═══════════════════════════════════════════════════════════════════════
+
+function updateVoice(voice,targetVowel,intensity,vs){
+  if(!ac||!voice.master)return;
+  const now=ac.currentTime;const sm=0.05;
+  const mc=getContour(vs.vocalType,vs.breath,intensity,targetVowel,voice.label,vs.moanCount);
+  const crescMod=1+vs.crescendo*0.22;
+  const effInt=intensity*mc.voiceEnv*crescMod;
+  const baseInterval=vs.pitchInterval;
+  const targetF0=voice.basePitch*baseInterval;
+
+  voice.gG1.gain.setTargetAtTime(sG(effInt*0.52),now,0.02);
+  voice.gG2.gain.setTargetAtTime(sG(effInt*0.52*0.55),now,0.02);
+  voice.gBright.gain.setTargetAtTime(sG(effInt*0.12),now,0.03);
+  voice.bright.frequency.setTargetAtTime(sF(targetF0*3*(1+(mc.pitchSweep||0))),now,0.04);
+  const subBase=effInt>0.50?(effInt-0.50)/0.50*0.12:0;
+  voice.gSub.gain.setTargetAtTime(sG(subBase+(mc.subHarm||0)*effInt*0.12),now,0.05);
+  const fryLevel=vs.vocalType==='shudder'?effInt*0.04:vs.vocalType==='growl'?effInt*0.03:0;
+  voice.gFry.gain.setTargetAtTime(sG(fryLevel),now,0.04);
+  voice.fry.frequency.setTargetAtTime(sF(targetF0*0.25*(1+(mc.pitchSweep||0))),now,0.06);
+  const headGain=(mc.headVoice||0)*effInt*0.20;
+  voice.gHead1.gain.setTargetAtTime(sG(headGain),now,0.03);
+  voice.gHead2.gain.setTargetAtTime(sG(headGain*0.60),now,0.03);
+  const headF=targetF0*2*(1+(mc.pitchSweep||0)*1.2+effInt*0.12);
+  voice.head1.frequency.setTargetAtTime(sF(headF),now,0.06);
+  voice.head2.frequency.setTargetAtTime(sF(headF*1.002),now,0.06);
+
+  const fmt=mc.formantTarget;
+  for(let i=0;i<4;i++){
+    voice.formants[i].bp.frequency.setTargetAtTime(sF(fmt.f[i]),now,sm);
+    voice.formants[i].bp.Q.value=fmt.q[i];
+    voice.formants[i].fg.gain.setTargetAtTime(sG(fmt.g[i]*curVG),now,sm);
+  }
+  voice.warmthBp.frequency.setTargetAtTime(sF(lerp(fmt.f[1],fmt.f[2],0.3)),now,0.08);
+  voice.warmthG.gain.setTargetAtTime(sG(effInt*0.22),now,0.05);
+  voice.aspG.gain.setTargetAtTime(sG((mc.aspiration||0)*intensity*0.08),now,0.02);
+  voice.vibG.gain.setTargetAtTime(effInt*(1.5+effInt*4+mc.voiceEnv*1.8),now,0.06);
+  voice.vibLFO.frequency.setTargetAtTime(sF(4.2+effInt*1.5+mc.voiceEnv*0.5),now,0.12);
+  voice.amLFO.frequency.setTargetAtTime(
+    Math.max(0.5,vs.vocalType==='shudder'?3.5+intensity*1.5:curBreathRate*2),now,0.2);
+  voice.amG.gain.setTargetAtTime(effInt*0.06+(mc.amTremor||0)*0.5,now,0.08);
+
+  const microJitter=Math.sin(gT*17.3*voice.basePitch/130)*0.003*effInt;
+  const pitchMod=1+(mc.pitchSweep||0)+intensity*0.08+microJitter;
+  voice.glot1.frequency.setTargetAtTime(sF(targetF0*pitchMod),now,0.06);
+  voice.glot2.frequency.setTargetAtTime(sF(targetF0*1.003*pitchMod),now,0.06);
+  voice.sub.frequency.setTargetAtTime(sF(targetF0*pitchMod/2),now,0.08);
+
+  voice.master.gain.setTargetAtTime(sG(effInt>0.01||(mc.aspiration||0)>0.12?0.95:0),now,0.06);
+
+  if(mc.voiceEnv>0.5&&effInt>0.15)recordMemory(vs.vocalType,effInt,baseInterval);
+}
+
+function triggerBloom(){
+  if(!ac||aud.bloomOscs.length>0)return;
+  const now=ac.currentTime,root=55;
+  for(let n=1;n<=32;n++){
+    const o=ac.createOscillator();o.type=n<=6?'sine':n<=16?'triangle':'sine';
+    o.frequency.value=root*n;const g=ac.createGain();
+    const amp=B(n*rP/32)/Math.pow(n,0.5)*0.022;
+    g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(amp,now+0.15);
+    g.gain.setValueAtTime(amp,now+0.5);g.gain.exponentialRampToValueAtTime(0.0001,now+6+n*0.3);
+    o.connect(g);g.connect(masterGain);o.start(now);o.stop(now+8+n*0.3);
+    aud.bloomOscs.push({o,g});
+  }
+  const fl=document.getElementById('flash');
+  fl.style.transition='opacity .08s linear';fl.style.opacity='0.92';
+  setTimeout(()=>{fl.style.transition='opacity 5s ease';fl.style.opacity='0';},80);
+  triggerBowl();
+}
+
+let lastBowlStage=-1;
+
+function updateAudio(){
+  if(!ac)return;
+  const now=ac.currentTime;
+  const beauty=B(rP*curOv),coh=phaseCoherence();
+
+  if(si!==lastBowlStage&&si>=2){lastBowlStage=si;triggerBowl();}
+
+  for(let i=0;i<2;i++){
+    if(hearts[i].beat)onBeat(i);
+    const p=hearts[i].pulse;
+    const hV=si===0?0.04:si<=2?0.055+curK*0.025:si<=4?0.07+beauty*0.035:si===5?0.09:0.035;
+    aud.heartG[i].gain.setTargetAtTime(sG(p*hV),now,0.01);
+    aud.heartSubG[i].gain.setTargetAtTime(sG(p*hV*0.3),now,0.01);
+  }
+
+  aud.cosmicG.gain.setTargetAtTime(sG(curCosmic*0.58),now,0.8);
+  aud.cosmicFlt.frequency.setTargetAtTime(sF(400+curCosmic*4000),now,0.5);
+  for(const h of aud.cosmicDrone){
+    const breathe=1+Math.sin(gT*0.15+h.n*φ*0.7)*0.15;
+    h.g.gain.setTargetAtTime(sG(h.baseAmp*breathe*curCosmic/0.10),now,0.4);
+  }
+
+  const subPulse=(hearts[0].pulse+hearts[1].pulse)*0.5;
+  const subV=si<1?0:si<3?curK*0.015:si<5?0.025+beauty*0.030:si===5?0.055:0.010;
+  aud.subBassG.gain.setTargetAtTime(sG(subV*(0.5+subPulse)),now,0.03);
+
+  const siClamped=Math.min(si,CHORDS.length-1);
+  const padV=si<1?0:si===1?sP()*0.25:si<=4?0.25+beauty*0.40:si===5?0.70:0.2*(1-sP()*0.3);
+  aud.padG.gain.setTargetAtTime(sG(padV*0.55),now,0.4);
+  for(let i=0;i<6;i++)aud.pad[i].o.frequency.setTargetAtTime(sF(CHORDS[siClamped][i]),now,0.8);
+  aud.padFlt.frequency.setTargetAtTime(sF(600+beauty*1800+curK*300),now,0.3);
+
+  const shimV=si<2?0:si<4?curK*0.38:si<6?0.38+beauty*0.62:0.28*(1-sP()*0.35);
+  aud.shimmerG.gain.setTargetAtTime(sG(shimV),now,0.4);
+
+  // Breath cycles
+  const breathDt=curBreathRate*(1/60)*1.1;
+  const respK=curK*1.8;
+  const vsA=voiceState.A,vsB=voiceState.B;
+  vsA.breath+=breathDt+respK*Math.sin(vsB.breath-vsA.breath)*breathDt;
+  vsB.breath+=breathDt+respK*Math.sin(vsA.breath-vsB.breath)*breathDt;
+
+  if(vsA.breath>=1){
+    vsA.breath-=1;vsA.moanCount++;vsA.crescendoWave++;
+    const wLen=3+Math.floor(hashF(vsA.moanCount*7)*2);
+    if(vsA.crescendoWave>=wLen){vsA.crescendoWave=0;vsA.crescendo=0;}
+    else{vsA.crescendo=Math.min(1,vsA.crescendoWave/wLen);}
+    vsA.pitchInterval=pickPitchInterval(vsA.moanCount,vsA.crescendo,curVG);
+    if(curK>0.7&&hashF(vsA.moanCount*31)<(curK-0.7)/0.3*0.55){vsA.vocalType=vsB.vocalType;}
+    else{vsA.vocalType=selectVocalType(STAGES[Math.min(si,STAGES.length-1)].vocalPalette,vsA.moanCount*17+si*1000);}
+  }
+  if(vsB.breath>=1){
+    vsB.breath-=1;vsB.moanCount++;vsB.crescendoWave++;
+    const wLen=3+Math.floor(hashF(vsB.moanCount*11)*2);
+    if(vsB.crescendoWave>=wLen){vsB.crescendoWave=0;vsB.crescendo=0;}
+    else{vsB.crescendo=Math.min(1,vsB.crescendoWave/wLen);}
+    vsB.pitchInterval=pickPitchInterval(vsB.moanCount,vsB.crescendo,curVG*0.9);
+    if(curK>0.7&&hashF(vsB.moanCount*37)<(curK-0.7)/0.3*0.55){vsB.vocalType=vsA.vocalType;}
+    else{vsB.vocalType=selectVocalType(STAGES[Math.min(si,STAGES.length-1)].vocalPalette,vsB.moanCount*23+si*2000);}
+  }
+
+  const vInt=curVG*beauty*(0.4+0.6*coh);
+  updateVoice(aud.voiceA,STAGES[Math.min(si,STAGES.length-1)].vowA,vInt,vsA);
+  updateVoice(aud.voiceB,STAGES[Math.min(si,STAGES.length-1)].vowB,vInt*0.9,vsB);
+
+  // Afterglow echoes (stages 6-7)
+  if(si>=6&&si<=7){
+    const echoAmt=si===6?0.40*Math.min(1,sP()*2.5):0.30*(1-sP());
+    echoReverbGain.gain.setTargetAtTime(sG(echoAmt),now,1.5);
+    if(vocalMemories.length>0){
+      memoryTimer+=1/60;
+      if(memoryTimer>4.5){
+        memoryTimer=0;
+        let totalW=0;for(const m of vocalMemories)totalW+=m.intensity*m.intensity;
+        let pick=hashF(memoryPlaybackIdx*53)*totalW,cum=0,mem=vocalMemories[0];
+        for(const m of vocalMemories){cum+=m.intensity*m.intensity;if(cum>=pick){mem=m;break;}}
+        memoryPlaybackIdx++;
+        const memFreq=220*mem.pitchInterval;
+        triggerNote(memFreq,mem.intensity*0.22,5+mem.intensity*3);
+        if(memFreq*1.5<2000)triggerNote(memFreq*1.5,mem.intensity*0.10,6);
+        vsA.pitchInterval=lerp(vsA.pitchInterval,mem.pitchInterval,0.5);
+        vsB.pitchInterval=lerp(vsB.pitchInterval,mem.pitchInterval*(hashF(memoryPlaybackIdx*19)>0.5?1:3/2),0.5);
+      }
+    }
+    if(si===6){const agVoiceFade=sP()<0.65?1.0:Math.max(0,(1-sP())/0.35);curVG=STAGES[6].vG*agVoiceFade;}
+  } else {
+    echoReverbGain.gain.setTargetAtTime(si>=8?0.15:0,now,0.5);
+  }
+
+  // Baby cry
+  if(si===9&&!babyCried&&sP()>0.15)triggerBabyCry();
+  updateBabyCry();
+
+  // Breath texture
+  const bInhA=vsA.breath<0.22?Math.sin(vsA.breath/0.22*π):0;
+  const bInhB=vsB.breath<0.22?Math.sin(vsB.breath/0.22*π):0;
+  const bInh=Math.max(bInhA,bInhB);
+  const brV=si<2?0:si<5?curK*0.008*(0.35+0.65*bInh):si===5?0.014:0.003;
+  aud.breathG.gain.setTargetAtTime(sG(brV),now,0.03);
+
+  const nV=si<1?0.001:si<4?0.002+curK*0.005:si===5?0.010:0.002;
+  aud.neuralGL.gain.setTargetAtTime(sG(nV),now,0.3);aud.neuralGR.gain.setTargetAtTime(sG(nV),now,0.3);
+
+  const delV=si<2?0:si<=4?curK*0.13:si===5?0.20:0.15;
+  delayGL.gain.setTargetAtTime(delV,now,0.4);delayGR.gain.setTargetAtTime(delV,now,0.4);
+  delayL.delayTime.setTargetAtTime(Math.max(0.05,0.5/Math.max(0.2,curBreathRate*2)),now,0.5);
+
+  const rev=si<2?0.25:si<=4?0.30+beauty*0.35:si===5?0.65:0.55;
+  reverbGain.gain.setTargetAtTime(rev,now,0.5);
+
+  if(si===5&&sP()<0.1&&aud.bloomOscs.length===0)triggerBloom();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  VISUAL RENDERING
+// ═══════════════════════════════════════════════════════════════════════
+
+function drawNebula(){
+  const t=gT*0.025,pulse=(hearts[0].pulse+hearts[1].pulse)*0.5;
+  const cb=curCosmic*0.4;
+  const clouds=[
+    {x:0.30+Math.sin(t*0.7)*0.08,y:0.40+Math.cos(t*0.5)*0.06,r:0.45,col:[28,10,48],α:0.038+cb*0.03},
+    {x:0.72+Math.sin(t*0.4)*0.06,y:0.55+Math.cos(t*0.7)*0.08,r:0.40,col:[14,8,35],α:0.030+cb*0.025},
+    {x:0.50+Math.sin(t*0.3)*0.10,y:0.30+Math.cos(t*0.6)*0.05,r:0.35,col:[38,14,25],α:0.024+cb*0.02+pulse*0.008},
+    {x:0.45+Math.cos(t*0.5)*0.07,y:0.65+Math.sin(t*0.4)*0.07,r:0.30,col:[10,14,32],α:0.022+cb*0.018},
+  ];
+  for(const c of clouds){
+    const grd=ctx.createRadialGradient(c.x*W,c.y*H,0,c.x*W,c.y*H,c.r*Math.max(W,H));
+    grd.addColorStop(0,`rgba(${c.col},${c.α})`);grd.addColorStop(0.5,`rgba(${c.col},${c.α*0.3})`);grd.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+  }
+}
+
+let stars=null;
+function drawStars(){
+  if(!stars){stars=[];for(let i=0;i<90;i++)stars.push({x:Math.random(),y:Math.random(),s:0.2+Math.random()*1.2,p:Math.random()*τ,r:0.25+Math.random()*0.8,hue:Math.random()<0.15?1:0});}
+  for(const s of stars){
+    const tw=0.025+0.03*Math.sin(gT*s.r+s.p)+curCosmic*0.012;
+    ctx.fillStyle=s.hue?`rgba(220,200,180,${tw})`:`rgba(200,195,220,${tw})`;
+    ctx.beginPath();ctx.arc(s.x*W,s.y*H,s.s,0,τ);ctx.fill();
+  }
+}
+
+function drawNeural(){
+  const wy=H*0.05,ww=W*0.22,freq=curBr;
+  const amp=si===5?9:2+Math.max(0,(30-freq)/30)*4.5;
+  const sepX=W*0.08*(1-curK*0.9);
+  ctx.strokeStyle='rgba(212,98,122,0.09)';ctx.lineWidth=0.6;ctx.beginPath();
+  for(let i=0;i<=ww;i++){const x=cx-ww/2+i-sepX,y=wy+Math.sin(gT*freq*0.8+i/ww*12)*amp;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();
+  const phOff=si>=4?0:(1-curK)*π;
+  ctx.strokeStyle='rgba(90,143,199,0.09)';ctx.beginPath();
+  for(let i=0;i<=ww;i++){const x=cx-ww/2+i+sepX,y=wy+Math.sin(gT*freq*0.8+i/ww*12+phOff)*amp;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();
+}
+
+function drawVP(ov,pA,pB,beauty){
+  const d=bR*2*(1-ov*0.5),lx=cx-d/2,rx=cx+d/2;
+  const rA=bR*(1+pA*0.024),rB=bR*(1+pB*0.024);
+
+  const vsA=voiceState.A,vsB=voiceState.B;
+  const envA=curVG>0.01?getContour(vsA.vocalType,vsA.breath,curVG*B(rP*curOv),STAGES[Math.min(si,STAGES.length-1)].vowA,'A',vsA.moanCount).voiceEnv*curVG:0;
+  const envB=curVG>0.01?getContour(vsB.vocalType,vsB.breath,curVG*B(rP*curOv)*0.9,STAGES[Math.min(si,STAGES.length-1)].vowB,'B',vsB.moanCount).voiceEnv*curVG:0;
+
+  // Aura rings
+  for(let ring=0;ring<3;ring++){
+    const rr=1+ring*0.13,aA=0.035-ring*0.009;
+    ctx.strokeStyle=`rgba(212,98,122,${aA*(0.5+pA*0.5)})`;ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.arc(lx,cy,rA*rr,0,τ);ctx.stroke();
+    ctx.strokeStyle=`rgba(90,143,199,${aA*(0.5+pB*0.5)})`;
+    ctx.beginPath();ctx.arc(rx,cy,rB*rr,0,τ);ctx.stroke();
+  }
+
+  // Core radiance
+  const glA=0.10+pA*0.22+beauty*0.14+envA*0.20;
+  const glB=0.10+pB*0.22+beauty*0.14+envB*0.20;
+  const gA=ctx.createRadialGradient(lx,cy,0,lx,cy,rA*1.5);
+  gA.addColorStop(0,`rgba(212,98,122,${glA*0.78})`);gA.addColorStop(0.25,`rgba(200,85,110,${glA*0.40})`);
+  gA.addColorStop(0.55,`rgba(180,70,100,${glA*0.12})`);gA.addColorStop(1,'rgba(180,70,100,0)');
+  ctx.fillStyle=gA;ctx.beginPath();ctx.arc(lx,cy,rA*1.5,0,τ);ctx.fill();
+  const gB=ctx.createRadialGradient(rx,cy,0,rx,cy,rB*1.5);
+  gB.addColorStop(0,`rgba(90,143,199,${glB*0.78})`);gB.addColorStop(0.25,`rgba(75,125,185,${glB*0.40})`);
+  gB.addColorStop(0.55,`rgba(60,100,170,${glB*0.12})`);gB.addColorStop(1,'rgba(60,100,170,0)');
+  ctx.fillStyle=gB;ctx.beginPath();ctx.arc(rx,cy,rB*1.5,0,τ);ctx.fill();
+
+  // VP intersection glow
+  if(ov>0.04){
+    const vpα=Math.min(0.95,ov*(0.38+beauty*0.62+(pA+pB)*0.10));
+    const w=beauty*beauty;
+    const vR=Math.round(lerp(195,255,w)),vGr=Math.round(lerp(148,252,w)),vBl=Math.round(lerp(210,242,w));
+    const vpGrad=ctx.createRadialGradient(cx,cy,0,cx,cy,bR*ov*0.8);
+    vpGrad.addColorStop(0,`rgba(${vR},${vGr},${vBl},${vpα*0.95})`);
+    vpGrad.addColorStop(0.25,`rgba(${vR},${vGr},${vBl},${vpα*0.50})`);
+    vpGrad.addColorStop(0.55,`rgba(212,168,83,${vpα*0.18})`);
+    vpGrad.addColorStop(1,'rgba(200,152,212,0)');
+    ctx.save();ctx.beginPath();ctx.arc(lx,cy,rA,0,τ);ctx.clip();
+    ctx.fillStyle=vpGrad;ctx.beginPath();ctx.arc(rx,cy,rB,0,τ);ctx.fill();ctx.restore();
+
+    // Interior fire
+    if(beauty>0.3){
+      const fα=(beauty-0.3)/0.7*0.22;
+      const fl=1+Math.sin(gT*3.2+vsA.breath*τ)*0.12+Math.sin(gT*2.8+vsB.breath*τ)*0.10;
+      const fG=ctx.createRadialGradient(cx,cy,0,cx,cy,bR*0.38);
+      fG.addColorStop(0,`rgba(255,250,240,${fα*fl})`);fG.addColorStop(0.4,`rgba(255,220,180,${fα*0.4*fl})`);
+      fG.addColorStop(1,'rgba(200,150,120,0)');
+      ctx.fillStyle=fG;ctx.beginPath();ctx.arc(cx,cy,bR*0.4,0,τ);ctx.fill();
+    }
+
+    // Condensation glow; during stage 7, the DNA energy collects here
+    if(dnaCollapse>0.01){
+      const cα=dnaCollapse*0.65;
+      const cG=ctx.createRadialGradient(cx,cy,0,cx,cy,bR*0.30*(1-dnaCollapse*0.5));
+      cG.addColorStop(0,`rgba(255,252,245,${cα})`);
+      cG.addColorStop(0.3,`rgba(255,235,200,${cα*0.5})`);
+      cG.addColorStop(0.6,`rgba(200,180,160,${cα*0.15})`);
+      cG.addColorStop(1,'rgba(180,150,130,0)');
+      ctx.fillStyle=cG;ctx.beginPath();ctx.arc(cx,cy,bR*0.35,0,τ);ctx.fill();
+    }
+
+    // Sacred geometry
+    const vpW=Math.sqrt(Math.max(0,rA*rA-(d/2)*(d/2)));
+    if(vpW>8&&ov>0.25){
+      const gα=(ov-0.25)/0.75*0.12*(1+beauty*0.5);
+      ctx.strokeStyle=`rgba(212,168,83,${gα})`;ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.moveTo(cx,cy-vpW);ctx.lineTo(cx,cy+vpW);ctx.stroke();
+      if(ov>0.40){
+        const mα=(ov-0.40)/0.60*0.10;
+        ctx.strokeStyle=`rgba(126,207,192,${mα})`;ctx.lineWidth=0.7;
+        ctx.beginPath();ctx.ellipse(cx,cy,vpW*0.24,vpW*0.92,0,0,τ);ctx.stroke();
+        if(ov>0.55){
+          const sα=(ov-0.55)/0.45*0.08;
+          ctx.strokeStyle=`rgba(255,240,220,${sα})`;ctx.lineWidth=0.5;
+          const seedR=vpW*0.28;
+          for(let a=0;a<6;a++){
+            const sx=cx+Math.cos(a*π/3+gT*0.08)*seedR*0.42;
+            const sy=cy+Math.sin(a*π/3+gT*0.08)*seedR*0.42;
+            ctx.beginPath();ctx.arc(sx,sy,seedR*0.24,0,τ);ctx.stroke();
+          }
+          ctx.fillStyle=`rgba(255,248,235,${sα*0.55})`;
+          ctx.beginPath();ctx.arc(cx,cy,seedR*0.16,0,τ);ctx.fill();
+        }
+      }
+    }
+  }
+
+  // Mandorla edge; luminous boundary
+  if(ov>0.08){
+    const vpW=Math.sqrt(Math.max(0,rA*rA-(d/2)*(d/2)));
+    if(vpW>4){
+      const ix=d/2;
+      const angleA=Math.acos(Math.min(1,ix/rA));
+      const angleB=Math.acos(Math.min(1,ix/rB));
+      const mEdgeα=Math.min(0.55,ov*0.35*(0.6+beauty*0.5));
+      ctx.strokeStyle=`rgba(220,200,230,${mEdgeα})`;ctx.lineWidth=1.2+beauty*0.8;
+      ctx.beginPath();ctx.arc(lx,cy,rA,-angleA,angleA);ctx.stroke();
+      ctx.beginPath();ctx.arc(rx,cy,rB,π-angleB,π+angleB);ctx.stroke();
+      if(mEdgeα>0.08){
+        ctx.strokeStyle=`rgba(200,170,220,${mEdgeα*0.25})`;ctx.lineWidth=4+beauty*3;
+        ctx.beginPath();ctx.arc(lx,cy,rA,-angleA,angleA);ctx.stroke();
+        ctx.beginPath();ctx.arc(rx,cy,rB,π-angleB,π+angleB);ctx.stroke();
+      }
+      if(ov>0.20){
+        const vtxα=Math.min(0.5,(ov-0.20)/0.8*0.4*(0.5+beauty*0.5));
+        const vtxR=2+beauty*2;
+        ctx.fillStyle=`rgba(255,245,235,${vtxα})`;
+        ctx.beginPath();ctx.arc(cx,cy-vpW,vtxR,0,τ);ctx.fill();
+        ctx.beginPath();ctx.arc(cx,cy+vpW,vtxR,0,τ);ctx.fill();
+        ctx.fillStyle=`rgba(212,168,83,${vtxα*0.3})`;
+        ctx.beginPath();ctx.arc(cx,cy-vpW,vtxR*4,0,τ);ctx.fill();
+        ctx.beginPath();ctx.arc(cx,cy+vpW,vtxR*4,0,τ);ctx.fill();
+      }
+    }
+  }
+
+  // Circle outlines
+  ctx.lineWidth=1.2+beauty*0.5;
+  ctx.strokeStyle=`rgba(212,98,122,${0.12+pA*0.20+envA*0.12})`;ctx.beginPath();ctx.arc(lx,cy,rA,0,τ);ctx.stroke();
+  ctx.strokeStyle=`rgba(212,98,122,${0.03+pA*0.05})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(lx,cy,rA,0,τ);ctx.stroke();
+  ctx.strokeStyle=`rgba(90,143,199,${0.12+pB*0.20+envB*0.12})`;ctx.lineWidth=1.2+beauty*0.5;ctx.beginPath();ctx.arc(rx,cy,rB,0,τ);ctx.stroke();
+  ctx.strokeStyle=`rgba(90,143,199,${0.03+pB*0.05})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(rx,cy,rB,0,τ);ctx.stroke();
+
+  // Unity ring
+  if(ov>0.55){const uα=(ov-0.55)/0.45*0.08*(0.5+beauty*0.5);const ur=bR*1.10;ctx.strokeStyle=`rgba(212,168,83,${uα})`;ctx.lineWidth=0.6;ctx.beginPath();ctx.arc(cx,cy,ur,0,τ);ctx.stroke();}
+
+  // ── THIRD CIRCLE; the baby ──
+  if(thirdCircleR>0.5){
+    const bα=Math.min(0.65,thirdCircleR/bR*2);
+    const bp=babyHeart.active?babyHeart.pulse:0;
+    const br=thirdCircleR*(1+bp*0.03);
+    // Glow
+    const bG=ctx.createRadialGradient(cx,cy,0,cx,cy,br*1.8);
+    bG.addColorStop(0,`rgba(126,207,192,${bα*0.60})`);
+    bG.addColorStop(0.3,`rgba(136,199,165,${bα*0.25})`);
+    bG.addColorStop(0.6,`rgba(120,180,160,${bα*0.08})`);
+    bG.addColorStop(1,'rgba(100,160,140,0)');
+    ctx.fillStyle=bG;ctx.beginPath();ctx.arc(cx,cy,br*1.8,0,τ);ctx.fill();
+    // Outline; the third coherence field, in life-green
+    ctx.strokeStyle=`rgba(126,207,192,${bα*(0.5+bp*0.3)})`;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(cx,cy,br,0,τ);ctx.stroke();
+    ctx.strokeStyle=`rgba(126,207,192,${bα*0.12})`;ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(cx,cy,br,0,τ);ctx.stroke();
+  }
+
+  return{lx,rx,d,rA,rB};
+}
+
+function drawParticles(geo){
+  const d=geo.d,lx=geo.lx,rx=geo.rx,rA=geo.rA,rB=geo.rB;
+  for(const p of particles){
+    const prog=p.t/p.life;const fade=Math.min(1,prog*4)*Math.max(0,1-(prog-0.75)/0.25);
+    const α=fade*Math.max(curK,si>=7?0.4:0);if(α<0.005)continue;
+    let x,y;
+    if(p.role==='condense'){
+      // Spiral inward to VP centre; information condensing
+      const startR=bR*(0.5+p.orbitR*0.8);
+      const r=startR*(1-ss(prog));
+      const angle=p.angle+prog*τ*2;
+      x=cx+Math.cos(angle)*r;y=cy+Math.sin(angle)*r;
+    }
+    else if(p.role==='orbit'){const centre=p.fromL?lx:rx;const r=(p.fromL?rA:rB)*p.orbitR;x=centre+Math.cos(p.angle+prog*τ*0.6)*r;y=cy+Math.sin(p.angle+prog*τ*0.6)*r;}
+    else if(p.role==='flow'){const sx=p.fromL?lx:rx;const t=ss(prog);const arcH=bR*0.5*Math.sin(p.angle);x=lerp(sx,cx,t)+Math.sin(prog*π*2+p.angle)*8;y=cy+arcH*Math.sin(t*π)+Math.cos(prog*τ)*5;}
+    else if(p.role==='sacred'){const seedIdx=Math.floor(p.angle/(τ/6));const seedAngle=seedIdx*π/3+gT*0.08;const vpW=Math.sqrt(Math.max(1,rA*rA-(d/2)*(d/2)));const seedR=vpW*0.28;const seedX=cx+Math.cos(seedAngle)*seedR*0.42;const seedY=cy+Math.sin(seedAngle)*seedR*0.42;x=seedX+Math.cos(p.phase+prog*τ*1.5)*seedR*0.24*p.orbitR;y=seedY+Math.sin(p.phase+prog*τ*1.5)*seedR*0.24*p.orbitR;}
+    else{const hH=bR*2.2*dnaReveal;x=cx+Math.cos(dnaRot+prog*τ*2+p.angle+(p.fromL?0:π))*bR*0.32*(0.3+prog*0.7);y=cy-hH/2+prog*hH;}
+    const inVP=Math.abs(x-cx)<d*0.35&&Math.abs(y-cy)<bR*1.2;
+    const col=p.type==='vascular'?(inVP?'225,190,150':'205,115,135'):(inVP?'218,218,228':'145,175,225');
+    const sz=p.size*(1+(inVP?0.7:0))*(p.type==='vascular'?1:0.85);
+    ctx.fillStyle=`rgba(${col},${α*0.55})`;ctx.beginPath();ctx.arc(x,y,sz,0,τ);ctx.fill();
+    if(α>0.12&&inVP){ctx.fillStyle=`rgba(${col},${α*0.05})`;ctx.beginPath();ctx.arc(x,y,sz*3.5,0,τ);ctx.fill();}
+  }
+}
+
+function drawVascular(geo){
+  if(curK<0.08)return;
+  const n=Math.floor(3+curK*5);
+  for(let i=0;i<n;i++){
+    const phase=gT*0.35+i*τ/n,yAmp=bR*0.38*(0.5+0.5*Math.sin(phase*φ));
+    const α=curK*0.05*(0.4+0.6*Math.sin(phase*2));
+    ctx.strokeStyle=`rgba(210,140,160,${α})`;ctx.lineWidth=0.6+curOv*0.4;ctx.beginPath();
+    ctx.moveTo(geo.lx,cy+Math.sin(phase)*yAmp);
+    ctx.bezierCurveTo(cx-bR*0.3,cy+Math.cos(phase*1.3)*yAmp*0.6,cx+bR*0.3,cy-Math.sin(phase*0.9)*yAmp*0.5,geo.rx,cy+Math.cos(phase*1.1)*yAmp*0.8);ctx.stroke();
+  }
+}
+
+function drawDNA(reveal){
+  if(reveal<0.01)return;
+  // During condensation, DNA shrinks toward centre
+  const shrink=1-dnaCollapse*0.7; // height contracts
+  const hH=bR*2.6*reveal*shrink,hW=bR*0.35*(1-dnaCollapse*0.5);
+  const pairs=Math.floor(DNA_N*reveal);
+  ctx.globalAlpha=Math.min(1,reveal*2.5)*(1-dnaCollapse*0.6);
+  const cols=[['92,184,138','199,90,147'],['199,90,147','92,184,138'],['106,127,210','212,168,83'],['212,168,83','106,127,210']];
+  const els=[];
+  for(let i=0;i<pairs;i++){const t=i/DNA_N,y=cy-hH/2+t*hH;const angle=dnaRot+i*τ/10;els.push({i,y,x1:cx+Math.cos(angle)*hW,x2:cx+Math.cos(angle+π)*hW,z1:Math.sin(angle)});}
+  for(const pass of['back','front']){for(const e of els){const front=e.z1>0;if((pass==='back'&&front)||(pass==='front'&&!front))continue;const dα=pass==='front'?0.50:0.15;const col=cols[e.i%4];const lw=pass==='front'?2:1;
+    ctx.strokeStyle=`rgba(${col[0]},${dα*0.55})`;ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(e.x1,e.y);ctx.lineTo(cx,e.y);ctx.stroke();
+    ctx.strokeStyle=`rgba(${col[1]},${dα*0.55})`;ctx.beginPath();ctx.moveTo(cx,e.y);ctx.lineTo(e.x2,e.y);ctx.stroke();
+    if(pass==='front'){ctx.fillStyle=`rgba(255,255,255,${dα*0.28})`;ctx.beginPath();ctx.arc(cx,e.y,1.2,0,τ);ctx.fill();}
+    const ns=1.8+1.8*(pass==='front'?1:0.35);
+    ctx.fillStyle=`rgba(212,98,122,${dα})`;ctx.beginPath();ctx.arc(e.x1,e.y,ns,0,τ);ctx.fill();
+    ctx.fillStyle=`rgba(90,143,199,${dα})`;ctx.beginPath();ctx.arc(e.x2,e.y,ns,0,τ);ctx.fill();
+    const ni=els.indexOf(e);if(ni<els.length-1){const ne=els[ni+1];ctx.strokeStyle=`rgba(212,98,122,${dα*0.22})`;ctx.lineWidth=pass==='front'?1:0.5;ctx.beginPath();ctx.moveTo(e.x1,e.y);ctx.lineTo(ne.x1,ne.y);ctx.stroke();ctx.strokeStyle=`rgba(90,143,199,${dα*0.22})`;ctx.beginPath();ctx.moveTo(e.x2,e.y);ctx.lineTo(ne.x2,ne.y);ctx.stroke();}
+  }}
+  ctx.globalAlpha=1;
+}
+
+function drawCosmicPulse(){
+  if(curCosmic<0.08)return;
+  const pulse=(hearts[0].pulse+hearts[1].pulse)*0.5,coh=phaseCoherence();
+  const α=curCosmic*0.018*(0.3+pulse*0.7)*coh;
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(W,H)*0.6);
+  g.addColorStop(0,`rgba(200,170,220,${α})`);g.addColorStop(0.3,`rgba(160,130,190,${α*0.4})`);g.addColorStop(1,'rgba(60,40,80,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+}
+
+// ── BRAINWAVE SYNCHRONY FLOWS ──────────────────────────────────────
+// Visible streams of energy flowing between the two circles.
+// This IS the Kuramoto coupling: K·sin(Δφ) made visible.
+// Colour encodes dominant brainwave band.
+
+const syncParticles=[];
+const MAX_SYNC=80;
+
+function brainwaveBandColour(){
+  if(curBr>30)return{r:255,g:230,b:160}; // γ burst
+  if(curBr>14)return{r:160,g:195,b:235}; // β alert
+  if(curBr>8) return{r:120,g:210,b:155}; // α entrain
+  if(curBr>4) return{r:180,g:140,b:220}; // θ coupling
+  return{r:90,g:100,b:180};               // δ bonding
+}
+
+function spawnSyncParticle(fromL,geo){
+  if(syncParticles.length>=MAX_SYNC)return;
+  syncParticles.push({
+    fromL, t:0, life:0.8+Math.random()*0.8,
+    startX:fromL?geo.lx:geo.rx, endX:fromL?geo.rx:geo.lx,
+    arcY:(Math.random()-0.5)*bR*1.4,
+    size:0.6+Math.random()*1.2+curK*0.8,
+    phase:Math.random()*τ, band:brainwaveBandColour()
+  });
+}
+
+function drawSynchrony(geo){
+  if(curK<0.02)return;
+  const coh=phaseCoherence();
+  // Spawn rate ∝ K * coherence; the actual coupling strength
+  const spawnRate=curK*coh*(si===5?45:22);
+  if(Math.random()<spawnRate/60)spawnSyncParticle(Math.random()<0.5,geo);
+  if(Math.random()<spawnRate/60*0.5)spawnSyncParticle(Math.random()<0.5,geo);
+
+  for(let i=syncParticles.length-1;i>=0;i--){
+    const p=syncParticles[i];
+    p.t+=1/60;
+    if(p.t>=p.life){syncParticles.splice(i,1);continue;}
+    const prog=p.t/p.life;
+    const t=ss(prog);
+    const midX=(p.startX+p.endX)/2, midY=cy+p.arcY;
+    const u=1-t;
+    const x=u*u*p.startX+2*u*t*midX+t*t*p.endX;
+    const y=u*u*cy+2*u*t*midY+t*t*cy;
+    // Oscillation at brainwave frequency
+    const osc=Math.sin(prog*τ*curBr*0.15+p.phase)*3*curK;
+    const dx=p.endX-p.startX, dy=midY-cy;
+    const len=Math.max(1,Math.sqrt(dx*dx+dy*dy));
+    const fx=x+(-dy/len)*osc, fy=y+(dx/len)*osc;
+    const fadeIn=Math.min(1,prog*5), fadeOut=Math.max(0,1-(prog-0.7)/0.3);
+    const α=fadeIn*fadeOut*coh*Math.min(1,curK*1.5)*0.55;
+    if(α<0.01)continue;
+    const c=p.band;
+    ctx.fillStyle=`rgba(${c.r},${c.g},${c.b},${α})`;
+    ctx.beginPath();ctx.arc(fx,fy,p.size,0,τ);ctx.fill();
+    ctx.fillStyle=`rgba(${c.r},${c.g},${c.b},${α*0.15})`;
+    ctx.beginPath();ctx.arc(fx,fy,p.size*3.5,0,τ);ctx.fill();
+    if(α>0.06){
+      const pt=ss(Math.max(0,prog-0.04));const pu=1-pt;
+      const px=pu*pu*p.startX+2*pu*pt*midX+pt*pt*p.endX;
+      const py=pu*pu*cy+2*pu*pt*midY+pt*pt*cy;
+      ctx.strokeStyle=`rgba(${c.r},${c.g},${c.b},${α*0.35})`;
+      ctx.lineWidth=p.size*0.6;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(fx,fy);ctx.stroke();
+    }
+  }
+  // Main coupling streams; thicker bezier showing flow field
+  if(curK>0.08&&coh>0.15){
+    const nStreams=Math.floor(curK*4);const c=brainwaveBandColour();
+    const streamα=coh*curK*0.08;
+    for(let s=0;s<nStreams;s++){
+      const yOff=bR*(s/(nStreams-0.5)-0.5)*1.2;
+      const wave=Math.sin(gT*2+s*φ)*bR*0.15;
+      ctx.strokeStyle=`rgba(${c.r},${c.g},${c.b},${streamα})`;ctx.lineWidth=0.5+curK*0.5;
+      ctx.beginPath();ctx.moveTo(geo.lx,cy+yOff);
+      ctx.quadraticCurveTo(cx,cy+yOff+wave,geo.rx,cy+yOff);ctx.stroke();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  UI UPDATE
+// ═══════════════════════════════════════════════════════════════════════
+
+const elSec=document.getElementById('section-label');
+const elBio=document.getElementById('bio-text');
+const elHrt=document.getElementById('heart-text');
+const elCRR=document.getElementById('crr-display');
+const elBar=document.getElementById('stage-bar');
+const elExpEq=document.querySelector('#explanation .crr-eq');
+const elExpDesc=document.querySelector('#explanation .crr-desc');
+const elExp=document.getElementById('explanation');
+const elPrEq=document.getElementById('principle-eq');
+const elPrTxt=document.getElementById('principle-text');
+const elPr=document.getElementById('principle-panel');
+const elInsPanel=document.getElementById('insight-panel');
+const elInsTitle=document.getElementById('insight-title');
+const elInsText=document.getElementById('insight-text');
+const elInsBtm=document.getElementById('insight-bottom');
+const elInsBtmText=document.getElementById('insight-bottom-text');
+let lastSi=-1;
+
+function updateUI(){
+  const st=STAGES[Math.min(si,STAGES.length-1)],beauty=B(rP*curOv),coh=phaseCoherence();
+  if(si!==lastSi){lastSi=si;
+    const mySi=si; // capture for timeout closures
+    const num=['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+    elSec.textContent=si===5?'VI · δ(now)':si===9?'X · First Cry':`${num[si]} · ${st.name}`;
+    elSec.style.opacity=si===5||si===9?'0.90':'0.65';
+    const labelDur=si===9?30000:si===5?12000:8000;
+    setTimeout(()=>{if(lastSi===mySi)elSec.style.opacity='0';},labelDur);
+    elBio.textContent=st.bio;
+    // Top explanation; equation + phenomenological description
+    elExpEq.textContent=st.eq;
+    elExpDesc.textContent=st.desc;
+    elExp.style.opacity='0.75';
+    const expDur=si===9?32000:si===5?18000:14000;
+    setTimeout(()=>{if(lastSi===mySi)elExp.style.opacity='0';},expDur);
+    // Bottom principle panel; CRR relation to mathematical principles
+    elPrEq.textContent=st.eq;
+    elPrTxt.textContent=st.principle||'';
+    elPr.style.opacity='0.55';
+    // Principle stays longer; it's the deeper explanation
+    const prDur=si===9?35000:si===5?22000:16000;
+    setTimeout(()=>{if(lastSi===mySi)elPr.style.opacity='0';},prDur);
+    // Insight panels; delayed second wave, split top and bottom
+    elInsPanel.style.opacity='0';
+    elInsBtm.style.opacity='0';
+    if(st.insightTop){
+      const insDelay=expDur+2000;
+      const insDur=Math.max(12000,(st.dur*1000)-insDelay-3000);
+      setTimeout(()=>{
+        if(lastSi===mySi){
+          elInsTitle.textContent=st.insightTitle||'';
+          elInsText.textContent=st.insightTop;
+          elInsPanel.style.opacity='0.72';
+          if(st.insightBottom){
+            elInsBtmText.textContent=st.insightBottom;
+            elInsBtm.style.opacity='0.68';
+          }
+        }
+      },insDelay);
+      setTimeout(()=>{if(lastSi===mySi){elInsPanel.style.opacity='0';elInsBtm.style.opacity='0';}},insDelay+insDur);
+    }
+
+    // ── OUTRO SEQUENCE: after First Cry text fades ──
+    if(si===9){
+      const outroCards=[
+        {delay:38000,dur:32000,
+         title:'Why this might matter',
+         top:'Critical slowing down is not a metaphor. Arctic ice recovery time has increased measurably since the 1980s. The Amazon is showing declining resilience. Coral reefs take longer to recover from each bleaching. These are signatures of systems approaching C·Ω = 1 at planetary scale.',
+         bottom:'Marten Scheffer and colleagues have documented these early warning signals across ecosystems, climate systems, and financial networks. If CRR is correct, the mathematics governing when a breath turns is the same mathematics governing when an ice sheet tips.'},
+        {delay:74000,dur:34000,
+         title:'Understanding what we are building',
+         top:'We are bringing into existence systems that learn, predict, and act; systems that accumulate coherence. If we do not understand the temporal grammar of our own minds, our own bodies, our own social bonds, how can we hope to align minds we are building from silicon and light?',
+         bottom:'AI alignment is not only a technical problem. It is a question about what coherence means, what rupture costs, and what we want to regenerate. A framework that connects neural oscillations to social coupling to ecological tipping points may help us ask better questions about the systems we are creating; and the ones we are disturbing.'},
+        {delay:112000,dur:34000,
+         title:'Remembering the lineage',
+         top:'Alfred North Whitehead proposed that reality is process, not substance. Karl Friston formalised how living systems persist by minimising surprise. Marten Scheffer showed that complex systems announce their own tipping points. Every contemplative tradition knew the rhythm of coherence, rupture, and renewal long before anyone wrote an equation.',
+         bottom:'CRR does not replace these insights. It proposes a temporal grammar that connects them: C is Whitehead\'s concrescence, Ω is Friston\'s precision, C·Ω = 1 is Scheffer\'s critical transition. The ancients who built the Chalice Well and the mathematicians who derived the Cramér-Rao bound were listening to the same process. We need to remember that.'},
+        {delay:150000,dur:34000,
+         title:'Building bridges',
+         top:'We need bridges. Between physics and phenomenology. Between neuroscience and contemplative practice. Between the technologies we are building and the living systems we belong to. Between the precision of mathematics and the irreducible mystery of experience. Between each other.',
+         bottom:'CRR is itself a newborn. Tested against published data in seventy systems, but not yet peer-reviewed. It may be wrong. It may be incomplete. The first cry of any new idea is not proof of its worth. It is proof only that something is alive, and that it needs others to hear it.'},
+        {delay:188000,dur:40000,
+         title:'',
+         top:'temporalgrammar.ai',
+         bottom:'Alexander Sabine · 2025'},
+      ];
+      for(const card of outroCards){
+        setTimeout(()=>{
+          if(lastSi!==mySi)return;
+          elSec.style.opacity='0';
+          elExp.style.opacity='0';
+          elPr.style.opacity='0';
+          // Fade technical readouts during outro
+          document.getElementById('bio-panel').style.opacity='0';
+          document.getElementById('heart-panel').style.opacity='0';
+          document.getElementById('info-bar').style.opacity='0';
+          elInsTitle.textContent=card.title;
+          elInsText.textContent=card.top;
+          elInsPanel.style.opacity=card.title?'0.75':'0.50';
+          elInsBtmText.textContent=card.bottom;
+          elInsBtm.style.opacity='0.68';
+        },card.delay);
+        setTimeout(()=>{
+          if(lastSi!==mySi)return;
+          elInsPanel.style.opacity='0';
+          elInsBtm.style.opacity='0';
+        },card.delay+card.dur);
+      }
+    }
+  }
+  let tp=0;for(let i=0;i<si;i++)tp+=STAGES[i].dur;tp+=sT;
+  elBar.style.width=(tp/totalDur()*100)+'%';
+  const brSt=si===5?'γ burst':curBr>14?'β alert':curBr>8?'α entrain':curBr>4?'θ-γ CFC':'δ bond';
+  const bandName=curBr>30?'γ':curBr>14?'β':curBr>8?'α':curBr>4?'θ':'δ';
+  const vsA=voiceState.A,vsB=voiceState.B;
+  const babyStr=babyCried?`\n♡₃ ${Math.round(140)} bpm · third system`:'';
+  elHrt.textContent=`♡ ${Math.round(curHR[0])}    ♡ ${Math.round(curHR[1])} bpm\nsync: ${(coh*100).toFixed(0)}%   K: ${curK.toFixed(2)}\nEEG: ${curBr.toFixed(1)} Hz · ${brSt}\nflows: ${bandName} band · ${syncParticles.length} streams\nA: ${vsA.vocalType}  B: ${vsB.vocalType}${babyStr}`;
+  elCRR.textContent=`C·Ω = ${curOv.toFixed(3)}${curOv>0.95?' → δ':''}\nB = ${beauty.toFixed(3)}${beauty>0.9?' peak':''}\ncosmic: ${curCosmic.toFixed(2)}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════════════════════════════
+
+let lastT=null,running=false;
+
+function tick(ts){
+  if(!running)return;
+  if(!lastT)lastT=ts;
+  const dt=Math.min((ts-lastT)/1000,0.05);lastT=ts;gT+=dt;sT+=dt;
+
+  const st=STAGES[si];
+  if(sT>=st.dur&&si<STAGES.length-1){sT-=st.dur;si++;}
+  if(si===STAGES.length-1&&sT>=st.dur)sT=st.dur;
+
+  const p=sP(),ni=Math.min(si+1,STAGES.length-1);
+  const ns=STAGES[ni],cs=STAGES[si],sp=ss(p);
+
+  curHR[0]+=(lerp(cs.hr[0],ns.hr[0],sp)-curHR[0])*dt*1.5;
+  curHR[1]+=(lerp(cs.hr[1],ns.hr[1],sp)-curHR[1])*dt*1.5;
+  curBr+=(lerp(cs.brain,ns.brain,sp)-curBr)*dt*0.8;
+  curK+=(lerp(cs.K,ns.K,sp)-curK)*dt*1.2;
+  curOv+=(lerp(cs.ovlp,ns.ovlp,sp)-curOv)*dt*1.0;
+  curVG+=(lerp(cs.vG,ns.vG,sp)-curVG)*dt*1.0;
+  curBreathRate+=(lerp(cs.breathRate,ns.breathRate,sp)-curBreathRate)*dt*0.6;
+  curCosmic+=(lerp(cs.cosmicGlow,ns.cosmicGlow,sp)-curCosmic)*dt*0.7;
+
+  // DNA: reveal during rupture, collapse during condensation
+  if(si===5)dnaReveal+=(p-dnaReveal)*dt*0.8;
+  else if(si===6)dnaReveal+=(1-dnaReveal)*dt*0.5;
+  else if(si===7){dnaCollapse+=(ss(p)-dnaCollapse)*dt*1.5;} // collapse
+  else if(si>=8){dnaCollapse+=(1-dnaCollapse)*dt*2;dnaReveal+=(0-dnaReveal)*dt*1.5;} // gone
+  dnaRot+=dt*0.3;
+
+  // Third circle emerges during Separation and First Cry
+  if(si===8){
+    const targetR=bR*0.18*ss(p);
+    thirdCircleR+=(targetR-thirdCircleR)*dt*2;
+  } else if(si===9){
+    const targetR=bR*0.35;
+    thirdCircleR+=(targetR-thirdCircleR)*dt*1.0;
+  }
+
+  updateHearts(dt);
+  updateParticles(dt);
+  updateAudio();
+
+  // RENDER
+  ctx.fillStyle='#020108';ctx.fillRect(0,0,W,H);
+  drawNebula();drawStars();drawCosmicPulse();
+
+  const bgP=(hearts[0].pulse+hearts[1].pulse)*0.5;
+  const bgG=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(W,H)*0.55);
+  const bgα=0.035+bgP*0.018+curK*0.012;
+  bgG.addColorStop(0,`rgba(30,15,48,${bgα})`);bgG.addColorStop(0.5,`rgba(15,8,28,${bgα*0.35})`);bgG.addColorStop(1,'rgba(2,1,8,0)');
+  ctx.fillStyle=bgG;ctx.fillRect(0,0,W,H);
+
+  drawNeural();
+  const beauty=B(rP*curOv);
+  const geo=drawVP(curOv,hearts[0].pulse,hearts[1].pulse,beauty);
+  drawSynchrony(geo);drawVascular(geo);drawParticles(geo);drawDNA(dnaReveal);
+  if(gT%0.25<dt)updateUI();
+  requestAnimationFrame(tick);
+}
+
+window.addEventListener('resize',resize);resize();
+document.getElementById('splash').addEventListener('click',()=>{
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  resize();initAudio();running=true;requestAnimationFrame(tick);
+});
+</script>
+</body>
+</html>
