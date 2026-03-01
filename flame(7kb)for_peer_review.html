@@ -2,15 +2,17 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>CRR Flame</title>
 <style>
-*{margin:0;padding:0}
-body{background:#000;display:flex;justify-content:center;align-items:flex-end;height:100vh;overflow:hidden}
-canvas{width:160px;height:400px;touch-action:none}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#000;width:100%;height:100vh;height:100dvh;overflow:hidden}
+body{display:flex;justify-content:center;align-items:flex-end}
+canvas{max-width:100%;max-height:100vh;max-height:100dvh;touch-action:none}
 </style>
 </head>
 <body>
-<canvas id="f" width="160" height="400"></canvas>
+<canvas id="f"></canvas>
 <script>
 // CRR FLAME — every constant from first principles
 // C·Ω=1 | Ω(Z₂)=1/π | Ω(SO₂)=1/2π | φ=(1+√5)/2 | Δθ=π/3
@@ -20,9 +22,20 @@ canvas{width:160px;height:400px;touch-action:none}
 const cv=document.getElementById('f'),cx=cv.getContext('2d'),
   π=Math.PI, φ=(1+Math.sqrt(5))/2, invφ=1/φ,
   ΩZ=1/π, ΩS=1/(2*π), Δθ=π/3,
-  W=160, H=400, img=cx.createImageData(W,H),
+  W=160, H=400,
   Bn=Math.exp(π-1)/π,  // exact B normalization → peak=1
   rP=π-1;              // beauty peak location
+
+// Size canvas buffer and CSS to fill viewport, preserving 2:5 aspect
+function resize(){
+  const vh=window.innerHeight,vw=window.innerWidth,
+    ar=W/H, h=vh, w=Math.min(vw, h*ar);
+  cv.width=W; cv.height=H;
+  cv.style.width=w+'px'; cv.style.height=h+'px';
+}
+resize();
+window.addEventListener('resize',resize);
+let img=cx.createImageData(W,H);
 
 // — DISTURBANCE GRID: buoyancy-advected wake field —
 const GW=20, GH=50, grid=new Float32Array(GW*GH*2); // [dx, cool] per cell
@@ -44,14 +57,12 @@ function B(r){return r<0?0:Math.min(1,Math.exp(r)*Math.max(0,1-r/π)/Bn)}
 function turb(px,py,t){
   let v=0,a=1,f=1;
   for(let g=0;g<5;g++){
-    // Drift speeds: 2π² and π² give velocities 2π,π,π,π/2 — all CRR-derived
     const s=f*px+t*(g&1?ΩZ:ΩS)*2*π*π,
           q=f*py+t*(g&1?ΩS:ΩZ)*π*π,
           cs=Math.cos(Δθ*g),sn=Math.sin(Δθ*g),
           u=s*cs-q*sn,w=s*sn+q*cs;
-    // Cross-coupling through φ (golden ratio modulation)
     v+=a*(Math.sin(u+Math.sin(w*φ))*Math.cos(w*invφ+Math.sin(u*invφ)));
-    a*=ΩZ; f*=φ; // amplitude decays by Ω(Z₂), frequency scales by φ
+    a*=ΩZ; f*=φ;
   }
   return v;
 }
@@ -59,21 +70,17 @@ function turb(px,py,t){
 // Grid update: advect↑, diffuse laterally, decay, stamp finger
 function updateGrid(){
   let i,j;
-  // Buoyancy advection: copy from row below (gy+1→gy), blend with inertia, decay
   for(let y=0;y<GH-1;y++)for(let x=0;x<GW;x++){
     i=(y*GW+x)*2; j=((y+1)*GW+x)*2;
-    grid[i]=grid[j]*.82+grid[i]*.11;       // dx advects up
-    grid[i+1]=grid[j+1]*.82+grid[i+1]*.11; // cool advects up
+    grid[i]=grid[j]*.82+grid[i]*.11;
+    grid[i+1]=grid[j+1]*.82+grid[i+1]*.11;
   }
-  // Bottom row: fresh air enters, disturbance decays
   for(let x=0;x<GW;x++){i=((GH-1)*GW+x)*2;grid[i]*=.65;grid[i+1]*=.65}
-  // Lateral diffusion (thermal equilibrium recovery)
   for(let y=0;y<GH;y++)for(let x=1;x<GW-1;x++){
     i=(y*GW+x)*2;
     grid[i]=grid[i]*.82+(grid[i-2]+grid[i+2])*.09;
     grid[i+1]=grid[i+1]*.82+(grid[i-2+1]+grid[i+2+1])*.09;
   }
-  // Stamp finger as cold obstacle — Gaussian influence kernel
   if(!mIn)return;
   const gfx=mx*(GW-1),gfy=my*(GH-1),R=2.5,R2=R*R;
   for(let dy=-6;dy<=6;dy++){
@@ -83,8 +90,8 @@ function updateGrid(){
       const d2=dx*dx+dy*dy; if(d2>R2*6)continue;
       const p=Math.exp(-d2/(2*R2)),dist=Math.sqrt(d2)+.01;
       i=(gy*GW+gx)*2;
-      grid[i]+=dx/dist*p*.45+pvx*(GW-1)*p*.4; // radial deflection + velocity drag
-      grid[i+1]=Math.min(1,grid[i+1]+p*.75);   // quenching (cold body heat sink)
+      grid[i]+=dx/dist*p*.45+pvx*(GW-1)*p*.4;
+      grid[i+1]=Math.min(1,grid[i+1]+p*.75);
     }
   }
 }
@@ -104,13 +111,11 @@ let t=0;
 function render(){
   updateGrid();
   const d=img.data,
-    // Z₂ puffing: π-frequency base with φ-harmonic (bistable oscillation)
     p1=Math.sin(t*π)*(1+.2*Math.sin(t*π*φ)),
     p2=.5+.5*Math.sin(t*π*φ+Math.sin(t*π)*.8);
 
   for(let py=0;py<H;py++){
     const ny=1-py/H,
-      // Width from CRR: w ∝ (1-C·Ω)^(1/φ), C·Ω=ny → remaining capacity ^ golden ratio inverse
       w0=.35*Math.pow(Math.max(.001,1-ny),invφ),
       w=w0*(1+.06*p1*ny);
 
@@ -119,13 +124,11 @@ function render(){
         rad0=Math.abs(nx)/Math.max(.005,w);
       if(rad0>4){d[i]=d[i+1]=d[i+2]=0;d[i+3]=255;continue}
 
-      // Sample disturbance — quadratic height scaling: base anchored, tip free
       const[gdx,gcool]=samp(px/W,py/H),
         h2=ny*ny,
         dx=gdx*.28*h2,
         cool=Math.min(.95,gcool*h2);
 
-      // Displaced flame coordinates
       const dnx=nx-dx,
         dny=Math.max(0,Math.min(.999,ny)),
         dw=.35*Math.pow(Math.max(.001,1-dny),invφ)*(1+.06*p1*dny),
@@ -136,30 +139,27 @@ function render(){
       const tb=turb(dnx*3+Math.sin(dny*5+t*2.5)*.25*dny,(dny+t*2)*3,t),
         er=Math.max(0,rad+tb*.22*dny*(1+dny));
 
-      // Intensity from CRR beauty function
       const radB=B(rP*(1-er*.7)),
         vB=B(rP*(.25+.75*Math.pow(Math.sin(dny*π*.78),1.3)));
       let I=radB*vB*(1+.1*(p2-.5)*dny);
-      I*=Math.exp(-er*er/(2*ΩZ));                     // regeneration kernel spatial falloff
-      I*=Math.max(0,1-Math.pow(dny,4)*(1.3+tb*.3));   // tip extinction at C·Ω→1
-      I*=(1-cool);                                     // finger quenching
+      I*=Math.exp(-er*er/(2*ΩZ));
+      I*=Math.max(0,1-Math.pow(dny,4)*(1.3+tb*.3));
+      I*=(1-cool);
 
       const glow=Math.exp(-er*1.8)*.12*(1-dny)*(1-cool),
         tot=Math.max(0,I+glow),core=Math.max(0,1-er*1.5);
 
-      // Color: CRR beauty → blackbody emission mapping
       const t2=tot*tot,t3=t2*tot;
       let r=tot*1.4+core*.3,
           g=t2*1.8*(.2+core*.8),
           bl=t3*3*core;
-      // Blue inner cone: low-coherence pre-combustion zone (C₂ radical emission)
-      const blue=(1-dny)*(1-dny)*Math.max(0,1-er*10)*.25;
-      bl+=blue*.7; g+=blue*.15;
-      r+=Math.exp(-er*er/ΩZ)*.08*(1-dny*.5); // orange fringe glow
+      const blue=(1-dny)*(1-dny)*Math.max(0,1-er*3)*.55;
+      bl+=blue; g+=blue*.2;
+      r+=Math.exp(-er*er/ΩZ)*.08*(1-dny*.5);
 
       d[i]=Math.min(255,r*255)|0;
       d[i+1]=Math.min(255,g*255)|0;
-      d[i+2]=Math.min(255,bl*130)|0;
+      d[i+2]=Math.min(255,bl*200)|0;
       d[i+3]=255;
     }
   }
