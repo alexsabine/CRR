@@ -8,7 +8,7 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0806;font-family:'JetBrains Mono',monospace;color:#b8a080;
-  min-height:100vh;min-height:100dvh;overflow-x:hidden}
+  height:100vh;height:100dvh;overflow-x:hidden;overflow-y:auto}
 
 /* ── Desktop: side-by-side, vertically centered ── */
 #wrap{display:flex;gap:0;align-items:flex-end;height:560px;
@@ -65,6 +65,10 @@ canvas.chart{width:100%;border:1px solid #1a1510;border-radius:3px;display:block
 .abtn.on{border-color:#d4a55a;color:#d4a55a;background:rgba(212,165,90,.06)}
 .abtn .ico{display:inline-block;margin-right:3px;font-size:10px;vertical-align:-1px}
 #freqDisplay{font-size:8px;color:#3a3028;margin-top:3px;text-align:center;line-height:1.4}
+.tissue-row{opacity:0;transition:opacity .4s;height:0;overflow:hidden;transition:opacity .4s, height .4s}
+.tissue-row.active{opacity:1;height:auto}
+.pulse-dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#8a3020;vertical-align:middle;margin-right:4px;transition:all .05s}
 </style>
 </head>
 <body>
@@ -74,10 +78,9 @@ canvas.chart{width:100%;border:1px solid #1a1510;border-radius:3px;display:block
 
   <div class="sec">
     <div class="btn-row">
-      <button class="abtn" id="btnHarm"><span class="ico">◯</span>Harmonic</button>
-      <button class="abtn" id="btnReal"><span class="ico">◯</span>Hyper-Real</button>
+      <button class="abtn" id="btnReal"><span class="ico">◯</span>Audio</button>
     </div>
-    <div id="freqDisplay">B(r) spectral envelope · Kolmogorov roar + CRR crackle</div>
+    <div id="freqDisplay">E(k)∝k⁻⁵ᐟ³ roar · CRR crackle · cardiac throb · thermal hiss</div>
   </div>
 
   <div class="sec">
@@ -85,13 +88,6 @@ canvas.chart{width:100%;border:1px solid #1a1510;border-radius:3px;display:block
     <div class="row"><span class="val" id="omVal">0.800</span><span class="tag" id="omTag">chaotic</span></div>
     <input type="range" id="omSlider" min="0.04" max="0.8" step="0.001" value="0.8">
     <div class="eq">rigid ← Ω → flexible</div>
-  </div>
-
-  <div class="sec">
-    <div class="lbl">Coherence Rate — dC/dt</div>
-    <div class="row"><span class="val" id="rateVal">0.20</span><span class="tag">× 2π</span></div>
-    <input type="range" id="rateSlider" min="0.2" max="2.5" step="0.01" value="0.2">
-    <div class="eq">slow ← dC/dt → fast</div>
   </div>
 
   <div class="sec">
@@ -127,6 +123,21 @@ canvas.chart{width:100%;border:1px solid #1a1510;border-radius:3px;display:block
     <div class="row"><span style="font-size:9px;color:#5a4a38">CV predicted</span><span class="val" id="cvVal" style="font-size:11px">0.159</span></div>
     <div class="row" style="margin-top:2px"><span style="font-size:9px;color:#5a4a38">C at rupture</span><span class="val" id="cRupt" style="font-size:11px">π</span></div>
     <div class="row" style="margin-top:2px"><span style="font-size:9px;color:#5a4a38">Symmetry</span><span class="val" id="symVal" style="font-size:11px">Z₂</span></div>
+    <div class="tissue-row" id="tissueRow">
+      <div class="row" style="margin-top:4px;padding-top:4px;border-top:1px solid #1a1510">
+        <span style="font-size:9px;color:#5a4a38"><span class="pulse-dot" id="pulseDot"></span>Tissue C·Ω</span>
+        <span class="val" id="tissueVal" style="font-size:11px;color:#8a3020">0.000</span>
+      </div>
+      <div class="row" style="margin-top:1px">
+        <span style="font-size:9px;color:#5a4a38">Cardiac Z₂</span>
+        <span class="val" id="cardiacVal" style="font-size:11px;color:#8a3020">72 bpm</span>
+      </div>
+      <div class="eq">thermal coherence → vasodilation → cardiac amplification</div>
+      <div class="row tissue-row" id="crystalRow" style="opacity:0;height:0;overflow:hidden;margin-top:1px">
+        <span style="font-size:9px;color:#5a4a38">Crystal τ</span>
+        <span class="val" id="crystalTime" style="font-size:11px;color:#5a2a18">0.00s</span>
+      </div>
+    </div>
   </div>
 
 </div></div>
@@ -171,12 +182,38 @@ canvas.chart{width:100%;border:1px solid #1a1510;border-radius:3px;display:block
 //  at C·Ω = 1 ± CV with CV ≈ Ω/2 (the Z₂ prediction). These are
 //  genuine C → δ(now) → R cycles running at audio rate.
 //
+//  FINGER THROB — CRR BIOPHYSICS
+//
+//  When passing a finger (mouse) through flame, tissue accumulates
+//  thermal coherence C_th(t) = ∫ I(pos,τ) dτ. This drives three
+//  nested CRR couplings:
+//
+//    1. Flame CRR: combustion cycle (already modelled above)
+//    2. Tissue CRR: thermal coherence → nociceptor threshold
+//    3. Cardiac CRR: Z₂ bistable (systole/diastole), Ω = 1/π
+//
+//  Vasodilation amplifies the cardiac pulse locally. The "throb"
+//  is the heartbeat becoming audible through thermal stress:
+//
+//    f_cardiac = 1.1 + 0.5·σ_th Hz     (stress → tachycardia)
+//    Pulse shape = CRR micro-cycle:
+//      systole  (0→0.15): coherence accumulation — quick pressure rise
+//      rupture  (0.15):   systolic peak, δ(now)
+//      dicrotic (0.38):   valve closure — secondary micro-rupture
+//      diastole (→1.0):   regeneration exp(−τ·π) decay
+//    Intensity  = σ^(1/φ)·exp(σπ)/exp(π)·(1+2.5σ³) — CRR nociceptor gain
+//
+//  At 10 crystal-timed seconds (C_tissue · Ω_tissue = 1):
+//    δ(now) — tissue rupture → CRR vocal scream
+//    Synthesised from first principles: Z₂ glottal fold oscillation,
+//    4-formant vocal tract, aspiration noise, pain tremor vibrato
+//
 //  Both modes are CRR. The distinction is analytic vs numerical
 //  evaluation of the same three equations.
 //
-//  Two audio modes:
-//    HARMONIC:   B(r) spectral envelope, φ sub-harmonics, Ω-chorus, CRR reverb
-//    HYPER-REAL: Kolmogorov roar, CRR crackle agents, thermal hiss, rumble
+//  Audio: Kolmogorov roar, CRR crackle agents, cardiac throb, thermal hiss.
+//  Includes finger throb when mouse enters flame body.
+//  At 10 crystal-seconds sustained exposure → tissue rupture scream.
 //
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -192,7 +229,8 @@ const cv  = document.getElementById('f'), ctx = cv.getContext('2d'),
       W   = 160, H = 400, img = ctx.createImageData(W,H);
 
 // Mutable CRR parameters
-let Ω = 0.8, rate = 0.2;
+let Ω = 0.8;
+const rate = 0.2;
 
 // B(r) — the single generating function for visual AND acoustic domains
 function B(r) { return r < 0 ? 0 : Math.min(1, Math.exp(r) * Math.max(0, 1 - r/π) / Bn) }
@@ -203,19 +241,48 @@ function sG(v) { return isFinite(v) ? Math.max(0, Math.min(1, v)) : 0 }
 function sE(v) { return Math.max(.0001, isFinite(v) ? v : .0001) }
 
 
+// ─── FINGER THROB STATE ────────────────────────────────────────────
+// Tissue thermal coherence and cardiac Z₂ oscillator
+
+const finger = {
+  C_th: 0,             // thermal coherence integral: ∫ I(pos,τ) dτ
+  phase: 0,            // cardiac phase [0,1]
+  hr: 1.1,             // heart rate Hz (rest ≈ 1.1 = 66 bpm)
+  pulse: 0,            // current pulse envelope value
+  exposure: 0,         // instantaneous thermal exposure I(pos)
+  stress: 0,           // smoothed normalized stress σ_th = C_th · Ω_cardiac
+  // Crystal-timed sustained exposure (audio oscillator = precise clock)
+  crystalEntry: null,  // ac.currentTime when continuous flame exposure began
+  crystalAccum: 0,     // accumulated crystal-timed seconds in flame
+  // Scream state machine (crystal-timed)
+  screamState: 'off',  // 'off' | 'onset' | 'scream' | 'whimper'
+  screamOnset: 0,      // crystal time when scream began
+  exitTime: 0,         // crystal time when finger left flame (for whimper decay)
+  // Audio nodes (null until audio init)
+  throbOsc: null, throbG: null,
+  sub: null, subG: null,
+  h3: null, h3G: null,           // 3rd harmonic — emerges under pain
+  bloodSrc: null, bloodFlt: null, bloodG: null,
+};
+
+// Sympathetic acceleration curve — gradual onset then steep
+function σ2(x) { return x * x; }
+
+
 // ─── DOM ────────────────────────────────────────────────────────────
 
 const $ = id => document.getElementById(id);
-const omSlider=$('omSlider'), rateSlider=$('rateSlider');
-const omVal=$('omVal'), omTag=$('omTag'), rateValEl=$('rateVal');
+const omSlider=$('omSlider');
+const omVal=$('omVal'), omTag=$('omTag');
 const coVal=$('coVal'), coState=$('coState');
 const beautyValEl=$('beautyVal'), beautyBar=$('beautyBar');
 const cvVal=$('cvVal'), cRuptEl=$('cRupt'), symVal=$('symVal');
-const freqDisplay=$('freqDisplay');
-const btnHarm=$('btnHarm'), btnReal=$('btnReal');
+const btnReal=$('btnReal');
+const tissueRow=$('tissueRow'), tissueVal=$('tissueVal');
+const cardiacVal=$('cardiacVal'), pulseDot=$('pulseDot');
+const crystalRow=$('crystalRow'), crystalTime=$('crystalTime');
 
 omSlider.addEventListener('input', e => { Ω = +e.target.value });
-rateSlider.addEventListener('input', e => { rate = +e.target.value });
 
 
 // ─── STRIP CHART ────────────────────────────────────────────────────
@@ -442,111 +509,942 @@ function initAudio() {
   masterGain = ac.createGain(); masterGain.gain.value = 0;
   masterGain.connect(compressor); masterGain.connect(reverbConv);
   waveshaper = mkShaper(ac); waveshaper.connect(masterGain);
+  setupFinger();
 }
 
 function shutdownAudio() {
   if (!ac) return;
   masterGain.gain.setTargetAtTime(0, ac.currentTime, 0.08);
-  setTimeout(() => { teardownHarm(); teardownReal(); ac.close(); ac = null; audioMode = null;
-    btnHarm.classList.remove('on'); btnReal.classList.remove('on');
-    btnHarm.innerHTML = '<span class="ico">◯</span>Harmonic';
-    btnReal.innerHTML = '<span class="ico">◯</span>Hyper-Real';
+  setTimeout(() => { teardownReal(); teardownFinger();
+    ac.close(); ac = null; audioMode = null;
+    btnReal.classList.remove('on');
+    btnReal.innerHTML = '<span class="ico">◯</span>Audio';
   }, 300);
 }
 
 
-// ─── AUDIO MODE A: HARMONIC ─────────────────────────────────────────
-// f₀ = 2πΩr·64: flicker freq ×2⁶. Z₂→128Hz (C3), SO(2)→64Hz (C2).
-// 8 harmonics: amplitude = B(n·rP/N) × profile[n] / √n
-// Ω-chorus: detuned pairs at ±Ω·50 cents (variance IS stereo width)
-// 3 φ sub-harmonics: f₀/φ, f₀/φ², f₀/φ³ (irrational warmth)
-// Breath: bandpass noise at f₀·φ (air feeding combustion)
-// Volume ∝ Beauty B(C/Ω) — loudest approaching rupture
+// ─── FINGER THROB: CRR CARDIAC BIOPHYSICS ──────────────────────────
+//
+//  Three nested CRR cycles coupling through the mouse gesture:
+//
+//    FLAME  →  TISSUE  →  CARDIAC
+//    (combustion)  (thermal coherence)  (Z₂ heartbeat)
+//
+//  The flame's radiant intensity I(x,y) at the mouse position acts as
+//  the learning rate L(t) for the tissue's coherence integral:
+//
+//    C_th(t) = ∫ I(mouse_pos, τ) dτ
+//
+//  As C_th rises, vasodilation amplifies the local cardiac pulse.
+//  The cardiac cycle is Z₂ bistable with Ω_cardiac = 1/π:
+//
+//    Systole (coherence):  pressure rises as C → π
+//    Rupture (δ):          systolic peak at C·Ω = 1
+//    Dicrotic notch:       valve closure — secondary micro-rupture
+//    Diastole (regeneration): pressure falls as exp(−τ·π)
+//
+//  Audio synthesis:
+//    Sub-bass oscillator at 48–72 Hz (deeply felt, not just heard)
+//    Second harmonic at 96–144 Hz (warmth → urgency)
+//    Third harmonic at 144–216 Hz (emerges under pain — pulse hardening)
+//    Bandpass blood-rush noise at 140–280 Hz (turbulent vasodilation)
+//    All modulated by CRR cardiac pulse envelope
+//    Intensity = σ^(1/φ) · exp(σπ)/exp(π) · inflammatory multiplier
+//    Builds from subtle warmth → overwhelming pounding over sustained exposure
 
-const NH = 8, NS = 3;
-let hOsc = [], sOsc = [], hBreath = null;
+function setupFinger() {
+  if (!ac) return;
 
-function setupHarm() {
-  hOsc = [];
-  for (let n = 1; n <= NH; n++) {
-    const gL = ac.createGain(), gR = ac.createGain();
-    const oL = ac.createOscillator(), oR = ac.createOscillator();
-    oL.type = oR.type = 'sine'; oL.frequency.value = oR.frequency.value = n*128;
-    oL.detune.value = -Ω*50; oR.detune.value = Ω*50;
-    gL.gain.value = gR.gain.value = 0;
-    oL.connect(gL); oR.connect(gR); gL.connect(waveshaper); gR.connect(waveshaper);
-    oL.start(); oR.start();
-    hOsc.push({oL, oR, gL, gR, n});
-  }
-  sOsc = [];
-  const φR = [φ, φ*φ, φ*φ*φ];
-  for (let i = 0; i < NS; i++) {
-    const gL = ac.createGain(), gR = ac.createGain();
-    const oL = ac.createOscillator(), oR = ac.createOscillator();
-    oL.type = oR.type = 'sine'; oL.frequency.value = oR.frequency.value = 128/φR[i];
-    oL.detune.value = -Ω*30; oR.detune.value = Ω*30;
-    gL.gain.value = gR.gain.value = 0;
-    oL.connect(gL); oR.connect(gR); gL.connect(waveshaper); gR.connect(waveshaper);
-    oL.start(); oR.start();
-    sOsc.push({oL, oR, gL, gR, ratio: φR[i]});
-  }
-  const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
-  const flt = ac.createBiquadFilter(); flt.type = 'bandpass'; flt.frequency.value = 200; flt.Q.value = 1;
+  // Sub-bass throb: ~48 Hz — below conscious hearing, felt in the body
+  // CRR: cardiac fundamental ≈ Ω_cardiac × 2π × 2⁵ = (1/π)·2π·32 = 64/π ≈ 20 Hz
+  // We use 48 Hz (second partial) for better speaker reproduction
+  const osc = ac.createOscillator();
+  osc.type = 'sine'; osc.frequency.value = 48;
+  const g = ac.createGain(); g.gain.value = 0;
+  osc.connect(g); g.connect(waveshaper); osc.start();
+
+  // Second harmonic: 96 Hz — the "warmth" of blood
+  const osc2 = ac.createOscillator();
+  osc2.type = 'sine'; osc2.frequency.value = 96;
+  const g2 = ac.createGain(); g2.gain.value = 0;
+  osc2.connect(g2); g2.connect(waveshaper); osc2.start();
+
+  // Third harmonic: 144 Hz — emerges as pain intensifies
+  // CRR: sharper systolic peak → more overtone content → higher harmonics appear
+  // This is the "hardening" of the pulse — the sound of sympathetic overdrive
+  const osc3 = ac.createOscillator();
+  osc3.type = 'sine'; osc3.frequency.value = 144;
+  const g3 = ac.createGain(); g3.gain.value = 0;
+  osc3.connect(g3); g3.connect(waveshaper); osc3.start();
+
+  // Blood rush: bandpass noise 100–200 Hz — turbulent flow through dilated vessels
+  // Bandwidth narrows with Ω (rigid → laminar → narrow; flexible → turbulent → wide)
+  const src = ac.createBufferSource();
+  src.buffer = noiseBuf; src.loop = true;
+  const flt = ac.createBiquadFilter();
+  flt.type = 'bandpass'; flt.frequency.value = 140; flt.Q.value = 1.5;
   const gn = ac.createGain(); gn.gain.value = 0;
   src.connect(flt); flt.connect(gn); gn.connect(waveshaper); src.start();
-  hBreath = {src, flt, gn};
+
+  finger.throbOsc = osc; finger.throbG = g;
+  finger.sub = osc2; finger.subG = g2;
+  finger.h3 = osc3; finger.h3G = g3;
+  finger.bloodSrc = src; finger.bloodFlt = flt; finger.bloodG = gn;
+  setupScream();
 }
 
-function teardownHarm() {
-  hOsc.forEach(h => { try { h.oL.stop(); h.oR.stop() } catch(e) {} }); hOsc = [];
-  sOsc.forEach(s => { try { s.oL.stop(); s.oR.stop() } catch(e) {} }); sOsc = [];
-  if (hBreath) { try { hBreath.src.stop() } catch(e) {} hBreath = null }
+function teardownFinger() {
+  try { if (finger.throbOsc) finger.throbOsc.stop() } catch(e) {}
+  try { if (finger.sub) finger.sub.stop() } catch(e) {}
+  try { if (finger.h3) finger.h3.stop() } catch(e) {}
+  try { if (finger.bloodSrc) finger.bloodSrc.stop() } catch(e) {}
+  finger.throbOsc = finger.throbG = null;
+  finger.sub = finger.subG = null;
+  finger.h3 = finger.h3G = null;
+  finger.bloodSrc = finger.bloodFlt = finger.bloodG = null;
+  teardownScream();
+  finger.screamState = 'off';
 }
 
-function updateHarm() {
-  if (!ac || audioMode !== 'harmonic') return;
-  const now = ac.currentTime, sm = 0.06;
-  const f0 = 2*π*Ω*rate*64, cc = Ω*50;
 
-  for (let i = 0; i < NH; i++) {
-    const h = hOsc[i], n = h.n;
-    const ny = n/(NH+1), py = Math.round(H*(1-ny));
-    const measured = py >= 0 && py < H ? profile[py] : 0;
-    const bEnv = B(n * rP / (NH+1));          // ← B(r) as spectral envelope
-    const amp = (bEnv*0.4 + measured*0.6) * (1/Math.sqrt(n)) * 0.08;
-    const turbFM = turb(0, ny*3, t) * Ω * 4;  // ← turbulence as FM
-    const freq = sF(n * f0 + turbFM);
-    h.oL.frequency.setTargetAtTime(freq, now, sm); h.oR.frequency.setTargetAtTime(freq, now, sm);
-    h.oL.detune.setTargetAtTime(-cc, now, 0.15); h.oR.detune.setTargetAtTime(cc, now, 0.15);
-    const g = sG(Math.min(0.1, amp));
-    h.gL.gain.setTargetAtTime(g, now, sm); h.gR.gain.setTargetAtTime(g, now, sm);
+// ─── CRR SCREAM: PERSISTENT CRYSTAL-TIMED VOCAL SYSTEM ─────────────
+//
+//  The scream is NOT a one-shot event. It is a continuous CRR process
+//  driven by the crystal oscillator timer:
+//
+//  STATE MACHINE (all transitions crystal-timed):
+//
+//    OFF → ONSET (at 10 crystal-seconds)
+//      Tissue coherence reaches C·Ω = 1. δ(now) fires.
+//      Inhale, laryngeal tension builds (0.3s coherence phase)
+//
+//    ONSET → SCREAM (0.3s after onset)
+//      Full vocal engagement. Sustained as long as finger stays.
+//      Crystal time past rupture (τ_scream) drives:
+//        • Intensity: exp(τ·Ω_vocal) — builds with continued exposure
+//        • Roughness: fold asymmetry increases (Ω_eff decreasing)
+//        • Subharmonic: period-doubling emerges from fatigue
+//        • Vibrato depth: laryngeal control deteriorates
+//
+//    SCREAM → WHIMPER (on finger exit)
+//      The regeneration phase. Crystal time since exit (τ_exit) drives:
+//        • Pitch: f₀·exp(−τ_exit·π) — drops as larynx relaxes
+//        • Amplitude: exp(−τ_exit/Ω_vocal) — CRR regeneration decay
+//        • Subharmonic dominates: voice cracking
+//        • F1 drops: jaw closing, lips narrowing
+//        • Aspiration rises: sobbing breaths
+//        • Becomes crying/whimpering before silence
+//
+//    WHIMPER → OFF (when amplitude < threshold)
+//      System returns to quiescence. Ready for next cycle.
+//
+//  SYNTHESIS (persistent nodes, modulated per-frame):
+//    Glottal Z₂ pair (fold + asymmetric partner)
+//    Subharmonic (period-doubling bifurcation)
+//    4-formant vocal tract (bandpass bank)
+//    Aspiration noise (Kolmogorov cascade)
+//    Vibrato LFO (pain tremor → sobbing tremor)
+//    All routed through screamMaster gain → waveshaper
+//
+
+// Scream audio nodes — persistent, created once, modulated continuously
+const scream = {
+  // Primary glottal (chest voice Z₂ pair)
+  glot1: null, glot2: null, subh: null,
+  gG1: null, gG2: null, gSub: null,
+  // HIGH SHRIEK register — falsetto Z₂ pair
+  // CRR: when chest voice ruptures (fold contact lost), the system
+  // regenerates into a higher vibratory mode. The falsetto IS the
+  // regeneration of the glottal oscillation — thinner fold mass,
+  // higher frequency, less harmonic content.
+  shriek1: null, shriek2: null,
+  gShriek1: null, gShriek2: null,
+  // GLOTTAL CRACK — noise burst for register break transients
+  // CRR: the δ(now) between chest and falsetto modes produces a
+  // broadband transient (aperiodic fold vibration during mode switch)
+  crackSrc: null, crackFlt: null, gCrack: null,
+  // SCREAM FORMANT BOOST — extra resonant peak at ~3 kHz
+  // Dedicated amplification of the "alarm band" where human hearing
+  // peaks. Evolution selected this: pain scream → ear canal resonance
+  screamFmtSrc: null, screamFmt: null, gScreamFmt: null,
+  //
+  glotMix: null,
+  formants: [],     // [{bp, fg}]
+  formantSum: null,
+  aspSrc: null, aspFlt: null, aspG: null,
+  vibLFO: null, vibG: null,
+  amLFO: null, amG: null, amNode: null,
+  master: null,
+};
+
+function setupScream() {
+  if (!ac) return;
+  const f0 = 420;
+
+  // ── PRIMARY GLOTTAL (chest voice Z₂ pair) ──────────────────────
+  scream.glot1 = ac.createOscillator();
+  scream.glot1.type = 'sawtooth'; scream.glot1.frequency.value = f0;
+  scream.glot2 = ac.createOscillator();
+  scream.glot2.type = 'sawtooth'; scream.glot2.frequency.value = f0 * 1.008;
+  scream.subh = ac.createOscillator();
+  scream.subh.type = 'sawtooth'; scream.subh.frequency.value = f0 / 2;
+
+  scream.gG1 = ac.createGain(); scream.gG1.gain.value = 0;
+  scream.gG2 = ac.createGain(); scream.gG2.gain.value = 0;
+  scream.gSub = ac.createGain(); scream.gSub.gain.value = 0;
+
+  // ── HIGH SHRIEK REGISTER (falsetto Z₂ pair) ───────────────────
+  // CRR: when chest voice fold contact ruptures, the system regenerates
+  // into a higher vibratory mode — thinner effective mass, shorter
+  // closed phase, higher f₀. This is the register transition that
+  // makes a scream piercing. Two oscillators for the same fold
+  // asymmetry beating, but using triangle wave (less dense harmonics
+  // = the breathy quality of falsetto/scream register)
+  scream.shriek1 = ac.createOscillator();
+  scream.shriek1.type = 'sawtooth'; scream.shriek1.frequency.value = f0 * 2;
+  scream.shriek2 = ac.createOscillator();
+  scream.shriek2.type = 'sawtooth'; scream.shriek2.frequency.value = f0 * 2 * 1.006;
+  scream.gShriek1 = ac.createGain(); scream.gShriek1.gain.value = 0;
+  scream.gShriek2 = ac.createGain(); scream.gShriek2.gain.value = 0;
+
+  // ── GLOTTAL CRACK (register break transient) ──────────────────
+  // CRR: the δ(now) between chest/falsetto modes is aperiodic —
+  // a burst of broadband energy as the folds momentarily lose
+  // contact pattern. Filtered noise burst, gain-gated per-frame.
+  scream.crackSrc = ac.createBufferSource();
+  scream.crackSrc.buffer = noiseBuf; scream.crackSrc.loop = true;
+  scream.crackFlt = ac.createBiquadFilter();
+  scream.crackFlt.type = 'bandpass'; scream.crackFlt.frequency.value = 1800;
+  scream.crackFlt.Q.value = 0.8;       // wide — aperiodic event
+  scream.gCrack = ac.createGain(); scream.gCrack.gain.value = 0;
+  scream.crackSrc.connect(scream.crackFlt);
+  scream.crackFlt.connect(scream.gCrack);
+
+  // ── SCREAM FORMANT BOOST (dedicated 2.5–3.5 kHz resonance) ────
+  // Extra resonant peak in the "alarm band". This is SEPARATE from
+  // the F3 formant — it's an additional energy concentration that
+  // makes screams cut through any ambient sound. Fed by noise for
+  // a breathy, piercing quality independent of pitch.
+  scream.screamFmtSrc = ac.createBufferSource();
+  scream.screamFmtSrc.buffer = noiseBuf; scream.screamFmtSrc.loop = true;
+  scream.screamFmt = ac.createBiquadFilter();
+  scream.screamFmt.type = 'bandpass'; scream.screamFmt.frequency.value = 3000;
+  scream.screamFmt.Q.value = 6;        // narrow — piercing resonance
+  scream.gScreamFmt = ac.createGain(); scream.gScreamFmt.gain.value = 0;
+  scream.screamFmtSrc.connect(scream.screamFmt);
+  scream.screamFmt.connect(scream.gScreamFmt);
+
+  // ── GLOTTAL MIX BUS ───────────────────────────────────────────
+  scream.glotMix = ac.createGain(); scream.glotMix.gain.value = 1;
+  scream.glot1.connect(scream.gG1); scream.gG1.connect(scream.glotMix);
+  scream.glot2.connect(scream.gG2); scream.gG2.connect(scream.glotMix);
+  scream.subh.connect(scream.gSub); scream.gSub.connect(scream.glotMix);
+  scream.shriek1.connect(scream.gShriek1); scream.gShriek1.connect(scream.glotMix);
+  scream.shriek2.connect(scream.gShriek2); scream.gShriek2.connect(scream.glotMix);
+  scream.gCrack.connect(scream.glotMix);
+
+  // ── FORMANT BANK — parallel bandpass → sum ────────────────────
+  const fmDefs = [
+    { f: 800,  Q: 10, g: 1.0  },    // F1: jaw open
+    { f: 1500, Q: 12, g: 0.7  },    // F2: tongue retracted
+    { f: 2900, Q: 18, g: 0.85 },    // F3: scream formant
+    { f: 3800, Q: 10, g: 0.35 },    // F4: upper tract
+  ];
+  scream.formantSum = ac.createGain(); scream.formantSum.gain.value = 1;
+  scream.formants = fmDefs.map(fm => {
+    const bp = ac.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = fm.f; bp.Q.value = fm.Q;
+    const fg = ac.createGain(); fg.gain.value = fm.g;
+    scream.glotMix.connect(bp); bp.connect(fg); fg.connect(scream.formantSum);
+    return { bp, fg, baseF: fm.f, baseQ: fm.Q, baseG: fm.g };
+  });
+  // Scream formant boost feeds directly into formant sum
+  scream.gScreamFmt.connect(scream.formantSum);
+
+  // ── ASPIRATION — turbulent breath ─────────────────────────────
+  scream.aspSrc = ac.createBufferSource();
+  scream.aspSrc.buffer = noiseBuf; scream.aspSrc.loop = true;
+  scream.aspFlt = ac.createBiquadFilter();
+  scream.aspFlt.type = 'bandpass'; scream.aspFlt.frequency.value = 2200; scream.aspFlt.Q.value = 1.2;
+  scream.aspG = ac.createGain(); scream.aspG.gain.value = 0;
+  scream.aspSrc.connect(scream.aspFlt); scream.aspFlt.connect(scream.aspG);
+  scream.aspG.connect(scream.formantSum);
+
+  // ── VIBRATO LFO — pain tremor → sobbing tremor ───────────────
+  scream.vibLFO = ac.createOscillator();
+  scream.vibLFO.type = 'sine'; scream.vibLFO.frequency.value = 5.8;
+  scream.vibG = ac.createGain(); scream.vibG.gain.value = 0;
+  scream.vibLFO.connect(scream.vibG);
+  scream.vibG.connect(scream.glot1.frequency);
+  scream.vibG.connect(scream.glot2.frequency);
+  scream.vibG.connect(scream.subh.frequency);
+  scream.vibG.connect(scream.shriek1.frequency);
+  scream.vibG.connect(scream.shriek2.frequency);
+
+  // ── AMPLITUDE TREMOR — whole-body shudder ─────────────────────
+  scream.amLFO = ac.createOscillator();
+  scream.amLFO.type = 'sine'; scream.amLFO.frequency.value = 4.2;
+  scream.amG = ac.createGain(); scream.amG.gain.value = 0;
+  scream.amNode = ac.createGain(); scream.amNode.gain.value = 1;
+  scream.amLFO.connect(scream.amG); scream.amG.connect(scream.amNode.gain);
+  scream.formantSum.connect(scream.amNode);
+
+  // ── MASTER OUTPUT ─────────────────────────────────────────────
+  scream.master = ac.createGain(); scream.master.gain.value = 0;
+  scream.amNode.connect(scream.master);
+  scream.master.connect(waveshaper);
+
+  // Start all sources (persistent — always running, gain-gated)
+  [scream.glot1, scream.glot2, scream.subh, scream.shriek1, scream.shriek2,
+   scream.aspSrc, scream.crackSrc, scream.screamFmtSrc,
+   scream.vibLFO, scream.amLFO].forEach(s => s.start());
+}
+
+function teardownScream() {
+  [scream.glot1, scream.glot2, scream.subh, scream.shriek1, scream.shriek2,
+   scream.aspSrc, scream.crackSrc, scream.screamFmtSrc,
+   scream.vibLFO, scream.amLFO]
+    .forEach(s => { try { if (s) s.stop(); } catch(e) {} });
+  scream.glot1 = scream.glot2 = scream.subh = null;
+  scream.shriek1 = scream.shriek2 = null;
+  scream.gG1 = scream.gG2 = scream.gSub = null;
+  scream.gShriek1 = scream.gShriek2 = null;
+  scream.crackSrc = scream.crackFlt = scream.gCrack = null;
+  scream.screamFmtSrc = scream.screamFmt = scream.gScreamFmt = null;
+  scream.aspSrc = scream.aspFlt = scream.aspG = null;
+  scream.vibLFO = scream.vibG = null;
+  scream.amLFO = scream.amG = scream.amNode = null;
+  scream.master = null; scream.formants = [];
+}
+
+
+// ─── UPDATE SCREAM (called every frame) ────────────────────────────
+//
+//  All parameters derived from crystal time. The crystal oscillator
+//  is the single source of truth for the scream's temporal evolution.
+//
+//  τ_onset  = crystal seconds since scream began
+//  τ_scream = crystal seconds past the 0.3s onset phase
+//  τ_exit   = crystal seconds since finger left flame
+//
+//  Scream intensity (sustained):
+//    I(τ) = min(1, 0.6 + 0.4·(1 − exp(−τ/3)))
+//    Starts at 60%, builds to 100% over ~8s of sustained screaming.
+//    CRR: continued thermal input → further coherence → amplification
+//
+//  Whimper decay:
+//    I(τ_exit) = exp(−τ_exit · π · Ω_vocal)
+//    CRR regeneration kernel: exp(−τ/Ω) with Ω_vocal = 1/π
+//    Pitch drops: f₀ · (0.35 + 0.65·exp(−τ_exit·1.2))
+//    Subharmonic dominates: gSub rises relative to gG1
+//    Vibrato → sobbing: frequency drops from 5.8 → 3 Hz
+
+function updateScream() {
+  if (!ac || !scream.master) return;
+  const now = ac.currentTime;
+  const state = finger.screamState;
+  const sm = 0.04;      // smoothing time constant
+  const f0 = 420;
+  const Ω_vocal = 1/π;
+
+  if (state === 'off') {
+    // Silence — all gains zero
+    scream.master.gain.setTargetAtTime(0, now, 0.08);
+    return;
   }
 
-  const baseI = profile[Math.round(H*0.88)] || 0;
-  for (let i = 0; i < NS; i++) {
-    const s = sOsc[i], freq = sF(f0 / s.ratio);
-    const amp = sG(B((i+1)*0.5) * baseI * 0.04 / (i+1));
-    s.oL.frequency.setTargetAtTime(freq, now, 0.12); s.oR.frequency.setTargetAtTime(freq, now, 0.12);
-    s.oL.detune.setTargetAtTime(-cc*0.6, now, 0.15); s.oR.detune.setTargetAtTime(cc*0.6, now, 0.15);
-    s.gL.gain.setTargetAtTime(amp, now, 0.12); s.gR.gain.setTargetAtTime(amp, now, 0.12);
+  // ── Crystal-derived time coordinates ─────────────────────────────
+  const τ_onset = now - finger.screamOnset;                // time since rupture event
+
+  // Onset → scream transition at 0.3 crystal-seconds
+  if (state === 'onset' && τ_onset >= 0.3) {
+    finger.screamState = 'scream';
+    // Flash panel red at δ(now)
+    const panel = document.getElementById('panel');
+    panel.style.transition = 'background 0.1s';
+    panel.style.background = '#1a0808';
+    setTimeout(() => { panel.style.transition = 'background 3s'; panel.style.background = '#0d0b08'; }, 600);
   }
 
-  hBreath.flt.frequency.setTargetAtTime(sF(f0*φ + 40), now, 0.15);
-  hBreath.flt.Q.setTargetAtTime(Math.max(0.3, π/(Ω*2*π + 0.01)), now, 0.15);
-  hBreath.gn.gain.setTargetAtTime(sG(baseI * 0.012), now, sm);
+  if (state === 'onset') {
+    // ── ONSET PHASE: inhale → explosive start ──────────────────────
+    // CRR coherence phase: 0 → 0.3s, building to δ
+    const p = τ_onset / 0.3;                               // [0,1] through onset
+    const onsetGain = p * p * 0.6;                         // quadratic rise → 60%
 
-  reverbGain.gain.setTargetAtTime(sG(Math.min(0.5, Ω*0.8)), now, 0.2); // wet ∝ Ω (more variance = more spatial memory)
-  smoothB += (currentBeauty - smoothB) * 0.06;
-  masterGain.gain.setTargetAtTime(sG(Math.min(0.55, smoothB*0.5)), now, 0.12);
+    scream.glot1.frequency.setTargetAtTime(sF(f0 * (0.7 + 0.35 * p)), now, sm);
+    scream.glot2.frequency.setTargetAtTime(sF(f0 * (0.7 + 0.35 * p) * 1.008), now, sm);
+    scream.subh.frequency.setTargetAtTime(sF(f0 * (0.35 + 0.15 * p)), now, sm);
+
+    scream.gG1.gain.setTargetAtTime(sG(onsetGain * 0.20), now, 0.01);
+    scream.gG2.gain.setTargetAtTime(sG(onsetGain * 0.12), now, 0.01);
+    scream.gSub.gain.setTargetAtTime(0, now, sm);
+    scream.gShriek1.gain.setTargetAtTime(0, now, sm);         // silent during onset
+    scream.gShriek2.gain.setTargetAtTime(0, now, sm);
+    scream.gCrack.gain.setTargetAtTime(0, now, sm);
+    scream.gScreamFmt.gain.setTargetAtTime(sG(p * 0.02), now, sm);  // hint of alarm band
+    scream.aspG.gain.setTargetAtTime(sG(p * 0.04), now, sm);
+    scream.vibG.gain.setTargetAtTime(p * 3, now, sm);
+    scream.amG.gain.setTargetAtTime(0, now, sm);
+    scream.master.gain.setTargetAtTime(sG(0.90), now, 0.02);
+    return;
+  }
+
+  if (state === 'scream') {
+    // ── SUSTAINED SCREAM → REPEATED SHRIEKS ────────────────────────
+    //
+    // The sustained scream is NOT a steady-state phenomenon. It evolves
+    // through crystal-timed phases as the body's pain response escalates.
+    //
+    // Each SHRIEK is itself a nested CRR micro-cycle:
+    //   C: inhale (diaphragm coherence builds)
+    //   δ: shriek onset (glottal rupture — explosive phonation)
+    //   R: gasp/decay (regeneration — breath recovery)
+    //
+    // The shriek RATE is the respiratory CRR cycle's coherence rate.
+    // Under pain, sympathetic activation accelerates it:
+    //   Rest: 0.25 Hz (15 breaths/min)
+    //   Pain: 0.7 Hz → hyperventilation at 1.8 Hz (42→108 breaths/min)
+    //
+    // Crystal time τ_scream drives four phases of escalation:
+    //
+    //   PHASE 1 (0–3s): Initial sustained scream
+    //     Single long vocalisation, building intensity
+    //     Shriek cycle barely modulates (breath held)
+    //
+    //   PHASE 2 (3–8s): Breaking into shrieks
+    //     Can't sustain — must breathe. Scream fragments.
+    //     Each shriek is sharper, higher (pitch spikes at onset)
+    //     Breath rate accelerates (hyperventilation CRR)
+    //
+    //   PHASE 3 (8–15s): Desperation
+    //     Shrieks become irregular (CV increases — CRR prediction:
+    //     system under extreme drive → higher variance)
+    //     Pitch jumps: modal → falsetto register breaks
+    //     Voice cracking: momentary fold contact loss
+    //     More aspiration between shrieks (barely phonating)
+    //
+    //   PHASE 4 (15s+): Exhaustion
+    //     Shrieks weaken but pitch stays high (residual tension)
+    //     More gasping than screaming
+    //     Subharmonics dominate (folds can't maintain full vibration)
+    //     Irregular, desperate rhythm
+
+    const τ_scream = Math.max(0, τ_onset - 0.3);
+
+    // ── Phase progression (crystal-derived) ────────────────────────
+    const phase1 = Math.min(1, τ_scream / 3);             // 0→1 over 3s
+    const phase2 = Math.max(0, Math.min(1, (τ_scream - 3) / 5));   // 0→1 over 3–8s
+    const phase3 = Math.max(0, Math.min(1, (τ_scream - 8) / 7));   // 0→1 over 8–15s
+    const phase4 = Math.max(0, Math.min(1, (τ_scream - 15) / 8));  // 0→1 over 15–23s
+
+    // ── Roughness (vocal Ω_eff decreasing under strain) ────────────
+    const roughness = Math.min(1, τ_scream / 12);
+
+    // ── SHRIEK CYCLE: nested CRR at respiratory timescale ──────────
+    //
+    // Shriek rate (breaths per second):
+    //   Phase 1: 0.5 Hz (long held scream, barely cycling)
+    //   Phase 2: 0.7→1.3 Hz (hyperventilation onset)
+    //   Phase 3: 1.3→1.8 Hz (full hyperventilation)
+    //   Phase 4: 1.5→1.0 Hz (exhaustion — slowing down)
+    const shriekRate = phase4 > 0
+      ? 1.5 - 0.5 * phase4                                // exhaustion: slowing
+      : 0.5 + 0.8 * phase2 + 0.5 * phase3;                // acceleration
+
+    // Shriek phase: integral of rate over crystal time
+    // Approximate: τ × average_rate (good enough for evolving rate)
+    const shriekPhase = τ_scream * (0.5 + 0.65 * phase2 + 0.25 * phase3 - 0.25 * phase4);
+
+    // Jitter: CV of shriek timing increases under extreme pain
+    // CRR predicts: system driven hard → Ω rises → higher CV
+    const jitter = phase3 * 0.3 * Math.sin(shriekPhase * φ * 7.3 + τ_scream * 1.7);
+    const shriekAngle = 2 * π * (shriekPhase + jitter);
+
+    // Shriek envelope: sharp attack, brief sustain, quick release
+    // CRR micro-cycle: C (inhale) → δ (shriek peak) → R (gasp)
+    // Modelled as raised cosine with asymmetric shaping
+    const rawCycle = Math.cos(shriekAngle);                // -1 to 1
+    // Shape: shriek is the positive peak, gasp is the negative trough
+    const shriekPeak = Math.pow(Math.max(0, rawCycle), 0.4);  // sharp peaks
+    const gaspTrough = Math.pow(Math.max(0, -rawCycle), 0.7); // softer troughs
+
+    // How much the cycle modulates (held breath → full shrieks)
+    const cycleDepth = 0.15 * phase1 + 0.6 * phase2 + 0.85 * phase3 + 0.7 * phase4;
+
+    // Base intensity (still building over crystal time)
+    const baseIntensity = 0.6 + 0.4 * (1 - Math.exp(-τ_scream / 3));
+    // Exhaustion: gradual weakening after 15s
+    const exhaustion = 1 - 0.4 * phase4;
+    // Combined: base × cycle modulation × exhaustion
+    const intensity = baseIntensity * exhaustion
+      * (1 - cycleDepth + cycleDepth * shriekPeak);
+
+    // ── PITCH: spikes on each shriek onset ─────────────────────────
+    //
+    // Base pitch: slight rise from effort, fatigue sag
+    let pitchMod = 1.05 - 0.08 * (1 - Math.exp(-τ_scream / 6));
+
+    // Shriek pitch spike: each new shriek onset drives pitch UP
+    // CRR: each micro-rupture δ is accompanied by sudden laryngeal tension
+    const pitchSpike = shriekPeak * cycleDepth * 0.15;     // up to +15% at peak
+    pitchMod += pitchSpike;
+
+    // Escalation: successive shrieks get higher (larynx ratchets up)
+    // CRR: each regeneration doesn't fully reset — residual coherence
+    const escalation = Math.min(0.25, τ_scream * 0.012);  // slow +25% over 20s
+    pitchMod += escalation;
+
+    // Register breaks: in Phase 3+, pitch occasionally jumps to falsetto
+    // CRR: the fold oscillation's own C·Ω = 1 event — the system
+    // snaps between chest voice (Z₂ mode 1) and falsetto (Z₂ mode 2)
+    // Modelled as sporadic pitch jumps driven by crystal-time hash
+    let registerBreak = 0;
+    if (phase3 > 0.2) {
+      // Pseudo-random trigger: sin of irrational crystal-time multiples
+      const breakTrigger = Math.sin(τ_scream * 13.7 * π) * Math.sin(τ_scream * 7.3 * φ);
+      if (breakTrigger > (1 - phase3 * 0.6)) {            // more frequent in phase 3+
+        registerBreak = 0.5 + 0.3 * phase3;               // jump up 50–80%
+      }
+    }
+    pitchMod += registerBreak;
+
+    // Exhaustion: pitch sags
+    pitchMod -= 0.12 * phase4;
+
+    const detune = 1.008 + 0.007 * roughness + 0.005 * phase3; // asymmetry grows
+
+    scream.glot1.frequency.setTargetAtTime(sF(f0 * pitchMod), now, 0.02);
+    scream.glot2.frequency.setTargetAtTime(sF(f0 * pitchMod * detune), now, 0.02);
+    scream.subh.frequency.setTargetAtTime(sF(f0 * pitchMod * 0.5), now, 0.04);
+
+    // ── HIGH SHRIEK REGISTER ───────────────────────────────────────
+    //
+    // CRR: the high register is a separate Z₂ mode of the vocal folds.
+    // Under extreme pain drive, the folds can't maintain full-length
+    // contact → they snap to a shorter vibrating length (falsetto).
+    // This produces a frequency ~2× the chest voice fundamental.
+    //
+    // The shriek register:
+    //   Phase 1: absent (chest voice holds)
+    //   Phase 2: flashes on shriek PEAKS — brief piercing spikes
+    //   Phase 3: dominates — the person is shrieking not screaming
+    //   Phase 4: fading but still present (residual tension)
+    //
+    // Pitch tracks chest voice ×2 but with its own instabilities
+    const shriekF = f0 * pitchMod * 2;                     // octave above chest
+    const shriekDetune = 1.006 + 0.004 * roughness;        // own asymmetry
+    scream.shriek1.frequency.setTargetAtTime(sF(shriekF), now, 0.02);
+    scream.shriek2.frequency.setTargetAtTime(sF(shriekF * shriekDetune), now, 0.02);
+
+    // Shriek gain: emerges in Phase 2, dominates in Phase 3
+    // Fires on shriek cycle peaks — each inhale triggers a new shriek
+    const shriekOnset = phase2 * 0.5 + phase3 * 0.5;       // 0→1 ramp
+    const shriekAmp = shriekOnset * shriekPeak * intensity * exhaustion;
+    // Brief piercing spikes: gain rises sharply at peak, drops fast
+    scream.gShriek1.gain.setTargetAtTime(sG(shriekAmp * 0.16), now, 0.008);
+    scream.gShriek2.gain.setTargetAtTime(sG(shriekAmp * 0.10), now, 0.008);
+
+    // ── GLOTTAL CRACK (register break transient) ───────────────────
+    //
+    // CRR: each transition between chest and falsetto IS a δ(now) —
+    // the fold vibratory pattern ruptures and regenerates into the
+    // other mode. This produces a brief broadband burst.
+    //
+    // Triggers: at the EDGES of shriekPeak (both rising and falling)
+    // Detected by the derivative of the shriek cycle being large
+    // while the absolute value is mid-range (transition zone).
+    const inTransition = shriekPeak > 0.15 && shriekPeak < 0.7;
+    const crackIntensity = inTransition ? (phase2 + phase3) * 0.5 : 0;
+    // Also fires during register breaks (detected above)
+    const breakCrack = registerBreak > 0 ? 0.12 : 0;
+    scream.gCrack.gain.setTargetAtTime(sG((crackIntensity * 0.08 + breakCrack) * exhaustion), now, 0.005);
+    // Crack filter shifts with pitch — the transient tracks the voice
+    scream.crackFlt.frequency.setTargetAtTime(sF(1400 + 800 * pitchMod), now, 0.03);
+
+    // ── SCREAM FORMANT BOOST (2.5–3.5 kHz alarm band) ──────────────
+    //
+    // CRR: this is NOT part of the vocal tract resonance. It's the
+    // acoustic energy that evolution concentrated in the frequency
+    // band where the human auditory system has maximum sensitivity
+    // (ear canal resonance ≈ 2.7 kHz). The scream formant boost
+    // is driven by NOISE, not pitch — it creates the piercing
+    // quality that cuts through everything regardless of fundamental.
+    //
+    // Builds across phases: subtle in Phase 1, dominant in Phase 3
+    const alarmBand = (0.1 * phase1 + 0.4 * phase2 + 0.8 * phase3) * exhaustion;
+    // Pulses with shriek cycle — louder on each shriek
+    const alarmPulse = alarmBand * (0.4 + 0.6 * shriekPeak * cycleDepth);
+    scream.gScreamFmt.gain.setTargetAtTime(sG(alarmPulse * 0.14), now, 0.01);
+    // Frequency wobbles with intensity (laryngeal instability)
+    scream.screamFmt.frequency.setTargetAtTime(
+      sF(3000 + 300 * Math.sin(τ_scream * 4.7) * phase3), now, 0.08);
+
+    // ── GAINS: shriek peaks vs gasp troughs ────────────────────────
+    //
+    // Glottal: loud on shriek, quiet on gasp (but never silent)
+    const shriekGain = intensity;
+    const gaspResidue = 0.03 + 0.04 * roughness;          // laryngeal noise between shrieks
+
+    scream.gG1.gain.setTargetAtTime(sG(shriekGain * 0.22 + gaspResidue), now, 0.01);
+    scream.gG2.gain.setTargetAtTime(sG(shriekGain * (0.14 + 0.08 * roughness) + gaspResidue * 0.6), now, 0.01);
+
+    // Subharmonic: emerges after 3s, dominates in gaps between shrieks
+    // CRR: subharmonic is the fold's lowest-energy mode — it persists
+    // when the primary oscillation ruptures and regenerates
+    const subLevel = Math.max(0, (τ_scream - 2) / 8);
+    const subGain = subLevel * (0.08 + 0.06 * gaspTrough * cycleDepth) * exhaustion;
+    scream.gSub.gain.setTargetAtTime(sG(subGain), now, 0.02);
+
+    // ── ASPIRATION: breath blasts between shrieks ──────────────────
+    const breathBlast = shriekPeak * cycleDepth * 0.07;    // blast on shriek onset
+    const gaspBreath = gaspTrough * cycleDepth * 0.10;     // desperate inhale
+    const steadyBreath = (1 - cycleDepth) * intensity * 0.06;
+    scream.aspG.gain.setTargetAtTime(sG((steadyBreath + breathBlast + gaspBreath) * exhaustion), now, 0.01);
+    scream.aspFlt.frequency.setTargetAtTime(sF(2200 + 600 * phase2 + 400 * phase3), now, 0.15);
+    scream.aspFlt.Q.setTargetAtTime(Math.max(0.5, 1.2 - 0.5 * phase3), now, 0.15);
+
+    // ── VIBRATO: pain tremor → hyperventilation modulation ─────────
+    const vibFreq = 5.8 + 2 * phase3 * Math.sin(τ_scream * 3.1) - 1.5 * phase4;
+    scream.vibLFO.frequency.setTargetAtTime(Math.max(2, vibFreq), now, 0.15);
+    const vibDepth = (5 + 18 * roughness + 15 * phase3) * exhaustion;
+    scream.vibG.gain.setTargetAtTime(vibDepth, now, 0.08);
+
+    // ── AM TREMOR: body shudder → heaving ──────────────────────────
+    scream.amLFO.frequency.setTargetAtTime(Math.max(1.5, 4.2 - 2 * phase3), now, 0.3);
+    scream.amG.gain.setTargetAtTime((0.05 + 0.2 * roughness + 0.15 * phase3) * exhaustion, now, 0.1);
+
+    // ── FORMANTS: vocal tract evolves with pain ────────────────────
+    for (const fm of scream.formants) {
+      if (fm.baseF > 2500) {
+        const f3Mod = 1 + 0.1 * intensity + 0.05 * phase2;
+        fm.bp.frequency.setTargetAtTime(sF(fm.baseF * f3Mod), now, 0.15);
+        // F3 gain rises in late phases — scream formant energy concentration
+        fm.fg.gain.setTargetAtTime(fm.baseG * (1 + 0.3 * phase3), now, 0.2);
+      } else if (fm.baseF < 1000) {
+        const f1Mod = 1 + 0.15 * shriekPeak * cycleDepth - 0.1 * gaspTrough * cycleDepth;
+        fm.bp.frequency.setTargetAtTime(sF(fm.baseF * f1Mod), now, 0.04);
+      } else if (fm.baseF < 2000) {
+        fm.bp.frequency.setTargetAtTime(sF(fm.baseF * (1 + 0.08 * escalation * 4)), now, 0.1);
+      }
+    }
+
+    // Master: loud and sustained
+    scream.master.gain.setTargetAtTime(sG(0.90 * exhaustion), now, sm);
+    return;
+  }
+
+  if (state === 'whimper') {
+    // ── WHIMPER: CRR regeneration phase ────────────────────────────
+    // τ_exit = crystal seconds since leaving flame
+    const τ_exit = now - finger.exitTime;
+
+    // CRR regeneration decay: exp(−τ · π · Ω_vocal)
+    // With Ω_vocal = 1/π this gives exp(−τ) — a ~4s decay
+    // But the vocal system has its own larger Ω (it's flexible),
+    // so we use a gentler decay to allow the whimper to linger
+    const decay = Math.exp(-τ_exit * 0.5);                 // ~4s to -6dB
+    const deepDecay = Math.exp(-τ_exit * 0.8);             // faster for high components
+
+    // Pitch drops: larynx relaxes, folds slacken
+    // CRR: regeneration → system returning to rest state
+    // f₀ · (0.35 + 0.65·exp(−τ·1.2)) — drops from scream to low moan
+    const pitchDrop = 0.35 + 0.65 * Math.exp(-τ_exit * 1.2);
+    scream.glot1.frequency.setTargetAtTime(sF(f0 * pitchDrop), now, 0.08);
+    scream.glot2.frequency.setTargetAtTime(sF(f0 * pitchDrop * 1.015), now, 0.08);
+    scream.subh.frequency.setTargetAtTime(sF(f0 * pitchDrop * 0.5), now, 0.08);
+
+    // Primary voice fades, subharmonic dominates (voice cracking)
+    // CRR: the regeneration reconstructs from highest-coherence memory
+    // → the lowest, most stable fold mode (subharmonic) persists longest
+    scream.gG1.gain.setTargetAtTime(sG(0.14 * deepDecay), now, sm);
+    scream.gG2.gain.setTargetAtTime(sG(0.11 * deepDecay), now, sm);
+    scream.gSub.gain.setTargetAtTime(sG(0.10 * decay), now, sm);     // dies slower
+
+    // High shriek register: dies FAST (falsetto can't sustain without drive)
+    // CRR: the high mode has small Ω → sharp exp(C/Ω) → collapses quickly
+    const veryFastDecay = Math.exp(-τ_exit * 2.5);
+    scream.shriek1.frequency.setTargetAtTime(sF(f0 * pitchDrop * 2), now, 0.08);
+    scream.shriek2.frequency.setTargetAtTime(sF(f0 * pitchDrop * 2 * 1.01), now, 0.08);
+    // Brief descending shriek on exit — one last involuntary cry
+    scream.gShriek1.gain.setTargetAtTime(sG(0.08 * veryFastDecay), now, 0.01);
+    scream.gShriek2.gain.setTargetAtTime(sG(0.05 * veryFastDecay), now, 0.01);
+
+    // Glottal crack: one burst at exit then silence
+    scream.gCrack.gain.setTargetAtTime(sG(0.06 * veryFastDecay), now, 0.005);
+
+    // Scream formant boost: fades into a thin keening whine
+    // The alarm band narrows and weakens — the scream becoming a whimper
+    scream.gScreamFmt.gain.setTargetAtTime(sG(0.06 * decay * decay), now, sm);
+    scream.screamFmt.frequency.setTargetAtTime(sF(2400 + 600 * deepDecay), now, 0.2);
+
+    // Aspiration rises then falls — sobbing breaths
+    // CRR: the body's own regeneration cycle produces rhythmic gasps
+    const sobCycle = Math.sin(τ_exit * 2 * π * 0.8);      // ~0.8 Hz sobbing
+    const sobEnv = decay * (0.6 + 0.4 * Math.max(0, sobCycle));
+    scream.aspG.gain.setTargetAtTime(sG(0.08 * sobEnv), now, sm);
+    scream.aspFlt.frequency.setTargetAtTime(sF(1800 - 600 * (1 - decay)), now, 0.1);
+
+    // Vibrato → sobbing tremor: slower, deeper, less controlled
+    // Frequency drops 5.8 → 3 Hz (physiological sobbing rate)
+    scream.vibLFO.frequency.setTargetAtTime(3 + 2.8 * deepDecay, now, 0.3);
+    scream.vibG.gain.setTargetAtTime((8 + 20 * decay) * decay, now, 0.1);
+
+    // AM: shuddering → heaving sobs
+    scream.amG.gain.setTargetAtTime(0.2 * decay, now, 0.1);
+
+    // Formants shift: jaw closing, mouth narrowing → lower F1, lower F2
+    for (const fm of scream.formants) {
+      if (fm.baseF < 1000) {
+        // F1: 800 → 400 Hz (jaw closing into whimper)
+        fm.bp.frequency.setTargetAtTime(sF(fm.baseF * (0.5 + 0.5 * decay)), now, 0.15);
+      } else if (fm.baseF < 2000) {
+        // F2: 1500 → 1100 Hz (lips rounding into cry)
+        fm.bp.frequency.setTargetAtTime(sF(fm.baseF * (0.73 + 0.27 * decay)), now, 0.15);
+      } else if (fm.baseF < 3500) {
+        // F3: scream formant fades → no more alarm signal
+        fm.bp.frequency.setTargetAtTime(sF(fm.baseF * (0.7 + 0.3 * deepDecay)), now, 0.15);
+        fm.fg.gain.setTargetAtTime(fm.baseG * deepDecay, now, 0.2);
+      }
+    }
+
+    // Master fades with CRR regeneration
+    scream.master.gain.setTargetAtTime(sG(0.75 * decay), now, sm);
+
+    // Transition to OFF when sufficiently quiet
+    if (decay < 0.01) {
+      finger.screamState = 'off';
+      scream.master.gain.setTargetAtTime(0, now, 0.05);
+      // Reset all gains and formants to default
+      scream.gShriek1.gain.setTargetAtTime(0, now, 0.05);
+      scream.gShriek2.gain.setTargetAtTime(0, now, 0.05);
+      scream.gCrack.gain.setTargetAtTime(0, now, 0.05);
+      scream.gScreamFmt.gain.setTargetAtTime(0, now, 0.05);
+      scream.screamFmt.frequency.setTargetAtTime(3000, now, 0.2);
+      for (const fm of scream.formants) {
+        fm.bp.frequency.setTargetAtTime(fm.baseF, now, 0.3);
+        fm.fg.gain.setTargetAtTime(fm.baseG, now, 0.3);
+      }
+    }
+  }
 }
+
+// CRR cardiac pulse waveform — each beat is a complete C → δ → R cycle
+// Waveform changes with stress σ (sympathetic nervous system activation):
+//   Low σ:  gentle sine-like rise, soft dicrotic notch, slow decay
+//   High σ: sharp spike systole, deep notch, rapid decay — the "pounding"
+//
+// CRR derivation: as tissue Ω_effective decreases under stress (system
+// rigidifies), exp(C/Ω) becomes more sharply peaked → narrower systolic
+// peak, faster regeneration decay. The sympathetic nervous system IS
+// the tissue reducing its own Ω.
+function cardiacPulse(p, σ) {
+  // Systolic fraction shortens with HR (Bazett relation: QTc ∝ 1/√HR)
+  // CRR: higher coherence rate → faster accumulation → shorter C phase
+  const sysFrac = 0.15 - 0.05 * σ;                      // 15% → 10% of cycle
+  
+  if (p < sysFrac) {
+    // Systole: coherence accumulates — ventricular pressure rises
+    // Under stress, the rise is sharper (lower Ω → more peaked exp(C/Ω))
+    const s = p / sysFrac;
+    const sharpness = 1 + 2 * σ * σ;                    // 1 → 3: smoothstep → spike
+    return Math.pow(s * s * (3 - 2*s), 1 / sharpness);  // exponent < 1 sharpens the peak
+  }
+  
+  // Post-rupture: regeneration dominates
+  const τ = (p - sysFrac) / (1 - sysFrac);
+  
+  // Decay rate increases with stress: sympathetic → faster diastolic relaxation
+  // CRR: Ω_effective = (1/π) · (1 - 0.4σ) → faster exp(-τ/Ω) decay
+  const Ω_eff = (1/π) * (1 - 0.4 * σ);                 // tissue rigidifies under pain
+  const decayRate = π / Ω_eff;                           // = π² · 1/(1 - 0.4σ)
+  let regen = Math.exp(-τ * decayRate * 0.25);
+  
+  // Dicrotic notch: aortic valve closure — secondary micro-rupture
+  // Deepens with stress (higher dP/dt → more abrupt valve closure)
+  const notchPhase = sysFrac + 0.23 * (1 - sysFrac);    // ~38% of total cycle
+  const notchDepth = 0.35 + 0.35 * σ;                   // 35% → 70% dip
+  const notchWidth = 0.003 - 0.001 * σ;                 // narrows under stress
+  const notch = 1 - notchDepth * Math.exp(-((p - notchPhase) * (p - notchPhase)) / (2 * Math.max(0.001, notchWidth)));
+  
+  return regen * notch;
+}
+
+function updateFingerThermal(dt) {
+  // Calculate thermal exposure at mouse position
+  if (mIn) {
+    const mouse_ny = 1 - my;                            // height from base (0=base, 1=tip)
+    const CMax = 2 * π * rate;
+    const mouse_CΩ = mouse_ny * CMax * Ω;
+    // Flame width at mouse height — same formula as render
+    const mouse_w = 0.35 * Math.pow(Math.max(0.001, 1 - Math.min(0.999, mouse_CΩ)), invφ);
+    const mouse_nx = (mx - 0.5) * 2;                    // normalized x from center [-1, 1]
+    const radial = Math.abs(mouse_nx) / Math.max(0.005, mouse_w);
+
+    // Thermal exposure: regeneration kernel exp(−r²/2Ω) × height validity
+    const kern = Math.exp(-radial * radial / (2 * Ω));
+    const valid = Math.max(0, 1 - Math.pow(mouse_ny * rate, 4)); // above tip → no heat
+    const base_I = (mouse_ny > 0.02 && mouse_ny < 0.98) ? kern * valid : 0;
+
+    // Only count exposure when inside flame body (generous — nociceptors are sensitive)
+    finger.exposure = radial < 3.0 ? Math.max(0, base_I) : 0;
+
+    // ── CRYSTAL TIMER ──────────────────────────────────────────────
+    // The audio crystal oscillator (ac.currentTime) is sample-accurate
+    // — the same quartz crystal clocking the DAC also times the tissue
+    // rupture threshold. This IS the CRR biofeedback loop: the crystal
+    // that renders the sound also measures when the system must scream.
+    if (ac && finger.exposure > 0.05) {
+      const crystalNow = ac.currentTime;
+      if (finger.crystalEntry === null) {
+        finger.crystalEntry = crystalNow;    // mark entry via crystal clock
+      }
+      finger.crystalAccum = crystalNow - finger.crystalEntry;
+
+      // Tissue rupture at 10 crystal-seconds: C_tissue · Ω_tissue = 1
+      const RUPTURE_SECONDS = 10;
+      if (finger.crystalAccum >= RUPTURE_SECONDS && finger.screamState === 'off') {
+        finger.screamState = 'onset';
+        finger.screamOnset = crystalNow;
+      }
+    } else if (finger.crystalEntry !== null) {
+      // Left flame body — begin whimper transition or reset
+      if (finger.screamState === 'onset' || finger.screamState === 'scream') {
+        finger.screamState = 'whimper';
+        finger.exitTime = ac ? ac.currentTime : 0;
+      }
+      finger.crystalEntry = null;
+      finger.crystalAccum = 0;
+    }
+
+    // Accumulate thermal coherence: C_th(t) = ∫ I(pos,τ) dτ
+    // Rate scaled by flame coherence rate — hotter flame = faster tissue heating
+    // Sensitivity: tissue responds quickly (nociceptors fire at low threshold)
+    finger.C_th += finger.exposure * (rate + 0.4) * 4.0 * dt;
+    // Cap at meaningful range — tissue doesn't infinitely accumulate
+    finger.C_th = Math.min(finger.C_th, π);             // C_th = π → tissue rupture threshold
+  } else {
+    // Cooling: thermal coherence decays via regeneration
+    // Decay rate = 2πΩ — flexible systems cool faster (better circulation)
+    // Slower decay preserves the throb a moment after leaving flame
+    finger.C_th *= Math.exp(-dt * 2 * π * (0.15 + Ω * 0.3));
+    finger.exposure *= 0.92;
+
+    // If screaming when pointer left canvas → transition to whimper
+    if (finger.screamState === 'onset' || finger.screamState === 'scream') {
+      finger.screamState = 'whimper';
+      finger.exitTime = ac ? ac.currentTime : 0;
+    }
+    // Reset crystal timer
+    if (finger.crystalEntry !== null) {
+      finger.crystalEntry = null;
+      finger.crystalAccum = 0;
+    }
+  }
+
+  // Normalized thermal stress: σ_th = C_th · Ω_cardiac = C_th / π
+  const rawStress = Math.min(1, finger.C_th / π);       // [0,1]: 0=cool, 1=tissue rupture
+  // Fast-attack, slow-release smoothing — nociceptors respond quickly, pain lingers
+  const smoothRate = rawStress > finger.stress ? 0.25 : 0.06;
+  finger.stress += (rawStress - finger.stress) * smoothRate;
+
+  // Advance cardiac phase — heart rate increases with thermal stress
+  // CRR: stress raises the coherence rate of the cardiac cycle
+  // Physiology: sympathetic activation → norepinephrine → SA node acceleration
+  // Rest 66 bpm → mild pain 90 bpm → acute pain 120 bpm → extreme 150 bpm
+  finger.hr = 1.1 + 1.4 * σ2(finger.stress);            // 66 → 150 bpm (σ² for gradual onset)
+  finger.phase += finger.hr * dt;
+  if (finger.phase >= 1) finger.phase -= Math.floor(finger.phase);
+
+  // Evaluate CRR cardiac pulse — waveform sharpens with stress
+  finger.pulse = cardiacPulse(finger.phase, finger.stress);
+}
+
+function updateFingerAudio() {
+  if (!ac || !finger.throbG) return;
+  const now = ac.currentTime;
+  const σ = finger.stress;
+  const p = finger.pulse;
+
+  // ── CRR INTENSITY MODEL ──────────────────────────────────────────
+  //
+  // Pain intensity follows the CRR regeneration weighting: exp(C_th / Ω)
+  //
+  // As tissue coherence C_th accumulates toward rupture (C_th → π),
+  // the regeneration kernel assigns exponentially increasing weight
+  // to the current moment. This IS the exponential intensification
+  // of pain — the same equation that governs memory weighting in
+  // regeneration now governs nociceptor gain:
+  //
+  //   I_pain(σ) = σ^(1/φ) · exp(σ · π) / exp(π)
+  //
+  //   σ = 0:    silence
+  //   σ = 0.1:  0.25 · 0.043 · ... ≈ subtle
+  //   σ = 0.5:  0.63 · 0.208 · ... ≈ noticeable
+  //   σ = 0.8:  0.87 · 0.533 · ... ≈ strong
+  //   σ = 1.0:  1.0  · 1.0         = maximum
+  //
+  // The 1/φ exponent preserves early perceptibility.
+  // The exp(σπ)/exp(π) term provides exponential build at high stress.
+  //
+  // Total gain then scales further for hyper-real mode and adds
+  // an "inflammatory multiplier" — sustained exposure triggers
+  // an inflammatory cascade that amplifies everything.
+  
+  const crrWeight = Math.exp(σ * π) / Math.exp(π);       // CRR regeneration weight [0→0.043, 1→1]
+  const earlyPerc = Math.pow(Math.max(0, σ), invφ);      // σ^(1/φ): early sensitivity
+  const painBase = earlyPerc * (0.15 + 0.85 * crrWeight); // blend: always some at low σ
+  
+  // Inflammatory multiplier: after sustained exposure, the tissue's
+  // own Ω decreases (edema, sensitisation) → pain amplification
+  // This is a CRR positive feedback: tissue coherence → inflammation
+  // → reduced Ω → sharper exp(C/Ω) → more pain → more sympathetic
+  // CRR predicts this as Ω-mediated runaway approaching rupture
+  const inflam = 1 + 2.5 * σ * σ * σ;                    // 1× → 3.5× at max stress
+
+  const amp = painBase * inflam;
+
+  // Gain scaling: hyper-real foregrounds the throb as primary pass-through
+  const throbMul = 0.45;
+  const subMul   = 0.30;
+  const h3Mul    = 0.20;     // 3rd harmonic: pain-only
+  const bloodMul = 0.25;
+
+  // Sub-bass: frequency rises with stress (Starling + sympathetic)
+  // CRR: higher coherence rate → higher natural frequency
+  // Range: 48 Hz (rest) → 72 Hz (extreme) — heartbeat felt in chest
+  const f_base = 48 + 24 * σ;
+  finger.throbOsc.frequency.setTargetAtTime(sF(f_base), now, 0.1);
+  finger.throbG.gain.setTargetAtTime(sG(amp * p * throbMul), now, 0.015);
+
+  // Second harmonic — warmth → urgency as stress rises
+  finger.sub.frequency.setTargetAtTime(sF(f_base * 2), now, 0.1);
+  finger.subG.gain.setTargetAtTime(sG(amp * p * subMul * (1 + σ * 0.5)), now, 0.015);
+
+  // Third harmonic — the "hardening" of the pulse under pain
+  // CRR: sharper systolic peak (lower Ω_eff) → more harmonic content
+  // Only emerges above σ ≈ 0.3 — you don't hear this at mild warmth
+  const h3onset = Math.max(0, (σ - 0.3) / 0.7);         // 0 below 0.3, ramps to 1
+  finger.h3.frequency.setTargetAtTime(sF(f_base * 3), now, 0.1);
+  finger.h3G.gain.setTargetAtTime(sG(amp * p * h3Mul * h3onset * h3onset), now, 0.015);
+
+  // Blood rush: turbulent flow through dilated vessels
+  // Centre frequency rises: 140 Hz → 280 Hz (more turbulence = higher pitch)
+  // Q drops: narrowband → broadband (laminar → chaotic)
+  // Gain scales with pain intensity — at high stress this becomes a roar
+  finger.bloodFlt.frequency.setTargetAtTime(sF(140 + 140 * σ), now, 0.08);
+  finger.bloodFlt.Q.setTargetAtTime(Math.max(0.25, 2.0 - σ * 1.5), now, 0.08);
+  finger.bloodG.gain.setTargetAtTime(sG(amp * p * bloodMul * (1 + σ)), now, 0.015);
+}
+
 
 
 // ─── AUDIO MODE B: HYPER-REAL ───────────────────────────────────────
 // Kolmogorov roar: 6 octave-spaced bands, gain ∝ f^(−5/6) — analytic CRR (cascade)
 // CRR crackle: 8 agents with diverse Ω — numeric CRR (dC/dt integrated in real time)
+// Cardiac throb: Z₂ pulse dominates pass-through (replaces gust)
 // Thermal hiss: narrow bandpass (laminar = coherent = narrow spectrum)
 // Convection rumble: ~30Hz, modulated by slow turbulence (plume sway)
-// Gust: broadband noise ∝ mouse velocity
 // Volume ∝ mean intensity (bigger flame = louder)
 
 const KOLMO = [40, 80, 160, 320, 640, 1280]; // octave-spaced Kolmogorov bands
@@ -600,7 +1498,7 @@ function setupReal() {
   }
   hissN   = nfg('bandpass', 2500, 3);    // thermal hiss (laminar, narrow)
   rumbleN = nfg('lowpass', 60, 0.8);     // convection rumble (~30Hz)
-  gustN   = nfg('highpass', 800, 0.5);   // mouse gust
+  gustN   = nfg('highpass', 800, 0.5);   // mouse air displacement (subtle — throb dominates)
 }
 
 function teardownReal() {
@@ -654,8 +1552,8 @@ function updateReal() {
   rumbleN.flt.frequency.setTargetAtTime(sF(25 + 35*rate), now, 0.2);
   rumbleN.gn.gain.setTargetAtTime(sG(meanI * rate * (1 + turb(0, 0.1, t*0.3)*0.5) * 0.06), now, sm);
   const vel = Math.sqrt(pvx*pvx + pvy*pvy);
-  gustN.gn.gain.setTargetAtTime(sG(mIn ? vel*3 : 0), now, 0.05);
-  gustN.flt.frequency.setTargetAtTime(sF(600 + 2000*vel), now, 0.05);
+  // Gust removed — cardiac throb is the sole pass-through voice
+  gustN.gn.gain.setTargetAtTime(0, now, 0.05);
 
   reverbGain.gain.setTargetAtTime(sG(Math.min(0.2, Ω*0.3)), now, 0.2);
   smoothB += (meanI - smoothB) * 0.08;
@@ -665,22 +1563,15 @@ function updateReal() {
 
 // ─── MODE SWITCHING ─────────────────────────────────────────────────
 
-function activate(mode) {
-  if (audioMode === mode) { shutdownAudio(); return }
-  if (ac) { if (audioMode === 'harmonic') teardownHarm(); if (audioMode === 'real') teardownReal() }
-  else initAudio();
-  audioMode = mode;
-  const isH = mode === 'harmonic';
-  if (isH) setupHarm(); else setupReal();
-  btnHarm.classList.toggle('on', isH); btnReal.classList.toggle('on', !isH);
-  btnHarm.innerHTML = `<span class="ico">${isH ? '◉' : '◯'}</span>Harmonic`;
-  btnReal.innerHTML = `<span class="ico">${isH ? '◯' : '◉'}</span>Hyper-Real`;
-  freqDisplay.textContent = isH
-    ? 'B(r) spectral envelope · φ subs · Ω chorus · CRR reverb'
-    : 'E(k)∝k⁻⁵ᐟ³ roar · CRR crackle agents · thermal hiss · rumble';
+function activate() {
+  if (audioMode === 'real') { shutdownAudio(); return }
+  if (ac) teardownReal(); else initAudio();
+  audioMode = 'real';
+  setupReal();
+  btnReal.classList.add('on');
+  btnReal.innerHTML = '<span class="ico">◉</span>Audio';
 }
-btnHarm.addEventListener('click', () => activate('harmonic'));
-btnReal.addEventListener('click', () => activate('real'));
+btnReal.addEventListener('click', activate);
 
 
 // ─── UI UPDATE ──────────────────────────────────────────────────────
@@ -697,7 +1588,6 @@ function updateUI(tipCΩ, tipB) {
     const dZ = Math.abs(Ω - 1/π), dS = Math.abs(Ω - 1/(2*π));
     omTag.textContent = dZ < .02 ? 'Z₂ = 1/π' : dS < .01 ? 'SO(2) = 1/2π'
       : Ω < 1/(2*π) ? 'sub-SO(2)' : Ω < 1/π ? 'Z₂–SO(2)' : Ω < .5 ? 'supra-Z₂' : 'chaotic';
-    rateValEl.textContent = rate.toFixed(2);
     coVal.textContent = tipCΩ.toFixed(3);
     coVal.className = 'val' + (tipCΩ > .85 ? ' warn' : '');
     coState.textContent = tipCΩ > .95 ? 'RUPTURE' : tipCΩ > .7 ? 'approaching' : tipCΩ > .4 ? 'building' : 'accumulating';
@@ -709,6 +1599,89 @@ function updateUI(tipCΩ, tipB) {
     cRuptEl.textContent = (1/Ω < 10) ? (1/Ω).toFixed(2) : '∞';  // C = 1/Ω at rupture
     symVal.textContent = dZ < .02 ? 'Z₂ bistable' : dS < .01 ? 'SO(2) rotational'
       : Ω < 1/(2*π) ? 'hyper-rigid' : Ω < 1/π ? 'intermediate' : 'hyper-flexible';
+
+    // Tissue throb diagnostics — show when thermal coherence is non-trivial
+    const showTissue = finger.stress > 0.008;
+    tissueRow.classList.toggle('active', showTissue);
+    if (showTissue) {
+      const tCΩ = finger.C_th / π;                      // tissue C·Ω (Ω_cardiac = 1/π)
+      tissueVal.textContent = tCΩ.toFixed(3);
+      tissueVal.style.color = tCΩ > 0.7 ? '#e85030' : tCΩ > 0.3 ? '#c06030' : '#8a3020';
+      const bpm = Math.round(finger.hr * 60);
+      cardiacVal.textContent = bpm + ' bpm';
+      cardiacVal.style.color = bpm > 90 ? '#e85030' : bpm > 78 ? '#c06030' : '#8a3020';
+      // Pulse dot animation — scales with heartbeat
+      const dotScale = 0.4 + 0.6 * finger.pulse * finger.stress;
+      const dotR = Math.round(138 * (0.3 + 0.7 * finger.pulse));
+      pulseDot.style.background = `rgb(${dotR}, ${Math.round(dotR*0.35)}, ${Math.round(dotR*0.23)})`;
+      pulseDot.style.transform = `scale(${dotScale.toFixed(2)})`;
+
+      // Crystal timer — counts toward tissue rupture (10s)
+      const showCrystal = (finger.crystalAccum > 0.1 && ac) || finger.screamState !== 'off';
+      crystalRow.style.opacity = showCrystal ? '1' : '0';
+      crystalRow.style.height = showCrystal ? 'auto' : '0';
+      if (showCrystal) {
+        const isScreaming = finger.screamState === 'onset' || finger.screamState === 'scream';
+        const isWhimper = finger.screamState === 'whimper';
+        if (isScreaming) {
+          crystalTime.textContent = 'δ(now) RUPTURE';
+          crystalTime.style.color = '#ff2010';
+        } else if (isWhimper) {
+          const τ_exit = ac ? ac.currentTime - finger.exitTime : 0;
+          crystalTime.textContent = 'R(τ) ' + τ_exit.toFixed(1) + 's';
+          crystalTime.style.color = '#c06030';
+        } else {
+          const τ = finger.crystalAccum;
+          const ratio = Math.min(1, τ / 10);
+          crystalTime.textContent = τ.toFixed(2) + 's';
+          crystalTime.style.color = ratio > 0.8 ? '#e85030' : ratio > 0.5 ? '#c06030' : '#5a2a18';
+        }
+      }
+    }
+  }
+}
+
+
+// ─── CRR EMBERS: rupture ejects particles, regeneration decays them ──
+// Each ember is a micro-CRR cycle: spawned at δ(now), fades as exp(−τ/Ω)
+const embers = [];
+const MAX_EMBERS = 16;
+
+function spawnEmber() {
+  if (embers.length >= MAX_EMBERS) return;
+  const CMax = 2*π*rate;
+  embers.push({
+    x: W/2 + (Math.random()-.5)*8,
+    y: H*(1 - .85*CMax*Ω/(2*π*rate+.01)),  // near tip
+    vx: (Math.random()-.5)*1.2,
+    vy: -(1 + Math.random()*2),               // buoyancy
+    life: 1,
+    size: .8 + Math.random()*1.2,
+    hue: Math.random()                         // 0=orange, 1=yellow
+  });
+}
+
+function updateEmbers(dt) {
+  for (let i = embers.length-1; i >= 0; i--) {
+    const e = embers[i];
+    e.x += e.vx + turb(e.x/W, e.y/H, t)*.4;  // CRR turbulence drift
+    e.y += e.vy;
+    e.vy -= .03;                                // accelerating buoyancy
+    e.life *= Math.exp(-dt * π * (1 + Ω));      // CRR regeneration decay
+    if (e.life < .01 || e.y < -10) { embers.splice(i, 1); continue; }
+  }
+}
+
+function drawEmbers() {
+  for (const e of embers) {
+    const a = e.life * e.life;                  // quadratic fade
+    const r = Math.round(255 * (.8 + .2*e.hue));
+    const g = Math.round(200 * e.hue * a);
+    const b = Math.round(40 * a * (1-e.hue));
+    ctx.fillStyle = `rgba(${r},${g},${b},${a.toFixed(2)})`;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.size * (.3 + .7*a), 0, 2*π);
+    ctx.fill();
   }
 }
 
@@ -717,6 +1690,7 @@ function updateUI(tipCΩ, tipB) {
 
 function render() {
   updateGrid();
+  const dt = 0.033;
   const d = img.data, CMax = 2*π*rate;
   const p1 = Math.sin(t*π) * (1 + .2*Math.sin(t*π*φ));
   const p2 = .5 + .5*Math.sin(t*π*φ + Math.sin(t*π)*.8);
@@ -761,26 +1735,49 @@ function render() {
       let r = tot*1.4 + core*.3;
       let g = t2*1.8 * (.2 + core*.8);
       let bl = t3*3*core;
-      const blue = (1-dny)*(1-dny) * Math.max(0, 1-er*10) * .25;
-      bl += blue*.7; g += blue*.15;
+      const blue = (1-dny)*(1-dny) * Math.max(0, 1-er*3) * .55;
+      bl += blue; g += blue*.2;
       r += Math.exp(-er*er/Ω) * .08 * (1 - dny*.5);                   // ← regeneration glow
 
       d[i]   = Math.min(255, r*255) | 0;
       d[i+1] = Math.min(255, g*255) | 0;
-      d[i+2] = Math.min(255, bl*130) | 0;
+      d[i+2] = Math.min(255, bl*200) | 0;
       d[i+3] = 255;
     }
   }
 
   ctx.putImageData(img, 0, 0);
+
+  // Ambient heat glow: radial gradient, intensity ∝ B(C/Ω) at base
+  const glowI = sB * .12;
+  if (glowI > .005) {
+    ctx.globalCompositeOperation = 'lighter';
+    const grad = ctx.createRadialGradient(W/2, H*.85, 2, W/2, H*.7, W*.6);
+    grad.addColorStop(0, `rgba(180,60,15,${glowI.toFixed(3)})`);
+    grad.addColorStop(.5, `rgba(80,25,5,${(glowI*.4).toFixed(3)})`);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, H*.3, W, H*.7);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // Embers: spawn probabilistically near rupture (C·Ω → 1), draw on top
+  const tipCΩ_em = sny * CMax * Ω;
+  if (Math.random() < tipCΩ_em * .15 * rate) spawnEmber();
+  updateEmbers(dt);
+  drawEmbers();
+
   sampleCenterline(d);
   if (frame % 2 === 0) drawPhasePortrait();
   updateUI(sny * CMax * Ω, sB);
 
-  if (audioMode === 'harmonic') updateHarm();
-  else if (audioMode === 'real') updateReal();
+  // Update finger thermal state (always — even without audio, for UI)
+  updateFingerThermal(dt);
 
-  t += .033; frame++;
+  // Audio updates
+  if (audioMode === 'real') { updateReal(); updateFingerAudio(); updateScream(); }
+
+  t += dt; frame++;
   requestAnimationFrame(render);
 }
 
