@@ -1673,7 +1673,7 @@ function initTrees(){
 
 function computeTreeSway(){
   for(const tree of trees){
-    tree.swayCache=new Array(tree.branches.length);
+    if(!tree.swayCache||tree.swayCache.length!==tree.branches.length)tree.swayCache=new Float32Array(tree.branches.length);
     for(let i=0;i<tree.branches.length;i++){const b=tree.branches[i];const maxD=7;const df=(maxD-b.d)/maxD;
       const ownSway=fsin(simTime*0.2+b.phase+b.d*0.3)*0.0025*df;
       let parentSway=0;if(b.parent>=0&&tree.swayCache[b.parent]!==undefined)parentSway=tree.swayCache[b.parent];
@@ -2295,6 +2295,16 @@ function updateBirds(dt,predX,predY,predHunt){
 //   Alarm wave: amber→red pulse propagates through the network
 //   Beauty peak: enhanced glow when C/Ω ≈ 2.14
 //
+// Pre-allocated communication line buckets — reused every frame
+const _commBuckets = [
+  { lines: [], r:160, g:210, b:220, alpha:0, lw:0.5 },
+  { lines: [], r:200, g:240, b:255, alpha:0, lw:0.6 },
+  { lines: [], r:210, g:180, b:120, alpha:0, lw:0.7 },
+  { lines: [], r:240, g:100, b:50,  alpha:0, lw:1.2 },
+  { lines: [], r:220, g:230, b:240, alpha:0, lw:1.0 },
+  { lines: [], r:255, g:230, b:150, alpha:0, lw:0.7 }
+];
+const _commPulseDots=[];
 function drawCommunication(){
   if(birdPhase==='sleep' || birdPhase==='settled') return;
   const flockC = WORLD.flock.crr.C;
@@ -2322,16 +2332,11 @@ function drawCommunication(){
   // Bucket 4: info pulse (bright flash)
   // Bucket 5: singing connection (golden tint)
 
-  const buckets = [
-    { lines: [], r:160, g:210, b:220, alpha:0, lw:0.5 },  // calm dim
-    { lines: [], r:200, g:240, b:255, alpha:0, lw:0.6 },  // calm bright / beauty
-    { lines: [], r:210, g:180, b:120, alpha:0, lw:0.7 },  // mild panic
-    { lines: [], r:240, g:100, b:50,  alpha:0, lw:1.2 },   // high panic
-    { lines: [], r:220, g:230, b:240, alpha:0, lw:1.0 },  // info pulse
-    { lines: [], r:255, g:230, b:150, alpha:0, lw:0.7 }   // singing
-  ];
+  const buckets = _commBuckets;
+  for(const bk of buckets){bk.lines.length=0;bk.alpha=0;}
   // Also collect info pulse dots
-  const pulseDots = [];
+  const pulseDots = _commPulseDots;
+  pulseDots.length=0;
 
   for(let bi=0;bi<birds.length;bi++){
     const b=birds[bi];
@@ -2410,19 +2415,26 @@ function drawCommunication(){
   ctx.restore();
 }
 
+// Pre-allocated bird body/wing render buffers — module-level to avoid per-frame allocation
+const _CB=16;
+const _bBodyBufs=[],_bWingBufs=[],_bStyleBufs=[];
+for(let _i=0;_i<_CB;_i++){_bBodyBufs.push([]);_bWingBufs.push([]);_bStyleBufs.push(null);}
+
+// Pre-allocated bird render buckets — reused every frame instead of re-created
+const _birdSingers=[],_birdFlyNorm=[],_birdFlyPanic=[],_birdFlySing=[];
 function drawBirds(){
   // ═══ PERCHED BIRDS — batched rendering ═══
   // Batch all non-singing perched birds into one path per approximate color
   ctx.save();
 
   // Collect singing perched birds separately (they need glow)
-  const singers = [];
+  _birdSingers.length=0;
 
   // Batch perched bird bodies — use a single fill call
   ctx.beginPath();
   for(const b of birds){
     if(b.st!==2)continue;
-    if(b.singing){ singers.push(b); continue; }
+    if(b.singing){ _birdSingers.push(b); continue; }
     const s=b.size;
     ctx.moveTo(b.x+s*1.1, b.y);
     ctx.arc(b.x,b.y,s*1.1,0,PI2);
@@ -2435,7 +2447,7 @@ function drawBirds(){
   ctx.fill();
 
   // Draw singing perched birds individually (they need glow, but with simplified rendering)
-  for(const b of singers){
+  for(const b of _birdSingers){
     const s=b.size;
     const iriPhase=b.iridescence*PI2+simTime*0.5;
     const ir=max(0,18+10*fsin(iriPhase));
@@ -2462,25 +2474,34 @@ function drawBirds(){
 
   // ═══ FLYING BIRDS — with iridescent flash ═══
   // Group by panic level for fewer fillStyle changes
-  const flyNormal = [];
-  const flyPanic = [];
-  const flySinging = [];
+  _birdFlyNorm.length=0;
+  _birdFlyPanic.length=0;
+  _birdFlySing.length=0;
 
   for(const b of birds){
     if(b.st===2)continue;
-    if(b.singing && b.st===0) flySinging.push(b);
-    else if((b.panic||0) > 0.3) flyPanic.push(b);
-    else flyNormal.push(b);
+    if(b.singing && b.st===0) _birdFlySing.push(b);
+    else if((b.panic||0) > 0.3) _birdFlyPanic.push(b);
+    else _birdFlyNorm.push(b);
   }
 
-  // Draw each group
+  // Draw each group — CRR-bucketed batch rendering
+  // Rather than ctx.setTransform per bird (expensive Canvas state change),
+  // we compute rotated vertices in JS and draw all birds in colour buckets.
+  // At murmuration density (1500 birds, ~3px each) individual colour variation
+  // is visually imperceptible — the collective IS the unit. This is the CRR
+  // principle: at high C, individual identity dissolves into the coherent field.
+  // Reduces Canvas API calls from ~6000/frame to ~48/frame for bird bodies.
+
   const drawFlyingGroup = (group, panicOverride) => {
+    if(group.length===0)return;
+    // Reset buckets
+    for(let i=0;i<_CB;i++){_bBodyBufs[i].length=0;_bWingBufs[i].length=0;}
     for(const b of group){
       const angle=atan2(b.vy,b.vx);
       const flapMult=b.st===3?1.4:b.st===1?0.7:1;
       const flap=fsin(b.wph*flapMult)*0.45;
-      const cosA=cos(angle),sinA=sin(angle);
-      ctx.setTransform(cosA*_dpr,sinA*_dpr,-sinA*_dpr,cosA*_dpr,b.x*_dpr,b.y*_dpr);
+      const cosA=fcos(angle),sinA=fsin(angle);
       const vx2vy2=b.vx*b.vx+b.vy*b.vy;
       const stretch=1+min(vx2vy2/14400,0.35);
       const s=b.size;
@@ -2488,32 +2509,82 @@ function drawBirds(){
       const sunAngle=WORLD.sun.phase;
       const iriStrength=sunAngle*0.3;
       const panicC = panicOverride !== undefined ? panicOverride : (b.panic || 0);
-      const ir=max(0,18+iriStrength*40*fsin(iriPhase) + panicC*80);
-      const ig=max(0,18+iriStrength*60*fsin(iriPhase+1) - panicC*20);
-      const ib=max(0,24+iriStrength*30*fsin(iriPhase+2.5) - panicC*30);
-      ctx.fillStyle=`rgba(${ir|0},${ig|0},${ib|0},0.9)`;
-      ctx.beginPath();ctx.ellipse(0,0,s*1.35*stretch,s*0.5,0,0,PI2);ctx.fill();
+      const ir=max(0,18+iriStrength*40*fsin(iriPhase) + panicC*80)|0;
+      const ig=max(0,18+iriStrength*60*fsin(iriPhase+1) - panicC*20)|0;
+      const ib=max(0,24+iriStrength*30*fsin(iriPhase+2.5) - panicC*30)|0;
+      // Quantize to colour bucket (r/16 gives 0-15 range for typical dark starling colours)
+      const bi=(ir>>4)%_CB;
+      // Store colour for first bird in this bucket
+      if(_bBodyBufs[bi].length===0)_bStyleBufs[bi]=`rgba(${ir},${ig},${ib},0.9)`;
+
+      // Body ellipse approximated as diamond (4-point shape) — transform in JS
+      const bx=b.x,by=b.y;
+      const hx=s*1.35*stretch,hy=s*0.5;
+      // 4 cardinal points of ellipse in rotated space
+      const fx=bx+cosA*hx, fy=by+sinA*hx;   // front
+      const bkx=bx-cosA*hx,bky=by-sinA*hx;   // back
+      const tx=bx-sinA*hy, ty=by+cosA*hy;     // top
+      const dx=bx+sinA*hy, dy=by-cosA*hy;     // bottom
+      _bBodyBufs[bi].push(fx,fy,tx,ty,bkx,bky,dx,dy);
+
+      // Wing shape — quadratic bezier per wing, computed in JS
       const ws=s*2.6,wL=0.42+flap*0.38;
-      ctx.beginPath();ctx.moveTo(-s*0.25,0);
-      ctx.quadraticCurveTo(-s*0.05,-ws*wL*0.55,s*0.35,-ws*wL);
-      ctx.quadraticCurveTo(s*0.18,-ws*wL*0.25,s*0.12,0);
-      ctx.quadraticCurveTo(s*0.18,ws*wL*0.25,s*0.35,ws*wL);
-      ctx.quadraticCurveTo(-s*0.05,ws*wL*0.55,-s*0.25,0);
+      const wpx=-sinA*ws*wL, wpy=cosA*ws*wL;
+      const q1x=cosA*s*0.35-sinA*ws*wL*0.55, q1y=sinA*s*0.35+cosA*ws*wL*0.55;
+      const q2x=cosA*s*0.18-sinA*ws*wL*0.25, q2y=sinA*s*0.18+cosA*ws*wL*0.25;
+      const q3x=-cosA*s*0.25,q3y=-sinA*s*0.25;
+      // Top wing
+      _bWingBufs[bi].push(
+        bx+q3x,by+q3y, bx-q1x,by-q1y, bx+wpx,by+wpy,
+        bx-q2x,by-q2y, bx+cosA*s*0.12,by+sinA*s*0.12,
+        bx-q2x,by-q2y, bx+q3x,by+q3y
+      );
+      // Bottom wing (mirror)
+      _bWingBufs[bi].push(
+        bx+q3x,by+q3y, bx+q1x,by+q1y, bx-wpx,by-wpy,
+        bx+q2x,by+q2y, bx+cosA*s*0.12,by+sinA*s*0.12,
+        bx+q2x,by+q2y, bx+q3x,by+q3y
+      );
+    }
+    // Draw all buckets — one beginPath+fill per occupied colour bucket
+    for(let bi=0;bi<_CB;bi++){
+      const bod=_bBodyBufs[bi];if(bod.length===0)continue;
+      ctx.fillStyle=_bStyleBufs[bi];
+      // Bodies
+      ctx.beginPath();
+      for(let i=0;i<bod.length;i+=8){
+        ctx.moveTo(bod[i],bod[i+1]);
+        ctx.lineTo(bod[i+2],bod[i+3]);
+        ctx.lineTo(bod[i+4],bod[i+5]);
+        ctx.lineTo(bod[i+6],bod[i+7]);
+        ctx.closePath();
+      }
+      ctx.fill();
+      // Wings (same colour)
+      const wng=_bWingBufs[bi];
+      ctx.beginPath();
+      for(let i=0;i<wng.length;i+=14){
+        ctx.moveTo(wng[i],wng[i+1]);
+        ctx.quadraticCurveTo(wng[i+2],wng[i+3],wng[i+4],wng[i+5]);
+        ctx.quadraticCurveTo(wng[i+6],wng[i+7],wng[i+8],wng[i+9]);
+        ctx.quadraticCurveTo(wng[i+10],wng[i+11],wng[i+12],wng[i+13]);
+        ctx.closePath();
+      }
       ctx.fill();
     }
   };
 
-  drawFlyingGroup(flyNormal);
-  drawFlyingGroup(flyPanic);
-  drawFlyingGroup(flySinging);
+  drawFlyingGroup(_birdFlyNorm);
+  drawFlyingGroup(_birdFlyPanic);
+  drawFlyingGroup(_birdFlySing);
 
   // Flying singer dots — batch all into one pass
-  if(flySinging.length > 0){
+  if(_birdFlySing.length > 0){
     const singAlpha = 0.4+0.3*fsin(simTime*15);
     ctx.setTransform(_dpr,0,0,_dpr,0,0);
     ctx.fillStyle=`rgba(255,220,80,${singAlpha.toFixed(2)})`;
     ctx.beginPath();
-    for(const b of flySinging){
+    for(const b of _birdFlySing){
       if(b.st!==0) continue;
       const angle=atan2(b.vy,b.vx);
       const cosA=cos(angle),sinA=sin(angle);
@@ -2599,9 +2670,13 @@ function drawPred(){
 }
 
 // ── WAVEFORM ──
+// Pre-allocated waveform buffer — avoids 60 GC-eligible allocations per second
+let _waveformBuf=null;
 function drawWaveform(){
   if(!analyser)return;
-  const bufLen=analyser.frequencyBinCount;const data=new Uint8Array(bufLen);
+  const bufLen=analyser.frequencyBinCount;
+  if(!_waveformBuf||_waveformBuf.length!==bufLen)_waveformBuf=new Uint8Array(bufLen);
+  const data=_waveformBuf;
   analyser.getByteTimeDomainData(data);
   const wH=H*0.88,wY=wH+3,wAH=H*0.06;
   ctx.strokeStyle='rgba(123,237,159,0.12)';ctx.lineWidth=1;ctx.beginPath();
