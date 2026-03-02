@@ -145,7 +145,7 @@ background:linear-gradient(90deg,rgba(42,42,62,.2),rgba(123,237,159,.2),rgba(212
 <div class="wave-bar"></div>
 <h1>SONG OF THE STARLINGS</h1>
 <p class="sub">Every voice emerges from dual Z₂ syrinx oscillation.<br>
-Two flocks, two trees — up to 1500 starlings with independent CRR dynamics.<br>
+Two flocks, two trees — up to 750 starlings with independent CRR dynamics.<br>
 The flock's k=7 topological harmony creates scale-free coherence at the critical edge.<br>
 Governed by Coherence, Rupture &amp; Regeneration.</p>
 <p class="eq">syrinx: dual Z₂ → Ω<sub>L</sub>=Ω<sub>R</sub>=1/π · f₀=300–10,000 Hz · superfast muscles ≤250 Hz<br>
@@ -224,7 +224,7 @@ Ballerini et al. 2008 · Cavagna et al. 2010 · Attanasi et al. 2014</p>
 //  │    B(C/Ω) = exp(C/Ω)·(1−C/(Ω·π)) peaks at C/Ω ≈ 2.14       │
 //  │    Murmurations operate AT this critical beauty point           │
 //  │    Scale-free correlations = maximum coherence before rupture   │
-//  │                      │
+//  │    This is WHY murmurations are beautiful                       │
 //  └─────────────────────────────────────────────────────────────────┘
 //
 //  Alexander Sabine · CRR Framework · temporalgrammar.ai
@@ -246,8 +246,8 @@ const _isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|Opera Mini/i.test(n
 const _isLowPower = _isMobile && (window.innerWidth < 500 || navigator.hardwareConcurrency <= 4);
 // DPR: cap at 1.5 on mobile to avoid GPU overload from huge canvas
 const _dpr = _isMobile ? min(window.devicePixelRatio || 1, 1.5) : min(window.devicePixelRatio || 1, 2);
-// Bird count: 1500 desktop → 500 mobile → 300 low-power mobile
-const ADAPTIVE_BIRD_COUNT = _isLowPower ? 300 : _isMobile ? 500 : 1500;
+// Bird count: 750 desktop → 500 mobile → 300 low-power mobile
+const ADAPTIVE_BIRD_COUNT = _isLowPower ? 300 : _isMobile ? 500 : 750;
 // Communication dithering: more aggressive on mobile
 const COMM_DITHER = _isLowPower ? 5 : _isMobile ? 4 : 3;
 // Voice stagger: wider on mobile
@@ -321,9 +321,7 @@ function makeFlockState(){
 }
 const WORLD={
   sun:{phase:0,x:0.5,y:0.88,agent:new CRRAgent('SO2',1.5)},
-  weather:{state:0,rainIntensity:0,targetRain:0,rainbowVisible:0,crr:new CRR(0.5,0.12)},
-  // weather.crr: omega=0.5, lr=0.12 — during storm (rainIntensity≈0.9): dC/dt≈0.108/s
-  // ruptures every ~4.6s = wind gusts; quiet when rain=0
+  weather:{state:0,rainIntensity:0,targetRain:0,rainbowVisible:0,crr:new CRR(1.2,0.025)},
   // Combined flock state — for voice coherence, beauty display, voice synthesis
   flock:{crr:new CRR(0.6,0.22),st:0,turnDir:{x:0,y:0},angMom:0,moveTime:0,currentMove:'vortex',
     voiceCoherence:0, voiceCRR:new CRR(0.4, 0.18),
@@ -423,10 +421,7 @@ function initStellarDrone(){
 function setStellarDrone(gain,sunPhase,trans){
   if(!stellarDrone.active)return;
   const t=ac.currentTime;const dur=trans||1.5;
-  // Pitch arcs symmetrically: dawn→zenith→dusk, not a monotone rise.
-  // Derived from SO(2) agent C·Ω — same mathematics as the sun itself.
-  const _sco = WORLD.sun.agent ? min(1, WORLD.sun.agent.C * WORLD.sun.agent.omega) : sunPhase;
-  const pitchMod = 1 + sin(_sco * PI) * 0.035; // peaks 3.5% at zenith, symmetric
+  const pitchMod=1+sunPhase*0.03;
   for(const h of stellarDrone.oscs){
     h.osc.frequency.cancelScheduledValues(t);
     h.osc.frequency.setValueAtTime(h.osc.frequency.value,t);
@@ -910,17 +905,11 @@ function updateBirdVoice(bird, dt, birdIndex) {
   if(bird.st === 2) {
     // ─── PERCHED SINGING: Full song bout ───
     const birdCRRState = bird.crr.st === 1 ? 'rupture' : bird.crr.st === 2 ? 'regen' : 'coherence';
-    // exp(C/Ω) is the regeneration weighting — it directly determines available memory depth.
-    // Higher memory → longer sustainable phrase. Capped at 9 syllables (auditory limit).
-    const _mem = min(1, bird.syrinxL.expCO / 8);
-    const phraseLen = bothSides ? (3 + floor(_mem * 6)) : (2 + floor(_mem * 3));
+    const phraseLen = bothSides ? (4 + floor(random() * 5)) : (2 + floor(random() * 3));
     vol = (0.12 + sunEnergy * 0.15) * beautyBoost * rainSuppression;
     const phraseDur = playStarlingPhrase(vol, now, phraseLen, birdCRRState, birdIndex);
     // Cooldown after singing: 1-4 seconds between bouts (shorter at dawn)
-    // Cooldown: high C/Ω → shorter gaps → birds sing faster as coherence builds
-    // Replaces the binary sunEnergy>0.5 conditional with the actual CRR ratio
-    const _cRatio = WORLD.flock.crr.C / max(0.001, WORLD.flock.crr.omega);
-    bird.songCooldown = 0.8 + random() * max(0.3, 3.5 / (1 + _cRatio * 0.8));
+    bird.songCooldown = 0.8 + random() * (sunEnergy > 0.5 ? 2 : 3.5);
     // Phrase duration influences cooldown
     bird.songCooldown += (phraseDur || 0.5) * 0.5;
 
@@ -933,11 +922,7 @@ function updateBirdVoice(bird, dt, birdIndex) {
 
   } else if(bird.st === 0) {
     // ─── FLIGHT CONTACT CALLS: short chirps maintaining flock cohesion ───
-    // Which syrinx ruptured determines call type — not a random coin flip.
-    // Left side (lower register, Ω=1/π, syrinxL) → short contact chirp.
-    // Right side (higher register, syrinxR) → brief phrase.
-    // Both sides → phrase (bilateral vocalization = more complex output).
-    if(leftRuptured && !rightRuptured) {
+    if(random() < 0.6) {
       vol = (0.08 + sunEnergy * 0.08) * beautyBoost;
       playDualSyrinx(vol, now, 'contact', floor(random() * 10), coh, birdIndex);
       bird.songCooldown = 0.5 + random() * 2;
@@ -958,9 +943,7 @@ function updateBirdVoice(bird, dt, birdIndex) {
 // ───────────────────────────────────────────────────────────────
 function playTremoloGuitar(midi,velocity,duration,startTime,tremoloRate){
   if(!ac)return;
-  const now=startTime||ac.currentTime;const freq=midiToFreq(midi);
-  // Tremolo rate scales with flock coherence: builds urgency as C approaches Ω
-  const tRate=(tremoloRate||6)*(1+WORLD.flock.crr.smoothAmp*0.4);
+  const now=startTime||ac.currentTime;const freq=midiToFreq(midi);const tRate=tremoloRate||6;
   const noteG=ac.createGain();noteG.gain.value=0;noteG.connect(guitarGain);
   const o1=ac.createOscillator();o1.type='sawtooth';o1.frequency.value=freq*0.999;
   const o2=ac.createOscillator();o2.type='sawtooth';o2.frequency.value=freq*1.001;
@@ -1148,8 +1131,7 @@ function updateMusicalRain(dt,intensity){
     const regenFade=crrState===2?0.6+musicalRain.crr.smoothAmp*0.4:1;
     playMusicalDrop(step.pool,step.noteIdx,vel*regenFade,t+jitter);
     if(intensity>0.4&&random()<intensity*0.15)
-      // Harmony register tracks rain CRR: coherence phase → mid, rupture/regen → high
-      playMusicalDrop(musicalRain.crr.st===0?'mid':'high',(step.noteIdx+2)%5,vel*0.5*regenFade,t+jitter+0.01);
+      playMusicalDrop(random()<0.5?'mid':'high',(step.noteIdx+2)%5,vel*0.5*regenFade,t+jitter+0.01);
   }
 }
 
@@ -1652,8 +1634,8 @@ function drawRainbow(sunX,sunY,visibility){
 // ── TREE ──
 // ── DUAL TREES — left (smaller/younger) and right (original large) ──
 let trees=[
-  {branches:[],perches:[],base:{x:0,y:0,h:0},swayCache:[],swayPhase:0},
-  {branches:[],perches:[],base:{x:0,y:0,h:0},swayCache:[],swayPhase:1.7}  // offset ~half-cycle
+  {branches:[],perches:[],base:{x:0,y:0,h:0},swayCache:[]},
+  {branches:[],perches:[],base:{x:0,y:0,h:0},swayCache:[]}
 ];
 let allPerches=[]; // Combined perches from both trees for bird assignment
 
@@ -1691,13 +1673,9 @@ function initTrees(){
 
 function computeTreeSway(){
   for(const tree of trees){
-    if(!tree.swayCache||tree.swayCache.length!==tree.branches.length)tree.swayCache=new Float32Array(tree.branches.length);
-    // Ambient sway: 0.10 gives ~6px tip displacement (visible gentle breeze).
-    // Gust from weather CRR adds up to +0.20 at rupture peak (sharp wind impulse).
-    // Per-tree swayPhase ensures left and right trees move independently.
-    const _gustAmp = 0.10 + WORLD.weather.crr.smoothAmp * 0.20;
+    tree.swayCache=new Array(tree.branches.length);
     for(let i=0;i<tree.branches.length;i++){const b=tree.branches[i];const maxD=7;const df=(maxD-b.d)/maxD;
-      const ownSway=fsin(simTime*0.2+b.phase+b.d*0.3+tree.swayPhase)*_gustAmp*df;
+      const ownSway=fsin(simTime*0.2+b.phase+b.d*0.3)*0.0025*df;
       let parentSway=0;if(b.parent>=0&&tree.swayCache[b.parent]!==undefined)parentSway=tree.swayCache[b.parent];
       tree.swayCache[i]=parentSway+ownSway}
     for(const p of tree.perches){if(p.branchIdx>=0){const sw=tree.swayCache[p.branchIdx]||0;p.drawX=p.x+sw*60;p.drawY=p.y}}
@@ -1705,7 +1683,7 @@ function computeTreeSway(){
 }
 
 function drawSingleTree(tree){
-  const tb=tree.base;const trunkSway=fsin(simTime*0.18+tree.swayPhase)*( 0.035 + WORLD.weather.crr.smoothAmp*0.06);
+  const tb=tree.base;const trunkSway=fsin(simTime*0.2)*0.001;
   ctx.strokeStyle='rgba(10,8,6,0.95)';ctx.lineWidth=tree===trees[0]?15:18;ctx.beginPath();
   ctx.moveTo(tb.x,tb.y+15);ctx.quadraticCurveTo(tb.x+trunkSway*15,tb.y-tb.h*0.08,tb.x+trunkSway*30,tb.y-tb.h*0.15);ctx.stroke();
   const byD={};for(let i=0;i<tree.branches.length;i++){const b=tree.branches[i];(byD[b.d]||(byD[b.d]=[])).push(i)}
@@ -1732,7 +1710,7 @@ function drawGrass(rainI){
   const gy=H*0.88;ctx.fillStyle='#080808';ctx.beginPath();ctx.moveTo(0,gy);
   for(let x=0;x<=W;x+=15)ctx.lineTo(x,gy-fsin(x*0.01+simTime*0.05)*2.5-1);
   ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
-  const rw=1+rainI*1.5+WORLD.weather.crr.smoothAmp*2.0; // gust ruptures add sharp leanctx.strokeStyle='#0a0a0a';ctx.lineCap='round';
+  const rw=1+rainI*1.5;ctx.strokeStyle='#0a0a0a';ctx.lineCap='round';
   ctx.lineWidth=0.7;ctx.beginPath();
   for(const s of grassStems){if(s.seed)continue;const sw=fsin(simTime*0.9+s.phase)*0.01*rw;const tx=s.x+s.lean*s.h+sw*W,ty=gy-s.h;ctx.moveTo(s.x,gy);ctx.quadraticCurveTo(s.x+s.lean*s.h*0.5+sw*W*0.6,(gy+ty)/2,tx,ty)}ctx.stroke();
   ctx.lineWidth=1.1;ctx.beginPath();
@@ -1742,10 +1720,8 @@ function drawGrass(rainI){
 // ── RAIN ──
 let raindrops=[];
 function updateRain(dt,intensity){
-  // Wind gust modulates drop angle: weather CRR smoothAmp → sharper horizontal rain at rupture
-  const _gustX = -12 - WORLD.weather.crr.smoothAmp * 18; // calm:-12 → gust:-30
   const spawn=intensity*20;
-  for(let i=0;i<spawn;i++){if(random()<0.7)raindrops.push({x:random()*W*1.2-W*0.1,y:-10-random()*50,vx:_gustX+random()*6,vy:200+random()*150,len:8+random()*12,alpha:0.15+random()*0.2})}
+  for(let i=0;i<spawn;i++){if(random()<0.7)raindrops.push({x:random()*W*1.2-W*0.1,y:-10-random()*50,vx:-15-random()*10,vy:200+random()*150,len:8+random()*12,alpha:0.15+random()*0.2})}
   const groundY=H*0.88+10;let i=0;
   while(i<raindrops.length){const d=raindrops[i];d.x+=d.vx*dt;d.y+=d.vy*dt;
     if(d.y>groundY){raindrops[i]=raindrops[raindrops.length-1];raindrops.pop()}else i++}
@@ -1944,28 +1920,14 @@ function updateBirds(dt,predX,predY,predHunt){
       fl.currentMove = pool[floor(random() * pool.length)];
       fl.moveTimer=0;
 
-      // Duration: base + memory-weighted extension.
-      // fl.crr.mem() = exp(C/Ω): high coherence = system lingers at the pattern it earned.
-      // This replaces a uniform random spread with earned persistence.
-      fl.moveDuration = (3 + min(4, fl.crr.mem()*0.8)) * (1 + min(1, bty/4));
+      // Duration scales with beauty: near the peak, the pattern sustains longer
+      // (the system lingers at criticality — the beautiful moment lasts)
+      fl.moveDuration = (3 + random()*3) * (1 + min(1, bty/4));
 
       // Angular momentum: more energy at higher C/Ω
-      // Sign inherits from prior rotation — CRR memory: exp(C/Ω) weights continuity.
-      // When C is high, the flock remembers which way it was turning.
-      // Only reverses when prior angMom has fully decayed (system has genuinely reset).
       const angEnergy = 1 + cRatio * 1.5;
-      const priorSign = fl.angMom > 0.05 ? 1 : fl.angMom < -0.05 ? -1 : (random()>0.5?1:-1);
-      // Higher memory (exp(C/Ω)) = stronger continuity bias
-      const continuityCoin = random() < min(0.85, bty / (bty + 1));
-      fl.angMom = (continuityCoin ? priorSign : -priorSign) * angEnergy * (1 + random()*0.5);
-
-      // Turn direction: biases from prior direction with CRR-scaled perturbation
-      // Rather than random angle, rotate the prior vector by a CRR-bounded amount.
-      // Low C/Ω = wide perturbation (exploratory); high C/Ω = tight (committed turn).
-      const priorAngle = atan2(fl.turnDir.y, fl.turnDir.x);
-      const perturbRange = PI * max(0.1, 1 - cRatio * 0.6); // low C: ±π, high C: ±0.4
-      const newAngle = priorAngle + (random()-0.5)*2*perturbRange;
-      fl.turnDir = {x:cos(newAngle)*25*(1+cRatio*0.5), y:sin(newAngle)*18*(1+cRatio*0.5)};
+      fl.angMom = (random()>0.5?1:-1) * angEnergy * (1 + random());
+      fl.turnDir = {x:cos(random()*PI2)*25*(1+cRatio*0.5), y:sin(random()*PI2)*18*(1+cRatio*0.5)};
     }
     fl.st=fl.crr.st;fl.moveTimer+=dt;
   }
@@ -2061,7 +2023,7 @@ function updateBirds(dt,predX,predY,predHunt){
         myFlock.panic=min(1,myFlock.panic+0.1);
         continue}
       const minRest=3+b.react*4;
-      const restless=b.perchT>minRest&&random()<(0.008+b.crr.smoothAmp*0.045);
+      const restless=b.perchT>minRest&&random()<0.03;
       const rainStop=rainI<0.2&&b.perchT>2;
       if(restless||rainStop||myFlock.crr.st===1){
         b.st=3;b.vy=-28-random()*18;b.vx=(random()-0.5)*25+(fi===0?12:-12);
@@ -2333,16 +2295,6 @@ function updateBirds(dt,predX,predY,predHunt){
 //   Alarm wave: amber→red pulse propagates through the network
 //   Beauty peak: enhanced glow when C/Ω ≈ 2.14
 //
-// Pre-allocated communication line buckets — reused every frame
-const _commBuckets = [
-  { lines: [], r:160, g:210, b:220, alpha:0, lw:0.5 },
-  { lines: [], r:200, g:240, b:255, alpha:0, lw:0.6 },
-  { lines: [], r:210, g:180, b:120, alpha:0, lw:0.7 },
-  { lines: [], r:240, g:100, b:50,  alpha:0, lw:1.2 },
-  { lines: [], r:220, g:230, b:240, alpha:0, lw:1.0 },
-  { lines: [], r:255, g:230, b:150, alpha:0, lw:0.7 }
-];
-const _commPulseDots=[];
 function drawCommunication(){
   if(birdPhase==='sleep' || birdPhase==='settled') return;
   const flockC = WORLD.flock.crr.C;
@@ -2370,11 +2322,16 @@ function drawCommunication(){
   // Bucket 4: info pulse (bright flash)
   // Bucket 5: singing connection (golden tint)
 
-  const buckets = _commBuckets;
-  for(const bk of buckets){bk.lines.length=0;bk.alpha=0;}
+  const buckets = [
+    { lines: [], r:160, g:210, b:220, alpha:0, lw:0.5 },  // calm dim
+    { lines: [], r:200, g:240, b:255, alpha:0, lw:0.6 },  // calm bright / beauty
+    { lines: [], r:210, g:180, b:120, alpha:0, lw:0.7 },  // mild panic
+    { lines: [], r:240, g:100, b:50,  alpha:0, lw:1.2 },   // high panic
+    { lines: [], r:220, g:230, b:240, alpha:0, lw:1.0 },  // info pulse
+    { lines: [], r:255, g:230, b:150, alpha:0, lw:0.7 }   // singing
+  ];
   // Also collect info pulse dots
-  const pulseDots = _commPulseDots;
-  pulseDots.length=0;
+  const pulseDots = [];
 
   for(let bi=0;bi<birds.length;bi++){
     const b=birds[bi];
@@ -2453,26 +2410,19 @@ function drawCommunication(){
   ctx.restore();
 }
 
-// Pre-allocated bird body/wing render buffers — module-level to avoid per-frame allocation
-const _CB=16;
-const _bBodyBufs=[],_bWingBufs=[],_bStyleBufs=[];
-for(let _i=0;_i<_CB;_i++){_bBodyBufs.push([]);_bWingBufs.push([]);_bStyleBufs.push(null);}
-
-// Pre-allocated bird render buckets — reused every frame instead of re-created
-const _birdSingers=[],_birdFlyNorm=[],_birdFlyPanic=[],_birdFlySing=[];
 function drawBirds(){
   // ═══ PERCHED BIRDS — batched rendering ═══
   // Batch all non-singing perched birds into one path per approximate color
   ctx.save();
 
   // Collect singing perched birds separately (they need glow)
-  _birdSingers.length=0;
+  const singers = [];
 
   // Batch perched bird bodies — use a single fill call
   ctx.beginPath();
   for(const b of birds){
     if(b.st!==2)continue;
-    if(b.singing){ _birdSingers.push(b); continue; }
+    if(b.singing){ singers.push(b); continue; }
     const s=b.size;
     ctx.moveTo(b.x+s*1.1, b.y);
     ctx.arc(b.x,b.y,s*1.1,0,PI2);
@@ -2485,7 +2435,7 @@ function drawBirds(){
   ctx.fill();
 
   // Draw singing perched birds individually (they need glow, but with simplified rendering)
-  for(const b of _birdSingers){
+  for(const b of singers){
     const s=b.size;
     const iriPhase=b.iridescence*PI2+simTime*0.5;
     const ir=max(0,18+10*fsin(iriPhase));
@@ -2494,9 +2444,8 @@ function drawBirds(){
     ctx.fillStyle=`rgba(${ir|0},${ig|0},${ib|0},0.9)`;
     ctx.beginPath();ctx.arc(b.x,b.y,s*1.1,0,PI2);ctx.fill();
     ctx.beginPath();ctx.arc(b.x+s*0.2,b.y,s*0.7,0,PI2);ctx.fill();
-    // Glow pulses at the bird's own syrinx CRR rate — not arbitrary simTime*12
-    // smoothAmp rises and falls with the membrane's coherence cycle
-    const singPulse = min(1, b.syrinxL.smoothAmp * 2.5 + 0.15);
+    // Simplified glow — single circle instead of expensive radialGradient
+    const singPulse = 0.5 + 0.5 * fsin(simTime * 12);
     const glowR = s * (2.5 + singPulse);
     ctx.fillStyle=`rgba(255,220,80,${(0.08*singPulse).toFixed(3)})`;
     ctx.beginPath(); ctx.arc(b.x+s*0.5, b.y, glowR, 0, PI2); ctx.fill();
@@ -2513,34 +2462,25 @@ function drawBirds(){
 
   // ═══ FLYING BIRDS — with iridescent flash ═══
   // Group by panic level for fewer fillStyle changes
-  _birdFlyNorm.length=0;
-  _birdFlyPanic.length=0;
-  _birdFlySing.length=0;
+  const flyNormal = [];
+  const flyPanic = [];
+  const flySinging = [];
 
   for(const b of birds){
     if(b.st===2)continue;
-    if(b.singing && b.st===0) _birdFlySing.push(b);
-    else if((b.panic||0) > 0.3) _birdFlyPanic.push(b);
-    else _birdFlyNorm.push(b);
+    if(b.singing && b.st===0) flySinging.push(b);
+    else if((b.panic||0) > 0.3) flyPanic.push(b);
+    else flyNormal.push(b);
   }
 
-  // Draw each group — CRR-bucketed batch rendering
-  // Rather than ctx.setTransform per bird (expensive Canvas state change),
-  // we compute rotated vertices in JS and draw all birds in colour buckets.
-  // At murmuration density (1500 birds, ~3px each) individual colour variation
-  // is visually imperceptible — the collective IS the unit. This is the CRR
-  // principle: at high C, individual identity dissolves into the coherent field.
-  // Reduces Canvas API calls from ~6000/frame to ~48/frame for bird bodies.
-
+  // Draw each group
   const drawFlyingGroup = (group, panicOverride) => {
-    if(group.length===0)return;
-    // Reset buckets
-    for(let i=0;i<_CB;i++){_bBodyBufs[i].length=0;_bWingBufs[i].length=0;}
     for(const b of group){
       const angle=atan2(b.vy,b.vx);
       const flapMult=b.st===3?1.4:b.st===1?0.7:1;
       const flap=fsin(b.wph*flapMult)*0.45;
-      const cosA=fcos(angle),sinA=fsin(angle);
+      const cosA=cos(angle),sinA=sin(angle);
+      ctx.setTransform(cosA*_dpr,sinA*_dpr,-sinA*_dpr,cosA*_dpr,b.x*_dpr,b.y*_dpr);
       const vx2vy2=b.vx*b.vx+b.vy*b.vy;
       const stretch=1+min(vx2vy2/14400,0.35);
       const s=b.size;
@@ -2548,82 +2488,32 @@ function drawBirds(){
       const sunAngle=WORLD.sun.phase;
       const iriStrength=sunAngle*0.3;
       const panicC = panicOverride !== undefined ? panicOverride : (b.panic || 0);
-      const ir=max(0,18+iriStrength*40*fsin(iriPhase) + panicC*80)|0;
-      const ig=max(0,18+iriStrength*60*fsin(iriPhase+1) - panicC*20)|0;
-      const ib=max(0,24+iriStrength*30*fsin(iriPhase+2.5) - panicC*30)|0;
-      // Quantize to colour bucket (r/16 gives 0-15 range for typical dark starling colours)
-      const bi=(ir>>4)%_CB;
-      // Store colour for first bird in this bucket
-      if(_bBodyBufs[bi].length===0)_bStyleBufs[bi]=`rgba(${ir},${ig},${ib},0.9)`;
-
-      // Body ellipse approximated as diamond (4-point shape) — transform in JS
-      const bx=b.x,by=b.y;
-      const hx=s*1.35*stretch,hy=s*0.5;
-      // 4 cardinal points of ellipse in rotated space
-      const fx=bx+cosA*hx, fy=by+sinA*hx;   // front
-      const bkx=bx-cosA*hx,bky=by-sinA*hx;   // back
-      const tx=bx-sinA*hy, ty=by+cosA*hy;     // top
-      const dx=bx+sinA*hy, dy=by-cosA*hy;     // bottom
-      _bBodyBufs[bi].push(fx,fy,tx,ty,bkx,bky,dx,dy);
-
-      // Wing shape — quadratic bezier per wing, computed in JS
+      const ir=max(0,18+iriStrength*40*fsin(iriPhase) + panicC*80);
+      const ig=max(0,18+iriStrength*60*fsin(iriPhase+1) - panicC*20);
+      const ib=max(0,24+iriStrength*30*fsin(iriPhase+2.5) - panicC*30);
+      ctx.fillStyle=`rgba(${ir|0},${ig|0},${ib|0},0.9)`;
+      ctx.beginPath();ctx.ellipse(0,0,s*1.35*stretch,s*0.5,0,0,PI2);ctx.fill();
       const ws=s*2.6,wL=0.42+flap*0.38;
-      const wpx=-sinA*ws*wL, wpy=cosA*ws*wL;
-      const q1x=cosA*s*0.35-sinA*ws*wL*0.55, q1y=sinA*s*0.35+cosA*ws*wL*0.55;
-      const q2x=cosA*s*0.18-sinA*ws*wL*0.25, q2y=sinA*s*0.18+cosA*ws*wL*0.25;
-      const q3x=-cosA*s*0.25,q3y=-sinA*s*0.25;
-      // Top wing
-      _bWingBufs[bi].push(
-        bx+q3x,by+q3y, bx-q1x,by-q1y, bx+wpx,by+wpy,
-        bx-q2x,by-q2y, bx+cosA*s*0.12,by+sinA*s*0.12,
-        bx-q2x,by-q2y, bx+q3x,by+q3y
-      );
-      // Bottom wing (mirror)
-      _bWingBufs[bi].push(
-        bx+q3x,by+q3y, bx+q1x,by+q1y, bx-wpx,by-wpy,
-        bx+q2x,by+q2y, bx+cosA*s*0.12,by+sinA*s*0.12,
-        bx+q2x,by+q2y, bx+q3x,by+q3y
-      );
-    }
-    // Draw all buckets — one beginPath+fill per occupied colour bucket
-    for(let bi=0;bi<_CB;bi++){
-      const bod=_bBodyBufs[bi];if(bod.length===0)continue;
-      ctx.fillStyle=_bStyleBufs[bi];
-      // Bodies
-      ctx.beginPath();
-      for(let i=0;i<bod.length;i+=8){
-        ctx.moveTo(bod[i],bod[i+1]);
-        ctx.lineTo(bod[i+2],bod[i+3]);
-        ctx.lineTo(bod[i+4],bod[i+5]);
-        ctx.lineTo(bod[i+6],bod[i+7]);
-        ctx.closePath();
-      }
-      ctx.fill();
-      // Wings (same colour)
-      const wng=_bWingBufs[bi];
-      ctx.beginPath();
-      for(let i=0;i<wng.length;i+=14){
-        ctx.moveTo(wng[i],wng[i+1]);
-        ctx.quadraticCurveTo(wng[i+2],wng[i+3],wng[i+4],wng[i+5]);
-        ctx.quadraticCurveTo(wng[i+6],wng[i+7],wng[i+8],wng[i+9]);
-        ctx.quadraticCurveTo(wng[i+10],wng[i+11],wng[i+12],wng[i+13]);
-        ctx.closePath();
-      }
+      ctx.beginPath();ctx.moveTo(-s*0.25,0);
+      ctx.quadraticCurveTo(-s*0.05,-ws*wL*0.55,s*0.35,-ws*wL);
+      ctx.quadraticCurveTo(s*0.18,-ws*wL*0.25,s*0.12,0);
+      ctx.quadraticCurveTo(s*0.18,ws*wL*0.25,s*0.35,ws*wL);
+      ctx.quadraticCurveTo(-s*0.05,ws*wL*0.55,-s*0.25,0);
       ctx.fill();
     }
   };
 
-  drawFlyingGroup(_birdFlyNorm);
-  drawFlyingGroup(_birdFlyPanic);
-  drawFlyingGroup(_birdFlySing);
+  drawFlyingGroup(flyNormal);
+  drawFlyingGroup(flyPanic);
+  drawFlyingGroup(flySinging);
 
   // Flying singer dots — batch all into one pass
-  if(_birdFlySing.length > 0){
+  if(flySinging.length > 0){
     const singAlpha = 0.4+0.3*fsin(simTime*15);
     ctx.setTransform(_dpr,0,0,_dpr,0,0);
     ctx.fillStyle=`rgba(255,220,80,${singAlpha.toFixed(2)})`;
     ctx.beginPath();
-    for(const b of _birdFlySing){
+    for(const b of flySinging){
       if(b.st!==0) continue;
       const angle=atan2(b.vy,b.vx);
       const cosA=cos(angle),sinA=sin(angle);
@@ -2709,13 +2599,9 @@ function drawPred(){
 }
 
 // ── WAVEFORM ──
-// Pre-allocated waveform buffer — avoids 60 GC-eligible allocations per second
-let _waveformBuf=null;
 function drawWaveform(){
   if(!analyser)return;
-  const bufLen=analyser.frequencyBinCount;
-  if(!_waveformBuf||_waveformBuf.length!==bufLen)_waveformBuf=new Uint8Array(bufLen);
-  const data=_waveformBuf;
+  const bufLen=analyser.frequencyBinCount;const data=new Uint8Array(bufLen);
   analyser.getByteTimeDomainData(data);
   const wH=H*0.88,wY=wH+3,wAH=H*0.06;
   ctx.strokeStyle='rgba(123,237,159,0.12)';ctx.lineWidth=1;ctx.beginPath();
@@ -2736,7 +2622,6 @@ function startPlayback(){
   if(playing)return;
   initAudio();if(ac.state==='suspended')ac.resume();
   sequence=buildSequence();seqIdx=0;musicBeat=0;playing=true;
-  WORLD.sun.agent.C=0; // Reset to dawn — SO(2) cycle begins fresh
   birdPhase='sleep';
   document.getElementById('btn-play').classList.add('playing');
   // Build timeline sections
@@ -2770,24 +2655,14 @@ function processMusic(dt){
   else if(musicBeat<288)birdPhase='roosting';
   else birdPhase='settled';
 
-  // ── SOLAR PHYSICS: SO(2) agent properly stepped ──────────────────────────
-  // One complete day = one SO(2) rotation. The rupture condition C·Ω = 1
-  // is satisfied exactly at beat 320 (next dawn). attn = 8/totalTime ensures
-  // C reaches 1/Ω at composition end — the mathematics of the day.
-  // sunPhase = 0.05 + 0.95·sin(C·Ω·π) gives physical dawn→zenith→dusk arc.
-  const _SUN_ATTN = 8 / (TOTAL_BEATS * beatDuration); // ≈ 0.030 — one rotation/day
-  WORLD.sun.agent.C += _SUN_ATTN * dt / (WORLD.sun.agent.omega * 8);
-  const _sunCO = min(1, WORLD.sun.agent.C * WORLD.sun.agent.omega); // C·Ω: 0→1
-  WORLD.sun.phase = 0.05 + 0.95 * sin(_sunCO * PI); // peaks at C·Ω=0.5 (beat~160)
-
-  // ── WEATHER CRR: drives wind character ────────────────────────────────────
-  // Steps with rainIntensity as attention — ruptures every ~4.6s during storm
-  // (each rupture = wind gust). Wind filter frequency rises with smoothAmp.
-  WORLD.weather.crr.update(dt, max(0.02, WORLD.weather.rainIntensity));
-  if(windNoise.filter && ac){
-    const _windFreq = 300 + WORLD.weather.crr.smoothAmp * 1400; // 300Hz calm → 1700Hz gust
-    windNoise.filter.frequency.setTargetAtTime(_windFreq, ac.currentTime, 0.4);
-  }
+  // Sun phase follows composition arc
+  if(musicBeat<8)WORLD.sun.phase=0.05;
+  else if(musicBeat<80)WORLD.sun.phase=lerp(0.05,0.6,(musicBeat-8)/72);
+  else if(musicBeat<180)WORLD.sun.phase=lerp(0.6,1,(musicBeat-80)/100);
+  else if(musicBeat<224)WORLD.sun.phase=lerp(1,0.7,(musicBeat-180)/44);
+  else if(musicBeat<256)WORLD.sun.phase=lerp(0.7,0.8,(musicBeat-224)/32);
+  else if(musicBeat<288)WORLD.sun.phase=lerp(0.8,0.3,(musicBeat-256)/32);
+  else WORLD.sun.phase=lerp(0.3,0.05,(musicBeat-288)/32);
 
   // Weather/Rain
   if(musicBeat>=180&&musicBeat<208){
@@ -2805,12 +2680,10 @@ function processMusic(dt){
   // Process events
   while(seqIdx<sequence.length&&sequence[seqIdx].beat<=musicBeat){
     const ev=sequence[seqIdx++];const now=ac.currentTime;
-    // Beauty boost: guitar/bass naturally louder as flock approaches beauty peak (C/Ω≈2.14)
-    const _bb=min(1.35,1+beautyFunction(WORLD.flock.crr.C,WORLD.flock.crr.omega)*0.045);
     switch(ev.type){
-      case'tremolo':playTremoloGuitar(ev.midi,ev.velocity*_bb,ev.duration*beatDuration/tempoMult,now,ev.rate);break;
-      case'clean':playCleanGuitar(ev.midi,ev.velocity*_bb,ev.duration*beatDuration/tempoMult,now);break;
-      case'bass':playBass(ev.midi,ev.velocity*_bb,ev.duration*beatDuration/tempoMult,now);break;
+      case'tremolo':playTremoloGuitar(ev.midi,ev.velocity,ev.duration*beatDuration/tempoMult,now,ev.rate);break;
+      case'clean':playCleanGuitar(ev.midi,ev.velocity,ev.duration*beatDuration/tempoMult,now);break;
+      case'bass':playBass(ev.midi,ev.velocity,ev.duration*beatDuration/tempoMult,now);break;
       case'pad':setPadChord(ev.padNotes,ev.padGain,ev.duration*beatDuration/tempoMult*0.5);break;
       case'drone':setStellarDrone(ev.droneGain,ev.sunPhase||WORLD.sun.phase,ev.duration*beatDuration/tempoMult*0.5);break;
       case'birds':playFlockChorus(ev.velocity,ev.count,now);break;
