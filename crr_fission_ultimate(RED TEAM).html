@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CRR — FISSION</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=DM+Mono:wght@300&display=swap');
+*{margin:0;box-sizing:border-box}
+body{background:#000;overflow:hidden}
+canvas{display:block}
+.hud{position:fixed;pointer-events:none;z-index:10;font-family:'DM Mono',monospace}
+#hp{top:3vh;left:20px;font-size:9px;letter-spacing:.18em;color:rgba(255,255,255,.3)}
+#hn{top:3vh;right:20px;font-family:'Instrument Serif',serif;font-size:1.1em;color:rgba(255,220,180,.45)}
+#he{bottom:3vh;left:50%;transform:translateX(-50%);font-family:'Instrument Serif',serif;font-size:1.05em;font-style:italic;color:rgba(255,220,180,.4);white-space:nowrap}
+#hm{bottom:3vh;right:20px;font-size:9px;color:rgba(255,255,255,.15)}
+#ctl{position:fixed;bottom:0;left:0;right:0;height:56px;z-index:20;display:flex;align-items:center;padding:0 20px;gap:12px;opacity:0;transition:opacity .4s;pointer-events:none}
+#ctl.on{opacity:1;pointer-events:all}
+#ctl label{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;color:rgba(255,255,255,.25);white-space:nowrap}
+#ctl input[type=range]{-webkit-appearance:none;appearance:none;height:3px;background:rgba(255,255,255,.08);border-radius:2px;outline:0;flex-shrink:0}
+#ctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:rgba(255,220,180,.4);cursor:pointer}
+#speed{width:80px}#zoom{width:70px}
+#tl{flex:1;height:24px;cursor:pointer;position:relative;min-width:80px}
+#tl canvas{width:100%;height:100%;border-radius:2px}
+#go{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:30;background:rgba(0,0,0,.95);cursor:pointer}
+#go span{font-family:'Instrument Serif',serif;font-size:1.3em;color:rgba(255,220,180,.5);letter-spacing:.08em;border:1px solid rgba(255,255,255,.06);padding:12px 30px}
+#pn{font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);min-width:60px;text-align:right}
+</style>
+</head><body>
+<div class="hud" id="hp"></div><div class="hud" id="hn"></div>
+<div class="hud" id="he"></div><div class="hud" id="hm"></div>
+<div id="ctl">
+  <label>Ω·t <input type="range" id="speed" min="0" max="200" value="100"></label>
+  <div id="tl"><canvas id="tlc"></canvas></div>
+  <div id="pn"></div>
+  <label>zoom <input type="range" id="zoom" min="10" max="300" value="50"></label>
+</div>
+<div id="go" onclick="begin()"><span>observe fission</span></div>
+<canvas id="c"></canvas>
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// CRR FISSION — ULTIMATE
+//
+// CRR Equations:
+//   C(x,t) = ∫ L(x,τ) dτ       [coherence: history accumulates]
+//   δ(now)                       [rupture: instantaneous transition]
+//   R = ∫ φ·exp(C/Ω)·Θ dτ      [regeneration: weighted memory]
+//   C·Ω = 1 at rupture          [universal condition]
+//
+// Z₂ system: Ω=1/π → C=π at rupture, C/Ω=π² at core
+//
+// Physics systems driven by CRR state:
+//
+//   §1   Coherence field:  live dC/dt = −C/τ + vortex_pump + baroclinic
+//   §2   Blackbody colour: T=T_ref·exp(C/Ω) → Planck→RGB
+//   §3   Buoyancy:         a_y = g·(1−e^{−C})·exp(−y/H)·cap_factor
+//   §4   Atmospheric ρ(y): stratification exp(−y/H_atm) on all forces
+//   §5   Sedov-Taylor:     R_s = ξ₀·(E·t²/ρ₀)^{1/5}, E∝exp(C/Ω)
+//   §6   Mach stem:        ground-reflected shock, Mach reflection geometry
+//   §7   Rayleigh-Taylor:  A=tanh(C/2Ω), σ_RT=√(A·g·k), modal fingers
+//   §8   Kelvin-Helmholtz: cap shear rolls, σ_KH=k·ΔV/2
+//   §9   Kolmogorov:       ε=C·Ω/τ, σ_v=C_K·(ε·l)^{1/3}
+//   §10  Vorticity:        Kelvin circulation + baroclinic generation
+//   §11  Wilson cloud:     condensation at r=R_s·√(1−1/κ), κ=1.4
+//   §12  Drag + ground
+//   §13  Audio:            diegetic CRR synth engine
+//   §14  Camera:           perspective, fog, zoom, tracking
+// ═══════════════════════════════════════════════════════════════════
+
+const PI=Math.PI,TAU=PI*2;
+const{sin,cos,sqrt,pow,min,max,exp,random:R,abs,log,floor,atan2,tanh}=Math;
+const cl=(v,a,b)=>min(b,max(a,v));
+
+// ─── §1: CRR CONSTANTS ────────────────────────────────────────────
+const Om      = 1/PI;            // Ω for Z₂ (bistable)
+const C_RUPT  = PI;              // C at rupture: C·Ω=1
+const C_OM0   = PI*PI;           // C/Ω at fireball core = π² ≈ 9.87
+
+// CRR cooling timescale — DERIVED from first principles:
+// τ = Ω·ln(C_rupt/Ω) = (1/π)·ln(π²) = (2/π)·ln(π) ≈ 0.729
+// τ_visual = τ_CRR × T_VIS where T_VIS is the single free scaling parameter
+const TAU_CRR = 2*log(PI)/PI;    // ≈ 0.729 (pure CRR)
+const T_VIS   = 8.0;             // visual timescale: 1 CRR unit = 8 sim-seconds
+const tau_cool= TAU_CRR*T_VIS;   // ≈ 5.83 — CRR-derived, not empirical
+
+// ─── §3-§4: ATMOSPHERIC CONSTANTS ────────────────────────────────
+const H_atm   = 220;    // atmospheric scale height [sim units]
+const g_eff   = 8.0;    // effective gravity
+const y_cap   = 140;    // buoyancy cap altitude
+const KAPPA   = 1.4;    // adiabatic index of air (diatomic, standard)
+
+// ─── §5: SEDOV-TAYLOR ─────────────────────────────────────────────
+// R_s(t) = ξ₀·(E·t²/ρ₀)^{1/5}, E = exp(C_OM0) from CRR rupture energy
+const xi0     = 1.15;
+const E_crr   = exp(min(C_OM0,20));       // exp(π²), clamped
+const shk_c   = xi0*pow(E_crr,0.2);       // ≈ 8.28 — Sedov prefactor
+
+// ─── §7: RAYLEIGH-TAYLOR ──────────────────────────────────────────
+// Atwood: A(C) = tanh(C/2Ω) — from ρ∝1/T=exp(−C/Ω)
+// Growth: σ_RT = √(A·g_eff·k_wavenumber)
+// Fingers nucleate at boundary r≈4.5 in modes m=4,6,8,12
+const RT_MODES  = [4,6,8,12];
+const RT_A0     = 0.35;  // initial perturbation amplitude
+
+// ─── §8: KELVIN-HELMHOLTZ ─────────────────────────────────────────
+const KH_STR  = 0.028;   // cap shear roll strength
+
+// ─── §9: KOLMOGOROV ───────────────────────────────────────────────
+// ε = C·Ω/τ_cool  [CRR dissipation rate = turbulent energy flux]
+// σ_v = C_K·(ε·l_mix)^{1/3}  [inertial-range velocity fluctuation]
+const C_K     = 1.5;     // Kolmogorov constant
+const l_mix   = 0.8;     // mixing length [sim units]
+
+// ─── OTHER FORCE CONSTANTS ────────────────────────────────────────
+const R_rim   = 12;      // vortex ring radius
+const tau_damp= 0.08;    // cap vertical damping
+const k_stem  = 0.008;   // stem horizontal pull
+const k_up    = 0.012;   // stem updraft
+const drag_k  = 0.007;   // aerodynamic drag
+const d_cam   = 120;     // camera depth
+const d_fog   = 80;      // fog depth
+const GROUND  = 0.85;    // canvas ground fraction
+const TOTAL_T = 22;      // approx sim duration for timeline
+
+// ═══════════════════════════════════════════════════════════════════
+// §2: BLACKBODY COLOUR from CRR temperature
+//
+// T_apparent = T_ref · exp(C/Ω · α_scale)
+// where α_scale tuned so C/Ω=π² ≈ hot blue-white, C/Ω→0 ≈ dark red
+// Approximation of Planck spectral emission → CIE → sRGB
+// ═══════════════════════════════════════════════════════════════════
+function blackbody(co) {
+  // co = C/Ω. Map to apparent temperature T [K, visual scale]
+  const T = 820 * exp(co * 0.228);
+  let r,g,b;
+  if(T<850)     { r=cl((T-350)/500*55,0,55)|0; g=0; b=0; }
+  else if(T<1800){ const t=(T-850)/950;  r=55+t*185|0; g=t*32|0;  b=0; }
+  else if(T<3200){ const t=(T-1800)/1400;r=240+t*15|0; g=32+t*128|0; b=t*12|0; }
+  else if(T<5800){ const t=(T-3200)/2600;r=255;         g=160+t*82|0; b=12+t*178|0; }
+  else if(T<18000){ const t=(T-5800)/12200;r=255-t*28|0;g=242-t*18|0;b=190+t*65|0; }
+  else           { r=227; g=224; b=255; }
+  return [cl(r,0,255),cl(g,0,255),cl(b,0,255)];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CANVAS + UI
+// ═══════════════════════════════════════════════════════════════════
+const cv=document.getElementById('c'),X=cv.getContext('2d');
+const tlc=document.getElementById('tlc'),TX=tlc.getContext('2d');
+let W,H,PPU_base;
+function resize(){
+  W=cv.width=innerWidth; H=cv.height=innerHeight;
+  PPU_base=H/260;
+  const tl=document.getElementById('tl');
+  tlc.width=tl.offsetWidth||300; tlc.height=24;
+}
+resize(); addEventListener('resize',resize);
+
+let zoomLevel=0, camOffX=0, camOffY=0;
+function getPPU(){ return PPU_base*pow(2,zoomLevel); }
+
+let userSpeed=1.0;
+document.getElementById('speed').addEventListener('input',e=>{
+  const v=+e.target.value;
+  userSpeed=v<100?v/100:1+pow((v-100)/100,1.5)*3;
+});
+document.getElementById('zoom').addEventListener('input',e=>{
+  zoomLevel=(+e.target.value-50)/50*2;
+});
+cv.addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoomLevel=cl(zoomLevel-e.deltaY*.002,-1.5,3);
+  document.getElementById('zoom').value=50+zoomLevel/2*50;
+},{passive:false});
+
+// ═══════════════════════════════════════════════════════════════════
+// §13: DIEGETIC CRR SYNTH ENGINE
+// All parameters derived from simulation CRR state each frame.
+// Coherence drone:  f=55·(1+C·Ω), Q=3+16·C·Ω [approaches criticality]
+// Rupture sub-bass: f=42·(Δt+0.1)^{-3/5}      [Sedov shock decay]
+// Shock noise:      f∝(Δt)^{-0.4}              [compression frequency]
+// Column rumble:    f=20+40·<y>/y_cap           [cloud height tracking]
+// Regen hum:        f=82.4·Hz, gain=rP          [ground-state return]
+// ═══════════════════════════════════════════════════════════════════
+let ac,mg,syn={};
+
+function initAudio(){
+  ac=new(AudioContext||webkitAudioContext)();
+  mg=ac.createGain(); mg.gain.value=.28; mg.connect(ac.destination);
+
+  // Coherence drone
+  const co=ac.createOscillator(); co.type='sawtooth'; co.frequency.value=55;
+  const cf=ac.createBiquadFilter(); cf.type='lowpass'; cf.frequency.value=100; cf.Q.value=3;
+  const cg=ac.createGain(); cg.gain.value=0;
+  co.connect(cf); cf.connect(cg); cg.connect(mg); co.start();
+  const cs=ac.createOscillator(); cs.type='sine'; cs.frequency.value=55;
+  const csg=ac.createGain(); csg.gain.value=0;
+  cs.connect(csg); csg.connect(mg); cs.start();
+  syn.coh={o:co,f:cf,g:cg,s:cs,sg:csg};
+
+  // Rupture sub-bass
+  const ro=ac.createOscillator(); ro.type='sine'; ro.frequency.value=42;
+  const rg=ac.createGain(); rg.gain.value=0;
+  ro.connect(rg); rg.connect(mg); ro.start();
+  syn.rupt={o:ro,g:rg};
+
+  // Shock noise
+  const nL=ac.sampleRate*20|0, nbf=ac.createBuffer(1,nL,ac.sampleRate), nd=nbf.getChannelData(0);
+  for(let i=0;i<nL;i++) nd[i]=(R()*2-1);
+  const nSrc=ac.createBufferSource(); nSrc.buffer=nbf; nSrc.loop=true;
+  const nf=ac.createBiquadFilter(); nf.type='bandpass'; nf.frequency.value=400; nf.Q.value=.6;
+  const ng=ac.createGain(); ng.gain.value=0;
+  nSrc.connect(nf); nf.connect(ng); ng.connect(mg); nSrc.start();
+  syn.noise={f:nf,g:ng};
+
+  // Column rumble
+  const co2=ac.createOscillator(); co2.type='triangle'; co2.frequency.value=20;
+  const cg2=ac.createGain(); cg2.gain.value=0;
+  co2.connect(cg2); cg2.connect(mg); co2.start();
+  syn.rumble={o:co2,g:cg2};
+
+  // Regeneration hum
+  const re=ac.createOscillator(); re.type='triangle'; re.frequency.value=82.4;
+  const rf=ac.createBiquadFilter(); rf.type='lowpass'; rf.frequency.value=250;
+  const reg=ac.createGain(); reg.gain.value=0;
+  re.connect(rf); rf.connect(reg); reg.connect(mg); re.start();
+  syn.regen={o:re,g:reg};
+}
+
+function updateSynth(){
+  if(!ac) return;
+  const n=ac.currentTime, rt=.06;
+  if(ph==='c'){
+    const co=C_*Om;
+    syn.coh.o.frequency.setTargetAtTime(55*(1+co),n,rt);
+    syn.coh.f.frequency.setTargetAtTime(80+co*3000,n,rt);
+    syn.coh.f.Q.setTargetAtTime(3+co*16,n,rt);
+    syn.coh.g.gain.setTargetAtTime(co*.25,n,rt);
+    syn.coh.s.frequency.setTargetAtTime(55*(1+co*.5),n,rt);
+    syn.coh.sg.gain.setTargetAtTime(co*.12,n,rt);
+    syn.rupt.g.gain.setTargetAtTime(0,n,rt);
+    syn.noise.g.gain.setTargetAtTime(0,n,rt);
+    syn.rumble.g.gain.setTargetAtTime(0,n,rt);
+    syn.regen.g.gain.setTargetAtTime(0,n,rt);
+  } else if(ph==='r'){
+    const dr=t_-rT;
+    syn.coh.g.gain.setTargetAtTime(0,n,.1);
+    syn.coh.sg.gain.setTargetAtTime(0,n,.1);
+    syn.rupt.o.frequency.setTargetAtTime(cl(42*pow(dr+.1,-0.6),8,60),n,rt);
+    syn.rupt.g.gain.setTargetAtTime(exp(-dr/tau_cool)*.45,n,rt);
+    syn.noise.f.frequency.setTargetAtTime(cl(500*pow(dr+.1,-0.4),40,800),n,rt);
+    const nenv=dr<.3?dr/.3*.12:.12*exp(-(dr-.3)/tau_cool);
+    syn.noise.g.gain.setTargetAtTime(nenv,n,rt);
+    let sY=0,sN=0;
+    for(let i=0;i<cloud.length;i+=5){ if(cloud[i].T0>.3){sY+=cloud[i].y;sN++;} }
+    syn.rumble.o.frequency.setTargetAtTime(20+40*cl(sN>0?sY/sN/y_cap:0,0,1),n,rt);
+    syn.rumble.g.gain.setTargetAtTime(cl(cloud.length/11000*.06,0,.06),n,rt);
+    syn.regen.g.gain.setTargetAtTime(0,n,rt);
+  } else if(ph==='g'){
+    syn.rupt.g.gain.setTargetAtTime(0,n,.3);
+    syn.noise.g.gain.setTargetAtTime(0,n,.3);
+    syn.rumble.g.gain.setTargetAtTime(0,n,.5);
+    syn.regen.g.gain.setTargetAtTime(cl((rP||0)*.06,0,.06),n,.3);
+  } else {
+    ['coh','rupt','noise','rumble','regen'].forEach(k=>{
+      const gn=syn[k].g||syn[k].sg;
+      if(syn[k].g) syn[k].g.gain.setTargetAtTime(0,n,.2);
+      if(syn[k].sg) syn[k].sg.gain.setTargetAtTime(0,n,.2);
+    });
+  }
+}
+
+// δ(now) audio impulse — the rupture event rendered as sound
+function boomTransient(){
+  if(!ac) return;
+  const n=ac.currentTime;
+  const b=ac.createBuffer(1,ac.sampleRate*.08|0,ac.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(R()*2-1)*exp(-i/(ac.sampleRate*.004));
+  const s=ac.createBufferSource(); s.buffer=b;
+  const g=ac.createGain(); g.gain.value=.2;
+  s.connect(g); g.connect(mg); s.start(n);
+  for(let i=0;i<5;i++){
+    const t=n+.04+i*.035;
+    const p=ac.createOscillator(); p.type='sine'; p.frequency.value=2200+R()*5000;
+    const pg=ac.createGain(); pg.gain.setValueAtTime(.02,t); pg.gain.exponentialRampToValueAtTime(.001,t+.35);
+    p.connect(pg); pg.connect(mg); p.start(t); p.stop(t+1);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §14: 2.5D PERSPECTIVE PROJECTION
+// ═══════════════════════════════════════════════════════════════════
+function project(x,y,z){
+  const ppu=getPPU();
+  const persp=1/(1+z/d_cam);
+  const fog=1/(1+abs(z)/d_fog);
+  return{sx:W/2+(x-camOffX)*ppu*persp, sy:H*GROUND-(y-camOffY)*ppu*persp, sc:persp, fg:fog};
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §1: NUCLEUS RENDERING (coherence phase)
+// Deformation scales as (C·Ω)³ — near-spherical until criticality
+// ═══════════════════════════════════════════════════════════════════
+let nucs=[];
+function mkNucs(){
+  nucs=[];
+  for(let i=0;i<60;i++){
+    const th=i*PI*(3-Math.sqrt(5)), r=Math.sqrt(i/60)*3;
+    nucs.push({bx:cos(th)*r, by:sin(th)*r, x:0, y:0, isP:R()<.39, ph:R()*TAU, fr:.5+R()*1.5});
+  }
+}
+
+function drawNucleus(){
+  const sc=min(W,H)*.15*pow(2,max(0,zoomLevel));
+  const co=C_*Om, def=pow(co,3)*.55;
+  // Background coherence glow
+  const grd=X.createRadialGradient(W/2,H/2,0,W/2,H/2,sc*1.5);
+  grd.addColorStop(0,`rgba(60,100,255,${co*.08})`); grd.addColorStop(1,'rgba(0,0,0,0)');
+  X.fillStyle=grd; X.fillRect(0,0,W,H);
+  nucs.forEach(nc=>{
+    nc.ph+=nc.fr*.05;
+    const jit=.005*(1+co*4);
+    let bx=nc.bx, by=nc.by;
+    if(def>.01){
+      const a=atan2(by,bx), rv=Math.sqrt(bx*bx+by*by), s=1+def*cos(2*a);
+      bx=cos(a)*rv*s; by=sin(a)*rv*(2-s);
+    }
+    nc.x=W/2+(bx+sin(nc.ph)*jit)*sc;
+    nc.y=H/2+(by+cos(nc.ph*.7)*jit)*sc;
+    const nr=max(3,sc*.06);
+    X.beginPath(); X.arc(nc.x,nc.y,nr,0,TAU);
+    X.fillStyle=nc.isP?`rgb(${180+co*50|0},${30+co*15|0},20)`:`rgb(${20+co*10|0},${40+co*20|0},${100+co*40|0})`;
+    X.fill();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §7: RAYLEIGH-TAYLOR FINGER SPAWNING
+//
+// At rupture, seed the fireball boundary (r≈4.5) with modal perturbations.
+// Each finger starts at r=r_boundary·(1+perturbation), where perturbation
+// is a superposition of modes m∈{4,6,8,12} — typical nuclear fireball modes.
+// The Atwood number A=tanh(C/2Ω) is stored on each particle and drives
+// additional radial acceleration during the instability growth phase.
+// ═══════════════════════════════════════════════════════════════════
+function spawnRTFingers(){
+  const N=200;
+  const r_b=4.5;
+  const phases=RT_MODES.map(()=>R()*TAU);
+  for(let i=0;i<N;i++){
+    const theta=(i/N)*TAU;
+    let perturb=0;
+    RT_MODES.forEach((m,mi)=>{ perturb+=RT_A0*cos(m*theta+phases[mi])/RT_MODES.length; });
+    const r=r_b*(1+perturb*0.4);
+    const phi=(R()-.5)*0.6;
+    const co=C_OM0*exp(-r*r/25);
+    // A(C) = tanh(C/2Ω) — Atwood from CRR density ratio
+    const A=tanh(cl(co/(2*PI),0,5));
+    const v_r=7+max(0,perturb)*18;
+    const[cr,cg,cb]=blackbody(co);
+    const life=3+co*0.3+R()*2;
+    cloud.push({
+      x:r*cos(theta), y:max(0,sin(phi)*r), z:r*sin(theta),
+      vx:cos(theta)*v_r, vy:abs(sin(phi))*v_r*0.35+2.5, vz:sin(theta)*v_r,
+      C0:co, C:co, A, perturb,
+      T0:1-exp(-co), r:cr, g:cg, b:cb, sz:2+R()*3.5, life, maxLife:life, isRT:true
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §1: RUPTURE — spawn all particle populations
+// Volume-weighted sphere: r = r_max·U^{1/3} (uniform density in 3D)
+// ═══════════════════════════════════════════════════════════════════
+function doRupture(){
+  ph='r'; rT=t_; slo=.05; flash=1; boomTransient(); nucs=[];
+
+  // Primary fireball — volume-weighted 3D distribution
+  for(let i=0;i<9000;i++){
+    const theta=R()*TAU, phi=R()*PI-PI/2;
+    const r=5*pow(R(),.333);  // r = r_max·U^(1/3) for uniform sphere density
+    const Rcyl=cos(phi)*r;
+    const px=Rcyl*cos(theta), pz=Rcyl*sin(theta), py=sin(phi)*r;
+    const co=C_OM0*exp(-r*r/25);  // §1: Gaussian coherence field
+    const T0=1-exp(-co);           // §3: temperature from C
+    const speed=3+R()*10+T0*10;
+    const upFrac=T0*T0;
+    const lat=speed*(1-upFrac*.6), up=speed*upFrac+T0*6;
+    const[cr,cg,cb]=blackbody(co);   // §2: blackbody colour
+    const sz=T0>.6?(1+R()*2.5):(2.5+R()*9);
+    const life=2+co*.5+R()*3;
+    cloud.push({x:px,y:max(0,py),z:pz,
+      vx:cos(theta)*lat*(R()*.5+.5), vy:abs(sin(phi))*lat*.3+up, vz:sin(theta)*lat*(R()*.5+.5),
+      C0:co, C:co, T0, r:cr, g:cg, b:cb, sz, life, maxLife:life});
+  }
+
+  // §7: Rayleigh-Taylor boundary fingers
+  spawnRTFingers();
+
+  // Ground ejecta — debris ring
+  for(let i=0;i<900;i++){
+    const a=R()*TAU, spd=8+R()*24;
+    cloud.push({x:cos(a)*(1+R()*4),y:R()*1.5,z:sin(a)*(1+R()*4),
+      vx:cos(a)*spd, vy:R()*3.5, vz:sin(a)*spd,
+      C0:.04, C:.04, T0:.04, r:44,g:29,b:18, sz:3.5+R()*9, life:3+R()*5, maxLife:3+R()*5});
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §2–§12: PARTICLE PHYSICS — called at each sub-step
+// ═══════════════════════════════════════════════════════════════════
+function physics(p, sd){
+  const af=cl(p.life/p.maxLife,0,1);
+  const rxz=sqrt(p.x*p.x+p.z*p.z)+.1;
+
+  // ── §1: COHERENCE INTEGRATION ─────────────────────────────────
+  // dC/dt = −C/τ_cool + vortex_pumping + baroclinic_injection
+  let dC = -p.C/tau_cool;
+
+  // Vortex coherence pumping: toroidal circulation concentrates memory
+  // (Kelvin's theorem: circulation Γ=C·Ω is conserved → concentrates in vortex core)
+  if(p.y>y_cap*.35 && rxz>R_rim){
+    const rim=cl((rxz-R_rim)/25,0,1)*cl((p.y-y_cap*.35)/(y_cap*.65),0,1);
+    dC += rim*p.C*0.12;
+  }
+
+  // Baroclinic injection at fireball boundary: ∇ρ×∇T ≠ 0
+  // where T=exp(C/Ω) and ρ=1/T → generates coherence at the interface
+  if(p.C>0.7 && p.C<4.5){
+    dC += 0.028*(1-abs(p.C-2.6)/1.9);
+  }
+
+  p.C = max(0, p.C + dC*sd);
+
+  // ── §2: BLACKBODY COLOUR from live C ──────────────────────────
+  const Teff=(1-exp(-p.C))*af;
+  const[cr,cg,cb]=blackbody(p.C);
+  p.r+=(cr-p.r)*.04; p.g+=(cg-p.g)*.04; p.b+=(cb-p.b)*.04;
+
+  // ── §3+§4: BUOYANCY × ATMOSPHERIC STRATIFICATION ─────────────
+  // a_y = g · (1−e^{−C}) · exp(−y/H_atm) · cap_factor
+  // The exp(−y/H_atm) term is real atmospheric stratification:
+  // buoyancy reduces as ambient density falls with altitude
+  const atm_strat=exp(-p.y/H_atm);
+  p.vy += g_eff*Teff*atm_strat*max(0,1-p.y/y_cap)*sd;
+
+  // ── §3: CAP FORMATION ─────────────────────────────────────────
+  if(p.y>y_cap*.4){
+    const eta=cl((p.y-y_cap*.4)/(y_cap*.5),0,1);
+    p.vy *= (1-eta*tau_damp);
+    if(p.y>y_cap*.95){ p.vy=min(p.vy,0); p.y=y_cap*.95; }
+    if(Teff>.02){
+      const push=eta*(1+Teff*3)*.06;
+      p.vx+=p.x/rxz*push; p.vz+=p.z/rxz*push;
+    }
+  }
+
+  // ── §7: RAYLEIGH-TAYLOR FINGER GROWTH ─────────────────────────
+  // For finger particles, additional radial acceleration from Atwood instability:
+  // a_r = σ_RT² · η / r, where σ_RT = √(A·g·k_dominant)
+  // η (perturbation amplitude) grows as cosh(σ_RT·t) in linear theory
+  if(p.isRT && p.perturb>0 && p.C>0.3){
+    const A=tanh(cl(p.C/(2*PI),0,4));
+    const k_rt=6/max(rxz,2);  // dominant mode k≈m/r
+    const sigma2=A*g_eff*k_rt; // σ_RT²
+    const a_r=sigma2*p.perturb*0.45;
+    p.vx+=p.x/rxz*a_r*sd;
+    p.vz+=p.z/rxz*a_r*sd;
+    p.vy+=a_r*0.15*sd;  // slight upward component on fingers
+  }
+
+  // ── §8: KELVIN-HELMHOLTZ ROLLS at cap shear layer ─────────────
+  // σ_KH = k·ΔV/2 → azimuthal velocity perturbation grows
+  // Creates the rolling vortex structures along the cap edge
+  if(p.y>y_cap*.28 && p.y<y_cap*.68 && rxz>R_rim*.75){
+    const shear_zone=cl((p.y-y_cap*.28)/(y_cap*.4),0,1);
+    const az=atan2(p.z,p.x);
+    const kh_roll=KH_STR*shear_zone*Teff;
+    p.vx += -sin(az)*kh_roll;
+    p.vz +=  cos(az)*kh_roll;
+  }
+
+  // ── §9: KOLMOGOROV TURBULENCE ─────────────────────────────────
+  // ε = C·Ω/τ_cool — CRR dissipation rate (coherence loss = energy flux)
+  // σ_v = C_K·(ε·l_mix)^{1/3} — Kolmogorov velocity at inertial scale l_mix
+  const eps = p.C*Om/tau_cool;
+  const sigma_v = C_K*pow(max(eps*l_mix,1e-7),1/3);
+  p.vx += (R()-.5)*sigma_v*sd*38;
+  p.vy += (R()-.5)*sigma_v*sd*24;
+  p.vz += (R()-.5)*sigma_v*sd*38;
+
+  // ── §10: TOROIDAL VORTEX (Kelvin circulation theorem) ─────────
+  // In inviscid flow: DΓ/Dt = 0. The vortex ring maintains circulation
+  // Γ ∝ C·Ω (CRR: coherence drives and is driven by circulation)
+  if(p.y>y_cap*.35 && rxz>R_rim){
+    const rim=cl((rxz-R_rim)/25,0,1)*cl((p.y-y_cap*.35)/(y_cap*.65),0,1);
+    p.vy -= rim*(.02+Teff*.08);
+    p.vx -= p.x/rxz*rim*.022;
+    p.vz -= p.z/rxz*rim*.022;
+  }
+
+  // ── §5: STEM UPDRAFT ──────────────────────────────────────────
+  // Low-T particles in the stem region are pulled inward and upward
+  if(p.y>2 && p.y<y_cap*.4 && Teff<.25){
+    p.vx -= p.x*k_stem; p.vz -= p.z*k_stem;
+    p.vx *= .995; p.vz *= .995;
+    p.vy += (1-Teff)*k_up;
+  }
+
+  // ── §12: AERODYNAMIC DRAG ─────────────────────────────────────
+  const spd=sqrt(p.vx*p.vx+p.vy*p.vy+p.vz*p.vz);
+  if(spd>1){ const d=drag_k*spd; p.vx-=p.vx/spd*d; p.vy-=p.vy/spd*d; p.vz-=p.vz/spd*d; }
+  if(p.y<.3){ p.y=.3; if(p.vy<0) p.vy=abs(p.vy)*.05; }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §5+§6+§11: BLAST EFFECTS — shockwave, Mach stem, Wilson cloud
+// ═══════════════════════════════════════════════════════════════════
+function drawBlastEffects(dr){
+  if(dr<.01||dr>15) return;
+  const ppu=getPPU();
+  const gy=H*GROUND-camOffY*ppu;
+  const Rs=shk_c*pow(dr,.4)*3;  // §5: Sedov-Taylor radius
+  const op=cl(1.5-dr*.15,0,1)*.6;
+  if(op<.01) return;
+  const rx=Rs*ppu, ry=Rs*ppu*.15;
+  X.save();
+
+  // §5: Primary shockwave ring
+  X.strokeStyle=`rgba(180,210,255,${op})`; X.lineWidth=2+dr*.3;
+  X.beginPath(); X.ellipse(W/2,gy,rx,ry,0,0,TAU); X.stroke();
+  X.strokeStyle=`rgba(120,160,255,${op*.3})`; X.lineWidth=6+dr;
+  X.beginPath(); X.ellipse(W/2,gy,rx,ry,0,0,TAU); X.stroke();
+
+  // §6: MACH STEM — ground-reflected shock merges with incident shock
+  // Mach reflection condition: typically when R_s exceeds ~1.5× burst height
+  // Triple point height h_t ≈ 0.3·R_s (empirically consistent with CRR height scaling)
+  // Creates a near-vertical cylindrical shock wall near the ground
+  if(dr>.4 && dr<10){
+    const R_mach=Rs*.52;  // Mach stem inner radius ≈ 0.52·R_s
+    const h_triple=min(R_mach*.35*ppu, gy*.4);
+    const mop=cl(op*1.4-dr*.04,0,.7);
+    if(mop>.01){
+      X.strokeStyle=`rgba(210,230,255,${mop})`; X.lineWidth=1.8;
+      X.beginPath(); X.ellipse(W/2,gy,R_mach*ppu,R_mach*ppu*.11,0,0,TAU); X.stroke();
+      // Triple point arc
+      X.strokeStyle=`rgba(255,245,210,${mop*.5})`; X.lineWidth=2;
+      X.beginPath(); X.ellipse(W/2,gy-h_triple*.5,R_mach*ppu*1.08,R_mach*ppu*.075,0,0,TAU); X.stroke();
+    }
+  }
+
+  // Secondary ring (Mach wake)
+  if(dr>1){
+    const mr=Rs*1.2*ppu, mop2=cl(op*.4-dr*.02,0,1);
+    X.strokeStyle=`rgba(150,180,220,${mop2})`; X.lineWidth=1.5;
+    X.beginPath(); X.ellipse(W/2,gy,mr,mr*.12,0,0,TAU); X.stroke();
+  }
+
+  // §11: WILSON CONDENSATION RING
+  // Radius: r_W = R_s · √(1 − 1/κ) — from adiabatic lapse rate crossing dew point
+  // κ=1.4 (air) → r_W ≈ 0.655·R_s
+  // This is NOT a tuned parameter — it follows from thermodynamics of adiabatic expansion
+  if(dr>.12 && dr<4.5){
+    const r_W=Rs*Math.sqrt(1-1/KAPPA);  // §11: condensation radius from adiabatic index
+    const w_t=cl((dr-.12)/.45,0,1)*cl(1-(dr-1.8)/2.7,0,1);
+    const w_op=w_t*.6;
+    if(w_op>.01){
+      const wx=r_W*ppu, wy=r_W*ppu*.17;
+      X.strokeStyle=`rgba(225,240,255,${w_op})`; X.lineWidth=3+w_t*5;
+      X.beginPath(); X.ellipse(W/2,gy,wx,wy,0,0,TAU); X.stroke();
+      const wg=X.createRadialGradient(W/2,gy,wx*.78,W/2,gy,wx*1.12);
+      wg.addColorStop(0,'rgba(0,0,0,0)');
+      wg.addColorStop(.5,`rgba(205,225,255,${w_op*.45})`);
+      wg.addColorStop(1,'rgba(0,0,0,0)');
+      X.fillStyle=wg; X.fillRect(0,gy-wy*5,W,wy*10);
+    }
+  }
+
+  // Ground glow (early fireball)
+  if(dr<9){
+    const gi=max(0,.38-dr*.042);
+    const gg=X.createRadialGradient(W/2,gy,0,W/2,gy,W*.4);
+    gg.addColorStop(0,`rgba(255,140,40,${gi})`); gg.addColorStop(1,'rgba(0,0,0,0)');
+    X.globalCompositeOperation='lighter';
+    X.fillStyle=gg; X.fillRect(0,0,W,H);
+    X.globalCompositeOperation='source-over';
+  }
+  X.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER CLOUD — z-sorted with radial gradient glow per particle
+// ═══════════════════════════════════════════════════════════════════
+let sortTick=0;
+function drawCloud(){
+  const ppu=getPPU();
+  // Sort z every 3 frames (expensive but necessary for depth)
+  if(++sortTick%3===0) cloud.sort((a,b)=>b.z-a.z);
+  X.globalCompositeOperation='lighter';
+  for(let i=0;i<cloud.length;i++){
+    const p=cloud[i];
+    const a=cl(p.life/p.maxLife,0,1);
+    if(a<.02) continue;
+    const persp=1/(1+p.z/d_cam);
+    const fog=1/(1+abs(p.z)/d_fog);
+    const sx=W/2+(p.x-camOffX)*ppu*persp;
+    const sy=H*GROUND-(p.y-camOffY)*ppu*persp;
+    const sr=max(1.5,p.sz*ppu*persp*(.4+a*.6));
+    if(sx<-sr||sx>W+sr||sy<-sr||sy>H+sr) continue;
+    // Finger particles slightly brighter at tips
+    const alpha_boost=p.isRT&&p.perturb>0?1.15:1;
+    const al=a*(p.T0>.3?.52:.38)*fog*alpha_boost;
+    if(al<.01) continue;
+    const grd=X.createRadialGradient(sx,sy,0,sx,sy,sr);
+    grd.addColorStop(0,   `rgba(${p.r|0},${p.g|0},${p.b|0},${al})`);
+    grd.addColorStop(.32, `rgba(${p.r*.82|0},${p.g*.72|0},${p.b*.62|0},${al*.58})`);
+    grd.addColorStop(.68, `rgba(${p.r*.48|0},${p.g*.34|0},${p.b*.28|0},${al*.22})`);
+    grd.addColorStop(1,   `rgba(${p.r*.15|0},${p.g*.08|0},${p.b*.06|0},0)`);
+    X.fillStyle=grd; X.beginPath(); X.arc(sx,sy,sr,0,TAU); X.fill();
+  }
+  X.globalCompositeOperation='source-over';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SIMULATION STEP — 2× sub-stepping for physics accuracy
+// ═══════════════════════════════════════════════════════════════════
+let stemT=0;
+function simStep(sd){
+  t_+=sd;
+  if(ph==='c'){
+    // Autocatalytic coherence accumulation: L = 0.2 + (C/π)²·0.5
+    const L=.2+pow(C_/PI,2)*.5;
+    C_+=L*sd;
+    if(C_>=PI*.97){ C_=PI; doRupture(); }
+  }
+  else if(ph==='r'){
+    const dr=t_-rT;
+    flash=max(0,flash-sd*3);
+
+    // 2× sub-stepping for accurate C integration and force coupling
+    const ss=2, ssd=sd/ss;
+    for(let si=0;si<ss;si++){
+      cloud.forEach(p=>{
+        if(dr>.08) physics(p,ssd);
+        p.x+=p.vx*ssd*2; p.y+=p.vy*ssd*2; p.z+=p.vz*ssd*2;
+      });
+    }
+    cloud.forEach(p=>{ p.life-=sd; });
+    cloud=cloud.filter(p=>p.life>0);
+
+    // Continuous stem emitter
+    stemT+=sd;
+    if(stemT>.014 && dr>1.5 && dr<14){
+      stemT=0;
+      for(let i=0;i<10;i++){
+        const a=R()*TAU;
+        cloud.push({x:cos(a)*R()*4, y:1+R()*10, z:sin(a)*R()*4,
+          vx:(R()-.5)*.3, vy:2+R()*6, vz:(R()-.5)*.3,
+          C0:.15, C:.15, T0:.08, r:50,g:32,b:20, sz:4.5+R()*9, life:5+R()*5, maxLife:5+R()*5});
+      }
+    }
+    // Ground skirt
+    if(dr<9 && R()*55<1){
+      const a=R()*TAU;
+      cloud.push({x:cos(a)*(3+dr*2), y:.5+R(), z:sin(a)*(3+dr*2),
+        vx:cos(a)*(2+R()*4), vy:R()*.4, vz:sin(a)*(2+R()*4),
+        C0:.03, C:.03, T0:.03, r:40,g:27,b:17, sz:3.5+R()*7, life:3+R()*3, maxLife:3+R()*3});
+    }
+    if(dr>16) ph='g';
+  }
+  else if(ph==='g'){
+    rP=cl((rP||0)+sd*.03,0,1);
+    cloud.forEach(p=>{
+      p.x+=p.vx*sd*.3; p.y+=p.vy*sd*.3; p.z+=p.vz*sd*.3;
+      p.vx*=.99; p.vy*=.99; p.vz*=.99; p.life-=sd;
+    });
+    cloud=cloud.filter(p=>p.life>0);
+    if(rP>=1||cloud.length<10) ph='d';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TIMELINE BAR
+// ═══════════════════════════════════════════════════════════════════
+function drawTimeline(){
+  const tw=tlc.width, th=tlc.height;
+  TX.clearRect(0,0,tw,th);
+  TX.fillStyle='rgba(255,255,255,.03)'; TX.fillRect(0,0,tw,th);
+  const cohEnd=4/TOTAL_T, ruptEnd=20/TOTAL_T;
+  TX.fillStyle='rgba(60,120,255,.08)'; TX.fillRect(0,0,cohEnd*tw,th);
+  TX.fillStyle='rgba(255,100,40,.08)';  TX.fillRect(cohEnd*tw,0,(ruptEnd-cohEnd)*tw,th);
+  TX.fillStyle='rgba(80,255,150,.05)';  TX.fillRect(ruptEnd*tw,0,(1-ruptEnd)*tw,th);
+  const prog=cl(t_/TOTAL_T,0,1);
+  const col=ph==='c'?'rgba(60,120,255,.5)':ph==='r'?'rgba(255,120,40,.5)':'rgba(80,255,150,.4)';
+  TX.fillStyle=col; TX.fillRect(0,0,prog*tw,th);
+  TX.fillStyle='rgba(255,220,180,.6)'; TX.fillRect(prog*tw-1,0,2,th);
+  TX.font='7px "DM Mono",monospace'; TX.fillStyle='rgba(255,255,255,.2)';
+  TX.fillText('C',cohEnd*tw*.3,th*.7);
+  TX.fillText('δ',(cohEnd+ruptEnd)*tw/2,th*.7);
+  TX.fillText('R',(ruptEnd+1)*tw/2,th*.7);
+}
+
+document.getElementById('tl').addEventListener('click',e=>{
+  const rect=e.currentTarget.getBoundingClientRect();
+  const frac=cl((e.clientX-rect.left)/rect.width,0,1);
+  start(); const steps=floor(frac*TOTAL_T/.016);
+  for(let i=0;i<steps;i++) simStep(.016);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// HUD
+// ═══════════════════════════════════════════════════════════════════
+function hud(){
+  const hp=document.getElementById('hp'), hn=document.getElementById('hn');
+  const he=document.getElementById('he'), hm=document.getElementById('hm');
+  const pn=document.getElementById('pn');
+  if(ph==='c'){
+    hp.textContent='COHERENCE'; hp.style.color='rgba(0,130,255,.4)';
+    he.textContent='C(x,t) = ∫ L(x,τ) dτ'; hn.textContent='²³⁶U*';
+  } else if(ph==='r'){
+    hp.textContent='δ(now) — RUPTURE'; hp.style.color='rgba(255,120,60,.7)';
+    he.textContent='C · Ω = 1'; hn.textContent='²³⁶U* → ¹⁴⁰Ba + ⁹⁴Kr + 2n';
+  } else if(ph==='g'){
+    hp.textContent='REGENERATION'; hp.style.color='rgba(80,255,150,.4)';
+    he.textContent='R = ∫ φ · exp(C/Ω) · Θ dτ'; hn.textContent='¹⁴⁰Ba + ⁹⁴Kr';
+  } else { hp.textContent=''; he.textContent=''; }
+  hm.textContent=ph==='c'?(C_/PI*7.6).toFixed(1)+' MeV':'~170 MeV';
+  pn.textContent=`${cloud.length}p ${userSpeed.toFixed(1)}×`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════════════════════════
+let ph,C_,t_,rT,rP,slo,flash;
+let cloud=[];
+let prev=0;
+
+function frame(now){
+  requestAnimationFrame(frame);
+  let dt=min(.05,(now-prev)/1000); prev=now;
+
+  // Slow-motion during rupture onset
+  if(ph==='r'){
+    const dr=t_-rT;
+    slo=dr<.2?.04:dr<1?.08:dr<4?.15:dr<6?cl(slo+dt*.3,0,1):cl(slo+dt*.2,0,1);
+  } else slo=cl(slo+dt*2,0,1);
+  const sd=dt*slo*userSpeed;
+
+  // §14: Camera tracking
+  if(ph==='c'){ camOffX=0; camOffY=0; }
+  else if(ph==='r'){
+    let sy=0,sn=0;
+    for(let i=0;i<cloud.length;i+=10){ if(cloud[i].T0>.2){ sy+=cloud[i].y; sn++; } }
+    const my=sn>0?sy/sn:40;
+    camOffY+=(my*.35-camOffY)*.02;
+  }
+
+  if(sd>0) simStep(sd);
+
+  // ── RENDER ──────────────────────────────────────────────────────
+  const ppu=getPPU();
+  // Sky gradient — subtle atmospheric depth
+  const sky=X.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#010108'); sky.addColorStop(1,'#050410');
+  X.fillStyle=sky; X.fillRect(0,0,W,H);
+  // Ground
+  const gy=H*GROUND-camOffY*ppu;
+  X.fillStyle='#090807'; X.fillRect(0,gy,W,H-gy);
+  // Ground line
+  X.strokeStyle='rgba(80,60,40,.15)'; X.lineWidth=1;
+  X.beginPath(); X.moveTo(0,gy); X.lineTo(W,gy); X.stroke();
+
+  if(ph==='c'){ drawNucleus(); }
+  else if(ph==='r'||ph==='g'||ph==='d'){
+    if(ph==='r') drawBlastEffects(t_-rT);
+    drawCloud();
+    // Flash
+    if(flash>.01){ X.globalAlpha=flash; X.fillStyle='#fff6e8'; X.fillRect(0,0,W,H); X.globalAlpha=1; }
+  }
+
+  updateSynth();
+  drawTimeline();
+  hud();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// START / BEGIN
+// ═══════════════════════════════════════════════════════════════════
+function start(){
+  ph='c'; C_=0; t_=0; rT=0; rP=0; slo=1; flash=0; cloud=[]; stemT=0;
+  camOffX=0; camOffY=0; sortTick=0;
+  document.getElementById('ctl').classList.add('on');
+  mkNucs();
+}
+
+function begin(){
+  document.getElementById('go').style.display='none';
+  initAudio(); start(); requestAnimationFrame(frame);
+}
+</script></body></html>
