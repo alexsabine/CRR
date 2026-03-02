@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CRR — FISSION</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=DM+Mono:wght@300&display=swap');
+*{margin:0;box-sizing:border-box}body{background:#000;overflow:hidden}canvas{display:block}
+.hud{position:fixed;pointer-events:none;z-index:10;font-family:'DM Mono',monospace}
+#hp{top:3vh;left:20px;font-size:9px;letter-spacing:.18em;color:rgba(255,255,255,.3)}
+#hn{top:3vh;right:20px;font-family:'Instrument Serif',serif;font-size:1.1em;color:rgba(255,220,180,.45)}
+#he{bottom:3vh;left:50%;transform:translateX(-50%);font-family:'Instrument Serif',serif;font-size:1.05em;font-style:italic;color:rgba(255,220,180,.4);white-space:nowrap}
+#hm{bottom:3vh;right:20px;font-size:9px;color:rgba(255,255,255,.15)}
+/* ── Controls ── */
+#ctl{position:fixed;bottom:0;left:0;right:0;height:56px;z-index:20;display:flex;align-items:center;padding:0 20px;gap:12px;opacity:0;transition:opacity .4s;pointer-events:none}
+#ctl.on{opacity:1;pointer-events:all}
+#ctl label{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;color:rgba(255,255,255,.25);white-space:nowrap}
+#ctl input[type=range]{-webkit-appearance:none;appearance:none;height:3px;background:rgba(255,255,255,.08);border-radius:2px;outline:0;flex-shrink:0}
+#ctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:rgba(255,220,180,.4);cursor:pointer}
+#speed{width:80px}#zoom{width:70px}
+/* Timeline bar */
+#tl{flex:1;height:24px;cursor:pointer;position:relative;min-width:80px}
+#tl canvas{width:100%;height:100%;border-radius:2px}
+#go{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:30;background:rgba(0,0,0,.9);cursor:pointer}
+#go span{font-family:'Instrument Serif',serif;font-size:1.3em;color:rgba(255,220,180,.5);letter-spacing:.08em;border:1px solid rgba(255,255,255,.06);padding:12px 30px}
+#pn{font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,.2);min-width:50px;text-align:right}
+</style>
+</head><body>
+<div class="hud" id="hp"></div><div class="hud" id="hn"></div>
+<div class="hud" id="he"></div><div class="hud" id="hm"></div>
+<div id="ctl">
+  <label>Ω·t <input type="range" id="speed" min="0" max="200" value="100"></label>
+  <div id="tl"><canvas id="tlc"></canvas></div>
+  <div id="pn"></div>
+  <label>zoom <input type="range" id="zoom" min="10" max="300" value="50"></label>
+</div>
+<div id="go" onclick="begin()"><span>observe fission</span></div>
+<canvas id="c"></canvas>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CRR MUSHROOM CLOUD — v3 with Controls + Diegetic Synth Engine
+//
+// §1  Temperature:  T(r) = T₀·exp(C(r)/Ω)
+// §2  Buoyancy:     a_y = g·(1-e^(-C/Ω))·max(0, 1-y/y_cap)
+// §3  Cap:          v_y *= (1-η·τ_damp), a_x = η·(1+T·3)·k
+// §4  Vortex:       a = -Γ·rim, from ∇C×∇Ω micro-rupture cycle
+// §5  Stem:         a_x = -k·x, a_y = k·(1-T), along exp(C/Ω) gradient
+// §6  Turbulence:   a = σ·√T·η(t), scale-invariant δ → Kolmogorov
+// §7  Shockwave:    R(t) = ξ₀·(exp(C/Ω)/ρ₀)^(1/5)·t^(2/5)
+// §8  Cooling:      C(t) = C₀·exp(-t/τ), τ = Ω·ln(C/Ω)
+// §9  Projection:   scale = 1/(1+z/d_cam), fog = 1/(1+|z|/d_fog)
+// §10 Drag:         a -= k·|v|·v̂
+// §11 Diegetic Audio (NEW):
+//     All sound parameters derived from CRR state each frame.
+//     Coherence drone:  f = f₀·(1 + C·Ω)         [pitch rises with C]
+//                       Q = 1/(1 - C·Ω + ε)       [resonance → ∞ at rupture]
+//                       gain = C·Ω                 [builds toward δ]
+//     Rupture:          f_sub = E^(1/5)·t^(-3/5)  [Sedov frequency decay]
+//                       noise_env = exp(-t/τ_cool) [scrambling time envelope]
+//     Cloud rumble:     f = f₀·(1 + <y>/y_cap)    [pitch tracks mean height]
+//                       gain = N_alive/N_total     [fades as particles die]
+//     Cooling envelope: master_gain ∝ exp(-Δt/τ_cool)
+// §12 Zoom:         PPU = PPU_base · 2^(z_level), detail ∝ PPU
+// ═══════════════════════════════════════════════════════════════
+
+const PI=Math.PI,TAU=PI*2;
+const{sin,cos,sqrt,pow,min,max,exp,random:R,abs,log,floor}=Math;
+const cl=(v,a,b)=>min(b,max(a,v));
+
+// ── CRR Constants (§1–§10) ────────────────────────────────
+const Om=1/PI;                    // §1: Ω_Z₂=1/π
+const C_rupt=PI;                  // §1: C·Ω=1 → C=π
+const C_Om0=PI*PI;               // §1: C/Ω center = π²≈9.87
+const g_eff=8.0;                  // §2: buoyancy
+const y_cap=140;                  // §2: cap altitude
+const tau_damp=0.08;              // §3: vertical kill at cap
+const R_rim=12;                   // §4: vortex radius
+const k_stem=0.008;               // §5: stem pull
+const k_up=0.012;                 // §5: stem updraft
+const sig_t=0.15;                 // §6: turbulence σ
+const xi0=1.15;                   // §7: Sedov constant
+const E_crr=exp(min(C_Om0,20));   // §7: exp(π²)
+const shk_c=xi0*pow(E_crr,0.2);  // §7: ≈8.28
+const tau_cool=5.0;               // §8: cooling timescale
+const d_cam=120;                  // §9: perspective depth
+const d_fog=80;                   // §9: fog distance
+const drag_k=0.008;               // §10: drag
+
+const cv=document.getElementById('c'),X=cv.getContext('2d');
+const tlc=document.getElementById('tlc'),TX=tlc.getContext('2d');
+let W,H,PPU_base;
+function resize(){
+  W=cv.width=innerWidth;H=cv.height=innerHeight;
+  PPU_base=H/260;
+  tlc.width=document.getElementById('tl').offsetWidth||300;tlc.height=24;
+}
+resize();addEventListener('resize',resize);
+
+// ── §12: Zoom state ────────────────────────────────────────
+// PPU = PPU_base · 2^(zoomLevel)
+// Higher zoom → larger particles → more visible turbulent structure
+// Camera offset tracks the action: nucleus center → cloud center
+let zoomLevel=0, camOffX=0, camOffY=0;
+function getPPU(){return PPU_base*pow(2,zoomLevel)}
+
+// ── Speed control ──────────────────────────────────────────
+// §11: Speed slider modulates Ω·t — the effective time flow rate
+// At speed=0: frozen (observation without process)
+// At speed>1: time accelerates (higher Ω → more ruptures per unit time)
+let userSpeed=1.0;
+document.getElementById('speed').addEventListener('input',e=>{
+  // 0-200 → 0-4× with log curve. Center (100) = 1×
+  const v=+e.target.value;
+  userSpeed=v<100?v/100:1+pow((v-100)/100,1.5)*3;
+});
+
+// §12: Zoom slider + mousewheel
+document.getElementById('zoom').addEventListener('input',e=>{
+  zoomLevel=(+e.target.value-50)/50*2; // -2 to +5
+});
+cv.addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoomLevel=cl(zoomLevel-e.deltaY*.002,-1.5,3);
+  document.getElementById('zoom').value=50+zoomLevel/2*50;
+},{passive:false});
+
+// ═══════════════════════════════════════════════════════════
+// §11: DIEGETIC CRR SYNTH ENGINE
+// ═══════════════════════════════════════════════════════════
+// Continuous oscillators whose parameters are set each frame
+// from the CRR simulation state. NOT pre-scheduled — responds
+// to speed changes and scrubbing in real time.
+//
+// Architecture:
+//   coherence_osc → filter(Q from C·Ω) → gain(C·Ω) → master
+//   sub_osc → gain(exp(-Δt/τ_cool)) → master           [rupture sub-bass]
+//   noise_src → bandpass(Sedov freq) → gain → master     [shock/debris]
+//   rumble_osc → gain(cloud_alive) → master              [rising column]
+//   regen_osc → lowpass → gain → master                  [regeneration hum]
+//
+// CRR derivation of each parameter noted inline.
+
+let ac,mg;
+// Persistent synth nodes
+let syn={};
+
+function initAudio(){
+  ac=new(AudioContext||webkitAudioContext)();
+  mg=ac.createGain();mg.gain.value=.28;mg.connect(ac.destination);
+
+  // §11a: Coherence drone — sawtooth through resonant lowpass
+  // f = 55·(1 + C·Ω)  [pitch rises as C accumulates toward rupture]
+  // Q = 3 + 16·C·Ω    [resonance sharpens: system approaching criticality]
+  // gain = C·Ω · 0.25  [volume builds from silence to rupture threshold]
+  const co=ac.createOscillator();co.type='sawtooth';co.frequency.value=55;
+  const cf=ac.createBiquadFilter();cf.type='lowpass';cf.frequency.value=100;cf.Q.value=3;
+  const cg=ac.createGain();cg.gain.value=0;
+  co.connect(cf);cf.connect(cg);cg.connect(mg);co.start();
+  // Sub harmonic
+  const cs=ac.createOscillator();cs.type='sine';cs.frequency.value=55;
+  const csg=ac.createGain();csg.gain.value=0;
+  cs.connect(csg);csg.connect(mg);cs.start();
+  syn.coh={o:co,f:cf,g:cg,s:cs,sg:csg};
+
+  // §11b: Rupture sub-bass — sine whose frequency decays as Sedov:
+  // f(t) = 42·(Δt+0.1)^(-3/5)  [Sedov: v_shock ∝ t^(-3/5)]
+  // gain = exp(-Δt/τ_cool)      [scrambling time envelope]
+  const ro=ac.createOscillator();ro.type='sine';ro.frequency.value=42;
+  const rg=ac.createGain();rg.gain.value=0;
+  ro.connect(rg);rg.connect(mg);ro.start();
+  syn.rupt={o:ro,g:rg};
+
+  // §11c: Shock/debris noise — filtered noise band
+  // Center freq tracks shock radius: f = 400·R(t)^(-1)  [higher freq when compressed]
+  // Gain = exp(-Δt/τ_cool) · Θ(rupture)
+  const nL=ac.sampleRate*20|0,nbf=ac.createBuffer(1,nL,ac.sampleRate),nd=nbf.getChannelData(0);
+  for(let i=0;i<nL;i++)nd[i]=(R()*2-1);
+  const nSrc=ac.createBufferSource();nSrc.buffer=nbf;nSrc.loop=true;
+  const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=400;nf.Q.value=.6;
+  const ng=ac.createGain();ng.gain.value=0;
+  nSrc.connect(nf);nf.connect(ng);ng.connect(mg);nSrc.start();
+  syn.noise={f:nf,g:ng};
+
+  // §11d: Column rumble — triangle osc tracking cloud height
+  // f = 20 + 40·(<y>/y_cap)     [pitch rises as column rises]
+  // gain = N_particles/N_max·0.06 [fades as cloud dissipates]
+  const co2=ac.createOscillator();co2.type='triangle';co2.frequency.value=20;
+  const cg2=ac.createGain();cg2.gain.value=0;
+  co2.connect(cg2);cg2.connect(mg);co2.start();
+  syn.rumble={o:co2,g:cg2};
+
+  // §11e: Regeneration hum — low triangle through lowpass
+  // f = 82.4 Hz (E2 — the frequency of ground state return)
+  // gain ramps with rP (regeneration progress)
+  const re=ac.createOscillator();re.type='triangle';re.frequency.value=82.4;
+  const rf=ac.createBiquadFilter();rf.type='lowpass';rf.frequency.value=250;
+  const reg=ac.createGain();reg.gain.value=0;
+  re.connect(rf);rf.connect(reg);reg.connect(mg);re.start();
+  syn.regen={o:re,g:reg};
+}
+
+// §11: Update synth from CRR state — called every frame
+function updateSynth(){
+  if(!ac)return;
+  const n=ac.currentTime,rt=.06; // smoothing rate
+
+  if(ph==='c'){
+    // §11a: Coherence drone parameters from C·Ω
+    const co=C_*Om; // dimensionless coherence progress [0→1]
+    syn.coh.o.frequency.setTargetAtTime(55*(1+co),n,rt);
+    syn.coh.f.frequency.setTargetAtTime(80+co*3000,n,rt);
+    syn.coh.f.Q.setTargetAtTime(3+co*16,n,rt);
+    syn.coh.g.gain.setTargetAtTime(co*.25,n,rt);
+    syn.coh.s.frequency.setTargetAtTime(55*(1+co*.5),n,rt);
+    syn.coh.sg.gain.setTargetAtTime(co*.12,n,rt);
+    // Silence others
+    syn.rupt.g.gain.setTargetAtTime(0,n,rt);
+    syn.noise.g.gain.setTargetAtTime(0,n,rt);
+    syn.rumble.g.gain.setTargetAtTime(0,n,rt);
+    syn.regen.g.gain.setTargetAtTime(0,n,rt);
+  }
+  else if(ph==='r'){
+    const dr=t_-rT;
+    // §11a: Kill coherence drone
+    syn.coh.g.gain.setTargetAtTime(0,n,.1);
+    syn.coh.sg.gain.setTargetAtTime(0,n,.1);
+
+    // §11b: Rupture sub-bass — Sedov frequency decay
+    // f(Δt) = 42·(Δt+0.1)^(-3/5)  — from shock velocity ∝ t^(-3/5)
+    const f_sedov=42*pow(dr+.1,-0.6);
+    syn.rupt.o.frequency.setTargetAtTime(cl(f_sedov,8,60),n,rt);
+    // Gain = scrambling time envelope: exp(-Δt/τ_cool)·0.45
+    syn.rupt.g.gain.setTargetAtTime(exp(-dr/tau_cool)*.45,n,rt);
+
+    // §11c: Noise — shock + debris crackle
+    // Bandpass center: higher when shock is young (compressed), falls with expansion
+    const f_noise=cl(500*pow(dr+.1,-0.4),40,800);
+    syn.noise.f.frequency.setTargetAtTime(f_noise,n,rt);
+    // Gain: builds quickly, decays with scrambling time
+    const noise_env=dr<.3?dr/.3*.12:.12*exp(-(dr-.3)/tau_cool);
+    syn.noise.g.gain.setTargetAtTime(noise_env,n,rt);
+
+    // §11d: Column rumble — tracks mean cloud height
+    // Compute mean y of hottest particles (T0>.3)
+    let sumY=0,cnt=0;
+    for(let i=0;i<cloud.length;i+=5){if(cloud[i].T0>.3){sumY+=cloud[i].y;cnt++}}
+    const meanY=cnt>0?sumY/cnt:0;
+    // f = 20 + 40·(meanY/y_cap)
+    syn.rumble.o.frequency.setTargetAtTime(20+40*cl(meanY/y_cap,0,1),n,rt);
+    // gain ∝ cloud_alive_fraction
+    syn.rumble.g.gain.setTargetAtTime(cl(cloud.length/3500*.06,0,.06),n,rt);
+
+    syn.regen.g.gain.setTargetAtTime(0,n,rt);
+  }
+  else if(ph==='g'){
+    // §11e: Regeneration hum builds
+    syn.rupt.g.gain.setTargetAtTime(0,n,.3);
+    syn.noise.g.gain.setTargetAtTime(0,n,.3);
+    syn.rumble.g.gain.setTargetAtTime(0,n,.5);
+    syn.regen.g.gain.setTargetAtTime(cl((rP||0)*.06,0,.06),n,.3);
+  }
+  else{
+    // Silence all
+    syn.coh.g.gain.setTargetAtTime(0,n,.2);
+    syn.coh.sg.gain.setTargetAtTime(0,n,.2);
+    syn.rupt.g.gain.setTargetAtTime(0,n,.2);
+    syn.noise.g.gain.setTargetAtTime(0,n,.2);
+    syn.rumble.g.gain.setTargetAtTime(0,n,.2);
+    syn.regen.g.gain.setTargetAtTime(0,n,.2);
+  }
+}
+
+// One-shot boom transients (not continuous — these are the δ impulse)
+function boomTransient(){
+  if(!ac)return;const n=ac.currentTime;
+  // §11: Snap = δ(now) rendered as audio impulse
+  const b=ac.createBuffer(1,ac.sampleRate*.08|0,ac.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(R()*2-1)*exp(-i/(ac.sampleRate*.004));
+  const s=ac.createBufferSource();s.buffer=b;
+  const g=ac.createGain();g.gain.value=.2;
+  s.connect(g);g.connect(mg);s.start(n);
+  // §11: Gamma pings — prompt fission neutrons
+  for(let i=0;i<5;i++){const t=n+.04+i*.035;
+    const p=ac.createOscillator();p.type='sine';p.frequency.value=2200+R()*5000;
+    const pg=ac.createGain();pg.gain.setValueAtTime(.02,t);pg.gain.exponentialRampToValueAtTime(.001,t+.35);
+    p.connect(pg);pg.connect(mg);p.start(t);p.stop(t+1)}
+}
+
+// ── §9+§12: 2.5D Projection with zoom ─────────────────────
+const GROUND=0.85;
+function project(x,y,z){
+  const ppu=getPPU();
+  const persp=1/(1+z/d_cam);
+  const fog=1/(1+abs(z)/d_fog);
+  return{
+    sx:W/2+(x-camOffX)*ppu*persp,
+    sy:H*GROUND-(y-camOffY)*ppu*persp,
+    sc:persp, fg:fog
+  };
+}
+
+// ── §8: C/Ω → color ───────────────────────────────────────
+function coColor(co){
+  if(co>8)  return[255,240,180];
+  if(co>5)  return[255,min(255,130+co*12)|0,25];
+  if(co>3)  return[210,min(255,45+co*10)|0,10];
+  if(co>1.5)return[min(255,110+co*18)|0,min(100,20+co*6)|0,8];
+  if(co>.5) return[min(100,55+co*30)|0,min(60,30+co*12)|0,min(30,16+co*6)|0];
+  return[min(55,35+co*25)|0,min(35,25+co*10)|0,min(22,16+co*5)|0];
+}
+
+// ── State ──────────────────────────────────────────────────
+let ph,C_,t_,rT,rP,slo,flash;
+let nucs=[],cloud=[];
+const TOTAL_DURATION=22; // approximate total sim time for timeline
+
+function mkNucs(){
+  nucs=[];for(let i=0;i<60;i++){
+    const th=i*PI*(3-sqrt(5)),r=sqrt(i/60)*3;
+    nucs.push({bx:cos(th)*r,by:sin(th)*r,x:0,y:0,isP:R()<.39,ph:R()*TAU,fr:.5+R()*1.5});}
+}
+function drawNucleus(){
+  const sc_=min(W,H)*.15*pow(2,max(0,zoomLevel)),co=C_*Om,def=pow(co,3)*.55;
+  const grd=X.createRadialGradient(W/2,H/2,0,W/2,H/2,sc_*1.5);
+  grd.addColorStop(0,`rgba(60,100,255,${co*.08})`);grd.addColorStop(1,'rgba(0,0,0,0)');
+  X.fillStyle=grd;X.fillRect(0,0,W,H);
+  nucs.forEach(n=>{
+    n.ph+=n.fr*.05;const jit=.005*(1+co*4);
+    let bx=n.bx,by=n.by;
+    if(def>.01){const a=Math.atan2(by,bx),r=sqrt(bx*bx+by*by),s=1+def*cos(2*a);
+      bx=cos(a)*r*s;by=sin(a)*r*(2-s)}
+    n.x=W/2+(bx+sin(n.ph)*jit)*sc_;n.y=H/2+(by+cos(n.ph*.7)*jit)*sc_;
+    const nr=max(3,sc_*.06);
+    X.beginPath();X.arc(n.x,n.y,nr,0,TAU);
+    X.fillStyle=n.isP?`rgb(${180+co*50|0},${30+co*15|0},20)`:`rgb(${20+co*10|0},${40+co*20|0},${100+co*40|0})`;
+    X.fill();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// §1: RUPTURE — spawn Gaussian fireball
+// ═══════════════════════════════════════════════════════════
+function doRupture(){
+  ph='r';rT=t_;slo=.05;flash=1;boomTransient();nucs=[];
+  for(let i=0;i<3500;i++){
+    const theta=R()*TAU,phi=R()*PI-PI/2,r3=R()*5;
+    const Rcyl=cos(phi)*r3;
+    const px=Rcyl*cos(theta),pz=Rcyl*sin(theta),py=sin(phi)*r3;
+    const C_over_Om=C_Om0*exp(-r3*r3/25);  // §1: Gaussian C field
+    const T0=1-exp(-C_over_Om);              // §2: buoyancy factor
+    const speed=3+R()*10+T0*10;
+    const upFrac=T0*T0;
+    const lat=speed*(1-upFrac*.6),up=speed*upFrac+T0*6;
+    const[cr,cg,cb]=coColor(C_over_Om);
+    const sz=T0>.6?(1.5+R()*3):(4+R()*12);
+    const life=2+C_over_Om*.5+R()*3;
+    cloud.push({x:px,y:max(0,py),z:pz,
+      vx:cos(theta)*lat*(R()*.5+.5),vy:abs(sin(phi))*lat*.3+up,vz:sin(theta)*lat*(R()*.5+.5),
+      C0:C_over_Om,T0, r:cr,g:cg,b:cb,sz, life,maxLife:life});
+  }
+  for(let i=0;i<300;i++){
+    const a=R()*TAU,spd=8+R()*20;
+    cloud.push({x:cos(a)*(1+R()*3),y:R()*1.5,z:sin(a)*(1+R()*3),
+      vx:cos(a)*spd,vy:R()*2,vz:sin(a)*spd,
+      C0:.05,T0:.05,r:45,g:30,b:20,sz:5+R()*10,life:4+R()*6,maxLife:4+R()*6});
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// §2–§6,§8,§10: CRR CLOUD FORCES
+// ═══════════════════════════════════════════════════════════
+function physics(p){
+  const af=cl(p.life/p.maxLife,0,1);
+  // §8: C(t) = C₀·exp(-Δt/τ_cool)
+  const C_now=p.C0*exp(-(1-af)*p.maxLife/tau_cool);
+  // §2: T_eff = (1-exp(-C/Ω))·age
+  const Teff=(1-exp(-C_now))*af;
+  // §8: Color from current C/Ω
+  const[cr,cg,cb]=coColor(C_now);
+  p.r+=(cr-p.r)*.03;p.g+=(cg-p.g)*.03;p.b+=(cb-p.b)*.03;
+
+  const rxz=sqrt(p.x*p.x+p.z*p.z)+.1;
+  // §2: BUOYANCY
+  p.vy+=g_eff*Teff*max(0,1-p.y/y_cap)*.016;
+  // §3: CAP
+  if(p.y>y_cap*.4){
+    const eta=cl((p.y-y_cap*.4)/(y_cap*.5),0,1);
+    p.vy*=1-eta*tau_damp;
+    if(p.y>y_cap*.95){p.vy=min(p.vy,0);p.y=y_cap*.95}
+    if(Teff>.02){const push=eta*(1+Teff*3)*.06;p.vx+=p.x/rxz*push;p.vz+=p.z/rxz*push}
+  }
+  // §6: TURBULENCE
+  const turb=sig_t*sqrt(max(.01,Teff)+.05);
+  p.vx+=(R()-.5)*turb*.12;p.vy+=(R()-.5)*turb*.07;p.vz+=(R()-.5)*turb*.12;
+  // §4: VORTEX
+  if(p.y>y_cap*.35&&rxz>R_rim){
+    const rim=cl((rxz-R_rim)/25,0,1)*cl((p.y-y_cap*.35)/(y_cap*.65),0,1);
+    p.vy-=rim*(.02+Teff*.08);
+    const inw=rim*.02;p.vx-=p.x/rxz*inw;p.vz-=p.z/rxz*inw;
+  }
+  // §5: STEM
+  if(p.y>2&&p.y<y_cap*.4&&Teff<.25){
+    p.vx-=p.x*k_stem;p.vz-=p.z*k_stem;p.vx*=.995;p.vz*=.995;p.vy+=(1-Teff)*k_up;
+  }
+  // §10: DRAG
+  const spd=sqrt(p.vx*p.vx+p.vy*p.vy+p.vz*p.vz);
+  if(spd>1){const d=drag_k*spd;p.vx-=p.vx/spd*d;p.vy-=p.vy/spd*d;p.vz-=p.vz/spd*d}
+  if(p.y<.3){p.y=.3;if(p.vy<0)p.vy=abs(p.vy)*.05}
+}
+
+// ═══════════════════════════════════════════════════════════
+// §7: SEDOV-TAYLOR SHOCKWAVE
+// ═══════════════════════════════════════════════════════════
+function drawShockwave(dr){
+  if(dr<.01||dr>12)return;
+  const ppu=getPPU();
+  const Rs=shk_c*pow(dr,0.4)*3;
+  const op=cl(1.5-dr*.15,0,1)*.6;
+  if(op<.01)return;
+  const gy=H*GROUND-camOffY*ppu;
+  const rx=Rs*ppu,ry=Rs*ppu*.15;
+  X.save();
+  X.strokeStyle=`rgba(180,210,255,${op})`;X.lineWidth=2+dr*.3;
+  X.beginPath();X.ellipse(W/2,gy,rx,ry,0,0,TAU);X.stroke();
+  X.strokeStyle=`rgba(120,160,255,${op*.3})`;X.lineWidth=6+dr;
+  X.beginPath();X.ellipse(W/2,gy,rx,ry,0,0,TAU);X.stroke();
+  if(dr>1){const mr=Rs*1.2*ppu,mop=cl(op*.4-dr*.02,0,1);
+    X.strokeStyle=`rgba(150,180,220,${mop})`;X.lineWidth=1.5;
+    X.beginPath();X.ellipse(W/2,gy,mr,mr*.12,0,0,TAU);X.stroke();}
+  if(dr<6){const cop=cl(.12-dr*.015,0,1);
+    const grd=X.createRadialGradient(W/2,gy,rx*.7,W/2,gy,rx);
+    grd.addColorStop(0,'rgba(0,0,0,0)');grd.addColorStop(.7,`rgba(200,220,255,${cop})`);
+    grd.addColorStop(1,'rgba(0,0,0,0)');
+    X.fillStyle=grd;X.fillRect(0,gy-ry*3,W,ry*6);}
+  if(dr<5){const sop=cl(.3-dr*.07,0,1);
+    X.strokeStyle=`rgba(200,220,255,${sop})`;X.lineWidth=1.5;
+    X.beginPath();X.arc(W/2,gy,Rs*ppu*.8,PI,TAU);X.stroke();}
+  X.restore();
+}
+
+// ── Draw cloud ─────────────────────────────────────────────
+function drawCloud(){
+  const ppu=getPPU();
+  cloud.sort((a,b)=>b.z-a.z);
+  X.globalCompositeOperation='lighter';
+  for(let i=0;i<cloud.length;i++){
+    const p=cloud[i];
+    const a=cl(p.life/p.maxLife,0,1);
+    if(a<.02)continue;
+    const persp=1/(1+p.z/d_cam);
+    const fog=1/(1+abs(p.z)/d_fog);
+    const sx_=W/2+(p.x-camOffX)*ppu*persp;
+    const sy_=H*GROUND-(p.y-camOffY)*ppu*persp;
+    const sr=max(2,p.sz*ppu*persp*(.4+a*.6));
+    if(sx_<-sr||sx_>W+sr||sy_<-sr||sy_>H+sr)continue;
+    const al=a*(p.T0>.3?.5:.35)*fog;
+    if(al<.01)continue;
+    const grd=X.createRadialGradient(sx_,sy_,0,sx_,sy_,sr);
+    grd.addColorStop(0,`rgba(${p.r|0},${p.g|0},${p.b|0},${al})`);
+    grd.addColorStop(.35,`rgba(${p.r*.8|0},${p.g*.7|0},${p.b*.6|0},${al*.6})`);
+    grd.addColorStop(.7,`rgba(${p.r*.5|0},${p.g*.35|0},${p.b*.3|0},${al*.25})`);
+    grd.addColorStop(1,`rgba(${p.r*.2|0},${p.g*.1|0},${p.b*.08|0},0)`);
+    X.fillStyle=grd;X.beginPath();X.arc(sx_,sy_,sr,0,TAU);X.fill();
+  }
+  X.globalCompositeOperation='source-over';
+}
+
+// ── Timeline bar ───────────────────────────────────────────
+function drawTimeline(){
+  const tw=tlc.width,th=tlc.height;
+  TX.clearRect(0,0,tw,th);
+  // Background
+  TX.fillStyle='rgba(255,255,255,.03)';TX.fillRect(0,0,tw,th);
+  // Phase regions
+  const cohEnd=4/TOTAL_DURATION, ruptEnd=(4+16)/TOTAL_DURATION;
+  TX.fillStyle='rgba(60,120,255,.08)';TX.fillRect(0,0,cohEnd*tw,th);
+  TX.fillStyle='rgba(255,100,40,.08)';TX.fillRect(cohEnd*tw,0,(ruptEnd-cohEnd)*tw,th);
+  TX.fillStyle='rgba(80,255,150,.05)';TX.fillRect(ruptEnd*tw,0,(1-ruptEnd)*tw,th);
+  // Progress
+  const prog=cl(t_/TOTAL_DURATION,0,1);
+  const col=ph==='c'?'rgba(60,120,255,.5)':ph==='r'?'rgba(255,120,40,.5)':'rgba(80,255,150,.4)';
+  TX.fillStyle=col;TX.fillRect(0,0,prog*tw,th);
+  // Playhead
+  TX.fillStyle='rgba(255,220,180,.6)';TX.fillRect(prog*tw-1,0,2,th);
+  // Phase labels
+  TX.font='7px "DM Mono",monospace';TX.fillStyle='rgba(255,255,255,.2)';
+  TX.fillText('C',cohEnd*tw*.3,th*.7);
+  TX.fillText('δ',(cohEnd+ruptEnd)*tw/2,th*.7);
+  TX.fillText('R',(ruptEnd+1)*tw/2,th*.7);
+}
+
+// Timeline click → restart and fast-forward to that time
+document.getElementById('tl').addEventListener('click',e=>{
+  const rect=e.currentTarget.getBoundingClientRect();
+  const frac=cl((e.clientX-rect.left)/rect.width,0,1);
+  const targetTime=frac*TOTAL_DURATION;
+  // Reset and fast-forward
+  start();
+  const steps=floor(targetTime/.016);
+  for(let i=0;i<steps;i++){
+    simStep(.016);
+  }
+});
+
+// ── HUD ────────────────────────────────────────────────────
+function hud(){
+  const hp=document.getElementById('hp'),hn=document.getElementById('hn'),
+        he=document.getElementById('he'),hm=document.getElementById('hm'),pn=document.getElementById('pn');
+  if(ph==='c'){hp.textContent='COHERENCE';hp.style.color='rgba(0,130,255,.4)';
+    he.textContent='C(x,t) = ∫ L(x,τ) dτ';hn.textContent='²³⁶U*'}
+  else if(ph==='r'){hp.textContent='δ(now) — RUPTURE';hp.style.color='rgba(255,120,60,.7)';
+    he.textContent='C · Ω = 1';hn.textContent='²³⁶U* → ¹⁴⁰Ba + ⁹⁴Kr + 2n'}
+  else if(ph==='g'){hp.textContent='REGENERATION';hp.style.color='rgba(80,255,150,.4)';
+    he.textContent='R = ∫ φ · exp(C/Ω) · Θ dτ';hn.textContent='¹⁴⁰Ba + ⁹⁴Kr'}
+  else{hp.textContent='';he.textContent=''}
+  hm.textContent=(ph==='c'?(C_/PI*7.6).toFixed(1)+' MeV':'~170 MeV');
+  pn.textContent=`${cloud.length}p ${userSpeed.toFixed(1)}×`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIMULATION STEP (extracted for fast-forward scrubbing)
+// ═══════════════════════════════════════════════════════════
+let stemT=0;
+function simStep(sd){
+  t_+=sd;
+  if(ph==='c'){
+    const L=.2+pow(C_/PI,2)*.5;C_+=L*sd;
+    if(C_>=PI*.97){C_=PI;doRupture()}
+  }
+  else if(ph==='r'){
+    const dr=t_-rT;
+    flash=max(0,flash-sd*3);
+    cloud.forEach(p=>{
+      if(dr>.08)physics(p);
+      p.x+=p.vx*sd*2;p.y+=p.vy*sd*2;p.z+=p.vz*sd*2;
+      p.life-=sd;
+      if(p.C0<.1){p.vy-=sd*.4;if(p.y<.3){p.y=.3;p.vy=0}p.vx*=.998;p.vz*=.998}
+    });
+    cloud=cloud.filter(p=>p.life>0);
+    stemT+=sd;
+    if(stemT>.02&&dr>1.5&&dr<14){stemT=0;
+      for(let i=0;i<5;i++){const a=R()*TAU;
+        cloud.push({x:cos(a)*R()*4,y:1+R()*10,z:sin(a)*R()*4,
+          vx:(R()-.5)*.3,vy:2+R()*6,vz:(R()-.5)*.3,
+          C0:.15,T0:.08,r:50,g:32,b:20,sz:5+R()*9,life:5+R()*5,maxLife:5+R()*5});}
+    }
+    if(dr<8&&R()*60<1){const a=R()*TAU;
+      cloud.push({x:cos(a)*(3+dr*2),y:.5+R(),z:sin(a)*(3+dr*2),
+        vx:cos(a)*(2+R()*4),vy:R()*.4,vz:sin(a)*(2+R()*4),
+        C0:.03,T0:.03,r:40,g:28,b:18,sz:4+R()*7,life:3+R()*3,maxLife:3+R()*3});}
+    if(dr>16){ph='g'}
+  }
+  else if(ph==='g'){
+    rP=cl((rP||0)+sd*.03,0,1);
+    cloud.forEach(p=>{p.x+=p.vx*sd*.3;p.y+=p.vy*sd*.3;p.z+=p.vz*sd*.3;
+      p.vx*=.99;p.vy*=.99;p.vz*=.99;p.life-=sd});
+    cloud=cloud.filter(p=>p.life>0);
+    if(rP>=1||cloud.length<10)ph='d';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════════════════
+let prev=0;
+function frame(now){
+  requestAnimationFrame(frame);
+  let dt=min(.05,(now-prev)/1000);prev=now;
+
+  // §11: Speed modulates effective time step
+  // userSpeed=0 → frozen, =1 → normal, =4 → fast forward
+  // During rupture slow-mo, the cinematic slo still applies, then user multiplies
+  if(ph==='r'){const dr=t_-rT;
+    slo=dr<.2?.04:dr<1?.08:dr<4?.15:dr<6?cl(slo+dt*.3,0,1):cl(slo+dt*.2,0,1);}
+  else slo=cl(slo+dt*2,0,1);
+  const sd=dt*slo*userSpeed;
+
+  // §12: Camera offset tracks action
+  if(ph==='c'){camOffX=0;camOffY=0}
+  else if(ph==='r'){
+    // Track mean cloud center for zoom follow
+    let sy=0,n=0;
+    for(let i=0;i<cloud.length;i+=8){if(cloud[i].T0>.2){sy+=cloud[i].y;n++}}
+    const my=n>0?sy/n:40;
+    camOffY+=(my*.35-camOffY)*.02;
+  }
+
+  if(sd>0)simStep(sd);
+
+  // ── RENDER ──
+  const ppu=getPPU();
+  X.fillStyle='#050510';X.fillRect(0,0,W,H);
+  const gy=H*GROUND-camOffY*ppu;
+  X.fillStyle='#0a0908';X.fillRect(0,gy,W,H-gy);
+
+  if(ph==='c')drawNucleus();
+  else if(ph==='r'){
+    drawShockwave(t_-rT);drawCloud();
+    const dr=t_-rT;
+    if(dr<8){const gi=max(0,.35-dr*.04);
+      const grd=X.createRadialGradient(W/2,gy,0,W/2,gy,W*.4);
+      grd.addColorStop(0,`rgba(255,130,40,${gi})`);grd.addColorStop(1,'rgba(0,0,0,0)');
+      X.globalCompositeOperation='lighter';X.fillStyle=grd;X.fillRect(0,0,W,H);
+      X.globalCompositeOperation='source-over';}
+    if(flash>.01){X.globalAlpha=flash;X.fillStyle='#fff4e0';X.fillRect(0,0,W,H);X.globalAlpha=1}
+  }
+  else if(ph==='g'||ph==='d')drawCloud();
+
+  // §11: Update synth every frame
+  updateSynth();
+  drawTimeline();
+  hud();
+}
+
+function start(){
+  ph='c';C_=0;t_=0;rT=0;rP=0;slo=1;flash=0;cloud=[];stemT=0;
+  camOffX=0;camOffY=0;
+  document.getElementById('ctl').classList.add('on');
+  mkNucs();
+}
+function begin(){
+  document.getElementById('go').style.display='none';
+  initAudio();start();requestAnimationFrame(frame);
+}
+</script></body></html>
