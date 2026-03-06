@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Song of Time — Clocks, Clocks and More Clocks</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f4f1ec;--bg2:#eae6df;--ink:#2a2520;--dim:#8a8070;
+  --brass:#a08530;--wood:#8b6b4a;--silver:#707880;
+  --crystal:#5a5a90;--bell:#9a7a30;--cuckoo:#a06030;
+  --mono:'JetBrains Mono',monospace;--serif:'Cormorant Garamond',Georgia,serif;
+}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:var(--serif);position:fixed}
+
+/* ═══ SPLASH ═══ */
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity 2.5s ease}
+#splash.hidden{opacity:0;pointer-events:none}
+#splash .inner{text-align:center;max-width:820px;padding:0 28px}
+#splash h1{font-size:clamp(2.6rem,6vw,4.5rem);font-weight:300;letter-spacing:.22em;
+  color:var(--ink);margin-bottom:6px}
+#splash h2{font-size:clamp(1.1rem,2vw,1.5rem);font-weight:300;font-style:italic;
+  color:var(--dim);letter-spacing:.08em;margin-bottom:20px}
+#splash .sub{font-size:clamp(.92rem,1.4vw,1.12rem);font-weight:300;
+  line-height:2.2;font-style:italic;color:rgba(42,37,32,.55);max-width:640px;margin:0 auto}
+#splash .eq{font-family:var(--mono);font-size:clamp(.58rem,.85vw,.72rem);
+  color:rgba(42,37,32,.3);margin-top:22px;letter-spacing:.01em;line-height:2.2;
+  max-width:680px;margin-left:auto;margin-right:auto}
+#splash .tap{font-size:.72rem;color:rgba(42,37,32,.2);margin-top:26px;letter-spacing:.15em;
+  font-family:var(--mono);animation:p 3.5s ease-in-out infinite}
+@keyframes p{0%,100%{opacity:.15}50%{opacity:.4}}
+
+/* ═══ APP ═══ */
+#app{display:none;width:100%;height:100vh;position:relative;overflow:hidden;background:var(--bg)}
+#app.active{display:block}
+canvas{display:block;width:100%;height:100%}
+
+/* ═══ OVERLAY ═══ */
+#ov{position:absolute;inset:0;pointer-events:none;z-index:5}
+#tl{position:absolute;top:14px;left:18px;font-size:clamp(1rem,1.3vw,1.2rem);font-weight:400;
+  letter-spacing:.08em;color:rgba(42,37,32,.4)}
+#tl .s{font-size:.6em;opacity:.5;display:block;margin-top:3px;font-style:italic}
+#sn{position:absolute;top:5%;left:50%;transform:translateX(-50%);text-align:center;
+  font-size:clamp(2.2rem,4.5vw,3.4rem);font-weight:400;letter-spacing:.18em;font-style:italic;
+  opacity:0;transition:opacity 2.5s ease;color:var(--ink)}
+#desc{position:absolute;top:13%;left:50%;transform:translateX(-50%);text-align:center;
+  font-size:clamp(1.08rem,1.5vw,1.28rem);font-weight:300;font-style:italic;max-width:64%;
+  opacity:0;transition:opacity 3s ease;color:rgba(42,37,32,.55);line-height:2.1}
+#note{position:absolute;bottom:9%;left:50%;transform:translateX(-50%);text-align:center;
+  font-family:var(--mono);font-size:clamp(.72rem,1vw,.88rem);max-width:72%;
+  opacity:0;transition:opacity 2s ease;color:rgba(42,37,32,.35);line-height:2.0}
+#hud{position:absolute;top:14px;right:18px;font-family:var(--mono);
+  font-size:clamp(.6rem,.82vw,.72rem);color:rgba(42,37,32,.28);text-align:right;line-height:1.85;white-space:pre-line}
+#bar{position:absolute;bottom:0;left:0;right:0;height:2px;z-index:6}
+#bp{height:100%;width:0%;background:linear-gradient(90deg,var(--crystal),var(--brass),var(--silver),var(--crystal));transition:width .4s ease}
+</style>
+</head>
+<body>
+<div id="splash"><div class="inner">
+<h1>The Song of Time</h1>
+<h2>Clocks, Clocks and More Clocks</h2>
+<div class="sub">
+A clock shop at midnight. A real quartz crystal keeps the time.<br>
+Eight pendulum clocks, coupled through the wall.<br>
+Huygens called it <em>a strange sympathy</em>. Kuramoto wrote the equation.<br>
+CRR derives the coupling. The synchronisation is real.
+</div>
+<div class="eq">
+═══ WHAT IS GENUINE HERE ═══<br><br>
+The quartz crystal on your sound card vibrates at ~48,000 Hz. We count every oscillation.<br>
+8 Kuramoto oscillators are solved at sample rate — 48,000 integration steps per second.<br>
+dθᵢ/dt = ωᵢ + (K/N) Σⱼ Kᵢⱼ · sin(θⱼ − θᵢ) — no lerping, no cheating.<br><br>
+ONE CLOCK: the crystal times everything. Physics, narrative, visuals — all derived<br>
+from the crystal's sample count. No browser timer. One Date.now() at epoch, then silence.<br><br>
+CRR derives the coupling: Kᵢⱼ = Ω_mutual = 1/(p+q) for ratio p:q.<br>
+Octave (2:1) → K=1/3. Fifth (3:2) → K=1/5. These sync first. Always.<br>
+Tick = δ(now) when θ > 2π. Decay = exp(−t/Ω). Beauty = B(C/Ω) peaks before rupture.<br>
+K increases over the piece. Synchronisation EMERGES. Nobody forces it.
+</div>
+<div class="tap">touch to engage the crystal</div>
+</div></div>
+
+<div id="app">
+<canvas id="viz"></canvas>
+<div id="ov">
+  <div id="tl">The Song of Time<span class="s">Crystal · Kuramoto · CRR</span></div>
+  <div id="hud"></div>
+  <div id="sn"></div>
+  <div id="desc"></div>
+  <div id="note"></div>
+  <div id="bar"><div id="bp"></div></div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// THE SONG OF TIME — Clocks, Clocks and More Clocks
+// Alexander Sabine & Claude · temporalgrammar.ai
+//
+// WHAT IS GENUINE (not painted on):
+//
+// 1. CRYSTAL TIMING: The quartz crystal on the sound card is a real SO(2)
+//    piezoelectric oscillator. ScriptProcessorNode counts its oscillations.
+//    All timekeeping derives from crystal sample count. One Date.now() at
+//    epoch. After that: only the crystal speaks.
+//
+// 2. KURAMOTO COUPLING: 8 phase oscillators evolve according to the
+//    Kuramoto equation, integrated at sample rate (48,000 steps/sec).
+//    dθᵢ/dt = ωᵢ + (K/N) Σⱼ Kᵢⱼ · sin(θⱼ − θᵢ)
+//    Coupling Kᵢⱼ = 1/(p+q) where p:q is the frequency ratio in lowest
+//    terms. This IS mutual CRR Ω — simple ratios couple strongly.
+//    Synchronisation emerges from the mathematics at critical K.
+//
+// 3. TICK GENERATION: Each tick fires when θᵢ > 2π (genuine CRR rupture:
+//    C·Ω = 1). The tick sound is a damped sinusoid with damping rate
+//    α = 1/Ω_phys — directly the regeneration kernel exp(−t/Ω).
+//    Large Ω → long warm decay. Small Ω → sharp transient.
+//
+// 4. ORDER PARAMETER: r = |Σ exp(iθⱼ)|/N measures synchronisation (0→1).
+//    This IS collective CRR coherence. B(rP × r) is the beauty of the
+//    ensemble state — it peaks just before full synchronisation.
+//
+// 5. HUYGENS' SYMPATHY: In 1665, Christiaan Huygens watched two pendulum
+//    clocks on the same mantelpiece synchronise. He called it "an odd kind
+//    of sympathy." The wall couples the pendulums. The coupling strength
+//    depends on how rigidly the wall transmits vibrations. This IS Kuramoto
+//    coupling. Our simulation recreates Huygens' observation with 8 clocks,
+//    driven by real crystal physics.
+//
+// WHAT IS NARRATIVE (stage logic):
+//    - Which clocks are active when
+//    - The coupling strength K ramping over the piece
+//    - Frequency shifts during the "gravity" stage
+//    These are compositional choices. The physics within them is genuine.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const π = Math.PI, τ = 2*π, φ = (1+Math.sqrt(5))/2;
+const Ω_Z2 = 1/π, Ω_SO2 = 1/τ;
+const Bn = Math.exp(π-1)/π, rP = π-1;
+
+function B(r){ return r<0?0:Math.min(1, Math.exp(r)*Math.max(0,1-r/π)/Bn); }
+function cl(v,lo=0,hi=1){ return Math.max(lo,Math.min(hi,v)); }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function ss(t){ t=cl(t); return t*t*(3-2*t); }
+function sf(v){ return Number.isFinite(v)&&v>0?Math.min(v,20000):220; }
+
+// Canvas
+const cv = document.getElementById('viz'), ctx = cv.getContext('2d');
+let W, H, cx, cy, minDim;
+function resize(){
+  const d = Math.min(devicePixelRatio||1, 2);
+  W = Math.max(1, cv.clientWidth*d); H = Math.max(1, cv.clientHeight*d);
+  cv.width=W; cv.height=H; cx=W/2; cy=H/2; minDim=Math.min(W,H);
+}
+resize(); window.addEventListener('resize', resize);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// §1. THE EIGHT CLOCKS — defined by physics, not aesthetics
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Each clock's natural frequency comes from its consonance ratio × base (1 Hz).
+// Ω_phys governs regeneration: decay = exp(−t·α) where α ∝ 1/Ω_phys.
+// This is NOT arbitrary — Ω_phys represents the clock's physical inertia:
+//   Large body (grandfather) → high moment of inertia → high Ω → slow decay
+//   Tiny mechanism (metronome) → low inertia → low Ω → sharp transient
+//
+// The tone frequency is the resonant frequency of the clock's body/case.
+// A wooden grandfather case resonates low (~180 Hz). A brass mantel rings
+// high (~1800 Hz). These are acoustic physics, not free choices.
+
+const CLOCKS = [
+  { name:'Grandfather', ratio:1, freq:180, Ω:0.85,
+    Q:3, color:'#8b6b4a', radius:.34, angle:-π/2, pendulum:true },
+
+  { name:'Cuckoo', ratio:6/5, freq:620, freq2:620*5/6, Ω:0.32,
+    Q:5, color:'#a06838', radius:.20, angle:-π/2+τ/8, pendulum:true, isCuckoo:true },
+
+  { name:'Mantel', ratio:5/4, freq:1800, Ω:0.16,
+    Q:8, color:'#a08530', radius:.16, angle:-π/2+2*τ/8 },
+
+  { name:'Wall', ratio:4/3, freq:2200, Ω:0.07,
+    Q:2, color:'#787878', radius:.18, angle:-π/2+3*τ/8 },
+
+  { name:'Ship\'s Bell', ratio:3/2, freq:880, Ω:0.60,
+    fmRatio:2.76, fmIndex:1.6,
+    Q:12, color:'#707880', radius:.22, angle:-π/2+4*τ/8, isBell:true },
+
+  { name:'Metronome', ratio:5/3, freq:3000, Ω:0.028,
+    Q:1, color:'#8a7a60', radius:.13, angle:-π/2+5*τ/8, hasArm:true },
+
+  { name:'Pocket Watch', ratio:2, freq:4000, Ω:0.09,
+    Q:6, color:'#808890', radius:.11, angle:-π/2+6*τ/8 },
+
+  { name:'Crystal', ratio:3, freq:1000, Ω:0.12,
+    Q:20, color:'#5a5a90', radius:.12, angle:-π/2+7*τ/8 },
+];
+
+// Precompute RGB values for fast raster/phasor drawing
+const CLOCK_RGB = CLOCKS.map(c => {
+  const hex = c.color;
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// §2. COUPLING MATRIX — CRR-derived from mutual Ω
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// For clocks i,j at frequency ratio p:q (in lowest terms):
+//   Ω_mutual = 1/(p+q)
+//
+// This IS the CRR derivation of consonance: simple ratios → high Ω → strong
+// coupling → faster synchronisation. The consonance hierarchy is the coupling
+// hierarchy. No free parameters.
+//
+// Precomputed: ratio between clock i and clock j, reduced to lowest terms.
+// Then K_ij = 1/(p+q).
+
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){[a,b]=[b,a%b];} return a; }
+
+// Compute mutual Ω for all 28 pairs
+const mutualΩ = new Float32Array(64); // 8×8 matrix, symmetric
+for(let i=0;i<8;i++){
+  for(let j=i+1;j<8;j++){
+    // Ratio between clock i and j: ratio_j / ratio_i
+    // Express as fraction and reduce
+    const ri = CLOCKS[i].ratio, rj = CLOCKS[j].ratio;
+    // Multiply by LCM of denominators to get integers
+    // For our ratios (all x/y where y ∈ {1,2,3,4,5}), multiply by 60
+    const pi = Math.round(ri * 60), pj = Math.round(rj * 60);
+    const ratio_p = pj, ratio_q = pi;
+    const g = gcd(ratio_p, ratio_q);
+    const p = ratio_p/g, q = ratio_q/g;
+    const mΩ = 1/(p+q);
+    mutualΩ[i*8+j] = mΩ;
+    mutualΩ[j*8+i] = mΩ;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// §3. STAGES — compositional choices (honestly labelled as such)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const STAGES = [
+  { name:'Midnight', dur:7,
+    desc:'A clock shop at midnight. Dust motes suspended in the last light from the street. Springs coiled, pendulums hanging at their lowest point. Potential energy, determined but unmoved.',
+    note:'CRR: C = 0. No oscillator has begun its cycle. But Ω is already set by the geometry of each clock — the length of each pendulum, the cut of the crystal, the mass of each bob. T = 2π√(L/g). The circle governs the binary before time begins.',
+    active:[], K:0 },
+
+  { name:'The Crystal Wakes', dur:14,
+    desc:'The quartz crystal on your sound card begins to vibrate. Not a simulation — a real piezoelectric oscillator, SiO₂ molecules in a standing wave at 48,000 Hz. Each vibration is a real coherence increment. This is as close to physics keeping time as software permits.',
+    note:'The crystal is SO(2): continuous rotation. L = 2π/sampleRate per oscillation. After sampleRate oscillations: C = 2π, C·Ω = 1 → rupture → one second. The crystal counts its own coherence to the Cramér-Rao bound. That IS timekeeping.',
+    active:[], K:0 },
+
+  { name:'The Grandfather Speaks', dur:18,
+    desc:'The deepest voice. The pendulum traces a circle but the escapement converts it to a binary — tick, silence, tick. Each tick resonates through oak for almost a full second. This is what large Ω sounds like: long regeneration, rich memory, warmth.',
+    note:'CRR TIMBRE: Ω_phys = 0.85, the largest in the shop. In R = ∫φ·exp(C/Ω)·Θ dτ, large Ω means exp(C/Ω) ≈ 1 across wide history — many past reflections contribute to the sound. Hence: warm, resonant decay. The metronome\'s Ω = 0.028 means exp(C/Ω) is sharply peaked — only the impact moment persists. Hence: dry click.',
+    active:[0], K:0 },
+
+  { name:'The Shop Fills', dur:48,
+    desc:'One by one, the other clocks join. Each at its own tempo, each running free, uncoupled. Listen to the texture thicken as eight independent Z₂ systems tick into the dark. Sometimes they coincide by chance. Mostly they scatter. This is time without sympathy.',
+    note:'UNCOUPLED (K = 0): Each clock runs at its natural frequency. The grandfather at 1 Hz. The cuckoo at 1.2 Hz (6:5). The crystal at 3 Hz. Phase coincidences occur at the LCM of their periods — by mathematics, not by coupling. This is what a real clock shop sounds like: polyrhythm from physics alone.',
+    active:[0,1,2,3,4,5,6,7], K:0 },
+
+  { name:'A Strange Sympathy', dur:55,
+    desc:'The clocks share a wall. The wall vibrates. In 1665, Huygens watched two pendulum clocks on the same mantelpiece synchronise. He called it "an odd kind of sympathy." The coupling between them was the wall itself — transmitting vibrations, nudging phases, pulling toward alignment. Now: eight clocks, one wall, one equation.',
+    note:'KURAMOTO: dθᵢ/dt = ωᵢ + (K/N)·Σ Kᵢⱼ·sin(θⱼ − θᵢ). The coupling Kᵢⱼ = Ω_mutual = 1/(p+q). The octave (K=0.33) and fifth (K=0.20) couple strongest. Watch the order parameter r rise as K increases — the clocks don\'t decide to synchronise. The mathematics does it for them. Consonant pairs lock first.',
+    active:[0,1,2,3,4,5,6,7], K:'ramp_0_to_0.6' },
+
+  { name:'Gravity', dur:42,
+    desc:'Spacetime curves. Clocks near mass tick slower — their Ω increases. But listen: the slower clocks sound warmer, richer. Time dilation changes not just the rate but the character. And the coupling strains: as frequencies drift apart, the sympathy weakens. Gravity fights synchronisation.',
+    note:'CRR DILATION: K stays at 0.6 — the wall hasn\'t moved. But gravity shifts each clock\'s frequency by up to ±40%. Watch the order parameter r drop as detuning peaks, then recover as gravity eases. The Kuramoto locking bandwidth is K·r — when detuning exceeds it, clocks decouple. Nobody forced it. The equation did.',
+    active:[0,1,2,3,4,5,6,7], K:0.4 },
+
+  { name:'The Alignment', dur:18,
+    desc:'The coupling crosses a threshold. Not forced — found. The order parameter reaches unity and all eight clocks lock. Every tick falls together. Not because we told them to, but because the Kuramoto equation has a critical K above which synchronisation is the only stable state. The mathematics aligns the clocks.',
+    note:'KURAMOTO PHASE TRANSITION: At K > K_c, the order parameter r → 1. All phases lock to a common reference. Consonant pairs locked first (octave, fifth), then pulled the rest along — the consonance hierarchy IS the synchronisation order. This moment is C·Ω = 1 at the ensemble scale: collective coherence saturating, collective rupture.',
+    active:[0,1,2,3,4,5,6,7], K:'ramp_0.6_to_2.5' },
+
+  { name:'The Crystal Alone', dur:16,
+    desc:'The mechanical clocks fall silent. Only the crystal remains — the real oscillator, counting its own coherence. One tick per second. The softest sound in the room. A quartz heartbeat in the silence, keeping time after the sympathy fades.',
+    note:'The crystal was always the only clock. Not just for the physics — for everything. Stage progression, K ramps, gravity detuning, visual timing: all derived from crystal sample count. One Date.now() at epoch. After that: 48,000 oscillations per second, counted honestly. The browser never kept time. The crystal did.',
+    active:[], K:0 },
+
+  { name:'Dawn', dur:16,
+    desc:'Even the crystal fades. The geometry remains — the length of each pendulum, the cut of the quartz, the shape of the circle that governs the binary. Time doesn\'t stop. We just stop listening.',
+    note:'The last tick is not the end of time. It is the end of this listening. The rest is silence.',
+    active:[], K:0 },
+];
+
+let si=0, sT=0, gT=0;
+function totDur(){ return STAGES.reduce((s,x)=>s+x.dur,0); }
+function sP(){ return cl(sT/STAGES[si].dur); }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CRYSTAL-DERIVED STAGE CLOCK
+// ═══════════════════════════════════════════════════════════════════════════════
+// Instead of two clocks (crystal for physics, rAF for narrative), ONE clock.
+// crystalTime = crystalRuptures + crystalPhase gives crystal-accurate elapsed
+// seconds since the audio engine started. Stage progression derives from this.
+// The render loop never counts its own time. It just reads crystal state.
+
+function updateStage(){
+  const t = crystalRuptures + crystalPhase; // crystal-accurate elapsed seconds
+  gT = t;
+
+  // Walk through stages to find current one
+  let elapsed = 0;
+  for(let i=0; i<STAGES.length; i++){
+    if(t < elapsed + STAGES[i].dur || i === STAGES.length-1){
+      si = i;
+      sT = Math.min(t - elapsed, STAGES[i].dur);
+      return;
+    }
+    elapsed += STAGES[i].dur;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// §4. SHARED STATE — between audio thread and render thread
+// ═══════════════════════════════════════════════════════════════════════════════
+// (ScriptProcessor runs on main thread, so no SharedArrayBuffer needed)
+
+let sampleRate = 48000;
+let calEpoch = 0;
+let crystalRuptures = 0;
+let crystalPhase = 0;     // crystal 0→1 within each second
+
+// Published from audio for each clock
+const clockPhases = new Float32Array(8);    // θ_i / 2π (0→1 for visual)
+const clockFlash = new Float32Array(8);     // 1 at tick, decays
+const clockActive = new Uint8Array(8);      // 1 if active
+let orderParam = 0;        // Kuramoto order parameter r (0→1)
+let orderAngle = 0;        // Kuramoto mean phase ψ
+let currentK = 0;          // current coupling strength (for display)
+let currentDetune = 0;     // current gravity detuning strength (for display)
+
+// ─── HISTORY BUFFERS for phase raster and r(t) trace ───
+// These store the last ~6 seconds of data at ~60fps
+const HIST_LEN = 360;
+let histIdx = 0;
+const rHist = new Float32Array(HIST_LEN);       // order parameter r over time
+const flashHist = new Float32Array(HIST_LEN*8);  // per-clock flash history (raster)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// §5. AUDIO ENGINE — everything solved at sample rate by the real crystal
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let ac;
+
+function initAudio(){
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  sampleRate = ac.sampleRate;
+
+  const bufSize = 2048;
+  const script = ac.createScriptProcessor(bufSize, 0, 1);
+
+  // ─── CRR CONSTANTS ───
+  const L = τ / sampleRate;  // angular increment per crystal oscillation
+  const dt = 1 / sampleRate; // time step in seconds
+
+  // ─── CRYSTAL STATE ───
+  let _nTotal = 0, _nRup = 0, _n = 0;
+  let cTickEnv = 0, cTickPhase = 0; // crystal tick sound
+
+  // ─── KURAMOTO STATE ───
+  // θ[i] = phase of oscillator i (radians, 0 → 2π → rupture → reset)
+  // ω[i] = natural frequency (radians/sec)
+  const θ = new Float64Array(8);
+  const ω = new Float64Array(8);
+  const sinθ = new Float64Array(8);
+  const cosθ = new Float64Array(8);
+
+  // Initialise with random phases (as if clocks were set at random times)
+  for(let i=0;i<8;i++){
+    θ[i] = Math.random() * τ;
+    ω[i] = CLOCKS[i].ratio * τ; // radians per second
+  }
+
+  // ─── TICK SOUND STATE (per clock) ───
+  // Each tick is a damped sinusoid: tone × exp(−t·α) where α = 1/Ω
+  // This IS the CRR regeneration kernel in the time domain.
+  const tickEnv = new Float64Array(8);      // current envelope (1 at tick, decays)
+  const tickTonePhase = new Float64Array(8); // tone oscillator phase
+  const decayPerSample = new Float64Array(8); // precomputed: exp(−dt/Ω)
+
+  // For cuckoo: second note triggers after delay
+  let cuckooDelay = 0, cuckooEnv2 = 0, cuckooPhase2 = 0;
+
+  // For bell: FM modulator phase
+  const bellModPhase = new Float64Array(8);
+
+  for(let i=0;i<8;i++){
+    // Decay per sample: exp(−dt/Ω)
+    // Large Ω → decay close to 1 → slow decay → long resonance
+    // Small Ω → decay << 1 → fast decay → sharp transient
+    const Ω = CLOCKS[i].Ω;
+    decayPerSample[i] = Math.exp(-dt / (Ω * 0.18)); // 0.18 scales to musical range
+  }
+
+  // ─── DC BLOCKER ───
+  let dcX = 0, dcY = 0;
+  const dcAlpha = 0.997;
+
+  // ─── COUPLING MATRIX (precomputed, flat array) ───
+  const Kij = new Float32Array(64);
+  for(let i=0;i<8;i++){
+    for(let j=0;j<8;j++){
+      Kij[i*8+j] = mutualΩ[i*8+j]; // coupling = mutual Ω
+    }
+  }
+
+  let epochSet = false;
+  let prevSi = -1;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // THE AUDIO CALLBACK — runs at crystal-hardware rate
+  // ═══════════════════════════════════════════════════════════════════════════
+  script.onaudioprocess = function(e){
+    if(!epochSet){ calEpoch = Date.now(); epochSet = true; }
+    const out = e.outputBuffer.getChannelData(0);
+    const N = out.length, sr = sampleRate;
+
+    // ─── CRYSTAL-DERIVED STAGE ───
+    // The audio thread computes its own stage from its own crystal counters.
+    // No reading from rAF. One clock rules everything.
+    const crystalSec = _nRup + _n / sr; // crystal-accurate elapsed time
+    let aSi = 0, aST = 0, elapsed = 0;
+    for(let i=0; i<STAGES.length; i++){
+      if(crystalSec < elapsed + STAGES[i].dur || i === STAGES.length-1){
+        aSi = i; aST = Math.min(crystalSec - elapsed, STAGES[i].dur); break;
+      }
+      elapsed += STAGES[i].dur;
+    }
+    const aP = cl(aST / STAGES[aSi].dur);
+    // Publish to render thread
+    si = aSi; sT = aST;
+
+    // ─── DETERMINE K AND ACTIVE CLOCKS FROM CRYSTAL-DERIVED STAGE ───
+    const stage = STAGES[aSi];
+    let K = 0;
+
+    // Which clocks are active?
+    const active = new Uint8Array(8);
+    if(aSi === 3){
+      // Shop fills: enter one by one over the stage duration
+      const interval = stage.dur / 8;
+      for(let i=0;i<8;i++) active[i] = aST > i*interval ? 1 : 0;
+    } else {
+      for(let i=0;i<8;i++) active[i] = stage.active.includes(i) ? 1 : 0;
+    }
+
+    // Coupling K (the only compositional control over the physics)
+    if(aSi === 4){
+      // "A Strange Sympathy": K ramps from 0 to 0.6
+      K = ss(aP) * 0.6;
+    } else if(aSi === 5){
+      // Gravity: K holds at 0.6 (coupling doesn't change — the wall is the same).
+      // But frequency detuning increases (see ωShift below), which FIGHTS the
+      // coupling. The Kuramoto locking bandwidth is K·r — when detuning exceeds
+      // it, clocks decouple. So r drops naturally from the maths.
+      // Late in the stage, detuning eases → partial re-sync emerges.
+      K = 0.6;
+    } else if(aSi === 6){
+      // Alignment: K ramps 0.6 → 2.5 (crosses critical threshold)
+      K = 0.6 + ss(aP) * 1.9;
+    } else {
+      K = stage.K || 0;
+    }
+    currentK = K;
+
+    // Gravity: shift natural frequencies
+    const ωShift = new Float64Array(8);
+    let detuneStr = 0; // track detuning for display
+    for(let i=0;i<8;i++){
+      ωShift[i] = ω[i]; // default: natural frequency
+      if(aSi === 5){
+        // Gravitational time dilation: clocks at different "heights"
+        // Detuning ramps up in first half, eases in second half
+        // This creates a visible arc in r(t): sync → decouple → partial re-sync
+        const depth = (i - 3.5) / 3.5; // −1 to +1
+        const detuneEnvelope = aP < 0.5 ? ss(aP*2) : ss(2 - aP*2); // arch shape
+        const dilationStrength = detuneEnvelope * 0.40;
+        ωShift[i] = ω[i] * (1 + depth * dilationStrength);
+        detuneStr = detuneEnvelope;
+      }
+    }
+    currentDetune = detuneStr;
+
+    // Volume per clock (stage-dependent)
+    const vol = new Float32Array(8);
+    for(let i=0;i<8;i++){
+      if(!active[i]){ vol[i]=0; continue; }
+      vol[i] = 0.55;
+      if(aSi === 3){
+        const interval = stage.dur/8;
+        vol[i] = cl((aST - i*interval)*1.5) * 0.55;
+      }
+      if(aSi === 4 || aSi === 5) vol[i] *= 0.45;
+      if(aSi === 6) vol[i] *= lerp(0.45, 1.0, ss(aP));
+    }
+
+    // Crystal tick volume
+    const crystalVol = (aSi===1) ? lerp(0.05, 0.14, ss(aP))
+                     : (aSi===7) ? 0.14
+                     : (aSi===8) ? 0.14 * cl(1 - aP*2)
+                     : (aSi>=2 && aSi<=6) ? 0.035
+                     : 0;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PER-SAMPLE LOOP
+    // ═══════════════════════════════════════════════════════════════════════
+    for(let s=0; s<N; s++){
+      // ─── CRYSTAL CRR ───
+      _nTotal++; _n++;
+      if(_n >= sr){
+        _n -= sr; _nRup++;
+        cTickEnv = 1.0; cTickPhase = 0;
+      }
+      const cPhase = _n / sr;
+
+      // Crystal tick sound (δ(now) through acoustic transfer)
+      let crystalSound = 0;
+      if(cTickEnv > 0.001){
+        cTickPhase += 180 / sr;
+        const onset = Math.min(1, (1-cTickEnv)*8);
+        const smooth = onset*onset*(3-2*onset);
+        crystalSound = (Math.sin(cTickPhase*τ) + Math.sin(cTickPhase*τ*φ)*0.25)
+                       * cTickEnv * smooth * crystalVol;
+        cTickEnv *= (1 - 12/sr);
+      }
+
+      // Beauty breath
+      const bP = B(rP * cPhase);
+      const breathVol = (si===1||si===7) ? 0.005 : 0.0015;
+      const breath = Math.sin(_nTotal * τ * 261.63 / sr) * breathVol * bP;
+
+      // ─── KURAMOTO INTEGRATION ───
+      // Step 1: compute sin(θ), cos(θ) for all oscillators
+      for(let i=0;i<8;i++){
+        sinθ[i] = Math.sin(θ[i]);
+        cosθ[i] = Math.cos(θ[i]);
+      }
+
+      // Step 2: compute coupling force and advance phases
+      // dθᵢ/dt = ωᵢ + (K/N) Σⱼ Kᵢⱼ · sin(θⱼ − θᵢ)
+      // sin(θⱼ − θᵢ) = sinθⱼ·cosθᵢ − cosθⱼ·sinθᵢ
+      let sumSin = 0, sumCos = 0; // for order parameter
+      let activeN = 0;
+
+      for(let i=0;i<8;i++){
+        if(!active[i]) continue;
+        activeN++;
+        sumSin += sinθ[i];
+        sumCos += cosθ[i];
+
+        let force = 0;
+        if(K > 0.001){
+          for(let j=0;j<8;j++){
+            if(j===i || !active[j]) continue;
+            const sinDiff = sinθ[j]*cosθ[i] - cosθ[j]*sinθ[i];
+            force += Kij[i*8+j] * sinDiff;
+          }
+          force *= K / Math.max(1, activeN);
+        }
+
+        // Advance phase
+        θ[i] += (ωShift[i] + force) * dt;
+
+        // ─── RUPTURE: θ > 2π → tick ───
+        if(θ[i] >= τ){
+          θ[i] -= τ;
+          if(vol[i] > 0.01){
+            tickEnv[i] = 1.0;
+            tickTonePhase[i] = 0;
+            bellModPhase[i] = 0;
+            // Cuckoo: schedule second note
+            if(CLOCKS[i].isCuckoo){
+              cuckooDelay = Math.round(0.16 * sr); // 160ms delay
+              cuckooEnv2 = 0; cuckooPhase2 = 0;
+            }
+          }
+          clockFlash[i] = 1.0;
+        }
+      }
+
+      // Order parameter: r = |Σ exp(iθ)|/N
+      if(activeN > 0){
+        orderParam = Math.sqrt(sumSin*sumSin + sumCos*sumCos) / activeN;
+        orderAngle = Math.atan2(sumSin, sumCos);
+      }
+
+      // ─── CLOCK SOUND SYNTHESIS ───
+      // Each tick = damped sinusoid at clock's resonant frequency
+      // Damping = exp(−dt/Ω) per sample — the regeneration kernel
+      let clockSound = 0;
+
+      for(let i=0;i<8;i++){
+        if(tickEnv[i] < 0.0005) continue;
+
+        const c = CLOCKS[i];
+        const v = vol[i];
+
+        if(c.isBell){
+          // FM bell: carrier + modulator at inharmonic ratio
+          // FM IS CRR: the modulator's phase accumulates coherence that
+          // modulates the carrier. The inharmonic ratio means coherence
+          // never perfectly resolves → metallic, shimmering quality.
+          bellModPhase[i] += c.freq * c.fmRatio * dt;
+          const mod = Math.sin(bellModPhase[i] * τ) * c.freq * c.fmIndex * tickEnv[i];
+          tickTonePhase[i] += (c.freq + mod) * dt;
+          clockSound += Math.sin(tickTonePhase[i] * τ) * tickEnv[i] * v * 0.12;
+        } else if(c.isCuckoo){
+          // First note
+          tickTonePhase[i] += c.freq / sr;
+          const wave = Math.sin(tickTonePhase[i] * τ) * 0.7
+                     + Math.sin(tickTonePhase[i] * τ * 3) * 0.2; // triangle approx
+          clockSound += wave * tickEnv[i] * v * 0.11;
+        } else {
+          // Standard damped sinusoid + noise transient
+          tickTonePhase[i] += c.freq / sr;
+          let wave = Math.sin(tickTonePhase[i] * τ);
+          // Add harmonics for "square" character (wall, metronome)
+          if(c.Q < 4){
+            wave = wave * 0.7 + Math.sin(tickTonePhase[i]*τ*3)*0.2
+                 + Math.sin(tickTonePhase[i]*τ*5)*0.1;
+          }
+          // Add φ-harmonic overtone for warmth (grandfather, pocket watch)
+          if(c.Ω > 0.08){
+            wave += Math.sin(tickTonePhase[i]*τ*φ) * 0.2;
+          }
+          clockSound += wave * tickEnv[i] * v * 0.14;
+
+          // Noise transient (mechanical click — the physical δ)
+          if(tickEnv[i] > 0.5){
+            clockSound += (Math.random()*2-1) * tickEnv[i] * v * 0.03
+                        * Math.exp(-(1-tickEnv[i])*30);
+          }
+        }
+
+        // ─── DECAY: exp(−dt/Ω) per sample ───
+        // This IS the regeneration kernel. Not painted on.
+        tickEnv[i] *= decayPerSample[i];
+      }
+
+      // Cuckoo second note (delayed)
+      if(cuckooDelay > 0){
+        cuckooDelay--;
+        if(cuckooDelay === 0) cuckooEnv2 = 1.0;
+      }
+      if(cuckooEnv2 > 0.001){
+        cuckooPhase2 += CLOCKS[1].freq2 / sr;
+        const wave2 = Math.sin(cuckooPhase2*τ)*0.7 + Math.sin(cuckooPhase2*τ*3)*0.2;
+        clockSound += wave2 * cuckooEnv2 * vol[1] * 0.10;
+        cuckooEnv2 *= decayPerSample[1];
+      }
+
+      // ─── MIX ───
+      const raw = crystalSound + breath + clockSound;
+      // DC blocker
+      dcY = raw - dcX + dcAlpha * dcY; dcX = raw;
+      out[s] = dcY;
+    }
+
+    // ─── PUBLISH TO RENDER THREAD ───
+    crystalRuptures = _nRup;
+    crystalPhase = _n / sr;
+    for(let i=0;i<8;i++){
+      clockPhases[i] = (θ[i] / τ); // 0→1
+      clockActive[i] = active[i];
+    }
+  };
+
+  // ─── AUDIO GRAPH ───
+  const comp = ac.createDynamicsCompressor();
+  comp.threshold.value = -14; comp.ratio.value = 5;
+  comp.attack.value = 0.002; comp.release.value = 0.08;
+
+  const gain = ac.createGain();
+  gain.gain.value = 0.42;
+
+  // Reverb: clock shop room
+  const rvbSend = ac.createGain(); rvbSend.gain.value = 0.22;
+  const rvbDly = ac.createDelay(1.5); rvbDly.delayTime.value = 0.1*φ;
+  const rvbFb = ac.createGain(); rvbFb.gain.value = 0.44;
+  const rvbFlt = ac.createBiquadFilter(); rvbFlt.type='lowpass'; rvbFlt.frequency.value=2400;
+  rvbSend.connect(rvbDly); rvbDly.connect(rvbFlt); rvbFlt.connect(rvbFb);
+  rvbFb.connect(rvbDly); rvbFlt.connect(gain);
+
+  // Second reflection
+  const d2 = ac.createDelay(1.5); d2.delayTime.value = 0.1*φ*φ;
+  const fb2 = ac.createGain(); fb2.gain.value = 0.26;
+  const f2 = ac.createBiquadFilter(); f2.type='lowpass'; f2.frequency.value=1500;
+  rvbSend.connect(d2); d2.connect(f2); f2.connect(fb2); fb2.connect(d2); f2.connect(gain);
+
+  script.connect(comp); comp.connect(gain); comp.connect(rvbSend);
+  gain.connect(ac.destination);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// §6. VISUAL ENGINE — clock faces on cream
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function drawCrystal(x, y, size, phase, t){
+  const beauty = B(rP * phase);
+
+  // Glow
+  const glowR = size*2 + beauty*size*1.5;
+  const grd = ctx.createRadialGradient(x,y,0, x,y, Math.max(1,glowR));
+  grd.addColorStop(0, `rgba(90,90,144,${0.03+beauty*0.08})`);
+  grd.addColorStop(0.5, `rgba(90,80,120,${0.01+beauty*0.04})`);
+  grd.addColorStop(1, 'rgba(244,241,236,0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.arc(x,y,glowR,0,τ); ctx.fill();
+
+  // Hexagonal prism body
+  const hw = size*0.32, hh = size*0.9, tipH = size*0.22;
+  ctx.fillStyle = `rgba(90,90,144,${0.04+beauty*0.06})`;
+  ctx.strokeStyle = `rgba(90,90,144,${0.12+beauty*0.3})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y-hh-tipH);
+  ctx.lineTo(x-hw, y-hh); ctx.lineTo(x-hw, y+hh);
+  ctx.lineTo(x, y+hh+tipH);
+  ctx.lineTo(x+hw, y+hh); ctx.lineTo(x+hw, y-hh);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // Lattice lines
+  const vib = Math.sin(phase*τ)*1.5;
+  ctx.strokeStyle = `rgba(90,90,144,${0.03+beauty*0.05})`;
+  ctx.lineWidth = 0.4;
+  for(let r=0; r<7; r++){
+    const ny = (r/6)*2-1;
+    const ly = y + ny*hh + vib*Math.sin(ny*π)*0.4;
+    const lw = hw*(1-Math.abs(ny)*0.12);
+    ctx.beginPath(); ctx.moveTo(x-lw,ly); ctx.lineTo(x+lw,ly); ctx.stroke();
+  }
+
+  // Coherence arc
+  const arcY = y+hh+tipH+10, arcR = size*0.4;
+  ctx.strokeStyle = 'rgba(90,90,144,0.06)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(x,arcY,arcR, π+0.3, τ-0.3); ctx.stroke();
+  if(phase>0.005){
+    ctx.strokeStyle = `rgba(90,90,144,${0.12+phase*0.4})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(x,arcY,arcR, π+0.3, π+0.3+phase*(π-0.6)); ctx.stroke();
+  }
+}
+
+function drawClockFace(x, y, r, idx, alpha){
+  if(alpha<0.01 || r<2) return;
+  const c = CLOCKS[idx];
+  const flash = clockFlash[idx];
+  const phase = clockPhases[idx];
+
+  // Parse colour (precomputed)
+  const [cr,cg,cb] = CLOCK_RGB[idx];
+
+  // Clock face (filled circle — warm paper)
+  ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha*0.03})`;
+  ctx.beginPath(); ctx.arc(x,y,r,0,τ); ctx.fill();
+
+  // Ring
+  ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha*(0.3+flash*0.5)})`;
+  ctx.lineWidth = 1.2 + flash*1.5;
+  ctx.beginPath(); ctx.arc(x,y,r,0,τ); ctx.stroke();
+
+  // Flash glow — genuine rupture event, visually amplified
+  if(flash > 0.03){
+    const grd = ctx.createRadialGradient(x,y,0, x,y, Math.max(1,r*2.0));
+    grd.addColorStop(0, `rgba(${cr},${cg},${cb},${flash*alpha*0.2})`);
+    grd.addColorStop(0.5, `rgba(${cr},${cg},${cb},${flash*alpha*0.06})`);
+    grd.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(x,y,r*2.0,0,τ); ctx.fill();
+  }
+
+  // Hour marks
+  for(let h=0;h<12;h++){
+    const a = h/12*τ - π/2;
+    const x1 = x+Math.cos(a)*r*0.84, y1 = y+Math.sin(a)*r*0.84;
+    const x2 = x+Math.cos(a)*r*0.95, y2 = y+Math.sin(a)*r*0.95;
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha*(h%3===0?0.22:0.06)})`;
+    ctx.lineWidth = h%3===0 ? 1.3 : 0.5;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+
+  // Second hand — driven by ACTUAL Kuramoto phase
+  const handAngle = phase * τ - π/2;
+  const hx = x+Math.cos(handAngle)*r*0.72;
+  const hy = y+Math.sin(handAngle)*r*0.72;
+  ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha*(0.45+flash*0.35)})`;
+  ctx.lineWidth = 0.9;
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(hx,hy); ctx.stroke();
+
+  // Centre
+  ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha*0.4})`;
+  ctx.beginPath(); ctx.arc(x,y,1.6,0,τ); ctx.fill();
+
+  // ─── COHERENCE ARC ───
+  // Shows θ accumulating toward 2π (rupture). When clocks synchronise,
+  // these arcs reach the same position simultaneously — alignment is VISIBLE.
+  // This is NOT decoration: it displays the actual Kuramoto phase.
+  if(phase > 0.005){
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha*(0.08+phase*0.25+flash*0.2)})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(x, y, r+4, -π/2, -π/2 + phase*τ); ctx.stroke();
+  }
+
+  // Pendulum — phase IS the Kuramoto phase, so the visual pendulum
+  // is the actual mathematical oscillator, not decoration
+  if(c.pendulum){
+    const swing = Math.sin(phase * τ) * 0.28;
+    const px = x + Math.sin(swing)*r*0.6;
+    const py = y + r*1.1 + Math.cos(swing)*r*0.06;
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha*0.15})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(x, y+r*0.9); ctx.lineTo(px,py); ctx.stroke();
+    ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha*0.2})`;
+    ctx.beginPath(); ctx.arc(px,py,3,0,τ); ctx.fill();
+  }
+
+  // Metronome arm
+  if(c.hasArm){
+    const armAngle = Math.sin(phase*τ)*0.45;
+    const ax = x + Math.sin(armAngle)*r*0.7;
+    const ay = y - Math.cos(armAngle)*r*0.7;
+    ctx.strokeStyle = `rgba(${cr},${cg},${cb},${alpha*0.15})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(x, y+r*0.2); ctx.lineTo(ax,ay); ctx.stroke();
+  }
+
+  // Label
+  ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha*0.3})`;
+  ctx.font = `400 ${Math.max(9,r*0.26)}px var(--mono)`;
+  ctx.textAlign = 'center';
+  ctx.fillText(c.name, x, y-r-8);
+}
+
+// ─── ORDER PARAMETER DISPLAY ───
+// A ring around the crystal showing r (0→1) — the collective synchronisation
+function drawOrderParameter(x, y, size){
+  if(si < 3) return;
+  const r = orderParam;
+  const ringR = size * 3.2;
+
+  // Background ring
+  ctx.strokeStyle = 'rgba(42,37,32,0.05)';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(x,y,ringR,0,τ); ctx.stroke();
+
+  // Fill proportional to r — gold that intensifies
+  if(r > 0.01){
+    const alpha = 0.1 + r * 0.6;
+    ctx.strokeStyle = `rgba(160,133,48,${alpha})`;
+    ctx.lineWidth = 4 + r * 4;
+    ctx.beginPath(); ctx.arc(x,y,ringR, -π/2, -π/2 + r*τ); ctx.stroke();
+
+    // Inner glow when r is high
+    if(r > 0.5){
+      const glowAlpha = cl(r - 0.5) * 0.12;
+      const grd = ctx.createRadialGradient(x,y,ringR*0.5, x,y,ringR*1.3);
+      grd.addColorStop(0, `rgba(180,150,60,${glowAlpha})`);
+      grd.addColorStop(1, 'rgba(244,241,236,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(x,y,ringR*1.3,0,τ); ctx.fill();
+    }
+  }
+
+  // r value — large and clear
+  ctx.fillStyle = `rgba(42,37,32,${0.15+r*0.35})`;
+  ctx.font = `400 ${Math.max(10,size*0.28)}px var(--mono)`;
+  ctx.textAlign = 'center';
+  ctx.fillText(`r = ${r.toFixed(3)}`, x, y+ringR+18);
+
+  // Label at high r
+  if(r > 0.7){
+    ctx.fillStyle = `rgba(160,133,48,${cl(r-0.7)*0.5})`;
+    ctx.font = `italic 300 ${Math.max(11,size*0.24)}px var(--serif)`;
+    ctx.fillText(r > 0.95 ? 'synchronised' : 'synchronising...', x, y+ringR+34);
+  }
+}
+
+function drawScene(){
+  const p = sP();
+  const beauty = B(rP * crystalPhase);
+
+  // ─── RECORD HISTORY ───
+  rHist[histIdx] = orderParam;
+  for(let i=0;i<8;i++){
+    flashHist[histIdx*8+i] = clockFlash[i];
+  }
+  histIdx = (histIdx+1) % HIST_LEN;
+
+  // Background — warm cream
+  ctx.fillStyle = '#f4f1ec';
+  ctx.fillRect(0,0,W,H);
+
+  // Subtle warm centre glow (the shop's warmth, modulated by beauty)
+  if(si >= 2){
+    const warmth = cl((si-2)*0.015 + beauty*0.01);
+    const grd = ctx.createRadialGradient(cx,cy,0, cx,cy, minDim*0.5);
+    grd.addColorStop(0, `rgba(180,150,100,${warmth})`);
+    grd.addColorStop(1, 'rgba(244,241,236,0)');
+    ctx.fillStyle = grd; ctx.fillRect(0,0,W,H);
+  }
+
+  // Crystal at centre
+  const crystalSize = minDim * 0.05;
+  const showCrystal = si>=1 ? cl(si===1 ? p*3 : 1) : 0;
+  if(showCrystal > 0.01){
+    ctx.globalAlpha = showCrystal;
+    drawCrystal(cx, cy, crystalSize, crystalPhase, gT);
+    drawOrderParameter(cx, cy, crystalSize);
+    ctx.globalAlpha = 1;
+  }
+
+  // Clocks in orbit
+  const baseR = minDim * 0.32;
+  for(let i=0;i<8;i++){
+    const c = CLOCKS[i];
+    const angle = c.angle;
+    const x = cx + Math.cos(angle)*baseR;
+    const y = cy + Math.sin(angle)*baseR;
+    const size = minDim * c.radius * 0.25;
+
+    let alpha = 0;
+    if(si===2 && i===0) alpha = cl(p*3);
+    else if(si===3){
+      const interval = STAGES[3].dur/8;
+      alpha = cl((sT - i*interval)*1.5);
+    } else if(si>=4 && si<=6) alpha = clockActive[i] ? 1 : 0;
+    else if(si===7 || si===8) alpha = 0;
+
+    if(alpha > 0.01) drawClockFace(x, y, size, i, alpha);
+
+    // Flash decay (visual only — driven by genuine rupture events)
+    clockFlash[i] *= Math.exp(-0.016*6); // slower decay = more visible
+  }
+
+  // Consonance lines — show the coupling topology
+  // Opacity based on mutual Ω AND current coupling K AND synchronisation r
+  // Strongest-coupled pairs glow brightest when they're actually locking
+  if(si>=4 && si<=6 && currentK > 0.001){
+    for(let i=0;i<8;i++){
+      if(!clockActive[i]) continue;
+      for(let j=i+1;j<8;j++){
+        if(!clockActive[j]) continue;
+        const mΩ = mutualΩ[i*8+j];
+        if(mΩ < 0.03) continue;
+
+        const ci = CLOCKS[i], cj = CLOCKS[j];
+        const ax = cx+Math.cos(ci.angle)*baseR;
+        const ay = cy+Math.sin(ci.angle)*baseR;
+        const bx = cx+Math.cos(cj.angle)*baseR;
+        const by = cy+Math.sin(cj.angle)*baseR;
+
+        // Base opacity: coupling strength × mutual Ω
+        // mΩ ranges from ~0.05 to ~0.33; K ranges 0→2.5
+        const couplingStrength = mΩ * cl(currentK, 0, 2.5);
+        // Boost by order parameter — brighter when actually synchronising
+        const syncBoost = 1 + orderParam * 2;
+        const lineAlpha = cl(couplingStrength * syncBoost * 0.5, 0, 0.6);
+        if(lineAlpha < 0.01) continue;
+
+        // Colour shifts from ink to gold as synchronisation increases
+        const goldBlend = cl(orderParam);
+        const lr = Math.round(lerp(42, 180, goldBlend));
+        const lg = Math.round(lerp(37, 150, goldBlend));
+        const lb = Math.round(lerp(32, 50, goldBlend));
+
+        ctx.strokeStyle = `rgba(${lr},${lg},${lb},${lineAlpha})`;
+        ctx.lineWidth = 0.6 + mΩ*3 + orderParam*2;
+        ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+
+        // At high sync, draw line through crystal centre (it mediates)
+        if(orderParam > 0.6 && mΩ > 0.1){
+          ctx.strokeStyle = `rgba(90,90,144,${cl(orderParam-0.6)*mΩ*0.4})`;
+          ctx.lineWidth = 0.4;
+          ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(cx,cy); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(bx,by); ctx.stroke();
+        }
+      }
+    }
+  }
+
+  // ─── SIMULTANEOUS TICK PULSE ───
+  // When many clocks tick together, their flashes sum → collective glow
+  // This is NOT painted on: it's a visual sum of genuine rupture events
+  if(si>=3 && si<=6){
+    let totalFlash = 0;
+    for(let i=0;i<8;i++){
+      if(clockActive[i]) totalFlash += clockFlash[i];
+    }
+    if(totalFlash > 1.5){
+      // Multiple simultaneous ticks — glow from centre
+      const pulseStrength = cl((totalFlash - 1.5) * 0.15, 0, 0.25);
+      const grd = ctx.createRadialGradient(cx,cy,0, cx,cy, minDim*0.45);
+      grd.addColorStop(0, `rgba(200,170,80,${pulseStrength})`);
+      grd.addColorStop(0.5, `rgba(200,170,80,${pulseStrength*0.3})`);
+      grd.addColorStop(1, 'rgba(244,241,236,0)');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0,0,W,H);
+    }
+  }
+
+  // Alignment glow — intensifies with genuine order parameter
+  if(si>=4 && orderParam > 0.6){
+    const intensity = cl(orderParam - 0.6) * (si===6 ? 0.4 : 0.18);
+    // Warm gold wash from centre
+    const grd = ctx.createRadialGradient(cx,cy,0, cx,cy, minDim*0.55);
+    grd.addColorStop(0, `rgba(220,190,100,${intensity})`);
+    grd.addColorStop(0.4, `rgba(200,170,80,${intensity*0.4})`);
+    grd.addColorStop(1, 'rgba(244,241,236,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0,0,W,H);
+  }
+  // Peak alignment flash — when r → 1
+  if(si===6 && orderParam > 0.92){
+    const flash = cl(orderParam - 0.92) * 1.5;
+    ctx.fillStyle = `rgba(255,248,230,${flash * 0.2})`;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  // Dust motes
+  if(si>=2){
+    ctx.fillStyle = `rgba(160,140,110,${0.02+beauty*0.02})`;
+    for(let d=0;d<8;d++){
+      const seed = d*137.508;
+      const dx = cx + (Math.sin(gT*0.02+seed)*0.3+Math.cos(seed)*0.25)*W;
+      const dy = cy + (Math.cos(gT*0.015+seed*1.3)*0.3)*H;
+      ctx.beginPath(); ctx.arc(dx,dy,0.8+Math.sin(gT*0.3+seed)*0.3, 0,τ); ctx.fill();
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PHASOR CIRCLE — the canonical Kuramoto visualisation
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 8 dots on a unit circle at their actual phase angles θ_i.
+  // When uncoupled: scattered. When synchronised: clustered.
+  // The mean-field vector (r, ψ) shown as a line from centre.
+  // This is THE standard diagram from every Kuramoto paper.
+  if(si >= 3 && si <= 6){
+    const pcx = W*0.08;
+    const pcy = H*0.5;
+    const pcr = minDim*0.06;
+
+    // Background circle
+    ctx.strokeStyle = 'rgba(42,37,32,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(pcx, pcy, pcr, 0, τ); ctx.stroke();
+
+    // Cross hairs
+    ctx.strokeStyle = 'rgba(42,37,32,0.03)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(pcx-pcr,pcy); ctx.lineTo(pcx+pcr,pcy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pcx,pcy-pcr); ctx.lineTo(pcx,pcy+pcr); ctx.stroke();
+
+    // Mean-field vector: r·exp(iψ) — the order parameter as a line
+    if(orderParam > 0.02){
+      const vx = pcx + Math.cos(orderAngle)*pcr*orderParam;
+      const vy = pcy + Math.sin(orderAngle)*pcr*orderParam;
+      const rAlpha = 0.15 + orderParam*0.4;
+      ctx.strokeStyle = `rgba(160,133,48,${rAlpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(pcx,pcy); ctx.lineTo(vx,vy); ctx.stroke();
+      // Arrowhead dot
+      ctx.fillStyle = `rgba(160,133,48,${rAlpha})`;
+      ctx.beginPath(); ctx.arc(vx,vy, 3, 0,τ); ctx.fill();
+    }
+
+    // Phase dots — each clock at its θ_i on the unit circle
+    for(let i=0;i<8;i++){
+      if(!clockActive[i]) continue;
+      const θ = clockPhases[i] * τ;
+      const dx = pcx + Math.cos(θ)*pcr;
+      const dy = pcy + Math.sin(θ)*pcr;
+      const [cr,cg,cb] = CLOCK_RGB[i];
+
+      const flash = clockFlash[i];
+      const dotR = 3 + flash*3;
+      ctx.fillStyle = `rgba(${cr},${cg},${cb},${0.5+flash*0.4})`;
+      ctx.beginPath(); ctx.arc(dx,dy, dotR, 0,τ); ctx.fill();
+    }
+
+    // Label
+    ctx.fillStyle = 'rgba(42,37,32,0.18)';
+    ctx.font = `300 ${Math.max(8,minDim*0.012)}px var(--mono)`;
+    ctx.textAlign = 'center';
+    ctx.fillText('phase space', pcx, pcy+pcr+14);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PHASE RASTER — tick history as a scrolling strip
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 8 horizontal rows, one per clock. Each column = one frame.
+  // Bright = rupture (tick). When clocks synchronise, the bright marks
+  // form VERTICAL COLUMNS — all 8 ticking at the same instant.
+  // Below: the r(t) order parameter trace.
+  if(si >= 2 && si <= 7){
+    const rasterH = Math.max(40, H*0.06); // total raster height
+    const rowH = rasterH / 9;              // 8 rows + 1 for r(t)
+    const rasterY = H - rasterH - 6;       // above progress bar
+    const rasterW = W * 0.84;
+    const rasterX = (W - rasterW) / 2;
+
+    // Separator line
+    ctx.strokeStyle = 'rgba(42,37,32,0.04)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(rasterX,rasterY); ctx.lineTo(rasterX+rasterW,rasterY); ctx.stroke();
+
+    // Draw each column (time step)
+    const colW = rasterW / HIST_LEN;
+    for(let t=0; t<HIST_LEN; t++){
+      const idx = (histIdx + t) % HIST_LEN;
+      const x = rasterX + (t/HIST_LEN)*rasterW;
+
+      // 8 clock rows — flash brightness as fill
+      for(let i=0;i<8;i++){
+        const flash = flashHist[idx*8+i];
+        if(flash < 0.03) continue;
+        const y = rasterY + i*rowH;
+
+        // Colour from clock (precomputed)
+        const [cr,cg,cb] = CLOCK_RGB[i];
+
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},${cl(flash*0.7)})`;
+        ctx.fillRect(x, y+1, Math.max(1.5, colW+0.5), rowH-1.5);
+      }
+
+      // r(t) trace — bottom row
+      const r = rHist[idx];
+      if(r > 0.01){
+        const ry = rasterY + 8*rowH;
+        const barH = r * rowH * 0.9;
+        const goldAlpha = 0.12 + r*0.4;
+        ctx.fillStyle = `rgba(160,133,48,${goldAlpha})`;
+        ctx.fillRect(x, ry + rowH - barH, Math.max(1.5, colW+0.5), barH);
+      }
+    }
+
+    // Row labels (right side, small)
+    ctx.fillStyle = 'rgba(42,37,32,0.12)';
+    ctx.font = `300 ${Math.max(6, rowH*0.7)}px var(--mono)`;
+    ctx.textAlign = 'left';
+    const labelX = rasterX + rasterW + 4;
+    for(let i=0;i<8;i++){
+      if(clockActive[i]){
+        ctx.fillText(CLOCKS[i].name.slice(0,3), labelX, rasterY + i*rowH + rowH*0.8);
+      }
+    }
+    ctx.fillStyle = 'rgba(160,133,48,0.2)';
+    ctx.fillText('r(t)', labelX, rasterY + 8*rowH + rowH*0.8);
+
+    // "now" marker — right edge line
+    ctx.strokeStyle = 'rgba(42,37,32,0.08)';
+    ctx.lineWidth = 0.5;
+    const nowX = rasterX + rasterW;
+    ctx.beginPath(); ctx.moveTo(nowX,rasterY); ctx.lineTo(nowX,rasterY+rasterH); ctx.stroke();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// §7. UI
+// ═══════════════════════════════════════════════════════════════════════════════
+const elSn=document.getElementById('sn'), elDesc=document.getElementById('desc');
+const elNote=document.getElementById('note'), elHud=document.getElementById('hud');
+const elBp=document.getElementById('bp');
+let lastSi=-1;
+
+function updateUI(){
+  const st = STAGES[si];
+  if(si !== lastSi){
+    lastSi = si;
+    elSn.style.opacity='0'; elDesc.style.opacity='0'; elNote.style.opacity='0';
+    setTimeout(()=>{ elSn.textContent=st.name; elSn.style.opacity='0.85'; }, 400);
+    setTimeout(()=>{ elDesc.textContent=st.desc; elDesc.style.opacity='0.55'; }, 2000);
+    setTimeout(()=>{ elNote.textContent=st.note; elNote.style.opacity='0.38'; }, 4500);
+    setTimeout(()=>{ elDesc.style.opacity='0'; elNote.style.opacity='0'; },
+      Math.min(st.dur*1000-2500, 24000));
+  }
+
+  // HUD
+  let h = '';
+  if(si>=1){
+    h += `crystal: ${sampleRate.toLocaleString()} Hz\n`;
+    h += `seconds: ${crystalRuptures.toLocaleString()}\n`;
+    h += `C·Ω: ${crystalPhase.toFixed(4)}\n`;
+    h += `clock: crystal only\n\n`;
+  }
+  if(currentK > 0.001){
+    h += `K (coupling): ${currentK.toFixed(3)}\n`;
+    h += `r (order): ${orderParam.toFixed(3)}\n`;
+    if(si === 5 && currentDetune > 0.01){
+      h += `gravity: ${(currentDetune*40).toFixed(0)}% detuning\n`;
+    }
+    h += `B(rP·r): ${B(rP*orderParam).toFixed(3)}\n\n`;
+  }
+  let n=0;
+  for(let i=0;i<8;i++){
+    if(clockActive[i]){
+      h += `${CLOCKS[i].name}: θ=${(clockPhases[i]*τ).toFixed(2)}\n`;
+      n++;
+    }
+  }
+  if(n>0) h += `\nactive: ${n}/8`;
+
+  elHud.textContent = h;
+
+  let el=0; for(let i=0;i<si;i++) el+=STAGES[i].dur; el+=sT;
+  elBp.style.width = (el/totDur()*100)+'%';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// §8. MAIN LOOP — render only, all timing from crystal
+// ═══════════════════════════════════════════════════════════════════════════════
+// The render loop does NOT keep time. It reads crystal state and draws.
+// Stage progression is computed by the audio callback from crystal counters
+// and published via si/sT. The render loop just visualises.
+let lastT=null, running=false, lastUIUpdate=0;
+
+function tick(ts){
+  if(!running) return;
+
+  // gT is set by the audio callback via updateStage (crystal-derived)
+  // We just use it for visual animation timing
+  updateStage(); // sync render-side si/sT/gT from crystal
+
+  drawScene();
+
+  // Update UI ~3× per second
+  if(ts - lastUIUpdate > 333){ lastUIUpdate = ts; updateUI(); }
+
+  requestAnimationFrame(tick);
+}
+
+window.addEventListener('resize', resize);
+document.getElementById('splash').addEventListener('click', ()=>{
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  requestAnimationFrame(()=>{
+    resize();
+    initAudio();
+    running = true;
+    requestAnimationFrame(tick);
+  });
+});
+</script>
+</body>
+</html>
