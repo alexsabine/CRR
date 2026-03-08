@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Song of the Bowl — CRR Composition</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0806;overflow:hidden;height:100vh;height:100dvh;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;-webkit-touch-callout:none}
+#gl,#cv{position:absolute;top:0;left:0}
+#cv{pointer-events:none}
+.hud{position:fixed;pointer-events:none;font:300 clamp(9px,0.9vw,10px)/1.6 'Cormorant Garamond',Georgia,serif;letter-spacing:.06em;color:rgba(200,180,140,0.12)}
+#title{top:14px;left:18px;letter-spacing:.28em;font-size:clamp(11px,1.2vw,13px)}
+#eq{top:14px;right:18px;text-align:right}
+#modes{bottom:14px;right:18px;text-align:right;white-space:pre;color:rgba(200,180,140,0);transition:color 2s}
+#modes.show{color:rgba(200,180,140,0.16)}
+#ui{bottom:20px;left:50%;transform:translateX(-50%);text-align:center;color:rgba(220,200,160,0.25);font-size:clamp(12px,1.4vw,14px);letter-spacing:.20em;transition:opacity 3s}
+#ui.dim{opacity:0}
+.ctrl{position:fixed;display:flex;flex-wrap:wrap;gap:4px;align-items:center;z-index:10;pointer-events:auto}
+.ctrl span{color:rgba(200,180,140,0.18);font:300 clamp(9px,0.8vw,10px) 'Cormorant Garamond',Georgia,serif;letter-spacing:.08em}
+.ctrl button{background:none;border:1px solid rgba(200,180,140,0.15);border-radius:3px;color:rgba(200,180,140,0.25);font:300 clamp(9px,0.9vw,10px) 'Cormorant Garamond',Georgia,serif;letter-spacing:.10em;padding:6px 10px;min-height:44px;min-width:36px;cursor:pointer;transition:all .3s}
+.ctrl button:hover,.ctrl button.on{border-color:rgba(200,180,140,0.4);color:rgba(200,180,140,0.5)}
+.ctrl button.on{background:rgba(200,180,140,0.06)}
+#cTime{bottom:14px;left:18px}
+#cBowl{top:44px;right:18px}
+@media(max-width:480px){#eq{display:none}#cBowl{top:14px;right:12px}#cTime{bottom:12px;left:12px}#modes{bottom:12px;right:12px;font-size:8px}#ui{bottom:52px}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas><canvas id="cv"></canvas>
+<div class="hud" id="title">SONG OF THE BOWL</div>
+<div class="hud" id="eq">C·Ω = 1<br>δ(now) — strike<br>R = ∫φ·exp(C/Ω)·Θ dτ</div>
+<div class="hud" id="ui">tap water to strike · drag rim to sing</div>
+<div class="hud" id="modes"></div>
+<div class="ctrl" id="cTime"><span>time</span>
+<button onclick="setSpeed(0.1)" id="sp0">0.1×</button>
+<button onclick="setSpeed(0.25)" id="sp1">¼×</button>
+<button onclick="setSpeed(0.5)" id="sp2">½×</button>
+<button onclick="setSpeed(1)" id="sp3" class="on">1×</button></div>
+<div class="ctrl" id="cBowl"><span>bowl</span>
+<button onclick="setBowl(0)" id="bw0">C5</button>
+<button onclick="setBowl(1)" id="bw1">F4</button>
+<button onclick="setBowl(2)" id="bw2" class="on">G3</button>
+<button onclick="setBowl(3)" id="bw3">C3</button>
+<button onclick="setBowl(4)" id="bw4">D3</button></div>
+<script>
+// Song of the Bowl — CRR Composition
+// C·Ω = 1 : one equation generates everything
+// Alexander Sabine · cohere.org.uk · temporalgrammar.ai
+const PI=Math.PI,TAU=2*PI,
+{sin,cos,sqrt,pow,abs,min,max,exp,random:rnd,atan2,floor:flr}=Math;
+
+// Bowl presets: [name, note, F0, [[fr, sp, τ, wA] per mode m=2..6]]
+const BD=[
+['Small Thadobati','C5',523,[[1,1.8,10,.7],[2.71,3.8,6,.35],[4.95,6.2,3.5,.18],[7.7,9,2,.08],[11.1,12,1.2,.03]]],
+['Thin Manipuri','F4',349,[[1,1.4,16,.85],[2.72,2.8,10,.42],[5,4.5,6,.24],[7.8,7,3.5,.12],[11.3,9.5,2,.05]]],
+['Medium Jambati','G3',196,[[1,1.1,25,1],[2.714,2.4,16,.5],[5.004,3.8,9,.28],[7.832,6.2,5.5,.14],[11.34,8.5,3.2,.06]]],
+['Large Jambati','C3',131,[[1,.8,35,1.2],[2.7,1.8,22,.6],[4.98,3,13,.35],[7.75,5,7.5,.18],[11.2,7.2,4.5,.08]]],
+['Antique Naga','D3',147,[[1,1.5,30,1.1],[2.68,3.2,20,.55],[4.9,5.5,12,.32],[7.65,8,7,.16],[11,11,4,.07]]]];
+
+let bi=2,F0=BD[2][2],MD=BD[2][3];
+const MS=Array.from({length:5},()=>({C:0,C0:1,amp:0}));
+let struck=0,stF=0,rimOn=0,rimAng=0,rimPrev=0,rimSpd=0,
+ac=null,mG=null,oP=null,pt=0,lastT=0,tS=1,pDn=0;
+
+// CRR mode weight: (.25+.75/m) — the Z₂ excitation kernel
+function mW(mi){return .25+.75/(mi+2)}
+// CRR gain: amp × .22/√m — energy partition across modes
+function mGn(mi){return MS[mi].amp*.22/sqrt(mi+2)}
+
+function syncF(){if(!oP)return;const n=ac.currentTime;
+MD.forEach((d,i)=>{oP[i][2].frequency.setValueAtTime((F0*d[0]-d[1]/2)*tS,n);
+oP[i][3].frequency.setValueAtTime((F0*d[0]+d[1]/2)*tS,n)})}
+
+function setBowl(i){bi=i;F0=BD[i][2];MD=BD[i][3];struck=stF=0;
+for(const s of MS){s.C=0;s.C0=1;s.amp=0}
+if(oP){syncF();const n=ac.currentTime;oP.forEach(o=>{o[0].gain.setValueAtTime(1e-4,n);o[1].gain.setValueAtTime(1e-4,n)})}
+document.querySelectorAll('[id^=bw]').forEach(b=>b.classList.remove('on'));
+document.getElementById('bw'+i).classList.add('on')}
+
+function setSpeed(s){tS=s;syncF();
+document.querySelectorAll('[id^=sp]').forEach(b=>b.classList.remove('on'));
+document.getElementById('sp'+{0.1:0,0.25:1,0.5:2,1:3}[s]).classList.add('on')}
+
+// Audio: Z₂ doublet pairs [gA, gC, oA, oC] per mode
+function initAudio(){if(ac)return;ac=new(AudioContext||webkitAudioContext)();
+const co=ac.createDynamicsCompressor();co.threshold.value=-15;co.knee.value=10;co.ratio.value=5;co.connect(ac.destination);
+mG=ac.createGain();mG.gain.value=.65;
+const dr=ac.createGain();dr.gain.value=.75;mG.connect(dr);dr.connect(co);
+setTimeout(()=>{const l=ac.sampleRate*4.5,b=ac.createBuffer(2,l,ac.sampleRate);
+for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<l;i++)d[i]=(rnd()*2-1)*pow(1-i/l,2.2)}
+const v=ac.createConvolver();v.buffer=b;const w=ac.createGain();w.gain.value=.35;mG.connect(v);v.connect(w);w.connect(co)},0);
+oP=MD.map(d=>{const fA=F0*d[0]-d[1]/2,fC=F0*d[0]+d[1]/2;
+const gA=ac.createGain(),gC=ac.createGain();gA.gain.value=0;gC.gain.value=0;gA.connect(mG);gC.connect(mG);
+const oA=ac.createOscillator(),oC=ac.createOscillator();oA.type=oC.type='sine';
+oA.frequency.value=fA*tS;oC.frequency.value=fC*tS;oA.connect(gA);oC.connect(gC);oA.start();oC.start();
+return[gA,gC,oA,oC]})}
+
+// δ(now): strike deposits C₀ = τ × force
+function doStrike(f){if(!ac)initAudio();if(ac.state==='suspended')ac.resume();
+struck=1;stF=f;const n=ac.currentTime;
+const nb=ac.createBuffer(1,ac.sampleRate*.04,ac.sampleRate),nd=nb.getChannelData(0);
+for(let i=0;i<nd.length;i++)nd[i]=(rnd()*2-1)*pow(1-i/nd.length,3)*f*.4;
+const ns=ac.createBufferSource();ns.buffer=nb;ns.playbackRate.value=tS;
+const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=F0*2*tS;nf.Q.value=1.5;
+const ng=ac.createGain();ng.gain.value=.5;ns.connect(nf);nf.connect(ng);ng.connect(mG);ns.start(n);ns.stop(n+.04);
+MD.forEach((d,i)=>{const s=MS[i],ex=f*mW(i)*(1+f*(i+2)*.06);
+s.C=d[2]*f;s.C0=s.C;s.amp=min(1,ex);const g=s.amp*.22/sqrt(i+2);
+[oP[i][0],oP[i][1]].forEach(gn=>{gn.gain.cancelScheduledValues(n);gn.gain.setValueAtTime(max(1e-4,g),n)})})}
+
+// GLSL: raytraced bowl + CRR water
+const FS=`precision highp float;
+uniform vec2 u_res;uniform float u_time,u_amp[5],u_sp[5],u_wA[5],u_mallet,u_malletStr,u_vib[5];
+const float PI=3.14159265,TAU=6.28318530,BR=1.0,WR=0.99,Rr=0.035;
+mat3 lookAt(vec3 e,vec3 t,vec3 u){vec3 f=normalize(t-e),r=normalize(cross(f,u));return mat3(r,cross(r,f),-f);}
+float sdTorus(vec3 p,float R,float r){vec2 q=vec2(length(p.xz)-R,p.y);return length(q)-r;}
+float bowlSDF(vec3 p){float th=atan(p.z,p.x);
+float rd=BR+u_vib[0]*cos(2.0*th)*.012+u_vib[1]*cos(3.0*th)*.008+u_vib[2]*cos(4.0*th)*.005+u_vib[3]*cos(5.0*th)*.003+u_vib[4]*cos(6.0*th)*.002;
+float dR=sdTorus(p,rd,Rr);float sR=1.85;vec3 sC=vec3(0,sR-.42,0);
+float dS=abs(length(p-sC)-sR)-.018;dS=max(dS,p.y-Rr*.5);dS=max(dS,length(p.xz)-(rd+.02));return min(dR,dS);}
+vec3 bowlN(vec3 p){float e=.001;return normalize(vec3(bowlSDF(p+vec3(e,0,0))-bowlSDF(p-vec3(e,0,0)),bowlSDF(p+vec3(0,e,0))-bowlSDF(p-vec3(0,e,0)),bowlSDF(p+vec3(0,0,e))-bowlSDF(p-vec3(0,0,e))));}
+float jm(float x,float m){if(x<.01)return m<.5?1.:0.;float s;
+if(m<2.5)s=x*x/4.;else if(m<3.5){float a=x/2.;s=a*a*a/6.;}
+else if(m<4.5){float a=x/2.;float b=a*a;s=b*b/24.;}
+else if(m<5.5){float a=x/2.;float b=a*a;s=b*b*a/120.;}
+else{float a=x/2.;float b=a*a;float c=b*a;s=c*c/720.;}
+return mix(s,sqrt(2./(PI*x))*cos(x-m*1.5708-.7854),smoothstep(1.5,5.,x));}
+float crrM(vec2 p,float amp,float wA,float sp,float m,float t){if(amp<.001)return 0.;
+float r=length(p);if(r>.98)return 0.;float th=atan(p.y,p.x);float j=jm(r*m*2.5,m);float bt=t*sp*TAU;
+return amp*wA*j*(cos(m*th)*cos(bt*.5)+cos(m*(th-PI/(2.*m)))*sin(bt*.5)*.65)*(1.-pow(r,4.));}
+float faradayH(vec2 p,float t,float totA){if(totA<.04)return 0.;
+float r=length(p);if(r>.97)return 0.;
+float env=smoothstep(.05,.3,r)*smoothstep(.97,.75,r);
+env*=.6+.6*smoothstep(.3,.6,r)*smoothstep(.9,.7,r);
+float k=26.;float h1=sin(k*p.x)*sin(k*p.y);
+float r2x=(p.x+p.y)*.707,r2y=(p.x-p.y)*.707;float h2=sin(k*r2x*1.08)*sin(k*r2y*1.08);
+float c3=.866,s3=.5;float h3=sin(k*(p.x*c3+p.y*s3)*.95)*sin(k*(-p.x*s3+p.y*c3)*.95);
+return(h1+h2*.7+h3*.4)*max(0.,totA-.04)*.22*env*(.6+.4*sin(t*PI*1.8));}
+float totalH(vec2 p,float t){float totA=u_amp[0]+u_amp[1]+u_amp[2]+u_amp[3]+u_amp[4];
+return crrM(p,u_amp[0],u_wA[0],u_sp[0],2.,t)+crrM(p,u_amp[1],u_wA[1],u_sp[1],3.,t)
++crrM(p,u_amp[2],u_wA[2],u_sp[2],4.,t)+crrM(p,u_amp[3],u_wA[3],u_sp[3],5.,t)
++crrM(p,u_amp[4],u_wA[4],u_sp[4],6.,t)+faradayH(p,t,totA);}
+vec3 waveN(vec2 p,float t){float e=.002;float hc=totalH(p,t);
+return normalize(vec3(-(totalH(p+vec2(e,0),t)-hc)/e*8.,1.,-(totalH(p+vec2(0,e),t)-hc)/e*8.));}
+vec3 bronze(vec3 p,vec3 n,vec3 L,vec3 V){float h=sin(p.x*40.+sin(p.z*30.)*2.)*sin(p.z*35.+sin(p.x*25.)*1.5)*.5+.5;
+vec3 b=vec3(.32,.23,.12)*(.7+.3*h)*(.5+.5*smoothstep(-.3,0.,p.y));
+float d=max(0.,dot(n,L))*.6;vec3 H=normalize(L+V);float s=pow(max(0.,dot(n,H)),40.)*.5;
+return b*(.15+d)+vec3(.9,.75,.45)*(s+smoothstep(-.02,.04,p.y)*.3*max(0.,dot(n,L)));}
+void main(){vec2 uv=(gl_FragCoord.xy-.5*u_res)/u_res.y;
+vec3 ro=vec3(0,.85,1.85);mat3 cam=lookAt(ro,vec3(0,-.12,0),vec3(0,1,0));
+vec3 rd=cam*normalize(vec3(uv,-1.2));vec3 L=normalize(vec3(.7,1.2,.4));vec3 V=-rd;
+float totA=u_amp[0]+u_amp[1]+u_amp[2]+u_amp[3]+u_amp[4];vec3 col=vec3(0);
+float tT=-1e6;if(rd.y<-.001){tT=(-.45-ro.y)/rd.y;if(tT>0.){vec3 tp=ro+rd*tT;float dd=length(tp.xz);
+float g=sin(tp.x*5.+sin(tp.z*3.)*.5)*.03+.03;
+col=vec3(.1+g,.075+g*.7,.05+g*.4)*(.5+.5/(1.+dd*dd*.3))*(1.-smoothstep(1.3,1.05,dd)*.5);}}
+float tW=-1e6;if(rd.y<-.001)tW=-ro.y/rd.y;bool hitW=false;vec3 wp;
+if(tW>0.){wp=ro+rd*tW;float wr=length(wp.xz);
+if(wr<WR){hitW=true;vec2 wuv=wp.xz/WR;vec3 wn=waveN(wuv,u_time);
+vec3 Hf=normalize(L+V);float spec=pow(max(0.,dot(wn,Hf)),350.)*4.;float spec2=pow(max(0.,dot(wn,Hf)),30.)*.06;
+float NdV=max(.001,dot(wn,V));float fres=min(1.,.02+.98*pow(1.-NdV,5.)+pow(wr/WR,6.)*.12);
+vec2 rOff=wn.xz/max(.3,wn.y)*.05;vec2 fp=wuv+rOff;float fr=length(fp);
+float fB=.05+.025*(1.-min(1.,fr))+totA*.03;vec3 flC=vec3(fB,fB*.78,fB*.42);
+float rings=0.;for(float ei=.1;ei<.95;ei+=.08){rings+=smoothstep(.006,0.,abs(fr-ei))*.012;}
+flC+=vec3(rings*.8,rings*.6,rings*.3);
+float eps=.003;float hc=totalH(wuv,u_time);
+float hpx=totalH(wuv+vec2(eps,0),u_time),hmx=totalH(wuv-vec2(eps,0),u_time);
+float hpy=totalH(wuv+vec2(0,eps),u_time),hmy=totalH(wuv-vec2(0,eps),u_time);
+float lap=(hpx-2.*hc+hmx+hpy-2.*hc+hmy)/(eps*eps);
+float dJ=1.-.08*lap*totA;float caust=min(1.5,max(0.,1./max(.2,abs(dJ))-1.));
+flC+=vec3(.45,.35,.17)*caust+vec3(.08,.06,.03)*min(1.,caust*.3);
+flC+=vec3(.1,.08,.04)*max(0.,hc*2.5*totA);flC*=vec3(.94,.96,.98);
+vec3 env=vec3(.04,.035,.025);float wl=.5+.5*cos(atan(wp.z,wp.x)-1.);
+env+=vec3(.14,.1,.05)*smoothstep(.5,.95,wr/WR)*wl;
+col=mix(flC,env,fres);col+=vec3(1,.95,.82)*spec+vec3(.5,.45,.35)*spec2;
+float men=smoothstep(.93,.99,wr/WR)*smoothstep(1.,.99,wr/WR);
+col+=vec3(.2,.15,.08)*men*wl;col*=1.-smoothstep(.92,1.,wr/WR)*.15;}}
+if(!hitW){float t=.01;float tM=min(tT>0.?tT:5.,5.);bool hB=false;vec3 bp;
+for(int i=0;i<64;i++){bp=ro+rd*t;float d=bowlSDF(bp);if(d<.001){hB=true;break;}t+=d*.8;if(t>tM)break;}
+if(hB){vec3 bn=bowlN(bp);col=bronze(bp,bn,L,V);
+if(u_malletStr>.001&&bp.y>-.02){float a=atan(bp.z,bp.x);float da=a-u_mallet;
+da-=TAU*floor((da+PI)/TAU);col+=vec3(1,.85,.5)*u_malletStr*exp(-da*da*20.)*.5;}}}
+col*=max(0.,1.-.3*length(uv*1.2));col=pow(col,vec3(.95,1.,1.05));gl_FragColor=vec4(col,1);}`;
+
+// WebGL init
+const gC=document.getElementById('gl'),gl=gC.getContext('webgl',{alpha:0,antialias:0}),
+cE=document.getElementById('cv'),cx=cE.getContext('2d');let W,H;
+function mkS(s,t){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o}
+const pr=(()=>{const p=gl.createProgram();
+gl.attachShader(p,mkS('attribute vec2 a;void main(){gl_Position=vec4(a,0,1);}',gl.VERTEX_SHADER));
+gl.attachShader(p,mkS(FS,gl.FRAGMENT_SHADER));gl.linkProgram(p);return p})();
+gl.useProgram(pr);const vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const aP=gl.getAttribLocation(pr,'a');gl.enableVertexAttribArray(aP);gl.vertexAttribPointer(aP,2,gl.FLOAT,0,0,0);
+const U={};['u_res','u_time','u_mallet','u_malletStr'].forEach(n=>U[n]=gl.getUniformLocation(pr,n));
+const uA=[],uS=[],uW=[],uV=[];
+for(let i=0;i<5;i++){uA[i]=gl.getUniformLocation(pr,'u_amp['+i+']');uS[i]=gl.getUniformLocation(pr,'u_sp['+i+']');
+uW[i]=gl.getUniformLocation(pr,'u_wA['+i+']');uV[i]=gl.getUniformLocation(pr,'u_vib['+i+']')}
+
+// Camera: right=(1,0,0) — precomputed constants for fwd and up
+// eye=(0,.85,1.85) target=(0,-.12,0)  fwd=(0,-.4644,-.8856) up=(0,.8856,-.4644)
+const FY=-.46436,FZ=-.88564,UY=.88564,UZ=-.46436;
+
+function proj3D(wx,wy,wz){
+const dy=wy-.85,dz=wz-1.85,pz=FY*dy+FZ*dz;if(pz<.01)return null;
+return{x:W/2+1.2*wx/pz*H,y:H/2-1.2*(UY*dy+UZ*dz)/pz*H,z:pz}}
+
+function unproj(sx,sy){
+const uvx=(sx-W/2)/H,uvy=(H/2-sy)/H;
+const rdy=UY*uvy+FY*1.2;if(abs(rdy)<1e-4)return null;
+const t=-.85/rdy;if(t<0)return null;
+const wx=t*uvx,wz=1.85+t*(UZ*uvy+FZ*1.2);
+const wr=sqrt(wx*wx+wz*wz);return{wr,ang:atan2(wz,wx)}}
+
+// Interaction: unproject to world y=0, test world-space radius
+function xy(e){return[e.clientX??e.touches?.[0]?.clientX,e.clientY??e.touches?.[0]?.clientY]}
+function show(){document.getElementById('ui').classList.add('dim');document.getElementById('modes').classList.add('show')}
+
+function onDown(e){
+if(!ac)initAudio();if(ac?.state==='suspended')ac.resume();
+if(e.target.closest?.('.ctrl'))return;e.preventDefault();
+const[ex,ey]=xy(e);if(ex==null)return;pDn=1;
+const h=unproj(ex,ey);if(!h)return;
+if(h.wr<.85){doStrike(.3+.7*max(0,1-h.wr/.85));spawnDrops(stF,ex,ey);show()}
+else if(h.wr<1.25){rimOn=1;rimAng=rimPrev=h.ang;rimSpd=0;show()}}
+
+function onMove(e){if(!pDn)return;e.preventDefault();
+const[ex,ey]=xy(e);if(ex==null||!rimOn)return;
+const h=unproj(ex,ey);if(!h)return;
+let da=h.ang-rimPrev;if(da>PI)da-=TAU;if(da<-PI)da+=TAU;
+rimSpd=rimSpd*.6+abs(da)*.4;rimPrev=h.ang;rimAng=h.ang;
+if(rimSpd>.003&&oP){const n=ac.currentTime;
+MD.forEach((d,i)=>{const s=MS[i],tgt=min(1,rimSpd*4)*mW(i)*.55;
+s.amp+=(tgt-s.amp)*.04;s.C+=rimSpd*.3;s.C0=max(s.C0,s.C);
+const g=max(1e-4,s.amp*.18/sqrt(i+2));
+oP[i][0].gain.setTargetAtTime(g,n,.06);oP[i][1].gain.setTargetAtTime(g,n,.06)})}}
+
+function onUp(){pDn=0;if(rimOn){rimOn=0;
+if(oP){struck=1;stF=0;MD.forEach((d,i)=>{const s=MS[i];
+if(stF<s.amp)stF=s.amp;s.C=s.amp*d[2];s.C0=s.C})}}}
+
+addEventListener('mousedown',onDown);addEventListener('mousemove',onMove);addEventListener('mouseup',onUp);
+addEventListener('touchstart',onDown,{passive:0});addEventListener('touchmove',onMove,{passive:0});addEventListener('touchend',onUp);
+
+function resize(){const d=min(devicePixelRatio||1,1.5);W=innerWidth;H=innerHeight;
+gC.width=W*d;gC.height=H*d;gC.style.width=W+'px';gC.style.height=H+'px';
+gl.viewport(0,0,W*d,H*d);cE.width=W;cE.height=H}
+resize();addEventListener('resize',resize);
+
+// Particles: type 0=dust, 1=drop, 2=faraday
+const P=[];for(let i=0;i<20;i++)P.push({x:rnd()*2e3,y:rnd()*2e3,vx:(rnd()-.5)*.1,vy:-.02-rnd()*.04,
+life:2,sz:.3+rnd()*.8,br:.05+rnd()*.08,T:0,ph:rnd()*TAU});
+
+function spawnDrops(f,sx,sy){for(let i=0,n=flr(3+f*10);i<n;i++){const a=rnd()*TAU,s=f*(.8+rnd()*1.5);
+P.push({x:sx,y:sy,vx:cos(a)*s*.4,vy:-s*.6-rnd()*1.5,life:1,sz:.6+rnd()*2,br:.3+rnd()*.7,T:1})}}
+
+// Faraday-only height: annular ring envelope, no Bessel modes
+function farH(nx,nz,t){const r=sqrt(nx*nx+nz*nz);if(r>.97||r<.05)return 0;
+let tA=0;for(const s of MS)tA+=s.amp;if(tA<.04)return 0;
+const env=max(0,min(1,(r-.05)/.25))*max(0,min(1,(.97-r)/.22))*(.6+.6*max(0,min(1,(r-.3)/.3))*max(0,min(1,(.9-r)/.2)));
+const k=26,h1=sin(k*nx)*sin(k*nz),rx=(nx+nz)*.707,rz=(nx-nz)*.707,
+h2=sin(k*rx*1.08)*sin(k*rz*1.08),h3=sin(k*(nx*.866+nz*.5)*.95)*sin(k*(-nx*.5+nz*.866)*.95);
+return(h1+h2*.7+h3*.4)*max(0,tA-.04)*.22*env*(.6+.4*sin(t*PI*1.8))}
+
+let fGP=0;
+function spawnFar(t){if(P.length>400)return;
+let tA=0;for(const s of MS)tA+=s.amp;if(tA<.04)return;
+const thr=.012+.015*(1-min(1,tA*3));fGP+=.31;const N=12,cc=cos(fGP),ss=sin(fGP);
+for(let gi=0;gi<N;gi++)for(let gj=0;gj<N;gj++){
+const gx=(gi/11-.5)*1.9,gz=(gj/11-.5)*1.9,nx=gx*cc-gz*ss,nz=gx*ss+gz*cc,nr=sqrt(nx*nx+nz*nz);
+if(nr>.96||nr<.04)continue;const fh=farH(nx,nz,t);if(abs(fh)<thr)continue;
+const ex=abs(fh)-thr;if(rnd()>min(.55,ex*25+.18))continue;
+const pj=proj3D(nx*.99,0,nz*.99);if(!pj||pj.z<.1)continue;const bPx=min(W,H)*.28;
+P.push({x:pj.x,y:pj.y,bY:pj.y,vx:(rnd()-.5)*.3,sz:.5+rnd(),s0:.5+rnd(),br:.25+rnd()*.35,T:2,
+bC:ex*3,bC0:ex*3,bP:1/(6+rnd()*4),bPh:rnd()*.15,bN:0,bM:1+flr(rnd()*3),eH:bPx*(.005+ex*tA*.12)})}}
+
+function updP(dt){for(let i=P.length-1;i>=0;i--){const p=P[i];
+if(p.T===1){p.vy+=15*dt;p.x+=p.vx;p.y+=p.vy;p.life-=dt*.8;if(p.life<=0)P.splice(i,1)}
+else if(p.T===2){p.bPh+=dt/p.bP;p.x+=p.vx*dt*.3;
+if(p.bPh>=1){p.bPh-=1;p.bN++;p.bC-=p.bC0/p.bM;if(p.bN>=p.bM||p.bC<=0){P.splice(i,1);continue}}
+const a=4*p.bPh*(1-p.bPh),h=sqrt(max(0,p.bC/p.bC0));
+p.y=p.bY-p.eH*a*h;p.sz=p.s0*(.5+.5*(1-a*.4));p.br=.2+a*.6*h}
+else{p.ph+=dt*.3;p.x+=p.vx+sin(p.ph)*.02;p.y+=p.vy+cos(p.ph*1.618)*.01;
+if(p.x<-20)p.x=W+20;if(p.x>W+20)p.x=-20;if(p.y<-20)p.y=H+20;if(p.y>H+20)p.y=-20}}}
+
+function drawP(){cx.clearRect(0,0,W,H);cx.save();cx.globalCompositeOperation='lighter';
+for(const p of P){if(p.T===0){cx.fillStyle=`rgba(200,180,140,${p.br*.3})`;cx.beginPath();cx.arc(p.x,p.y,p.sz,0,TAU);cx.fill()}
+else if(p.T===2){const a=4*p.bPh*(1-p.bPh),h=sqrt(max(0,p.bC/p.bC0)),al=min(.85,p.br*(.2+a*.8*h));
+cx.fillStyle=`rgba(255,250,235,${al})`;cx.beginPath();cx.arc(p.x,p.y,max(.3,p.sz),0,TAU);cx.fill();
+if(a>.5&&p.sz>.7&&h>.3){const gr=p.sz*2.5,gg=cx.createRadialGradient(p.x,p.y,0,p.x,p.y,gr);
+gg.addColorStop(0,`rgba(255,245,210,${al*.12})`);gg.addColorStop(1,'rgba(255,245,210,0)');
+cx.fillStyle=gg;cx.beginPath();cx.arc(p.x,p.y,gr,0,TAU);cx.fill()}}
+else{const al=p.life*p.br*.6;cx.fillStyle=`rgba(240,220,180,${al})`;
+cx.beginPath();cx.arc(p.x,p.y,p.sz*p.life,0,TAU);cx.fill()}}cx.restore()}
+
+// Render: one CRR state → audio + water + caustics + drops
+const mEl=document.getElementById('modes');
+function render(ts){requestAnimationFrame(render);
+const rDt=min(.05,(ts-lastT)/1e3);lastT=ts;const dt=rDt*tS;pt+=dt;
+let mTxt='';const n=ac?ac.currentTime:0;
+MD.forEach((d,i)=>{const s=MS[i];
+if(rimOn){s.C+=rimSpd*.3*dt;s.C0=max(s.C0,s.C)}
+else if(struck){s.C-=dt;if(s.C<=0){s.C=0;s.amp=0}else s.amp=stF*mW(i)*sqrt(s.C/s.C0)}
+if(oP){const g=s.amp<2e-4?1e-4:mGn(i),τ=s.amp<2e-4?.01:.016;
+oP[i][0].gain.setTargetAtTime(g,n,τ);oP[i][1].gain.setTargetAtTime(g,n,τ)}
+if(s.amp>.001)mTxt+=`m=${i+2} ${(F0*d[0]).toFixed(0)}Hz C=${s.C.toFixed(1)} ${'▮'.repeat(min(15,flr(s.amp*15)))}\n`});
+let nF=0;for(const p of P)if(p.T===2)nF++;
+mTxt+=`${BD[bi][1]} ${BD[bi][0]}`;if(nF)mTxt+=` · ${nF} drops`;if(tS<1)mTxt+=` · ${tS}×`;
+mEl.textContent=mTxt;updP(dt);spawnFar(pt);
+const dp=min(devicePixelRatio||1,1.5);
+gl.uniform2f(U.u_res,W*dp,H*dp);gl.uniform1f(U.u_time,pt);
+gl.uniform1f(U.u_mallet,rimAng);gl.uniform1f(U.u_malletStr,rimOn?min(.8,rimSpd*5):0);
+for(let i=0;i<5;i++){gl.uniform1f(uA[i],MS[i].amp);gl.uniform1f(uS[i],MD[i][1]);
+gl.uniform1f(uW[i],MD[i][3]);gl.uniform1f(uV[i],MS[i].amp*sin(pt*MD[i][1]*TAU))}
+gl.drawArrays(gl.TRIANGLE_STRIP,0,4);drawP()}
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
