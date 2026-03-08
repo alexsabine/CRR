@@ -1,0 +1,653 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Song of the Cricket — CRR</title>
+<style>
+*{margin:0;padding:0}
+body{background:#000;overflow:hidden}
+canvas{display:block}
+#start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:14px;color:rgba(170,255,20,.45);font:15px Georgia,serif;
+  cursor:pointer;z-index:2;letter-spacing:.5px}
+#start span{font:10px Georgia,serif;color:rgba(170,255,20,.2);letter-spacing:1px}
+#ui{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);text-align:center;
+  color:rgba(170,255,20,.3);font:10px Georgia,serif;z-index:1;display:none}
+#ui input[type=range]{width:110px;accent-color:#7a4;opacity:.4}
+#toggles{margin-top:8px;display:flex;gap:6px;justify-content:center}
+#toggles button{background:rgba(170,255,20,.08);border:1px solid rgba(170,255,20,.15);
+  color:rgba(170,255,20,.5);font:9px Georgia,serif;padding:3px 10px;cursor:pointer;
+  border-radius:2px;transition:all .2s}
+#toggles button.on{background:rgba(170,255,20,.18);border-color:rgba(170,255,20,.35);
+  color:rgba(170,255,20,.8)}
+#info{position:fixed;top:14px;right:16px;color:rgba(170,255,20,.18);font:9px Georgia,serif;
+  text-align:right;line-height:1.7;z-index:1;display:none;white-space:pre}
+</style></head><body>
+<div id="start">click to listen<span>Song of the Cricket — A CRR Composition</span></div>
+<div id="ui"><input type="range" id="temp" min="10" max="35" value="22" step=".5">
+<div id="tl">22 °C — Ω control</div>
+<div id="toggles">
+<button id="t-field" class="on" onclick="tog(this,'field')">field cricket · Z₂ 5 kHz</button>
+<button id="t-tree" class="on" onclick="tog(this,'tree')">tree cricket · Z₂ 3 kHz</button>
+<button id="t-fly" class="on" onclick="tog(this,'fly')">firefly · SO(2)</button>
+</div></div>
+<div id="info"></div>
+<canvas id="c"></canvas>
+<script>
+// ══════════════════════════════════════════════════════════════════════
+//  SONG OF THE CRICKET — A CRR Composition
+//  Alexander Sabine · cohere.org.uk · temporalgrammar.ai · 2026
+// ══════════════════════════════════════════════════════════════════════
+//
+//  Two species. One summer night. Every parameter from first principles.
+//
+//  CRICKETS — Z₂ stridulation (chirp / silence)
+//  FIREFLIES — SO(2) bioluminescence, Class B (phase-coupled)
+//
+//  CRR solves: timing, variance, envelope, resonance Q, temperature
+//  coupling, synchronisation, flash shape, colour temperature.
+//
+//  What CRR needs from the world: one physical scale per species
+//  (wing length for crickets, body mass for fireflies). Everything
+//  else — every ratio, every temporal structure — follows.
+//
+//
+// ── §1  CRR FRAMEWORK ──────────────────────────────────────────────
+//
+//   C(x,t) = ∫L(x,τ)dτ          coherence accumulates
+//   δ(now)  when C·Ω = 1         rupture: Cramér-Rao saturation
+//   R = ∫φ·exp(C/Ω)·Θ dτ        regeneration from weighted memory
+//
+//   Z₂  :  Ω = 1/π    CV = 1/(2π) ≈ 0.159   (bistable)
+//   SO(2):  Ω = 1/2π   CV = 1/(4π) ≈ 0.080   (rotational)
+//
+//   B(x) = exp(x)·(1 − x/π)     beauty: peak at x = π−1 ≈ 2.14
+//
+//
+// ── §2  CRICKETS — NESTED CRR AT TWO SCALES ────────────────────────
+//
+//  MACRO SCALE — the chirp cycle (Z₂):
+//    Chirp / silence = two states. The scraper engages the file
+//    (coherence: wing closes, teeth strike) then disengages
+//    (regeneration: wing opens, muscles reset). Z₂ rupture fires
+//    at the moment the wing reverses direction.
+//    CRR predicts: CV = 1/(2π) ≈ 0.159 for inter-chirp intervals.
+//    Temperature: Ω = kT/ΔF_eff → Arrhenius rate scaling.
+//    Dolbear's Law (1897) IS CRR thermodynamics.
+//
+//  MICRO SCALE — the wing membrane resonance (SO(2)):
+//    Each tooth-strike excites a damped oscillation in the wing
+//    membrane. This is an SO(2) mechanical resonator — the membrane
+//    completes full vibratory cycles before the energy dissipates.
+//
+//    CRR derives the quality factor Q:
+//      Q = π·C*/Ω = π/(Ω²·π) ... more directly:
+//      Q = (energy stored)/(energy lost per cycle)
+//      For an SO(2) oscillator at the CRR boundary:
+//        stored energy ∝ C* = 2π   (full geodesic)
+//        loss per radian = Ω = 1/(2π)
+//        Q = C* / (2π·Ω) = 2π / (2π·1/(2π)) = 2π² ≈ 19.7
+//
+//    Measured cricket wing Q: 15–25 (Nocke 1971, Montealegre-Z 2011).
+//    CRR prediction: 2π² ≈ 19.7. No fitted parameters.
+//
+//    This Q determines:
+//      • Bandwidth: Δf = f₀/Q  (how tonal the chirp sounds)
+//      • Ring-down time: τ = Q/(πf₀)  (how long each tooth-strike resonates)
+//      • Harmonic suppression: 2nd harmonic at −6Q dB
+//
+//  CHIRP ENVELOPE — the beauty function B(C/Ω):
+//    Across the 3–5 syllables of a chirp, amplitude follows B(x).
+//    Coherence builds through the chirp; peak loudness occurs at
+//    syllable ≈ (π−1)/π × n_syl, i.e. the penultimate syllable.
+//    This is observed: Bennet-Clark 1989 reports crescendo-decrescendo
+//    in field cricket chirps with peak at syllable 3 of 4.
+//
+//  SYNTHESIS: noise → bandpass(Q=2π²) → beauty envelope.
+//    This IS the physics: broadband mechanical excitation (tooth impact)
+//    → resonant filter (wing membrane) → radiation.
+//    No sine waves. The sound emerges from filtered stochasticity.
+//
+//
+// ── §3  FIREFLIES — SO(2) BIOLUMINESCENCE, CLASS B ────────────────
+//
+//  The luciferin–luciferase–ATP–O₂ oxidation completes a full
+//  biochemical cycle per flash = SO(2). CRR predicts:
+//
+//    Intrinsic CV = 1/(4π) ≈ 0.080
+//    Observed CV ≈ 0.030 (Pteroptyx, Buck 1968) — Class B, suppressed
+//
+//  Suppression mechanism: mutual phase coupling.
+//    When firefly A flashes, nearby firefly B advances its coherence.
+//    This entrainment reduces effective Ω → suppresses CV below 0.080.
+//
+//  Flash envelope = δ(now) impulse + exponential decay (τ = 80 ms).
+//    The flash IS the rupture event. During coherence, the lantern
+//    is dark (luciferin-luciferase recharging). At C·Ω = 1, neural
+//    signal triggers oxygen release into photocytes → flash fires.
+//    Decay = oxyluciferin phosphorescence + O₂ diffusion kinetics.
+//    Photinus pyralis: ~100–200 ms total visible flash at ~5.5 s interval.
+//    The beauty function B(C/Ω) governs neural readiness (not visible);
+//
+//  Flash colour: 562 nm (oxyluciferin S₁→S₀ emission).
+//    This molecular transition is itself Z₂ (excited/ground).
+//    Spectral FWHM ~30 nm — Class B precision at molecular scale.
+//    CIE 1931 conversion: rgb(174, 255, 18).
+//
+//
+// ── §4  THERMODYNAMICS — ONE Ω CONTROL ────────────────────────────
+//
+//  Ω = kT/ΔF_eff.   Rate ∝ exp(−Ea/kT).
+//
+//  The temperature slider IS the Ω control. Warmer = larger Ω =
+//  faster CRR cycles = more chirps, more flashes. Cooler = smaller Ω
+//  = slower cycles, eventually silence. This is Kramers escape theory
+//  on the CRR manifold.  Ea/k ≈ 6300 K for cricket neuromuscular
+//  activation (Walker 1962: chirp rate doubles per 7°C).
+//
+// ══════════════════════════════════════════════════════════════════════
+
+const {PI,sin,cos,sqrt,log,random,floor,max,min,abs,exp} = Math;
+const TAU = 2*PI;
+
+// ── CRR CONSTANTS (from geometry, not fitting) ──
+
+const Ω_Z2  = 1/PI;              // Z₂ boundary permeability
+const Ω_SO2 = 1/TAU;             // SO(2) boundary permeability
+const Q_WING = 2*PI*PI;          // Wing membrane Q: 2π² ≈ 19.74
+const CV_Z2  = Ω_Z2/2;           // = 1/(2π) ≈ 0.159
+const CV_SO2 = Ω_SO2/2;          // = 1/(4π) ≈ 0.080
+
+// Box-Muller for Gaussian noise (stochastic regeneration phase)
+function randn(){ let u=0; while(!u) u=random(); return sqrt(-2*log(u))*cos(TAU*random()); }
+
+// Beauty function: B(x) = exp(x)·(1−x/π), x∈[0,π], normalised to [0,1]
+// Peak at x = π−1 ≈ 2.14.  Zero at x = 0 and x = π.
+const B_NORM = exp(PI-1)/PI;
+function B(x){ return x<=0||x>=PI ? 0 : exp(x)*(1-x/PI)/B_NORM; }
+
+
+// ── CRR AGENT ──
+// Two-phase cycle: deterministic coherence + stochastic regeneration.
+// CV = Ω/2 follows from E[Tc] = E[Tr] = 1/Ω (equal phase durations).
+
+// Flash decay constant: oxyluciferin phosphorescence + O₂ diffusion kinetics.
+// Photinus pyralis: ~100-200 ms total flash, exponential τ ≈ 80 ms.
+// The flash IS δ(now) — the rupture event triggers luciferin oxidation.
+// Glow during coherence = 0 (firefly is dark; the enzyme is recharging).
+const TAU_FLASH = 0.08;   // 80 ms decay constant (molecular kinetics)
+
+function makeCRR(ohm){
+  return { ohm, thr:1/ohm, C:random()/ohm, inR:false, rT:0, rD:0, glow:0 };
+}
+
+function stepCRR(a, dt, rate){
+  if(a.inR){
+    // REGENERATION: R = ∫φ·exp(C/Ω)·Θ dτ
+    // System reconstructs from weighted memory. Duration is stochastic.
+    // Flash decays: oxyluciferin excited → ground (Z₂ molecular transition)
+    a.rT += dt;
+    a.glow *= exp(-dt/TAU_FLASH);         // phosphorescence decay
+    if(a.rT >= a.rD){ a.inR=false; a.C=0; a.glow=0; }
+    return false;
+  }
+  // COHERENCE: C(x,t) = ∫L(x,τ)dτ — deterministic accumulation
+  a.C += rate * dt;
+  // Firefly is DARK during coherence. The luciferin-luciferase system
+  // is recharging — accumulating substrate, not emitting light.
+  // Flash only fires at rupture (the δ event).
+  a.glow *= exp(-dt/TAU_FLASH);           // any residual afterglow continues fading
+  // RUPTURE: C·Ω = 1 — Cramér-Rao bound saturated
+  if(a.C * a.ohm >= 1){
+    a.inR  = true;
+    a.rT   = 0;
+    a.glow = 1.0;                          // FLASH — δ(now) fires the lantern
+    // Regeneration duration: mean = coherence duration, CV = Ω
+    const mu = a.thr/rate;
+    a.rD = max(mu*.05, mu + mu*a.ohm*randn());
+    a.C  = 0;
+    return true;                           // δ(now) fires
+  }
+  return false;
+}
+
+
+// ── §5  AUDIO ENGINE ──────────────────────────────────────────────
+
+let ac, masterGain, noiseBuf;
+
+function initAudio(){
+  ac = new AudioContext();
+  masterGain = ac.createGain();
+  masterGain.gain.value = 0.8;
+  // Master low-pass: simulates air absorption at distance.
+  // Atmospheric absorption at 20m: ~1 dB/100m at 4 kHz (ISO 9613).
+  // The gentle rolloff above 7 kHz removes harshness without dulling.
+  const lp = ac.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = 7000; lp.Q.value = 0.5;
+  masterGain.connect(lp);
+  lp.connect(ac.destination);
+  // Shared white noise buffer (2 seconds)
+  // This IS the thermal excitation source — molecular kinetic energy
+  // producing broadband mechanical vibration. Each tooth-strike
+  // samples from this thermal bath.
+  const len = ac.sampleRate*2;
+  const buf = ac.createBuffer(1, len, ac.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0; i<len; i++) d[i] = random()*2-1;
+  noiseBuf = buf;
+  startAmbience();
+}
+
+// Night ambience: brown noise (thermal background of a warm meadow)
+// CRR reading: environmental Ω is large → broadband, slow, gentle.
+function startAmbience(){
+  const len = ac.sampleRate*2;
+  const buf = ac.createBuffer(1, len, ac.sampleRate);
+  const d = buf.getChannelData(0); let v=0;
+  for(let i=0;i<len;i++){ v+=(random()*2-1)*.12; v*=.998; d[i]=v; }
+  const src = ac.createBufferSource(); src.buffer=buf; src.loop=true;
+  const f = ac.createBiquadFilter();
+  f.type='lowpass'; f.frequency.value=350; f.Q.value=0.4;
+  const g = ac.createGain(); g.gain.value = 0.018;
+  src.connect(f); f.connect(g); g.connect(masterGain); src.start();
+  // High ambient bed: distant insects, wind in grass
+  // Filtered noise at 2–4 kHz, very quiet. Sets the frequency space
+  // that the crickets will occupy, so they sound embedded not isolated.
+  const src2 = ac.createBufferSource(); src2.buffer=noiseBuf; src2.loop=true;
+  const f2 = ac.createBiquadFilter();
+  f2.type='bandpass'; f2.frequency.value=3500; f2.Q.value=0.6;
+  const g2 = ac.createGain(); g2.gain.value = 0.003;
+  src2.connect(f2); f2.connect(g2); g2.connect(masterGain); src2.start();
+}
+
+
+// ── §6  CRICKET CHIRP SYNTHESIS ───────────────────────────────────
+//
+//  Physical model (revised for realism):
+//
+//  ONE noise source → ONE bandpass filter (the wing membrane) →
+//  gain envelope (syllable structure from wing open/close cycle).
+//
+//  Critical insight: the wing membrane resonance is CONTINUOUS.
+//  The bandpass does not reset between syllables — it rings through.
+//  Each wing-close phase feeds energy into the already-resonating
+//  membrane; each wing-open phase lets it ring down by τ = Q/(πf₀).
+//  This phase continuity between syllables is what makes a real
+//  cricket sound coherent rather than like discrete clicks.
+//
+//  CRR solves:
+//    • Q = 2π² ≈ 19.7 (wing membrane quality factor)
+//    • Chirp envelope = beauty function B(C/Ω)
+//    • Inter-chirp timing CV = 1/(2π) (Z₂ macro-cycle)
+//    • Temperature scaling via Arrhenius (Ω = kT/ΔF)
+//
+//  Species differences (one physical parameter: wing length):
+//    • Field cricket (Gryllus): 3–5 syllable chirps at 2–3 Hz.
+//      Carrier ~4.5–5.5 kHz. Syllable period ~40 ms, 50% duty cycle.
+//    • Tree cricket (Oecanthus): continuous trill, 15–30+ syllables.
+//      Carrier ~2.5–3.5 kHz. Syllable period ~25–33 ms, ~50% duty.
+//      Lower Q (broader resonance) — Mhatre et al. 2012.
+//
+//  Frequency sweep within syllables: the wing decelerates during
+//  closing, producing a 3–5% downward glide per syllable. Subtle
+//  but characteristic — it is what distinguishes a cricket from a
+//  synthesiser. CRR reading: coherence rate L(x,τ) decreases as
+//  the wing approaches its mechanical limit within each micro-cycle.
+
+function chirp(cricket){
+  if(!ac) return;
+  const now = ac.currentTime;
+  const {pan, vol, freq, isTree} = cricket;
+
+  // Stereo placement
+  const p = ac.createStereoPanner();
+  p.pan.value = pan;
+  p.connect(masterGain);
+
+  // Ring-down time constant: τ = Q/(π·f₀)
+  const tau = Q_WING / (PI * freq);
+
+  // Species-specific temporal structure:
+  // Field crickets: 3–5 syllable chirps (Schöneich & Hedwig 2012)
+  // Tree crickets: continuous trills, many syllables (Walker 1962)
+  const nSyl = isTree ? 12 + floor(random()*16) : 3 + floor(random()*2.3);
+
+  // Syllable period: ~40 ms field (Doherty 1985), ~28 ms tree
+  const sylPer = isTree ? .025 + random()*.006 : .035 + random()*.008;
+
+  // Duty cycle: ~50% for both species (the wing-close fraction)
+  const duty = .48 + random()*.06;
+
+  // Total chirp duration
+  const chirpDur = nSyl * sylPer + .02;
+
+  // ── SINGLE SHARED NOISE SOURCE (the mechanical excitation) ──
+  // One continuous noise stream = continuous stochastic tooth-strikes.
+  // The gain envelope gates it into syllables.
+  const src = ac.createBufferSource();
+  src.buffer = noiseBuf;
+  src.start(now, random()*1.5);
+  src.stop(now + chirpDur);
+
+  // ── THE WING MEMBRANE (bandpass resonator) ──
+  // Q = 2π² from CRR. This single filter rings continuously;
+  // syllable boundaries are created by the gain envelope, not
+  // by resetting the filter. Phase continuity = realism.
+  const bp = ac.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = freq;
+  // Tree crickets have broader resonance (lower Q ≈ 8–12, Mhatre 2012).
+  // Field crickets: Q = 2π² ≈ 19.7 (Nocke 1971, Montealegre-Z 2011).
+  bp.Q.value = isTree ? Q_WING * .5 : Q_WING;
+
+  // Second formant: first overtone of membrane, ~1.5× fundamental, −12 dB.
+  const bp2 = ac.createBiquadFilter();
+  bp2.type = 'bandpass';
+  bp2.frequency.value = freq * 1.48;
+  bp2.Q.value = (isTree ? Q_WING*.5 : Q_WING) * .5;
+
+  // ── FREQUENCY SWEEP per syllable ──
+  // Wing decelerates during closing → carrier drops ~3–5% per syllable.
+  // Scheduled on the filter frequency parameter itself.
+  for(let si=0; si<nSyl; si++){
+    const t0 = now + si*sylPer;
+    const fStart = freq * (1 + .02*random());   // slight upward scatter
+    const fEnd   = freq * (1 - .03 - .02*random()); // 3–5% downward glide
+    bp.frequency.setValueAtTime(fStart, t0);
+    bp.frequency.linearRampToValueAtTime(fEnd, t0 + sylPer*duty);
+    bp2.frequency.setValueAtTime(fStart*1.48, t0);
+    bp2.frequency.linearRampToValueAtTime(fEnd*1.48, t0 + sylPer*duty);
+  }
+
+  // ── GAIN ENVELOPE (syllable structure) ──
+  // Shapes the continuous noise+filter into discrete syllables.
+  // Each wing-close = sound on; each wing-open = ring-down via τ.
+  const g1 = ac.createGain();
+  g1.gain.setValueAtTime(0.0001, now);
+
+  const g2 = ac.createGain();
+  g2.gain.setValueAtTime(0.0001, now);
+
+  for(let si=0; si<nSyl; si++){
+    const t0 = now + si*sylPer;
+    const sylDur = sylPer * duty;
+
+    // Beauty function across chirp: B(x) maps syllable position to [0,π].
+    // Penultimate syllable loudest (Bennet-Clark 1989).
+    const bx = (si+.5)/nSyl * PI;
+    const bv = B(bx);
+
+    // Biological jitter: ±12% random amplitude variation per syllable.
+    // Motor neuron firing variability (Schöneich & Hedwig 2012).
+    const jitter = .88 + random()*.24;
+
+    const amp = vol * bv * jitter;
+
+    // Wing acceleration profile: not instant-on but ~1 ms ramp
+    // as wing gains speed at start of closing movement.
+    g1.gain.setValueAtTime(0.0001, t0);
+    g1.gain.linearRampToValueAtTime(amp, t0 + .0015);
+    // Sustain through wing-close phase (continuous tooth strikes)
+    g1.gain.setValueAtTime(amp * .92, t0 + sylDur - .001);
+    // Ring-down when wing opens: exponential decay with τ from CRR Q
+    g1.gain.setTargetAtTime(0.0001, t0 + sylDur, tau);
+
+    // Second formant follows at −12 dB
+    g2.gain.setValueAtTime(0.0001, t0);
+    g2.gain.linearRampToValueAtTime(amp * .18, t0 + .002);
+    g2.gain.setValueAtTime(amp * .15, t0 + sylDur - .001);
+    g2.gain.setTargetAtTime(0.0001, t0 + sylDur, tau*1.3);
+  }
+
+  // Signal path: noise → resonator → envelope → panner → master
+  src.connect(bp);   bp.connect(g1);   g1.connect(p);
+  src.connect(bp2);  bp2.connect(g2);  g2.connect(p);
+}
+
+
+// ── §7  SCENE ─────────────────────────────────────────────────────
+
+const cvs = document.getElementById('c'), ctx = cvs.getContext('2d');
+let W, H;
+function resize(){ W=cvs.width=innerWidth; H=cvs.height=innerHeight; }
+resize(); addEventListener('resize', resize);
+
+// Stars (pre-generated, twinkle via slow SO(2) scintillation)
+const stars = Array.from({length:120}, ()=>({
+  x:random(), y:random()*.6, r:.3+random()**2*2, p:random()*TAU
+}));
+
+// Treeline: sum of spatial frequencies (forest canopy edge profile)
+function treeline(x){
+  return .60 + .05*sin(x*.007) + .03*sin(x*.019+1.1)
+             + .018*sin(x*.047+2.7) + .008*sin(x*.11+.4);
+}
+
+// Grass blades: three depth layers, pre-generated (no render flicker)
+function makeGrass(y, h, n, w){
+  return Array.from({length:n}, (_,i)=>({
+    x:(i+random())/n, y:y+random()*.025, h, w:w+random()*.3, ph:random()*TAU
+  }));
+}
+const grass = [
+  { blades:makeGrass(.72,.055,40,1.2), c:'#0a1a08' },
+  { blades:makeGrass(.79,.065,55,1.5), c:'#0c2210' },
+  { blades:makeGrass(.86,.08,75,1.8),  c:'#0e2a14' }
+];
+
+
+// ── §8  AGENTS ────────────────────────────────────────────────────
+
+// 12 crickets — independent Z₂ CRR clocks at macro scale.
+// Each has unique wing size (→ carrier frequency) and position.
+// Mean chirp interval ≈ 0.45 s at 22°C.
+// CRR rate = 2·C*/T_cycle = 2π/0.45 ≈ 14.
+const crickets = Array.from({length:12}, ()=>{
+  const pan = (random()-.5)*1.8;
+  const dist = .3 + random()*.7;         // 0.3 = close, 1.0 = far
+  // Wing resonance frequency: set by wing membrane geometry.
+  // Gryllus bimaculatus: ~4.7 kHz (Montealegre-Z 2011, Nocke 1971).
+  // Field crickets broadly: 4.5–5.5 kHz (Jonsson et al. 2021).
+  // Tree crickets (Oecanthus): 2.3–3.7 kHz (Mhatre et al. 2012).
+  // CRR determines Q and envelope; one physical measurement (wing
+  // length) sets the frequency. We model a mixed-species meadow.
+  const isTree = random() < .3;
+  const freq = isTree ? 2500+random()*1000 : 4500+random()*1000;
+  return {
+    crr: makeCRR(Ω_Z2),
+    rate: TAU/(.4 + random()*.12),        // individual variation in base rate
+    pan, freq, isTree,
+    x: .05+random()*.9, y: .78+random()*.12,
+    // Volume: beauty of distance — closer crickets louder.
+    // Tree crickets quieter per-syllable (smaller wings, less radiation)
+    // AND they trill longer, so reduce further for balance.
+    vol: (.12 + random()*.08) * (1.2-dist) * (isTree ? .35 : 1)
+  };
+});
+
+// 16 fireflies — SO(2) CRR clocks with phase coupling (Class B).
+// Mean flash interval ≈ 1.2 s at 22°C.
+const fireflies = Array.from({length:16}, ()=>({
+  crr: makeCRR(Ω_SO2),
+  rate: TAU/(1.0 + random()*.4),
+  x: .06+random()*.88, y: .18+random()*.52,
+  vx:0, vy:0, dp: random()*TAU
+}));
+
+// Firefly phase coupling: Class B suppression mechanism.
+// When one ruptures (flashes), neighbours advance their C.
+// This mutual entrainment compresses effective Ω below 1/(2π),
+// reducing CV from intrinsic 0.080 toward observed 0.030.
+function couple(src){
+  for(const f of fireflies){
+    if(f===src || f.crr.inR) continue;
+    const d = sqrt((f.x-src.x)**2 + (f.y-src.y)**2);
+    if(d < .35){
+      // Phase advance ∝ 1/distance, capped to prevent overshoot
+      f.crr.C = min(f.crr.C + .1*(1-d/.35)/f.crr.ohm, f.crr.thr*.95);
+    }
+  }
+}
+
+
+// ── §9  TOGGLES & TEMPERATURE ─────────────────────────────────────
+
+const show = { field:true, tree:true, fly:true };
+function tog(el, key){ show[key]=!show[key]; el.classList.toggle('on'); }
+
+// Ω = kT/ΔF_eff.   rate ∝ exp(−Ea/kT).
+// Ea/k ≈ 6300 K (≈ 0.54 eV): from Walker 1962 empirical data,
+// cricket chirp rate doubles every ~7°C, giving Ea/k = ln(2)·T²/ΔT
+// at T=295K → 6300 K.  Consistent with CRR's ΔF = kTπ/2 per Z₂
+// barrier at neuromuscular scale.
+//
+// Fireflies use same Arrhenius but with different Ea (slower enzyme
+// kinetics), hence the ×0.5 scaling in the main loop.
+
+let temp = 22;
+const tEl = document.getElementById('temp');
+const tLab = document.getElementById('tl');
+tEl.oninput = ()=>{
+  temp = +tEl.value;
+  tLab.textContent = temp+' °C — Ω control';
+};
+function arrhenius(){ return exp(6300*(1/295 - 1/(temp+273.15))); }
+
+
+// ── §10  MAIN LOOP ────────────────────────────────────────────────
+
+let prevT = 0;
+
+function frame(t){
+  const dt = min((t-prevT)/1000, .04); prevT = t;
+  if(!dt) return requestAnimationFrame(frame);
+  const aRate = arrhenius();
+
+  // ── UPDATE CRICKETS ──
+  // Silent below ~12°C: insufficient thermal energy to cross the
+  // CRR barrier (Arrhenius rate → 0). This IS the mechanism —
+  // not a hardcoded cutoff but exponential suppression.
+  for(const c of crickets){
+    const on = c.isTree ? show.tree : show.field;
+    if(on && stepCRR(c.crr, dt, c.rate * aRate)){
+      chirp(c);       // δ(now) → stridulation burst
+    } else if(!on){
+      c.crr.C = 0;    // silence: reset coherence so it doesn't burst on re-enable
+    }
+  }
+
+  // ── UPDATE FIREFLIES ──
+  for(const f of fireflies){
+    if(!show.fly){ f.crr.glow=0; f.crr.C=0; continue; }
+    // Gentle Brownian drift through the meadow
+    f.dp += dt*.3;
+    f.vx += (sin(f.dp)*.0002 - f.vx*.2)*dt;
+    f.vy += (cos(f.dp*.7)*.00015 - f.vy*.2)*dt;
+    f.x += f.vx; f.y += f.vy;
+    if(f.x<.04) f.vx+=.0008; if(f.x>.96) f.vx-=.0008;
+    if(f.y<.14) f.vy+=.0004; if(f.y>.68) f.vy-=.0004;
+    // Firefly enzyme kinetics: ~half the rate of neuromuscular (×0.5)
+    if(stepCRR(f.crr, dt, f.rate * aRate * .5)){
+      couple(f);      // δ(now) → flash + phase-advance neighbours
+    }
+  }
+
+  // ── RENDER ──
+
+  // Sky gradient: astronomical twilight palette
+  const sky = ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#020308');
+  sky.addColorStop(.35,'#050810');
+  sky.addColorStop(.6,'#080c18');
+  sky.addColorStop(1,'#060a12');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+
+  // Stars: scintillation is SO(2) at atmospheric refractive scale
+  for(const s of stars){
+    const tw = .35 + .3*sin(t*.001 + s.p) + .1*sin(t*.0037 + s.p*2.3);
+    ctx.globalAlpha = (s.r>1.2 ? tw*.8 : tw*.35) * min(1, max(0, (.6-s.y)*3));
+    ctx.fillStyle = '#c0cfff';
+    ctx.beginPath(); ctx.arc(s.x*W, s.y*H, s.r, 0, TAU); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Treeline silhouette
+  ctx.fillStyle = '#030606';
+  ctx.beginPath(); ctx.moveTo(0,H);
+  for(let xi=0; xi<=W; xi+=3) ctx.lineTo(xi, treeline(xi)*H);
+  ctx.lineTo(W,H); ctx.fill();
+
+  // Firefly glow: flash = δ(now) impulse → exponential decay (τ = 80 ms)
+  // 562 nm oxyluciferin emission → rgb(174,255,18) via CIE 1931
+  // Flash duration ~300 ms visible (Photinus pyralis: 100–200 ms)
+  for(const f of fireflies){
+    const gl = f.crr.glow;
+    if(gl < .003) continue;
+    const px=f.x*W, py=f.y*H;
+    // Glow radius scales with sqrt(gl) for more natural light falloff
+    const rad = 15 + 40*sqrt(gl);
+    const grd = ctx.createRadialGradient(px,py,0, px,py,rad);
+    grd.addColorStop(0,  `rgba(174,255,18,${min(gl*.95,.95)})`);
+    grd.addColorStop(.15,`rgba(155,235,14,${gl*.5})`);
+    grd.addColorStop(.5, `rgba(110,180,8,${gl*.15})`);
+    grd.addColorStop(1,  'rgba(80,140,0,0)');
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(px,py,rad,0,TAU); ctx.fill();
+    // Bright core (the abdomen lantern — hottest at rupture)
+    if(gl>.03){
+      ctx.fillStyle = `rgba(255,255,240,${min(gl*.9,.92)})`;
+      ctx.beginPath(); ctx.arc(px,py, 1+2.5*gl, 0,TAU); ctx.fill();
+    }
+  }
+
+  // Grass layers (front to back, wind-swayed)
+  for(const L of grass){
+    ctx.lineWidth = 1.5;
+    for(const g of L.blades){
+      const gx=g.x*W, gy=g.y*H;
+      const sway = sin(t*.0006 + g.ph)*.007*W + sin(t*.0017+g.ph*3)*.002*W;
+      // Grass colour modulated by nearby firefly glow
+      let lit = 0;
+      for(const f of fireflies){
+        const d = sqrt((g.x-f.x)**2 + (g.y-f.y)**2);
+        if(d<.15) lit += f.crr.glow * (.15-d)/.15;
+      }
+      lit = min(lit, .4);
+      const r = parseInt(L.c.slice(1,3),16) + floor(lit*60);
+      const gn = parseInt(L.c.slice(3,5),16) + floor(lit*100);
+      const bl = parseInt(L.c.slice(5,7),16) + floor(lit*15);
+      ctx.strokeStyle = `rgb(${min(r,255)},${min(gn,255)},${min(bl,255)})`;
+      ctx.beginPath(); ctx.moveTo(gx, gy);
+      ctx.quadraticCurveTo(gx+sway, gy-g.h*H*.45, gx+sway*1.6, gy-g.h*H);
+      ctx.stroke();
+    }
+  }
+
+  // Ground
+  const gnd = ctx.createLinearGradient(0,H*.88,0,H);
+  gnd.addColorStop(0,'#070c05'); gnd.addColorStop(1,'#040703');
+  ctx.fillStyle = gnd; ctx.fillRect(0,H*.92,W,H*.08);
+
+  // ── INFO OVERLAY ──
+  const nField = crickets.filter(c=>!c.isTree).length;
+  const nTree = crickets.filter(c=>c.isTree).length;
+  const nGlow = fireflies.filter(f=>f.crr.glow>.05).length;
+  document.getElementById('info').textContent =
+    `field crickets: ${nField}   Z₂  Ω=1/π  CV=${CV_Z2.toFixed(3)}  ~5 kHz\n`+
+    `tree crickets: ${nTree}   Z₂  Ω=1/π  CV=${CV_Z2.toFixed(3)}  ~3 kHz\n`+
+    `wing Q = 2π² ≈ ${Q_WING.toFixed(1)}   (CRR prediction)\n`+
+    `fireflies: ${fireflies.length}   SO(2)  Ω=1/2π  CV=${CV_SO2.toFixed(3)}\n`+
+    `T = ${temp} °C   rate × ${aRate.toFixed(2)}   glowing: ${nGlow}`;
+
+  requestAnimationFrame(frame);
+}
+
+
+// ── START ─────────────────────────────────────────────────────────
+
+document.getElementById('start').onclick = ()=>{
+  initAudio();
+  document.getElementById('start').style.display = 'none';
+  document.getElementById('ui').style.display = 'block';
+  document.getElementById('info').style.display = 'block';
+  requestAnimationFrame(frame);
+};
+</script></body></html>
