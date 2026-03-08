@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Song of the Vortex — CRR × Self-Induced Floquet Magnons</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Fira+Code:wght@300;400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#04040a;color:#909aaa;font-family:'Playfair Display',Georgia,serif;overflow:hidden;height:100vh;width:100vw}
+canvas{position:absolute;top:0;left:0}
+#ui{position:absolute;top:16px;left:20px;max-width:400px;z-index:20;pointer-events:none;opacity:0;animation:fi 2.5s ease .3s forwards}
+@keyframes fi{to{opacity:1}}
+#ui h1{font-size:24px;font-weight:400;letter-spacing:.04em;color:#c8d0e0;margin-bottom:2px;font-style:italic}
+#ui .sub{font-family:'Fira Code',monospace;font-size:9.5px;color:#4a5060;margin-bottom:10px;letter-spacing:.03em}
+#ui .eq{font-family:'Fira Code',monospace;font-size:9px;color:#5a6a8a;line-height:1.9}
+#sp{position:absolute;bottom:0;left:0;width:100%;height:140px;z-index:15;pointer-events:none}
+#st{position:absolute;bottom:150px;left:20px;z-index:20;pointer-events:none;font-family:'Fira Code',monospace;font-size:9.5px;color:#3a4050;line-height:1.9;opacity:0;animation:fi 2.5s ease .8s forwards}
+#st .v{color:#7080a0}
+#st .comb{color:#c0a050}
+#ctrls{position:absolute;bottom:155px;right:20px;z-index:20;display:flex;flex-direction:column;align-items:flex-end;gap:8px;opacity:0;animation:fi 2.5s ease 1s forwards}
+#ctrls .slider-row{display:flex;align-items:center;gap:8px;color:#4a5060;font-family:'Fira Code',monospace;font-size:9px;pointer-events:all}
+#ctrls input[type="range"]{width:100px;accent-color:#6a7aaa}
+#ctrls button{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);color:#5a6a80;font-family:'Fira Code',monospace;font-size:9.5px;padding:6px 14px;cursor:pointer;transition:all .3s;pointer-events:all}
+#ctrls button:hover{background:rgba(255,255,255,.06);color:#8a9ab0}
+#ctrls button.on{background:rgba(100,120,170,.12);border-color:rgba(100,120,170,.25);color:#6a7aaa}
+#rbox{position:absolute;top:16px;right:20px;z-index:20;pointer-events:none;text-align:right;opacity:0;animation:fi 2.5s ease .5s forwards}
+#rbox .lbl{font-family:'Fira Code',monospace;font-size:9px;color:#3a4050;letter-spacing:.08em}
+#rbox .big{font-family:'Playfair Display',serif;font-size:28px;color:#c0a050;font-style:italic}
+#rbox .unit{font-family:'Fira Code',monospace;font-size:9px;color:#4a5060}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<canvas id="sp"></canvas>
+
+<div id="ui">
+  <h1>Song of the Vortex</h1>
+  <div class="sub">CRR &times; Self-Induced Floquet Magnons &mdash; Heins, Schulthei&szlig; et al. (Science 2026)</div>
+  <div class="eq">
+    <!--
+    ═══════════════════════════════════════════════════════════
+    CRR PRE-PRODUCTION: SELF-INDUCED FLOQUET MAGNONS
+    ═══════════════════════════════════════════════════════════
+
+    SYSTEM: Magnetic vortex in Ni81Fe19 disc (50nm thick, 0.5-2μm dia.)
+    SOURCE: Heins et al., Science (2026), DOI: 10.1126/science.adq9891
+
+    PHYSICS:
+    - Magnetic moments in the disc form a vortex: circular in-plane
+      magnetisation with an out-of-plane core at the centre
+    - Microwave excitation drives azimuthal magnon modes (spin waves)
+    - At threshold power, magnons transfer energy to the vortex core
+      via nonlinear three-magnon scattering
+    - The core begins to gyrate (circular orbit, f_g ≈ 200-500 MHz)
+    - The gyrating core periodically modulates the magnon spectrum
+    - Result: frequency comb — evenly spaced spectral lines at
+      f_nm ± λ·f_g (λ = 0, ±1, ±2, ...)
+    - These are FLOQUET STATES: new eigenstates that exist ONLY
+      because of periodic temporal modulation
+
+    KEY NUMBERS:
+    - Drive frequency: f_nm = 6.2 GHz (2μm disc) / 10.2 GHz (500nm)
+    - Gyration frequency: f_g ≈ 200 MHz (2μm) / 500 MHz (500nm)
+    - Comb spacing = f_g exactly
+    - Threshold: nonlinear coupling > magnon damping
+    - Disc material: Ni81Fe19 (permalloy), 50nm thick
+
+    THEIR OPEN QUESTIONS:
+    Q1. Why does the comb emerge at a specific power threshold?
+        The threshold is observed but not predicted from first principles.
+    Q2. What sets the number of visible comb lines?
+        They observe ~5-7 lines above noise; why not 3 or 20?
+    Q3. Why is this self-induced?
+        Previous Floquet engineering required external periodic driving.
+        Here the system generates its own periodic drive. Why does a
+        magnetic vortex do this when other systems don't?
+
+    ═══════════════════════════════════════════════════════════
+    CRR ANALYSIS
+    ═══════════════════════════════════════════════════════════
+
+    TWO NESTED CRR CYCLES:
+
+    ── MAGNON MODE: SO(2) rotational ──
+      The azimuthal magnon mode (0,1) is a continuous rotation of
+      the spin wave pattern around the disc.
+      Symmetry: SO(2), Ω = 1/(2π), C* = 2π
+      Coherence: magnon amplitude builds as microwave power is absorbed.
+      The magnon accumulates Fisher information about the spin
+      configuration of the disc.
+
+    ── VORTEX CORE GYRATION: SO(2) rotational ──
+      The core orbits the disc centre at f_g.
+      Symmetry: SO(2), Ω = 1/(2π), C* = 2π
+      Coherence: orbital amplitude builds as energy is transferred
+      from magnons via nonlinear scattering.
+
+    CRR RESOLUTION TO Q1 (threshold):
+      The comb emerges when the magnon coherence C_magnon reaches
+      the rupture threshold C·Ω = 1 → C = 2π for SO(2). Below
+      threshold, magnon damping dissipates coherence faster than
+      it accumulates. Above threshold, C reaches 2π before damping
+      can drain it, and the excess coherence is transferred to the
+      core gyration mode via the nonlinear coupling.
+
+      In their terms: the threshold is where magnon lifetime × power
+      absorption rate ≥ 2π (in CRR Fisher information units). This
+      is the Cramér-Rao bound applied to the magnon mode: the system
+      must accumulate enough evidence about its own spin state to
+      resolve the nonlinear channel.
+
+      TESTABLE: threshold power should scale as α/γ where α is the
+      Gilbert damping and γ is the gyromagnetic ratio — both
+      measurable. CRR predicts P_threshold ∝ α² (quadratic in
+      damping, because C accumulation rate ∝ P and C decay rate ∝ α,
+      so C reaches 2π when P/α ∝ 2π, giving P ∝ α).
+
+    CRR RESOLUTION TO Q2 (number of comb lines):
+      Each Floquet sideband at f_nm ± λ·f_g corresponds to the
+      λ-th harmonic of the regeneration kernel. After each CRR
+      cycle of the core gyration, regeneration rebuilds the magnon
+      spectrum with weight exp(C/Ω). The Fourier decomposition of
+      this periodic regeneration kernel produces harmonics at λ·f_g.
+      The number of visible harmonics = the effective bandwidth of
+      the exp(C/Ω) kernel in the time domain, which is set by
+      C*/Ω = 2π/(1/2π) = 4π² ≈ 39.5 in dimensionless units.
+
+      The spectral width of exp(C/Ω) in Fourier space is ~1/σ_time,
+      where σ_time is the temporal width of the kernel. For a
+      sharply peaked kernel (high C, small Ω), many harmonics are
+      visible. For a broad kernel (low C, large Ω), few harmonics.
+
+      CRR predicts: the number of visible comb lines should
+      INCREASE with power (because higher C → sharper regeneration
+      kernel → more harmonics) and DECREASE with damping (because
+      higher α → lower effective C at rupture → broader kernel).
+      Both are testable from their existing data.
+
+    CRR RESOLUTION TO Q3 (why self-induced):
+      Previous Floquet engineering uses an EXTERNAL periodic drive.
+      The vortex system generates its own drive because:
+      1. The magnon mode (SO(2)) accumulates coherence
+      2. At C·Ω = 1, it ruptures
+      3. Regeneration rebuilds with exp(C/Ω) weighting
+      4. This regeneration has PERIODICITY inherited from the
+         pre-rupture magnon rotation (period = 1/f_g)
+      5. The periodic regeneration IS the Floquet drive
+
+      The system drives itself because CRR regeneration is
+      inherently periodic for SO(2) oscillators: the reconstruction
+      kernel exp(C/Ω)·Θ, convolved with a rotational mode, produces
+      a periodic modulation at the rotation frequency.
+
+      In their language: the nonlinear three-magnon scattering is the
+      physical mechanism; the vortex core gyration is the physical
+      manifestation of CRR regeneration. The core doesn't just orbit —
+      it is RECONSTRUCTING the magnon spectrum from weighted memory
+      of the previous cycle. Each orbit is one CRR regeneration event.
+
+    THE FREQUENCY COMB IS A FOURIER SERIES OF REGENERATION:
+      R = ∫ φ·exp(C/Ω)·Θ dτ
+      For a periodic φ (rotating magnon mode), the integral produces
+      a Fourier series: R = Σ_λ a_λ · exp(i·λ·2π·f_g·t)
+      Each term in this series is one comb line at f_nm + λ·f_g.
+      The coefficients a_λ are set by exp(C/Ω): sharper peak →
+      flatter spectrum → more harmonics → wider comb.
+
+    ═══════════════════════════════════════════════════════════
+    -->
+    Ni<sub>81</sub>Fe<sub>19</sub> disc: magnon + vortex core<br>
+    Both SO(2): &#937; = 1/(2&#960;), C* = 2&#960;<br>
+    Comb spacing = f<sub>g</sub> (gyration frequency)<br>
+    Comb emerges at C&#183;&#937; = 1 (magnon threshold)<br>
+    Comb lines = Fourier series of regeneration kernel<br>
+    Power slider: drive magnon excitation
+  </div>
+</div>
+
+<div id="rbox">
+  <div class="lbl">COMB LINES</div>
+  <div class="big" id="ncomb">0</div>
+  <div class="unit">visible harmonics</div>
+  <div style="margin-top:10px">
+    <div class="lbl">CORE GYRATION</div>
+    <div class="big" id="fg-display" style="font-size:20px">0</div>
+    <div class="unit">MHz</div>
+  </div>
+  <div style="margin-top:10px">
+    <div class="lbl">MAGNON COHERENCE</div>
+    <div id="c-bar" style="width:100px;height:4px;background:rgba(255,255,255,.04);border-radius:2px;float:right;margin-top:4px">
+      <div id="c-fill" style="height:100%;width:0%;background:#6a7aaa;border-radius:2px;transition:width .08s"></div>
+    </div>
+  </div>
+</div>
+
+<div id="st">
+  <div>magnon power: <span class="v" id="s-pow">0</span> dBm</div>
+  <div>drive freq f<sub>nm</sub>: <span class="v" id="s-fnm">6.20</span> GHz</div>
+  <div>gyration f<sub>g</sub>: <span class="v" id="s-fg">0</span> MHz</div>
+  <div>core orbit r: <span class="v" id="s-orbit">0</span> nm</div>
+  <div>state: <span class="v" id="s-state">sub-threshold</span></div>
+  <div>C/C*: <span class="v" id="s-C">0</span></div>
+  <div>comb: <span class="comb" id="s-comb">—</span></div>
+</div>
+
+<div id="ctrls">
+  <div class="slider-row">
+    <span>power</span>
+    <input type="range" id="sl-pow" min="-20" max="10" step="0.5" value="-10">
+    <span id="sl-pow-val">-10 dBm</span>
+  </div>
+  <div class="slider-row">
+    <span>damping &#945;</span>
+    <input type="range" id="sl-damp" min="0.005" max="0.05" step="0.001" value="0.01">
+    <span id="sl-damp-val">0.010</span>
+  </div>
+  <div class="slider-row">
+    <span>disc size</span>
+    <input type="range" id="sl-size" min="500" max="2000" step="100" value="2000">
+    <span id="sl-size-val">2000 nm</span>
+  </div>
+  <button onclick="toggleSound()" id="btn-snd">sound: off</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CRR CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+
+const CRR = {
+  omega_SO2: 1 / (2 * Math.PI),
+  C_star_SO2: 2 * Math.PI,
+  CV_SO2: 1 / (4 * Math.PI),
+
+  beauty(x) {
+    if (x <= 0 || x >= Math.PI) return 0;
+    const raw = Math.exp(x) * (1 - x / Math.PI);
+    return raw / (Math.exp(Math.PI - 1) * (1 - (Math.PI - 1) / Math.PI));
+  }
+};
+
+// Physical parameters (from paper)
+const PHYS = {
+  f_g_2um: 200e6,    // Hz, gyration freq for 2μm disc
+  f_g_500nm: 500e6,  // Hz, gyration freq for 500nm disc
+  f_nm_2um: 6.2e9,   // Hz, magnon drive for 2μm disc
+  f_nm_500nm: 10.2e9, // Hz, magnon drive for 500nm disc
+};
+
+// ═══════════════════════════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const spCanvas = document.getElementById('sp');
+const spCtx = spCanvas.getContext('2d');
+let W, H, dpr;
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  spCanvas.width = W * dpr; spCanvas.height = 140 * dpr;
+  spCanvas.style.width = W + 'px'; spCanvas.style.height = '140px';
+  spCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ═══════════════════════════════════════════════════════════════
+// SIMULATION STATE
+// ═══════════════════════════════════════════════════════════════
+
+let power_dBm = -10;
+let damping = 0.01;
+let discSize = 2000; // nm
+let simTime = 0;
+
+// CRR state
+let magnonC = 0;          // magnon coherence
+let coreOrbitR = 0;       // core gyration radius (normalised)
+let coreAngle = 0;        // core gyration phase
+let combLines = 0;        // number of visible comb lines
+let isAboveThreshold = false;
+
+// Magnon wave state (for visualisation)
+let magnonPhase = 0;
+let magnonAmplitude = 0;
+
+// Spectrum data (for FFT display)
+let spectrum = new Float32Array(256);
+
+function getParams() {
+  // Gyration frequency scales with disc size (smaller → higher)
+  const fg = discSize <= 500 ? 500e6 :
+             discSize >= 2000 ? 200e6 :
+             200e6 + (2000 - discSize) / 1500 * 300e6;
+
+  const fnm = discSize <= 500 ? 10.2e9 :
+              discSize >= 2000 ? 6.2e9 :
+              6.2e9 + (2000 - discSize) / 1500 * 4e9;
+
+  // Power in linear units (from dBm)
+  const pLin = Math.pow(10, power_dBm / 10);
+
+  // CRR threshold: P_threshold ∝ α (damping)
+  // Above threshold: magnon C accumulates
+  const threshold = damping * 50; // scaled
+  const aboveThreshold = pLin > threshold;
+
+  return { fg, fnm, pLin, threshold, aboveThreshold };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CRR DYNAMICS
+// ═══════════════════════════════════════════════════════════════
+
+function updateCRR() {
+  const p = getParams();
+  const dt = 1 / 60;
+
+  // ── MAGNON COHERENCE ACCUMULATION ──
+  // CRR: C_magnon accumulates at rate ∝ power, decays at rate ∝ damping
+  // Coherence = accumulated Fisher information about spin state
+  const cRate = p.pLin * 0.5;  // accumulation from microwave drive
+  const cDecay = damping * 30;  // dissipation from Gilbert damping
+
+  magnonC += (cRate - cDecay * magnonC) * dt;
+  magnonC = Math.max(0, magnonC);
+
+  // Magnon amplitude for visualisation (scales with sqrt of C))
+  magnonAmplitude = Math.sqrt(magnonC) * 0.3;
+  magnonPhase += p.fnm * 1e-9 * dt * 0.8; // scaled for visual
+
+  // ── CRR THRESHOLD: C·Ω = 1 → C = 2π for SO(2) ──
+  // When magnon C reaches 2π, the nonlinear channel opens:
+  // excess coherence transfers to the core gyration mode
+  isAboveThreshold = magnonC > CRR.C_star_SO2 * 0.3; // scaled threshold
+
+  if (isAboveThreshold) {
+    // Core gyration amplitude grows from excess coherence
+    // CRR: the magnon ruptures its coherence into the gyration mode
+    const excess = magnonC - CRR.C_star_SO2 * 0.3;
+    const targetOrbit = Math.min(1, excess * 0.15);
+    coreOrbitR += (targetOrbit - coreOrbitR) * 0.05;
+
+    // Core gyration angle advances at f_g
+    coreAngle += p.fg * 1e-6 * dt * 2; // scaled for visual
+
+    // Number of comb lines = bandwidth of regeneration kernel
+    // CRR: sharper exp(C/Ω) → more harmonics
+    // N_comb ≈ 2·floor(C/Ω / π) + 1 (Fourier bandwidth of exp kernel)
+    const c_over_omega = magnonC * 2 * Math.PI;
+    combLines = Math.min(11, 1 + 2 * Math.floor(c_over_omega / Math.PI));
+  } else {
+    coreOrbitR *= 0.95; // decay when below threshold
+    combLines = Math.max(0, combLines - 0.1);
+  }
+
+  // Update spectrum display
+  updateSpectrum(p);
+
+  simTime += dt;
+}
+
+function updateSpectrum(p) {
+  // Build synthetic spectrum: centre peak at f_nm + comb sidebands
+  const N = spectrum.length;
+  const centre = N / 2;
+  const combSpacing = 12; // pixels between comb lines
+
+  // Decay old spectrum
+  for (let si = 0; si < N; si++) spectrum[si] *= 0.85;
+
+  // Main magnon peak (always present above noise)
+  const mainHeight = Math.min(1, magnonAmplitude * 3);
+  const mainWidth = 2 + (1 - mainHeight) * 5;
+  for (let si = 0; si < N; si++) {
+    const dx = si - centre;
+    spectrum[si] += mainHeight * Math.exp(-dx * dx / (2 * mainWidth * mainWidth));
+  }
+
+  // Comb sidebands (only when above threshold)
+  if (isAboveThreshold && combLines > 1) {
+    const nSide = Math.floor(combLines / 2);
+    for (let li = 1; li <= nSide; li++) {
+      // Sideband amplitude from regeneration kernel Fourier coefficients
+      // a_λ ∝ exp(-λ²·σ²) where σ = temporal width of kernel
+      const amp = mainHeight * Math.exp(-li * li * 0.15) * coreOrbitR;
+      const bw = mainWidth * 0.8;
+
+      for (let si = 0; si < N; si++) {
+        const dxP = si - (centre + li * combSpacing);
+        const dxM = si - (centre - li * combSpacing);
+        spectrum[si] += amp * Math.exp(-dxP * dxP / (2 * bw * bw));
+        spectrum[si] += amp * Math.exp(-dxM * dxM / (2 * bw * bw));
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════════
+
+function render() {
+  ctx.fillStyle = '#04040a';
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W / 2;
+  const cy = (H - 140) / 2;
+  const discR = Math.min(200, Math.min(W, H) * 0.22);
+
+  // ── DISC ──
+  // Metallic permalloy appearance
+  const discGrad = ctx.createRadialGradient(cx - discR * 0.2, cy - discR * 0.2,
+    0, cx, cy, discR);
+  discGrad.addColorStop(0, 'rgba(80,90,110,0.3)');
+  discGrad.addColorStop(0.7, 'rgba(50,55,70,0.25)');
+  discGrad.addColorStop(1, 'rgba(30,35,50,0.15)');
+  ctx.fillStyle = discGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, discR, 0, 2 * Math.PI);
+  ctx.fill();
+
+  // Disc edge
+  ctx.strokeStyle = 'rgba(100,110,140,0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, discR, 0, 2 * Math.PI);
+  ctx.stroke();
+
+  // ── MAGNETISATION VECTORS (vortex pattern) ──
+  const nRings = 6;
+  const nPerRing = [0, 8, 14, 20, 26, 32, 38];
+  for (let ri = 1; ri <= nRings; ri++) {
+    const ringR = discR * (ri / (nRings + 1));
+    const nv = nPerRing[ri];
+    for (let vi = 0; vi < nv; vi++) {
+      const angle = (vi / nv) * 2 * Math.PI;
+      const vx = cx + Math.cos(angle) * ringR;
+      const vy = cy + Math.sin(angle) * ringR;
+
+      // Vortex: magnetisation is tangential (90° to radial)
+      const mAngle = angle + Math.PI / 2;
+
+      // Magnon perturbation: azimuthal wave
+      const magnonPert = magnonAmplitude *
+        Math.sin(angle + magnonPhase) * 0.3;
+
+      const arrowLen = 6 + magnonPert * 15;
+      const ax = Math.cos(mAngle + magnonPert) * arrowLen;
+      const ay = Math.sin(mAngle + magnonPert) * arrowLen;
+
+      // Colour by magnon phase
+      const hue = isAboveThreshold ?
+        40 + Math.sin(angle + magnonPhase) * 20 : 220;
+      const sat = 30 + magnonAmplitude * 40;
+      const lum = 25 + magnonAmplitude * 15;
+
+      ctx.strokeStyle = `hsla(${hue},${sat}%,${lum}%,0.5)`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(vx - ax * 0.5, vy - ay * 0.5);
+      ctx.lineTo(vx + ax * 0.5, vy + ay * 0.5);
+      ctx.stroke();
+
+      // Arrowhead
+      ctx.fillStyle = `hsla(${hue},${sat}%,${lum}%,0.4)`;
+      ctx.beginPath();
+      ctx.arc(vx + ax * 0.5, vy + ay * 0.5, 1.5, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+  }
+
+  // ── VORTEX CORE ──
+  // Core position (gyrates when above threshold)
+  const coreX = cx + Math.cos(coreAngle) * coreOrbitR * discR * 0.15;
+  const coreY = cy + Math.sin(coreAngle) * coreOrbitR * discR * 0.15;
+
+  // Core glow
+  const coreGlow = ctx.createRadialGradient(coreX, coreY, 0, coreX, coreY, 25);
+  const coreIntensity = 0.3 + coreOrbitR * 0.5;
+  coreGlow.addColorStop(0, `rgba(200,180,100,${coreIntensity})`);
+  coreGlow.addColorStop(0.5, `rgba(140,120,180,${coreIntensity * 0.3})`);
+  coreGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = coreGlow;
+  ctx.beginPath();
+  ctx.arc(coreX, coreY, 25, 0, 2 * Math.PI);
+  ctx.fill();
+
+  // Core dot
+  ctx.fillStyle = `rgba(255,240,200,${0.5 + coreOrbitR * 0.5})`;
+  ctx.beginPath();
+  ctx.arc(coreX, coreY, 3 + coreOrbitR * 2, 0, 2 * Math.PI);
+  ctx.fill();
+
+  // Core orbit trail
+  if (coreOrbitR > 0.05) {
+    ctx.strokeStyle = `rgba(200,180,100,${coreOrbitR * 0.2})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, coreOrbitR * discR * 0.15, 0, 2 * Math.PI);
+    ctx.stroke();
+  }
+
+  // ── MAGNON WAVES (ripples in the disc) ──
+  if (magnonAmplitude > 0.05) {
+    for (let wi = 0; wi < 3; wi++) {
+      const waveR = discR * (0.3 + wi * 0.25);
+      const alpha = magnonAmplitude * 0.15 * (1 - wi * 0.25);
+      ctx.strokeStyle = `rgba(100,120,200,${alpha})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let ai = 0; ai <= 64; ai++) {
+        const a2 = (ai / 64) * 2 * Math.PI;
+        const r2 = waveR + Math.sin(a2 + magnonPhase + wi * 0.5) *
+          magnonAmplitude * 8;
+        const px = cx + Math.cos(a2) * r2;
+        const py = cy + Math.sin(a2) * r2;
+        if (ai === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+
+  // ── FLOQUET SIDEBANDS (radial beams when comb is active) ──
+  if (combLines > 1 && coreOrbitR > 0.1) {
+    const nBeams = Math.round(combLines);
+    for (let bi = 0; bi < nBeams; bi++) {
+      const bAngle = coreAngle + (bi / nBeams) * 2 * Math.PI;
+      const bAlpha = coreOrbitR * 0.12 * (1 - bi / nBeams * 0.5);
+      ctx.strokeStyle = `rgba(200,170,80,${bAlpha})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(bAngle) * discR * 1.3,
+                 cy + Math.sin(bAngle) * discR * 1.3);
+      ctx.stroke();
+    }
+  }
+
+  // ── SPECTRUM DISPLAY (bottom panel) ──
+  renderSpectrum();
+
+  // ── UPDATE UI ──
+  const p = getParams();
+  document.getElementById('ncomb').textContent = Math.round(combLines);
+  document.getElementById('fg-display').textContent =
+    (p.fg / 1e6).toFixed(0);
+  document.getElementById('c-fill').style.width =
+    Math.min(100, magnonC / (CRR.C_star_SO2 * 0.3) * 100) + '%';
+
+  document.getElementById('s-pow').textContent =
+    power_dBm.toFixed(1);
+  document.getElementById('s-fnm').textContent =
+    (p.fnm / 1e9).toFixed(2);
+  document.getElementById('s-fg').textContent =
+    isAboveThreshold ? (p.fg / 1e6).toFixed(0) : '—';
+  document.getElementById('s-orbit').textContent =
+    (coreOrbitR * 50).toFixed(1);
+  document.getElementById('s-state').textContent =
+    isAboveThreshold ? 'FLOQUET' : 'sub-threshold';
+  document.getElementById('s-state').style.color =
+    isAboveThreshold ? '#c0a050' : '#3a4050';
+  document.getElementById('s-C').textContent =
+    (magnonC / CRR.C_star_SO2).toFixed(3);
+  document.getElementById('s-comb').textContent =
+    combLines > 1 ?
+      `${Math.round(combLines)} lines at ${(p.fg/1e6).toFixed(0)} MHz spacing` :
+      '—';
+}
+
+function renderSpectrum() {
+  const sw = W, sh = 140;
+  spCtx.fillStyle = 'rgba(4,4,10,0.3)';
+  spCtx.fillRect(0, 0, sw, sh);
+
+  // Grid lines
+  spCtx.strokeStyle = 'rgba(255,255,255,0.03)';
+  spCtx.lineWidth = 0.5;
+  for (let gi = 0; gi < 10; gi++) {
+    const gy = sh * (1 - gi / 10);
+    spCtx.beginPath();
+    spCtx.moveTo(0, gy);
+    spCtx.lineTo(sw, gy);
+    spCtx.stroke();
+  }
+
+  // Draw spectrum
+  const N = spectrum.length;
+  const dx = sw / N;
+
+  // Fill
+  spCtx.fillStyle = 'rgba(100,120,200,0.08)';
+  spCtx.beginPath();
+  spCtx.moveTo(0, sh);
+  for (let si = 0; si < N; si++) {
+    const x = si * dx;
+    const y = sh - spectrum[si] * sh * 0.85;
+    spCtx.lineTo(x, y);
+  }
+  spCtx.lineTo(sw, sh);
+  spCtx.closePath();
+  spCtx.fill();
+
+  // Line
+  spCtx.strokeStyle = 'rgba(130,150,220,0.5)';
+  spCtx.lineWidth = 1.5;
+  spCtx.beginPath();
+  for (let si = 0; si < N; si++) {
+    const x = si * dx;
+    const y = sh - spectrum[si] * sh * 0.85;
+    if (si === 0) spCtx.moveTo(x, y);
+    else spCtx.lineTo(x, y);
+  }
+  spCtx.stroke();
+
+  // Comb peak highlights
+  if (combLines > 1) {
+    const combSpacing = 12;
+    const centre = N / 2;
+    const nSide = Math.floor(combLines / 2);
+    for (let li = -nSide; li <= nSide; li++) {
+      const px = (centre + li * combSpacing) * dx;
+      const py = sh - spectrum[Math.round(centre + li * combSpacing)] * sh * 0.85;
+      spCtx.fillStyle = `rgba(200,170,80,${0.3 + coreOrbitR * 0.4})`;
+      spCtx.beginPath();
+      spCtx.arc(px, py, 2.5, 0, 2 * Math.PI);
+      spCtx.fill();
+    }
+  }
+
+  // Labels
+  spCtx.fillStyle = '#3a4050';
+  spCtx.font = '9px "Fira Code", monospace';
+  spCtx.textAlign = 'center';
+  spCtx.fillText('f_nm', sw / 2, sh - 4);
+  if (combLines > 1) {
+    spCtx.fillStyle = '#6a5a30';
+    spCtx.fillText('f_nm - f_g', sw / 2 - 12 * (sw / 256), sh - 4);
+    spCtx.fillText('f_nm + f_g', sw / 2 + 12 * (sw / 256), sh - 4);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AUDIO: Frequency comb mapped to audible harmonics
+// ═══════════════════════════════════════════════════════════════
+
+let audioCtx, masterGain, oscillators = [];
+let soundOn = false;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.0001;
+
+  const rev = audioCtx.createConvolver();
+  const sr = audioCtx.sampleRate;
+  const len = sr * 3;
+  const imp = audioCtx.createBuffer(2, len, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = imp.getChannelData(ch);
+    for (let ri = 0; ri < len; ri++) d[ri] = (Math.random() * 2 - 1) * Math.pow(1 - ri / len, 4);
+  }
+  rev.buffer = imp;
+  const wet = audioCtx.createGain();
+  wet.gain.value = 0.4;
+  masterGain.connect(rev);
+  rev.connect(wet);
+  wet.connect(audioCtx.destination);
+  const dry = audioCtx.createGain();
+  dry.gain.value = 0.6;
+  masterGain.connect(dry);
+  dry.connect(audioCtx.destination);
+
+  // Create oscillators for comb lines
+  // Map: f_g (200 MHz) → 200 Hz fundamental
+  // Comb lines at 200, 400, 600... Hz
+  for (let oi = 0; oi < 11; oi++) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 200 * (oi + 1);
+    gain.gain.value = 0;
+    osc.connect(gain);
+    gain.connect(masterGain);
+    osc.start();
+    oscillators.push({ osc, gain });
+  }
+
+  masterGain.gain.setTargetAtTime(0.3, audioCtx.currentTime, 0.5);
+}
+
+function updateAudio() {
+  if (!audioCtx || !soundOn) return;
+  const now = audioCtx.currentTime;
+  const p = getParams();
+
+  // Map f_g to audible fundamental
+  const baseFund = p.fg / 1e6; // MHz → Hz mapping (200 MHz → 200 Hz)
+
+  for (let oi = 0; oi < oscillators.length; oi++) {
+    const osc = oscillators[oi];
+    const freq = baseFund * (oi + 1);
+    osc.osc.frequency.setTargetAtTime(freq, now, 0.05);
+
+    let vol = 0;
+    if (oi === 0) {
+      // Fundamental: always present above threshold
+      vol = isAboveThreshold ? 0.12 * coreOrbitR : 0.01 * magnonAmplitude;
+    } else if (oi < Math.round(combLines / 2) + 1) {
+      // Sideband: exp(-λ²·σ²) envelope
+      vol = isAboveThreshold ?
+        0.08 * coreOrbitR * Math.exp(-oi * oi * 0.15) : 0;
+    }
+
+    osc.gain.gain.setTargetAtTime(Math.max(0.0001, vol), now, 0.05);
+  }
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('btn-snd').textContent = soundOn ? 'sound: on' : 'sound: off';
+  document.getElementById('btn-snd').classList.toggle('on', soundOn);
+  if (soundOn) {
+    initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } else if (masterGain) {
+    masterGain.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.3);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════════════════
+
+document.getElementById('sl-pow').addEventListener('input', function() {
+  power_dBm = parseFloat(this.value);
+  document.getElementById('sl-pow-val').textContent = power_dBm.toFixed(1) + ' dBm';
+});
+
+document.getElementById('sl-damp').addEventListener('input', function() {
+  damping = parseFloat(this.value);
+  document.getElementById('sl-damp-val').textContent = damping.toFixed(3);
+});
+
+document.getElementById('sl-size').addEventListener('input', function() {
+  discSize = parseInt(this.value);
+  document.getElementById('sl-size-val').textContent = discSize + ' nm';
+});
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════════════════════════════
+
+function loop() {
+  updateCRR();
+  render();
+  updateAudio();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
