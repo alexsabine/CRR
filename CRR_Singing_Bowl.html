@@ -153,20 +153,23 @@ function setBowl(bi) {
   curBowl = bi; F0 = BOWLS[bi].F0; MODES = BOWLS[bi].modes;
   struck = false; stF = 0;
   for (const st of MS) { st.C = 0; st.C0 = 1; st.amp = 0; }
-  if (oscP) {
-    const now = ac.currentTime;
-    MODES.forEach((md, mi) => {
-      oscP[mi].oA.frequency.setValueAtTime(F0 * md.fr - md.sp / 2, now);
-      oscP[mi].oC.frequency.setValueAtTime(F0 * md.fr + md.sp / 2, now);
-      oscP[mi].gA.gain.setValueAtTime(0.0001, now);
-      oscP[mi].gC.gain.setValueAtTime(0.0001, now);
-    });
+  if (oscP) { syncOscFreqs(); const now = ac.currentTime;
+    MODES.forEach((md, mi) => { oscP[mi].gA.gain.setValueAtTime(0.0001, now); oscP[mi].gC.gain.setValueAtTime(0.0001, now); });
   }
   document.querySelectorAll('[id^=bw]').forEach(b => b.classList.remove('on'));
   document.getElementById('bw' + bi).classList.add('on');
 }
+// Scale all oscillator frequencies by timeScale — slows/speeds the sound with the visual
+function syncOscFreqs() {
+  if (!oscP) return; const now = ac.currentTime;
+  MODES.forEach((md, mi) => {
+    oscP[mi].oA.frequency.setValueAtTime((F0 * md.fr - md.sp / 2) * timeScale, now);
+    oscP[mi].oC.frequency.setValueAtTime((F0 * md.fr + md.sp / 2) * timeScale, now);
+  });
+}
 function setSpeed(sp) {
   timeScale = sp;
+  syncOscFreqs();
   document.querySelectorAll('[id^=sp]').forEach(b => b.classList.remove('on'));
   document.getElementById('sp' + { 0.1: 0, 0.25: 1, 0.5: 2, 1: 3 }[sp]).classList.add('on');
 }
@@ -211,12 +214,20 @@ function initAudio() {
   mGain = ac.createGain();
   mGain.gain.value = 0.65;
 
-  // Reverb (R phase): wet/dry split
-  const rev = mkRev(ac, 4.5, 2.2);
-  const wet = ac.createGain(), dry = ac.createGain();
-  wet.gain.value = 0.35; dry.gain.value = 0.75;
+  // Dry path connects immediately — zero latency on first strike
+  const dry = ac.createGain();
+  dry.gain.value = 0.75;
   mGain.connect(dry); dry.connect(comp);
-  mGain.connect(rev); rev.connect(wet); wet.connect(comp);
+
+  // Reverb (R phase) deferred: building the convolution buffer (~432K samples)
+  // blocks the main thread for ~200–500ms. We defer it so the first strike
+  // plays dry, and reverb silently connects within a frame or two.
+  setTimeout(() => {
+    const rev = mkRev(ac, 4.5, 2.2);
+    const wet = ac.createGain();
+    wet.gain.value = 0.35;
+    mGain.connect(rev); rev.connect(wet); wet.connect(comp);
+  }, 0);
 
   // Create Z₂ doublet pair per mode
   oscP = MODES.map(md => {
@@ -230,7 +241,7 @@ function initAudio() {
 
     const oA = ac.createOscillator(), oC = ac.createOscillator();
     oA.type = 'sine'; oC.type = 'sine';
-    oA.frequency.value = fA; oC.frequency.value = fC;
+    oA.frequency.value = fA * timeScale; oC.frequency.value = fC * timeScale;
     oA.connect(gA); oC.connect(gC);
     oA.start(); oC.start();
 
@@ -252,8 +263,9 @@ function doStrike(force) {
     nData[si] = (rnd() * 2 - 1) * pow(1 - si / nData.length, 3) * force * 0.4;
   }
   const nSrc = ac.createBufferSource(); nSrc.buffer = nBuf;
+  nSrc.playbackRate.value = timeScale; // pitch-shift the transient with time
   const nFilt = ac.createBiquadFilter();
-  nFilt.type = 'bandpass'; nFilt.frequency.value = F0 * 2; nFilt.Q.value = 1.5;
+  nFilt.type = 'bandpass'; nFilt.frequency.value = F0 * 2 * timeScale; nFilt.Q.value = 1.5;
   const nGain = ac.createGain(); nGain.gain.value = 0.5;
   nSrc.connect(nFilt); nFilt.connect(nGain); nGain.connect(mGain);
   nSrc.start(now); nSrc.stop(now + 0.04);
@@ -524,6 +536,10 @@ function unproj(sx, sy) {
 let pDown = false;
 
 function onDown(evt) {
+  // Eagerly warm up AudioContext on ANY first gesture (even button taps).
+  // This eliminates the ~200ms cold-start delay on first strike.
+  if (!ac) initAudio();
+  if (ac && ac.state === 'suspended') ac.resume();
   // Don't intercept UI control taps (buttons need their click events)
   if (evt.target.closest && evt.target.closest('.ctrl')) return;
   evt.preventDefault();
