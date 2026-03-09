@@ -146,6 +146,11 @@ function heightScale() { return pow(F_REF / F0, 2);   }
 function bouncePer()   { return 4 / F0; }
 function faradayK()    { return 26 * pow(F0 / F_REF, 2/3); }
 
+// Hard pixel cap: a drop cannot exceed 20% of its parent Faraday cell.
+// Cell pixel size = (2π/k) × (bowl screen diameter / 2) where bowl ≈ min(W,H)*0.55
+// This makes oversized drops physically impossible regardless of any upstream bug.
+function maxR() { return min(W,H) * 0.275 * TAU / faradayK() * 0.2; }
+
 // ═══════════════════════════════════════════════════════════════════════
 // §3  CRR CHROMATIC DISPERSION
 //
@@ -225,7 +230,7 @@ const LSX = 0.45, LSY = -0.55;
 // drawR: particle screen radius. cohFrac: C/C₀ (0–1), controls visibility.
 function drawPrismatic(sx, sy, drawR, alpha, cohFrac) {
   if (drawR < 1.5 || alpha < 0.03) return;
-  const vis = min(1, cohFrac * (drawR / 4));
+  const vis = min(1, cohFrac * (drawR / 3));
   const la = atan2(LSY, LSX);
 
   // Spectral caustic crescent — on shadow side, each λ offset by Δn
@@ -235,11 +240,11 @@ function drawPrismatic(sx, sy, drawR, alpha, cohFrac) {
     const off = bd.caustOff * drawR;
     const bx = cbx - LSX * off, by = cby - LSY * off;
     const edge = .5 + .5 * pow(abs(bd.nm - 530) / 180, .6);
-    const ba = vis * alpha * .7 * edge;
+    const ba = vis * alpha * 1.0 * edge;
     if (ba < .02) continue;
     cx.globalAlpha = ba;
     cx.fillStyle = `rgb(${flr(bd.r*255)},${flr(bd.g*255)},${flr(bd.b*255)})`;
-    cx.beginPath(); cx.arc(bx, by, max(.8, drawR * .22), 0, TAU); cx.fill();
+    cx.beginPath(); cx.arc(bx, by, max(.8, drawR * .28), 0, TAU); cx.fill();
   }
 
   // Prismatic rim — thin spectral arcs at Fresnel edge
@@ -247,12 +252,12 @@ function drawPrismatic(sx, sy, drawR, alpha, cohFrac) {
   for (const bd of BANDS) {
     const ringR = rimB + bd.rimOff * drawR;
     if (ringR < 1) continue;
-    const ra = vis * alpha * .5;
+    const ra = vis * alpha * .7;
     if (ra < .02) continue;
     cx.globalAlpha = ra;
     cx.strokeStyle = `rgb(${flr(bd.r*255)},${flr(bd.g*255)},${flr(bd.b*255)})`;
-    cx.lineWidth = max(.5, drawR * .08);
-    cx.beginPath(); cx.arc(sx, sy, ringR, la - 1.2, la + 1.2); cx.stroke();
+    cx.lineWidth = max(.5, drawR * .12);
+    cx.beginPath(); cx.arc(sx, sy, ringR, la - 1.5, la + 1.5); cx.stroke();
   }
   cx.globalAlpha = 1;
 }
@@ -970,6 +975,7 @@ function drawOverlay() {
   cx.clearRect(0,0,W,H);
   cx.save();
   cx.globalCompositeOperation = 'lighter';
+  const MR = maxR(); // hard pixel cap: no drop can exceed 20% of a Faraday cell
 
   for (const p of PARTS) {
     if (p.type==='dust') {
@@ -984,7 +990,7 @@ function drawOverlay() {
       cx.beginPath();
       cx.moveTo(p.x-bw,p.baseY);cx.lineTo(p.x+bw,p.baseY);
       cx.lineTo(p.x+tw,p.baseY-jH);cx.lineTo(p.x-tw,p.baseY-jH);cx.fill();
-      const tipR=max(.4,p.sz*(.5+.5*prog));
+      const tipR=min(MR,max(.4,p.sz*(.5+.5*prog)));
       cx.globalAlpha=min(1,alpha*1.3);
       cx.drawImage(DROP,p.x-tipR*1.3,p.baseY-jH-tipR*1.3,tipR*2.6,tipR*2.6);
       drawPrismatic(p.x,p.baseY-jH,tipR*1.3,min(1,alpha*1.3),1-prog);
@@ -994,7 +1000,7 @@ function drawOverlay() {
       const spd=sqrt(p.vx*p.vx+p.vy*p.vy);
       const lf=p.life/p.maxLife, cf=max(.1,p.bounceC/p.bounceC0);
       const alpha=min(1,lf*(.5+.5*sqrt(cf))*1.4);
-      const stretch=min(1.6,1+spd*.06*cf), dR=max(.5,p.sz)*1.3;
+      const stretch=min(1.6,1+spd*.06*cf), dR=min(MR,max(.5,p.sz)*1.3);
       cx.save(); cx.translate(p.x,p.y);
       if(spd>.5) cx.rotate(atan2(p.vy,p.vx));
       cx.scale(stretch,1/stretch);
@@ -1010,7 +1016,7 @@ function drawOverlay() {
     } else if (p.type==='walker') {
       const arc=4*p.bouncePhase*(1-p.bouncePhase);
       const hF=sqrt(max(0,p.bounceC/p.bounceC0));
-      const alpha=min(.8,p.br*(.3+arc*.5*hF)), dR=max(.5,p.sz)*1.3;
+      const alpha=min(.8,p.br*(.3+arc*.5*hF)), dR=min(MR,max(.5,p.sz)*1.3);
       // Trail — wave memory ghost
       const trA=alpha*.15;
       if (trA>.01) {
@@ -1033,7 +1039,7 @@ function drawOverlay() {
       const hF=sqrt(max(0,p.bounceC/p.bounceC0));
       const alpha=min(.9,p.br*(.2+arc*.8*hF));
       const aspectV=1+arc*hF*.45, aspectH=1/sqrt(aspectV);
-      const dR=max(.5,p.sz)*1.3;
+      const dR=min(MR,max(.5,p.sz)*1.3);
       cx.save(); cx.translate(p.x,p.y); cx.scale(aspectH,aspectV);
       if(arc>.5&&p.sz>.7&&hF>.3) {
         const gR=dR*2.2; cx.globalAlpha=min(.4,alpha*.2);
@@ -1046,7 +1052,7 @@ function drawOverlay() {
 
     } else {
       // Strike drops
-      const alpha=p.life*p.br*.7, dR=max(.4,p.sz*p.life)*1.3;
+      const alpha=p.life*p.br*.7, dR=min(MR,max(.4,p.sz*p.life)*1.3);
       cx.globalAlpha=min(1,alpha);
       cx.drawImage(DROP,p.x-dR,p.y-dR,dR*2,dR*2);
       drawPrismatic(p.x,p.y,dR,min(1,alpha),p.life);
