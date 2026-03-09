@@ -154,7 +154,9 @@ function beautyAtT(){
 function steamRate(){
   const t = Tnorm();
   if(t < 0.93) return 0; // §EXT steam visible only above ~97°C
-  return pow((t - 0.93) / 0.07, 2) * 14;
+  // §CRR Regeneration phase: exp(+C/Ω) — high-energy molecules escape
+  // Rate ramps sharply: gentle wisps at 97°C, continuous blanket at 100°C+
+  return pow((t - 0.93) / 0.07, 2) * 80;
 }
 function departR(){ const t=Tnorm(); return R_FRITZ_MM * (1 + t*t*3.5) }
 
@@ -571,19 +573,21 @@ void main(){
   }
 
   // ── Steam fog (visible above ~95°C) ──
+  // §CRR Regeneration made visible: water vapour = high-C molecules
+  // that escaped the liquid. exp(+C/Ω) correct for evaporation.
   if(u_temp > .90){
-    float fogD = (u_temp-.90)*4.;
+    float fogD = (u_temp-.90)*8.; // doubled density
     float tLow = (WY-ro.y)/rd.y, tHigh = (WY+.5-ro.y)/rd.y;
     if(tLow>0. && tHigh>0.){
       float tMn=min(tLow,tHigh), tMx=max(tLow,tHigh);
-      for(int j=0; j<3; j++){
-        float fT = tMn + (tMx-tMn)*(float(j)+.5)/3.;
+      for(int j=0; j<5; j++){
+        float fT = tMn + (tMx-tMn)*(float(j)+.5)/5.;
         vec3 sp = ro+rd*fT; float sr = length(sp.xz);
         if(sr < PR+.08){
           float fog = fogD * smoothstep(PR*.05,PR*.5,sr) * smoothstep(PR+.05,PR*.7,sr);
           fog *= .5 + .5*noise(sp.xz*3.+u_time*.6);
-          fog *= smoothstep(WY,WY+.08,sp.y) * smoothstep(WY+.45,WY+.15,sp.y);
-          col = mix(col, vec3(.25,.24,.23), min(.35, fog*.15));
+          fog *= smoothstep(WY,WY+.08,sp.y) * smoothstep(WY+.55,WY+.15,sp.y);
+          col = mix(col, vec3(.28,.27,.26), min(.45, fog*.2));
         }
       }
     }
@@ -762,7 +766,7 @@ function popBubble(rmm){
 //  Reset: C = rand() × CV_Z2 × C_STAR (weighted memory).
 //  This produces inter-bubble intervals with CV ≈ 1/2π.
 // ═══════════════════════════════════════════════════════════════════════
-const PARTS=[], MAX_P=1000;
+const PARTS=[], MAX_P=2000;
 const PB_Y=0.12+0.025, WY_=0.62;
 const N_SITES=32;
 const sites = Array.from({length: N_SITES}, () => {
@@ -826,17 +830,21 @@ function spawnSteam(dt){
   if(PARTS.length > MAX_P) return;
   const rate = steamRate(); if(rate < .01) return;
   const tn = Tnorm();
-  for(let i=0; i < rate*dt; i++){
-    if(rnd() > .18) continue;
-    const a=rnd()*TAU, r2=rnd()*.65;
+  // §CRR Regeneration: every point on the surface emits vapour.
+  // exp(+C/Ω) — high-energy molecules escape preferentially.
+  // At rolling boil: continuous blanket rising from entire surface.
+  const count = rate * dt;
+  for(let i=0; i < count; i++){
+    const a = rnd()*TAU, r2 = rnd()*.7; // cover full surface
     const pp = proj3D(cos(a)*r2*.72, WY_, sin(a)*r2*.72);
     if(!pp) continue;
-    const isL = rnd() < .3;
-    PARTS.push({ type:'steam', x:pp.x+(rnd()-.5)*15, y:pp.y,
-      vx:(rnd()-.5)*8, vy:-(8+rnd()*25+tn*18),
-      sz: isL ? 8+rnd()*14+tn*8 : 2+rnd()*6+tn*4,
-      opacity: isL ? .01+rnd()*.02*tn : .012+rnd()*.025*tn,
-      life:1, maxLife:1.5+rnd()*2, turbPh:rnd()*TAU, large:isL });
+    const isL = rnd() < .45; // more large wisps at boil
+    PARTS.push({ type:'steam', x:pp.x+(rnd()-.5)*20, y:pp.y,
+      vx:(rnd()-.5)*12,
+      vy:-(12+rnd()*35+tn*25), // rise faster and higher
+      sz: isL ? 14+rnd()*22+tn*12 : 5+rnd()*10+tn*6,
+      opacity: isL ? .025+rnd()*.05*tn : .03+rnd()*.05*tn,
+      life:1, maxLife:2.5+rnd()*3.0, turbPh:rnd()*TAU, large:isL });
   }
 }
 
@@ -874,9 +882,11 @@ function updateParts(dt){
       p.curOp = min(.45, p.opacity*(.3+t2*.7));
       if(p.prog >= 1){ doPop(p); PARTS.splice(i,1); continue; }
     } else if(p.type === 'steam'){
-      p.life -= dt/p.maxLife; p.y += p.vy*dt; p.vy *= 1-dt*.6;
-      p.turbPh += dt*2.2; p.x += p.vx*dt + sin(p.turbPh)*3.5*dt;
-      p.vx += (rnd()-.5)*dt*10; p.sz += dt*(4+Tnorm()*8); p.opacity *= 1-dt*.35;
+      p.life -= dt/p.maxLife; p.y += p.vy*dt; p.vy *= 1-dt*.4; // slower decel → rise higher
+      p.turbPh += dt*2.2; p.x += p.vx*dt + sin(p.turbPh)*4.*dt; // more lateral drift
+      p.vx += (rnd()-.5)*dt*12;
+      p.sz += dt*(6+Tnorm()*12); // expand faster
+      p.opacity *= 1-dt*.22; // fade slower → linger longer
       if(p.life<=0 || p.opacity<.001){ PARTS.splice(i,1); continue; }
     } else if(p.type === 'drop'){
       p.vy += 55*dt; p.x += p.vx*dt; p.y += p.vy*dt;
@@ -974,7 +984,7 @@ function drawParts(){
   const stm = PARTS.filter(p => p.type==='steam').sort((a,b) => a.y-b.y);
   for(const p of stm){
     const dR = max(2, p.sz);
-    cx.globalAlpha = min(.18, p.opacity);
+    cx.globalAlpha = min(.28, p.opacity); // was .18 — more visible steam
     cx.save(); cx.translate(p.x, p.y); cx.rotate(p.turbPh*.15);
     cx.drawImage(p.large ? STM_L : STM_S, -dR,-dR, dR*2,dR*2);
     cx.restore();
