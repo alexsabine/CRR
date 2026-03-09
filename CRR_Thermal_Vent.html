@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Song of the Vent — CRR Composition</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#020408;overflow:hidden;height:100vh;height:100dvh;
+  cursor:pointer;user-select:none;-webkit-user-select:none;
+  touch-action:none;-webkit-touch-callout:none}
+canvas{position:absolute;top:0;left:0}
+#cv{pointer-events:none}
+.hud{position:fixed;pointer-events:none;
+  font:300 clamp(9px,0.9vw,10px)/1.6 'Cormorant Garamond',Georgia,serif;
+  letter-spacing:.06em;color:rgba(120,160,200,0.12)}
+#title{top:14px;left:18px;letter-spacing:.28em;font-size:clamp(11px,1.2vw,13px)}
+#eq{top:14px;right:18px;text-align:right}
+#diag{bottom:14px;right:18px;text-align:right;white-space:pre;
+  color:rgba(120,160,200,0.18);font-size:clamp(8px,0.8vw,9px)}
+#ui{bottom:20px;left:50%;transform:translateX(-50%);text-align:center;
+  color:rgba(140,180,220,0.25);font-size:clamp(12px,1.4vw,14px);
+  letter-spacing:.20em;transition:opacity 4s}
+#ui.dim{opacity:0}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<canvas id="cv"></canvas>
+<div class="hud" id="title">SONG OF THE VENT</div>
+<div class="hud" id="eq">C·Ω = 1<br>Z₂ plume: CV ≈ 0.50<br>SO(2) tide: CV ≈ 0</div>
+<div class="hud" id="ui">tap to begin</div>
+<div class="hud" id="diag"></div>
+
+<script>
+// ╔═══════════════════════════════════════════════════════════════════════════╗
+// ║                                                                         ║
+// ║   S O N G   O F   T H E   V E N T                                      ║
+// ║   A CRR Composition — Final Production                                  ║
+// ║                                                                         ║
+// ║   Coherence–Rupture–Regeneration (Sabine 2025)                          ║
+// ║   Three equations govern all dynamics in this composition:              ║
+// ║                                                                         ║
+// ║   1. COHERENCE — the past accumulates:                                  ║
+// ║      C(x,t) = ∫ L(x,τ) dτ                                             ║
+// ║                                                                         ║
+// ║   2. RUPTURE — the present is instantaneous:                            ║
+// ║      δ(now)  when C · Ω = 1                                            ║
+// ║                                                                         ║
+// ║   3. REGENERATION — the future is built from weighted memory:           ║
+// ║      R = ∫ φ(x,τ) · exp(C/Ω) · Θ(…) dτ                               ║
+// ║                                                                         ║
+// ║   Ω = σ² = system variance (boundary permeability)                      ║
+// ║   B(C/Ω) = exp(C/Ω) · (1 − C/Ωπ)  beauty function, peaks at π−1      ║
+// ║                                                                         ║
+// ║ ─────────────────────────────────────────────────────────────────────── ║
+// ║                                                                         ║
+// ║   HYDROTHERMAL VENT PHYSICS — CRR CV PREDICTIONS                       ║
+// ║                                                                         ║
+// ║   System 1: PLUME FLUX PULSATION — Z₂ bistable                         ║
+// ║     Two-phase subsurface fluid alternates liquid/vapour states.         ║
+// ║     Pressure builds (C accumulates) → discharge pulse (δ) →            ║
+// ║     plume rise (R from weighted memory).                                ║
+// ║     Ω = 1/π ≈ 0.318.  C* = π.  CV_pred = 1/(2π) ≈ 0.159.            ║
+// ║     Period: geometric mean ~1.6 s (Xu et al. 2018 Mar Geophys Res).   ║
+// ║     CV_obs ≈ 0.50 (bandwidth 0.5–5 s across 4 ridge sites).          ║
+// ║     Class C: stochastic geological forcing elevates CV.                 ║
+// ║     σ_jitter = (CV_obs − CV_pred) · C* ≈ 1.07 coherence units.       ║
+// ║                                                                         ║
+// ║   System 2: TIDAL MODULATION — SO(2) entrained                          ║
+// ║     Semi-diurnal tide (12.42 h) modulates vent temperature.            ║
+// ║     Barreyre et al. 2014 JGR 119:2543 (Lucky Strike, 3-year record).  ║
+// ║     CV ≈ 0.001 — gravitationally locked. Class B: suppressed.          ║
+// ║     Compressed to 30 s cycle for musical timescale.                     ║
+// ║                                                                         ║
+// ║   System 3: SPINODAL DECOMPOSITION — Z₂ at molecular scale             ║
+// ║     Supercritical fluid (400°C, 300 bar) exits orifice →              ║
+// ║     pressure drop triggers spontaneous phase separation.               ║
+// ║     Each bubble nucleation IS a Z₂ micro-rupture.                      ║
+// ║     The white "foam" = millions of simultaneous δ events.              ║
+// ║     Light scatters from phase interfaces (Tyndall effect).             ║
+// ║                                                                         ║
+// ║   System 4: KELVIN-HELMHOLTZ INSTABILITY — SO(2) at plume edge          ║
+// ║     Shear between rising plume and still ambient water.                ║
+// ║     Rotational vortices accumulate angular coherence → rupture →       ║
+// ║     spawn smaller vortices. Creates billowing mushroom edges.           ║
+// ║                                                                         ║
+// ║   System 5: TURBULENT CASCADE — nested CRR at all scales               ║
+// ║     Richardson cascade: big eddies → small eddies.                     ║
+// ║     Each eddy IS a CRR cycle. E(k) ∝ k^(-5/3) (Kolmogorov).         ║
+// ║     Domain-warped fbm: each octave's coordinates distorted by          ║
+// ║     the previous octave = regeneration shaped by larger scale.          ║
+// ║                                                                         ║
+// ║   System 6: SHRIMP SCHOOLING (Rimicaris exoculata) — SO(2) heading      ║
+// ║     C = ∫ cos(θ_i − θ_mean) dτ  (alignment coherence).               ║
+// ║     Rupture at C·Ω_SO(2) = 1 → sudden dart (δ).                      ║
+// ║     R: new heading from exp(C/Ω)-weighted neighbour headings.          ║
+// ║     Thermotaxis modulated by B(C·Ω) of nearest vent.                  ║
+// ║                                                                         ║
+// ║   VISUAL TECHNIQUE:                                                     ║
+// ║     1. Refractive shimmer: ∇T of turbulence3 field bends rays.        ║
+// ║        n(T) = 1.343 − 0.0001·T → Δn ≈ 0.035 across ΔT = 348°C.     ║
+// ║        Shimmer and plume volume are THE SAME CRR temperature field.    ║
+// ║     2. Spinodal foam: high-frequency 3D noise with Z₂ thresholding.   ║
+// ║     3. Volumetric plume: MTT model w(z) = w₀ + 2αz, α = 0.19.       ║
+// ║     4. Mineral puffs: dark sulfide absorption at each δ event.         ║
+// ║                                                                         ║
+// ║   AUDIO:                                                                ║
+// ║     Layer 1: Turbulent rumble (continuous filtered noise, ∝ B₀^(2/3)). ║
+// ║     Layer 2: Pressure-drop impulse at each δ (band-limited, ε = 80ms).║
+// ║     Layer 3: Mineral drone at 42 Hz (chimney wall resonance).          ║
+// ║     Reverb = R = ∫φ·exp(C/Ω)·Θ dτ realised as impulse response.      ║
+// ║                                                                         ║
+// ║   DATA SOURCES:                                                         ║
+// ║     Xu et al. 2018 Mar Geophys Res — plume flux oscillation 0.5–5 s   ║
+// ║     Barreyre et al. 2014 JGR 119:2543 — Lucky Strike tidal            ║
+// ║     Mittelstaedt et al. 2016 G³ 17:1435 — ASHES diffuse flow          ║
+// ║     Lemaréchal et al. 2025 JGR — near-field plume LES, α = 0.19      ║
+// ║     Sarrazin et al. 2009 DSR-I 56:2065 — diffuse velocity 1.1–4.9mm/s║
+// ║     Morton, Taylor & Turner 1956 — plume entrainment model            ║
+// ║                                                                         ║
+// ║   Alexander Sabine · cohere.org.uk · temporalgrammar.ai                 ║
+// ╚═══════════════════════════════════════════════════════════════════════════╝
+
+const PI = Math.PI, TAU = 2 * PI, PHI = (1 + Math.sqrt(5)) / 2;
+const { sin, cos, sqrt, pow, abs, min, max, exp, log, random: rnd, atan2, floor: flr } = Math;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §1  CRR CONSTANTS — derived from information geometry
+//
+//   The Z₂ symmetry class (bistable systems) has:
+//     Ω_Z₂ = 1/π  — boundary permeability
+//     C*    = π    — coherence at rupture (from C · Ω = 1)
+//     CV    = Ω/2 = 1/(2π) ≈ 0.1592 — intrinsic prediction
+//
+//   The SO(2) symmetry class (rotational systems) has:
+//     Ω_SO(2) = 1/(2π), C* = 2π, CV = 1/(4π) ≈ 0.0796
+//
+//   Beauty function: B(r) = exp(r) · (1 − r/π)
+//     Peaks at r = π − 1 ≈ 2.14 (maximal coherent complexity)
+//     Governs visual intensity of each plume pulse.
+//
+//   For the hydrothermal plume, observed CV ≈ 0.50 >> predicted 0.159.
+//   This is Class C (stochastic forcing). We model it by adding
+//   Gaussian jitter σ_j to the rupture threshold:
+//     σ_j = (CV_obs − CV_pred) · C* = (0.50 − 0.159) · π ≈ 1.07
+// ═══════════════════════════════════════════════════════════════════════════
+const OmZ2   = 1 / PI;                         // §CRR Z₂ boundary permeability
+const OmSO2  = 1 / TAU;                        // §CRR SO(2) boundary permeability
+const C_STAR  = PI;                             // §CRR coherence at Z₂ rupture
+const CV_PRED = 1 / TAU;                        // §CRR predicted CV ≈ 0.1592
+const CV_OBS  = 0.50;                           // §CRR observed (Xu et al. 2018)
+const SIGMA_J = (CV_OBS - CV_PRED) * C_STAR;    // §CRR Class C jitter ≈ 1.07
+
+function B(r) { return max(0, exp(min(8, r)) * (1 - r / PI)); }
+const B_PEAK = B(PI - 1);                       // §CRR beauty peak value
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §2  PLUME PHYSICS — empirical parameters from literature
+//
+//   T_MEAN = 1.6 s — geometric mean of 0.5–5 s bandwidth
+//     (Xu et al. 2018, PIV analysis at EPR, JdF, TAG, MAR)
+//   L_RATE = C*/T_MEAN = π/1.6 ≈ 1.963 — coherence accumulation rate
+//   TIDAL_PERIOD = 30 s — compressed from 12.42 h for musical timescale
+//   EPSILON = 0.08 s — nascent delta width (ε << 1/Ω = π)
+//     All predictions are ε-independent since observables depend on Ω alone.
+//
+//   MTT plume model (Morton, Taylor & Turner 1956):
+//     Width: w(z) = w₀ + 2αz  where α = 0.19 (Lemaréchal et al. 2025)
+//     Velocity: v(z) ∝ B₀^(1/3) · z^(-1/3)
+//     Temperature: T(z) = T_ambient + ΔT · (w₀/w(z))²
+// ═══════════════════════════════════════════════════════════════════════════
+const T_MEAN      = 1.6;                        // mean plume pulsation period (s)
+const L_RATE      = C_STAR / T_MEAN;            // coherence accumulation rate
+const TIDAL_PERIOD = 30;                        // compressed tidal cycle (s)
+const EPSILON     = 0.08;                       // nascent delta width (s)
+let gTime = 0;
+
+// Box-Muller transform for Gaussian random variates
+function gaussRnd() {
+  return sqrt(-2 * log(max(1e-10, rnd()))) * cos(TAU * rnd());
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §3  CRR VENT STATE ENGINE — one Z₂ cycle per vent
+//
+//   Each vent maintains:
+//     C         — accumulated coherence (subsurface pressure buildup)
+//     C_thr     — rupture threshold = C* + N(0, σ_j) (Class C jitter)
+//     phase     — 'C' (accumulating) | 'R' (regenerating)
+//     plumeSmooth — GPU plume intensity (always >0: vent never stops)
+//     puffIntensity — mineral precipitate opacity (spikes at δ, decays)
+//
+//   Tidal modulation (SO(2) entrained):
+//     L_eff(t) = L_RATE · (1 + 0.15·sin(2π·t/T_tidal))
+//     The 15% amplitude matches the poroelastic response magnitude
+//     observed at Lucky Strike (Barreyre et al. 2014).
+// ═══════════════════════════════════════════════════════════════════════════
+const VENTS = [];
+
+function makeVent(x, z, scale) {
+  return {
+    x, z, scale,
+    C: rnd() * C_STAR * 0.5,
+    C_thr: C_STAR + gaussRnd() * SIGMA_J,
+    phase: 'C',
+    R_prog: 0,
+    bVal: 0,
+    ruptureC: 0,
+    ruptureCount: 0,
+    ruptureTimes: [],
+    lastRuptureT: 0,
+    plumeSmooth: 0.3 * scale,   // baseline: vent always discharges
+    puffIntensity: 0,
+  };
+}
+
+// Three vents: main smoker + two smaller secondary vents
+VENTS.push(makeVent( 0.00,  0.00, 1.0));  // main vent
+VENTS.push(makeVent(-0.25,  0.18, 0.6));  // secondary
+VENTS.push(makeVent( 0.20, -0.14, 0.4));  // tertiary
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §4  CRR STEP — advances one timestep per vent
+//
+//   COHERENCE PHASE (C):
+//     C += L_eff · dt
+//     plumeSmooth = max(baseline, 0.3 + 0.5·C/C*)
+//     B(C·Ω) computed for visual/audio modulation
+//
+//   RUPTURE CHECK:
+//     When C ≥ C_thr → δ(now)
+//     plumeSmooth → 1.0 (maximum discharge intensity)
+//     puffIntensity = B(C_rupture · Ω) / B_peak (mineral precipitate)
+//     New threshold: C_thr = C* + N(0, σ_j)
+//     Record inter-rupture interval for live CV measurement
+//
+//   REGENERATION PHASE (R):
+//     R_prog: 0 → 1 over ε = 0.08 s
+//     Then back to C phase with C = 0
+// ═══════════════════════════════════════════════════════════════════════════
+function stepVent(v, dt) {
+  const tidalMod = 1 + 0.15 * sin(TAU * gTime / TIDAL_PERIOD);
+
+  // Plume smoothing: relaxes toward baseline (vent never stops discharging)
+  v.plumeSmooth += (0.55 * v.scale - v.plumeSmooth) * dt * 1.2;
+  // Puff decay: mineral precipitate disperses
+  v.puffIntensity *= (1 - dt * 1.8);
+
+  if (v.phase === 'R') {
+    v.R_prog += dt / EPSILON;
+    if (v.R_prog >= 1) {
+      v.phase = 'C';
+      v.C = 0;
+      v.C_thr = C_STAR + gaussRnd() * SIGMA_J;
+    }
+    return;
+  }
+
+  // §CRR coherence accumulation
+  v.C += L_RATE * tidalMod * v.scale * dt;
+  v.bVal = B(min(PI, v.C * OmZ2));
+
+  // Keep plume visible between ruptures
+  v.plumeSmooth = max(v.plumeSmooth, 0.3 + 0.5 * (v.C / C_STAR));
+
+  // §CRR rupture check: C · Ω = 1
+  if (v.C >= v.C_thr) {
+    v.phase = 'delta';
+    v.ruptureC = v.C;
+    v.ruptureCount++;
+    v.plumeSmooth = 1.0;
+    v.puffIntensity = min(1, B(v.ruptureC * OmZ2) / B_PEAK);
+
+    // Record interval for live CV
+    if (v.lastRuptureT > 0) {
+      v.ruptureTimes.push(gTime - v.lastRuptureT);
+      if (v.ruptureTimes.length > 50) v.ruptureTimes.shift();
+    }
+    v.lastRuptureT = gTime;
+
+    // Audio impulse
+    if (ac) triggerPulse(v, v.puffIntensity);
+
+    // Enter regeneration
+    v.phase = 'R';
+    v.R_prog = 0;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §5  AUDIO ENGINE — deep-sea soundscape from CRR
+//
+//   Layer 1: TURBULENT RUMBLE — continuous filtered noise
+//     Turbulent kinetic energy ∝ B₀^(2/3). Low-passed at 120 Hz.
+//     Modulated by tidal SO(2) cycle.
+//
+//   Layer 2: PRESSURE-DROP IMPULSE — at each Z₂ rupture
+//     Band-limited noise burst centred at chimney resonant frequency
+//     (∝ √(E/ρ) / L_chimney ≈ 160–240 Hz depending on vent scale).
+//     Duration = ε = 0.08 s (the nascent delta width).
+//
+//   Layer 3: MINERAL DRONE — chimney wall resonance at ~42 Hz
+//     Two detuned sines (42.0, 42.8 Hz) create slow beating.
+//     Amplitude tracks total vent activity (sum of beauty values).
+//
+//   REVERB = R = ∫φ·exp(C/Ω)·Θ dτ realised as impulse response.
+//     6 s tail with exponential decay (exp(C/Ω) weighting).
+//     Deep-sea basalt walls produce long, dark reverb.
+// ═══════════════════════════════════════════════════════════════════════════
+let ac = null, mGain = null, rumbleGain = null, droneGain = null, started = false;
+
+function initAudio() {
+  if (ac) return;
+  ac = new (AudioContext || webkitAudioContext)();
+
+  // Compressor
+  const comp = ac.createDynamicsCompressor();
+  comp.threshold.value = -18; comp.knee.value = 12; comp.ratio.value = 6;
+  comp.connect(ac.destination);
+
+  // Master gain
+  mGain = ac.createGain(); mGain.gain.value = 0.55;
+
+  // §CRR Reverb: R = ∫φ·exp(C/Ω)·Θ dτ
+  const revLen = ac.sampleRate * 6;
+  const revBuf = ac.createBuffer(2, revLen, ac.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = revBuf.getChannelData(ch);
+    for (let i = 0; i < revLen; i++) {
+      d[i] = (rnd() * 2 - 1) * pow(1 - i / revLen, 1.8) * 0.6;
+    }
+  }
+  const rev = ac.createConvolver(); rev.buffer = revBuf;
+  const wet = ac.createGain(), dry = ac.createGain();
+  wet.gain.value = 0.45; dry.gain.value = 0.65;
+  mGain.connect(dry); dry.connect(comp);
+  mGain.connect(rev); rev.connect(wet); wet.connect(comp);
+
+  // Layer 1: Turbulent rumble
+  const rBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+  const rd = rBuf.getChannelData(0);
+  for (let i = 0; i < rd.length; i++) rd[i] = rnd() * 2 - 1;
+  const rSrc = ac.createBufferSource(); rSrc.buffer = rBuf; rSrc.loop = true;
+  const rFilt = ac.createBiquadFilter();
+  rFilt.type = 'lowpass'; rFilt.frequency.value = 120; rFilt.Q.value = 2;
+  rumbleGain = ac.createGain(); rumbleGain.gain.value = 0.12;
+  rSrc.connect(rFilt); rFilt.connect(rumbleGain); rumbleGain.connect(mGain);
+  rSrc.start();
+
+  // Layer 3: Mineral drone (42 Hz chimney resonance)
+  const d1 = ac.createOscillator(), d2 = ac.createOscillator();
+  d1.type = 'sine'; d1.frequency.value = 42;
+  d2.type = 'sine'; d2.frequency.value = 42.8;
+  droneGain = ac.createGain(); droneGain.gain.value = 0.06;
+  d1.connect(droneGain); d2.connect(droneGain); droneGain.connect(mGain);
+  d1.start(); d2.start();
+}
+
+// §CRR Layer 2: Pressure-drop impulse at δ
+function triggerPulse(v, intensity) {
+  const now = ac.currentTime;
+  const dur = EPSILON;
+  const nB = ac.createBuffer(1, flr(ac.sampleRate * dur), ac.sampleRate);
+  const nd = nB.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) {
+    nd[i] = (rnd() * 2 - 1) * pow(1 - i / nd.length, 2.5) * intensity * 0.6;
+  }
+  const ns = ac.createBufferSource(); ns.buffer = nB;
+  const nf = ac.createBiquadFilter();
+  nf.type = 'bandpass'; nf.frequency.value = 160 + 80 / v.scale; nf.Q.value = 3;
+  const ng = ac.createGain(); ng.gain.value = 0.25 * v.scale;
+  ns.connect(nf); nf.connect(ng); ng.connect(mGain);
+  ns.start(now); ns.stop(now + dur + 0.02);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §6  GLSL FRAGMENT SHADER
+//
+//   Architecture:
+//     Pass 0: Compute refractive distortion (∇T of turbulence3 field)
+//     Pass 1: Raymarch solid geometry (vent mound, tube worms) with rd0
+//     Pass 2: Render background (seafloor) with distorted ray rd
+//     Pass 3: Volumetric plume (spinodal foam → turbulent mixing → smoke)
+//     Pass 4: Mineral puff overlay (absorptive, at δ events)
+//     Pass 5: Atmosphere (ROV light, marine snow, scatter, vignette)
+//
+//   All noise functions shared between plume volume and shimmer distortion:
+//     turbulence3() — domain-warped Richardson cascade (§CRR nested CRR)
+//     noise3() — 3D value noise (trilinear interpolation)
+// ═══════════════════════════════════════════════════════════════════════════
+const VS = `attribute vec2 a; void main() { gl_Position = vec4(a, 0, 1); }`;
+
+const FS = `precision highp float;
+uniform vec2 u_res;
+uniform float u_time, u_tide;
+uniform float u_plume[3], u_puff[3];
+
+const float PI = 3.14159265, TAU = 6.28318530;
+
+// ─── Noise primitives ───
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+
+float noise3(vec3 p) {
+  vec3 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(mix(hash3(i), hash3(i + vec3(1,0,0)), f.x),
+                 mix(hash3(i + vec3(0,1,0)), hash3(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(hash3(i + vec3(0,0,1)), hash3(i + vec3(1,0,1)), f.x),
+                 mix(hash3(i + vec3(0,1,1)), hash3(i + vec3(1,1,1)), f.x), f.y), f.z);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(hash(i), hash(i + vec2(1,0)), f.x),
+             mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), f.x), f.y);
+}
+
+float fbm(vec2 p) {
+  float v = 0., a = .5;
+  for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.1; a *= .5; }
+  return v;
+}
+
+// ─── §CRR Domain-warped turbulence (Richardson-Kolmogorov cascade) ───
+// Each octave IS a CRR scale. Domain warp = regeneration shaped by
+// larger-scale coherence. Amplitudes follow E(k) ∝ k^(-5/3).
+float turbulence3(vec3 p, float t) {
+  vec3 adv = p + vec3(0., -t * 2.5, 0.);                          // upward advection
+  float n1 = noise3(adv * 4.);                                     // integral scale
+  vec3 w1 = adv + vec3(n1 * 0.3, n1 * 0.2, -n1 * 0.25);         // domain warp
+  float n2 = noise3(w1 * 9. + vec3(0., -t * 3.5, t * 0.7));      // inertial range
+  vec3 w2 = w1 + vec3(n2 * 0.15, -n2 * 0.1, n2 * 0.12);         // second warp
+  float n3 = noise3(w2 * 20. + vec3(t * 1.3, -t * 5., 0.));      // small eddies
+  float n4 = noise3(w2 * 40. + vec3(-t * 2., t * 8., t * 1.5));  // Kolmogorov scale
+  return n1 * 0.45 + n2 * 0.3 + n3 * 0.17 + n4 * 0.08;
+}
+
+mat3 lookAt(vec3 e, vec3 t) {
+  vec3 f = normalize(t - e), r = normalize(cross(f, vec3(0,1,0)));
+  return mat3(r, cross(r, f), -f);
+}
+
+// ─── §CRR Vent mound SDF ───
+float ventMound(vec3 p, vec3 base, float sc) {
+  vec3 q = p - base;
+  float h = 0.12 * sc, rB = 0.08 * sc, rT = 0.02 * sc;
+  float y01 = clamp(q.y / h, 0., 1.);
+  float rr = mix(rB, rT, y01 * y01);
+  rr += 0.006 * sc * sin(q.y * 50. + sin(atan(q.z, q.x) * 5.) * 3.);
+  rr += 0.004 * sc * sin(atan(q.z, q.x) * 8. + q.y * 20.);
+  return max(length(q.xz) - rr, abs(q.y - h * .5) - h * .5);
+}
+
+// ─── §CRR Tube worms (Riftia pachyptila) ───
+float tubeWorm(vec3 p, vec3 base, float sc) {
+  float dMin = 100.;
+  for (int tw = 0; tw < 6; tw++) {
+    float fi = float(tw);
+    float a = fi * 1.047 + 0.3 * sc;
+    float dist = 0.14 * sc + 0.02 * sin(fi * 2.3);
+    vec3 wBase = base + vec3(cos(a) * dist, 0., sin(a) * dist);
+    vec3 q = p - wBase;
+    float h = 0.18 * sc * (0.5 + 0.5 * sin(fi * 3.1));
+    float r = 0.004 * sc;
+    float bend = 0.015 * sc * q.y * 4.;
+    vec3 bq = q - vec3(cos(a) * bend, 0., sin(a) * bend);
+    dMin = min(dMin, max(length(bq.xz) - r, abs(bq.y - h * .5) - h * .5));
+  }
+  return dMin;
+}
+
+// ═════════════════════════════════════════════════════════════
+// MAIN SHADER
+// ═════════════════════════════════════════════════════════════
+void main() {
+  vec2 uv = (gl_FragCoord.xy - .5 * u_res) / u_res.y;
+  vec3 ro = vec3(0.25, 0.22, 0.75);
+  mat3 cam = lookAt(ro, vec3(0., 0.06, 0.));
+  vec3 rd0 = cam * normalize(vec3(uv, -1.1));
+  vec3 L = normalize(vec3(0.3, 0.8, 0.4));
+
+  vec3 vP[3]; float vS[3];
+  vP[0] = vec3(0., 0., 0.); vP[1] = vec3(-0.25, 0., 0.18); vP[2] = vec3(0.2, 0., -0.14);
+  vS[0] = 1.; vS[1] = 0.6; vS[2] = 0.4;
+
+  // ─── PASS 0: Refractive distortion via ∇T ───
+  vec3 rd = rd0;
+  float totalShimmer = 0., totalPuff = 0.;
+
+  for (int vi = 0; vi < 3; vi++) {
+    vec3 orifice = vP[vi] + vec3(0., 0.12 * vS[vi], 0.);
+    float tC = dot(orifice - ro, rd0) / dot(rd0, rd0);
+    if (tC < 0.) continue;
+    vec3 cp = ro + rd0 * tC;
+    float rDist = length(cp.xz - vP[vi].xz);
+    float yRel = cp.y - vP[vi].y;
+    float w0 = 0.018 * vS[vi];
+    float w = w0 + 2. * 0.19 * max(0., yRel - 0.12 * vS[vi]) * 0.1;
+    if (rDist > w * 5. || yRel < 0. || yRel > 1.4 * vS[vi]) continue;
+
+    float vFade = smoothstep(0., 0.15 * vS[vi], yRel) * (1. - smoothstep(0.8 * vS[vi], 1.3 * vS[vi], yRel));
+    float rFade = exp(-rDist * rDist / (w * w * 2.5));
+    float shimStr = u_plume[vi] * rFade * vFade;
+    totalShimmer += shimStr;
+
+    // §CRR ∇T: gradient of SAME turbulence3 field used by plume volume
+    vec3 q = (cp - orifice) * 9. / vS[vi];
+    float eps = 0.08;
+    float tH = turbulence3(q, u_time);
+    vec3 gradT = vec3(
+      turbulence3(q + vec3(eps,0.,0.), u_time) - tH,
+      turbulence3(q + vec3(0.,eps,0.), u_time) - tH,
+      turbulence3(q + vec3(0.,0.,eps), u_time) - tH
+    ) / eps;
+
+    float mag = shimStr * 0.12 * vS[vi];
+    rd.x += gradT.x * mag;
+    rd.y += gradT.y * mag * 0.4;
+    rd.z += gradT.z * mag;
+
+    // Fine Kolmogorov shimmer
+    rd.x += noise3(q * 25. + vec3(u_time * 12., -u_time * 18., u_time * 8.)) * shimStr * 0.04 * vS[vi];
+    rd.z += noise3(q * 50. + vec3(-u_time * 20., u_time * 30., -u_time * 12.)) * shimStr * 0.04 * vS[vi];
+
+    // Mineral puff
+    totalPuff += u_puff[vi] * exp(-rDist * rDist / (w * w * 3.)) * vFade *
+                 (0.5 + 0.5 * noise3(q * 3. + vec3(0., -u_time * 3., 0.)));
+  }
+  rd = normalize(rd);
+
+  // ─── PASS 1: Solid geometry (original ray) ───
+  float tideW = 0.5 + 0.5 * sin(TAU * u_time / 30.);
+  vec3 deep = mix(vec3(0.006, 0.012, 0.028), vec3(0.01, 0.016, 0.035), tideW);
+  vec3 col = deep;
+  bool hitSolid = false;
+
+  float t = 0.01, tMax = 6.;
+  vec3 cP, hB; float hS, hVB; int hType = 0;
+  hB = vP[0]; hS = vS[0]; hVB = u_plume[0];
+
+  for (int iter = 0; iter < 90; iter++) {
+    vec3 p = ro + rd0 * t; float dM = 100.;
+    for (int vi = 0; vi < 3; vi++) {
+      float dc = ventMound(p, vP[vi], vS[vi]);
+      if (dc < dM) { dM = dc; hB = vP[vi]; hS = vS[vi]; hVB = u_plume[vi]; hType = 0; }
+      float dw = tubeWorm(p, vP[vi], vS[vi]);
+      if (dw < dM) { dM = dw; hB = vP[vi]; hS = vS[vi]; hVB = u_plume[vi]; hType = 1; }
+    }
+    if (dM < 0.001) { hitSolid = true; cP = p; break; }
+    t += dM * 0.7; if (t > tMax) break;
+  }
+
+  if (hitSolid) {
+    vec3 bp = cP - hB; float e2 = 0.002; vec3 n;
+    if (hType == 0) {
+      n = normalize(vec3(
+        ventMound(cP+vec3(e2,0,0),hB,hS)-ventMound(cP-vec3(e2,0,0),hB,hS),
+        ventMound(cP+vec3(0,e2,0),hB,hS)-ventMound(cP-vec3(0,e2,0),hB,hS),
+        ventMound(cP+vec3(0,0,e2),hB,hS)-ventMound(cP-vec3(0,0,e2),hB,hS)));
+      float y01 = clamp(bp.y / (0.12 * hS), 0., 1.);
+      float mineral = fbm(vec2(atan(bp.z, bp.x) * 3., bp.y * 40.));
+      vec3 sulfide = vec3(0.045, 0.035, 0.028) + vec3(0.02, 0.015, 0.008) * mineral;
+      sulfide += vec3(0.08, 0.07, 0.05) * smoothstep(0.4, 0.9, y01) * fbm(vec2(atan(bp.z,bp.x)*6., bp.y*60.));
+      sulfide += vec3(1.8, 0.6, 0.1) * smoothstep(0.6, 0.95, y01) * hVB;
+      sulfide += vec3(0.3, 0.1, 0.02) * smoothstep(0.3, 0.8, y01) * hVB * 0.4;
+      float diff = max(0., dot(n, L)) * .3;
+      float spec = pow(max(0., dot(n, normalize(L - rd0))), 25.) * .2;
+      col = mix(deep, sulfide * (0.12 + diff) + vec3(0.6, 0.4, 0.2) * spec, exp(-t * 0.4));
+    } else {
+      n = normalize(vec3(
+        tubeWorm(cP+vec3(e2,0,0),hB,hS)-tubeWorm(cP-vec3(e2,0,0),hB,hS),
+        tubeWorm(cP+vec3(0,e2,0),hB,hS)-tubeWorm(cP-vec3(0,e2,0),hB,hS),
+        tubeWorm(cP+vec3(0,0,e2),hB,hS)-tubeWorm(cP-vec3(0,0,e2),hB,hS)));
+      float wY = bp.y / (0.18 * hS);
+      vec3 wormCol = mix(vec3(0.6, 0.55, 0.5), vec3(0.7, 0.15, 0.08), smoothstep(0.7, 0.95, wY));
+      col = mix(deep, wormCol * (max(0., dot(n, L)) * .4 + 0.1), exp(-t * 0.4));
+    }
+  }
+
+  // ─── PASS 2: Background (distorted ray) ───
+  if (!hitSolid && rd.y < -0.001) {
+    float tFloor = -ro.y / rd.y;
+    if (tFloor > 0. && tFloor < 8.) {
+      vec3 fp = ro + rd * tFloor;
+      float tex = fbm(fp.xz * 8.) * .25 + fbm(fp.xz * 30.) * .1;
+      float glow = 0.;
+      for (int vi = 0; vi < 3; vi++)
+        glow += exp(-length(fp.xz - vP[vi].xz) * (8. / vS[vi])) * u_plume[vi] * 1.5;
+      vec3 fc = vec3(0.04 + tex, 0.032 + tex * .7, 0.022 + tex * .4);
+      fc += vec3(0.6, 0.18, 0.03) * glow;
+      float matD = 0.;
+      for (int vi = 0; vi < 3; vi++)
+        matD += smoothstep(0.25 * vS[vi], 0.08 * vS[vi], length(fp.xz - vP[vi].xz));
+      fc += vec3(0.06, 0.05, 0.02) * min(1., matD) * fbm(fp.xz * 20.);
+      col = mix(deep, fc, exp(-tFloor * 0.3));
+    }
+  }
+
+  // ─── PASS 3: Volumetric plume (spinodal → mixing → smoke) ───
+  vec3 plumeCol = vec3(0.); float plumeA = 0.;
+
+  for (int si = 1; si < 130; si++) {
+    if (plumeA > 0.92) break;
+    float s = float(si) * 0.016;
+    vec3 sp = ro + rd0 * s;
+
+    for (int vi = 0; vi < 3; vi++) {
+      vec3 orifice = vP[vi] + vec3(0., 0.12 * vS[vi], 0.);
+      vec3 q = sp - orifice;
+      if (q.y < -0.01 || q.y > 1.4 * vS[vi]) continue;
+      float h = 1.4 * vS[vi];
+      float y01 = clamp(q.y / h, 0., 1.);
+      float w0 = 0.018 * vS[vi];
+      float w = w0 + 2. * 0.19 * max(0., q.y) * 0.1;
+      float rr = length(q.xz);
+      if (rr > w * 4.5) continue;
+
+      float pInt = u_plume[vi];
+      float z1end = 0.12 + pInt * 0.05;
+      float z2end = 0.55 + pInt * 0.1;
+      float turb = turbulence3(q * 9. / vS[vi], u_time);
+
+      // §CRR Kelvin-Helmholtz
+      float edgeF = rr / max(0.001, w);
+      float khRoll = 0.;
+      if (edgeF > 0.3) {
+        khRoll = sin(q.y * 22. / vS[vi] - u_time * 5. + atan(q.z, q.x) * 3.) * (edgeF - 0.3) * 0.5;
+      }
+      float effR = max(0., rr - khRoll * w * 0.35);
+
+      // §CRR Spinodal foam
+      float foam = 0.;
+      if (y01 < z1end + 0.1) {
+        foam = smoothstep(0.3, 0.55, noise3(q * 80. / vS[vi] + vec3(u_time * 8., -u_time * 12., u_time * 5.))) * 0.5
+             + smoothstep(0.35, 0.6, noise3(q * 160. / vS[vi] + vec3(-u_time * 15., u_time * 20., -u_time * 7.))) * 0.3
+             + noise3(q * 40. / vS[vi] + vec3(u_time * 4., -u_time * 6., 0.)) * 0.2;
+        foam *= smoothstep(z1end + 0.1, 0., y01) * exp(-effR * effR / (w * w * 2.));
+      }
+
+      // §CRR Discharge pulsation (asymmetric Z₂ waveform)
+      float wavePh = q.y * 14. / vS[vi] - u_time * 6.;
+      float dWave = 0.5 + 0.5 * pow(fract(wavePh * 0.16), 0.35) + 0.2 * sin(wavePh * 0.5);
+
+      float radial = exp(-effR * effR / (w * w * 1.6));
+      float tempR = w0 * w0 / (w * w);
+      float vert = pow(tempR, 0.6) * (1.2 - y01 * 0.3);
+      float density = radial * vert * dWave * (0.4 + turb * 0.6) * pInt * 7.;
+      float oBlast = exp(-q.y * q.y * 40. / (vS[vi] * vS[vi])) * exp(-rr * rr / (w0 * w0 * 5.)) * 6.;
+      density += oBlast * pInt * (0.5 + turb * 0.5);
+      density += foam * pInt * 12.;
+      float puffB = u_puff[vi] * exp(-q.y * q.y * 20. / (vS[vi] * vS[vi])) * (0.4 + turb * 0.6);
+      density += puffB * radial * 3.;
+
+      if (density > 0.005) {
+        vec3 fc = vec3(0.);
+        float foamBright = foam * pInt;
+        if (y01 < z1end + 0.15) {
+          fc += vec3(0.8, 0.75, 0.7) * foamBright;
+          fc += vec3(0.4, 0.25, 0.08) * oBlast * pInt;
+        }
+        if (y01 > z1end * 0.5 && y01 < z2end + 0.1) {
+          float z2f = smoothstep(z1end * 0.5, z1end + 0.05, y01) * (1. - smoothstep(z2end, z2end + 0.1, y01));
+          fc += mix(vec3(0.15, 0.14, 0.13), vec3(0.08, 0.07, 0.065), y01) * z2f * (0.5 + turb * 0.5) * pInt;
+          fc += vec3(0.04, 0.02, 0.005) * (1. - y01) * z2f * pInt;
+        }
+        if (y01 > z2end * 0.7) {
+          fc += vec3(0.04, 0.03, 0.025) * (0.3 + turb * 0.7) * smoothstep(z2end * 0.7, z2end + 0.05, y01) * pInt * 0.6;
+        }
+        fc = mix(fc, vec3(0.03, 0.025, 0.02), min(0.4, puffB * 0.3));
+        float dA = min(0.08, density * 0.016);
+        plumeCol += fc * dA * (1. - plumeA);
+        plumeA += dA * (0.3 + foamBright * 0.5) * (1. - plumeA);
+      }
+    }
+  }
+  col = col * (1. - plumeA * 0.7) + plumeCol;
+
+  // ─── PASS 4: Mineral puff overlay ───
+  float puffAlpha = min(0.7, totalPuff * 1.5);
+  if (puffAlpha > 0.01) {
+    col = mix(col, vec3(0.02, 0.015, 0.01) + vec3(0.06, 0.025, 0.005) * totalShimmer, puffAlpha);
+  }
+
+  // ─── PASS 5: Atmosphere ───
+  float rovLight = exp(-length(uv - vec2(-0.15, -0.2)) * 3.) * 0.04;
+  col += vec3(0.04, 0.05, 0.06) * rovLight;
+  for (int ii = 0; ii < 3; ii++) {
+    float fi = float(ii);
+    vec2 sp2 = uv * (3. + fi * 2.) + vec2(u_time * 0.02 * (fi + 1.), u_time * 0.08);
+    col += vec3(0.5, 0.6, 0.7) * smoothstep(0.98, 1.0, hash(floor(sp2 * 80.))) * 0.02 * (1. + rovLight * 5.);
+  }
+  col += vec3(0.002, 0.005, 0.008) * (1. - exp(-length(uv) * 2.));
+  col *= 1. - 0.3 * length(uv * 1.2);
+  col = pow(max(vec3(0.), col), vec3(0.95, 1., 1.05));
+  gl_FragColor = vec4(col, 1.);
+}`;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §7  WEBGL SETUP
+// ═══════════════════════════════════════════════════════════════════════════
+const glCv = document.getElementById('gl');
+const gl = glCv.getContext('webgl', { alpha: false, antialias: false });
+const cvEl = document.getElementById('cv');
+const cx = cvEl.getContext('2d');
+let W, H;
+
+function mkS(src, type) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));
+  return s;
+}
+
+const prog = (() => {
+  const p = gl.createProgram();
+  gl.attachShader(p, mkS(VS, gl.VERTEX_SHADER));
+  gl.attachShader(p, mkS(FS, gl.FRAGMENT_SHADER));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(p));
+  return p;
+})();
+gl.useProgram(prog);
+
+const vb = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+const aP = gl.getAttribLocation(prog, 'a');
+gl.enableVertexAttribArray(aP);
+gl.vertexAttribPointer(aP, 2, gl.FLOAT, false, 0, 0);
+
+const U = {};
+['u_res', 'u_time', 'u_tide'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+const uPL = [], uPF = [];
+for (let i = 0; i < 3; i++) {
+  uPL.push(gl.getUniformLocation(prog, 'u_plume[' + i + ']'));
+  uPF.push(gl.getUniformLocation(prog, 'u_puff[' + i + ']'));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §8  CAMERA PROJECTION (matching GLSL: eye = (0.25, 0.22, 0.75))
+// ═══════════════════════════════════════════════════════════════════════════
+const EYE = [0.25, 0.22, 0.75], TGT = [0, 0.06, 0], FOV = 1.1;
+const cf = [TGT[0]-EYE[0], TGT[1]-EYE[1], TGT[2]-EYE[2]];
+const cfl = sqrt(cf[0]**2 + cf[1]**2 + cf[2]**2);
+const fwd = cf.map(v => v / cfl);
+const rr = [fwd[1]*0-fwd[2]*1, fwd[2]*0-fwd[0]*0, fwd[0]*1-fwd[1]*0];
+const rl = sqrt(rr[0]**2 + rr[1]**2 + rr[2]**2);
+const right = rr.map(v => v / rl);
+const up = [right[1]*fwd[2]-right[2]*fwd[1], right[2]*fwd[0]-right[0]*fwd[2], right[0]*fwd[1]-right[1]*fwd[0]];
+
+function proj3D(wx, wy, wz) {
+  const dx = wx-EYE[0], dy = wy-EYE[1], dz = wz-EYE[2];
+  const px = right[0]*dx + right[1]*dy + right[2]*dz;
+  const py = up[0]*dx + up[1]*dy + up[2]*dz;
+  const pz = fwd[0]*dx + fwd[1]*dy + fwd[2]*dz;
+  if (pz < 0.01) return null;
+  return { x: W/2 + (FOV*px/pz)*H, y: H/2 - (FOV*py/pz)*H, z: pz };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §9  PARTICLE SPRITES — pre-rendered sulfide smoke and phase-separation bubbles
+// ═══════════════════════════════════════════════════════════════════════════
+const SSZ = 48;
+const SMOKE = document.createElement('canvas'); SMOKE.width = SSZ; SMOKE.height = SSZ;
+const BUBBLE = document.createElement('canvas'); BUBBLE.width = SSZ; BUBBLE.height = SSZ;
+(function() {
+  const R = SSZ/2, c = R;
+  // Dark sulfide smoke sprite
+  const sc = SMOKE.getContext('2d');
+  const sg = sc.createRadialGradient(c,c,0,c,c,R);
+  sg.addColorStop(0, 'rgba(40,30,20,0.5)');
+  sg.addColorStop(0.3, 'rgba(50,35,20,0.35)');
+  sg.addColorStop(0.6, 'rgba(35,25,15,0.15)');
+  sg.addColorStop(1, 'rgba(15,10,5,0.0)');
+  sc.fillStyle = sg; sc.beginPath(); sc.arc(c,c,R,0,TAU); sc.fill();
+  // Phase-separation bubble sprite
+  const bc = BUBBLE.getContext('2d');
+  const bg = bc.createRadialGradient(c,c,R*0.5,c,c,R);
+  bg.addColorStop(0, 'rgba(80,120,160,0.0)');
+  bg.addColorStop(0.8, 'rgba(120,150,190,0.1)');
+  bg.addColorStop(0.95, 'rgba(170,200,230,0.18)');
+  bg.addColorStop(1, 'rgba(160,190,220,0.0)');
+  bc.fillStyle = bg; bc.beginPath(); bc.arc(c,c,R,0,TAU); bc.fill();
+  const bsg = bc.createRadialGradient(c-5,c-6,0,c-5,c-6,R*0.25);
+  bsg.addColorStop(0, 'rgba(230,240,255,0.65)');
+  bsg.addColorStop(0.5, 'rgba(200,220,240,0.2)');
+  bsg.addColorStop(1, 'rgba(180,200,220,0.0)');
+  bc.fillStyle = bsg; bc.beginPath(); bc.arc(c-5,c-6,R*0.25,0,TAU); bc.fill();
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §10  RIMICARIS EXOCULATA — CRR-SOLVED VENT SHRIMP
+//
+//   Eyeless vent shrimp with dorsal photoreceptor (IR detection).
+//   SO(2) heading CRR:
+//     C = ∫ cos(θ_i − θ_mean) dτ  → alignment coherence
+//     Rupture at C · Ω_SO(2) = 1  → heading dart (δ)
+//     R: new heading from exp(C/Ω)-weighted neighbour headings
+//   Thermotaxis: attraction ∝ B(C·Ω) of nearest vent (more food when active)
+// ═══════════════════════════════════════════════════════════════════════════
+const N_SHRIMP = 30, SHRIMP = [];
+for (let i = 0; i < N_SHRIMP; i++) {
+  const vi = flr(rnd()*3), v = VENTS[vi];
+  const ang = rnd()*TAU, dist = 0.07 + rnd()*0.06;
+  SHRIMP.push({
+    wx: v.x + cos(ang)*dist*v.scale,
+    wy: (0.01 + rnd()*0.1) * v.scale,
+    wz: v.z + sin(ang)*dist*v.scale,
+    heading: rnd()*TAU, headingTarget: rnd()*TAU,
+    C: rnd()*TAU*0.3, C_thr: TAU + gaussRnd()*0.5,
+    speed: 0.012 + rnd()*0.018,
+    dartTimer: 0, dartVx: 0, dartVy: 0, dartVz: 0,
+    bodyLen: 2.2 + rnd()*1.5, homeVent: vi, tailPhase: rnd()*TAU
+  });
+}
+
+function stepShrimp(dt) {
+  for (let i = 0; i < SHRIMP.length; i++) {
+    const s = SHRIMP[i], v = VENTS[s.homeVent];
+    let mx = 0, my = 0, nN = 0;
+    for (let j = 0; j < SHRIMP.length; j++) {
+      if (i === j) continue;
+      const sj = SHRIMP[j];
+      const dx = sj.wx-s.wx, dy = sj.wy-s.wy, dz = sj.wz-s.wz;
+      if (dx*dx + dy*dy + dz*dz < 0.04) {
+        mx += cos(sj.heading); my += sin(sj.heading); nN++;
+      }
+    }
+    // §CRR coherence: alignment with local swarm
+    if (nN > 0) { s.C += max(0, cos(s.heading - atan2(my, mx))) * dt * 3; }
+    else { s.C += dt * 0.5; }
+
+    // §CRR rupture: heading dart
+    if (s.C >= s.C_thr) {
+      s.headingTarget = nN > 0 ? atan2(my,mx) + (rnd()-0.5)*1.2 : s.heading + (rnd()-0.5)*PI;
+      s.dartVx = cos(s.headingTarget)*0.06;
+      s.dartVz = sin(s.headingTarget)*0.04;
+      s.dartVy = (rnd()-0.5)*0.02;
+      s.dartTimer = 0.12 + rnd()*0.08;
+      s.C = 0; s.C_thr = TAU + gaussRnd()*0.5;
+    }
+
+    // Heading interpolation
+    let dh = s.headingTarget - s.heading;
+    if (dh > PI) dh -= TAU; if (dh < -PI) dh += TAU;
+    s.heading += dh * dt * 2;
+
+    // Thermotaxis
+    const tx = v.x-s.wx, tz = v.z-s.wz, dv = sqrt(tx*tx + tz*tz);
+    const ideal = 0.085*v.scale, thF = (dv-ideal)*2;
+    const nx = dv > 0.01 ? tx/dv : 0, nz = dv > 0.01 ? tz/dv : 0;
+    const att = 0.5 + 0.5*v.plumeSmooth;
+
+    s.wx += cos(s.heading)*s.speed*dt + nx*thF*dt*0.02*att;
+    s.wz += sin(s.heading)*s.speed*dt + nz*thF*dt*0.02*att;
+    s.wy += ((0.02 + 0.06*sin(gTime*0.3 + i*1.7))*v.scale - s.wy)*dt*0.5;
+
+    if (s.dartTimer > 0) {
+      s.wx += s.dartVx*dt; s.wy += s.dartVy*dt; s.wz += s.dartVz*dt;
+      s.dartTimer -= dt;
+      s.dartVx *= (1-dt*5); s.dartVy *= (1-dt*5); s.dartVz *= (1-dt*5);
+    }
+    s.tailPhase += dt * (8 + s.speed*200);
+
+    // Keep near chimney
+    const d2 = sqrt((s.wx-v.x)**2 + (s.wz-v.z)**2);
+    if (d2 > 0.18*v.scale) {
+      s.wx -= ((s.wx-v.x)/d2) * (d2 - 0.18*v.scale) * dt * 2;
+      s.wz -= ((s.wz-v.z)/d2) * (d2 - 0.18*v.scale) * dt * 2;
+    }
+    s.wy = max(0.005*v.scale, min(0.15*v.scale, s.wy));
+  }
+}
+
+function drawShrimp() {
+  for (const s of SHRIMP) {
+    const sp = proj3D(s.wx, s.wy, s.wz);
+    if (!sp || sp.z < 0.1) continue;
+    const sc = max(0.5, s.bodyLen*0.7/sp.z);
+    const sp2 = proj3D(s.wx + cos(s.heading)*0.02, s.wy, s.wz + sin(s.heading)*0.02);
+    let sa = 0; if (sp2) sa = atan2(sp2.y-sp.y, sp2.x-sp.x);
+    const tw = sin(s.tailPhase)*0.3*sc;
+    const v = VENTS[s.homeVent];
+    const alpha = min(0.65, 0.15 + 0.2*min(1, s.C/(TAU*0.5)) + 0.08/sp.z);
+
+    cx.save(); cx.translate(sp.x, sp.y); cx.rotate(sa);
+    const bL = sc*4, bW = sc*1.1;
+
+    cx.globalAlpha = alpha*0.45;
+    cx.fillStyle = 'rgba(210,195,180,1)';
+    cx.beginPath(); cx.ellipse(0,0,bL,bW,0,0,TAU); cx.fill();
+
+    cx.globalAlpha = alpha*0.25;
+    cx.fillStyle = 'rgba(230,215,200,1)';
+    cx.beginPath(); cx.ellipse(-bL*0.1,0,bL*0.45,bW*0.75,0,0,TAU); cx.fill();
+
+    // §CRR dorsal photoreceptor
+    const irG = v.plumeSmooth*0.8;
+    cx.globalAlpha = alpha*0.55;
+    cx.fillStyle = `rgba(${flr(180+irG*75)},${flr(70+irG*50)},30,1)`;
+    cx.beginPath(); cx.ellipse(-bL*0.12,-bW*0.35,sc*0.7,sc*0.4,0,0,TAU); cx.fill();
+
+    cx.globalAlpha = alpha*0.3; cx.strokeStyle = 'rgba(190,180,170,1)'; cx.lineWidth = 0.4;
+    cx.beginPath(); cx.moveTo(bL*0.7,0); cx.lineTo(bL*1.5,tw*0.5-bW);
+    cx.moveTo(bL*0.7,0); cx.lineTo(bL*1.5,tw*0.5+bW); cx.stroke();
+
+    cx.globalAlpha = alpha*0.25; cx.fillStyle = 'rgba(200,185,175,1)';
+    cx.beginPath(); cx.moveTo(-bL*0.8,0);
+    cx.lineTo(-bL*1.3,tw-bW*1.2); cx.lineTo(-bL*1.5,tw);
+    cx.lineTo(-bL*1.3,tw+bW*1.2); cx.closePath(); cx.fill();
+
+    cx.globalAlpha = alpha*0.15; cx.strokeStyle = 'rgba(180,170,160,1)'; cx.lineWidth = 0.3;
+    for (let li = 0; li < 4; li++) {
+      const lx = (li/3-0.5)*bL*1.1;
+      cx.beginPath(); cx.moveTo(lx,bW*0.5);
+      cx.lineTo(lx + sin(s.tailPhase*0.7+li*1.5)*sc*0.5, bW*1.4); cx.stroke();
+    }
+    cx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §11  CPU PARTICLES — mineral smoke, bubbles, marine snow
+// ═══════════════════════════════════════════════════════════════════════════
+const PARTS = [];
+for (let i = 0; i < 30; i++) {
+  PARTS.push({ type:'snow', x:rnd()*2000, y:rnd()*2000,
+    vx:(rnd()-0.5)*0.06, vy:0.12+rnd()*0.08,
+    sz:0.4+rnd()*1.2, br:0.015+rnd()*0.03, ph:rnd()*TAU });
+}
+
+function spawnSmoke(sx, sy, intensity, sc) {
+  for (let i = 0; i < flr(4+intensity*12); i++) {
+    PARTS.push({ type:'smoke', x:sx+(rnd()-0.5)*12*sc, y:sy,
+      vx:(rnd()-0.5)*0.6, vy:-(0.6+intensity*1.8+rnd()*0.6),
+      sz:(2.5+rnd()*5)*intensity*sc, br:0.15+intensity*0.4,
+      life:2.5+intensity*2.5, maxLife:2.5+intensity*2.5, coh:intensity });
+  }
+  for (let i = 0; i < flr(2+intensity*4); i++) {
+    PARTS.push({ type:'bubble', x:sx+(rnd()-0.5)*8*sc, y:sy+rnd()*3,
+      vx:(rnd()-0.5)*0.2, vy:-(0.8+intensity*2+rnd()*0.4),
+      sz:(0.8+rnd()*2)*sqrt(intensity)*sc, br:0.1+intensity*0.2,
+      life:1+rnd()*1.5, maxLife:1+rnd()*1.5, wobble:rnd()*TAU });
+  }
+}
+
+function updateParts(dt) {
+  for (let i = PARTS.length-1; i >= 0; i--) {
+    const p = PARTS[i];
+    if (p.type === 'snow') {
+      p.ph += dt*0.3; p.x += p.vx + sin(p.ph)*0.02; p.y += p.vy + cos(p.ph*PHI)*0.008;
+      if (p.y > H+20) { p.y = -20; p.x = rnd()*W; }
+      if (p.x < -20) p.x = W+20; if (p.x > W+20) p.x = -20;
+    } else if (p.type === 'smoke') {
+      p.vy *= (1-0.25*dt); p.vx += (rnd()-0.5)*dt*0.4;
+      p.x += p.vx; p.y += p.vy; p.life -= dt;
+      p.coh = max(0, p.coh-dt*0.25); p.sz *= (1+dt*0.25);
+      p.br = 0.04 + 0.25*sqrt(p.coh)*(p.life/p.maxLife);
+      if (p.life <= 0) PARTS.splice(i, 1);
+    } else if (p.type === 'bubble') {
+      p.wobble += dt*8; p.x += p.vx + sin(p.wobble)*0.25;
+      p.y += p.vy; p.vy *= (1-0.12*dt); p.life -= dt;
+      p.br = 0.06 + 0.12*(p.life/p.maxLife);
+      if (p.life <= 0) PARTS.splice(i, 1);
+    }
+  }
+}
+
+function drawParts() {
+  for (const p of PARTS) {
+    if (p.type === 'snow') {
+      cx.fillStyle = `rgba(150,170,190,${p.br})`;
+      cx.beginPath(); cx.arc(p.x,p.y,p.sz,0,TAU); cx.fill();
+    } else if (p.type === 'smoke' && p.br > 0.01) {
+      const r = max(1, p.sz);
+      cx.globalAlpha = min(0.8, p.br);
+      cx.drawImage(SMOKE, p.x-r, p.y-r, r*2, r*2);
+      if (p.coh > 0.4) {
+        cx.globalAlpha = min(0.3, (p.coh-0.4)*0.5);
+        cx.fillStyle = 'rgba(220,120,30,1)';
+        cx.beginPath(); cx.arc(p.x,p.y,r*0.25,0,TAU); cx.fill();
+      }
+    } else if (p.type === 'bubble' && p.br > 0.01) {
+      const r = max(1, p.sz);
+      cx.globalAlpha = min(0.5, p.br);
+      cx.drawImage(BUBBLE, p.x-r, p.y-r, r*2, r*2);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §12  INTERACTION + RESIZE
+// ═══════════════════════════════════════════════════════════════════════════
+function onTap() {
+  if (!started) {
+    started = true; initAudio();
+    if (ac.state === 'suspended') ac.resume();
+    document.getElementById('ui').classList.add('dim');
+  }
+}
+addEventListener('mousedown', onTap);
+addEventListener('touchstart', onTap, { passive: true });
+
+function resize() {
+  const dpr = min(devicePixelRatio || 1, 1.5);
+  W = innerWidth; H = innerHeight;
+  glCv.width = W*dpr; glCv.height = H*dpr;
+  glCv.style.width = W+'px'; glCv.style.height = H+'px';
+  gl.viewport(0, 0, W*dpr, H*dpr);
+  cvEl.width = W; cvEl.height = H;
+}
+resize();
+addEventListener('resize', resize);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// §13  RENDER LOOP
+//
+//   Each frame:
+//   1. Step CRR vent cycles (§4)
+//   2. Step CRR shrimp schooling (§10)
+//   3. Spawn CPU particles at δ events
+//   4. Set GPU uniforms from CRR state
+//   5. Render WebGL (all 5 passes)
+//   6. Render CPU overlay (particles, shrimp)
+//   7. Update audio (tidal modulation)
+//   8. Display live diagnostics (CV measurement)
+// ═══════════════════════════════════════════════════════════════════════════
+let lastT = 0, frameCount = 0;
+const diagEl = document.getElementById('diag');
+
+function render(ts) {
+  requestAnimationFrame(render);
+  const dt = min(0.05, (ts - lastT) / 1e3);
+  lastT = ts; gTime += dt; frameCount++;
+
+  // 1. Step CRR vents
+  for (const v of VENTS) stepVent(v, dt);
+
+  // 2. Step CRR shrimp
+  stepShrimp(dt);
+
+  // 3. Spawn particles at δ
+  for (const v of VENTS) {
+    if (v.puffIntensity > 0.15 && rnd() < 0.5) {
+      const sp = proj3D(v.x, 0.12*v.scale, v.z);
+      if (sp) spawnSmoke(sp.x, sp.y, v.puffIntensity, v.scale);
+    }
+  }
+
+  // 4. GPU uniforms
+  const dpr = min(devicePixelRatio || 1, 1.5);
+  gl.uniform2f(U.u_res, W*dpr, H*dpr);
+  gl.uniform1f(U.u_time, gTime);
+  gl.uniform1f(U.u_tide, sin(TAU * gTime / TIDAL_PERIOD));
+  for (let i = 0; i < 3; i++) {
+    gl.uniform1f(uPL[i], VENTS[i].plumeSmooth);
+    gl.uniform1f(uPF[i], VENTS[i].puffIntensity);
+  }
+
+  // 5. Render WebGL
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  // 6. CPU overlay
+  cx.clearRect(0, 0, W, H);
+  cx.save();
+  cx.globalCompositeOperation = 'lighter';
+  drawParts();
+  cx.globalCompositeOperation = 'source-over';
+  drawShrimp();
+  cx.restore();
+  updateParts(dt);
+
+  // 7. Audio modulation
+  if (ac && rumbleGain) {
+    const tidalAmp = 0.08 + 0.06 * sin(TAU * gTime / TIDAL_PERIOD);
+    rumbleGain.gain.setTargetAtTime(tidalAmp, ac.currentTime, 0.1);
+    let totalB = 0;
+    for (const v of VENTS) totalB += v.bVal;
+    droneGain.gain.setTargetAtTime(0.03 + totalB * 0.015, ac.currentTime, 0.1);
+  }
+
+  // 8. Diagnostics
+  if (frameCount % 30 === 0) {
+    const v = VENTS[0];
+    let cvStr = '—';
+    if (v.ruptureTimes.length > 5) {
+      const m = v.ruptureTimes.reduce((a,b) => a+b, 0) / v.ruptureTimes.length;
+      const s2 = v.ruptureTimes.reduce((a,b) => a+(b-m)**2, 0) / (v.ruptureTimes.length-1);
+      cvStr = (sqrt(s2) / m).toFixed(3);
+    }
+    diagEl.textContent =
+      `C = ${(v.C/C_STAR).toFixed(2)}π  B = ${v.bVal.toFixed(1)}  δ × ${v.ruptureCount}\n` +
+      `CV = ${cvStr} (pred: ${CV_PRED.toFixed(3)})  plume = ${v.plumeSmooth.toFixed(2)}\n` +
+      `shrimp = ${N_SHRIMP}  particles = ${PARTS.filter(p=>p.type==='smoke').length}`;
+  }
+}
+
+requestAnimationFrame(render);
+</script>
+</body>
+</html>
