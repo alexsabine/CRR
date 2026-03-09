@@ -52,7 +52,7 @@ body{background:#0a0806;overflow:hidden;height:100vh;height:100dvh;cursor:pointe
 <button onclick="setBowl(4)" id="bw4">D3</button></div>
 <script>
 // ╔═══════════════════════════════════════════════════════════════════════╗
-// ║  SONG OF THE BOWL — CRR Composition          ║
+// ║  SONG OF THE BOWL — CRR Composition v8 — Photorealistic Droplets   ║
 // ║                                                                     ║
 // ║  Every parameter derived from CRR first principles.                 ║
 // ║  Singing bowl as Z₂ system: each vibrational mode is a              ║
@@ -61,7 +61,18 @@ body{background:#0a0806;overflow:hidden;height:100vh;height:100dvh;cursor:pointe
 // ║  rupture (δ) is the strike; regeneration (R) is the                 ║
 // ║  exponentially-weighted reconstruction from modal memory.            ║
 // ║                                                                     ║
-// ║                   ║
+// ║  v8 additions (CRR Faraday droplet scaling):                        ║
+// ║  1. Bowl-dependent droplet size: d ∝ λ_F ∝ f₀^(−2/3)             ║
+// ║     (Faraday wavelength from capillary dispersion k ∝ ω^(2/3))     ║
+// ║  2. Bowl-dependent ejection height: h ∝ 1/f₀²                      ║
+// ║     (same acceleration → more displacement at lower frequency)      ║
+// ║  3. Bowl-dependent bounce period: T = 4/f₀                          ║
+// ║     (Z₂ subharmonic cascade: f₀ → f_F = f₀/2 → f_bounce = f₀/4)   ║
+// ║  4. Three droplet regimes (three micro-Ω values):                   ║
+// ║     Fountain (explosive δ), Bouncing (subharmonic), Walker (memory) ║
+// ║  5. Nascent delta δ_ε rendered as vertical jet/ligament             ║
+// ║  6. Drop shape deformation: prolate during flight, oblate at peak   ║
+// ║  7. Beauty function B(C/Ω) weights ejection expressiveness          ║
 // ║                                                                     ║
 // ║  Alexander Sabine · cohere.org.uk · temporalgrammar.ai              ║
 // ╚═══════════════════════════════════════════════════════════════════════╝
@@ -82,6 +93,138 @@ const { sin, cos, sqrt, pow, abs, min, max, exp, log, random: rnd, atan2, floor:
 // ═══════════════════════════════════════════════════════════════════════
 const OmZ2 = 1 / PI;
 function B(r) { return max(0, exp(min(10, r)) * (1 - r / PI)); }
+
+// ═══════════════════════════════════════════════════════════════════════
+// §0.1  CRR FARADAY DROPLET SCALING
+//
+//   Each Faraday standing-wave cell is itself a Z₂ micro-CRR system:
+//     Two states: crest-up / crest-down (alternates at f_F = f₀/2)
+//     Ω_cell = 1/π  (Z₂ bistable)
+//     C accumulates each half-cycle; at C·Ω = 1, surface fractures (δ)
+//     The droplet is the regenerated entity R
+//
+//   SPATIAL SCALE — Faraday wavelength λ_F:
+//     Capillary dispersion: ω² = (σ/ρ)k³ + gk
+//     Short-wave (capillary) limit: k ∝ ω^(2/3) → λ_F ∝ f^(−2/3)
+//     The Faraday frequency is f_F = f₀/2 (subharmonic of bowl mode)
+//     So: λ_F ∝ f₀^(−2/3)
+//     This IS the coherence domain: one CRR cell has spatial extent λ_F
+//     Terwagne & Bush 2011 confirm: d_drop ∝ λ_F ∝ f^(−2/3)
+//
+//   TEMPORAL SCALE — bounce period T_bounce:
+//     Droplets bounce at the Faraday subharmonic: f_bounce = f_F/2 = f₀/4
+//     This is a Z₂ period-doubling cascade:
+//       f₀ → f_F = f₀/2 (Faraday) → f_bounce = f₀/4 (drop)
+//     Each halving is Z₂ symmetry-breaking with Ω_Z₂ = 1/π
+//     T_bounce = 4/f₀
+//     C5 (523 Hz): T_bounce ≈ 7.7ms (rapid shimmer)
+//     G3 (196 Hz): T_bounce ≈ 20ms  (visible bounces)
+//     C3 (131 Hz): T_bounce ≈ 31ms  (slow languid arcs)
+//
+//   EJECTION HEIGHT — h_ej:
+//     Surface oscillation amplitude: A_F = Γ/(2πf_F)² = Γ/(πf₀)²
+//     Ejection velocity: v_ej ≈ 2πf_F × A_F = Γ/(πf₀)
+//     Height: h = v²/(2g) = Γ² / (2gπ²f₀²)
+//     So: h_ej ∝ 1/f₀² for the same acceleration excess Γ
+//     CRR refinement: weight by B(C_excess/Ω) — the beauty function
+//     controls which coherence excess produces the most "expressive"
+//     ejection. Peak at C/Ω = π−1 ≈ 2.14 = optimal droplet fountain.
+//
+//   THREE DROPLET REGIMES (three values of micro-Ω):
+//     1. FOUNTAIN — single δ(now), ballistic arc, no re-bounce
+//        Highest C at rupture → exp(C/Ω) explosive → tall arc
+//        Small micro-Ω (rigid trajectory, no memory coupling)
+//     2. BOUNCING — repeated C→δ→R at subharmonic T_bounce
+//        Medium micro-Ω; depleting coherence each bounce
+//        (existing 'faraday' type, now bowl-scaled)
+//     3. WALKER — bounces at f_F/2, drifts laterally on wave slope
+//        Largest micro-Ω; coupled to full Faraday wave-field memory
+//        "Information stored in Faraday waves" (Eddi et al. 2011)
+//
+//   All scalings relative to reference bowl G3 (f_ref = 196 Hz):
+// ═══════════════════════════════════════════════════════════════════════
+const F_REF = 196; // reference frequency (G3 Medium Jambati)
+
+// §CRR: dropScale = (f_ref/f₀)^(2/3) — Faraday wavelength ratio
+// Controls droplet diameter. Derived from capillary dispersion k ∝ ω^(2/3)
+function dropScale() { return pow(F_REF / F0, 2 / 3); }
+
+// §CRR: heightScale = (f_ref/f₀)² — ejection height ratio
+// From h = Γ²/(2gπ²f₀²). Same acceleration excess → 1/f² height
+function heightScale() { return pow(F_REF / F0, 2); }
+
+// §CRR: T_bounce = 4/f₀ — subharmonic cascade Z₂→Z₂
+// f₀ → f_F = f₀/2 (Faraday) → f_bounce = f₀/4 (droplet)
+function bouncePeriod() { return 4 / F0; }
+
+// §CRR: Faraday wavenumber k_F ∝ f₀^(2/3) — grid density for spawn sampling
+// Higher-frequency bowls need finer grid to resolve smaller Faraday cells
+function faradayK() { return 26 * pow(F0 / F_REF, 2 / 3); }
+
+// ═══════════════════════════════════════════════════════════════════════
+// §0.2  CRR DROPLET OPTICS — translucent water sphere rendering
+//
+//   A spherical water droplet is a Z₂ optical system:
+//     State A: ray inside (n_water = 1.33)
+//     State B: ray outside (n_air = 1.00)
+//     Boundary: spherical air-water interface
+//
+//   Ω_optical = R₀ = ((n−1)/(n+1))² = (0.33/2.33)² ≈ 0.0201
+//     This is the Fresnel reflectance at normal incidence — the optical
+//     boundary permeability. Very small Ω → mostly transparent body.
+//     Only ~2% of incident light reflects at the surface.
+//
+//   C_optical = optical path length through the droplet = 2R × n_water
+//     Coherence accumulates as light traverses the spherical boundary.
+//
+//   FRESNEL RIM (C·Ω → 1 at glancing incidence):
+//     Schlick's approximation: R(θ) = R₀ + (1 − R₀)(1 − cos θ)⁵
+//     As viewing angle θ increases from normal:
+//       cos θ → 0, so (1 − cos θ)⁵ → 1, and R(θ) → 1
+//     CRR reads this as: at oblique incidence, the effective optical
+//     path through the boundary layer increases → C grows → at some
+//     critical angle, C·Ω = 1 → total internal reflection (rupture).
+//     The critical angle θ_c = arcsin(1/n) ≈ 48.8° for water.
+//     This produces the bright rim visible on every water droplet.
+//
+//   SPECULAR HIGHLIGHT (single reflection δ):
+//     Where the surface normal ≈ H = normalize(L + V), a single
+//     specular reflection occurs. This is a δ(now) — an instantaneous
+//     coherent reflection event, concentrated at one point on the sphere.
+//     Position: offset toward light by ~28% of radius.
+//     The shader light direction is L = normalize(0.7, 1.2, 0.4).
+//
+//   CAUSTIC (beauty function peak):
+//     Light entering the sphere refracts twice (entry + exit) and
+//     converges to a focus on the shadow side. The refracted ray
+//     density (Jacobian determinant) peaks where many rays converge.
+//     CRR identifies this with B(C/Ω): the beauty function peaks
+//     at C/Ω = π−1 ≈ 2.14, where coherence amplification exp(C/Ω)
+//     and remaining capacity (1 − C/Ωπ) are optimally balanced.
+//     The caustic IS the beauty peak of the optical system —
+//     maximum coherent focusing of the refracted light field.
+//     Position: offset away from light by ~38% of radius.
+//
+//   IMPLEMENTATION:
+//     Pre-render the droplet to an offscreen canvas (once) with:
+//       1. Fresnel rim gradient (body opacity increases toward edge)
+//       2. Specular highlight (bright spot toward light)
+//       3. Caustic focus (warm spot on shadow side)
+//     Then draw each particle with drawImage() — no per-frame gradient
+//     creation. Deformation via canvas scale/rotate transforms.
+//     The shader light direction L and water surface colors are shared.
+//
+//   COHERENCE MODULATION:
+//     globalAlpha ∝ √(C/C₀) — coherence-depleted drops are more
+//     transparent (lower Ω_effective as the drop evaporates/spreads).
+//     With additive blending ('lighter'), this makes high-coherence
+//     drops luminous and low-coherence drops ghostly — matching real
+//     backlit high-speed photography of singing bowl droplets.
+// ═══════════════════════════════════════════════════════════════════════
+
+// §CRR: Fresnel reflectance at normal incidence for water droplet
+const N_WATER = 1.33;
+const R_FRESNEL = pow((N_WATER - 1) / (N_WATER + 1), 2); // ≈ 0.0201 = Ω_optical
 
 // ═══════════════════════════════════════════════════════════════════════
 // §1  BOWL PRESETS
@@ -150,23 +293,39 @@ function setBowl(bi) {
   curBowl = bi; F0 = BOWLS[bi].F0; MODES = BOWLS[bi].modes;
   struck = false; stF = 0;
   for (const st of MS) { st.C = 0; st.C0 = 1; st.amp = 0; }
-  if (oscP) { syncOscFreqs(); const now = ac.currentTime;
-    MODES.forEach((md, mi) => { oscP[mi].gA.gain.setValueAtTime(0.0001, now); oscP[mi].gC.gain.setValueAtTime(0.0001, now); });
+  if (oscP) {
+    // §CRR: apply current timeScale to new bowl's frequencies
+    const now = ac.currentTime;
+    MODES.forEach((md, mi) => {
+      const fBase = F0 * md.fr * timeScale;
+      const spHalf = md.sp * timeScale / 2;
+      oscP[mi].oA.frequency.setValueAtTime(fBase - spHalf, now);
+      oscP[mi].oC.frequency.setValueAtTime(fBase + spHalf, now);
+      oscP[mi].gA.gain.setValueAtTime(0.0001, now);
+      oscP[mi].gC.gain.setValueAtTime(0.0001, now);
+    });
   }
   document.querySelectorAll('[id^=bw]').forEach(b => b.classList.remove('on'));
   document.getElementById('bw' + bi).classList.add('on');
 }
-// Scale all oscillator frequencies by timeScale — slows/speeds the sound with the visual
-function syncOscFreqs() {
-  if (!oscP) return; const now = ac.currentTime;
-  MODES.forEach((md, mi) => {
-    oscP[mi].oA.frequency.setValueAtTime((F0 * md.fr - md.sp / 2) * timeScale, now);
-    oscP[mi].oC.frequency.setValueAtTime((F0 * md.fr + md.sp / 2) * timeScale, now);
-  });
-}
 function setSpeed(sp) {
   timeScale = sp;
-  syncOscFreqs();
+  // §CRR: slow-motion = the physical system vibrates slower.
+  // All oscillator frequencies scale by timeScale: f_actual = f₀ × sp
+  // All beat rates scale too: sp_actual = sp_beat × sp
+  // This is NOT time-stretching — it is the physically correct sound
+  // of a bowl whose vibrations are slowed by a factor of sp.
+  // At 0.1× speed, a G3 (196 Hz) bowl sounds at 19.6 Hz (sub-bass rumble).
+  // The Z₂ doublet beating also slows: 1.1 Hz beat → 0.11 Hz.
+  if (oscP) {
+    const now = ac.currentTime;
+    MODES.forEach((md, mi) => {
+      const fBase = F0 * md.fr * sp;
+      const spHalf = md.sp * sp / 2;
+      oscP[mi].oA.frequency.setTargetAtTime(fBase - spHalf, now, 0.05);
+      oscP[mi].oC.frequency.setTargetAtTime(fBase + spHalf, now, 0.05);
+    });
+  }
   document.querySelectorAll('[id^=sp]').forEach(b => b.classList.remove('on'));
   document.getElementById('sp' + { 0.1: 0, 0.25: 1, 0.5: 2, 1: 3 }[sp]).classList.add('on');
 }
@@ -211,26 +370,19 @@ function initAudio() {
   mGain = ac.createGain();
   mGain.gain.value = 0.65;
 
-  // Dry path connects immediately — zero latency on first strike
-  const dry = ac.createGain();
-  dry.gain.value = 0.75;
+  // Reverb (R phase): wet/dry split
+  const rev = mkRev(ac, 4.5, 2.2);
+  const wet = ac.createGain(), dry = ac.createGain();
+  wet.gain.value = 0.35; dry.gain.value = 0.75;
   mGain.connect(dry); dry.connect(comp);
-
-  // Reverb (R phase) deferred: building the convolution buffer (~432K samples)
-  // blocks the main thread for ~200–500ms. We defer it so the first strike
-  // plays dry, and reverb silently connects within a frame or two.
-  setTimeout(() => {
-    const rev = mkRev(ac, 4.5, 2.2);
-    const wet = ac.createGain();
-    wet.gain.value = 0.35;
-    mGain.connect(rev); rev.connect(wet); wet.connect(comp);
-  }, 0);
+  mGain.connect(rev); rev.connect(wet); wet.connect(comp);
 
   // Create Z₂ doublet pair per mode
+  // §CRR: frequencies scaled by current timeScale for slow-motion
   oscP = MODES.map(md => {
-    const fBase = F0 * md.fr;
-    const fA = fBase - md.sp / 2;  // lower split
-    const fC = fBase + md.sp / 2;  // upper split
+    const fBase = F0 * md.fr * timeScale;
+    const fA = fBase - md.sp * timeScale / 2;  // lower split
+    const fC = fBase + md.sp * timeScale / 2;  // upper split
 
     const gA = ac.createGain(), gC = ac.createGain();
     gA.gain.value = 0; gC.gain.value = 0;
@@ -238,7 +390,7 @@ function initAudio() {
 
     const oA = ac.createOscillator(), oC = ac.createOscillator();
     oA.type = 'sine'; oC.type = 'sine';
-    oA.frequency.value = fA * timeScale; oC.frequency.value = fC * timeScale;
+    oA.frequency.value = fA; oC.frequency.value = fC;
     oA.connect(gA); oC.connect(gC);
     oA.start(); oC.start();
 
@@ -253,21 +405,27 @@ function doStrike(force) {
   struck = true; stT = pt; stF = force;
   const now = ac.currentTime;
 
-  // Noise burst: the δ function made audible (40ms impulse)
-  const nBuf = ac.createBuffer(1, ac.sampleRate * 0.04, ac.sampleRate);
+  // Noise burst: the δ function made audible
+  // §CRR: at slow-motion, the δ impulse stretches in time and drops in pitch.
+  // playbackRate = timeScale → a 40ms burst becomes 400ms at 0.1× speed.
+  // This is physically correct: the impact itself is slowed.
+  const burstDur = 0.04;
+  const nBuf = ac.createBuffer(1, ac.sampleRate * burstDur, ac.sampleRate);
   const nData = nBuf.getChannelData(0);
   for (let si = 0; si < nData.length; si++) {
     nData[si] = (rnd() * 2 - 1) * pow(1 - si / nData.length, 3) * force * 0.4;
   }
   const nSrc = ac.createBufferSource(); nSrc.buffer = nBuf;
-  nSrc.playbackRate.value = timeScale; // pitch-shift the transient with time
+  // §CRR: playbackRate scales the δ impulse in time
+  nSrc.playbackRate.value = timeScale;
   const nFilt = ac.createBiquadFilter();
+  // §CRR: filter centre scales with timeScale (lower pitch at slow speed)
   nFilt.type = 'bandpass'; nFilt.frequency.value = F0 * 2 * timeScale; nFilt.Q.value = 1.5;
   const nGain = ac.createGain(); nGain.gain.value = 0.5;
   nSrc.connect(nFilt); nFilt.connect(nGain); nGain.connect(mGain);
-  nSrc.start(now); nSrc.stop(now + 0.04);
+  nSrc.start(now); nSrc.stop(now + burstDur / timeScale + 0.01);
 
-  // Deposit coherence into each mode
+  // Deposit coherence into each mode AND set oscillator frequencies
   MODES.forEach((md, mi) => {
     const st = MS[mi];
     const excitation = force * (0.25 + 0.75 / md.m) * (1 + force * md.m * 0.06);
@@ -275,6 +433,11 @@ function doStrike(force) {
     st.C0 = st.C;              // remember initial for √(C/C₀) envelope
     st.amp = min(1, excitation);
     const gain = st.amp * 0.22 / sqrt(md.m);
+    // §CRR: ensure oscillator frequencies include current timeScale
+    const fBase = F0 * md.fr * timeScale;
+    const spHalf = md.sp * timeScale / 2;
+    oscP[mi].oA.frequency.setValueAtTime(fBase - spHalf, now);
+    oscP[mi].oC.frequency.setValueAtTime(fBase + spHalf, now);
     [oscP[mi].gA, oscP[mi].gC].forEach(gn => {
       gn.gain.cancelScheduledValues(now);
       gn.gain.setValueAtTime(max(0.0001, gain), now);
@@ -298,7 +461,7 @@ function doStrike(force) {
 // ═══════════════════════════════════════════════════════════════════════
 const VS = `attribute vec2 a;void main(){gl_Position=vec4(a,0,1);}`;
 const FS = `precision highp float;
-uniform vec2 u_res;uniform float u_time,u_amp[5],u_sp[5],u_wA[5],u_mallet,u_malletStr,u_vib[5];
+uniform vec2 u_res;uniform float u_time,u_amp[5],u_sp[5],u_wA[5],u_mallet,u_malletStr,u_vib[5],u_kF;
 const float PI=3.14159265,TAU=6.28318530,BR=1.0,WR=0.99,Rr=0.035;
 mat3 lookAt(vec3 e,vec3 t,vec3 u){vec3 f=normalize(t-e),r=normalize(cross(f,u));return mat3(r,cross(r,f),-f);}
 float sdTorus(vec3 p,float R,float r){vec2 q=vec2(length(p.xz)-R,p.y);return length(q)-r;}
@@ -323,11 +486,12 @@ return amp*wA*j*(cos(m*th)*cos(bt*.5)+cos(m*(th-PI/(2.*m)))*sin(bt*.5)*.65)*(1.-
 //   Physics: bowl wall vibration → parametric excitation of capillary standing waves
 //   Envelope PEAKS at r≈0.65-0.80 (energy injection from vibrating wall)
 //   Real bowls show maximum Faraday activity in an annular ring, NOT at centre
+//   §CRR: k = u_kF ∝ f₀^(2/3) — bowl-dependent Faraday wavenumber (§0.1)
 float faradayH(vec2 p,float t,float totA){if(totA<.04)return 0.;
 float r=length(p);if(r>.97)return 0.;
 float env=smoothstep(.05,.3,r)*smoothstep(.97,.75,r);
 env*=.6+.6*smoothstep(.3,.6,r)*smoothstep(.9,.7,r);
-float k=26.;float h1=sin(k*p.x)*sin(k*p.y);
+float k=u_kF;float h1=sin(k*p.x)*sin(k*p.y);
 float r2x=(p.x+p.y)*.707,r2y=(p.x-p.y)*.707;float h2=sin(k*r2x*1.08)*sin(k*r2y*1.08);
 float c3=.866,s3=.5;float h3=sin(k*(p.x*c3+p.y*s3)*.95)*sin(k*(-p.x*s3+p.y*c3)*.95);
 return(h1+h2*.7+h3*.4)*max(0.,totA-.04)*.22*env*(.6+.4*sin(t*PI*1.8));}
@@ -414,7 +578,7 @@ gl.enableVertexAttribArray(aP);
 gl.vertexAttribPointer(aP, 2, gl.FLOAT, false, 0, 0);
 
 const U = {};
-['u_res', 'u_time', 'u_mallet', 'u_malletStr'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+['u_res', 'u_time', 'u_mallet', 'u_malletStr', 'u_kF'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
 const uA = [], uS = [], uW = [], uV = [];
 for (let ui = 0; ui < 5; ui++) {
   uA.push(gl.getUniformLocation(prog, 'u_amp[' + ui + ']'));
@@ -431,6 +595,10 @@ for (let ui = 0; ui < 5; ui++) {
 //     proj3D    — projects world → screen (for particle rendering)
 //     unproj    — unprojects screen → y=0 world plane (for hit detection)
 //
+//   KEY FIX (v7): the old code used a bounding-box heuristic for hit
+//   detection. This failed because the projected bowl is not an axis-
+//   aligned ellipse. Now we unproject to world space and test the
+//   actual world-space distance from origin. This is exact.
 // ═══════════════════════════════════════════════════════════════════════
 const CAM_EYE = [0, 0.85, 1.85];
 const CAM_TGT = [0, -0.12, 0];
@@ -506,7 +674,7 @@ function unproj(sx, sy) {
 // ═══════════════════════════════════════════════════════════════════════
 // §6  INTERACTION — strike (centre) and rim rub (edge)
 //
-//   :
+//   HIT DETECTION (v7 — world-space unprojection):
 //
 //   The bowl rim sits at world radius BR = 1.0 in the y=0 plane.
 //   Water fills to WR = 0.99. We unproject the screen click to y=0
@@ -529,10 +697,6 @@ function unproj(sx, sy) {
 let pDown = false;
 
 function onDown(evt) {
-  // Eagerly warm up AudioContext on ANY first gesture (even button taps).
-  // This eliminates the ~200ms cold-start delay on first strike.
-  if (!ac) initAudio();
-  if (ac && ac.state === 'suspended') ac.resume();
   // Don't intercept UI control taps (buttons need their click events)
   if (evt.target.closest && evt.target.closest('.ctrl')) return;
   evt.preventDefault();
@@ -645,23 +809,46 @@ resize();
 addEventListener('resize', resize);
 
 // ═══════════════════════════════════════════════════════════════════════
-// §7  PARTICLE SYSTEM — dust, strike droplets, Faraday droplets
+// §7  PARTICLE SYSTEM — dust, strike drops, Faraday droplets (3 regimes)
 //
-//   Three particle types:
-//   - dust:    ambient floating motes (visual atmosphere)
-//   - drop:    ejected on strike (ballistic arcs)
-//   - faraday: CRR micro-rupture bouncing droplets
+//   Five particle types:
+//   - dust:     ambient floating motes (visual atmosphere)
+//   - drop:     ejected on strike (ballistic arcs, bowl-scaled)
+//   - faraday:  CRR micro-rupture bouncing droplets (bowl-scaled)
+//   - fountain: high-energy single-arc ejections from surface fracture
+//   - walker:   laterally-drifting bouncing drops (wave-memory coupling)
 //
-//   FARADAY DROPLETS (v7 fix):
-//   In a real singing bowl, Faraday instability occurs where the
-//   wall vibration injects energy into the water surface — this is
-//   an ANNULAR RING near the wall (r ≈ 0.6–0.85), 
-//   The centre is a velocity node for most modes.
+//   FARADAY DROPLETS (v7 fix retained, v8 CRR scaling added):
+//   Spawn in annular ring r ≈ 0.6–0.85 (Faraday-only sampling).
+//   All three regimes are CRR micro-cycles with different effective Ω:
 //
-//   Each droplet is a CRR micro-cycle:
-//     C accumulates during contact → δ(now) at ejection → R as it
-//     bounces with depleting coherence. Bounce rate 6–10 Hz
-//     (capillary subharmonic f_cap/4).
+//   REGIME 1 — FOUNTAIN (small micro-Ω, rigid):
+//     Single δ(now) → ballistic arc → splash.
+//     Highest C at rupture → exp(C/Ω) is large → explosive ejection.
+//     Corresponds to Terwagne & Bush "surface fracture" regime.
+//     These are the dramatic high-arcing jets visible in slow-motion.
+//     CRR: the jet (ligament before separation) IS the nascent delta
+//     δ_ε with finite width ε — the transition between C saturation
+//     and complete rupture. Rendered as a brief vertical streak.
+//
+//   REGIME 2 — BOUNCING (medium micro-Ω):
+//     Repeated C→δ→R at T_bounce = 4/f₀ (Z₂ subharmonic cascade).
+//     Each bounce depletes coherence; √(C/C₀) controls arc height.
+//     The existing 'faraday' type, now with bowl-dependent:
+//       size ∝ f₀^(−2/3), height ∝ 1/f₀², period = 4/f₀
+//
+//   REGIME 3 — WALKER (large micro-Ω, wave-memory coupled):
+//     Bounces at f_F/2 = f₀/4 and drifts laterally on wave slope.
+//     The drop is coupled to waves emitted at PREVIOUS bounces —
+//     this is literally R = ∫φ·exp(C/Ω)·Θ dτ with Θ selecting
+//     accessible memory (waves that haven't yet decayed).
+//     Long-lived, walks along the Faraday antinode ring.
+//     "Path memory" (Eddi et al. 2011) = CRR regeneration integral.
+//
+//   BOWL-DEPENDENT SCALING (§0.1):
+//     C5 (523 Hz): tiny drops, low shimmer, fast bounce (8ms)
+//     G3 (196 Hz): medium drops, moderate arcs, visible bounce (20ms)
+//     C3 (131 Hz): fat drops, high dramatic arcs, slow bounce (31ms)
 // ═══════════════════════════════════════════════════════════════════════
 const PARTS = [];
 
@@ -675,15 +862,152 @@ for (let di = 0; di < 20; di++) {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// §7.1  DROPLET SPRITES — pre-rendered offscreen canvases (§0.2)
+//
+//   Two sprites, rendered once at init, drawn with drawImage() per frame.
+//   No gradient creation in the particle loop → large performance win.
+//
+//   DROP_SPRITE: the water droplet body (Fresnel rim + specular + caustic)
+//   GLOW_SPRITE: soft radial halo for beauty-peak emphasis
+//
+//   Light direction matched to shader: L = normalize(0.7, 1.2, 0.4)
+//   In screen space (camera looking slightly down from front):
+//     light_screen ≈ (0.45, −0.55) (rightward, upward)
+//   Water body colors matched to shader floor color:
+//     vec3(fB, fB*.78, fB*.42) → warm amber
+//   Specular color matched to shader:
+//     vec3(1, .95, .82) → warm white (255, 242, 209)
+// ═══════════════════════════════════════════════════════════════════════
+const DROP_SZ = 64; // sprite resolution (renders at 8–32× oversample)
+const DROP_SPRITE = document.createElement('canvas');
+DROP_SPRITE.width = DROP_SZ; DROP_SPRITE.height = DROP_SZ;
+const GLOW_SPRITE = document.createElement('canvas');
+GLOW_SPRITE.width = DROP_SZ; GLOW_SPRITE.height = DROP_SZ;
+
+(function renderDropSprites() {
+  // ── LIGHT DIRECTION (screen space) ──
+  // Shader: L = normalize(vec3(0.7, 1.2, 0.4))
+  // Camera eye=(0, 0.85, 1.85) looking at (0, −0.12, 0)
+  // In screen space: light comes from upper-right
+  const lx = 0.45, ly = -0.55;
+
+  // ── DROP SPRITE ──
+  const dc = DROP_SPRITE.getContext('2d');
+  const R = DROP_SZ / 2, ctr = R;
+
+  // LAYER 1: FRESNEL RIM + TRANSLUCENT BODY
+  // §CRR: Ω_optical = R₀ ≈ 0.02 → body is mostly transparent
+  // Schlick: R(θ) = R₀ + (1−R₀)(1−cos θ)⁵ → rim brightens at edge
+  // Gradient center offset slightly toward light (thicker side brighter)
+  const bodyG = dc.createRadialGradient(
+    ctr + lx * R * 0.12, ctr + ly * R * 0.12, 0,
+    ctr, ctr, R
+  );
+  // §CRR: opacity profile encodes Fresnel reflectance vs viewing angle
+  // Center (cos θ≈1): R(θ)≈R₀≈0.02 → nearly transparent
+  // Edge (cos θ→0): R(θ)→1 → bright rim
+  bodyG.addColorStop(0,    'rgba(50,42,25,0.06)');    // near-transparent center
+  bodyG.addColorStop(0.30, 'rgba(90,72,40,0.14)');    // warm amber body
+  bodyG.addColorStop(0.55, 'rgba(140,112,60,0.22)');  // building toward rim
+  bodyG.addColorStop(0.72, 'rgba(185,152,85,0.30)');  // Fresnel transition
+  bodyG.addColorStop(0.85, 'rgba(220,190,115,0.34)'); // bright rim (Schlick peak)
+  bodyG.addColorStop(0.93, 'rgba(240,215,145,0.22)'); // sharp edge falloff
+  bodyG.addColorStop(1,    'rgba(255,240,200,0.0)');   // transparent beyond drop
+  dc.fillStyle = bodyG;
+  dc.beginPath(); dc.arc(ctr, ctr, R, 0, TAU); dc.fill();
+
+  // LAYER 2: SPECULAR HIGHLIGHT
+  // §CRR: δ(now) — single coherent reflection where surface normal ≈ H
+  // Position: toward light, offset by ~28% of radius
+  // The specular IS a Dirac-like concentration of reflected energy
+  const spX = ctr + lx * R * 0.28;
+  const spY = ctr + ly * R * 0.28;
+  const spR = R * 0.26;
+  const specG = dc.createRadialGradient(spX, spY, 0, spX, spY, spR);
+  // §CRR: specular colors from shader: vec3(1, .95, .82) = (255, 242, 209)
+  specG.addColorStop(0,    'rgba(255,252,245,0.92)');  // intense white core
+  specG.addColorStop(0.15, 'rgba(255,248,235,0.70)');
+  specG.addColorStop(0.40, 'rgba(255,242,215,0.30)');
+  specG.addColorStop(0.70, 'rgba(255,235,200,0.08)');
+  specG.addColorStop(1,    'rgba(255,230,190,0.0)');
+  dc.fillStyle = specG;
+  dc.beginPath(); dc.arc(spX, spY, spR, 0, TAU); dc.fill();
+
+  // LAYER 3: SECONDARY HIGHLIGHT (slightly offset, softer)
+  // §CRR: second-order reflection from internal bounce (C accumulates twice)
+  const sp2X = ctr + lx * R * 0.15;
+  const sp2Y = ctr + ly * R * 0.15;
+  const sp2R = R * 0.38;
+  const spec2G = dc.createRadialGradient(sp2X, sp2Y, 0, sp2X, sp2Y, sp2R);
+  spec2G.addColorStop(0,    'rgba(255,245,225,0.15)');
+  spec2G.addColorStop(0.50, 'rgba(255,238,205,0.06)');
+  spec2G.addColorStop(1,    'rgba(255,230,190,0.0)');
+  dc.fillStyle = spec2G;
+  dc.beginPath(); dc.arc(sp2X, sp2Y, sp2R, 0, TAU); dc.fill();
+
+  // LAYER 4: CAUSTIC FOCUS
+  // §CRR: B(C/Ω) peak of the optical system
+  // Light refracts through the sphere and converges on the shadow side.
+  // The refracted ray density (Jacobian) peaks at the caustic —
+  // this is exactly where exp(C/Ω) × (1−C/Ωπ) is maximal.
+  // For water (n=1.33): caustic offset ≈ R × n/(2(n−1)) inward
+  // Position: opposite light, offset ~38% of radius
+  const caX = ctr - lx * R * 0.38;
+  const caY = ctr - ly * R * 0.38;
+  const caR = R * 0.24;
+  const caustG = dc.createRadialGradient(caX, caY, 0, caX, caY, caR);
+  // §CRR: caustic is warm golden (light filtered through water body)
+  caustG.addColorStop(0,    'rgba(255,232,168,0.42)');
+  caustG.addColorStop(0.30, 'rgba(255,225,150,0.20)');
+  caustG.addColorStop(0.65, 'rgba(255,218,135,0.06)');
+  caustG.addColorStop(1,    'rgba(255,210,120,0.0)');
+  dc.fillStyle = caustG;
+  dc.beginPath(); dc.arc(caX, caY, caR, 0, TAU); dc.fill();
+
+  // LAYER 5: LOWER INTERNAL GLOW
+  // §CRR: light transmitted through body → warm glow at base
+  // This is the regeneration integral made visible: scattered light
+  // reconstructed from exp(C/Ω)-weighted internal paths
+  const glX = ctr - lx * R * 0.15;
+  const glY = ctr - ly * R * 0.20;
+  const glR = R * 0.5;
+  const intG = dc.createRadialGradient(glX, glY, 0, glX, glY, glR);
+  intG.addColorStop(0,    'rgba(200,170,100,0.10)');
+  intG.addColorStop(0.60, 'rgba(180,150,85,0.04)');
+  intG.addColorStop(1,    'rgba(160,130,70,0.0)');
+  dc.fillStyle = intG;
+  dc.beginPath(); dc.arc(glX, glY, glR, 0, TAU); dc.fill();
+
+  // ── GLOW SPRITE (separate canvas) ──
+  // §CRR: the beauty-peak halo — used for drops at B(C/Ω) maximum
+  // Drawn at larger radius underneath the drop sprite for emphasis
+  const gc = GLOW_SPRITE.getContext('2d');
+  const glowG = gc.createRadialGradient(ctr, ctr, 0, ctr, ctr, R);
+  glowG.addColorStop(0,    'rgba(255,245,210,0.18)');
+  glowG.addColorStop(0.25, 'rgba(255,240,195,0.10)');
+  glowG.addColorStop(0.55, 'rgba(255,232,175,0.04)');
+  glowG.addColorStop(1,    'rgba(255,225,160,0.0)');
+  gc.fillStyle = glowG;
+  gc.beginPath(); gc.arc(ctr, ctr, R, 0, TAU); gc.fill();
+})();
+
 // Strike splash droplets
+// §CRR: strike drops are also scaled by bowl frequency
+// d_drop ∝ f₀^(−2/3), v_ej ∝ 1/f₀ → larger bowls = bigger, higher drops
 function spawnDrops(force, sx, sy) {
-  const count = flr(3 + force * 10);
+  const ds = dropScale();    // §CRR: size ∝ f₀^(−2/3)
+  const hs = heightScale();  // §CRR: height ∝ 1/f₀²
+  const count = flr(3 + force * 10 * ds); // more drops from larger bowls
   for (let di = 0; di < count; di++) {
     const angle = rnd() * TAU, speed = force * (0.8 + rnd() * 1.5);
     PARTS.push({
       x: sx, y: sy,
-      vx: cos(angle) * speed * 0.4, vy: -speed * 0.6 - rnd() * 1.5,
-      life: 1, sz: 0.6 + rnd() * 2, br: 0.3 + rnd() * 0.7, type: 'drop'
+      vx: cos(angle) * speed * 0.4 * ds,
+      vy: -speed * 0.6 * sqrt(hs) - rnd() * 1.5 * sqrt(hs),
+      life: 1 + 0.3 * (hs - 1), // §CRR: longer flight for taller arcs
+      sz: (0.6 + rnd() * 2) * ds, // §CRR: d ∝ λ_F ∝ f^(−2/3)
+      br: 0.3 + rnd() * 0.7, type: 'drop'
     });
   }
 }
@@ -692,6 +1016,9 @@ function spawnDrops(force, sx, sy) {
 // This is SEPARATE from cpuWaveH — it returns only the Faraday
 // capillary pattern, NOT the modal Bessel waves. This ensures
 // droplets spawn where Faraday activity is highest (annular ring).
+//
+// §CRR: k = faradayK() is bowl-dependent via k_F ∝ f₀^(2/3)
+// Higher-frequency bowls produce shorter Faraday wavelengths (finer pattern)
 function cpuFaradayH(nx, nz, t) {
   const rr = sqrt(nx * nx + nz * nz);
   if (rr > 0.97 || rr < 0.05) return 0;
@@ -706,7 +1033,8 @@ function cpuFaradayH(nx, nz, t) {
   const env = max(0, min(1, (rr - 0.05) / 0.25)) * max(0, min(1, (0.97 - rr) / 0.22))
             * (0.6 + 0.6 * max(0, min(1, (rr - 0.3) / 0.3)) * max(0, min(1, (0.9 - rr) / 0.2)));
 
-  const k = 26;
+  // §CRR: k_F ∝ f₀^(2/3) from capillary dispersion relation
+  const k = faradayK();
   const h1 = sin(k * nx) * sin(k * nz);
   const r2x = (nx + nz) * 0.707, r2z = (nx - nz) * 0.707;
   const h2 = sin(k * r2x * 1.08) * sin(k * r2z * 1.08);
@@ -740,7 +1068,8 @@ function cpuWaveH(nx, nz, t) {
   if (totA > 0.04) {
     const env = max(0, min(1, (rr - 0.05) / 0.25)) * max(0, min(1, (0.97 - rr) / 0.22))
               * (0.6 + 0.6 * max(0, min(1, (rr - 0.3) / 0.3)) * max(0, min(1, (0.9 - rr) / 0.2)));
-    const k = 26;
+    // §CRR: k_F ∝ f₀^(2/3) — bowl-dependent Faraday wavenumber
+    const k = faradayK();
     const h1 = sin(k * nx) * sin(k * nz);
     const r2x = (nx + nz) * 0.707, r2z = (nx - nz) * 0.707;
     const h2 = sin(k * r2x * 1.08) * sin(k * r2z * 1.08);
@@ -751,35 +1080,37 @@ function cpuWaveH(nx, nz, t) {
   return h;
 }
 
-// ── Faraday droplet spawning ──
-//
-// This concentrates droplets in the annular ring r≈0.6–0.85 where
-// Faraday instability actually occurs.
+// ── Faraday droplet spawning — three CRR regimes ──
+// v8: Bowl-dependent scaling via §0.1 derivations.
+// Spawns fountain, bouncing (faraday), and walker drops.
 let fGP = 0;
 function spawnFaraday(t) {
-  if (PARTS.length > 400) return;
+  if (PARTS.length > 500) return;
 
   let totA = 0;
   for (const st of MS) totA += st.amp;
   if (totA < 0.04) return;
 
+  // §CRR: bowl-dependent scaling functions (§0.1)
+  const ds = dropScale();     // size ratio: (f_ref/f₀)^(2/3)
+  const hs = heightScale();   // height ratio: (f_ref/f₀)²
+  const Tb = bouncePeriod();  // 4/f₀ seconds
+
   const thr = 0.012 + 0.015 * (1 - min(1, totA * 3));
   fGP += 0.31;
-  const N = 12; // 12×12 = 144 sample points (up from 10×10 for better ring coverage)
+  const N = 12;
   const cc = cos(fGP), ss = sin(fGP);
 
   for (let gi = 0; gi < N; gi++) {
     for (let gj = 0; gj < N; gj++) {
       const gx = (gi / (N - 1) - 0.5) * 1.9;
       const gz = (gj / (N - 1) - 0.5) * 1.9;
-      // Rotate grid each frame to avoid aliasing
       const nx = gx * cc - gz * ss;
       const nz = gx * ss + gz * cc;
       const nr = sqrt(nx * nx + nz * nz);
 
       if (nr > 0.96 || nr < 0.04) continue;
 
-      // KEY FIX: sample FARADAY-ONLY height, not total wave
       const fh = cpuFaradayH(nx, nz, t);
       if (abs(fh) < thr) continue;
 
@@ -790,34 +1121,200 @@ function spawnFaraday(t) {
       if (!projPt || projPt.z < 0.1) continue;
 
       const bPx = min(W, H) * 0.28;
-      PARTS.push({
-        x: projPt.x, y: projPt.y, baseY: projPt.y,
-        vx: (rnd() - 0.5) * 0.3,
-        sz: 0.5 + rnd(), startSz: 0.5 + rnd(),
-        br: 0.25 + rnd() * 0.35, type: 'faraday',
-        bounceC: excess * 3, bounceC0: excess * 3,
-        bouncePeriod: 1 / (6 + rnd() * 4),  // 6–10 Hz capillary subharmonic
-        bouncePhase: rnd() * 0.15, bounceNum: 0,
-        maxBounces: 1 + flr(rnd() * 3),
-        ejHeight: bPx * (0.005 + excess * totA * 0.12)
-      });
+
+      // §CRR: coherence ratio at this Faraday cell
+      // C_cell = excess × Ω_Z₂⁻¹ (coherence excess beyond rupture threshold)
+      const cRatio = min(PI, excess * 12);
+      const bWeight = B(cRatio * OmZ2); // beauty function B(C/Ω)
+
+      // ── REGIME SELECTION ──
+      // §CRR: regime depends on coherence excess (how far past C·Ω = 1)
+      // High excess → fountain (explosive rupture)
+      // Medium excess → bouncing (sustained subharmonic)
+      // Low excess + high totA → walker (wave-memory coupled)
+      const regime = rnd();
+
+      if (excess > 0.025 && regime < min(0.35, excess * 8)) {
+        // ── REGIME 1: FOUNTAIN — δ(now) surface fracture ──
+        // §CRR: single explosive rupture with ballistic trajectory
+        // Ejection velocity ∝ B(C/Ω) × 1/f₀ (beauty-weighted, frequency-scaled)
+        // The beauty peak at C/Ω = π−1 ≈ 2.14 produces optimal ejection
+        const bNorm = bWeight / B(PI - 1); // normalise to beauty peak
+
+        // §CRR: velocity in px/frame units (position update is p.y += p.vy)
+        // baseV sets the ejection impulse; sqrt(hs) gives the 1/f₀ scaling
+        // (height ∝ v² ∝ hs = 1/f₀², so v ∝ 1/f₀ = sqrt(hs))
+        // bNorm weights the beauty function: peak expressiveness at C/Ω ≈ 2.14
+        const baseV = 2.5 + bNorm * 3 + excess * 35;
+        const ejV = baseV * sqrt(hs);
+
+        // §CRR: nascent delta δ_ε — the jet/ligament before drop separates
+        // This exists for duration ε (timescale of surface fracture)
+        // Rendered as brief vertical streak at spawn point
+        // Jet height proportional to ejection velocity (same energy source)
+        const jetH = max(5, ejV * 6) * 0.65;
+        PARTS.push({
+          type: 'jet',
+          x: projPt.x, y: projPt.y, baseY: projPt.y,
+          life: 0.035 + excess * 0.06, // §CRR: ε duration of nascent delta
+          maxLife: 0.035 + excess * 0.06,
+          height: jetH,
+          sz: max(0.3, 0.5 * ds), // §CRR: jet width ∝ λ_F ∝ f^(−2/3)
+          br: 0.6 + excess * 3
+        });
+
+        // §CRR: the drop itself — regenerated entity R after δ
+        // Ballistic trajectory: gravity = 15 × dt per frame
+        const ejAngle = -PI / 2 + (rnd() - 0.5) * 0.6; // mostly upward
+        PARTS.push({
+          type: 'fountain',
+          x: projPt.x, y: projPt.y, baseY: projPt.y,
+          vx: cos(ejAngle) * baseV * 0.15 * ds,
+          vy: -ejV * (0.6 + rnd() * 0.15), // §CRR: v ∝ 1/f₀ (height ∝ 1/f₀²)
+          sz: (0.8 + rnd() * 1.5) * ds, // §CRR: d ∝ λ_F ∝ f^(−2/3)
+          startSz: (0.8 + rnd() * 1.5) * ds,
+          br: 0.5 + rnd() * 0.4,
+          life: 1.2 + 0.5 * sqrt(hs),
+          maxLife: 1.2 + 0.5 * sqrt(hs),
+          // §CRR: coherence carried by the drop — depletes during flight
+          bounceC: excess * 4, bounceC0: excess * 4
+        });
+      }
+      else if (totA > 0.25 && excess < 0.015 && regime > 0.92) {
+        // ── REGIME 3: WALKER — wave-memory coupled ──
+        // §CRR: largest micro-Ω regime. The drop couples to the Faraday
+        // wave field through R = ∫φ·exp(C/Ω)·Θ dτ where Θ selects
+        // waves from previous bounces that haven't decayed (path memory).
+        // Walkers drift laterally along the Faraday antinode ring.
+        const walkDir = atan2(nz, nx) + (rnd() > 0.5 ? 1 : -1) * PI / 2;
+        PARTS.push({
+          type: 'walker',
+          x: projPt.x, y: projPt.y, baseY: projPt.y,
+          // §CRR: lateral drift from wave-slope impulse at each bounce
+          walkVx: cos(walkDir) * 0.3 * totA * ds,
+          walkVy: sin(walkDir) * 0.15 * totA * ds,
+          sz: (0.6 + rnd() * 0.8) * ds, // §CRR: d ∝ f^(−2/3)
+          startSz: (0.6 + rnd() * 0.8) * ds,
+          br: 0.3 + rnd() * 0.3,
+          // §CRR: walkers bounce at f_F/2 = f₀/4
+          bouncePeriod: Tb * (0.9 + rnd() * 0.2),
+          bouncePhase: rnd() * 0.1, bounceNum: 0,
+          // §CRR: many bounces — large Ω allows sustained coherence
+          maxBounces: 6 + flr(rnd() * 10),
+          bounceC: totA * 2, bounceC0: totA * 2,
+          // §CRR: low bounce height — energy goes into lateral motion
+          ejHeight: bPx * 0.015 * hs
+        });
+      }
+      else {
+        // ── REGIME 2: BOUNCING — standard Faraday subharmonic ──
+        // §CRR: medium micro-Ω. Each bounce is C→δ→R.
+        // All parameters now bowl-dependent via §0.1 derivations.
+        //
+        // §CRR: ejection height = B(C/Ω) × heightScale
+        // Beauty function weights which coherence produces most expressive bounce
+        const bNorm = bWeight / B(PI - 1);
+        const ejH = bPx * (0.02 + bNorm * 0.12 + excess * totA * 0.15) * hs;
+
+        PARTS.push({
+          x: projPt.x, y: projPt.y, baseY: projPt.y,
+          vx: (rnd() - 0.5) * 0.3 * ds,
+          // §CRR: d_drop ∝ λ_F ∝ f₀^(−2/3)
+          sz: (0.5 + rnd()) * ds,
+          startSz: (0.5 + rnd()) * ds,
+          br: 0.25 + rnd() * 0.35, type: 'faraday',
+          bounceC: excess * 3, bounceC0: excess * 3,
+          // §CRR: T_bounce = 4/f₀ (Z₂ subharmonic cascade)
+          bouncePeriod: Tb * (0.85 + rnd() * 0.3),
+          bouncePhase: rnd() * 0.15, bounceNum: 0,
+          maxBounces: 1 + flr(rnd() * 3),
+          // §CRR: h_ej ∝ 1/f₀² (same Γ excess → more displacement at low f)
+          ejHeight: ejH
+        });
+      }
     }
   }
 }
 
-// ── Particle update ──
+// ── Particle update — five CRR regimes ──
 function updateParts(dt) {
   for (let pi = PARTS.length - 1; pi >= 0; pi--) {
     const p = PARTS[pi];
 
     if (p.type === 'drop') {
-      // Ballistic arc with gravity
+      // §CRR: strike drops — ballistic arc with gravity
       p.vy += 15 * dt; p.x += p.vx; p.y += p.vy;
       p.life -= dt * 0.8;
       if (p.life <= 0) PARTS.splice(pi, 1);
     }
+    else if (p.type === 'fountain') {
+      // §CRR REGIME 1: FOUNTAIN — ballistic arc from surface fracture
+      // The drop is the regenerated entity R after explosive δ(now).
+      // Coherence depletes during flight: C decreases → √(C/C₀) shrinks drop
+      // Gravity pulls it back. No re-bounce — single CRR cycle.
+      p.vy += 15 * dt;             // gravity (same constant as 'drop')
+      p.vy *= (1 - 0.5 * dt);     // §CRR: air drag ∝ coherence loss
+      p.vx *= (1 - 0.3 * dt);
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= dt * 0.6;
+
+      // §CRR: coherence depletion during flight → drop shrinks
+      p.bounceC = max(0, p.bounceC - dt * 0.8);
+      const cFrac = sqrt(max(0.1, p.bounceC / p.bounceC0));
+      p.sz = p.startSz * (0.6 + 0.4 * cFrac);
+
+      // §CRR: brightness tracks height above surface (high arc = bright peak)
+      const hAbove = max(0, p.baseY - p.y);
+      p.br = 0.3 + 0.6 * min(1, hAbove / 80);
+
+      if (p.life <= 0 || p.y > p.baseY + 5) PARTS.splice(pi, 1);
+    }
+    else if (p.type === 'walker') {
+      // §CRR REGIME 3: WALKER — wave-memory coupled bouncing
+      // The drop bounces at f₀/4 AND drifts laterally.
+      // Lateral velocity comes from wave-slope impulse at each bounce.
+      // This is R = ∫φ·exp(C/Ω)·Θ dτ — the drop reconstructs its
+      // trajectory from the memory of waves emitted at prior bounces.
+      p.bouncePhase += dt / p.bouncePeriod;
+
+      // §CRR: lateral drift from wave memory coupling
+      p.x += p.walkVx * dt * 12;
+      p.y += p.walkVy * dt * 6;  // foreshortened in perspective
+
+      if (p.bouncePhase >= 1) {
+        // δ(now): bounce rupture — coherence partially depletes
+        p.bouncePhase -= 1;
+        p.bounceNum++;
+        p.bounceC -= p.bounceC0 / p.maxBounces;
+        // §CRR: slight random walk on each bounce (wave-slope scatter)
+        p.walkVx += (rnd() - 0.5) * 0.05;
+        p.walkVy += (rnd() - 0.5) * 0.025;
+        if (p.bounceNum >= p.maxBounces || p.bounceC <= 0) {
+          PARTS.splice(pi, 1); continue;
+        }
+      }
+      // §CRR: parabolic arc within each bounce — same as faraday
+      const arc = 4 * p.bouncePhase * (1 - p.bouncePhase);
+      const hF = sqrt(max(0, p.bounceC / p.bounceC0));
+      p.y = p.baseY - p.ejHeight * arc * hF;
+      // §CRR: walkers maintain size (sustained coherence coupling)
+      p.sz = p.startSz * (0.8 + 0.2 * (1 - arc * 0.3));
+      p.br = 0.2 + arc * 0.4 * hF;
+      // Update baseY to follow lateral drift
+      p.baseY += p.walkVy * dt * 6;
+    }
+    else if (p.type === 'jet') {
+      // §CRR: NASCENT DELTA δ_ε — the ligament/jet before drop separates
+      // This is the finite-width rupture transition.
+      // Exists for duration ε, then disappears (drop has already spawned).
+      p.life -= dt;
+      if (p.life <= 0) { PARTS.splice(pi, 1); continue; }
+    }
     else if (p.type === 'faraday') {
-      // CRR micro-cycle: each bounce is C→δ→R
+      // §CRR REGIME 2: BOUNCING — subharmonic Z₂ cascade
+      // T_bounce = 4/f₀. Each bounce is a micro C→δ→R cycle.
+      // Coherence depletes with each δ(now); √(C/C₀) controls arc height.
       p.bouncePhase += dt / p.bouncePeriod;
       p.x += p.vx * dt * 0.3;
 
@@ -834,6 +1331,8 @@ function updateParts(dt) {
       const arc = 4 * p.bouncePhase * (1 - p.bouncePhase);
       const hF = sqrt(max(0, p.bounceC / p.bounceC0));
       p.y = p.baseY - p.ejHeight * arc * hF;
+      // §CRR: drop deforms along trajectory — oblate at peak, prolate mid-flight
+      // Shape aspect ratio ∝ coherence state. High arc = more elongation.
       p.sz = p.startSz * (0.5 + 0.5 * (1 - arc * 0.4));
       p.br = 0.2 + arc * 0.6 * hF;
     }
@@ -848,7 +1347,13 @@ function updateParts(dt) {
   }
 }
 
-// ── Particle draw ──
+// ── Particle draw — sprite-based photorealistic droplets (§0.2 + §7.1) ──
+//
+// All water drop types rendered via pre-rendered DROP_SPRITE/GLOW_SPRITE.
+// No createRadialGradient() in the particle loop. Canvas transforms
+// (scale, rotate) applied per particle for CRR-derived deformation.
+// globalAlpha ∝ √(C/C₀) — coherence modulates optical transparency.
+// Additive blending ('lighter') makes high-coherence drops luminous.
 function drawOverlay() {
   cx.clearRect(0, 0, W, H);
   cx.save();
@@ -859,27 +1364,135 @@ function drawOverlay() {
       cx.fillStyle = `rgba(200,180,140,${p.br * 0.3})`;
       cx.beginPath(); cx.arc(p.x, p.y, p.sz, 0, TAU); cx.fill();
     }
-    else if (p.type === 'faraday') {
+    else if (p.type === 'jet') {
+      // §CRR: NASCENT DELTA δ_ε — vertical ligament before drop separation
+      // This is NOT a sphere — it's a stretching column of water.
+      // Rendered as tapered rectangle with bright tip (forming droplet).
+      const progress = 1 - p.life / p.maxLife;
+      const jH = p.height * (0.3 + 0.7 * progress);
+      const alpha = min(0.8, p.br * (1 - progress * 0.5));
+      const topW = p.sz * 0.4;
+      const botW = p.sz * 1.2;
+      // §CRR: ligament body — tapered column
+      cx.fillStyle = `rgba(255,250,235,${alpha * 0.6})`;
+      cx.beginPath();
+      cx.moveTo(p.x - botW, p.baseY);
+      cx.lineTo(p.x + botW, p.baseY);
+      cx.lineTo(p.x + topW, p.baseY - jH);
+      cx.lineTo(p.x - topW, p.baseY - jH);
+      cx.fill();
+      // §CRR: forming droplet at tip — use sprite for the nascent drop
+      // As the ligament extends, the tip accumulates into a sphere
+      const tipR = max(0.4, p.sz * (0.5 + 0.5 * progress));
+      cx.globalAlpha = min(1, alpha * 1.3);
+      cx.drawImage(DROP_SPRITE,
+        p.x - tipR * 1.3, p.baseY - jH - tipR * 1.3,
+        tipR * 2.6, tipR * 2.6);
+      cx.globalAlpha = 1;
+    }
+    else if (p.type === 'fountain') {
+      // §CRR REGIME 1: FOUNTAIN drops — photorealistic translucent sphere
+      // Shape deformation along velocity vector:
+      //   prolate (stretched) during flight, oblate at peak
+      //   stretch ∝ speed × √(C/C₀) — higher coherence = more deformable
+      const speed = sqrt(p.vx * p.vx + p.vy * p.vy);
+      const lifeFrac = p.life / p.maxLife;
+      const cFrac = max(0.1, p.bounceC / p.bounceC0);
+      // §CRR: globalAlpha ∝ √(C/C₀) × life — coherence modulates transparency
+      const alpha = min(1, lifeFrac * (0.5 + 0.5 * sqrt(cFrac)) * 1.4);
+      // §CRR: velocity-dependent deformation
+      const stretch = min(1.6, 1 + speed * 0.06 * cFrac);
+      const drawR = max(0.5, p.sz) * 1.3; // 1.3 accounts for sprite glow margin
+
+      cx.save();
+      cx.translate(p.x, p.y);
+      if (speed > 0.5) cx.rotate(atan2(p.vy, p.vx));
+      cx.scale(stretch, 1 / stretch);
+
+      // §CRR: glow halo when coherence is high (beauty peak proximity)
+      if (cFrac > 0.3 && p.sz > 0.8) {
+        const glR = drawR * 2.2;
+        cx.globalAlpha = min(0.6, alpha * 0.35 * cFrac);
+        cx.drawImage(GLOW_SPRITE, -glR, -glR, glR * 2, glR * 2);
+      }
+
+      // §CRR: the drop itself — Fresnel rim, specular, caustic (§0.2)
+      cx.globalAlpha = alpha;
+      cx.drawImage(DROP_SPRITE, -drawR, -drawR, drawR * 2, drawR * 2);
+
+      cx.restore();
+    }
+    else if (p.type === 'walker') {
+      // §CRR REGIME 3: WALKER — wave-memory coupled translucent drop
       const arc = 4 * p.bouncePhase * (1 - p.bouncePhase);
       const hF = sqrt(max(0, p.bounceC / p.bounceC0));
-      const alpha = min(0.85, p.br * (0.2 + arc * 0.8 * hF));
-      cx.fillStyle = `rgba(255,250,235,${alpha})`;
-      cx.beginPath(); cx.arc(p.x, p.y, max(0.3, p.sz), 0, TAU); cx.fill();
-      // Glow halo at arc peak
-      if (arc > 0.5 && p.sz > 0.7 && hF > 0.3) {
-        const gr = p.sz * 2.5;
-        const gg = cx.createRadialGradient(p.x, p.y, 0, p.x, p.y, gr);
-        gg.addColorStop(0, `rgba(255,245,210,${alpha * 0.12})`);
-        gg.addColorStop(1, 'rgba(255,245,210,0)');
-        cx.fillStyle = gg;
-        cx.beginPath(); cx.arc(p.x, p.y, gr, 0, TAU); cx.fill();
+      const alpha = min(0.8, p.br * (0.3 + arc * 0.5 * hF));
+      const drawR = max(0.5, p.sz) * 1.3;
+
+      // §CRR: trail from wave memory — ghost images at prior positions
+      // The walker's path memory (R integral) is made visible
+      const trAlpha = alpha * 0.15;
+      if (trAlpha > 0.01) {
+        const trR = drawR * 0.6;
+        cx.globalAlpha = trAlpha;
+        cx.drawImage(DROP_SPRITE,
+          p.x - p.walkVx * 10 - trR, p.y - p.walkVy * 5 - trR,
+          trR * 2, trR * 2);
       }
+
+      // §CRR: walker drop body
+      cx.globalAlpha = alpha;
+      cx.drawImage(DROP_SPRITE, p.x - drawR, p.y - drawR, drawR * 2, drawR * 2);
+
+      // §CRR: surface contact ring when near water (arc < 0.3)
+      // The air cushion between drop and surface creates a visible ring
+      if (arc < 0.3 && hF > 0.4) {
+        const ringR = p.sz * 3;
+        cx.strokeStyle = `rgba(255,245,210,${alpha * 0.06})`;
+        cx.lineWidth = 0.5;
+        cx.globalAlpha = 1;
+        cx.beginPath(); cx.arc(p.x, p.y, ringR, 0, TAU); cx.stroke();
+      }
+      cx.globalAlpha = 1;
+    }
+    else if (p.type === 'faraday') {
+      // §CRR REGIME 2: BOUNCING — translucent drop with bounce deformation
+      const arc = 4 * p.bouncePhase * (1 - p.bouncePhase);
+      const hF = sqrt(max(0, p.bounceC / p.bounceC0));
+      const alpha = min(0.9, p.br * (0.2 + arc * 0.8 * hF));
+
+      // §CRR: deformation during bounce
+      // Rising/falling: prolate (stretched vertically by surface tension)
+      // At peak: oblate (gravity flattens). Volume conserved (2D projection).
+      const aspectV = 1 + arc * hF * 0.45;
+      const aspectH = 1 / sqrt(aspectV);
+      const drawR = max(0.5, p.sz) * 1.3;
+
+      cx.save();
+      cx.translate(p.x, p.y);
+      cx.scale(aspectH, aspectV);
+
+      // §CRR: glow at beauty peak (arc ≈ 1 = max height = max expressiveness)
+      if (arc > 0.5 && p.sz > 0.7 && hF > 0.3) {
+        const glR = drawR * 2.2;
+        cx.globalAlpha = min(0.4, alpha * 0.2);
+        cx.drawImage(GLOW_SPRITE, -glR, -glR, glR * 2, glR * 2);
+      }
+
+      // §CRR: drop body with Fresnel+specular+caustic (§0.2)
+      cx.globalAlpha = alpha;
+      cx.drawImage(DROP_SPRITE, -drawR, -drawR, drawR * 2, drawR * 2);
+
+      cx.restore();
     }
     else {
-      // Strike drops
-      const alpha = p.life * p.br * 0.6;
-      cx.fillStyle = `rgba(240,220,180,${alpha})`;
-      cx.beginPath(); cx.arc(p.x, p.y, p.sz * p.life, 0, TAU); cx.fill();
+      // Strike drops — use sprite for translucent look
+      const alpha = p.life * p.br * 0.7;
+      const drawR = max(0.4, p.sz * p.life) * 1.3;
+      cx.globalAlpha = min(1, alpha);
+      cx.drawImage(DROP_SPRITE,
+        p.x - drawR, p.y - drawR, drawR * 2, drawR * 2);
+      cx.globalAlpha = 1;
     }
   }
   cx.restore();
@@ -944,15 +1557,25 @@ function render(ts) {
       }
     }
 
-    // HUD text
+    // HUD text — show actual sounding frequency (× timeScale)
     if (st.amp > 0.001) {
-      mTxt += `m=${md.m} ${(F0 * md.fr).toFixed(0)}Hz C=${st.C.toFixed(1)} ${'▮'.repeat(min(15, flr(st.amp * 15)))}\n`;
+      const sndHz = (F0 * md.fr * timeScale).toFixed(0);
+      mTxt += `m=${md.m} ${sndHz}Hz C=${st.C.toFixed(1)} ${'▮'.repeat(min(15, flr(st.amp * 15)))}\n`;
     }
   });
 
   const nFar = PARTS.filter(p => p.type === 'faraday').length;
+  const nFtn = PARTS.filter(p => p.type === 'fountain').length;
+  const nWlk = PARTS.filter(p => p.type === 'walker').length;
+  const nJet = PARTS.filter(p => p.type === 'jet').length;
   mTxt += `${BOWLS[curBowl].note} ${BOWLS[curBowl].name}`;
-  if (nFar > 0) mTxt += ` · ${nFar} drops`;
+  // §CRR: show droplet regime counts — three micro-Ω regimes visible
+  const dropCounts = [];
+  if (nFar > 0) dropCounts.push(`${nFar} bounce`);
+  if (nFtn > 0) dropCounts.push(`${nFtn} fountain`);
+  if (nWlk > 0) dropCounts.push(`${nWlk} walker`);
+  if (nJet > 0) dropCounts.push(`${nJet} jet`);
+  if (dropCounts.length > 0) mTxt += ` · ${dropCounts.join(' ')}`;
   if (timeScale < 1) mTxt += ` · ${timeScale}×`;
   modesEl.textContent = mTxt;
 
@@ -966,6 +1589,8 @@ function render(ts) {
   gl.uniform1f(U.u_time, pt);
   gl.uniform1f(U.u_mallet, rimAng);
   gl.uniform1f(U.u_malletStr, rimOn ? min(0.8, rimSpd * 5) : 0);
+  // §CRR: bowl-dependent Faraday wavenumber k_F ∝ f₀^(2/3) (§0.1)
+  gl.uniform1f(U.u_kF, faradayK());
 
   for (let ui = 0; ui < 5; ui++) {
     gl.uniform1f(uA[ui], MS[ui].amp);
