@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Song of the Wave — CRR Composition</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#020a0e;overflow:hidden;height:100vh;height:100dvh;cursor:pointer;
+  user-select:none;-webkit-user-select:none;touch-action:none;-webkit-touch-callout:none}
+canvas{display:block;width:100%;height:100%}
+.h{position:fixed;pointer-events:none;font:300 clamp(9px,.9vw,10px)/1.6 'Cormorant Garamond',Georgia,serif;letter-spacing:.06em;color:rgba(160,200,220,.12)}
+#t{top:14px;left:18px;letter-spacing:.28em;font-size:clamp(11px,1.2vw,13px)}
+#e{top:14px;right:18px;text-align:right}
+#u{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:rgba(180,210,220,.25);font-size:clamp(13px,1.6vw,17px);letter-spacing:.25em;transition:opacity 3s}
+#u.d{opacity:0;pointer-events:none}
+#om{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;
+  padding:8px 18px;border-radius:24px;background:rgba(10,15,20,.7);border:1px solid rgba(160,200,220,.08);z-index:10}
+#om label{font:300 clamp(10px,1vw,12px) 'Cormorant Garamond',Georgia,serif;color:rgba(160,200,220,.3);letter-spacing:.15em}
+#om input{-webkit-appearance:none;width:clamp(120px,25vw,240px);height:3px;border-radius:2px;outline:none;
+  background:linear-gradient(90deg,rgba(40,80,100,.3),rgba(100,180,200,.4),rgba(200,160,80,.4))}
+#om input::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;cursor:pointer;
+  border:2px solid rgba(10,15,20,.9);background:radial-gradient(circle at 40% 35%,#4a5560,#2a3035);
+  box-shadow:0 1px 4px rgba(0,0,0,.5)}
+#om span{font:300 clamp(11px,1.2vw,14px) 'Cormorant Garamond',Georgia,serif;color:rgba(160,200,220,.35);
+  letter-spacing:.1em;min-width:3em;text-align:center}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="h" id="t">SONG OF THE WAVE</div>
+<div class="h" id="e">C·Ω = 1<br>R₀ = ((n₂−n₁)/(n₂+n₁))²<br>exp(−α·d) — the colour of water</div>
+<div id="u">tap to begin</div>
+<div id="om"><label>Ω LOW</label><input type="range" id="os" min="0.05" max="6" step="0.05" value="1"><label>HIGH</label><span id="ov">Ω = 0.32/π  moderate</span></div>
+<script>
+const PI=Math.PI,TAU=2*PI;
+const{sin,cos,sqrt,min,max,exp,random:rnd}=Math;
+let ac,mg,t=0,go=false;
+
+function audio(){if(ac)return;ac=new(AudioContext||webkitAudioContext)();
+  const c=ac.createDynamicsCompressor();c.threshold.value=-14;c.ratio.value=4;c.connect(ac.destination);
+  mg=ac.createGain();mg.gain.value=.45;
+  // §PARTIAL Reverb: R=∫φ·exp(C/Ω)·Θ dτ as impulse response
+  const rl=ac.sampleRate*5,rb=ac.createBuffer(2,rl,ac.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=rb.getChannelData(ch);for(let i=0;i<rl;i++)d[i]=(rnd()*2-1)*exp(-i/ac.sampleRate)*.4;}
+  const rv=ac.createConvolver();rv.buffer=rb;
+  const w=ac.createGain(),dr=ac.createGain();w.gain.value=.3;dr.gain.value=.7;
+  mg.connect(dr);dr.connect(c);mg.connect(rv);rv.connect(w);w.connect(c);
+  // §PARTIAL Ocean rumble (Kolmogorov cascade)
+  const nb=ac.createBuffer(1,ac.sampleRate*4,ac.sampleRate),nd=nb.getChannelData(0);
+  for(let i=0;i<nd.length;i++)nd[i]=rnd()*2-1;
+  const ns=ac.createBufferSource();ns.buffer=nb;ns.loop=true;
+  const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=150;f.Q.value=1.5;
+  const g=ac.createGain();g.gain.value=.16;ns.connect(f);f.connect(g);g.connect(mg);ns.start();
+  // §CRR Sub-bass: SO(2) infragravity beating
+  const s1=ac.createOscillator(),s2=ac.createOscillator();
+  s1.type='sine';s1.frequency.value=26;s2.type='sine';s2.frequency.value=31;
+  const sg=ac.createGain();sg.gain.value=.05;s1.connect(sg);s2.connect(sg);sg.connect(mg);s1.start();s2.start();
+  window._rG=g;window._rF=f;window._sG=sg;}
+
+const VS='attribute vec2 a;void main(){gl_Position=vec4(a,0,1);}';
+const FS=`precision highp float;
+uniform vec2 R;uniform float T,OM;
+//
+// CRR — Coherence-Rupture-Regeneration (Sabine 2025)
+//
+// C(x,t) = ∫L(x,τ)dτ           coherence accumulates
+// δ(now) when C·Ω = 1           rupture at the Cramér-Rao bound
+// R = ∫φ·exp(C/Ω)·Θ dτ         regeneration from weighted memory
+//
+// Ω = σ² (variance / boundary permeability)
+//   Small Ω → rigid, precise     Large Ω → flexible, wild
+//
+// This ocean is solved from CRR:
+//   §SOLVED  Fresnel R₀ = ((n₂-n₁)/(n₂+n₁))²     from Ω_medium = 1/(πn)
+//   §SOLVED  Water colour = exp(-α·d)               CRR kernel = Beer-Lambert
+//   §CRR     Waves = SO(2) processes, CV = 1/(4π)   phase wraps on the circle
+//   §CRR     Ω slider scales amplitude + Stokes nonlinearity + bubble glow + whitecaps
+//   §CRR     Whitecaps appear where C·Ω ≥ 1         slope × Ω = rupture on height field
+//   §CRR     Bubble glow = Z₂ micro-ruptures        entrained air at steep faces
+//   §PARTIAL Noise octaves ≈ Kolmogorov cascade      CRR nested eddies
+//   §EXT     Sky palette, SSS, tonemap               artistic choices, not CRR-derived
+//
+const float PI=3.14159265;
+const float R0=0.02037; // §SOLVED Fresnel: R₀=((n₂-n₁)/(n₂+n₁))²
+const vec3 AL=vec3(.50,.045,.005); // §SOLVED exp(-α·d) CRR kernel, §EXT α (Pope & Fry 1997)
+
+// §PARTIAL Noise (Kolmogorov cascade, CRR nested eddies)
+float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
+float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
+float fb(vec2 p){float v=0.,a=.5;for(int i=0;i<6;i++){v+=a*n2(p);p*=2.03;a*=.49;}return v;}
+
+// §CRR SO(2) swell + §PARTIAL Kolmogorov chop. Ω scales all amplitudes + Stokes nonlinearity.
+float sea(vec2 p,float t,float lod){
+  float h=0.,om=OM,sk=min(1.,om*.4);
+  float a=p.x*.28-t*.35+p.y*.03, b=p.x*.55-t*.7+p.y*.07+.8;
+  float c=p.x*.22+p.y*.09-t*.3+2., d=p.x*.45+p.y*.12-t*.55+1.3;
+  h+=.3*om*(sin(a)+sk*.2*sin(2.*a)+sk*.06*sin(3.*a));
+  h+=.15*om*(sin(b)+sk*.2*sin(2.*b)+sk*.06*sin(3.*b));
+  h+=.2*om*(sin(c)+sk*.15*sin(2.*c));
+  h+=.08*om*(sin(d)+sk*.15*sin(2.*d));
+  if(lod<.8){h+=fb(p*1.8+vec2(-t*.25,-t*.08))*.08*om*(1.-lod);
+    h+=fb(p*3.5+vec2(t*.15,-t*.2))*.035*om*(1.-lod);}
+  if(lod<.5){float f=1.-lod*2.;
+    h+=n2(p*8.+vec2(-t*.7,t*.2))*.015*om*f;
+    h+=n2(p*16.+vec2(t*1.1,t*.4))*.006*om*f;
+    h+=n2(p*32.+vec2(-t*1.5,-t*.8))*.003*om*f;}
+  return h;
+}
+
+// §EXT Sky (Rayleigh scattering, Turner palette)
+vec3 skyC(vec3 rd,vec3 sun,float t){
+  float g=max(0.,rd.y);
+  vec3 s=mix(vec3(.62,.55,.48),vec3(.28,.35,.48),smoothstep(0.,.6,g));
+  float sd=max(0.,dot(rd,sun));
+  s+=vec3(1.,.75,.4)*pow(sd,80.)*2.5+vec3(.8,.5,.2)*pow(sd,8.)*.5+vec3(.5,.35,.2)*pow(sd,3.)*.15;
+  if(rd.y>.03){vec2 cp=rd.xz/rd.y*2.;float cf=smoothstep(.03,.15,rd.y);
+    s=mix(s,vec3(.75,.65,.55),smoothstep(.42,.68,fb(cp+vec2(t*.008,t*.004)))*.35*cf);
+    s=mix(s,vec3(.85,.75,.6),smoothstep(.5,.72,fb(cp*2.+vec2(-t*.012,t*.006)))*.15*cf);}
+  return s;
+}
+
+// §CRR Ocean shading: Fresnel §SOLVED + absorption §SOLVED + bubble glow §CRR + reflection §SOLVED
+vec3 shade(vec3 N,vec3 rd,vec3 sun,float dist,float t){
+  float ci=max(0.,dot(N,-rd));
+  float fr=R0+(1.-R0)*pow(1.-ci,5.); // §SOLVED Schlick Fresnel
+  float depth=1.5/max(.08,ci);
+  vec3 wc=exp(-AL*depth)*vec3(.01,.06,.08)+vec3(.004,.022,.032)*depth*.2; // §SOLVED absorption
+  // §CRR Bubble glow: Z₂ micro-ruptures (entrained air), scales with steepness² × Ω
+  float st=1.-N.y;
+  wc+=exp(-AL*.3)*vec3(.02,.12,.14)*min(1.,st*st*OM*.6);
+  // §EXT Subsurface scatter + close-up boost (artistic)
+  wc+=vec3(.025,.04,.025)*pow(max(0.,dot(rd,sun)),.8)*pow(1.-ci,2.)*.18;
+  wc+=vec3(.005,.012,.016)*smoothstep(20.,3.,dist)*ci;
+  // §SOLVED Reflection
+  vec3 rf=reflect(rd,N),rc=skyC(rf,sun,t);
+  float sr=max(0.,dot(rf,sun));
+  rc+=vec3(1.,.8,.45)*pow(sr,400.)*8.+vec3(.9,.65,.3)*pow(sr,40.)*1.2;
+  return mix(wc,rc,fr);
+}
+
+void main(){
+  vec2 uv=(gl_FragCoord.xy-.5*R)/R.y;
+  float t=T;
+  vec3 ro=vec3(0.,3.5,0.),fw=normalize(vec3(-20.,.5,2.)-ro);
+  vec3 ri=normalize(cross(fw,vec3(0,1,0))),up=cross(ri,fw);
+  vec3 rd=normalize(fw+uv.x*ri*1.15+uv.y*up),sun=normalize(vec3(-.6,.08,-.4));
+  vec3 sky=skyC(rd,sun,t),col=sky;
+
+  if(rd.y<.05){
+    // §CRR Analytical ocean (flat normal, same shading)
+    float tF=max(.1,-ro.y/min(-.0001,rd.y));
+    vec3 aO=shade(vec3(0,1,0),rd,sun,min(tF,200.),t);
+    // §EXT Distant texture
+    vec2 fp=ro.xz+rd.xz*min(tF,150.);
+    float tx=n2(fp*.25+vec2(-t*.2,t*.08))*.5+n2(fp*.6+vec2(t*.15,-t*.1))*.3;
+    aO+=vec3(.3,.22,.1)*pow(max(0.,dot(rd,sun)),4.)*tx*.06;
+    aO+=vec3(-.005,.003,.006)*(tx-.4)*.15;
+    col=rd.y<0.?aO:mix(aO,sky,smoothstep(0.,.03,rd.y));
+
+    // Raymarch with LOD
+    float tc=.5;bool hit=false;vec3 hp;
+    for(int i=0;i<120;i++){
+      vec3 p=ro+rd*tc;float lod=smoothstep(10.,80.,tc);
+      float h=sea(p.xz,t,lod),d=p.y-h;
+      if(d<.025){hit=true;hp=p;break;}
+      tc+=max(.03+lod*.15,d*.35);if(tc>150.)break;}
+
+    if(hit){
+      float dist=length(hp-ro),lod=smoothstep(10.,80.,dist),e=.05+lod*.1;
+      float hc=sea(hp.xz,t,lod);
+      float hx=sea(hp.xz+vec2(e,0),t,lod),hnx=sea(hp.xz-vec2(e,0),t,lod);
+      float hz=sea(hp.xz+vec2(0,e),t,lod),hnz=sea(hp.xz-vec2(0,e),t,lod);
+      vec3 N=normalize(vec3(hnx-hx,2.*e,hnz-hz));
+      vec3 ocean=shade(N,rd,sun,dist,t);
+      // §CRR Whitecap: C·Ω ≥ 1 → rupture → foam on forward face of crests
+      float fs=max(0.,-(hnx-hx)/(2.*e)); // front slope = coherence
+      float wc=smoothstep(.8,1.2,fs*OM)*smoothstep(-.1,.3,hc);
+      wc*=.5+.3*n2(hp.xz*8.+vec2(t*.3,-t*.2))+.2*n2(hp.xz*25.+vec2(-t*.5,t*.4));
+      ocean=mix(ocean,vec3(.88,.91,.93)+vec3(.06,.04,.02)*max(0.,dot(N,sun)),wc*.85);
+      col=mix(ocean,aO,lod);}
+  }
+
+  vec2 v=gl_FragCoord.xy/R;
+  col*=.45+.55*smoothstep(0.,.4,v.x)*smoothstep(1.,.6,v.x)*smoothstep(0.,.25,v.y)*smoothstep(1.,.75,v.y);
+  col=col/(col+vec3(.38,.4,.45)); // §EXT Tonemap (Turner warmth)
+  col=pow(col,vec3(.93,.95,.98));
+  gl_FragColor=vec4(col,1.);
+}`;
+
+const cv=document.getElementById('c'),gl=cv.getContext('webgl',{antialias:false,alpha:false});
+let W,H;
+function rz(){W=cv.width=innerWidth;H=cv.height=innerHeight;gl.viewport(0,0,W,H);}
+rz();addEventListener('resize',rz);
+function mk(s,tp){const sh=gl.createShader(tp);gl.shaderSource(sh,s);gl.compileShader(sh);
+  if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(sh));return sh;}
+const pg=gl.createProgram();
+gl.attachShader(pg,mk(VS,gl.VERTEX_SHADER));gl.attachShader(pg,mk(FS,gl.FRAGMENT_SHADER));
+gl.linkProgram(pg);if(!gl.getProgramParameter(pg,gl.LINK_STATUS))console.error(gl.getProgramInfoLog(pg));
+gl.useProgram(pg);
+const bf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,bf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const al=gl.getAttribLocation(pg,'a');gl.enableVertexAttribArray(al);gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);
+const uR=gl.getUniformLocation(pg,'R'),uT=gl.getUniformLocation(pg,'T'),uOM=gl.getUniformLocation(pg,'OM');
+const slider=document.getElementById('os'),olabel=document.getElementById('ov');
+let omega=1;
+slider.addEventListener('input',function(){omega=parseFloat(this.value);
+  olabel.textContent='\u03A9 = '+(omega/PI).toFixed(2)+'/\u03C0  '+(omega<.15?'glass':omega<.4?'calm':omega<.8?'gentle':omega<1.2?'moderate':omega<1.6?'rough':omega<2.1?'Nazaré':omega<3?'Jupiter':omega<4.5?'Interstellar':'C·Ω = ∞');});
+
+let lt=0;
+function frame(n){requestAnimationFrame(frame);
+  const dt=min(.05,(n-lt)/1e3);lt=n;
+  t+=dt*(go?.7:.15);
+  if(window._rG){window._rG.gain.value=.06+omega*.08;window._rF.frequency.value=80+omega*50;window._sG.gain.value=.02+omega*.03;}
+  gl.uniform2f(uR,W,H);gl.uniform1f(uT,t);gl.uniform1f(uOM,omega);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);}
+function start(){if(go)return;go=true;document.getElementById('u').classList.add('d');audio();}
+document.body.addEventListener('click',start);
+document.body.addEventListener('touchstart',start);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
