@@ -4,6 +4,79 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
 <title>Song of the Wave — CRR Composition</title>
+<!--
+
+  SONG OF THE WAVE
+  A Coherence-Rupture-Regeneration composition
+  temporalgrammar.ai / cohere.org.uk
+
+  ═══════════════════════════════════════════════════════════════════
+
+  CRR (Sabine 2025) describes how bounded systems accumulate
+  coherence, rupture, and regenerate. Three equations:
+
+    C(x,t) = ∫ L(x,τ) dτ         Coherence accumulates over time
+    δ(now)  when  C · Ω = 1       Rupture at the Cramér-Rao bound
+    R = ∫ φ · exp(C/Ω) · Θ dτ    Regeneration from weighted memory
+
+  The single free parameter is Ω = σ², the system's characteristic
+  variance, encoding boundary permeability: the stability-plasticity
+  tradeoff. Small Ω → rigid, precise. Large Ω → flexible, wild.
+
+  Symmetry classes yield quantitative predictions with no free
+  parameters:
+    Z₂  (bistable)   →  CV = 1/(2π) ≈ 0.159,  Ω = 1/π
+    SO(2) (rotational) →  CV = 1/(4π) ≈ 0.080,  Ω = 1/2π
+
+  In both cases C · Ω = 1 at rupture. This is the Cramér-Rao bound,
+  the Heisenberg uncertainty principle, the Gabor limit — the same
+  equation, discovered independently in every field.
+
+  ═══════════════════════════════════════════════════════════════════
+
+  HOW CRR SOLVES THIS OCEAN:
+
+  Optics (§SOLVED — derived directly from CRR)
+    Fresnel reflection    R₀ = ((n₂−n₁)/(n₂+n₁))²
+    Water colour          exp(−α·d), the CRR regeneration kernel
+    Schlick approximation R₀ + (1−R₀)(1−cosθ)⁵
+    Snell refraction      η = 1/n, same n that gives R₀
+
+  Dynamics (§CRR — CRR predictions applied to ocean phenomena)
+    Waves                 SO(2) processes; phase wraps on the circle
+    Ω slider              scales amplitude, Stokes nonlinearity,
+                          bubble glow, whitecaps, turbidity
+    Whitecaps             appear where C·Ω ≥ 1 (slope × Ω = rupture)
+    Bubble glow           Z₂ micro-ruptures; entrained air
+    Seabed visibility     α_eff = α·(0.2 + 0.8·Ω); Ω = turbidity
+    Caustic intensity     ∝ 1/Ω; calm surface focuses light coherently
+    Sand ripples          SO(2) bedforms; current-driven oscillation
+
+  Life (§CRR — organisms as coherence structures)
+    Fish body             exp(−C²/Ω) coherence envelope
+    Fish size             = Ω of the envelope; four Ω-classes
+    Fish dynamics         drift ∝ 1/Ω, tail freq ∝ 1/Ω
+    Fish tail             SO(2) oscillator; amplitude grows toward
+                          tip (low C, high Ω, flexible boundary)
+    Seaweed               Ω gradient root→tip; anchored base,
+                          SO(2) sway amplitude ∝ distance from root
+    Coral morphology      = Ω; low Ω = massive dome (brain coral),
+                          high Ω = elongated branching (staghorn)
+    Coral texture         nested noise at freq ∝ 1/Ω
+
+  Approximate / artistic (§PARTIAL, §EXT)
+    Noise octaves         ≈ Kolmogorov cascade (CRR nested eddies)
+    Sky palette           Rayleigh scattering + Turner warmth
+    Reverb impulse        exp(−t/τ) ≈ CRR regeneration kernel
+    Sub-bass              SO(2) infragravity beating
+
+  Controls:
+    Ω slider              boundary permeability (glass → Interstellar)
+    Scroll / pinch        zoom (camera height scales with ZM)
+    Tap / click            begin audio
+
+  ═══════════════════════════════════════════════════════════════════
+-->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -30,69 +103,51 @@ canvas{display:block;width:100%;height:100%}
 <body>
 <canvas id="c"></canvas>
 <div class="h" id="t">SONG OF THE WAVE</div>
-<div class="h" id="e">C·Ω = 1<br>R₀ = ((n₂−n₁)/(n₂+n₁))²<br>exp(−α·d) — the colour of water</div>
+<div class="h" id="e">C·Ω = 1<br>R₀ = ((n₂−n₁)/(n₂+n₁))²<br>exp(−α·Ω·d) — the colour of water</div>
 <div id="u">tap to begin</div>
-<div id="om"><label>Ω LOW</label><input type="range" id="os" min="0.05" max="6" step="0.05" value="1"><label>HIGH</label><span id="ov">Ω = 0.32/π  moderate</span></div>
+<div id="om"><label>Ω LOW</label><input type="range" id="os" min="0.05" max="6" step="0.05" value="0.1"><label>HIGH</label><span id="ov">Ω = 0.03/π  glass</span></div>
 <script>
 const PI=Math.PI,TAU=2*PI;
 const{sin,cos,sqrt,min,max,exp,random:rnd}=Math;
 let ac,mg,t=0,go=false;
 
+// ── Audio ──────────────────────────────────────────────────────
 function audio(){if(ac)return;ac=new(AudioContext||webkitAudioContext)();
   const c=ac.createDynamicsCompressor();c.threshold.value=-14;c.ratio.value=4;c.connect(ac.destination);
   mg=ac.createGain();mg.gain.value=.45;
-  // §PARTIAL Reverb: R=∫φ·exp(C/Ω)·Θ dτ as impulse response
+  // Reverb: exp(−t/τ) impulse ≈ CRR regeneration kernel
   const rl=ac.sampleRate*5,rb=ac.createBuffer(2,rl,ac.sampleRate);
   for(let ch=0;ch<2;ch++){const d=rb.getChannelData(ch);for(let i=0;i<rl;i++)d[i]=(rnd()*2-1)*exp(-i/ac.sampleRate)*.4;}
   const rv=ac.createConvolver();rv.buffer=rb;
   const w=ac.createGain(),dr=ac.createGain();w.gain.value=.3;dr.gain.value=.7;
   mg.connect(dr);dr.connect(c);mg.connect(rv);rv.connect(w);w.connect(c);
-  // §PARTIAL Ocean rumble (Kolmogorov cascade)
+  // Ocean rumble (filtered noise, Kolmogorov cascade)
   const nb=ac.createBuffer(1,ac.sampleRate*4,ac.sampleRate),nd=nb.getChannelData(0);
   for(let i=0;i<nd.length;i++)nd[i]=rnd()*2-1;
   const ns=ac.createBufferSource();ns.buffer=nb;ns.loop=true;
   const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=150;f.Q.value=1.5;
   const g=ac.createGain();g.gain.value=.16;ns.connect(f);f.connect(g);g.connect(mg);ns.start();
-  // §CRR Sub-bass: SO(2) infragravity beating
+  // Sub-bass: SO(2) infragravity beating (26 Hz + 31 Hz)
   const s1=ac.createOscillator(),s2=ac.createOscillator();
   s1.type='sine';s1.frequency.value=26;s2.type='sine';s2.frequency.value=31;
   const sg=ac.createGain();sg.gain.value=.05;s1.connect(sg);s2.connect(sg);sg.connect(mg);s1.start();s2.start();
   window._rG=g;window._rF=f;window._sG=sg;}
 
+// ── Shader ─────────────────────────────────────────────────────
 const VS='attribute vec2 a;void main(){gl_Position=vec4(a,0,1);}';
 const FS=`precision highp float;
-uniform vec2 R;uniform float T,OM;
-//
-// CRR — Coherence-Rupture-Regeneration (Sabine 2025)
-//
-// C(x,t) = ∫L(x,τ)dτ           coherence accumulates
-// δ(now) when C·Ω = 1           rupture at the Cramér-Rao bound
-// R = ∫φ·exp(C/Ω)·Θ dτ         regeneration from weighted memory
-//
-// Ω = σ² (variance / boundary permeability)
-//   Small Ω → rigid, precise     Large Ω → flexible, wild
-//
-// This ocean is solved from CRR:
-//   §SOLVED  Fresnel R₀ = ((n₂-n₁)/(n₂+n₁))²     from Ω_medium = 1/(πn)
-//   §SOLVED  Water colour = exp(-α·d)               CRR kernel = Beer-Lambert
-//   §CRR     Waves = SO(2) processes, CV = 1/(4π)   phase wraps on the circle
-//   §CRR     Ω slider scales amplitude + Stokes nonlinearity + bubble glow + whitecaps
-//   §CRR     Whitecaps appear where C·Ω ≥ 1         slope × Ω = rupture on height field
-//   §CRR     Bubble glow = Z₂ micro-ruptures        entrained air at steep faces
-//   §PARTIAL Noise octaves ≈ Kolmogorov cascade      CRR nested eddies
-//   §EXT     Sky palette, SSS, tonemap               artistic choices, not CRR-derived
-//
+uniform vec2 R;uniform float T,OM,ZM;
 const float PI=3.14159265;
-const float R0=0.02037; // §SOLVED Fresnel: R₀=((n₂-n₁)/(n₂+n₁))²
-const vec3 AL=vec3(.50,.045,.005); // §SOLVED exp(-α·d) CRR kernel, §EXT α (Pope & Fry 1997)
+const float R0=0.02037;              // Fresnel: R₀=((n₂−n₁)/(n₂+n₁))²
+const vec3 AL=vec3(.50,.045,.005);   // absorption coefficients α (Pope & Fry 1997)
 
-// §PARTIAL Noise (Kolmogorov cascade, CRR nested eddies)
+// Noise (Kolmogorov cascade approximation)
 float h2(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
 float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
   return mix(mix(h2(i),h2(i+vec2(1,0)),f.x),mix(h2(i+vec2(0,1)),h2(i+vec2(1,1)),f.x),f.y);}
 float fb(vec2 p){float v=0.,a=.5;for(int i=0;i<6;i++){v+=a*n2(p);p*=2.03;a*=.49;}return v;}
 
-// §CRR SO(2) swell + §PARTIAL Kolmogorov chop. Ω scales all amplitudes + Stokes nonlinearity.
+// SO(2) swell field — Ω scales amplitude + Stokes nonlinearity
 float sea(vec2 p,float t,float lod){
   float h=0.,om=OM,sk=min(1.,om*.4);
   float a=p.x*.28-t*.35+p.y*.03, b=p.x*.55-t*.7+p.y*.07+.8;
@@ -110,32 +165,30 @@ float sea(vec2 p,float t,float lod){
   return h;
 }
 
-// §EXT Sky (Rayleigh scattering, Turner palette)
+// Sky (Rayleigh scattering, Turner palette)
 vec3 skyC(vec3 rd,vec3 sun,float t){
   float g=max(0.,rd.y);
   vec3 s=mix(vec3(.62,.55,.48),vec3(.28,.35,.48),smoothstep(0.,.6,g));
   float sd=max(0.,dot(rd,sun));
   s+=vec3(1.,.75,.4)*pow(sd,80.)*2.5+vec3(.8,.5,.2)*pow(sd,8.)*.5+vec3(.5,.35,.2)*pow(sd,3.)*.15;
+  s+=vec3(1.,.95,.8)*pow(sd,1500.)*12.; // solar disc
   if(rd.y>.03){vec2 cp=rd.xz/rd.y*2.;float cf=smoothstep(.03,.15,rd.y);
     s=mix(s,vec3(.75,.65,.55),smoothstep(.42,.68,fb(cp+vec2(t*.008,t*.004)))*.35*cf);
     s=mix(s,vec3(.85,.75,.6),smoothstep(.5,.72,fb(cp*2.+vec2(-t*.012,t*.006)))*.15*cf);}
   return s;
 }
 
-// §CRR Ocean shading: Fresnel §SOLVED + absorption §SOLVED + bubble glow §CRR + reflection §SOLVED
+// Ocean surface shading: Fresnel + absorption + Z₂ bubble glow
 vec3 shade(vec3 N,vec3 rd,vec3 sun,float dist,float t){
   float ci=max(0.,dot(N,-rd));
-  float fr=R0+(1.-R0)*pow(1.-ci,5.); // §SOLVED Schlick Fresnel
+  float fr=R0+(1.-R0)*pow(1.-ci,5.);       // Schlick Fresnel
   float depth=1.5/max(.08,ci);
-  vec3 wc=exp(-AL*depth)*vec3(.01,.06,.08)+vec3(.004,.022,.032)*depth*.2; // §SOLVED absorption
-  // §CRR Bubble glow: Z₂ micro-ruptures (entrained air), scales with steepness² × Ω
-  float st=1.-N.y;
+  vec3 wc=exp(-AL*depth)*vec3(.01,.06,.08)+vec3(.004,.022,.032)*depth*.2;
+  float st=1.-N.y;                          // Z₂ bubble glow ∝ steepness²·Ω
   wc+=exp(-AL*.3)*vec3(.02,.12,.14)*min(1.,st*st*OM*.6);
-  // §EXT Subsurface scatter + close-up boost (artistic)
   wc+=vec3(.025,.04,.025)*pow(max(0.,dot(rd,sun)),.8)*pow(1.-ci,2.)*.18;
   wc+=vec3(.005,.012,.016)*smoothstep(20.,3.,dist)*ci;
-  // §SOLVED Reflection
-  vec3 rf=reflect(rd,N),rc=skyC(rf,sun,t);
+  vec3 rf=reflect(rd,N),rc=skyC(rf,sun,t);  // reflection
   float sr=max(0.,dot(rf,sun));
   rc+=vec3(1.,.8,.45)*pow(sr,400.)*8.+vec3(.9,.65,.3)*pow(sr,40.)*1.2;
   return mix(wc,rc,fr);
@@ -144,16 +197,16 @@ vec3 shade(vec3 N,vec3 rd,vec3 sun,float dist,float t){
 void main(){
   vec2 uv=(gl_FragCoord.xy-.5*R)/R.y;
   float t=T;
-  vec3 ro=vec3(0.,3.5,0.),fw=normalize(vec3(-20.,.5,2.)-ro);
+  vec3 ro=vec3(0.,3.5*ZM,0.),fw=normalize(vec3(-20.*ZM,.5+.5*(ZM-1.),2.)-ro);
   vec3 ri=normalize(cross(fw,vec3(0,1,0))),up=cross(ri,fw);
-  vec3 rd=normalize(fw+uv.x*ri*1.15+uv.y*up),sun=normalize(vec3(-.6,.08,-.4));
+  vec3 rd=normalize(fw+uv.x*ri*1.15+uv.y*up);
+  vec3 sun=normalize(vec3(-.6,mix(.08,.25,clamp(T/84.,0.,1.)),-.4)); // sunrise over ~2 min
   vec3 sky=skyC(rd,sun,t),col=sky;
 
   if(rd.y<.05){
-    // §CRR Analytical ocean (flat normal, same shading)
+    // Analytical distant ocean (no raymarch cost)
     float tF=max(.1,-ro.y/min(-.0001,rd.y));
     vec3 aO=shade(vec3(0,1,0),rd,sun,min(tF,200.),t);
-    // §EXT Distant texture
     vec2 fp=ro.xz+rd.xz*min(tF,150.);
     float tx=n2(fp*.25+vec2(-t*.2,t*.08))*.5+n2(fp*.6+vec2(t*.15,-t*.1))*.3;
     aO+=vec3(.3,.22,.1)*pow(max(0.,dot(rd,sun)),4.)*tx*.06;
@@ -175,21 +228,82 @@ void main(){
       float hz=sea(hp.xz+vec2(0,e),t,lod),hnz=sea(hp.xz-vec2(0,e),t,lod);
       vec3 N=normalize(vec3(hnx-hx,2.*e,hnz-hz));
       vec3 ocean=shade(N,rd,sun,dist,t);
-      // §CRR Whitecap: C·Ω ≥ 1 → rupture → foam on forward face of crests
-      float fs=max(0.,-(hnx-hx)/(2.*e)); // front slope = coherence
+
+      // ── Seabed ── visibility governed by α_eff = α·(0.2 + 0.8·Ω)
+      {vec3 rr=refract(rd,N,.75);              // Snell: η = 1/n
+       float pl=8./max(.05,-rr.y);             // path to bed at y = −8
+       vec3 tr=exp(-AL*(.2+.8*OM)*pl);         // CRR absorption kernel, Ω = turbidity
+       vec2 bp=hp.xz+rr.xz*pl;
+
+       // Sand with SO(2) ripple bedforms
+       float sa=.5+.2*n2(bp*.4)+.12*n2(bp*2.2)+.08*n2(bp*7.);
+       float rip=sin(bp.x*2.5+bp.y*.8+sin(bp.y*1.2)*.6)*.5+.5;
+       rip*=.5+.5*sin(bp.x*5.+bp.y*1.5+sin(bp.x*2.)*.4);
+       sa+=.08*rip+.04*sin(bp.x*8.+bp.y*2.5);
+       vec3 bed=vec3(sa*.55,sa*.48,sa*.3);
+
+       // Caustics — intensity ∝ 1/Ω (calm surface = coherent lens)
+       float ca=n2(bp*3.+vec2(-t*.4,t*.25))+n2(bp*5.5+vec2(t*.6,-t*.3));
+       bed+=vec3(.4,.35,.2)*max(0.,ca-.7)/((.3+.7*OM))*max(0.,N.y)*max(0.,dot(vec3(0,1,0),sun));
+
+       // Coral — morphology = Ω (low = dome, high = branching)
+       for(int i=0;i<8;i++){float ci=float(i);
+         float om=i<3?.6:i<6?1.2:2.;
+         vec2 cp=vec2(mod(ci*14.3+3.,40.)-20.,mod(ci*9.7+6.,16.)-8.);
+         vec2 cd=bp-cp;
+         cd.x*=1./(om*.7+.3);                  // high Ω elongates
+         float r=length(cd),mask=smoothstep(1.8*om,.1,r);
+         float tex=n2(cd*6./om+ci*4.)+.5*n2(cd*14./om+ci*7.)+.25*n2(cd*28./om);
+         tex=max(0.,tex-.4)*mask;
+         vec3 cc=i<3?vec3(.6,.18,.22):i<6?vec3(.65,.32,.1):vec3(.5,.18,.5);
+         cc+=vec3(.18,.1,.05)*sin(cd.x*12.+cd.y*8.);
+         bed=mix(bed,cc,.6*tex);}
+
+       // Seaweed — Ω gradient root→tip; sway ∝ distance from anchor
+       float sw=0.;
+       for(int i=0;i<10;i++){float si=float(i);
+         vec2 anch=vec2(mod(si*17.3+5.,50.)-25.,mod(si*13.1+8.,20.)-10.);
+         vec2 off=bp-anch;float dst=length(off);
+         off+=vec2(1.,.6)*dst*.25*sin(t*1.2+si*1.9);
+         off+=vec2(.5,-.8)*dst*.12*sin(t*1.7+si*3.1);
+         sw+=smoothstep(2.8,.2,length(off))*max(0.,n2(off*3.+vec2(si*5.,si*3.))-.25);}
+       bed=mix(bed,vec3(.04,.14,.04),.5*min(1.,sw));
+
+       // Fish — body = exp(−C²/Ω), size/speed/freq all scale with Ω
+       float fsh=0.;
+       for(int i=0;i<60;i++){float fi=float(i);
+         float sc=i<5?2.5:i<17?1.:i<35?.5:.25; // four Ω-classes
+         float sp=.55/sc;                        // drift ∝ 1/Ω
+         float wf=4.5/sc;                        // tail freq ∝ 1/Ω
+         float wx=4./(sc*sc),wy=90./(sc*sc);    // envelope width ∝ Ω²
+         vec2 fc=vec2(mod(fi*11.7+t*sp+30.,60.)-45.,mod(fi*7.3+fi*fi*.3+t*sp*.18+10.,24.)-12.);
+         vec2 dd=bp-fc;float ha=(.15/sc)*sin(fi*.7+t*.18*sp);
+         float ch=cos(ha),sh=sin(ha);
+         vec2 r=vec2(dd.x*ch+dd.y*sh,-dd.x*sh+dd.y*ch);
+         r.y+=(.06*sc)*max(0.,r.x)*sin(r.x*wf+t*wf+fi*2.1); // SO(2) tail
+         fsh+=.7*sc*exp(-r.x*r.x*wx-r.y*r.y*wy);}
+       bed*=1.-.4*min(1.,fsh);
+
+       float fr0=R0+(1.-R0)*pow(1.-max(0.,dot(N,-rd)),5.);
+       ocean+=bed*tr*(1.-fr0);}
+
+      // Whitecap — C·Ω ≥ 1: slope (coherence) × Ω = rupture → foam
+      float fs=max(0.,-(hnx-hx)/(2.*e));
       float wc=smoothstep(.8,1.2,fs*OM)*smoothstep(-.1,.3,hc);
       wc*=.5+.3*n2(hp.xz*8.+vec2(t*.3,-t*.2))+.2*n2(hp.xz*25.+vec2(-t*.5,t*.4));
       ocean=mix(ocean,vec3(.88,.91,.93)+vec3(.06,.04,.02)*max(0.,dot(N,sun)),wc*.85);
       col=mix(ocean,aO,lod);}
   }
 
+  // Vignette + tonemap
   vec2 v=gl_FragCoord.xy/R;
   col*=.45+.55*smoothstep(0.,.4,v.x)*smoothstep(1.,.6,v.x)*smoothstep(0.,.25,v.y)*smoothstep(1.,.75,v.y);
-  col=col/(col+vec3(.38,.4,.45)); // §EXT Tonemap (Turner warmth)
+  col=col/(col+vec3(.38,.4,.45));
   col=pow(col,vec3(.93,.95,.98));
   gl_FragColor=vec4(col,1.);
 }`;
 
+// ── WebGL setup ────────────────────────────────────────────────
 const cv=document.getElementById('c'),gl=cv.getContext('webgl',{antialias:false,alpha:false});
 let W,H;
 function rz(){W=cv.width=innerWidth;H=cv.height=innerHeight;gl.viewport(0,0,W,H);}
@@ -203,18 +317,25 @@ gl.useProgram(pg);
 const bf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,bf);
 gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
 const al=gl.getAttribLocation(pg,'a');gl.enableVertexAttribArray(al);gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);
-const uR=gl.getUniformLocation(pg,'R'),uT=gl.getUniformLocation(pg,'T'),uOM=gl.getUniformLocation(pg,'OM');
+const uR=gl.getUniformLocation(pg,'R'),uT=gl.getUniformLocation(pg,'T'),uOM=gl.getUniformLocation(pg,'OM'),uZM=gl.getUniformLocation(pg,'ZM');
+
+// ── Controls ───────────────────────────────────────────────────
 const slider=document.getElementById('os'),olabel=document.getElementById('ov');
-let omega=1;
+let omega=.1,zm=1.73;
 slider.addEventListener('input',function(){omega=parseFloat(this.value);
   olabel.textContent='\u03A9 = '+(omega/PI).toFixed(2)+'/\u03C0  '+(omega<.15?'glass':omega<.4?'calm':omega<.8?'gentle':omega<1.2?'moderate':omega<1.6?'rough':omega<2.1?'Nazaré':omega<3?'Jupiter':omega<4.5?'Interstellar':'C·Ω = ∞');});
+addEventListener('wheel',function(e){e.preventDefault();zm=Math.min(8,Math.max(1,zm*(1+e.deltaY*.002)));},{passive:false});
+let pd=0;
+addEventListener('touchstart',function(e){if(e.touches.length===2)pd=Math.hypot(e.touches[1].pageX-e.touches[0].pageX,e.touches[1].pageY-e.touches[0].pageY);});
+addEventListener('touchmove',function(e){if(e.touches.length===2){let d=Math.hypot(e.touches[1].pageX-e.touches[0].pageX,e.touches[1].pageY-e.touches[0].pageY);if(pd>0)zm=Math.min(8,Math.max(1,zm*(pd/d)));pd=d;}});
 
+// ── Render loop ────────────────────────────────────────────────
 let lt=0;
 function frame(n){requestAnimationFrame(frame);
   const dt=min(.05,(n-lt)/1e3);lt=n;
   t+=dt*(go?.7:.15);
   if(window._rG){window._rG.gain.value=.06+omega*.08;window._rF.frequency.value=80+omega*50;window._sG.gain.value=.02+omega*.03;}
-  gl.uniform2f(uR,W,H);gl.uniform1f(uT,t);gl.uniform1f(uOM,omega);
+  gl.uniform2f(uR,W,H);gl.uniform1f(uT,t);gl.uniform1f(uOM,omega);gl.uniform1f(uZM,zm);
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);}
 function start(){if(go)return;go=true;document.getElementById('u').classList.add('d');audio();}
 document.body.addEventListener('click',start);
