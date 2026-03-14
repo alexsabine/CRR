@@ -3,7 +3,7 @@
 ## A Mathematical Process Theory for Identity Through Discontinuous Change
 
 **Alexander Sabine** · [Active Inference Institute](https://activeinference.org/) (Board of Directors)  
-Version 7.0 · March 2026
+Version 2.0 · March 2026
 
 **Website:** [cohere.org.uk](https://www.cohere.org.uk) · [temporalgrammar.ai](https://www.temporalgrammar.ai)  
 **Repository:** [github.com/alexsabine/CRR](https://github.com/alexsabine/CRR)
