@@ -147,20 +147,29 @@ Active Inference denotes precision with Π. CRR suggests this may be more than n
 
 From four axioms, one central result follows with no free parameters.
 
-**The Equipartition of Unit Mass:**
+**The Bernoulli Partition of Unit Mass:**
 
 ```
-  σ(C*) = 1/2   ⟹   CV = σ/μ = (1/2)/(1/Ω) = Ω/2
+  CV = Ω/2
 ```
 
-The Dirac delta distributes exactly one unit of mass across the rupture boundary. By symmetry between inside (coherence) and outside (regeneration), each side receives exactly one half. This fixes the standard deviation of the rupture threshold at σ(C*) = 1/2, independent of Ω.
+At the rupture boundary, the system faces a binary partition: **coherence** (past) or **regeneration** (future). The Dirac delta's unit mass, split symmetrically across this boundary, defines a Bernoulli trial with p = 1/2. The variance of a Bernoulli(1/2) random variable is p(1-p) = 1/4. The standard deviation is therefore σ = 1/2.
 
 **The derivation:**
 
-At rupture, the threshold coherence C* satisfies C*·Ω = 1, giving E[C*] = 1/Ω. The Dirac delta, as a temporal Markov blanket, partitions unit mass between past and future. By the symmetry of the boundary (there is no intrinsic asymmetry between what is accumulated and what is reconstructed), each partition receives 1/2. Therefore:
+1. C·Ω = 1 at rupture (Axiom IV, from Cramér-Rao saturation). This gives E[C*] = 1/Ω.
+2. The rupture boundary partitions the system into two domains: coherence (all that has been accumulated) and regeneration (all that will be reconstructed). The Dirac delta distributes exactly one unit of mass on this boundary (Axiom II).
+3. By symmetry (there is no mechanism to favour past over future at the boundary), each domain receives equal probability: p = 1/2. This is a Bernoulli trial.
+4. The rupture condition C·Ω = 1 is dimensionless. The fluctuation around the threshold is measured in the same natural units as the threshold itself. A symmetric Bernoulli partition of a dimensionless unit boundary has:
+
+```
+  Var = p(1-p) = 1/2 · 1/2 = 1/4   ⟹   σ(C*) = 1/2
+```
+
+5. With both moments determined:
 
 - E[C*] = 1/Ω (from C·Ω = 1)
-- σ(C*) = 1/2 (from equipartition of δ's unit mass)
+- σ(C*) = 1/2 (from Bernoulli(1/2) at the boundary)
 - CV = σ(C*) / E[C*] = (1/2) / (1/Ω) = Ω/2
 
 For the two fundamental symmetry classes:
@@ -174,7 +183,9 @@ The ratio between them is **exactly 2**.
 
 These predictions are parameter-free: no fitting, no calibration. They follow from the axioms alone.
 
-**Why 1/2 and not some other fraction?** Because the Dirac delta has unit mass (this is definitional), because the rupture boundary separates exactly two domains (past and future), and because there is no symmetry-breaking mechanism to favour one side over the other. Any other partition would require an additional parameter, violating the parsimony that makes C·Ω = 1 a first principle rather than a model.
+**Why 1/2 and not some other fraction?** Because Bernoulli(1/2) is the **maximum-entropy distribution** over a binary partition. The variance p(1-p) is maximised at p = 1/2, and maximum variance over {0,1} is equivalent to maximum entropy. Any other partition would require a reason for asymmetry: an additional parameter specifying *why* past and future are unequal at the boundary. This would violate the parsimony that makes C·Ω = 1 a first principle rather than a model.
+
+**The MaxEnt coherence.** This connects back to Axiom III: the regeneration kernel exp(C/Ω) is itself the maximum-entropy weighting given a mean-coherence constraint (Jaynes, 1957). The entire framework is maximally agnostic at every step: MaxEnt kernel for reconstruction, MaxEnt partition at the boundary. CRR assumes as little as possible at every juncture, and the predictions follow from that minimal commitment alone.
 
 ---
 
@@ -388,7 +399,7 @@ What appears as smooth accumulation ∫L(τ)dτ at one scale is actually countin
 
 ### What Remains Open
 
-**The CV = Ω/2 proof.** The equipartition argument (σ(C*) = 1/2 from the Dirac delta distributing unit mass equally) is the current best candidate. It is structurally consistent with conjugate-variable uncertainty products (Heisenberg, Gabor). A formal proof remains open.
+**The CV = Ω/2 proof.** The Bernoulli argument (σ(C*) = 1/2 from the maximum-entropy binary partition of the Dirac delta's unit mass) provides a rigorous derivation: the 1/2 is the standard deviation of a Bernoulli(1/2) variable, not a free choice. The identification of each rupture event's boundary crossing as a Bernoulli trial is well-motivated (binary partition, symmetric, dimensionless coordinate) but is itself a commitment rather than a theorem derived from measure theory alone.
 
 **The Ω = 1/φ derivation.** The identification of Ω with the inverse of phase traversed is motivated by information geometry (Bonnet-Myers theorem). A first-principles derivation from the axioms alone is desirable.
 
@@ -398,7 +409,7 @@ What appears as smooth accumulation ∫L(τ)dτ at one scale is actually countin
 
 ### Epistemic Status
 
-CRR is neither obviously correct nor obviously wrong. It occupies the space of "promising theoretical synthesis that requires further validation." The mathematical structure is sound. The empirical claims are testable. The predictions are specific and falsifiable. The philosophical implications are worth exploring. What would strengthen it most: independent derivation of CV = Ω/2 from first principles, successful prospective prediction of rupture timing in novel systems, and CRR-based continual learning algorithms that outperform standard methods. What would weaken it most: consistent failure of CV predictions in new systems, discovery of bounded systems without CRR dynamics, or a better alternative framework explaining the same phenomena.
+CRR is neither obviously correct nor obviously wrong. It occupies the space of "promising theoretical synthesis that requires further validation." The mathematical structure is sound. The empirical claims are testable. The predictions are specific and falsifiable. The philosophical implications are worth exploring. What would strengthen it most: formal verification that the Bernoulli trial identification follows necessarily from the axioms (rather than being well-motivated), successful prospective prediction of rupture timing in novel systems, and CRR-based continual learning algorithms that outperform standard methods. What would weaken it most: consistent failure of CV predictions in new systems, discovery of bounded systems without CRR dynamics, or a better alternative framework explaining the same phenomena.
 
 ---
 
