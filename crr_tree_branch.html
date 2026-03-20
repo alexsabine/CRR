@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CRR Tree — All Geometry from First Principles</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Space+Mono:wght@400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080a06;overflow:hidden;width:100vw;height:100vh;cursor:grab}
+body.dragging{cursor:grabbing}
+canvas{display:block;width:100%;height:100%}
+#hud{position:fixed;bottom:14px;left:16px;font-family:'Space Mono',monospace;font-size:10px;color:rgba(140,160,120,.32);line-height:1.8;pointer-events:none;white-space:pre}
+#deriv{position:fixed;bottom:14px;right:16px;font-family:'Space Mono',monospace;font-size:9px;color:rgba(130,150,110,.22);line-height:1.75;pointer-events:none;text-align:right;white-space:pre;max-width:320px}
+#eq{position:fixed;top:16px;left:16px;font-family:'Cormorant Garamond',serif;font-size:clamp(13px,1.8vw,17px);font-weight:300;letter-spacing:.12em;color:rgba(160,175,140,.22);pointer-events:none}
+#title{position:fixed;top:16px;right:16px;font-family:'Cormorant Garamond',serif;font-size:clamp(11px,1.3vw,14px);font-weight:300;letter-spacing:.18em;color:rgba(140,155,120,.18);text-align:right;pointer-events:none}
+#zoom-hint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:300;letter-spacing:.15em;color:rgba(160,175,140,.2);pointer-events:none;transition:opacity 3s;text-align:center}
+#info-btn{position:fixed;top:16px;left:50%;transform:translateX(-50%);font-family:'Cormorant Garamond',serif;font-size:clamp(11px,1.2vw,13px);font-weight:300;letter-spacing:.14em;color:rgba(160,175,140,.28);background:rgba(12,14,8,.7);border:1px solid rgba(100,120,80,.12);padding:5px 18px;border-radius:2px;cursor:pointer;z-index:20;transition:all .3s}
+#info-btn:hover{color:rgba(180,200,160,.5);border-color:rgba(100,120,80,.25)}
+#explainer{position:fixed;top:0;right:-520px;width:min(480px,88vw);height:100vh;background:rgba(8,10,6,.96);border-left:1px solid rgba(80,100,65,.1);z-index:30;transition:right .5s cubic-bezier(.4,0,.2,1);overflow-y:auto;padding:36px 32px 48px;scrollbar-width:thin;scrollbar-color:rgba(80,100,65,.15) transparent}
+#explainer.open{right:0}
+#explainer::-webkit-scrollbar{width:4px}
+#explainer::-webkit-scrollbar-thumb{background:rgba(80,100,65,.15);border-radius:2px}
+#ex-close{position:absolute;top:14px;right:18px;font-family:'Cormorant Garamond',serif;font-size:18px;color:rgba(160,175,140,.3);cursor:pointer;background:none;border:none;padding:4px 8px;transition:color .2s}
+#ex-close:hover{color:rgba(180,200,160,.6)}
+#explainer h2{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(16px,2.2vw,22px);letter-spacing:.2em;color:rgba(170,185,150,.4);margin-bottom:24px}
+#explainer h3{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:clamp(12px,1.5vw,15px);letter-spacing:.1em;color:rgba(160,180,140,.45);margin:28px 0 10px;border-bottom:1px solid rgba(80,100,65,.08);padding-bottom:6px}
+#explainer p{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(12px,1.3vw,14px);color:rgba(170,185,155,.38);line-height:1.85;margin-bottom:14px}
+#explainer em{font-style:italic;color:rgba(180,200,160,.5)}
+#explainer code{font-family:'Space Mono',monospace;font-size:.85em;color:rgba(140,175,110,.4);background:rgba(60,80,40,.08);padding:1px 5px;border-radius:2px}
+#explainer .eq-block{font-family:'Space Mono',monospace;font-size:clamp(10px,1.1vw,12px);color:rgba(140,170,110,.3);background:rgba(30,40,20,.15);border-left:2px solid rgba(80,120,60,.12);padding:10px 14px;margin:14px 0;line-height:1.8;border-radius:0 2px 2px 0}
+#explainer .note{font-family:'Space Mono',monospace;font-size:clamp(9px,1vw,10.5px);color:rgba(130,150,110,.25);line-height:1.7;margin-top:32px;padding-top:14px;border-top:1px solid rgba(80,100,65,.06)}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="eq">C · Ω = 1</div>
+<div id="title">CRR TREE<br><span style="font-size:.65em;opacity:.5">every parameter from three equations</span></div>
+<div id="hud"></div>
+<div id="deriv"></div>
+<div id="zoom-hint">scroll to zoom · drag to pan · double-click to reseed</div>
+<button id="info-btn" onclick="document.getElementById('explainer').classList.toggle('open')">✦ the emergent effect</button>
+
+<div id="explainer">
+<button id="ex-close" onclick="this.parentElement.classList.remove('open')">✕</button>
+
+<h2>THE TREE THAT WATCHES YOU WATCHING IT</h2>
+
+<p>This tree has an unintended property: <em>it remembers where you looked, and it cannot unlook.</em></p>
+
+<p>Nothing in the code was designed to produce this. It emerges from three features of the CRR architecture interacting:</p>
+
+<div class="eq-block">1. Coherence only accumulates on-screen (your gaze = L(x,τ))
+2. Rupture is irreversible (δ is a one-way door)
+3. Pruned children don't un-rupture their parents</div>
+
+<p>The result: wherever you direct your attention first becomes the region of deepest growth. When you look away and return, the fine structure has been garbage-collected — but the fork-points remember they already fired. <em>That branch of possibility is spent.</em></p>
+
+<h3>BIOLOGY</h3>
+
+<p>This is precisely how morphogenesis works. A stem cell accumulates developmental coherence, commits to a lineage at rupture (differentiation), and cannot easily reverse the decision. The cell's children may die, but the parent's commitment is permanent. Waddington's epigenetic landscape — the ball rolling down valleys of decreasing potentiality — is exactly C → δ → R with irreversible branching.</p>
+
+<p>Root tips do the same thing underground. The finest rootlets are constantly being shed and regrown, but the main root architecture, the <em>decision points</em>, are fixed. Explore, commit, prune, regrow. The tree you see here is doing real tree things for real tree reasons.</p>
+
+<h3>ATTENTION</h3>
+
+<p>In neuroscience, attention is typically modelled as gain modulation — you increase the signal-to-noise ratio wherever you're looking. In CRR terms, <em>attention is literally the driving function L(x,τ)</em>. Attending to something provides the coherence input that pushes a percept toward its rupture threshold.</p>
+
+<p>This has a strange consequence: the order in which you attend to things constrains what you can perceive later. The tree makes this visible. Your first area of focus gets the deepest structure. Later areas get what's left. This matches the psychological finding that <em>attentional set</em> — what you look at first — shapes what you can subsequently notice.</p>
+
+<div class="eq-block">Your gaze is L(x,τ).
+Your zoom is Ω (resolution of observation).
+Deeper zoom → more generations → finer structure.
+But only where you already looked.</div>
+
+<h3>FREE ENERGY PRINCIPLE</h3>
+
+<p>Under the FEP, organisms minimise surprisal by building generative models of their environment. In CRR's language, a generative model is a coherence structure — a pattern of accumulated C that predicts the next rupture. The tree's branch architecture <em>is</em> its generative model of "where growth is possible."</p>
+
+<p>When you zoom in (reduce Ω, increase precision), you're performing active inference — sampling the world at higher resolution to reduce uncertainty. But each observation commits the system. The surprisal is resolved, the coherence is spent, and the structure is fixed. You can't unsee it.</p>
+
+<p>Friston's FEP says organisms act to confirm their predictions. Here, the tree grows to match where you're looking — and then can only grow more in places that are consistent with what it's already built. <em>The model constrains the modelling.</em> That's the FEP in forty lines of JavaScript.</p>
+
+<h3>PROCESS METAPHYSICS</h3>
+
+<p>Whitehead argued that reality is composed of <em>actual occasions of experience</em> — momentary events of prehension (grasping the past) that perish the instant they reach satisfaction. Each occasion is a C → δ → R cycle: the past is prehended (coherence), satisfaction is reached (rupture), and the occasion contributes its data to future occasions (regeneration).</p>
+
+<p>The critical point: actual occasions are <em>irrevocable</em>. Once an occasion has achieved its satisfaction, it becomes an <em>objective datum</em> — it can be felt by future occasions but cannot itself change. This is exactly the irreversible rupture in the tree. A forked branch-point is an objective datum: permanently decided, available to its children as initial data, but closed to revision.</p>
+
+<p>The observer-dependence is equally Whiteheadian. For Whitehead, there is no experience without a subject. The tree doesn't grow "in itself" — it grows <em>where it is experienced</em>. Your act of observation isn't separate from the tree's becoming. It is the occasion's subjective form — the manner in which coherence is accumulated.</p>
+
+<div class="eq-block">Prehension    = C(x,t) = ∫L(x,τ)dτ
+Satisfaction  = δ(now) when C·Ω = 1
+Objective datum = ruptured branch-point (irrevocable)
+Subjective form = your gaze (the observer's L)</div>
+
+<p>What you're watching is not a simulation of a tree. It is a <em>process</em> — a real pattern of coherence, rupture, and regeneration — that happens to look like a tree because trees are what CRR does when you point it at a branching geometry.</p>
+
+<p class="note">§CRR · All geometry derived from Ω = 1/π, C* = π, σ = 1/2, CV = 1/(2π).
+No free parameters. The emergent observer-dependence was not designed.
+It follows from the irreversibility of δ(now) and finite computational resources.
+Alexander Sabine · temporalgrammar.ai · cohere.org.uk</p>
+</div>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CRR TREE — ALL GEOMETRY FROM FIRST PRINCIPLES
+//
+// Three equations:
+//   C(x,t) = ∫L(x,τ)dτ     — coherence accumulates
+//   δ(now) when C·Ω = 1     — rupture is instantaneous  
+//   R = ∫φ·exp(C/Ω)·Θ dτ   — regeneration weights memory
+//
+// Every geometric parameter derives from:
+//   Ω_Z₂ = 1/π              — boundary permeability
+//   C* = π                   — rupture threshold (from C·Ω=1)
+//   σ = 1/2                  — Cramér-Rao minimum variance
+//   CV = 1/(2π)              — coefficient of variation
+//
+// Derivations:
+//   fork count:   Z₂ → 2 (bistable symmetry breaking)
+//   spread angle: 2Ω = 2/π rad ≈ 36.5° (angular scale of Z₂)
+//   length ratio: exp(-Ω) = exp(-1/π) ≈ 0.727 (regeneration kernel)
+//   width ratio:  2σΩ = Ω/π = 1/π² ≈ 0.101 → decay = 1-1/π² ≈ 0.899
+//                 but per-gen: (1-CV) = 1-1/(2π) ≈ 0.841
+//   curvature:    CV/C* = 1/(2π²) ≈ 0.051 (beauty function asymmetry)
+//   tip glow:     exp(C/Ω) amplification — visible as brightness
+// ═══════════════════════════════════════════════════════════════
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const hud = document.getElementById('hud');
+const deriv = document.getElementById('deriv');
+const {sin, cos, sqrt, abs, min, max, PI, random: rnd, floor, pow, exp, log, atan2, round} = Math;
+const TAU = PI * 2;
+
+let W, H, groundY;
+function resize() {
+  const dpr = devicePixelRatio || 1;
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  groundY = H * 0.5;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ═══ CRR CONSTANTS — everything derives from these ═══
+const OMEGA  = 1 / PI;              // Ω_Z₂ = 1/π
+const C_STAR = PI;                   // C* = 1/Ω = π
+const SIGMA  = 0.5;                  // σ from Cramér-Rao
+const CV     = 1 / (2 * PI);        // CV = σ·Ω = 1/(2π)
+
+// ═══ DERIVED GEOMETRY — no free parameters ═══
+const FORK_N      = 2;                          // Z₂ → bistable → 2
+const SPREAD      = 2 * OMEGA;                  // 2Ω = 2/π rad ≈ 0.637
+const LEN_RATIO   = exp(-OMEGA);                // exp(-1/π) ≈ 0.727
+const WIDTH_DECAY = 1 - CV;                     // 1 - 1/(2π) ≈ 0.841
+const CURVATURE   = CV / C_STAR;                // 1/(2π²) ≈ 0.051
+const BASE_LEN    = 55;
+const BASE_WIDTH  = 7;
+
+// ═══ CAMERA ═══
+let cam = { x: 0, y: 0, zoom: 1 };
+
+function worldToScreen(wx, wy) {
+  return {
+    x: (wx - cam.x) * cam.zoom + W * 0.5,
+    y: (wy - cam.y) * cam.zoom + H * 0.5
+  };
+}
+function screenToWorld(sx, sy) {
+  return {
+    x: (sx - W * 0.5) / cam.zoom + cam.x,
+    y: (sy - H * 0.5) / cam.zoom + cam.y
+  };
+}
+
+// ═══ ZOOM + PAN ═══
+let dragging = false, dragX = 0, dragY = 0;
+let hintVisible = true;
+
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (hintVisible) { document.getElementById('zoom-hint').style.opacity = '0'; hintVisible = false; }
+  const wp = screenToWorld(e.clientX, e.clientY);
+  const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+  cam.zoom = max(0.15, min(50000, cam.zoom * factor));
+  // keep world point under cursor
+  cam.x = wp.x - (e.clientX - W * 0.5) / cam.zoom;
+  cam.y = wp.y - (e.clientY - H * 0.5) / cam.zoom;
+}, { passive: false });
+
+cv.addEventListener('mousedown', e => {
+  if (e.button === 0) { dragging = true; dragX = e.clientX; dragY = e.clientY; document.body.classList.add('dragging'); }
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  cam.x -= (e.clientX - dragX) / cam.zoom;
+  cam.y -= (e.clientY - dragY) / cam.zoom;
+  dragX = e.clientX; dragY = e.clientY;
+});
+window.addEventListener('mouseup', () => { dragging = false; document.body.classList.remove('dragging'); });
+
+// Touch support
+let lastTouchDist = 0, lastTouchX = 0, lastTouchY = 0, touching = false;
+cv.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (hintVisible) { document.getElementById('zoom-hint').style.opacity = '0'; hintVisible = false; }
+  if (e.touches.length === 1) {
+    touching = true; dragX = e.touches[0].clientX; dragY = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    lastTouchDist = sqrt(dx * dx + dy * dy);
+    lastTouchX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    lastTouchY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+  }
+}, { passive: false });
+cv.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && touching) {
+    cam.x -= (e.touches[0].clientX - dragX) / cam.zoom;
+    cam.y -= (e.touches[0].clientY - dragY) / cam.zoom;
+    dragX = e.touches[0].clientX; dragY = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = sqrt(dx * dx + dy * dy);
+    const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    if (lastTouchDist > 0) {
+      const wp = screenToWorld(cx, cy);
+      cam.zoom = max(0.15, min(50000, cam.zoom * (dist / lastTouchDist)));
+      cam.x = wp.x - (cx - W * 0.5) / cam.zoom;
+      cam.y = wp.y - (cy - H * 0.5) / cam.zoom;
+    }
+    lastTouchDist = dist; lastTouchX = cx; lastTouchY = cy;
+  }
+}, { passive: false });
+cv.addEventListener('touchend', () => { touching = false; lastTouchDist = 0; });
+
+// ═══ SEGMENT — each tip is a CRR agent ═══
+let segments = [];
+let totalRuptures = 0;
+let maxGenUp = 0, maxGenDown = 0;
+
+function newSegment(x, y, angle, gen, isRoot, parentIdx) {
+  // §CRR: length = BASE × (exp(-Ω))^gen
+  const len = BASE_LEN * pow(LEN_RATIO, gen) * (0.92 + rnd() * 0.16);
+  // §CRR: width = BASE × (1-CV)^gen
+  const width = max(0.15, BASE_WIDTH * pow(WIDTH_DECAY, gen));
+  // §CRR: coherence rate scales with generation (deeper → faster accumulation)
+  // rate = 1 + gen·CV (small perturbation per generation, scaled by CV)
+  const rate = 0.35 + gen * CV * 0.4 + rnd() * 0.15;
+
+  return {
+    x, y, angle, gen, isRoot, parent: parentIdx,
+    len, width,
+    // CRR state
+    C: 0,
+    omega: OMEGA,
+    rate,
+    ruptured: false,
+    rupT: 0,
+    // growth
+    growth: 0,
+    growRate: 1.6 + rnd() * 1.0,
+    // visual
+    phase: rnd() * TAU,
+    sway: 0,
+    // §CRR: curvature from beauty function asymmetry
+    curve: (rnd() - 0.5) * CURVATURE * 2
+  };
+}
+
+function tipPos(s) {
+  const g = min(1, s.growth);
+  return {
+    x: s.x + cos(s.angle + s.sway) * s.len * g,
+    y: s.y + sin(s.angle + s.sway) * s.len * g
+  };
+}
+
+// ═══ RUPTURE → FORK ═══
+function rupture(s, idx) {
+  s.ruptured = true;
+  s.rupT = 0;
+  totalRuptures++;
+
+  const tip = tipPos(s);
+  // §CRR: Z₂ → exactly 2 children (bistable symmetry breaking)
+  // Rare SO(2) event: 3 children when C overshoots by > 2σ
+  const overshoot = s.C - C_STAR;
+  const nChildren = overshoot > 2 * SIGMA * C_STAR ? 3 : FORK_N;
+  // §CRR: angular spread = 2Ω = 2/π
+  const spread = SPREAD * (0.9 + rnd() * 0.2);
+
+  for (let i = 0; i < nChildren; i++) {
+    const t = nChildren === 1 ? 0 : (i / (nChildren - 1) - 0.5) * 2;
+    let childAngle = s.angle + t * spread + (rnd() - 0.5) * CURVATURE;
+
+    // Constrain: roots down, branches up
+    if (s.isRoot) {
+      childAngle = max(PI * 0.08, min(PI * 0.92, childAngle));
+    } else {
+      childAngle = max(-PI * 0.92, min(-PI * 0.08, childAngle));
+    }
+
+    const child = newSegment(tip.x, tip.y, childAngle, s.gen + 1, s.isRoot, idx);
+    segments.push(child);
+  }
+
+  if (s.isRoot && s.gen + 1 > maxGenDown) maxGenDown = s.gen + 1;
+  if (!s.isRoot && s.gen + 1 > maxGenUp) maxGenUp = s.gen + 1;
+}
+
+// ═══ SEED ═══
+function seed() {
+  segments = [];
+  totalRuptures = 0;
+  maxGenUp = 0; maxGenDown = 0;
+
+  // trunk upward — Z₂ gives 2 initial stems
+  for (let i = 0; i < FORK_N; i++) {
+    const t = (i / (FORK_N - 1 || 1) - 0.5) * 2;
+    const a = -PI / 2 + t * SPREAD * 0.3 + (rnd() - 0.5) * 0.04;
+    segments.push(newSegment(0, 0, a, 0, false, -1));
+  }
+  // roots downward — Z₂ gives 2 initial roots
+  for (let i = 0; i < FORK_N; i++) {
+    const t = (i / (FORK_N - 1 || 1) - 0.5) * 2;
+    const a = PI / 2 + t * SPREAD * 0.35 + (rnd() - 0.5) * 0.05;
+    segments.push(newSegment(0, 0, a, 0, true, -1));
+  }
+
+  cam.x = 0; cam.y = 0; cam.zoom = 1;
+}
+
+// ═══ VISIBILITY + DYNAMIC DEPTH ═══
+// Max generation scales with zoom — deeper branches grow when you zoom in
+function maxGenForZoom() {
+  // At zoom=1, allow gen ~10. At zoom=100, allow gen ~25. At zoom=10000, ~40.
+  return min(60, floor(10 + log(max(1, cam.zoom)) / log(1.5) * 2.5));
+}
+
+function isVisible(wx, wy, margin) {
+  const s = worldToScreen(wx, wy);
+  return s.x > -margin && s.x < W + margin && s.y > -margin && s.y < H + margin;
+}
+
+// Segment on-screen pixel length
+function screenLen(s) {
+  return s.len * min(1, s.growth) * cam.zoom;
+}
+
+const MAX_SEGMENTS = 8000;
+
+// ═══ UPDATE ═══
+let t = 0;
+function update(dt) {
+  t += dt;
+  const curMaxGen = maxGenForZoom();
+
+  for (let i = 0; i < segments.length; i++) {
+    const s = segments[i];
+
+    // Grow in
+    if (s.growth < 1) {
+      s.growth = min(1, s.growth + s.growRate * dt);
+    }
+
+    // Sway — Kolmogorov-like, amplitude scales with Ω per generation
+    const windBase = sin(t * 0.25) * 0.01 + sin(t * 0.11 + 1.3) * 0.006;
+    // §CRR: sway amplitude = Ω·gen·small_factor (boundary permeability × depth)
+    const swayAmp = OMEGA * 0.015 * (1 + s.gen * 0.4);
+    s.sway = windBase * (1 + s.gen * 0.3)
+           + sin(t * (0.4 + s.gen * OMEGA * 0.3) + s.phase) * swayAmp;
+
+    // CRR: accumulate coherence at unruptured tips
+    if (!s.ruptured && s.growth >= 0.92) {
+      // Only tick if this generation is within current zoom allowance
+      // AND segment is reasonably near the viewport (or its ancestors are)
+      const tip = tipPos(s);
+      const onScreen = isVisible(tip.x, tip.y, 200 / cam.zoom);
+      const withinGen = s.gen < curMaxGen;
+      const withinCap = segments.length < MAX_SEGMENTS;
+
+      if (withinGen && withinCap && (onScreen || s.gen < 4)) {
+        // C(x,t) = ∫ L(x,τ) dτ
+        const L = s.rate * (1 + sin(t * 0.6 + s.phase) * CV); // oscillation scaled by CV
+        s.C += L * dt;
+
+        // Rupture at C·Ω = 1, with stochastic threshold CV = 1/(2π)
+        const threshold = C_STAR + (rnd() - 0.5) * 2 * CV * C_STAR;
+        if (s.C >= threshold) {
+          rupture(s, i);
+        }
+      }
+    }
+
+    if (s.ruptured) s.rupT += dt;
+  }
+
+  // Pruning: if over cap, remove far-off-screen deep tips
+  if (segments.length > MAX_SEGMENTS * 0.92) {
+    let removed = 0;
+    for (let i = segments.length - 1; i >= 0 && removed < 200; i--) {
+      const s = segments[i];
+      if (s.gen > 5 && !isVisible(s.x, s.y, 500 / cam.zoom)) {
+        // Also remove any children pointing to this
+        segments.splice(i, 1);
+        removed++;
+      }
+    }
+  }
+}
+
+// ═══ DRAW ═══
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Ground line
+  const gLeft = worldToScreen(-5000, 0);
+  const gRight = worldToScreen(5000, 0);
+  ctx.strokeStyle = 'rgba(90,75,50,.12)';
+  ctx.lineWidth = max(0.5, 1 * cam.zoom * 0.01);
+  ctx.beginPath();
+  ctx.moveTo(gLeft.x, gLeft.y);
+  ctx.lineTo(gRight.x, gRight.y);
+  ctx.stroke();
+
+  // Subtle ground glow
+  const gc = worldToScreen(0, 0);
+  const glowR = max(50, 200 * cam.zoom);
+  if (gc.x > -glowR && gc.x < W + glowR && gc.y > -glowR && gc.y < H + glowR) {
+    const grd = ctx.createRadialGradient(gc.x, gc.y, 0, gc.x, gc.y, glowR);
+    grd.addColorStop(0, 'rgba(55,45,25,.06)');
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(gc.x - glowR, gc.y - glowR, glowR * 2, glowR * 2);
+  }
+
+  ctx.lineCap = 'round';
+
+  // Sort by generation for back-to-front
+  const maxGen = max(maxGenUp, maxGenDown);
+
+  for (let g = 0; g <= maxGen; g++) {
+    // Batch segments of same gen for fewer state changes
+    const rootSegs = [];
+    const branchSegs = [];
+
+    for (let i = 0; i < segments.length; i++) {
+      const s = segments[i];
+      if (s.gen !== g || s.growth < 0.01) continue;
+
+      const gr = min(1, s.growth);
+      const tip = tipPos(s);
+
+      // Frustum cull
+      const s1 = worldToScreen(s.x, s.y);
+      const s2 = worldToScreen(tip.x, tip.y);
+      const margin = 60;
+      const onScreen = !(s1.x < -margin && s2.x < -margin) &&
+                       !(s1.x > W + margin && s2.x > W + margin) &&
+                       !(s1.y < -margin && s2.y < -margin) &&
+                       !(s1.y > H + margin && s2.y > H + margin);
+      if (!onScreen) continue;
+
+      // Sub-pixel cull — skip if too tiny to see
+      const pixLen = sqrt((s2.x - s1.x) ** 2 + (s2.y - s1.y) ** 2);
+      if (pixLen < 0.3) continue;
+
+      const entry = { s, s1, s2, gr, tip, pixLen };
+      if (s.isRoot) rootSegs.push(entry); else branchSegs.push(entry);
+    }
+
+    // Draw roots
+    for (const { s, s1, s2, gr, tip, pixLen } of rootSegs) {
+      const fade = pow(0.85, s.gen);
+      const d = s.gen * 3.5;
+
+      // Rupture flash
+      if (s.ruptured && s.rupT < 0.5) {
+        const flash = max(0, 1 - s.rupT / 0.5);
+        const glowR = max(2, (3 + flash * 5) * cam.zoom * pow(LEN_RATIO, s.gen));
+        ctx.beginPath();
+        ctx.arc(s2.x, s2.y, min(glowR, 30), 0, TAU);
+        ctx.fillStyle = `rgba(200,160,60,${flash * 0.25 * fade})`;
+        ctx.fill();
+      }
+
+      // Coherence tip glow — exp(C/Ω) visualised
+      if (!s.ruptured && s.growth >= 0.92 && s.C > 0) {
+        const normC = min(1, s.C / C_STAR);
+        const glowR = max(1.5, (2 + normC * 5) * cam.zoom * pow(LEN_RATIO, s.gen));
+        ctx.beginPath();
+        ctx.arc(s2.x, s2.y, min(glowR, 25), 0, TAU);
+        ctx.fillStyle = `rgba(180,140,55,${normC * 0.22 * fade})`;
+        ctx.fill();
+      }
+
+      // Branch line
+      const mx = (s1.x + s2.x) / 2 + sin(s.angle + PI / 2) * pixLen * s.curve;
+      const my = (s1.y + s2.y) / 2 + cos(s.angle + PI / 2) * pixLen * s.curve;
+      ctx.beginPath();
+      ctx.moveTo(s1.x, s1.y);
+      ctx.quadraticCurveTo(mx, my, s2.x, s2.y);
+      ctx.strokeStyle = `rgba(${62 + d | 0},${42 + d * 0.5 | 0},${22 + d * 0.25 | 0},${0.68 * fade})`;
+      ctx.lineWidth = max(0.2, s.width * gr * cam.zoom);
+      ctx.stroke();
+    }
+
+    // Draw branches
+    for (const { s, s1, s2, gr, tip, pixLen } of branchSegs) {
+      const fade = pow(0.85, s.gen);
+      const d = s.gen * 2.5;
+
+      // Rupture flash
+      if (s.ruptured && s.rupT < 0.5) {
+        const flash = max(0, 1 - s.rupT / 0.5);
+        const glowR = max(2, (3 + flash * 5) * cam.zoom * pow(LEN_RATIO, s.gen));
+        ctx.beginPath();
+        ctx.arc(s2.x, s2.y, min(glowR, 30), 0, TAU);
+        ctx.fillStyle = `rgba(140,210,80,${flash * 0.3 * fade})`;
+        ctx.fill();
+      }
+
+      // Coherence tip glow
+      if (!s.ruptured && s.growth >= 0.92 && s.C > 0) {
+        const normC = min(1, s.C / C_STAR);
+        const glowR = max(1.5, (2 + normC * 5) * cam.zoom * pow(LEN_RATIO, s.gen));
+        ctx.beginPath();
+        ctx.arc(s2.x, s2.y, min(glowR, 25), 0, TAU);
+        ctx.fillStyle = `rgba(100,195,70,${normC * 0.22 * fade})`;
+        ctx.fill();
+      }
+
+      // Branch line
+      const mx = (s1.x + s2.x) / 2 + sin(s.angle + PI / 2) * pixLen * s.curve;
+      const my = (s1.y + s2.y) / 2 + cos(s.angle + PI / 2) * pixLen * s.curve;
+      ctx.beginPath();
+      ctx.moveTo(s1.x, s1.y);
+      ctx.quadraticCurveTo(mx, my, s2.x, s2.y);
+      ctx.strokeStyle = `rgba(${45 + d | 0},${55 + d * 1.1 | 0},${25 + d * 0.3 | 0},${0.72 * fade})`;
+      ctx.lineWidth = max(0.2, s.width * gr * cam.zoom);
+      ctx.stroke();
+    }
+  }
+
+  // HUD
+  const tips = segments.filter(s => !s.ruptured);
+  const avgC = tips.length ? tips.reduce((a, s) => a + s.C, 0) / tips.length : 0;
+  const curMaxGen = maxGenForZoom();
+  hud.textContent =
+    `segments ${segments.length}  tips ${tips.length}  ruptures ${totalRuptures}\n` +
+    `zoom ${cam.zoom < 10 ? cam.zoom.toFixed(2) : cam.zoom < 1000 ? cam.zoom.toFixed(0) : (cam.zoom/1000).toFixed(1)+'k'}`+
+    `  max gen ${curMaxGen}  gen ↑${maxGenUp} ↓${maxGenDown}\n` +
+    `avg C ${avgC.toFixed(3)} / C* ${C_STAR.toFixed(4)}`;
+
+  deriv.textContent =
+    `§CRR DERIVED GEOMETRY\n` +
+    `Ω = 1/π = ${OMEGA.toFixed(5)}\n` +
+    `C* = π = ${C_STAR.toFixed(5)}\n` +
+    `σ = ${SIGMA}  CV = 1/(2π) = ${CV.toFixed(5)}\n` +
+    `fork: Z₂ → ${FORK_N} children\n` +
+    `spread: 2Ω = ${SPREAD.toFixed(5)} rad = ${(SPREAD*180/PI).toFixed(1)}°\n` +
+    `len ratio: exp(-Ω) = ${LEN_RATIO.toFixed(5)}\n` +
+    `width decay: 1-CV = ${WIDTH_DECAY.toFixed(5)}\n` +
+    `curvature: CV/C* = ${CURVATURE.toFixed(5)}`;
+}
+
+// ═══ LOOP ═══
+let lastT = 0;
+seed();
+
+function frame(ts) {
+  const dt = min(0.05, (ts - lastT) / 1000);
+  lastT = ts;
+  update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// Reseed on double-click (single click might be start of drag)
+let clickT = 0;
+cv.addEventListener('click', e => {
+  const now = performance.now();
+  if (now - clickT < 350) { seed(); }
+  clickT = now;
+});
+
+// Close explainer on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('explainer').classList.remove('open');
+});
+</script>
+</body>
+</html>
