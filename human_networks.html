@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRR Network — Nodes as SO(2), Edges as Z₂</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#faf8f5;color:#2a2520;font-family:'Cormorant Garamond',Georgia,serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100vh;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.header{text-align:center;padding:2rem 1rem .5rem;max-width:800px}
+.header h1{font-weight:300;font-size:1.6rem;letter-spacing:.35em;text-transform:uppercase;color:#3a3530}
+.header .sub{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#8a8070;margin-top:.4rem;line-height:1.7;display:block}
+
+/* ─── TABS ─── */
+.tabs{display:flex;justify-content:center;gap:0;padding:.8rem 1rem .2rem;max-width:500px;width:100%}
+.tab-btn{
+  font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.15em;
+  text-transform:uppercase;color:#9a9080;background:none;border:none;
+  padding:.6rem 1.5rem;cursor:pointer;position:relative;transition:color .3s;
+  border-bottom:2px solid transparent
+}
+.tab-btn:hover{color:#5a5045}
+.tab-btn.active{color:#3a3530;border-bottom-color:#7a5a8a}
+.tab-btn .tab-range{display:block;font-size:.55rem;color:#b0a898;margin-top:.15rem;letter-spacing:.08em}
+.tab-btn.active .tab-range{color:#8a8070}
+
+/* ─── CONTROLS ─── */
+.controls{display:flex;align-items:center;justify-content:center;gap:1.2rem;padding:.8rem 1rem .3rem;flex-wrap:wrap;max-width:850px}
+.ctrl-group{display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.ctrl-group label{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:#9a9080}
+.ctrl-group input[type=range]{-webkit-appearance:none;width:140px;height:3px;background:#d0c8b8;border-radius:2px;outline:none;cursor:pointer}
+.ctrl-group input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#7a5a8a;border:2px solid #faf8f5;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.n-display{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:500;color:#2a2520;min-width:2.5em;text-align:center}
+.sound-panel{display:flex;align-items:center;justify-content:center;gap:1rem;padding:.3rem 1rem .5rem;flex-wrap:wrap;max-width:800px}
+.sound-panel select{padding:.35rem .6rem;background:#faf8f5;border:1.5px solid rgba(60,50,40,.18);color:#4a4035;font-family:'JetBrains Mono',monospace;font-size:.7rem;cursor:pointer;border-radius:2px;outline:none}
+.chk-group{display:flex;align-items:center;gap:.35rem;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:#6a6050;cursor:pointer;user-select:none}
+.chk-group input[type=checkbox]{-webkit-appearance:none;appearance:none;width:14px;height:14px;border:1.5px solid rgba(60,50,40,.25);border-radius:2px;cursor:pointer;position:relative;background:#faf8f5}
+.chk-group input[type=checkbox]:checked{background:rgba(90,138,122,.15);border-color:#5a8a7a}
+.chk-group input[type=checkbox]:checked::after{content:'✓';position:absolute;top:-1px;left:1px;font-size:11px;color:#5a8a7a;font-weight:500}
+.chk-group.z2 input[type=checkbox]:checked{background:rgba(122,90,138,.15);border-color:#7a5a8a}
+.chk-group.z2 input[type=checkbox]:checked::after{color:#7a5a8a}
+
+/* ─── READOUTS ─── */
+.readouts{display:flex;flex-wrap:wrap;justify-content:center;gap:.8rem 1.5rem;padding:.5rem 1rem;max-width:950px}
+.readout{text-align:center;min-width:85px}
+.readout .rlabel{font-family:'JetBrains Mono',monospace;font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:#9a9080}
+.readout .rval{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:400;margin-top:.1rem}
+.rval.purple{color:#7a5a8a}.rval.teal{color:#5a8a7a}.rval.gold{color:#b89a4a}.rval.red{color:#c45a4a}
+
+/* ─── CANVAS ─── */
+.canvas-wrap{position:relative;width:100%;max-width:700px;margin:.5rem auto;padding:0 .5rem}
+canvas#network{width:100%;height:auto;display:block;border-radius:3px}
+
+/* ─── EXAMPLES ─── */
+.examples{max-width:700px;width:100%;padding:0 1rem;min-height:2.5rem;display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.ex-title{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:#9a9080}
+.ex-label{font-weight:400;font-size:1.05rem;color:#3a3530;text-align:center;line-height:1.6}
+.ex-detail{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:#8a8070;text-align:center;line-height:1.7;max-width:560px}
+.ex-nodes{color:#5a8a7a}.ex-edges{color:#7a5a8a}
+
+/* ─── LEGEND ─── */
+.legend{display:flex;justify-content:center;gap:1.2rem;padding:.3rem 1rem;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:.4rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:#6a6050}
+.leg-dot{width:9px;height:9px;border-radius:50%}.leg-line{width:16px;height:2px}
+
+/* ─── EQUATIONS ─── */
+.equations{max-width:700px;padding:1rem 1.5rem;margin:.5rem auto}
+.eq-row{display:flex;align-items:center;gap:1rem;padding:.4rem 0;border-bottom:1px solid rgba(200,190,175,.3);flex-wrap:wrap}
+.eq-row:last-child{border-bottom:none}
+.eq-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:#9a9080;min-width:95px}
+.eq-formula{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:#4a4035;flex:1}
+.eq-val{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:500;min-width:70px;text-align:right}
+
+/* ─── EXPLAINER ─── */
+.explainer{max-width:680px;padding:1.5rem 2rem 3rem;line-height:1.85;font-size:1.05rem;color:#3a3530}
+.explainer h2{font-weight:400;font-size:1.15rem;letter-spacing:.2em;text-transform:uppercase;color:#5a5045;margin:1.8rem 0 .6rem;padding-top:.5rem;border-top:1px solid rgba(200,190,175,.4)}
+.explainer h2:first-child{border-top:none;margin-top:0}
+.explainer p{margin-bottom:.8rem}
+.explainer em{font-style:italic;color:#7a5a8a}
+.explainer strong{font-weight:500;color:#2a2520}
+.m{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:#5a8a7a}
+.tag{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:#b89a4a;vertical-align:super;margin-left:.1em}
+.tab-content{display:none}.tab-content.active{display:block}
+@media(max-width:600px){.header h1{font-size:1.2rem;letter-spacing:.2em}.controls{gap:.7rem}.ctrl-group input[type=range]{width:110px}.explainer{padding:1rem 1.2rem 2rem;font-size:.95rem}.tab-btn{padding:.5rem 1rem}}
+</style>
+</head>
+<body>
+<div class="header"><h1>CRR Network</h1>
+  <span class="sub">Complete graphs K<sub>n</sub> — nodes as SO(2), boundaries as Z₂</span></div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="intimate" id="tabIntimate">Self &amp; Circle<span class="tab-range">1 – 20 agents</span></button>
+  <button class="tab-btn" data-tab="scale" id="tabScale">Crowd &amp; Culture<span class="tab-range">20 – 150 agents</span></button>
+</div>
+
+<div class="controls">
+  <div class="ctrl-group"><label>Agents n</label><input type="range" id="nSlider" min="1" max="20" value="1" step="1"></div>
+  <div class="n-display" id="nDisplay">K₁</div>
+  <div class="ctrl-group"><label>Speed</label><input type="range" id="speedSlider" min="0.2" max="3" value="1" step="0.1"></div>
+  <div class="ctrl-group"><label>Entrainment ε</label><input type="range" id="entrainSlider" min="0" max="1" value="0" step="0.02"></div>
+</div>
+<div class="sound-panel">
+  <select id="soundStyle">
+    <option value="off">Sound off</option>
+    <option value="bells">Bells &amp; Plucks</option>
+    <option value="voice">CRR Voice</option>
+  </select>
+  <label class="chk-group"><input type="checkbox" id="chkSO2" checked> SO(2) nodes</label>
+  <label class="chk-group z2"><input type="checkbox" id="chkZ2" checked> Z₂ edges</label>
+</div>
+
+<div class="readouts">
+  <div class="readout"><div class="rlabel">Agents</div><div class="rval teal" id="rNodes">1</div></div>
+  <div class="readout"><div class="rlabel">Boundaries</div><div class="rval purple" id="rEdges">0</div></div>
+  <div class="readout"><div class="rlabel">Individual Autonomy</div><div class="rval teal" id="rIndAuto">1.000</div></div>
+  <div class="readout"><div class="rlabel">Group Autonomy</div><div class="rval purple" id="rGrpAuto">0.000</div></div>
+  <div class="readout"><div class="rlabel">Integration Φ</div><div class="rval gold" id="rPhi">1.000</div></div>
+  <div class="readout"><div class="rlabel">Euler χ</div><div class="rval red" id="rEuler">1</div></div>
+</div>
+
+<div class="canvas-wrap"><canvas id="network" width="700" height="500"></canvas></div>
+
+<div class="examples"><div class="ex-title" id="exTitle"></div><div class="ex-label" id="exLabel"></div><div class="ex-detail" id="exDetail"></div></div>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#5a8a7a"></div>Agent SO(2)</div>
+  <div class="leg-item"><div class="leg-line" style="background:#7a5a8a"></div>Boundary Z₂</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#c45a4a"></div>Rupture</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#b89a4a"></div>Beauty peak</div>
+  <div class="leg-item"><div class="leg-dot" style="background:rgba(150,140,120,.5)"></div>Message</div>
+</div>
+
+<div class="equations">
+  <div class="eq-row"><div class="eq-label">Individual</div><div class="eq-formula">A<sub>ind</sub> = 1/n</div><div class="eq-val teal" id="eqInd">1.000</div></div>
+  <div class="eq-row"><div class="eq-label">Group</div><div class="eq-formula">A<sub>grp</sub> = (n−1)/n</div><div class="eq-val purple" id="eqGrp">0.000</div></div>
+  <div class="eq-row"><div class="eq-label">Integration</div><div class="eq-formula">Φ = |1/n · Σ exp(iθⱼ)|</div><div class="eq-val gold" id="eqPhi">1.000</div></div>
+  <div class="eq-row"><div class="eq-label">Entrainment</div><div class="eq-formula">kick = ε · Ω<sub>Z₂</sub> per boundary rupture</div><div class="eq-val gold" id="eqE2">0.000</div></div>
+  <div class="eq-row"><div class="eq-label">Euler χ</div><div class="eq-formula">χ = n − n(n−1)/2</div><div class="eq-val red" id="eqChi">1</div></div>
+</div>
+
+<!-- ═══ INTIMATE EXPLAINER ═══ -->
+<div class="tab-content active" id="explainer-intimate">
+<div class="explainer">
+  <h2>What you are seeing</h2>
+  <p>A complete graph K<sub>n</sub>, where every node connects to every other.
+    Each <strong>node</strong> is an <em>autonomous agent</em> running an SO(2) cycle<span class="tag">§CRR</span>:
+    coherence accumulates until <span class="m">C = 2π</span>, then ruptures.
+    Each <strong>edge</strong> is a <em>Markov blanket</em> running a Z₂ switch<span class="tag">§CRR</span>:
+    coherence accumulates until <span class="m">C = π</span>, then flips.
+    In both cases, <span class="m">C · Ω = 1</span> at rupture.</p>
+  <p>The gold glow is the <strong>beauty function</strong>
+    <span class="m">B(C,Ω) = exp(C/Ω) · (1 − C·Ω)</span>, peaking at
+    <span class="m">C* − Ω</span>: one fluctuation-width before rupture.
+    For Z₂ blankets this is ~90% through the cycle; for SO(2) agents it is ~97.5%.</p>
+
+  <h2>Blankets and agents</h2>
+  <p>An edge is the <strong>Markov blanket</strong>: the statistical boundary separating
+    one agent's internal states from another's. Each boundary connects exactly two agents.
+    A node is the <strong>autonomous agent</strong> behind its blankets.</p>
+  <p>The quadratic explosion: each new agent must form a boundary with every existing agent.
+    Person 4 doesn't add one boundary; they add three (one to each of persons 1, 2, 3).
+    Person 10 adds nine. Person 50 adds forty-nine. Total boundaries = n(n−1)/2.
+    At K₃ boundaries equal agents (3 = 3); after that, boundaries dominate forever.
+    This is the handshake problem: in a room of 50 people, there are 1,225 handshakes.</p>
+  <p>CRR adds a layer: each boundary carries <span class="m">Ω<sub>Z₂</sub> = 2 · Ω<sub>SO₂</sub></span>,
+    twice the variance of each agent. So the boundaries don't just outnumber the agents;
+    they carry more variance per component. This is what gives
+    <span class="m">A<sub>ind</sub> = 1/n</span> exactly.</p>
+
+  <h2>Individual and group autonomy</h2>
+  <p><strong>Individual autonomy</strong> <span class="m">A<sub>ind</sub> = 1/n</span><span class="tag">§SOLVED</span>:
+    each agent's share of total system variance.
+    <strong>Group autonomy</strong> <span class="m">A<sub>grp</sub> = (n−1)/n</span>:
+    the collective's share, carried by the boundaries. These sum to 1.</p>
+  <p>At K₂: 50/50. At K₁₀: 90% group. At K₂₀: 95% group.
+    Group autonomy measures the degree to which the collective has become
+    autonomous <em>from its own members</em>. Yet individual autonomy never
+    reaches zero; every agent retains an irreducible internal cycle.</p>
+
+  <h2>Integration</h2>
+  <p>The Kuramoto order parameter <span class="m">Φ = |1/n · Σ exp(iθⱼ)|</span>,
+    where <span class="m">θⱼ = 2π · C/C*</span> is each agent's coherence phase<span class="tag">§CRR</span>.
+    Φ = 1 when all agents are synchronised. Φ ≈ 1/√n when independent.
+    Watch how Φ fluctuates at K₂ (phases drifting in and out), then settles
+    near 1/√n at larger n. This measures the Fisher information of the
+    phase distribution on the circle.</p>
+
+  <h2>Entrainment</h2>
+  <p>With ε = 0, agents accumulate independently. Raise the slider and each
+    boundary rupture delivers a coherence kick of <span class="m">ε · Ω<sub>Z₂</sub></span>
+    to both connected agents<span class="tag">§CRR</span>. The coupling strength is the
+    boundary permeability itself. Agents near rupture get pushed over,
+    triggering cascades. Over many cycles, Φ climbs toward 1.</p>
+  <p>This is the concert. No conductor. No shared clock. Just boundaries nudging
+    agents through their own reorganisation.</p>
+
+  <h2>What is and is not CRR-derived</h2>
+  <p><span class="tag" style="font-size:.7rem">§CRR</span> Rupture thresholds
+    (C* = π, 2π), variance parameters (Ω = 1/π, 1/2π), the beauty function,
+    autonomy formulae, the octave relationship, rate variation ratio,
+    and entrainment coupling strength (Ω<sub>Z₂</sub>).
+    <span class="tag" style="font-size:.7rem">§EXT</span> Absolute timescale,
+    pentatonic pitch mapping, male/female register, vowel formant frequencies.</p>
+  <p style="text-align:center;margin-top:2rem;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:#a09585;letter-spacing:.15em">TEMPORAL GRAMMAR · CRR NETWORK · 2025</p>
+</div>
+</div>
+
+<!-- ═══ SCALE EXPLAINER ═══ -->
+<div class="tab-content" id="explainer-scale">
+<div class="explainer">
+  <h2>What changes at scale</h2>
+  <p>Beyond ~20 agents, the network crosses a threshold. You cannot see individual
+    edges any more; the canvas becomes a mesh of overlapping boundaries. This is not
+    a rendering limitation. It is what actually happens: at K₅₀ there are 1,225 boundaries
+    and you physically cannot attend to each one. The system's dynamics live in the
+    <em>collective</em>, not in any particular relationship.</p>
+
+  <h2>The quadratic wall</h2>
+  <p>Boundaries scale as <span class="m">n(n−1)/2</span>. At K₂₀ there are 190.
+    At K₅₀ there are 1,225. At K₁₅₀ there are 11,175. The ratio of boundaries
+    to agents is <span class="m">(n−1)/2</span>, which means K₁₅₀ has 74.5 boundaries
+    per agent. Each agent is embedded in 149 simultaneous relationships. No one
+    manages this consciously. The group manages itself.</p>
+  <p>This is why organisations develop cultures, norms, and institutions: they are
+    <em>compression mechanisms</em> for a boundary space too large for any agent to
+    track. A constitution is a frozen set of Z₂ states. A shared language is
+    boundary coherence made portable. A norm is a Z₂ pattern that ruptures
+    and regenerates faster than any agent can notice.</p>
+
+  <h2>Dunbar's number</h2>
+  <p>Robin Dunbar proposed ~150 as the cognitive limit for stable social relationships.
+    CRR gives this a precise interpretation: at K₁₅₀, individual autonomy is
+    <span class="m">1/150 ≈ 0.7%</span><span class="tag">§SOLVED</span>. The group
+    carries 99.3% of the system's variance. Beyond this, the boundaries are so
+    dominant that adding more agents barely changes the group's dynamics; you need
+    <em>hierarchical structure</em> (sub-networks, departments, clans) to maintain
+    any meaningful individual contribution.</p>
+  <p>Dunbar's limit is not about memory. It is about the ratio of autonomous to
+    relational variance reaching a floor below which agents cannot sustain
+    meaningful individuality within the whole.</p>
+
+  <h2>Entrainment at scale</h2>
+  <p>With ε > 0 at large n, watch for <strong>synchronisation cascades</strong>.
+    A single boundary rupture delivers <span class="m">ε · Ω<sub>Z₂</sub></span> to
+    both connected agents. At K₁₅₀, each agent has 149 boundaries. If even a fraction
+    of those boundaries rupture in quick succession, the total kick can push
+    the agent over its own SO(2) threshold. This triggers a node rupture, which
+    sends messages outward through all 149 of <em>its</em> boundaries, which kick
+    other agents, which rupture, and so on. The cascade is visible as a wave of
+    red sweeping across the network.</p>
+  <p>This is a <em>phase transition</em>: below a critical ε, agents drift independently.
+    Above it, the network locks into collective oscillation. The critical ε decreases
+    with n; larger networks synchronise more easily. This is CRR's version of
+    the Kuramoto phase transition.</p>
+
+  <h2>What is and is not CRR-derived</h2>
+  <p><span class="tag" style="font-size:.7rem">§CRR</span> Rupture thresholds,
+    variance parameters, autonomy formulae, entrainment coupling, the octave
+    relationship between symmetry classes, the beauty function.
+    <span class="tag" style="font-size:.7rem">§EXT</span> Absolute timescale,
+    pitch mapping, Dunbar's specific number (empirical observation; CRR explains
+    its mechanism but does not derive 150 from first principles).
+    <span class="tag" style="font-size:.7rem">§PARTIAL</span> The claim that
+    Dunbar's limit corresponds to the autonomy floor; this is a CRR-motivated
+    interpretation of an empirical finding, not a derivation.</p>
+  <p style="text-align:center;margin-top:2rem;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:#a09585;letter-spacing:.15em">TEMPORAL GRAMMAR · CRR NETWORK · 2025</p>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// COHERENCE-RUPTURE-REGENERATION (CRR)
+// Alexander Sabine · temporalgrammar.ai · cohere.org.uk
+//
+//   C(x,t) = ∫ L(x,τ) dτ           Coherence accumulates
+//   δ(now)  when  C · Ω = 1         Rupture (Cramér-Rao bound)
+//   R = ∫ φ · exp(C/Ω) · Θ dτ      Regeneration from weighted memory
+//
+// Symmetry classes:
+//   Z₂:  Ω = 1/π,  C* = π,  CV = 1/(2π) — blankets (porous)
+//   SO₂: Ω = 1/2π, C* = 2π, CV = 1/(4π) — agents (autonomous)
+//
+// Beauty: B(C,Ω) = exp(C/Ω)·(1−C·Ω), peaks at C*−Ω
+//   Z₂ peak at π−1/π ≈ 2.82 (90% through cycle)
+//   SO₂ peak at 2π−1/2π ≈ 6.12 (97.5% through cycle)
+//
+// Markov blankets: each edge is the statistical boundary between agents.
+//   Entrainment: blanket rupture delivers ε·Ω_Z₂ coherence to both sides.
+//   Integration: Φ = |1/n Σ exp(iθⱼ)| — Kuramoto order parameter.
+//   Individual autonomy: 1/n. Group autonomy: (n−1)/n.
+// ═══════════════════════════════════════════════════════════════════════
+
+const PI = Math.PI;
+const {sin, cos, min, max, exp, abs, sqrt, log, floor, pow, random: rnd} = Math;
+
+const OMEGA_Z2 = 1/PI, OMEGA_SO2 = 1/(2*PI);
+const CSTAR_Z2 = PI, CSTAR_SO2 = 2*PI;
+
+const COL = {
+  bg:'#faf8f5',purple:'#7a5a8a',teal:'#5a8a7a',sage:'#7a9a6a',
+  gold:'#b89a4a',red:'#c45a4a',redL:'rgba(196,90,74,0.25)',dim:'#9a9080'
+};
+
+// §CRR: Beauty function — peaks at C*−Ω, zero at rupture
+function beauty(C, omega) {
+  const cstar = 1/omega;
+  if (C <= 0 || C >= cstar) return 0;
+  const raw = exp(C/omega) * (1 - C*omega);
+  const bmax = omega*omega * exp(1/(omega*omega) - 1);
+  return raw / bmax;
+}
+function beautyGlow(C, omega) {
+  const b = beauty(C, omega);
+  return b < 0.3 ? 0 : min(1, (b-0.3)/0.7);
+}
+function randn() {
+  let u=0,v=0; while(!u)u=rnd(); while(!v)v=rnd();
+  return sqrt(-2*log(u))*cos(2*PI*v);
+}
+
+// ═══════════════════════════════════════════════
+const canvas = document.getElementById('network'), ctx = canvas.getContext('2d');
+let W, H, dpr, n=1, speed=1, entrainment=0;
+let nodes=[], edges=[], ruptures=[], messages=[];
+let currentTab = 'intimate';
+
+const MAX_MESSAGES = 400;
+
+// ═══════════════════════════════════════════════
+// TAB SYSTEM
+// ═══════════════════════════════════════════════
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('explainer-' + tab).classList.add('active');
+
+  const slider = document.getElementById('nSlider');
+  if (tab === 'intimate') {
+    slider.min = 1; slider.max = 20;
+    if (n > 20) { n = 20; slider.value = 20; }
+    if (n < 1) { n = 1; slider.value = 1; }
+    slider.value = n;
+  } else {
+    slider.min = 20; slider.max = 150;
+    if (n < 20) { n = 20; slider.value = 20; }
+    slider.value = n;
+  }
+  buildNetwork();
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ═══════════════════════════════════════════════
+// EXAMPLES
+// ═══════════════════════════════════════════════
+const EXAMPLES = {
+  1:{label:'A Self',nodes:'One agent, one internal cycle',edges:'No boundaries',detail:'Individual autonomy 100%. Pure SO(2).'},
+  2:{label:'A Conversation',nodes:'Two agents',edges:'One boundary between them',detail:'Individual 50%, Group 50%. The first relationship.'},
+  3:{label:'A Triad',nodes:'Three agents',edges:'Three boundaries (each new person adds one per existing person)',detail:'χ = 0. Boundaries equal agents. The tipping point.'},
+  4:{label:'A Band',nodes:'Four agents',edges:'Six boundaries (person 4 added three at once)',detail:'60% group. The quadratic explosion begins.'},
+  5:{label:'A Dinner Party',nodes:'Five agents',edges:'Ten boundaries (person 5 added four more)',detail:'80% group. The evening belongs to the table.'},
+  6:{label:'A Meeting',nodes:'Six agents',edges:'Fifteen boundaries — already 2.5× the agents',detail:'83% group. This is why meetings take on a life of their own.'},
+  7:{label:'A Startup',nodes:'Seven founders',edges:'Twenty-one boundaries — 3× the agents',detail:'86% group. The company has a culture none of them chose.'},
+  10:{label:'A Jury',nodes:'Ten agents',edges:'Forty-five boundaries — 4.5× the agents',detail:'90% group. The verdict lives in the boundaries.'},
+  12:{label:'A Squad',nodes:'Twelve agents',edges:'Sixty-six boundaries — 5.5× the agents',detail:'92% group. Small enough to know everyone; large enough for collective intelligence.'},
+  15:{label:'A Seminar',nodes:'Fifteen agents',edges:'105 boundaries — 7× the agents',detail:'93% group. Cross-pollination outruns any single mind.'},
+  20:{label:'A Classroom',nodes:'Twenty students',edges:'190 boundaries — 9.5× the agents',detail:'95% group. The class has a collective attention the teacher can feel.'},
+  25:{label:'A Platoon',nodes:'Twenty-five soldiers',edges:'300 boundaries — 12× the agents',detail:'96% group. The unit acts as one under pressure.'},
+  30:{label:'A Guild',nodes:'Thirty members',edges:'435 boundaries — 14.5× the agents',detail:'97% group. Shared craft knowledge lives in the boundaries.'},
+  40:{label:'An Orchestra',nodes:'Forty musicians',edges:'780 boundaries — 19.5× the agents',detail:'97.5% group. The conductor is a compression mechanism for 780 relationships.'},
+  50:{label:'A Community',nodes:'Fifty individuals',edges:'1,225 boundaries — 24.5× the agents',detail:'98% group. Almost entirely defined by its relationships.'},
+  75:{label:'A Department',nodes:'Seventy-five employees',edges:'2,775 boundaries — 37× the agents',detail:'98.7% group. Subcultures emerge because no one can track 74 relationships.'},
+  100:{label:'A Company',nodes:'A hundred employees',edges:'4,950 boundaries — 49.5× the agents',detail:'99% group. No individual shapes the culture. The organisation is its own organism.'},
+  120:{label:'A Village',nodes:'A hundred and twenty people',edges:'7,140 boundaries — 59.5× the agents',detail:'99.2% group. Everyone is known, but only through chains of relationships.'},
+  150:{label:"Dunbar's Number",nodes:'A hundred and fifty people',edges:'11,175 boundaries — 74.5× the agents',detail:'99.3% group. The cognitive limit of human social networks. Beyond here, institutions replace relationships.'}
+};
+const NODE_LABELS = {
+  1:['self'],2:['you','me'],3:['A','B','C'],4:['guitar','bass','drums','voice'],
+  5:['host','guest','guest','guest','guest'],6:['chair','dev','design','ops','sales','legal'],
+  7:['CEO','CTO','CFO','design','eng','ops','sales']
+};
+const SUB={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
+function sub(num){return String(num).split('').map(c=>SUB[c]||c).join('');}
+
+// ═══════════════════════════════════════════════
+// SOUND
+// ═══════════════════════════════════════════════
+let ac=null, masterGain=null;
+let soundStyle='off', playSO2=true, playZ2=true;
+const PENTA=[0,3,5,7,10], BASE_FREQ=146.83;
+function noteFreq(i){return BASE_FREQ*pow(2,(PENTA[i%5]+12*floor(i/5))/12);}
+
+const MAX_VOICES = 6;
+let activeVoices = 0;
+function canSpeak(){return activeVoices < MAX_VOICES;}
+function claimVoice(){activeVoices++;}
+function releaseVoice(){activeVoices = max(0, activeVoices-1);}
+
+const VW={mm:[280,800],oo:[320,900],oh:[500,950],ah:[700,1200],eh:[550,1800],ee:[320,2300]};
+function vowelFromBeauty(b){
+  let f1,f2;
+  if(b<.3){const t=b/.3;f1=VW.mm[0]+t*(VW.oo[0]-VW.mm[0]);f2=VW.mm[1]+t*(VW.oo[1]-VW.mm[1]);}
+  else if(b<.6){const t=(b-.3)/.3;f1=VW.oo[0]+t*(VW.ah[0]-VW.oo[0]);f2=VW.oo[1]+t*(VW.ah[1]-VW.oo[1]);}
+  else if(b<.85){const t=(b-.6)/.25;f1=VW.ah[0]+t*(VW.eh[0]-VW.ah[0]);f2=VW.ah[1]+t*(VW.eh[1]-VW.ah[1]);}
+  else{const t=(b-.85)/.15;f1=VW.eh[0]+t*(VW.ee[0]-VW.eh[0]);f2=VW.eh[1]+t*(VW.ee[1]-VW.eh[1]);}
+  return[f1,f2];
+}
+
+function initAudio(){
+  if(ac)return; ac=new(AudioContext||webkitAudioContext)();
+  masterGain=ac.createGain(); masterGain.gain.value=0.7;
+  const comp=ac.createDynamicsCompressor();
+  comp.threshold.value=-18;comp.ratio.value=6;comp.attack.value=.008;comp.release.value=.12;
+  const rv=ac.createConvolver();
+  const sr=ac.sampleRate,len=sr*4,buf=ac.createBuffer(2,len,sr);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);
+    for(let i=0;i<len;i++){const t=i/sr;
+      d[i]=(t<.06?sin(t*800)*.35*(1-t/.06):0)+exp(-t*.9)*(rnd()*2-1)*.45*(1+.15*sin(t*2*(ch+1)));}}
+  rv.buffer=buf;
+  const dry=ac.createGain(),wet=ac.createGain();dry.gain.value=.55;wet.gain.value=.45;
+  masterGain.connect(dry);masterGain.connect(rv);rv.connect(wet);
+  dry.connect(comp);wet.connect(comp);comp.connect(ac.destination);
+}
+
+function bellPlayNode(idx){
+  const now=ac.currentTime,freq=noteFreq(idx),vol=.14;
+  const o1=ac.createOscillator(),o2=ac.createOscillator();
+  o1.type='sine';o1.frequency.value=freq;o2.type='triangle';o2.frequency.value=freq*2;
+  const g1=ac.createGain(),g2=ac.createGain();
+  g1.gain.setValueAtTime(0,now);g1.gain.linearRampToValueAtTime(vol,now+.015);g1.gain.exponentialRampToValueAtTime(.001,now+2);
+  g2.gain.setValueAtTime(0,now);g2.gain.linearRampToValueAtTime(vol*.2,now+.01);g2.gain.exponentialRampToValueAtTime(.001,now+1.3);
+  const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=freq*4;f.Q.value=.7;
+  o1.connect(g1);g1.connect(f);o2.connect(g2);g2.connect(f);f.connect(masterGain);
+  o1.start(now);o2.start(now);o1.stop(now+2.2);o2.stop(now+1.5);
+}
+function bellPlayEdge(a,b,volMul){
+  const now=ac.currentTime,freq=noteFreq(a)+noteFreq(b),vol=.08*(volMul||1);
+  const o=ac.createOscillator();o.type='triangle';o.frequency.value=freq;
+  const g=ac.createGain();
+  g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(vol,now+.004);g.gain.exponentialRampToValueAtTime(.001,now+.5);
+  o.connect(g);g.connect(masterGain);o.start(now);o.stop(now+.6);
+}
+
+function voiceUtter(pitch,dur,vol){
+  if(!canSpeak())return; claimVoice();
+  const now=ac.currentTime;
+  const breathG=ac.createGain();breathG.gain.value=0;breathG.connect(masterGain);
+  let lastOsc=null;
+  for(let li=0;li<5;li++){
+    const src=ac.createOscillator();src.type='sawtooth';src.frequency.value=pitch;
+    src.detune.value=(li-2)*4;
+    const vib=ac.createOscillator();vib.type='sine';vib.frequency.value=5.5+(li-2)*.2;
+    const vibG=ac.createGain();vibG.gain.value=20;
+    vib.connect(vibG);vibG.connect(src.detune);
+    const f1=ac.createBiquadFilter();f1.type='bandpass';f1.frequency.value=400;f1.Q.value=8+li*.5;
+    const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1200;f2.Q.value=10+li*.3;
+    const f3=ac.createBiquadFilter();f3.type='bandpass';f3.frequency.value=2800;f3.Q.value=12;
+    const fg1=ac.createGain(),fg2=ac.createGain(),fg3=ac.createGain();
+    fg1.gain.value=.5;fg2.gain.value=.35;fg3.gain.value=.15;
+    src.connect(f1);src.connect(f2);src.connect(f3);
+    f1.connect(fg1);f2.connect(fg2);f3.connect(fg3);
+    const layerG=ac.createGain();layerG.gain.value=vol/5;
+    fg1.connect(layerG);fg2.connect(layerG);fg3.connect(layerG);layerG.connect(breathG);
+    const steps=16;
+    for(let s=0;s<=steps;s++){
+      const t=now+(s/steps)*dur;
+      const B=beauty((s/steps)*CSTAR_Z2,OMEGA_Z2);
+      const[vf1,vf2]=vowelFromBeauty(B);
+      f1.frequency.setValueAtTime(vf1,t);f2.frequency.setValueAtTime(vf2,t);
+      f3.frequency.setValueAtTime(2500+B*600,t);vibG.gain.setValueAtTime(10+B*25,t);
+    }
+    src.frequency.setValueAtTime(pitch,now);
+    src.frequency.linearRampToValueAtTime(pitch*1.03,now+dur*.4);
+    src.frequency.linearRampToValueAtTime(pitch*.98,now+dur);
+    src.start(now);vib.start(now);src.stop(now+dur+.05);vib.stop(now+dur+.05);
+    lastOsc=src;
+  }
+  const subO=ac.createOscillator();subO.type='sine';subO.frequency.value=pitch/2;
+  const subG=ac.createGain();subG.gain.setValueAtTime(0,now);
+  subG.gain.linearRampToValueAtTime(vol*.04,now+dur*.3);subG.gain.linearRampToValueAtTime(0,now+dur);
+  subO.connect(subG);subG.connect(breathG);subO.start(now);subO.stop(now+dur+.05);
+  breathG.gain.setValueAtTime(.001,now);breathG.gain.linearRampToValueAtTime(vol*.8,now+.06);
+  for(let s=1;s<8;s++){const frac=s/8;
+    breathG.gain.linearRampToValueAtTime(vol*(.3+beauty(frac*CSTAR_Z2,OMEGA_Z2)*.7),now+.06+frac*(dur-.06-dur*.15));}
+  breathG.gain.linearRampToValueAtTime(vol*.1,now+dur*.92);
+  breathG.gain.linearRampToValueAtTime(0,now+dur);
+  if(lastOsc)lastOsc.onended=releaseVoice;
+}
+
+function playNodeSound(idx){
+  if(soundStyle==='off'||!playSO2||!ac)return;
+  if(n > 30) return;
+  if(soundStyle==='bells')bellPlayNode(idx);
+  else if(soundStyle==='voice'){
+    const pitch=(idx%2===0?175:330)*pow(2,PENTA[idx%5]/12);
+    const dur=min(2.0,CSTAR_SO2/PI/sqrt(max(1,n/3)));
+    voiceUtter(pitch,dur,.22);
+  }
+}
+function playEdgeSound(a,b){
+  if(soundStyle==='off'||!playZ2||!ac)return;
+  if(n > 20) return;
+  if(soundStyle==='bells')bellPlayEdge(a,b);
+  else if(soundStyle==='voice'){
+    const rootA=(a%2===0?175:330)*pow(2,PENTA[a%5]/12);
+    const rootB=(b%2===0?175:330)*pow(2,PENTA[b%5]/12);
+    voiceUtter((rootA+rootB)/2, .4, .07);
+  }
+}
+
+document.getElementById('soundStyle').addEventListener('change',e=>{
+  soundStyle=e.target.value;if(soundStyle!=='off'){initAudio();if(ac.state==='suspended')ac.resume();}});
+document.getElementById('chkSO2').addEventListener('change',e=>{playSO2=e.target.checked;});
+document.getElementById('chkZ2').addEventListener('change',e=>{playZ2=e.target.checked;});
+
+// ═══════════════════════════════════════════════
+// NETWORK
+// ═══════════════════════════════════════════════
+function resize(){
+  dpr=devicePixelRatio||1;const r=canvas.getBoundingClientRect();
+  W=r.width;H=r.height||W*.7;canvas.width=W*dpr;canvas.height=H*dpr;
+  canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function buildNetwork(){
+  nodes=[];edges=[];ruptures=[];messages=[];
+  const cx=W/2,cy=H/2,radius=n===1?0:min(W,H)*(n>30?.42:.38);
+  for(let i=0;i<n;i++){
+    const a=n===1?0:(i/n)*2*PI-PI/2;
+    nodes.push({x:cx+radius*cos(a),y:cy+radius*sin(a),
+      C:rnd()*CSTAR_SO2,rate:max(.3,1+OMEGA_SO2*randn()),
+      phase:rnd()*2*PI,rupturing:0,index:i,isMale:i%2===0});
+  }
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)
+    edges.push({a:i,b:j,C:rnd()*CSTAR_Z2,rate:max(.3,1+OMEGA_Z2*randn()),rupturing:0});
+  updateReadouts();
+}
+function updateReadouts(){
+  const nn=n,ne=n*(n-1)/2;
+  document.getElementById('nDisplay').textContent='K'+sub(n);
+  document.getElementById('rNodes').textContent=nn;
+  document.getElementById('rEdges').textContent=ne;
+  document.getElementById('rIndAuto').textContent=(1/n).toFixed(3);
+  document.getElementById('rGrpAuto').textContent=((n-1)/n).toFixed(3);
+  document.getElementById('rEuler').textContent=(nn-ne>=0?nn-ne:'−'+abs(nn-ne));
+  document.getElementById('eqInd').textContent=(1/n).toFixed(3);
+  document.getElementById('eqGrp').textContent=((n-1)/n).toFixed(3);
+  document.getElementById('eqChi').textContent=(nn-ne>=0?nn-ne:'−'+abs(nn-ne));
+  const ex=EXAMPLES[n];
+  const exT=document.getElementById('exTitle'),exL=document.getElementById('exLabel'),exD=document.getElementById('exDetail');
+  if(ex){exT.textContent='for instance';exL.innerHTML='<strong>'+ex.label+'</strong>';
+    exD.innerHTML='<span class="ex-nodes">'+ex.nodes+'</span>. <span class="ex-edges">'+ex.edges+'</span>. '+ex.detail;
+  }else{exT.textContent='';exL.innerHTML='';exD.innerHTML='';}
+}
+
+// ═══════════════════════════════════════════════
+// DYNAMICS
+// ═══════════════════════════════════════════════
+function updateCRR(dt){
+  const sDt=dt*speed;
+  // Nodes
+  for(const node of nodes){
+    node.C+=node.rate*sDt; node.phase+=sDt*.5;
+    if(node.C>=CSTAR_SO2){
+      node.C=0;node.rupturing=1;node.rate=max(.3,1+OMEGA_SO2*randn());
+      ruptures.push({x:node.x,y:node.y,t:1});
+      playNodeSound(node.index);
+      if(messages.length<MAX_MESSAGES){
+        const msgProb = n > 20 ? min(1, 20/n) : 1;
+        for(const edge of edges){
+          if(edge.a===node.index||edge.b===node.index){
+            if(rnd() > msgProb) continue;
+            const target=edge.a===node.index?edge.b:edge.a;
+            messages.push({from:node.index,to:target,progress:0,
+              speed:.6+rnd()*.4,col:node.isMale?COL.teal:COL.sage});
+          }
+        }
+      }
+    }
+    if(node.rupturing>0)node.rupturing-=sDt*2;
+  }
+  // Edges
+  for(const edge of edges){
+    edge.C+=edge.rate*sDt;
+    if(edge.C>=CSTAR_Z2){
+      edge.C=0;edge.rupturing=1;edge.rate=max(.3,1+OMEGA_Z2*randn());
+      const na=nodes[edge.a],nb=nodes[edge.b];
+      ruptures.push({x:(na.x+nb.x)/2,y:(na.y+nb.y)/2,t:1});
+      playEdgeSound(edge.a,edge.b);
+      // Bi-directional messages
+      if(messages.length<MAX_MESSAGES-1){
+        messages.push({from:edge.a,to:edge.b,progress:0,speed:.8+rnd()*.4,col:COL.purple});
+        messages.push({from:edge.b,to:edge.a,progress:0,speed:.8+rnd()*.4,col:COL.purple});
+      }
+      // §CRR: Entrainment
+      if(entrainment>0){
+        const kick=entrainment*OMEGA_Z2;
+        na.C=min(na.C+kick,CSTAR_SO2);
+        nb.C=min(nb.C+kick,CSTAR_SO2);
+      }
+    }
+    if(edge.rupturing>0)edge.rupturing-=sDt*2;
+  }
+  // Messages
+  for(let i=messages.length-1;i>=0;i--){
+    messages[i].progress+=messages[i].speed*sDt;
+    if(messages[i].progress>=1)messages.splice(i,1);
+  }
+  // Integration Φ
+  let sc=0,ss=0;
+  for(const node of nodes){const th=2*PI*node.C/CSTAR_SO2;sc+=cos(th);ss+=sin(th);}
+  const phi=n>0?sqrt(sc*sc+ss*ss)/n:0;
+  document.getElementById('rPhi').textContent=phi.toFixed(3);
+  document.getElementById('eqPhi').textContent=phi.toFixed(3);
+  // Rupture flashes
+  for(let i=ruptures.length-1;i>=0;i--){ruptures[i].t-=sDt*1.5;if(ruptures[i].t<=0)ruptures.splice(i,1);}
+}
+
+// ═══════════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════════
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const nodeR=n===1?30:max(2,min(22,160/n));
+  const ringW=n>50?1:2;
+  const drawAllEdges=n<=15;
+
+  // Edges
+  for(const edge of edges){
+    const a=nodes[edge.a],b=nodes[edge.b];
+    const p=edge.C/CSTAR_Z2;
+    const glow=beautyGlow(edge.C,OMEGA_Z2);
+    if(!drawAllEdges && glow===0 && edge.rupturing<=0) continue;
+    const alpha=drawAllEdges?(.06+p*.3):(.1+p*.4);
+    const w=drawAllEdges?(1+p*2):(1+p*1.5);
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    if(edge.rupturing>0){ctx.strokeStyle=COL.red;ctx.lineWidth=w+edge.rupturing*3;ctx.globalAlpha=alpha+edge.rupturing*.5;}
+    else if(glow>0){ctx.strokeStyle=`rgb(${122+62*glow|0},${90+64*glow|0},${138-64*glow|0})`;ctx.lineWidth=w+glow*2;ctx.globalAlpha=alpha+glow*.3;}
+    else{ctx.strokeStyle=COL.purple;ctx.lineWidth=w;ctx.globalAlpha=alpha;}
+    ctx.stroke();ctx.globalAlpha=1;
+  }
+
+  // Subtle background mesh at high n
+  if(!drawAllEdges){
+    const step=n>80?8:3;
+    ctx.globalAlpha=.025;ctx.strokeStyle=COL.purple;ctx.lineWidth=.5;
+    for(let i=0;i<n;i+=step)for(let j=i+step;j<n;j+=step){
+      ctx.beginPath();ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.stroke();}
+    ctx.globalAlpha=1;
+  }
+
+  // Messages
+  for(const msg of messages){
+    const from=nodes[msg.from],to=nodes[msg.to];
+    const p=msg.progress;
+    const mx=from.x+(to.x-from.x)*p,my=from.y+(to.y-from.y)*p;
+    const size=2+sin(p*PI)*3,alpha=sin(p*PI)*.7;
+    ctx.beginPath();ctx.arc(mx,my,size,0,2*PI);
+    ctx.fillStyle=msg.col;ctx.globalAlpha=alpha;ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  // Rupture flashes
+  for(const r of ruptures){
+    ctx.beginPath();ctx.arc(r.x,r.y,(1-r.t)*20+4,0,2*PI);
+    ctx.fillStyle=COL.redL;ctx.globalAlpha=r.t*.6;ctx.fill();ctx.globalAlpha=1;
+  }
+
+  // Nodes
+  for(const node of nodes){
+    const p=node.C/CSTAR_SO2,glow=beautyGlow(node.C,OMEGA_SO2);
+    const baseCol=node.isMale?COL.teal:COL.sage;
+    // Ring
+    ctx.beginPath();ctx.arc(node.x,node.y,nodeR+ringW+1,-PI/2,-PI/2+p*2*PI);
+    ctx.strokeStyle=node.rupturing>0?COL.red:(glow>0?`rgb(${90+94*glow|0},${138+16*glow|0},${122-48*glow|0})`:baseCol);
+    ctx.lineWidth=ringW+glow;ctx.globalAlpha=.5+p*.5;ctx.stroke();ctx.globalAlpha=1;
+    // Fill
+    ctx.beginPath();ctx.arc(node.x,node.y,nodeR,0,2*PI);
+    const fa=.15+p*.35;
+    if(node.rupturing>0)ctx.fillStyle=`rgba(196,90,74,${fa+node.rupturing*.3})`;
+    else if(glow>0)ctx.fillStyle=`rgba(184,154,74,${fa*glow+fa*(1-glow)*.6})`;
+    else ctx.fillStyle=node.isMale?`rgba(90,138,122,${fa})`:`rgba(122,154,106,${fa})`;
+    ctx.fill();
+    ctx.strokeStyle=node.rupturing>0?COL.red:(glow>0?COL.gold:baseCol);
+    ctx.lineWidth=1;ctx.globalAlpha=.5;ctx.stroke();ctx.globalAlpha=1;
+    // Phase dot
+    if(nodeR>6){
+      const ix=node.x+(nodeR-2)*cos(node.phase),iy=node.y+(nodeR-2)*sin(node.phase);
+      ctx.beginPath();ctx.arc(ix,iy,max(1.5,nodeR/8),0,2*PI);
+      ctx.fillStyle=glow>0?COL.gold:baseCol;ctx.globalAlpha=.5+p*.4;ctx.fill();ctx.globalAlpha=1;
+    }
+  }
+
+  // Labels (≤7)
+  const labels=NODE_LABELS[n];
+  if(labels){
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`${n===1?12:max(8,min(11,60/n+5))}px "JetBrains Mono",monospace`;
+    for(let i=0;i<nodes.length;i++){
+      const nd=nodes[i];
+      const off=n===1?(nodeR+16):(nd.y<H/2?-(nodeR+10):(nodeR+10));
+      ctx.fillStyle=COL.dim;ctx.globalAlpha=.7;ctx.fillText(labels[i]||'',nd.x,nd.y+off);
+    }ctx.globalAlpha=1;
+  }
+
+  // Gender (≤10)
+  if(n>=2&&n<=10){
+    ctx.font='7px "JetBrains Mono",monospace';ctx.textAlign='center';
+    for(const nd of nodes){
+      ctx.fillStyle=nd.isMale?'rgba(90,138,122,.35)':'rgba(122,154,106,.35)';
+      ctx.fillText(nd.isMale?'♂':'♀',nd.x,nd.y+(nd.y<H/2?-(nodeR+18):(nodeR+18)));
+    }
+  }
+
+  // HUD
+  ctx.font='10px "JetBrains Mono",monospace';ctx.fillStyle=COL.dim;ctx.textAlign='left';
+  const ne=n*(n-1)/2;
+  ctx.fillText(`K${sub(n)}: ${n} agent${n>1?'s':''}  ${ne>0?ne+' boundar'+(ne>1?'ies':'y'):'pure autonomy'}`,10,16);
+  ctx.fillText(`B(C,Ω) = exp(C/Ω)·(1−C·Ω)  peak at C*−Ω`,10,30);
+}
+
+// ═══════════════════════════════════════════════
+let lastTime=0;
+function animate(t){
+  const dt=min((t-lastTime)/1000,.05);lastTime=t;
+  updateCRR(dt);draw();requestAnimationFrame(animate);
+}
+document.getElementById('nSlider').addEventListener('input',e=>{n=parseInt(e.target.value);buildNetwork();});
+document.getElementById('speedSlider').addEventListener('input',e=>{speed=parseFloat(e.target.value);});
+document.getElementById('entrainSlider').addEventListener('input',e=>{
+  entrainment=parseFloat(e.target.value);
+  document.getElementById('eqE2').textContent=(entrainment*OMEGA_Z2).toFixed(3);
+});
+window.addEventListener('resize',()=>{resize();buildNetwork();});
+resize();buildNetwork();requestAnimationFrame(animate);
+</script>
+</body>
+</html>
