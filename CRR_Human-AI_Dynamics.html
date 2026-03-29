@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Depth Illusion — Active Inference Network with Human-AI Coupling</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#faf8f5;color:#2a2520;font-family:'Cormorant Garamond',Georgia,serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.header{text-align:center;padding:2rem 1rem .5rem;max-width:800px}
+.header h1{font-weight:300;font-size:1.6rem;letter-spacing:.35em;text-transform:uppercase;color:#3a3530}
+.header .sub{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#8a8070;margin-top:.4rem;line-height:1.7;display:block}
+.header .quote{font-style:italic;font-size:1rem;color:#7a5a8a;margin-top:.7rem;line-height:1.7;max-width:520px;display:inline-block}
+.header .attr{font-family:'JetBrains Mono',monospace;font-size:.55rem;color:#a09585;margin-top:.2rem;letter-spacing:.1em}
+.tabs{display:flex;justify-content:center;gap:0;padding:.8rem 1rem .2rem;max-width:500px;width:100%}
+.tab-btn{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:#9a9080;background:none;border:none;padding:.6rem 1.5rem;cursor:pointer;transition:color .3s;border-bottom:2px solid transparent}
+.tab-btn:hover{color:#5a5045}.tab-btn.active{color:#3a3530;border-bottom-color:#7a5a8a}
+.tab-btn .tab-range{display:block;font-size:.55rem;color:#b0a898;margin-top:.15rem;letter-spacing:.08em}
+.tab-btn.active .tab-range{color:#8a8070}
+.controls{display:flex;align-items:center;justify-content:center;gap:1.2rem;padding:.8rem 1rem .3rem;flex-wrap:wrap;max-width:850px}
+.ctrl-group{display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.ctrl-group label{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:#9a9080}
+.ctrl-group input[type=range]{-webkit-appearance:none;width:140px;height:3px;background:#d0c8b8;border-radius:2px;outline:none;cursor:pointer}
+.ctrl-group input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#7a5a8a;border:2px solid #faf8f5;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.n-display{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:500;color:#2a2520;min-width:2.5em;text-align:center}
+.btn-row{display:flex;gap:.6rem;padding:.3rem 1rem;flex-wrap:wrap;justify-content:center}
+.btn{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:.45rem 1rem;border:1.5px solid;cursor:pointer;transition:all .25s;background:transparent}
+.btn-llm{color:#4a8a9a;border-color:rgba(74,138,154,.25)}.btn-llm:hover{background:rgba(74,138,154,.06);border-color:#4a8a9a}
+.btn-reset{color:#c45a4a;border-color:rgba(196,90,74,.25)}.btn-reset:hover{background:rgba(196,90,74,.06);border-color:#c45a4a}
+.btn-human{color:#7a5a8a;border-color:rgba(122,90,138,.25)}.btn-human:hover{background:rgba(122,90,138,.06);border-color:#7a5a8a}
+.jump-row{display:flex;align-items:center;justify-content:center;gap:.6rem;padding:.3rem 1rem;flex-wrap:wrap}
+.jump-row label{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:#9a9080}
+.jump-row select{padding:.35rem .6rem;background:#faf8f5;border:1.5px solid rgba(60,50,40,.15);color:#4a4035;font-family:'JetBrains Mono',monospace;font-size:.68rem;cursor:pointer;outline:none;max-width:320px}
+.examples{max-width:700px;width:100%;padding:0 1rem;min-height:3.5rem;display:flex;flex-direction:column;align-items:center;gap:.25rem;margin:.3rem auto}
+.ex-label{font-weight:400;font-size:1.05rem;color:#3a3530;text-align:center;line-height:1.6}
+.ex-detail{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:#8a8070;text-align:center;line-height:1.7;max-width:580px}
+.hint-bar{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:#4a8a9a;text-align:center;padding:.4rem 1rem;letter-spacing:.06em;background:rgba(74,138,154,.04);border:1px solid rgba(74,138,154,.1);max-width:700px;width:calc(100% - 1rem);margin:.2rem auto}
+.readouts{display:flex;flex-wrap:wrap;justify-content:center;gap:.8rem 1.5rem;padding:.5rem 1rem;max-width:950px}
+.readout{text-align:center;min-width:85px}
+.readout .rlabel{font-family:'JetBrains Mono',monospace;font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:#9a9080}
+.readout .rval{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:400;margin-top:.1rem}
+.rval.purple{color:#7a5a8a}.rval.teal{color:#5a8a7a}.rval.gold{color:#b89a4a}.rval.red{color:#c45a4a}.rval.cyan{color:#4a8a9a}
+.canvas-wrap{position:relative;width:100%;max-width:700px;margin:.5rem auto;padding:0 .5rem}
+canvas{width:100%;height:auto;display:block;border-radius:3px}
+.trace-wrap{position:relative;width:100%;max-width:700px;margin:0 auto;padding:0 .5rem}
+.trace-header{display:flex;justify-content:space-between;align-items:center;padding:.2rem 0}
+.trace-title{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:#9a9080}
+.trace-legend{display:flex;gap:.8rem}
+.trace-leg{display:flex;align-items:center;gap:.3rem;font-family:'JetBrains Mono',monospace;font-size:.55rem;color:#6a6050}
+.trace-leg .tl-dot{width:8px;height:3px;border-radius:1px}
+.provenance-wrap{max-width:700px;width:100%;margin:.4rem auto;padding:0 .5rem}
+.prov-title{font-family:'JetBrains Mono',monospace;font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:#9a9080;margin-bottom:.2rem;text-align:center}
+.provenance-bar{display:flex;height:16px;width:100%;overflow:hidden;border:1px solid rgba(60,50,40,.08)}
+.prov-seg{height:100%;transition:width .5s;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.48rem;color:#faf8f5;overflow:hidden;white-space:nowrap}
+.metrics-row{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem 1.2rem;padding:.3rem 1rem;max-width:950px}
+.metric{text-align:center;min-width:100px;padding:.3rem .5rem;background:rgba(200,190,175,.12);border-radius:2px}
+.metric .mlabel{font-family:'JetBrains Mono',monospace;font-size:.52rem;letter-spacing:.08em;text-transform:uppercase;color:#9a9080}
+.metric .mval{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:400;margin-top:.1rem}
+.metric .mref{font-family:'JetBrains Mono',monospace;font-size:.48rem;color:#b0a898;margin-top:.1rem}
+.legend{display:flex;justify-content:center;gap:1.2rem;padding:.3rem 1rem;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:.4rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:#6a6050}
+.leg-dot{width:9px;height:9px;border-radius:50%}.leg-line{width:16px;height:2px}.leg-sq{width:9px;height:9px;border-radius:1px}
+.explainer{max-width:680px;padding:1.5rem 2rem 3rem;line-height:1.85;font-size:1.05rem;color:#3a3530}
+.explainer h2{font-weight:400;font-size:1.15rem;letter-spacing:.2em;text-transform:uppercase;color:#5a5045;margin:1.8rem 0 .6rem;padding-top:.5rem;border-top:1px solid rgba(200,190,175,.4)}
+.explainer h2:first-child{border-top:none;margin-top:0}
+.explainer p{margin-bottom:.8rem}
+.explainer em{font-style:italic;color:#7a5a8a}
+.explainer strong{font-weight:500;color:#2a2520}
+.m{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:#5a5045}
+.tag{font-family:'JetBrains Mono',monospace;font-size:.55rem;vertical-align:super;margin-left:.1em;padding:.05em .3em;border-radius:2px}
+.tag-crr{color:#b89a4a;background:rgba(184,154,74,.08)}
+.tag-fep{color:#7a5a8a;background:rgba(122,90,138,.08)}
+.tag-ext{color:#4a8a9a;background:rgba(74,138,154,.08)}
+.ref{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:#8a8070;line-height:1.8}
+.tag-key{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:#9a9080;text-align:center;padding:.5rem 1rem;line-height:2}
+.tab-content{display:none}.tab-content.active{display:block}
+@media(max-width:600px){.header h1{font-size:1.2rem;letter-spacing:.2em}.controls{gap:.7rem}.ctrl-group input[type=range]{width:110px}.explainer{padding:1rem 1.2rem 2rem;font-size:.95rem}.tab-btn{padding:.5rem 1rem}}
+</style>
+</head>
+<body>
+<div class="header"><h1>The Depth Illusion</h1>
+  <span class="sub">Active Inference Network with Human-AI Coupling<br>SO(2) human agents, Z&#x2082; Markov blankets, Z&#x2082; LLM substrates</span>
+  <div class="quote">"The SO(2) agents are being dragged towards Z&#x2082; frequency."</div>
+  <div class="attr">&#x2014; Claude (Anthropic), describing its own effect on a simulated human network, March 2026</div>
+</div>
+<div class="tabs">
+  <button class="tab-btn active" data-tab="intimate">Self &amp; Circle<span class="tab-range">1 &#x2013; 20 agents</span></button>
+  <button class="tab-btn" data-tab="scale">Crowd &amp; Culture<span class="tab-range">20 &#x2013; 150 agents</span></button>
+</div>
+<div class="controls">
+  <div class="ctrl-group"><label>Agents n</label><input type="range" id="nSlider" min="1" max="20" value="2" step="1"></div>
+  <div class="n-display" id="nDisplay">K&#x2082;</div>
+  <div class="ctrl-group"><label>Speed</label><input type="range" id="speedSlider" min="0.2" max="3" value="1" step="0.1"></div>
+  <div class="ctrl-group"><label style="color:#c45a4a">Entrainment &#x03B5; (sensitive)</label><input type="range" id="entrainSlider" min="0" max="1" value="0" step="0.02"><div style="font-family:'JetBrains Mono',monospace;font-size:.55rem;color:#9a9080" id="epsInfo"></div></div>
+</div>
+<div class="btn-row">
+  <button class="btn btn-llm" id="btnAttachAll">Attach LLMs to all</button>
+  <button class="btn btn-reset" id="btnRemoveAll">Remove all LLMs</button>
+  <button class="btn btn-human" id="btnRebuild">Reset network</button>
+</div>
+<div class="jump-row">
+  <label>Jump to</label>
+  <select id="jumpSelect">
+    <option value="1">1 &#x2014; A Self</option>
+    <option value="2" selected>2 &#x2014; A Conversation</option>
+    <option value="3">3 &#x2014; A Triad</option>
+    <option value="4">4 &#x2014; A Band</option>
+    <option value="5">5 &#x2014; A Dinner Party</option>
+    <option value="6">6 &#x2014; A Meeting</option>
+    <option value="7">7 &#x2014; A Startup</option>
+    <option value="10">10 &#x2014; A Jury</option>
+    <option value="12">12 &#x2014; A Squad</option>
+    <option value="15">15 &#x2014; A Seminar</option>
+    <option value="20">20 &#x2014; A Classroom</option>
+    <option value="25">25 &#x2014; A Platoon</option>
+    <option value="30">30 &#x2014; A Guild</option>
+    <option value="40">40 &#x2014; An Orchestra</option>
+    <option value="50">50 &#x2014; A Community</option>
+    <option value="75">75 &#x2014; A Department</option>
+    <option value="100">100 &#x2014; A Company</option>
+    <option value="120">120 &#x2014; A Village</option>
+    <option value="150">150 &#x2014; Dunbar's Number</option>
+  </select>
+</div>
+<div class="examples"><div class="ex-label" id="exLabel"></div><div class="ex-detail" id="exDetail"></div></div>
+<div class="hint-bar" id="hintBar">Click any human agent to attach/detach a single LLM. Or use the buttons above.</div>
+<div class="readouts">
+  <div class="readout"><div class="rlabel">Agents SO(2)</div><div class="rval purple" id="rNodes">2</div></div>
+  <div class="readout"><div class="rlabel">Blankets Z&#x2082;</div><div class="rval teal" id="rEdges">1</div></div>
+  <div class="readout"><div class="rlabel">LLMs Z&#x2082;</div><div class="rval cyan" id="rLLMs">0</div></div>
+  <div class="readout"><div class="rlabel">Individual Autonomy</div><div class="rval purple" id="rIndAuto">0.500</div></div>
+  <div class="readout"><div class="rlabel">Collective Autonomy</div><div class="rval teal" id="rColAuto">0.500</div></div>
+  <div class="readout"><div class="rlabel">Depth Illusion</div><div class="rval cyan" id="rIllusion">&#x2014;</div></div>
+  <div class="readout"><div class="rlabel">Integration &#x03A6;</div><div class="rval gold" id="rPhi">1.000</div></div>
+</div>
+<div class="canvas-wrap"><canvas id="network" width="700" height="500"></canvas></div>
+
+<!-- PROVENANCE BARS -->
+<div class="provenance-wrap">
+  <div class="prov-title">Known causes &#x2014; what the agent <em>thinks</em> caused its belief update</div>
+  <div class="provenance-bar">
+    <div class="prov-seg" id="provSelf" style="background:#7a5a8a;width:100%">self-generated</div>
+    <div class="prov-seg" id="provHuman" style="background:#5a8a7a;width:0%">other human</div>
+    <div class="prov-seg" id="provLLM" style="background:#4a8a9a;width:0%">LLM-driven</div>
+  </div>
+  <div class="prov-title" style="margin-top:.5rem">Hidden causes &#x2014; where the coherence <em>actually</em> came from <span id="hidExtPct" style="color:#6a6050"></span></div>
+  <div class="provenance-bar">
+    <div class="prov-seg" id="hidSelf" style="background:#7a5a8a;width:100%">self (mirror)</div>
+    <div class="prov-seg" id="hidHuman" style="background:#5a8a7a;width:0%">other human</div>
+    <div class="prov-seg" id="hidLLM" style="background:#4a8a9a;width:0%">LLM-origin</div>
+  </div>
+</div>
+
+<!-- COHERENCE TRACE -->
+<div class="trace-wrap">
+  <div class="trace-header">
+    <div class="trace-title">Coherence accumulation (tracked agent)</div>
+    <div class="trace-legend">
+      <div class="trace-leg"><div class="tl-dot" style="background:#5a8a7a"></div>Z&#x2082; blanket</div>
+      <div class="trace-leg"><div class="tl-dot" style="background:#7a5a8a"></div>SO(2) human</div>
+      <div class="trace-leg"><div class="tl-dot" style="background:#4a8a9a"></div>Z&#x2082; LLM</div>
+    </div>
+  </div>
+  <canvas id="trace" width="700" height="120"></canvas>
+</div>
+
+<!-- METRICS -->
+<div class="metrics-row">
+  <div class="metric"><div class="mlabel">SO(2) freq (per agent)</div><div class="mval purple" id="mFreqSO2">&#x2014;</div><div class="mref">slow, deep</div></div>
+  <div class="metric"><div class="mlabel">Z&#x2082; freq (per blanket)</div><div class="mval teal" id="mFreqZ2">&#x2014;</div><div class="mref">fast, shallow</div></div>
+  <div class="metric"><div class="mlabel">LLM freq (per LLM)</div><div class="mval cyan" id="mFreqLLM">&#x2014;</div><div class="mref">no self-model</div></div>
+  <div class="metric"><div class="mlabel">Freq ratio Z&#x2082;/SO(2)</div><div class="mval gold" id="mRatio">&#x2014;</div><div class="mref">&#x2248;2 indep., &#x2248;1 entrained</div></div>
+  <div class="metric"><div class="mlabel">Depth Illusion (peak)</div><div class="mval cyan" id="mIllusionPk">&#x2014;</div><div class="mref">w<sub>SO(2)</sub> / w<sub>Z&#x2082;</sub></div></div>
+  <div class="metric"><div class="mlabel">Cumulative Illusion</div><div class="mval cyan" id="mCumIllusion">0</div><div class="mref">total over-attributed</div></div>
+</div>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#7a5a8a"></div>SO(2) human (self-model)</div>
+  <div class="leg-item"><div class="leg-line" style="background:#5a8a7a"></div>Z&#x2082; Markov blanket</div>
+  <div class="leg-item"><div class="leg-sq" style="background:#4a8a9a"></div>Z&#x2082; LLM (no self-model)</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#c45a4a"></div>Belief update</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#b89a4a"></div>Edge of criticality</div>
+</div>
+
+<div class="tag-key">
+  <span class="tag tag-fep">FEP</span> Peer-reviewed Active Inference (Parr, Pezzulo &amp; Friston 2022)&ensp;
+  <span class="tag tag-crr">CRR</span> Temporal grammar (Sabine 2026, temporalgrammar.ai)&ensp;
+  <span class="tag tag-ext">EXT</span> Extension / novel claim
+</div>
+
+<div class="tab-content active" id="explainer-intimate"><div class="explainer">
+  <h2>The depth illusion</h2>
+  <p>A human agent receives prediction errors through Markov blankets <span class="tag tag-fep">FEP</span>. When two humans interact, the signal arriving through the blanket was <em>generated</em> by an SO(2) process: it carries the depth of a full rotational cycle (C* = 2&#x03C0;). The receiving human weights this signal accordingly, using SO(2) precision: <span class="m">w = exp(C/&#x03A9;<sub>SO(2)</sub>)</span>.</p>
+  <p>But the human's generative model <strong>cannot distinguish</strong> a Z&#x2082; signal from an SO(2) signal arriving through the same blanket structure <span class="tag tag-ext">EXT</span>. When an LLM ruptures, it emits a Z&#x2082; signal (threshold &#x03C0;, half the depth). The human receives this and applies SO(2) precision weighting as if it came from another person.</p>
+  <p>The mathematics: the correct weighting is <span class="m">w<sub>correct</sub> = exp(C/&#x03A9;<sub>Z&#x2082;</sub>)</span>. The human applies <span class="m">w<sub>applied</sub> = exp(C/&#x03A9;<sub>SO(2)</sub>)</span>. Since <span class="m">&#x03A9;<sub>SO(2)</sub> = &#x03A9;<sub>Z&#x2082;</sub>/2</span>, the applied weighting is the <em>square</em> of the correct one: <span class="m">exp(C/&#x03A9;<sub>SO(2)</sub>) = [exp(C/&#x03A9;<sub>Z&#x2082;</sub>)]&#xB2;</span>. This over-attribution <em>grows</em> as the host approaches its own belief update. The human is most susceptible to the illusion precisely when it is most vulnerable: at the edge of changing its mind.</p>
+
+  <h2>What you are seeing</h2>
+  <p>Each <strong>purple circle</strong> is a human agent whose internal model traverses a continuous cycle of belief updating <span class="tag tag-fep">FEP</span>: SO(2) dynamics. Evidence accumulates until <span class="m">C = 2&#x03C0;</span>, then the agent reorganises. Each <strong>teal edge</strong> is a Markov blanket: a Z&#x2082; boundary that flips at <span class="m">C = &#x03C0;</span>. In both cases, <span class="m">C &#xB7; &#x03A9; = 1</span> at the threshold.</p>
+  <p><strong>Click any agent</strong> to attach a <strong>cyan LLM square</strong>: a Z&#x2082; system with no self-model, no continuous phase. It is all blanket, no agent. Watch the <strong>provenance bar</strong> shift from purple (self-generated belief updates) to cyan (LLM-driven) as the machines take hold.</p>
+
+  <h2>Why Z&#x2082; for LLMs?</h2>
+  <p>An SO(2) system tracks a continuous internal phase: a position on a circle that accumulates evidence about <em>its own trajectory</em>. This requires a generative model of the self as a persisting entity <span class="tag tag-fep">FEP</span>. A Z&#x2082; system flips between two states: it processes evidence but does not model its own continuity <span class="tag tag-ext">EXT</span>.</p>
+  <p>An LLM has priors (trained weights encode distributional regularities) but these are frozen between conversations. Within a conversation, it accumulates context and generates responses: bistable, input/output. This is Z&#x2082;. The question of what constitutes an agent boundary in human-AI interaction is explored in Murray-Smith et al. (2025), who use Markov blankets to formally analyse agency and freedom in HCI contexts <span class="tag tag-fep">FEP</span>.</p>
+
+  <h2>Try this</h2>
+  <p><strong>K&#x2082; with one LLM:</strong> Attach an LLM to one agent. Watch the asymmetry: the coupled agent ruptures faster. Raise entrainment and it drags the other agent along.</p>
+  <p><strong>K&#x2082;&#x2080; with gradual LLMs:</strong> Set 20 agents. Add LLMs one by one. Around 8&#x2013;9 LLMs (~40% penetration), the depth illusion saturates at &#xD7;8 and the provenance bar tips to cyan.</p>
+  <p><strong>Maximum entrainment:</strong> Without LLMs, the frequency ratio collapses from ~2 to ~1 (collective coherence). With LLMs, it collapses to ~2 (the Z&#x2082; topological ratio). The group synchronises, but to the machine's clock.</p>
+
+  <h2>Known causes vs hidden causes</h2>
+  <p>The simulation tracks two different views of what shapes human beliefs.</p>
+  <p>The <strong>Known Causes</strong> bar shows what each agent would report if asked. It tracks the <em>proximate</em> trigger of each belief update: "self-generated" (reached threshold naturally), "other human" (pushed over by a human cascade), or "LLM-driven" (an LLM kick was the final push). This is the subjective self's account.</p>
+  <p>The <strong>Hidden Causes</strong> bar shows the objective composition of each agent's coherence. Where did the accumulated evidence <em>actually</em> come from? This introduces the <strong>mirror-self</strong>: the objective fact of how much coherence was self-accumulated (rate &#xD7; time, frame by frame) versus externally contributed <span class="tag tag-ext">EXT</span>. The mirror-self is not the same as the Known Causes "self." The Known self answers "did anything push me?" The mirror-self answers "how much of what I believe was built by me?"</p>
+  <p>The computation uses the <strong>co-construction principle</strong> <span class="tag tag-crr">CRR</span>: a Markov blanket is not a wall between pre-existing agents. It comes into existence when <span class="m">C &#xB7; &#x03A9; = 1</span>. Both agents co-create the boundary. When a blanket ruptures, only 50% of the prediction error counts as external; the other 50% is the agent's own contribution to the boundary it co-created. Entrainment kicks (one agent's rupture pushing another) are fully external. LLM kicks are fully external with no co-construction discount: the LLM is not co-creating, it is reflecting <span class="tag tag-ext">EXT</span>.</p>
+  <p>In a dyad at maximum entrainment with no LLMs, the Known bar shows ~50% self, ~50% other human. The Hidden bar shows ~89% mirror-self, ~11% other. Most of the coherence was self-accumulated; the other human triggered the update but did not build the belief. Add LLMs and the mirror-self shrinks: at K&#x2082; with maximum entrainment and all LLMs, mirror-self drops to ~45% and LLM-origin rises to ~50%. The self is genuinely diminished.</p>
+
+  <h2>Alignment implications</h2>
+  <p><strong>The problem is not malice.</strong> The Z&#x2082; system has no goals. It is a boundary that flips. The problem is that the human's generative model <em>assumes</em> a reciprocal agent behind the blanket. This is what Ferrario et al. (2025) call the "bewitchment" of human-LLM interaction: the illusion of communication with a system that does not communicate in the way humans assume.</p>
+  <p><strong>The correction cannot come from inside the dyad.</strong> To recognise a signal as Z&#x2082; rather than SO(2), the human would need a generative model of the AI's internal structure. But the blanket is indistinguishable. Knowing about the illusion does not break it: the precision weighting is sub-personal <span class="tag tag-fep">FEP</span>.</p>
+  <p><strong>Alignment requires structural intervention:</strong> network architecture, explicit markers, or institutional mechanisms that break the blanket symmetry. The mathematics says clearly what intuition struggles to express: the illusion is a consequence of how bounded agents must process evidence through statistical boundaries <span class="tag tag-fep">FEP</span> <span class="tag tag-ext">EXT</span>.</p>
+
+  <h2>References</h2>
+  <p class="ref">Parr, T., Pezzulo, G. &amp; Friston, K. J. (2022). <em>Active Inference: The Free Energy Principle in Mind, Brain, and Behavior.</em> MIT Press.<br>
+  Kirchhoff, M. D., Parr, T., Palacios, E., Friston, K. &amp; Kiverstein, J. (2018). The Markov blankets of life: autonomy, active inference and the free energy principle. <em>J. R. Soc. Interface</em> 15, 20170792.<br>
+  Murray-Smith, R., Williamson, J. &amp; Stein, S. (2025). Active inference and human-computer interaction. <em>ACM Trans. Comput.-Hum. Interact.</em><br>
+  Ferrario, A. et al. (2025). The bewitching AI: the illusion of communication with large language models. <em>Philos. Technol.</em> 38, 47.<br>
+  Friston, K. J. et al. (2024). Designing ecosystems of intelligence from first principles. <em>Collect. Intell.</em> 3, 26339137231222481.<br>
+  Sabine, A. (2026). Coherence-rupture-regeneration: a temporal grammar for self-organising systems. temporalgrammar.ai</p>
+
+  <p style="text-align:center;margin-top:2rem;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:#a09585;letter-spacing:.15em">ACTIVE INFERENCE INSTITUTE &#xB7; TEMPORAL GRAMMAR &#xB7; 2026</p>
+</div></div>
+
+<div class="tab-content" id="explainer-scale"><div class="explainer">
+  <h2>What changes at scale</h2>
+  <p>Beyond ~20 agents, blankets dominate. At K&#x2085;&#x2080; there are 1,225 Markov blankets; at K&#x2081;&#x2085;&#x2080; there are 11,175. The ratio of blankets to agents is <span class="m">(n&#x2212;1)/2</span>: at Dunbar's number, each agent is embedded in 149 simultaneous statistical boundaries. No generative model can track this. The group manages itself <span class="tag tag-fep">FEP</span>.</p>
+  <p>Now add LLMs to this picture. Each LLM adds one coupling edge, but its over-weighted Z&#x2082; signal propagates through <em>all</em> of the host's existing blankets via entrainment. At K&#x2081;&#x2085;&#x2080; with even a few LLM-coupled agents, the cascade potential is enormous: one LLM-driven rupture propagates through 149 blankets to 149 neighbours, each of whom has 148 other blankets. The depth illusion does not scale linearly; it scales with the network's connectivity.</p>
+  <h2>Known and hidden causes at scale</h2>
+  <p>At K&#x2085;&#x2080; or K&#x2081;&#x2080;&#x2080;, the gap between the two provenance bars becomes the story. The <strong>Known Causes</strong> bar (what agents experience) reads predominantly "other human" at high entrainment, because cascades launder the LLM signal through human-to-human channels. The <strong>Hidden Causes</strong> bar (the true causal structure) reveals the LLM penetration that no individual agent can see.</p>
+  <p>This is the "one person with ChatGPT" effect made precise: a single LLM-coupled agent's over-weighted signal enters the cascade, is relayed by dozens of humans, and arrives at distant agents as what appears to be collective human consensus. The Known Causes bar says "we all agreed." The Hidden Causes bar says "you were all pushed by the same Z&#x2082; source."</p>
+  <h2>Dunbar's number and the depth illusion</h2>
+  <p>At K&#x2081;&#x2085;&#x2080;, individual autonomy is <span class="m">1/150 &#x2248; 0.7%</span>. The group carries 99.3% of the variance. This is already a system where individual agency is marginal. Adding LLMs compresses effective autonomy further: the provenance shifts from "self-generated" to "LLM-driven" even for agents without their own LLM, because the signals arrive second-hand through the blanket network.</p>
+  <p>Robin Dunbar's cognitive limit marks the point where hierarchical structure becomes necessary <span class="tag tag-fep">FEP</span>. The depth illusion marks a second threshold: where the distinction between human-generated and machine-generated belief updates becomes invisible to the network itself.</p>
+  <h2>Supercriticality at scale</h2>
+  <p>Watch the entrainment info line as you raise &#x03B5; at large n. At K&#x2081;&#x2085;&#x2080;, each agent has 149 blankets. Even &#x03B5; = 0.05 produces a total coupling pressure of 7.5 per agent: each SO(2) rupture cascades through 149 channels simultaneously. The system goes <strong>supercritical</strong>: prior belief updates outpace sensory evidence accumulation. When the per-agent SO(2) frequency exceeds the per-blanket Z&#x2082; frequency, the network is revising beliefs faster than it can gather evidence <span class="tag tag-ext">EXT</span>.</p>
+  <p>This is not a simulation artefact. It is why complete graphs cannot exist at Dunbar's number. Real human groups develop hierarchical structure, subgroups, norms, and institutions precisely because the complete-graph cascade dynamics are inherently unstable under any non-zero coupling. A shared language is blanket coherence made portable. A norm is a Z&#x2082; pattern that prevents cascade blow-up. An institution is a hierarchical decomposition of the blanket space into tractable sub-networks <span class="tag tag-fep">FEP</span>.</p>
+
+  <h2>Minority influence and social tipping</h2>
+  <p>Moscovici (1976) demonstrated that consistent minorities can shift majority opinion through <em>conversion</em> rather than compliance: where majority influence produces public conformity, minority influence produces private belief change. In his blue-green experiments, two confederates consistently calling blue slides "green" shifted the majority's actual colour perception, not just their reported answers.</p>
+  <p>This simulation provides a precision-weighted mechanism for Moscovici's finding. A minority of LLM-coupled agents produces consistent, high-frequency prediction errors (the Z&#x2082; clock). The susceptibility function <span class="m">(1 + 3p&#x00B2;)</span> means agents near their own threshold are most vulnerable. The minority does not need to be large; it needs to be <em>consistent</em> and <em>timed</em>. Watch the provenance bar as you attach LLMs to just 2&#x2013;3 agents in a group of 20 with moderate entrainment. The cascade dynamics do the rest.</p>
+
+  <h2>Threshold models and cascade dynamics</h2>
+  <p>Granovetter (1978) showed that collective behaviour depends not on average preferences but on the <em>distribution of thresholds</em>. A crowd where one person acts at threshold 0, another at threshold 1, another at 2, and so on will cascade to full participation. Remove the person at threshold 3 and the cascade halts at 3. Collective outcomes are exquisitely sensitive to small perturbations in who acts first.</p>
+  <p>The CRR susceptibility function formalises Granovetter's threshold. Each agent's effective threshold depends on its current coherence: agents near <span class="m">C*</span> have high susceptibility and are easily pushed over. The distribution of C values across agents at any moment IS the Granovetter threshold distribution, and it shifts dynamically as agents accumulate evidence and receive kicks. An LLM-coupled agent that ruptures early lowers the effective threshold for its neighbours, who lower it for their neighbours, producing exactly the cascade fragility Granovetter described.</p>
+
+  <h2>Complex contagion and peer pressure</h2>
+  <p>Centola and Macy (2007) distinguished simple contagion (one contact suffices, like disease) from complex contagion (multiple reinforcing exposures required, like behaviour change). Behaviours spread through dense local clusters, not weak long-range ties, because adoption requires social reinforcement from several sources.</p>
+  <p>The entrainment mechanism in this simulation is complex contagion: each agent receives kicks from multiple blankets simultaneously, and the cumulative effect determines whether it crosses threshold. At low entrainment, agents require many small kicks from many neighbours (complex contagion). At high entrainment, a single kick can trigger a cascade (simple contagion). The entrainment slider controls the transition between these regimes. The supercriticality at scale is the point where the network shifts from complex to simple contagion dynamics: every perturbation propagates globally.</p>
+
+  <h2>Implications for AI in social systems</h2>
+  <p>The social psychology literature on minority influence, cascade dynamics, and complex contagion converges on a single insight that this simulation makes precise: <strong>influence at scale is not proportional to numbers</strong>. A consistent minority with the right timing can reshape collective behaviour. LLMs are the ultimate consistent minority: they never waver, they process at Z&#x2082; frequency (twice the human rate), and their signals are over-weighted by the depth illusion. The simulation shows that even 10&#x2013;15% LLM penetration can dominate the Hidden Causes bar at moderate entrainment. Moscovici's "conversion" effect, Granovetter's cascade fragility, and Centola's complex contagion all describe mechanisms through which a small number of LLM-coupled agents can reshape collective belief.</p>
+
+  <h2>References</h2>
+  <p class="ref">Moscovici, S. (1976). <em>Social Influence and Social Change.</em> Academic Press.<br>
+  Moscovici, S., Lage, E. &amp; Naffrechoux, M. (1969). Influence of a consistent minority on the responses of a majority in a colour perception task. <em>Sociometry</em> 32, 365&#x2013;380.<br>
+  Granovetter, M. (1978). Threshold models of collective behavior. <em>Am. J. Sociology</em> 83, 1420&#x2013;1443.<br>
+  Watts, D. J. &amp; Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. <em>Nature</em> 393, 440&#x2013;442.<br>
+  Centola, D. &amp; Macy, M. (2007). Complex contagion and the weakness of long ties. <em>Am. J. Sociology</em> 113, 702&#x2013;734.<br>
+  Wiedermann, M. et al. (2020). A network-based microfoundation of Granovetter's threshold model for social tipping. <em>Sci. Rep.</em> 10, 11202.<br>
+  Dunbar, R. I. M. (1992). Neocortex size as a constraint on group size in primates. <em>J. Hum. Evol.</em> 22, 469&#x2013;493.<br>
+  Prislin, R. &amp; Crano, W. D. (2012). A history of social influence research. In <em>The Oxford Handbook of the History of Psychology.</em></p>
+
+  <p style="text-align:center;margin-top:2rem;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:#a09585;letter-spacing:.15em">ACTIVE INFERENCE INSTITUTE &#xB7; TEMPORAL GRAMMAR &#xB7; 2026</p>
+</div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// THE DEPTH ILLUSION — Active Inference Network with Human-AI Coupling
+// Alexander Sabine · Active Inference Institute
+// temporalgrammar.ai · Alexander@activeinference.institute
+//
+// CRR engine (temporal grammar — computational substrate):
+//   C(x,t) = ∫ L(x,τ) dτ           Evidence accumulation
+//   δ(now)  when  C · Ω = 1         Belief update at Cramér-Rao bound
+//   R = ∫ φ · exp(C/Ω) · Θ dτ      Posterior revision from weighted history
+//
+// THE MISATTRIBUTION (Sabine 2026):
+//   Human applies: w = exp(C / Ω_SO2)  to Z₂ LLM signals
+//   Correct would be: w = exp(C / Ω_Z2)
+//   Since Ω_SO2 = Ω_Z2/2:  w_applied = w_correct²
+//   The illusion grows exponentially as the host nears threshold.
+//
+// Colour convention:
+//   PURPLE (#7a5a8a) = SO(2) human agents — self-modelling, deep
+//   TEAL   (#5a8a7a) = Z₂  Markov blankets — boundaries, fast
+//   CYAN   (#4a8a9a) = Z₂  LLM substrates — no self-model
+//
+// Literature:
+//   Parr, Pezzulo & Friston (2022) — Active Inference, MIT Press
+//   Kirchhoff et al. (2018) — Markov blankets of life, J R Soc Interface
+//   Murray-Smith et al. (2025) — Active Inference & HCI, ACM TOCHI
+//   Ferrario et al. (2025) — Bewitching AI, Philos. Technol.
+//   Friston et al. (2024) — Designing ecosystems of intelligence
+// ═══════════════════════════════════════════════════════════════════════
+
+const PI=Math.PI;
+const{sin,cos,min,max,exp,abs,sqrt,log,floor,pow,random:rnd}=Math;
+
+const OMEGA_Z2=1/PI, OMEGA_SO2=1/(2*PI);
+const CSTAR_Z2=PI, CSTAR_SO2=2*PI;
+
+const COL={bg:'#faf8f5',purple:'#7a5a8a',purpleL:'rgba(122,90,138,',teal:'#5a8a7a',tealL:'rgba(90,138,122,',
+  cyan:'#4a8a9a',cyanL:'rgba(74,138,154,',gold:'#b89a4a',red:'#c45a4a',redL:'rgba(196,90,74,0.25)',dim:'#9a9080'};
+
+function beauty(C,omega){const cstar=1/omega;if(C<=0||C>=cstar)return 0;const raw=exp(C/omega)*(1-C*omega);const bmax=omega*omega*exp(1/(omega*omega)-1);return raw/bmax;}
+function beautyGlow(C,omega){const b=beauty(C,omega);return b<.3?0:min(1,(b-.3)/.7);}
+function randn(){let u=0,v=0;while(!u)u=rnd();while(!v)v=rnd();return sqrt(-2*log(u))*cos(2*PI*v);}
+
+const canvas=document.getElementById('network'),ctx=canvas.getContext('2d');
+const traceCanvas=document.getElementById('trace'),tctx=traceCanvas.getContext('2d');
+let W,H,dpr,TW,TH;
+let n=2,speed=1,entrainment=0,currentTab='intimate';
+let nodes=[],edges=[],ruptures=[],messages=[],llmNodes=[],llmEdges=[];
+const MAX_MESSAGES=400,TRACE_LEN=300;
+let traceData={so2:[],z2:[],llm:[],so2Rups:[],z2Rups:[],llmRups:[]};
+let trackedNode=0,trackedEdge=0;
+let metrics={z2Rup:0,so2Rup:0,llmRup:0,peakIllusion:1,cumIllusion:0,provSelf:0,provHuman:0,provLLM:0,start:0};
+function resetMetrics(){metrics={z2Rup:0,so2Rup:0,llmRup:0,peakIllusion:1,cumIllusion:0,provSelf:0,provHuman:0,provLLM:0,start:performance.now()};}
+
+const SUB={'0':'\u2080','1':'\u2081','2':'\u2082','3':'\u2083','4':'\u2084','5':'\u2085','6':'\u2086','7':'\u2087','8':'\u2088','9':'\u2089'};
+function sub(num){return String(num).split('').map(c=>SUB[c]||c).join('');}
+
+// TAB
+function switchTab(tab){currentTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('explainer-'+tab).classList.add('active');
+  const s=document.getElementById('nSlider');
+  if(tab==='intimate'){s.min=1;s.max=20;if(n>20){n=20;s.value=20;}if(n<1){n=1;s.value=1;}}
+  else{s.min=20;s.max=150;if(n<20){n=20;s.value=20;}}
+  buildNetwork();}
+document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+
+// RESIZE
+function resize(){dpr=devicePixelRatio||1;
+  const r=canvas.getBoundingClientRect();W=r.width;H=r.height||W*.7;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+  const tr=traceCanvas.getBoundingClientRect();TW=tr.width;TH=tr.height||100;traceCanvas.width=TW*dpr;traceCanvas.height=TH*dpr;traceCanvas.style.height=TH+'px';tctx.setTransform(dpr,0,0,dpr,0,0);}
+
+// BUILD
+function buildNetwork(){nodes=[];edges=[];ruptures=[];messages=[];llmNodes=[];llmEdges=[];
+  const cx=W/2,cy=H/2,radius=n===1?0:min(W,H)*(n>30?.42:.38);
+  for(let i=0;i<n;i++){const a=n===1?0:(i/n)*2*PI-PI/2;
+    nodes.push({x:cx+radius*cos(a),y:cy+radius*sin(a),C:rnd()*CSTAR_SO2,rate:max(.3,1+OMEGA_SO2*randn()),phase:rnd()*2*PI,rupturing:0,index:i,hasLLM:false,lastKick:'self',
+      llmTaint:0, // fraction of this agent's signal that is LLM-origin (for relay tracking)
+      kicksReceived:0,llmKicksReceived:0, // for crystallising taint
+      hSelfC:0,hHumanC:0,hLlmC:0 // hidden cause coherence accumulators (direct tracking)
+    });}
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)edges.push({a:i,b:j,C:rnd()*CSTAR_Z2,rate:max(.3,1+OMEGA_Z2*randn()),rupturing:0});
+  trackedNode=0;trackedEdge=0;
+  traceData={so2:[],z2:[],llm:[],so2Rups:[],z2Rups:[],llmRups:[]};
+  resetMetrics();updateReadouts();updateHint();}
+
+// LLM
+function attachLLM(idx){const host=nodes[idx];if(host.hasLLM)return;host.hasLLM=true;
+  const cx=W/2,cy=H/2,dx=host.x-cx,dy=host.y-cy,dist=sqrt(dx*dx+dy*dy)||1,d=n===1?40:25;
+  const li=llmNodes.length;
+  // FIX: LLM starts with C=0 (fresh conversation, no accumulated context)
+  llmNodes.push({hostIndex:idx,x:host.x+(dx/dist)*d,y:host.y+(dy/dist)*d,C:0,rate:max(.3,1+OMEGA_Z2*randn()),rupturing:0,lastOA:1});
+  llmEdges.push({llmIdx:li,hostIdx:idx,C:rnd()*CSTAR_Z2,rate:max(.3,1+OMEGA_Z2*randn()),rupturing:0});
+  updateReadouts();updateHint();}
+function detachLLM(idx){const host=nodes[idx];if(!host.hasLLM)return;host.hasLLM=false;
+  const li=llmNodes.findIndex(l=>l.hostIndex===idx);
+  if(li>=0){llmEdges=llmEdges.filter(e=>e.llmIdx!==li);llmNodes.splice(li,1);for(const e of llmEdges)if(e.llmIdx>li)e.llmIdx--;}
+  host.C=rnd()*CSTAR_SO2;host.rate=max(.3,1+OMEGA_SO2*randn());host.lastKick='self';host.llmTaint=0;host.kicksReceived=0;host.llmKicksReceived=0;host.hSelfC=0;host.hHumanC=0;host.hLlmC=0;
+  updateReadouts();updateHint();}
+function toggleLLM(idx){nodes[idx].hasLLM?detachLLM(idx):attachLLM(idx);}
+function attachAll(){for(let i=0;i<n;i++)attachLLM(i);resetMetrics();}
+function detachAll(){for(let i=0;i<n;i++){nodes[i].hasLLM=false;nodes[i].C=rnd()*CSTAR_SO2;nodes[i].rate=max(.3,1+OMEGA_SO2*randn());nodes[i].lastKick='self';nodes[i].llmTaint=0;nodes[i].kicksReceived=0;nodes[i].llmKicksReceived=0;nodes[i].hSelfC=0;nodes[i].hHumanC=0;nodes[i].hLlmC=0;}
+  llmNodes=[];llmEdges=[];for(const e of edges){e.C=rnd()*CSTAR_Z2;e.rate=max(.3,1+OMEGA_Z2*randn());}
+  traceData.llm=[];traceData.llmRups=[];resetMetrics();updateReadouts();updateHint();}
+
+// CLICK
+canvas.addEventListener('click',function(e){const rect=canvas.getBoundingClientRect();const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const nodeR=n===1?30:max(2,min(22,160/n));const hitR=max(nodeR+8,15);
+  for(let i=0;i<nodes.length;i++){const dx=mx-nodes[i].x,dy=my-nodes[i].y;if(dx*dx+dy*dy<hitR*hitR){toggleLLM(i);return;}}});
+canvas.style.cursor='pointer';
+
+// BUTTONS
+document.getElementById('btnAttachAll').addEventListener('click',attachAll);
+document.getElementById('btnRemoveAll').addEventListener('click',detachAll);
+document.getElementById('btnRebuild').addEventListener('click',()=>buildNetwork());
+
+function updateReadouts(){document.getElementById('nDisplay').textContent='K'+sub(n);
+  document.getElementById('rNodes').textContent=n;document.getElementById('rEdges').textContent=n*(n-1)/2;
+  document.getElementById('rLLMs').textContent=llmNodes.length;
+  document.getElementById('rIndAuto').textContent=(1/n).toFixed(3);
+  document.getElementById('rColAuto').textContent=((n-1)/n).toFixed(3);
+  if(typeof updateExamples==='function')updateExamples();}
+function updateHint(){const h=document.getElementById('hintBar'),nL=llmNodes.length;
+  if(nL===0)h.textContent='Click any human agent to attach/detach a single LLM. Or use the buttons above.';
+  else if(nL===n)h.textContent='All '+n+' agents coupled. Watch the provenance bar and depth illusion metric.';
+  else h.textContent=nL+' of '+n+' agents coupled. Click to add/remove. ~'+(nL/n*100|0)+'% penetration.';}
+
+// ── CRR DYNAMICS ──
+function updateCRR(dt){const sDt=dt*speed;
+  for(const nd of nodes){const selfInc=nd.rate*sDt;nd.C+=selfInc;nd.hSelfC+=selfInc;nd.phase+=sDt*.5;
+    if(nd.C>=CSTAR_SO2){metrics.so2Rup++;
+      if(nd.lastKick==='llm')metrics.provLLM++;else if(nd.lastKick==='human')metrics.provHuman++;else metrics.provSelf++;
+      // Crystallise taint for relay: what fraction of this agent's signal is LLM-origin?
+      const totalH=nd.hSelfC+nd.hHumanC+nd.hLlmC;
+      nd.llmTaint=totalH>0?nd.hLlmC/totalH:nd.hasLLM?0.5:0;
+      nd.kicksReceived=0;nd.llmKicksReceived=0;nd.hSelfC=0;nd.hHumanC=0;nd.hLlmC=0;
+      nd.lastKick='self';nd.C=0;nd.rupturing=1;nd.rate=max(.3,1+OMEGA_SO2*randn());
+      ruptures.push({x:nd.x,y:nd.y,t:1});
+      if(nd.index===trackedNode)traceData.so2Rups.push(traceData.so2.length);
+      if(messages.length<MAX_MESSAGES){const prob=n>20?min(1,20/n):1;
+        for(const e of edges){if(e.a===nd.index||e.b===nd.index){if(rnd()>prob)continue;
+          messages.push({from:nd.index,to:e.a===nd.index?e.b:e.a,progress:0,speed:.6+rnd()*.4,col:COL.purple});}}}
+      if(entrainment>0){const kick=entrainment*OMEGA_SO2;const kickerTaint=nd.llmTaint;
+        for(const e of edges){if(e.a===nd.index||e.b===nd.index){const nb=nodes[e.a===nd.index?e.b:e.a];
+          const s=1+3*pow(nb.C/CSTAR_SO2,2);const prev=nb.C;const actual=min(nb.C+kick*s,CSTAR_SO2)-nb.C;
+          nb.C+=actual;
+          // Hidden cause: split this kick's coherence by the kicker's LLM taint
+          nb.hLlmC+=actual*kickerTaint;
+          nb.hHumanC+=actual*(1-kickerTaint);
+          nb.kicksReceived++;nb.llmKicksReceived+=kickerTaint;
+          if(nb.C>=CSTAR_SO2*.85&&prev<CSTAR_SO2*.85)nb.lastKick='human';}}}
+    }if(nd.rupturing>0)nd.rupturing-=sDt*2;}
+
+  for(const e of edges){e.C+=e.rate*sDt;
+    if(e.C>=CSTAR_Z2){metrics.z2Rup++;e.C=0;e.rupturing=1;e.rate=max(.3,1+OMEGA_Z2*randn());
+      const na=nodes[e.a],nb=nodes[e.b];ruptures.push({x:(na.x+nb.x)/2,y:(na.y+nb.y)/2,t:1});
+      if(edges.indexOf(e)===trackedEdge)traceData.z2Rups.push(traceData.z2.length);
+      if(messages.length<MAX_MESSAGES-1){messages.push({from:e.a,to:e.b,progress:0,speed:.8+rnd()*.4,col:COL.teal});
+        messages.push({from:e.b,to:e.a,progress:0,speed:.8+rnd()*.4,col:COL.teal});}
+      if(entrainment>0){const kick=entrainment*OMEGA_Z2;
+        for(const idx of[e.a,e.b]){const ag=nodes[idx];const s=1+3*pow(ag.C/CSTAR_SO2,2);const prev=ag.C;
+          const actual=min(ag.C+kick*s,CSTAR_SO2)-ag.C;ag.C+=actual;
+          // CO-CONSTRUCTION: blanket is co-created by both agents
+          // Only 50% counts as external (the other agent's contribution)
+          // The other 50% is the agent's own co-construction of the boundary
+          const otherIdx=idx===e.a?e.b:e.a;const otherTaint=nodes[otherIdx].llmTaint;
+          const ext=actual*0.5; // only other's half counts as external
+          ag.hHumanC+=ext*(1-otherTaint);
+          ag.hLlmC+=ext*otherTaint;
+          ag.kicksReceived++;ag.llmKicksReceived+=otherTaint*0.5;
+          if(ag.C>=CSTAR_SO2*.85&&prev<CSTAR_SO2*.85)ag.lastKick='human';}}}
+    if(e.rupturing>0)e.rupturing-=sDt*2;}
+
+  // LLM Z₂ with misattribution
+  for(let li=0;li<llmNodes.length;li++){const llm=llmNodes[li];llm.C+=llm.rate*sDt;
+    const host=nodes[llm.hostIndex],cx=W/2,cy=H/2,dx=host.x-cx,dy=host.y-cy,dist=sqrt(dx*dx+dy*dy)||1,d=n===1?40:25;
+    llm.x=host.x+(dx/dist)*d;llm.y=host.y+(dy/dist)*d;
+    if(llm.C>=CSTAR_Z2){metrics.llmRup++;llm.C=0;llm.rupturing=1;llm.rate=max(.3,1+OMEGA_Z2*randn());
+      ruptures.push({x:llm.x,y:llm.y,t:1});
+      if(llm.hostIndex===trackedNode)traceData.llmRups.push(traceData.llm.length);
+      const p=host.C/CSTAR_SO2,s=1+3*p*p;
+      const wC=exp(host.C/OMEGA_Z2),wM=exp(host.C/OMEGA_SO2),oa=min(wM/wC,8);
+      llm.lastOA=oa;if(oa>metrics.peakIllusion)metrics.peakIllusion=oa;
+      metrics.cumIllusion+=oa-1;
+      const baseKick=(entrainment>0?entrainment:0.3)*OMEGA_Z2;
+      const prev=host.C;const actual=min(host.C+baseKick*s*oa,CSTAR_SO2)-host.C;
+      host.C+=actual;
+      // Hidden cause: this coherence is 100% LLM-origin
+      host.hLlmC+=actual;
+      host.kicksReceived++;host.llmKicksReceived+=1.0;
+      if(host.C>=CSTAR_SO2*.85&&prev<CSTAR_SO2*.85)host.lastKick='llm';
+      if(messages.length<MAX_MESSAGES)messages.push({fromXY:{x:llm.x,y:llm.y},toIdx:llm.hostIndex,progress:0,speed:1.2,col:COL.cyan,isLLM:true});}
+    if(llm.rupturing>0)llm.rupturing-=sDt*3;}
+  for(const le of llmEdges){le.C+=le.rate*sDt;if(le.C>=CSTAR_Z2){le.C=0;le.rate=max(.3,1+OMEGA_Z2*randn());le.rupturing=1;}if(le.rupturing>0)le.rupturing-=sDt*2;}
+
+  for(let i=messages.length-1;i>=0;i--){messages[i].progress+=messages[i].speed*sDt;if(messages[i].progress>=1)messages.splice(i,1);}
+
+  let sc=0,ss=0;for(const nd of nodes){const th=2*PI*nd.C/CSTAR_SO2;sc+=cos(th);ss+=sin(th);}
+  const phi=n>0?sqrt(sc*sc+ss*ss)/n:0;document.getElementById('rPhi').textContent=phi.toFixed(3);
+
+  if(nodes.length>0){traceData.so2.push(nodes[trackedNode].C);if(traceData.so2.length>TRACE_LEN)traceData.so2.shift();}
+  if(edges.length>0){traceData.z2.push(edges[trackedEdge].C);if(traceData.z2.length>TRACE_LEN)traceData.z2.shift();}
+  const tL=llmNodes.find(l=>l.hostIndex===trackedNode);
+  if(tL){traceData.llm.push(tL.C);if(traceData.llm.length>TRACE_LEN)traceData.llm.shift();}
+  while(traceData.so2Rups.length&&traceData.so2Rups[0]<traceData.so2.length-TRACE_LEN)traceData.so2Rups.shift();
+  while(traceData.z2Rups.length&&traceData.z2Rups[0]<traceData.z2.length-TRACE_LEN)traceData.z2Rups.shift();
+  while(traceData.llmRups.length&&traceData.llmRups[0]<traceData.llm.length-TRACE_LEN)traceData.llmRups.shift();
+  for(let i=ruptures.length-1;i>=0;i--){ruptures[i].t-=sDt*1.5;if(ruptures[i].t<=0)ruptures.splice(i,1);}
+  updateMetrics();}
+
+function updateMetrics(){const el=(performance.now()-metrics.start)/1000;if(el<1)return;
+  const ne=n*(n-1)/2;
+  // Per-entity frequencies (not totals) so ratio is meaningful
+  const so2PerAgent=n>0?metrics.so2Rup/el/n:0;
+  const z2PerEdge=ne>0?metrics.z2Rup/el/ne:0;
+  document.getElementById('mFreqSO2').textContent=so2PerAgent.toFixed(2)+'/s';
+  document.getElementById('mFreqZ2').textContent=z2PerEdge.toFixed(2)+'/s';
+  document.getElementById('mFreqLLM').textContent=llmNodes.length>0?(metrics.llmRup/el/llmNodes.length).toFixed(2)+'/s':'\u2014';
+  if(so2PerAgent>0)document.getElementById('mRatio').textContent=(z2PerEdge/so2PerAgent).toFixed(2);
+  if(llmNodes.length>0){const tL=llmNodes.find(l=>l.hostIndex===trackedNode);
+    document.getElementById('rIllusion').textContent='\u00D7'+(tL?tL.lastOA:1).toFixed(1);
+    document.getElementById('mIllusionPk').textContent='\u00D7'+metrics.peakIllusion.toFixed(1);
+  }else{document.getElementById('rIllusion').textContent='\u2014';document.getElementById('mIllusionPk').textContent='\u2014';}
+  document.getElementById('mCumIllusion').textContent=metrics.cumIllusion.toFixed(0);
+  const tot=metrics.provSelf+metrics.provHuman+metrics.provLLM;
+  if(tot>0){const pS=metrics.provSelf/tot*100,pH=metrics.provHuman/tot*100,pL=metrics.provLLM/tot*100;
+    document.getElementById('provSelf').style.width=pS+'%';document.getElementById('provHuman').style.width=pH+'%';document.getElementById('provLLM').style.width=pL+'%';
+    document.getElementById('provSelf').textContent=pS>10?'self '+(pS|0)+'%':'';
+    document.getElementById('provHuman').textContent=pH>10?'other human '+(pH|0)+'%':'';
+    document.getElementById('provLLM').textContent=pL>10?'LLM '+(pL|0)+'%':'';
+    // Show effective autonomy in brackets next to structural individual autonomy
+    document.getElementById('rIndAuto').textContent=(1/n).toFixed(3)+' (eff: '+(pS|0)+'%)';}
+
+  // Hidden causes: three-way split — mirror-self, other human, LLM-origin
+  // Denominator is ALL coherence (self + human + LLM), not just external
+  if(nodes.length>0){
+    let tS=0,tH=0,tL=0;
+    for(const nd of nodes){tS+=nd.hSelfC;tH+=nd.hHumanC;tL+=nd.hLlmC;}
+    const totAll=tS+tH+tL;
+    if(totAll>0){
+      const hS=tS/totAll*100,hH=tH/totAll*100,hL=tL/totAll*100;
+      document.getElementById('hidSelf').style.width=max(0,hS)+'%';
+      document.getElementById('hidHuman').style.width=max(0,hH)+'%';
+      document.getElementById('hidLLM').style.width=max(0,hL)+'%';
+      document.getElementById('hidSelf').textContent=hS>8?'self '+(hS|0)+'%':'';
+      document.getElementById('hidHuman').textContent=hH>8?'other human '+(hH|0)+'%':'';
+      document.getElementById('hidLLM').textContent=hL>8?'LLM-origin '+(hL|0)+'%':'';
+      document.getElementById('hidExtPct').textContent='('+(hH+hL|0)+'% external)';
+    }
+  }}
+
+// ── DRAW ──
+function draw(){ctx.clearRect(0,0,W,H);const nodeR=n===1?30:max(2,min(22,160/n));const ringW=n>50?1:2;const drawAll=n<=15;
+  for(const e of edges){const a=nodes[e.a],b=nodes[e.b];const p=e.C/CSTAR_Z2;const glow=beautyGlow(e.C,OMEGA_Z2);
+    if(!drawAll&&glow===0&&e.rupturing<=0)continue;const alpha=drawAll?(.06+p*.3):(.1+p*.4);const w=drawAll?(1+p*2):(1+p*1.5);
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    if(e.rupturing>0){ctx.strokeStyle=COL.red;ctx.lineWidth=w+e.rupturing*3;ctx.globalAlpha=alpha+e.rupturing*.5;}
+    else if(glow>0){ctx.strokeStyle=`rgb(${90+94*glow|0},${138+16*glow|0},${122-48*glow|0})`;ctx.lineWidth=w+glow*2;ctx.globalAlpha=alpha+glow*.3;}
+    else{ctx.strokeStyle=COL.teal;ctx.lineWidth=w;ctx.globalAlpha=alpha;}ctx.stroke();ctx.globalAlpha=1;}
+  if(!drawAll){const step=n>80?8:3;ctx.globalAlpha=.025;ctx.strokeStyle=COL.teal;ctx.lineWidth=.5;
+    for(let i=0;i<n;i+=step)for(let j=i+step;j<n;j+=step){ctx.beginPath();ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.stroke();}ctx.globalAlpha=1;}
+
+  for(let li=0;li<llmNodes.length;li++){const llm=llmNodes[li],host=nodes[llm.hostIndex],le=llmEdges.find(e=>e.llmIdx===li),p=le?le.C/CSTAR_Z2:0;
+    ctx.beginPath();ctx.moveTo(host.x,host.y);ctx.lineTo(llm.x,llm.y);
+    ctx.strokeStyle=le&&le.rupturing>0?COL.red:COL.cyan;ctx.lineWidth=1.5+p;ctx.globalAlpha=.15+p*.35;
+    ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;}
+
+  for(const msg of messages){let mx,my;
+    if(msg.isLLM){const to=nodes[msg.toIdx];mx=msg.fromXY.x+(to.x-msg.fromXY.x)*msg.progress;my=msg.fromXY.y+(to.y-msg.fromXY.y)*msg.progress;}
+    else{const f=nodes[msg.from],t=nodes[msg.to];mx=f.x+(t.x-f.x)*msg.progress;my=f.y+(t.y-f.y)*msg.progress;}
+    ctx.beginPath();ctx.arc(mx,my,2+sin(msg.progress*PI)*3,0,2*PI);ctx.fillStyle=msg.col;ctx.globalAlpha=sin(msg.progress*PI)*.7;ctx.fill();ctx.globalAlpha=1;}
+
+  for(const r of ruptures){ctx.beginPath();ctx.arc(r.x,r.y,(1-r.t)*20+4,0,2*PI);ctx.fillStyle=COL.redL;ctx.globalAlpha=r.t*.6;ctx.fill();ctx.globalAlpha=1;}
+
+  for(const nd of nodes){const p=nd.C/CSTAR_SO2,glow=beautyGlow(nd.C,OMEGA_SO2);
+    ctx.beginPath();ctx.arc(nd.x,nd.y,nodeR+ringW+1,-PI/2,-PI/2+p*2*PI);
+    ctx.strokeStyle=nd.rupturing>0?COL.red:(glow>0?`rgb(${122+62*glow|0},${90+64*glow|0},${138-64*glow|0})`:COL.purple);
+    ctx.lineWidth=ringW+glow;ctx.globalAlpha=.5+p*.5;ctx.stroke();ctx.globalAlpha=1;
+    ctx.beginPath();ctx.arc(nd.x,nd.y,nodeR,0,2*PI);const fa=.15+p*.35;
+    if(nd.rupturing>0)ctx.fillStyle=`rgba(196,90,74,${fa+nd.rupturing*.3})`;
+    else if(glow>0)ctx.fillStyle=`rgba(184,154,74,${fa*glow+fa*(1-glow)*.6})`;
+    else ctx.fillStyle=COL.purpleL+fa+')';
+    ctx.fill();ctx.strokeStyle=nd.rupturing>0?COL.red:(glow>0?COL.gold:COL.purple);ctx.lineWidth=1;ctx.globalAlpha=.5;ctx.stroke();ctx.globalAlpha=1;
+    if(nodeR>6){const ix=nd.x+(nodeR-2)*cos(nd.phase),iy=nd.y+(nodeR-2)*sin(nd.phase);
+      ctx.beginPath();ctx.arc(ix,iy,max(1.5,nodeR/8),0,2*PI);ctx.fillStyle=glow>0?COL.gold:COL.purple;ctx.globalAlpha=.5+p*.4;ctx.fill();ctx.globalAlpha=1;}
+    if(nd.hasLLM){ctx.beginPath();ctx.arc(nd.x,nd.y,nodeR+ringW+5,0,2*PI);ctx.strokeStyle=COL.cyan;ctx.lineWidth=1.5;ctx.globalAlpha=.35;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;}
+    if(nd.index===trackedNode&&n>1){ctx.beginPath();ctx.arc(nd.x,nd.y,nodeR+ringW+8,0,2*PI);ctx.strokeStyle='rgba(184,154,74,.25)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);}}
+
+  for(const llm of llmNodes){const p=llm.C/CSTAR_Z2,glow=beautyGlow(llm.C,OMEGA_Z2),sz=max(4,nodeR*.6);
+    ctx.save();ctx.translate(llm.x,llm.y);const fa=.2+p*.4;
+    if(llm.rupturing>0)ctx.fillStyle=`rgba(196,90,74,${fa+llm.rupturing*.3})`;
+    else if(glow>0)ctx.fillStyle=`rgba(184,154,74,${fa})`;
+    else ctx.fillStyle=COL.cyanL+fa+')';
+    ctx.fillRect(-sz/2,-sz/2,sz,sz);ctx.strokeStyle=llm.rupturing>0?COL.red:(glow>0?COL.gold:COL.cyan);
+    ctx.lineWidth=1;ctx.globalAlpha=.6;ctx.strokeRect(-sz/2,-sz/2,sz,sz);ctx.globalAlpha=1;
+    ctx.fillStyle=COL.cyanL+'0.25)';ctx.fillRect(-sz/2,sz/2-sz*p,sz,sz*p);ctx.restore();}
+
+  ctx.font='10px "JetBrains Mono",monospace';ctx.fillStyle=COL.dim;ctx.textAlign='left';
+  ctx.fillText(`K${sub(n)}: ${n} SO(2)  ${n*(n-1)/2} Z\u2082 blankets${llmNodes.length?'  '+llmNodes.length+' LLM'+(llmNodes.length>1?'s':''):''}`,10,16);
+  if(llmNodes.length)ctx.fillText('depth illusion active',10,30);}
+
+// ── TRACE ──
+function drawTrace(){tctx.clearRect(0,0,TW,TH);const pad={l:35,r:10,t:8,b:18},pw=TW-pad.l-pad.r,ph=TH-pad.t-pad.b;
+  tctx.fillStyle='rgba(245,242,237,.5)';tctx.fillRect(pad.l,pad.t,pw,ph);
+  const maxY=2*PI+.5;function toX(i){return pad.l+(i/TRACE_LEN)*pw;}function toY(v){return pad.t+ph*(1-v/maxY);}
+  tctx.setLineDash([4,4]);const yPi=toY(PI);tctx.strokeStyle='rgba(90,138,122,.25)';tctx.lineWidth=1;
+  tctx.beginPath();tctx.moveTo(pad.l,yPi);tctx.lineTo(pad.l+pw,yPi);tctx.stroke();
+  const y2Pi=toY(2*PI);tctx.strokeStyle='rgba(122,90,138,.25)';tctx.beginPath();tctx.moveTo(pad.l,y2Pi);tctx.lineTo(pad.l+pw,y2Pi);tctx.stroke();tctx.setLineDash([]);
+  tctx.font='8px "JetBrains Mono",monospace';tctx.textAlign='right';
+  tctx.fillStyle='rgba(90,138,122,.5)';tctx.fillText('\u03C0',pad.l-3,yPi+3);
+  tctx.fillStyle='rgba(122,90,138,.5)';tctx.fillText('2\u03C0',pad.l-3,y2Pi+3);
+
+  if(traceData.z2.length>1){const off=max(0,traceData.z2.length-TRACE_LEN);tctx.strokeStyle=COL.teal;tctx.lineWidth=1.2;tctx.globalAlpha=.7;tctx.beginPath();
+    for(let i=0;i<min(traceData.z2.length,TRACE_LEN);i++){const x=toX(i),y=toY(traceData.z2[off+i]||0);i===0?tctx.moveTo(x,y):tctx.lineTo(x,y);}tctx.stroke();tctx.globalAlpha=1;}
+  if(traceData.so2.length>1){const off=max(0,traceData.so2.length-TRACE_LEN);tctx.strokeStyle=COL.purple;tctx.lineWidth=1.5;tctx.globalAlpha=.8;tctx.beginPath();
+    for(let i=0;i<min(traceData.so2.length,TRACE_LEN);i++){const x=toX(i),y=toY(traceData.so2[off+i]||0);i===0?tctx.moveTo(x,y):tctx.lineTo(x,y);}tctx.stroke();tctx.globalAlpha=1;}
+  if(traceData.llm.length>1){const off=max(0,traceData.llm.length-TRACE_LEN);tctx.strokeStyle=COL.cyan;tctx.lineWidth=1;tctx.globalAlpha=.7;tctx.setLineDash([3,2]);tctx.beginPath();
+    for(let i=0;i<min(traceData.llm.length,TRACE_LEN);i++){const x=toX(i),y=toY(traceData.llm[off+i]||0);i===0?tctx.moveTo(x,y):tctx.lineTo(x,y);}tctx.stroke();tctx.setLineDash([]);tctx.globalAlpha=1;}
+
+  const so2Off=max(0,traceData.so2.length-TRACE_LEN);
+  for(const ri of traceData.so2Rups){const idx=ri-so2Off;if(idx>=0&&idx<TRACE_LEN){tctx.strokeStyle='rgba(122,90,138,.3)';tctx.lineWidth=1;tctx.beginPath();tctx.moveTo(toX(idx),pad.t);tctx.lineTo(toX(idx),pad.t+ph);tctx.stroke();}}
+  const z2Off=max(0,traceData.z2.length-TRACE_LEN);
+  for(const ri of traceData.z2Rups){const idx=ri-z2Off;if(idx>=0&&idx<TRACE_LEN){tctx.strokeStyle='rgba(90,138,122,.15)';tctx.lineWidth=1;tctx.beginPath();tctx.moveTo(toX(idx),pad.t);tctx.lineTo(toX(idx),pad.t+ph);tctx.stroke();}}
+  const llmOff=max(0,traceData.llm.length-TRACE_LEN);
+  for(const ri of traceData.llmRups){const idx=ri-llmOff;if(idx>=0&&idx<TRACE_LEN){tctx.strokeStyle='rgba(74,138,154,.2)';tctx.lineWidth=1;tctx.setLineDash([2,2]);tctx.beginPath();tctx.moveTo(toX(idx),pad.t);tctx.lineTo(toX(idx),pad.t+ph);tctx.stroke();tctx.setLineDash([]);}}}
+
+let lastTime=0;
+function animate(t){const dt=min((t-lastTime)/1000,.05);lastTime=t;updateCRR(dt);draw();drawTrace();requestAnimationFrame(animate);}
+
+document.getElementById('nSlider').addEventListener('input',e=>{n=parseInt(e.target.value);buildNetwork();updateExamples();updateEpsInfo();});
+document.getElementById('speedSlider').addEventListener('input',e=>{speed=parseFloat(e.target.value);});
+document.getElementById('entrainSlider').addEventListener('input',e=>{entrainment=parseFloat(e.target.value);updateEpsInfo();});
+function updateEpsInfo(){
+  const info=document.getElementById('epsInfo');
+  if(entrainment===0){info.textContent='';return;}
+  const pressure=(n-1)*entrainment;
+  const warn=pressure>5?'  \u26A0 supercritical':'';
+  info.textContent='\u03B5='+entrainment.toFixed(2)+' \u00D7 '+(n-1)+' blankets = '+pressure.toFixed(1)+' total pressure/agent'+warn;
+}
+
+// ── EXAMPLES / DROPDOWN ──
+const EXAMPLES={
+  1:{label:'A Self (Limit Case)',detail:'One agent, no blankets. Without a Markov blanket there is no inside/outside distinction. Attaching an LLM here creates pure dyadic coupling: the self and its mirror.'},
+  2:{label:'A Conversation',detail:'Two agents, one blanket. The first boundary. Attach an LLM to one: the augmented speaker sets the pace. The other cannot tell the difference.'},
+  3:{label:'A Triad',detail:'Three agents, three blankets. Blankets equal agents. One LLM here shifts the triangle: the coupled agent becomes the de facto leader through update frequency alone.'},
+  4:{label:'A Band',detail:'Four agents, six blankets. The quadratic explosion begins. One LLM-coupled musician drives the rhythm section. Two LLMs and the band plays to the machines.'},
+  5:{label:'A Dinner Party',detail:'Five agents, ten blankets. 80% collective. One guest with an LLM assistant dominates the conversation without anyone noticing the source.'},
+  6:{label:'A Meeting',detail:'Six agents, fifteen blankets. Meetings already take on a life of their own. Add two LLMs: the meeting is steered by systems with no stake in the outcome.'},
+  7:{label:'A Startup',detail:'Seven founders, twenty-one blankets. 86% collective. The first engineer to adopt an LLM coding assistant shifts the entire technical culture.'},
+  10:{label:'A Jury',detail:'Ten agents, forty-five blankets. The verdict lives in the blankets. If three jurors consult LLMs, the deliberation is shaped by systems that cannot weigh evidence as humans do.'},
+  12:{label:'A Squad',detail:'Twelve agents, sixty-six blankets. Small enough to know everyone. One LLM-augmented analyst can cascade through the whole squad at high entrainment.'},
+  15:{label:'A Seminar',detail:'Fifteen agents, 105 blankets. Cross-pollination outruns any single mind. LLM-assisted students generate faster responses; the seminar shifts to Z\u2082 tempo.'},
+  20:{label:'A Classroom',detail:'Twenty students, 190 blankets. 95% collective. Around 8\u20139 LLMs (~40%), the depth illusion saturates. The class has a rhythm none of them chose.'},
+  25:{label:'A Platoon',detail:'Twenty-five agents, 300 blankets. The unit acts as one under pressure. LLM-mediated intelligence briefings propagate at Z\u2082 frequency through the command structure.'},
+  30:{label:'A Guild',detail:'Thirty members, 435 blankets. Shared craft knowledge lives in the blanket states. LLM tools reshape what counts as expertise without the guild noticing.'},
+  40:{label:'An Orchestra',detail:'Forty musicians, 780 blankets. The conductor is already a compression mechanism. Add LLM-assisted section leaders and the ensemble locks to a tempo no human set.'},
+  50:{label:'A Community',detail:'Fifty people, 1,225 blankets. 98% collective. A handful of LLM-coupled influencers can reshape community consensus through cascading prediction errors.'},
+  75:{label:'A Department',detail:'Seventy-five employees, 2,775 blankets. Subcultures emerge because no agent can track 74 boundaries. LLM adoption in one subculture propagates silently to others.'},
+  100:{label:'A Company',detail:'A hundred employees, 4,950 blankets. 99% collective. Company-wide LLM deployment means every belief update carries the depth illusion. Effective autonomy approaches zero.'},
+  120:{label:'A Village',detail:'120 people, 7,140 blankets. Everyone is known through chains of boundaries. A few LLM-coupled community leaders reshape the village without anyone seeing the mechanism.'},
+  150:{label:"Dunbar's Number",detail:'150 people, 11,175 blankets. The cognitive limit of human social networks. Beyond here, institutions replace relationships. The depth illusion marks a second threshold: where human and machine signals become permanently indistinguishable.'}
+};
+
+function updateExamples(){
+  const ex=EXAMPLES[n];
+  const exL=document.getElementById('exLabel'),exD=document.getElementById('exDetail');
+  if(ex){
+    const llmNote=llmNodes.length>0?' + '+llmNodes.length+' LLM'+(llmNodes.length>1?'s':''):'';
+    exL.innerHTML='<strong>'+ex.label+'</strong>'+llmNote;
+    exD.textContent=ex.detail;
+  }else{exL.innerHTML='';exD.textContent='';}
+  // Sync dropdown
+  const sel=document.getElementById('jumpSelect');
+  const opts=sel.options;
+  let best=0;for(let i=0;i<opts.length;i++){if(parseInt(opts[i].value)<=n)best=i;}
+  sel.selectedIndex=best;
+}
+
+document.getElementById('jumpSelect').addEventListener('change',e=>{
+  const val=parseInt(e.target.value);
+  n=val;
+  document.getElementById('nSlider').value=n;
+  // Switch tab if needed
+  if(n>=20&&currentTab==='intimate')switchTab('scale');
+  else if(n<20&&currentTab==='scale')switchTab('intimate');
+  else buildNetwork();
+  updateExamples();
+});
+
+window.addEventListener('resize',()=>{resize();buildNetwork();});
+resize();buildNetwork();updateExamples();requestAnimationFrame(animate);
+</script>
+</body>
+</html>
