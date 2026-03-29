@@ -77,7 +77,17 @@ canvas{width:100%;height:auto;display:block;border-radius:3px}
 .ref{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:#8a8070;line-height:1.8}
 .tag-key{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:#9a9080;text-align:center;padding:.5rem 1rem;line-height:2}
 .tab-content{display:none}.tab-content.active{display:block}
-@media(max-width:600px){.header h1{font-size:1.2rem;letter-spacing:.2em}.controls{gap:.7rem}.ctrl-group input[type=range]{width:110px}.explainer{padding:1rem 1.2rem 2rem;font-size:.95rem}.tab-btn{padding:.5rem 1rem}}
+.sound-panel{display:flex;align-items:center;justify-content:center;gap:1rem;padding:.3rem 1rem .5rem;flex-wrap:wrap;max-width:800px}
+.sound-panel select{padding:.35rem .6rem;background:#faf8f5;border:1.5px solid rgba(60,50,40,.18);color:#4a4035;font-family:'JetBrains Mono',monospace;font-size:.7rem;cursor:pointer;border-radius:2px;outline:none}
+.chk-group{display:inline-flex;align-items:center;gap:.35rem;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:#6a6050;cursor:pointer;user-select:none;white-space:nowrap;line-height:1}
+.chk-group input[type=checkbox]{-webkit-appearance:none;appearance:none;width:13px;height:13px;min-width:13px;border:1.5px solid rgba(60,50,40,.25);border-radius:2px;cursor:pointer;position:relative;background:#faf8f5;margin:0;vertical-align:middle}
+.chk-group input[type=checkbox]:checked{background:rgba(122,90,138,.2);border-color:#7a5a8a}
+.chk-group input[type=checkbox]:checked::after{content:'';position:absolute;top:1px;left:3px;width:4px;height:7px;border:solid #7a5a8a;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.chk-group.z2 input[type=checkbox]:checked{background:rgba(90,138,122,.2);border-color:#5a8a7a}
+.chk-group.z2 input[type=checkbox]:checked::after{border-color:#5a8a7a}
+.chk-group.llm input[type=checkbox]:checked{background:rgba(74,138,154,.2);border-color:#4a8a9a}
+.chk-group.llm input[type=checkbox]:checked::after{border-color:#4a8a9a}
+@media(max-width:600px){.header h1{font-size:1.2rem;letter-spacing:.2em}.controls{gap:.7rem}.ctrl-group input[type=range]{width:110px}.explainer{padding:1rem 1.2rem 2rem;font-size:.95rem}.tab-btn{padding:.5rem 1rem}.sound-panel{gap:.6rem}}
 </style>
 </head>
 <body>
@@ -100,6 +110,12 @@ canvas{width:100%;height:auto;display:block;border-radius:3px}
   <button class="btn btn-llm" id="btnAttachAll">Attach LLMs to all</button>
   <button class="btn btn-reset" id="btnRemoveAll">Remove all LLMs</button>
   <button class="btn btn-human" id="btnRebuild">Reset network</button>
+</div>
+<div class="sound-panel">
+  <select id="soundStyle"><option value="off">Sound off</option><option value="bells">Bells &amp; Plucks</option><option value="voice">CRR Voice</option></select>
+  <label class="chk-group"><input type="checkbox" id="chkSO2" checked> SO(2) ruptures</label>
+  <label class="chk-group z2"><input type="checkbox" id="chkZ2" checked> Z&#x2082; ruptures</label>
+  <label class="chk-group llm"><input type="checkbox" id="chkLLM" checked> LLM ruptures</label>
 </div>
 <div class="jump-row">
   <label>Jump to</label>
@@ -333,6 +349,29 @@ function beauty(C,omega){const cstar=1/omega;if(C<=0||C>=cstar)return 0;const ra
 function beautyGlow(C,omega){const b=beauty(C,omega);return b<.3?0:min(1,(b-.3)/.7);}
 function randn(){let u=0,v=0;while(!u)u=rnd();while(!v)v=rnd();return sqrt(-2*log(u))*cos(2*PI*v);}
 
+// ── SOUND ENGINE ──
+let ac=null,masterGain=null,soundStyle='off',playSO2=true,playZ2=true,playLLM=true;
+const PENTA=[0,3,5,7,10],BASE_FREQ=146.83;
+function noteFreq(i){return BASE_FREQ*pow(2,(PENTA[i%5]+12*floor(i/5))/12);}
+const MAX_VOICES=6;let activeVoices=0;
+function canSpeak(){return activeVoices<MAX_VOICES;}function claimVoice(){activeVoices++;}function releaseVoice(){activeVoices=max(0,activeVoices-1);}
+const VW={mm:[280,800],oo:[320,900],oh:[500,950],ah:[700,1200],eh:[550,1800],ee:[320,2300]};
+function vowelFromBeauty(b){let f1,f2;if(b<.3){const t=b/.3;f1=VW.mm[0]+t*(VW.oo[0]-VW.mm[0]);f2=VW.mm[1]+t*(VW.oo[1]-VW.mm[1]);}else if(b<.6){const t=(b-.3)/.3;f1=VW.oo[0]+t*(VW.ah[0]-VW.oo[0]);f2=VW.oo[1]+t*(VW.ah[1]-VW.oo[1]);}else if(b<.85){const t=(b-.6)/.25;f1=VW.ah[0]+t*(VW.eh[0]-VW.ah[0]);f2=VW.ah[1]+t*(VW.eh[1]-VW.ah[1]);}else{const t=(b-.85)/.15;f1=VW.eh[0]+t*(VW.ee[0]-VW.eh[0]);f2=VW.eh[1]+t*(VW.ee[1]-VW.eh[1]);}return[f1,f2];}
+function initAudio(){if(ac)return;ac=new(AudioContext||webkitAudioContext)();masterGain=ac.createGain();masterGain.gain.value=0.7;const comp=ac.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=6;comp.attack.value=.008;comp.release.value=.12;const rv=ac.createConvolver();const sr=ac.sampleRate,len=sr*4,buf=ac.createBuffer(2,len,sr);for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++){const t=i/sr;d[i]=(t<.06?sin(t*800)*.35*(1-t/.06):0)+exp(-t*.9)*(rnd()*2-1)*.45*(1+.15*sin(t*2*(ch+1)));}}rv.buffer=buf;const dry=ac.createGain(),wet=ac.createGain();dry.gain.value=.55;wet.gain.value=.45;masterGain.connect(dry);masterGain.connect(rv);rv.connect(wet);dry.connect(comp);wet.connect(comp);comp.connect(ac.destination);}
+function bellPlayNode(idx){const now=ac.currentTime,freq=noteFreq(idx),vol=.14;const o1=ac.createOscillator(),o2=ac.createOscillator();o1.type='sine';o1.frequency.value=freq;o2.type='triangle';o2.frequency.value=freq*2;const g1=ac.createGain(),g2=ac.createGain();g1.gain.setValueAtTime(0,now);g1.gain.linearRampToValueAtTime(vol,now+.015);g1.gain.exponentialRampToValueAtTime(.001,now+2);g2.gain.setValueAtTime(0,now);g2.gain.linearRampToValueAtTime(vol*.2,now+.01);g2.gain.exponentialRampToValueAtTime(.001,now+1.3);const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=freq*4;f.Q.value=.7;o1.connect(g1);g1.connect(f);o2.connect(g2);g2.connect(f);f.connect(masterGain);o1.start(now);o2.start(now);o1.stop(now+2.2);o2.stop(now+1.5);}
+function bellPlayEdge(a,b){const now=ac.currentTime,freq=noteFreq(a)+noteFreq(b),vol=.08;const o=ac.createOscillator();o.type='triangle';o.frequency.value=freq;const g=ac.createGain();g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(vol,now+.004);g.gain.exponentialRampToValueAtTime(.001,now+.5);o.connect(g);g.connect(masterGain);o.start(now);o.stop(now+.6);}
+// LLM bleep: a synthetic, slightly alien digital tone — square wave with high-pass filter
+// Distinctly non-organic: clipped, bright, fast decay
+function bleepLLM(hostIdx){const now=ac.currentTime;const freq=noteFreq(hostIdx)*2;const vol=.1;const o=ac.createOscillator();o.type='square';o.frequency.value=freq;const o2=ac.createOscillator();o2.type='sine';o2.frequency.value=freq*1.5;const g=ac.createGain();g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(vol,now+.003);g.gain.setValueAtTime(vol*.8,now+.04);g.gain.exponentialRampToValueAtTime(.001,now+.18);const g2=ac.createGain();g2.gain.setValueAtTime(0,now);g2.gain.linearRampToValueAtTime(vol*.3,now+.003);g2.gain.exponentialRampToValueAtTime(.001,now+.12);const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=800;hp.Q.value=1.5;o.connect(g);o2.connect(g2);g.connect(hp);g2.connect(hp);hp.connect(masterGain);o.start(now);o2.start(now);o.stop(now+.25);o2.stop(now+.18);}
+function voiceUtter(pitch,dur,vol){if(!canSpeak())return;claimVoice();const now=ac.currentTime;const breathG=ac.createGain();breathG.gain.value=0;breathG.connect(masterGain);let lastOsc=null;for(let li=0;li<5;li++){const src=ac.createOscillator();src.type='sawtooth';src.frequency.value=pitch;src.detune.value=(li-2)*4;const vib=ac.createOscillator();vib.type='sine';vib.frequency.value=5.5+(li-2)*.2;const vibG=ac.createGain();vibG.gain.value=20;vib.connect(vibG);vibG.connect(src.detune);const f1=ac.createBiquadFilter();f1.type='bandpass';f1.frequency.value=400;f1.Q.value=8+li*.5;const f2=ac.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1200;f2.Q.value=10+li*.3;const f3=ac.createBiquadFilter();f3.type='bandpass';f3.frequency.value=2800;f3.Q.value=12;const fg1=ac.createGain(),fg2=ac.createGain(),fg3=ac.createGain();fg1.gain.value=.5;fg2.gain.value=.35;fg3.gain.value=.15;src.connect(f1);src.connect(f2);src.connect(f3);f1.connect(fg1);f2.connect(fg2);f3.connect(fg3);const layerG=ac.createGain();layerG.gain.value=vol/5;fg1.connect(layerG);fg2.connect(layerG);fg3.connect(layerG);layerG.connect(breathG);const steps=16;for(let s=0;s<=steps;s++){const t=now+(s/steps)*dur;const B=beauty((s/steps)*CSTAR_Z2,OMEGA_Z2);const[vf1,vf2]=vowelFromBeauty(B);f1.frequency.setValueAtTime(vf1,t);f2.frequency.setValueAtTime(vf2,t);f3.frequency.setValueAtTime(2500+B*600,t);vibG.gain.setValueAtTime(10+B*25,t);}src.frequency.setValueAtTime(pitch,now);src.frequency.linearRampToValueAtTime(pitch*1.03,now+dur*.4);src.frequency.linearRampToValueAtTime(pitch*.98,now+dur);src.start(now);vib.start(now);src.stop(now+dur+.05);vib.stop(now+dur+.05);lastOsc=src;}const subO=ac.createOscillator();subO.type='sine';subO.frequency.value=pitch/2;const subG=ac.createGain();subG.gain.setValueAtTime(0,now);subG.gain.linearRampToValueAtTime(vol*.04,now+dur*.3);subG.gain.linearRampToValueAtTime(0,now+dur);subO.connect(subG);subG.connect(breathG);subO.start(now);subO.stop(now+dur+.05);breathG.gain.setValueAtTime(.001,now);breathG.gain.linearRampToValueAtTime(vol*.8,now+.06);for(let s=1;s<8;s++){const frac=s/8;breathG.gain.linearRampToValueAtTime(vol*(.3+beauty(frac*CSTAR_Z2,OMEGA_Z2)*.7),now+.06+frac*(dur-.06-dur*.15));}breathG.gain.linearRampToValueAtTime(vol*.1,now+dur*.92);breathG.gain.linearRampToValueAtTime(0,now+dur);if(lastOsc)lastOsc.onended=releaseVoice;}
+function playNodeSound(idx){if(soundStyle==='off'||!playSO2||!ac)return;if(n>30)return;if(soundStyle==='bells')bellPlayNode(idx);else if(soundStyle==='voice'){const pitch=(idx%2===0?175:330)*pow(2,PENTA[idx%5]/12);voiceUtter(pitch,min(2.0,CSTAR_SO2/PI/sqrt(max(1,n/3))),1.1);}}
+function playEdgeSound(a,b){if(soundStyle==='off'||!playZ2||!ac)return;if(n>20)return;if(soundStyle==='bells')bellPlayEdge(a,b);else if(soundStyle==='voice'){voiceUtter(((a%2===0?175:330)*pow(2,PENTA[a%5]/12)+(b%2===0?175:330)*pow(2,PENTA[b%5]/12))/2,.4,.35);}}
+function playLLMSound(hostIdx){if(soundStyle==='off'||!playLLM||!ac)return;if(n>30)return;bleepLLM(hostIdx);}
+document.getElementById('soundStyle').addEventListener('change',e=>{soundStyle=e.target.value;if(soundStyle!=='off'){initAudio();if(ac.state==='suspended')ac.resume();}});
+document.getElementById('chkSO2').addEventListener('change',e=>{playSO2=e.target.checked;});
+document.getElementById('chkZ2').addEventListener('change',e=>{playZ2=e.target.checked;});
+document.getElementById('chkLLM').addEventListener('change',e=>{playLLM=e.target.checked;});
+
 const canvas=document.getElementById('network'),ctx=canvas.getContext('2d');
 const traceCanvas=document.getElementById('trace'),tctx=traceCanvas.getContext('2d');
 let W,H,dpr,TW,TH;
@@ -462,7 +501,7 @@ function updateCRR(dt){const sDt=dt*speed;
       nd.llmTaint=totalExt>0?nd.hLlmC/totalExt:nd.hasLLM?0.5:0;
       nd.kicksReceived=0;nd.llmKicksReceived=0;nd.hSelfC=0;nd.hHumanC=0;nd.hLlmC=0;
       nd.lastKick='self';nd.C=0;nd.rupturing=1;nd.rate=max(.3,1+OMEGA_SO2*randn());
-      ruptures.push({x:nd.x,y:nd.y,t:1});
+      ruptures.push({x:nd.x,y:nd.y,t:1});playNodeSound(nd.index);
       if(nd.index===trackedNode)traceData.so2Rups.push(traceData.so2.length);
       if(messages.length<MAX_MESSAGES){const prob=n>20?min(1,20/n):1;
         for(const e of edges){if(e.a===nd.index||e.b===nd.index){if(rnd()>prob)continue;
@@ -480,7 +519,7 @@ function updateCRR(dt){const sDt=dt*speed;
 
   for(const e of edges){e.C+=e.rate*sDt;
     if(e.C>=CSTAR_Z2){metrics.z2Rup++;e.C=0;e.rupturing=1;e.rate=max(.3,1+OMEGA_Z2*randn());
-      const na=nodes[e.a],nb=nodes[e.b];ruptures.push({x:(na.x+nb.x)/2,y:(na.y+nb.y)/2,t:1});
+      const na=nodes[e.a],nb=nodes[e.b];ruptures.push({x:(na.x+nb.x)/2,y:(na.y+nb.y)/2,t:1});playEdgeSound(e.a,e.b);
       if(edges.indexOf(e)===trackedEdge)traceData.z2Rups.push(traceData.z2.length);
       if(messages.length<MAX_MESSAGES-1){messages.push({from:e.a,to:e.b,progress:0,speed:.8+rnd()*.4,col:COL.teal});
         messages.push({from:e.b,to:e.a,progress:0,speed:.8+rnd()*.4,col:COL.teal});}
@@ -503,7 +542,7 @@ function updateCRR(dt){const sDt=dt*speed;
     const host=nodes[llm.hostIndex],cx=W/2,cy=H/2,dx=host.x-cx,dy=host.y-cy,dist=sqrt(dx*dx+dy*dy)||1,d=n===1?40:25;
     llm.x=host.x+(dx/dist)*d;llm.y=host.y+(dy/dist)*d;
     if(llm.C>=CSTAR_Z2){metrics.llmRup++;llm.C=0;llm.rupturing=1;llm.rate=max(.3,1+OMEGA_Z2*randn());
-      ruptures.push({x:llm.x,y:llm.y,t:1});
+      ruptures.push({x:llm.x,y:llm.y,t:1});playLLMSound(llm.hostIndex);
       if(llm.hostIndex===trackedNode)traceData.llmRups.push(traceData.llm.length);
       const p=host.C/CSTAR_SO2,s=1+3*p*p;
       // Depth illusion: over-attribution grows with host's progress through its cycle
