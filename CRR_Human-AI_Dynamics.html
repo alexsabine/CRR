@@ -23,6 +23,8 @@ body{background:#faf8f5;color:#2a2520;font-family:'Cormorant Garamond',Georgia,s
 .ctrl-group label{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:#9a9080}
 .ctrl-group input[type=range]{-webkit-appearance:none;width:140px;height:3px;background:#d0c8b8;border-radius:2px;outline:none;cursor:pointer}
 .ctrl-group input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#7a5a8a;border:2px solid #faf8f5;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+#trustSlider{-webkit-appearance:none;height:3px;background:#d0c8b8;border-radius:2px;outline:none;cursor:pointer}
+#trustSlider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#4a8a9a;border:2px solid #faf8f5;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .n-display{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:500;color:#2a2520;min-width:2.5em;text-align:center}
 .btn-row{display:flex;gap:.6rem;padding:.3rem 1rem;flex-wrap:wrap;justify-content:center}
 .btn{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:.45rem 1rem;border:1.5px solid;cursor:pointer;transition:all .25s;background:transparent}
@@ -125,6 +127,21 @@ canvas{width:100%;height:auto;display:block;border-radius:3px}
 </div>
 <div class="examples"><div class="ex-label" id="exLabel"></div><div class="ex-detail" id="exDetail"></div></div>
 <div class="hint-bar" id="hintBar">Click any human agent to attach/detach a single LLM. Or use the buttons above.</div>
+<div id="trustPopup" style="display:none;position:fixed;z-index:100;background:#faf8f5;border:1.5px solid rgba(74,138,154,.4);padding:.8rem 1.2rem;box-shadow:0 4px 20px rgba(0,0,0,.12);max-width:260px">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:#4a8a9a;margin-bottom:.5rem">Trust in LLM output</div>
+  <div style="display:flex;align-items:center;gap:.6rem">
+    <input type="range" id="trustSlider" min="0" max="10" value="5" step="1" style="-webkit-appearance:none;width:140px;height:3px;background:#d0c8b8;border-radius:2px;outline:none;cursor:pointer">
+    <span id="trustVal" style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:#2a2520;min-width:1.8em;text-align:center">5</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:.5rem;color:#9a9080;margin-top:.15rem;width:140px">
+    <span>sceptical</span><span>credulous</span>
+  </div>
+  <div style="display:flex;gap:.5rem;margin-top:.6rem">
+    <button id="trustOk" class="btn btn-llm" style="font-size:.6rem;padding:.35rem .8rem">Attach</button>
+    <button id="trustDetach" class="btn btn-reset" style="font-size:.6rem;padding:.35rem .8rem;display:none">Detach</button>
+    <button id="trustCancel" class="btn" style="font-size:.6rem;padding:.35rem .8rem;color:#9a9080;border-color:rgba(154,144,128,.25)">Cancel</button>
+  </div>
+</div>
 <div class="readouts">
   <div class="readout"><div class="rlabel">Agents SO(2)</div><div class="rval purple" id="rNodes">2</div></div>
   <div class="readout"><div class="rlabel">Blankets Z&#x2082;</div><div class="rval teal" id="rEdges">1</div></div>
@@ -144,7 +161,7 @@ canvas{width:100%;height:auto;display:block;border-radius:3px}
     <div class="prov-seg" id="provHuman" style="background:#5a8a7a;width:0%">other human</div>
     <div class="prov-seg" id="provLLM" style="background:#4a8a9a;width:0%">LLM-driven</div>
   </div>
-  <div class="prov-title" style="margin-top:.5rem">Hidden causes &#x2014; where the coherence <em>actually</em> came from <span id="hidExtPct" style="color:#6a6050"></span></div>
+  <div class="prov-title" style="margin-top:.5rem">Total influence &#x2014; known + hidden causes combined <span id="hidExtPct" style="color:#6a6050"></span></div>
   <div class="provenance-bar">
     <div class="prov-seg" id="hidSelf" style="background:#7a5a8a;width:100%">self (mirror)</div>
     <div class="prov-seg" id="hidHuman" style="background:#5a8a7a;width:0%">other human</div>
@@ -351,6 +368,7 @@ function buildNetwork(){nodes=[];edges=[];ruptures=[];messages=[];llmNodes=[];ll
   const cx=W/2,cy=H/2,radius=n===1?0:min(W,H)*(n>30?.42:.38);
   for(let i=0;i<n;i++){const a=n===1?0:(i/n)*2*PI-PI/2;
     nodes.push({x:cx+radius*cos(a),y:cy+radius*sin(a),C:rnd()*CSTAR_SO2,rate:max(.3,1+OMEGA_SO2*randn()),phase:rnd()*2*PI,rupturing:0,index:i,hasLLM:false,lastKick:'self',
+      trust:0.5, // 0-1, how much this agent trusts LLM output (default 0.5 = 5/10)
       llmTaint:0, // fraction of this agent's signal that is LLM-origin (for relay tracking)
       kicksReceived:0,llmKicksReceived:0, // for crystallising taint
       hSelfC:0,hHumanC:0,hLlmC:0 // hidden cause coherence accumulators (direct tracking)
@@ -379,10 +397,43 @@ function detachAll(){for(let i=0;i<n;i++){nodes[i].hasLLM=false;nodes[i].C=rnd()
   llmNodes=[];llmEdges=[];for(const e of edges){e.C=rnd()*CSTAR_Z2;e.rate=max(.3,1+OMEGA_Z2*randn());}
   traceData.llm=[];traceData.llmRups=[];resetMetrics();updateReadouts();updateHint();}
 
-// CLICK
+// CLICK — trust popup
+let popupTarget=-1;
+const trustPopup=document.getElementById('trustPopup');
+const trustSlider=document.getElementById('trustSlider');
+const trustVal=document.getElementById('trustVal');
+const trustOk=document.getElementById('trustOk');
+const trustDetach=document.getElementById('trustDetach');
+const trustCancel=document.getElementById('trustCancel');
+trustSlider.addEventListener('input',()=>{trustVal.textContent=trustSlider.value;});
+function showTrustPopup(idx,screenX,screenY){
+  popupTarget=idx;const nd=nodes[idx];
+  trustSlider.value=nd.hasLLM?Math.round(nd.trust*10):5;
+  trustVal.textContent=trustSlider.value;
+  trustOk.textContent=nd.hasLLM?'Update':'Attach';
+  trustDetach.style.display=nd.hasLLM?'inline-block':'none';
+  trustPopup.style.display='block';
+  // Position near click but keep on screen
+  const pw=260,ph=140;
+  let px=screenX+10,py=screenY-ph/2;
+  if(px+pw>window.innerWidth)px=screenX-pw-10;
+  if(py<10)py=10;if(py+ph>window.innerHeight)py=window.innerHeight-ph-10;
+  trustPopup.style.left=px+'px';trustPopup.style.top=py+'px';
+}
+function hideTrustPopup(){trustPopup.style.display='none';popupTarget=-1;}
+trustOk.addEventListener('click',()=>{
+  if(popupTarget<0)return;const t=parseInt(trustSlider.value)/10;
+  nodes[popupTarget].trust=t;
+  if(!nodes[popupTarget].hasLLM)attachLLM(popupTarget);
+  hideTrustPopup();});
+trustDetach.addEventListener('click',()=>{
+  if(popupTarget<0)return;detachLLM(popupTarget);hideTrustPopup();});
+trustCancel.addEventListener('click',hideTrustPopup);
+
 canvas.addEventListener('click',function(e){const rect=canvas.getBoundingClientRect();const mx=e.clientX-rect.left,my=e.clientY-rect.top;
   const nodeR=n===1?30:max(2,min(22,160/n));const hitR=max(nodeR+8,15);
-  for(let i=0;i<nodes.length;i++){const dx=mx-nodes[i].x,dy=my-nodes[i].y;if(dx*dx+dy*dy<hitR*hitR){toggleLLM(i);return;}}});
+  for(let i=0;i<nodes.length;i++){const dx=mx-nodes[i].x,dy=my-nodes[i].y;if(dx*dx+dy*dy<hitR*hitR){showTrustPopup(i,e.clientX,e.clientY);return;}}
+  hideTrustPopup();});
 canvas.style.cursor='pointer';
 
 // BUTTONS
@@ -397,9 +448,9 @@ function updateReadouts(){document.getElementById('nDisplay').textContent='K'+su
   document.getElementById('rColAuto').textContent=((n-1)/n).toFixed(3);
   if(typeof updateExamples==='function')updateExamples();}
 function updateHint(){const h=document.getElementById('hintBar'),nL=llmNodes.length;
-  if(nL===0)h.textContent='Click any human agent to attach/detach a single LLM. Or use the buttons above.';
-  else if(nL===n)h.textContent='All '+n+' agents coupled. Watch the provenance bar and depth illusion metric.';
-  else h.textContent=nL+' of '+n+' agents coupled. Click to add/remove. ~'+(nL/n*100|0)+'% penetration.';}
+  if(nL===0)h.textContent='Click any human agent to attach an LLM and set trust level (0\u201310).';
+  else if(nL===n)h.textContent='All '+n+' agents coupled. Click any agent to adjust trust or detach.';
+  else h.textContent=nL+' of '+n+' agents coupled. Click to attach/adjust/detach. ~'+(nL/n*100|0)+'% penetration.';}
 
 // ── CRR DYNAMICS ──
 function updateCRR(dt){const sDt=dt*speed;
@@ -407,8 +458,8 @@ function updateCRR(dt){const sDt=dt*speed;
     if(nd.C>=CSTAR_SO2){metrics.so2Rup++;
       if(nd.lastKick==='llm')metrics.provLLM++;else if(nd.lastKick==='human')metrics.provHuman++;else metrics.provSelf++;
       // Crystallise taint for relay: what fraction of this agent's signal is LLM-origin?
-      const totalH=nd.hSelfC+nd.hHumanC+nd.hLlmC;
-      nd.llmTaint=totalH>0?nd.hLlmC/totalH:nd.hasLLM?0.5:0;
+      const totalExt=nd.hHumanC+nd.hLlmC;
+      nd.llmTaint=totalExt>0?nd.hLlmC/totalExt:nd.hasLLM?0.5:0;
       nd.kicksReceived=0;nd.llmKicksReceived=0;nd.hSelfC=0;nd.hHumanC=0;nd.hLlmC=0;
       nd.lastKick='self';nd.C=0;nd.rupturing=1;nd.rate=max(.3,1+OMEGA_SO2*randn());
       ruptures.push({x:nd.x,y:nd.y,t:1});
@@ -455,11 +506,19 @@ function updateCRR(dt){const sDt=dt*speed;
       ruptures.push({x:llm.x,y:llm.y,t:1});
       if(llm.hostIndex===trackedNode)traceData.llmRups.push(traceData.llm.length);
       const p=host.C/CSTAR_SO2,s=1+3*p*p;
-      const wC=exp(host.C/OMEGA_Z2),wM=exp(host.C/OMEGA_SO2),oa=min(wM/wC,8);
+      // Depth illusion: over-attribution grows with host's progress through its cycle
+      // At p=0 (just ruptured), no illusion. At p→1 (near threshold), full illusion.
+      // The raw ratio exp(C/Ω_SO2)/exp(C/Ω_Z2) = exp(C·π) grows too fast;
+      // scale by p² so it builds quadratically with coherence progress
+      const rawOA=exp(host.C/OMEGA_SO2)/exp(host.C/OMEGA_Z2);
+      const oa=1+(min(rawOA,8)-1)*p*p;
       llm.lastOA=oa;if(oa>metrics.peakIllusion)metrics.peakIllusion=oa;
       metrics.cumIllusion+=oa-1;
+      // Trust modulates how much of the LLM kick the host actually accepts
+      // trust=0: host ignores LLM entirely. trust=1: full acceptance, priors dominated
+      const trust=host.trust;
       const baseKick=(entrainment>0?entrainment:0.3)*OMEGA_Z2;
-      const prev=host.C;const actual=min(host.C+baseKick*s*oa,CSTAR_SO2)-host.C;
+      const prev=host.C;const actual=min(host.C+baseKick*s*oa*trust,CSTAR_SO2)-host.C;
       host.C+=actual;
       // Hidden cause: this coherence is 100% LLM-origin
       host.hLlmC+=actual;
@@ -499,7 +558,8 @@ function updateMetrics(){const el=(performance.now()-metrics.start)/1000;if(el<1
   }else{document.getElementById('rIllusion').textContent='\u2014';document.getElementById('mIllusionPk').textContent='\u2014';}
   document.getElementById('mCumIllusion').textContent=metrics.cumIllusion.toFixed(0);
   const tot=metrics.provSelf+metrics.provHuman+metrics.provLLM;
-  if(tot>0){const pS=metrics.provSelf/tot*100,pH=metrics.provHuman/tot*100,pL=metrics.provLLM/tot*100;
+  let pL=0;
+  if(tot>0){const pS=metrics.provSelf/tot*100,pH=metrics.provHuman/tot*100;pL=metrics.provLLM/tot*100;
     document.getElementById('provSelf').style.width=pS+'%';document.getElementById('provHuman').style.width=pH+'%';document.getElementById('provLLM').style.width=pL+'%';
     document.getElementById('provSelf').textContent=pS>10?'self '+(pS|0)+'%':'';
     document.getElementById('provHuman').textContent=pH>10?'other human '+(pH|0)+'%':'';
@@ -507,21 +567,27 @@ function updateMetrics(){const el=(performance.now()-metrics.start)/1000;if(el<1
     // Show effective autonomy in brackets next to structural individual autonomy
     document.getElementById('rIndAuto').textContent=(1/n).toFixed(3)+' (eff: '+(pS|0)+'%)';}
 
-  // Hidden causes: three-way split — mirror-self, other human, LLM-origin
-  // Denominator is ALL coherence (self + human + LLM), not just external
+  // Total LLM influence: hidden relay + known (overt) LLM kicks combined
+  // The bottom bar shows the full picture: conscious + unconscious LLM influence
   if(nodes.length>0){
     let tS=0,tH=0,tL=0;
     for(const nd of nodes){tS+=nd.hSelfC;tH+=nd.hHumanC;tL+=nd.hLlmC;}
     const totAll=tS+tH+tL;
-    if(totAll>0){
+    if(totAll>0&&tot>0){
+      // Hidden relay percentages (of coherence)
       const hS=tS/totAll*100,hH=tH/totAll*100,hL=tL/totAll*100;
-      document.getElementById('hidSelf').style.width=max(0,hS)+'%';
-      document.getElementById('hidHuman').style.width=max(0,hH)+'%';
-      document.getElementById('hidLLM').style.width=max(0,hL)+'%';
-      document.getElementById('hidSelf').textContent=hS>8?'self '+(hS|0)+'%':'';
-      document.getElementById('hidHuman').textContent=hH>8?'other human '+(hH|0)+'%':'';
-      document.getElementById('hidLLM').textContent=hL>8?'LLM-origin '+(hL|0)+'%':'';
-      document.getElementById('hidExtPct').textContent='('+(hH+hL|0)+'% external)';
+      // Add known-causes LLM% to hidden LLM%, subtract from self
+      const knownLLMpct=pL; // from Known Causes above
+      const combinedL=min(hL+knownLLMpct,100);
+      const combinedS=max(0,hS-(combinedL-hL));
+      const combinedH=100-combinedS-combinedL;
+      document.getElementById('hidSelf').style.width=max(0,combinedS)+'%';
+      document.getElementById('hidHuman').style.width=max(0,combinedH)+'%';
+      document.getElementById('hidLLM').style.width=max(0,combinedL)+'%';
+      document.getElementById('hidSelf').textContent=combinedS>8?'self '+(combinedS|0)+'%':'';
+      document.getElementById('hidHuman').textContent=combinedH>8?'other human '+(combinedH|0)+'%':'';
+      document.getElementById('hidLLM').textContent=combinedL>8?'total LLM '+(combinedL|0)+'%':'';
+      document.getElementById('hidExtPct').textContent='(overt '+(pL|0)+'% + covert '+(hL|0)+'%)';
     }
   }}
 
@@ -569,7 +635,12 @@ function draw(){ctx.clearRect(0,0,W,H);const nodeR=n===1?30:max(2,min(22,160/n))
     else ctx.fillStyle=COL.cyanL+fa+')';
     ctx.fillRect(-sz/2,-sz/2,sz,sz);ctx.strokeStyle=llm.rupturing>0?COL.red:(glow>0?COL.gold:COL.cyan);
     ctx.lineWidth=1;ctx.globalAlpha=.6;ctx.strokeRect(-sz/2,-sz/2,sz,sz);ctx.globalAlpha=1;
-    ctx.fillStyle=COL.cyanL+'0.25)';ctx.fillRect(-sz/2,sz/2-sz*p,sz,sz*p);ctx.restore();}
+    ctx.fillStyle=COL.cyanL+'0.25)';ctx.fillRect(-sz/2,sz/2-sz*p,sz,sz*p);
+    // Trust label
+    const hostTrust=nodes[llm.hostIndex].trust;
+    ctx.font=(max(7,sz*.7)|0)+'px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.fillStyle=COL.cyan;ctx.globalAlpha=.7;
+    ctx.fillText((hostTrust*10|0),0,sz/2+(max(7,sz*.7))+2);ctx.globalAlpha=1;
+    ctx.restore();}
 
   ctx.font='10px "JetBrains Mono",monospace';ctx.fillStyle=COL.dim;ctx.textAlign='left';
   ctx.fillText(`K${sub(n)}: ${n} SO(2)  ${n*(n-1)/2} Z\u2082 blankets${llmNodes.length?'  '+llmNodes.length+' LLM'+(llmNodes.length>1?'s':''):''}`,10,16);
