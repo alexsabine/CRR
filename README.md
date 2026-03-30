@@ -22,35 +22,59 @@ $$R = \int \varphi(x,\tau) \cdot \exp\!\left(\frac{C(x,\tau)}{\Omega}\right) \cd
 
 ---
 
-## Axioms
+## Five Commitments
 
-1. **Čencov uniqueness.** The Fisher information metric is the unique (up to scale) Riemannian metric on statistical manifolds invariant under sufficient statistics. This fixes the geometry.
+Any persistent, finite, adaptive system must satisfy these:
 
-2. **Cramér–Rao attainment.** At rupture, the system saturates the Cramér–Rao bound: $C \cdot \Omega = 1$, where $\Omega = \sigma^2$ is the system's characteristic variance.
+**1. Persistence implies accumulation.** A system that persists must accumulate patterns that work, reducing surprise in its eco-niche. $L(x,\tau) \geq 0$ is the Fisher–Rao speed on the statistical manifold — the rate of coherence accumulation. The integral over the system's past makes CRR distinctively non-Markovian: the present state depends on the accumulated history of the current regime.
 
-3. **Two universal symmetry classes.**
-   - **Z₂** (bistable): $\Omega = 1/\pi$, threshold $C^* = \pi$, predicted $\text{CV} = 1/2\pi \approx 0.159$
-   - **SO(2)** (rotational): $\Omega = 1/2\pi$, threshold $C^* = 2\pi$, predicted $\text{CV} = 1/4\pi \approx 0.080$
-   - The ratio between symmetry classes is exactly **2**.
+**2. Finite capacity implies rupture.** No finite system can accumulate coherence without bound. At $C \cdot \Omega = 1$, accumulated arc length spans the manifold's full geodesic extent. The system has traversed all distinguishable states available to its current regime and must reorganise. The Dirac delta has zero temporal extension and carries exactly one unit of mass on the boundary between past and future.
 
-4. **σ = ½ at rupture.** The Dirac delta distributes unit mass at the rupture boundary → Bernoulli(½) → Wijsman attainment → $\sigma(C^*) = 1/2$ universally → $\text{CV} = \Omega/2$.
+**3. Reconstruction is weighted by historical coherence.** After rupture, the system rebuilds from its own history. The exponential kernel $\exp(C/\Omega)$ is the maximum-entropy weighting consistent with a constraint on the expected value of $C$ — given only accumulated coherence and capacity, the distribution that maximises entropy takes the Boltzmann form, with $C$ as energy and $\Omega$ as temperature. The Heaviside $\Theta$ enforces causality. Because $d\Theta/dt = \delta$, the three CRR equations form a single dynamical system: the regeneration integral is the Green's function of the rupture operator.
 
-5. **Maximum entropy regeneration.** After rupture, the system reconstructs via Jaynes MaxEnt: $\exp(C/\Omega)$ weights which memories are accessible. Small Ω → rigid reconstitution. Large Ω → transformative renewal.
+**4. The system has a characteristic variance.** $\Omega$ is fixed by the topology of the state space, not fitted. It simultaneously governs coherence capacity (how much can accumulate before rupture), rupture frequency (how often the system must reorganise), and memory breadth (which past moments dominate reconstruction). These are not three independent properties but a single geometric fact about the system's attractor topology. Small $\Omega$: the memory kernel peaks sharply and the system reconstitutes the same patterns (habit, rigidity). Large $\Omega$: the kernel is flat and the system can reconstruct broadly (flexibility, exploration).
+
+**5. Rupture is a maximum-entropy event.** At rupture, the system occupies the maximum-entropy state consistent with its symmetry class. A bistable system at rupture is maximally uncertain about which state comes next; a rotational system at rupture has no preferred phase. This converts geometric structure into specific numerical predictions.
+
+---
+
+## Fixing Ω from Geometry
+
+The five commitments leave one degree of freedom — the value of Ω — which must be fixed by the system's structure alone. For systems whose internal states parametrise probability distributions (which, under the FEP, includes any system with a Markov blanket), the arena of coherence accumulation is a statistical manifold. Čencov's uniqueness theorem constrains the metric to the Fisher information metric, and the geodesic structure fixes the maximum arc length.
+
+Two fundamental manifold topologies:
+
+- **Z₂ (bistable).** The Bernoulli manifold, parametrised by $p \in [0,1]$, has Fisher–Rao geodesic diameter $\pi$. The manifold is an interval, not a loop — the system cannot return without retracing the same geodesic. $\ell_{Z_2} = \pi$, hence $\Omega_{Z_2} = 1/\pi \approx 0.318$ and $C^* = \pi$. Predicted CV $= 1/2\pi \approx 0.159$.
+
+- **SO(2) (rotational).** The circular manifold $S^1$ has circumference $2\pi$. The system exhausts its configuration by completing one full cycle. $\ell_{SO(2)} = 2\pi$, hence $\Omega_{SO(2)} = 1/2\pi \approx 0.159$ and $C^* = 2\pi$. Predicted CV $= 1/4\pi \approx 0.080$.
+
+The ratio between classes is exactly **2** — a topological invariant independent of any physical parameters.
 
 ---
 
 ## Precision Architecture: Z₂ Sensory, SO(2) Prior
 
-CRR assigns symmetry classes to the precision channels of Active Inference — and the assignment is not arbitrary. It falls out of graph topology.
+The symmetry assignment to Active Inference's precision channels was not imposed by analogy — it was found in the graph topology of a network simulation.
 
-In any network of Markov-blanketed agents, **edges** are statistical boundaries that alternate between two regimes of influence — Z₂ dynamics. **Nodes** are internal models that traverse a continuous cycle of belief updating — SO(2) dynamics. This maps directly:
+In any graph of Markov-blanketed agents, an **edge** is a statistical boundary that alternates between two regimes of influence: inside-dominant or outside-dominant. Two states, one boundary — Z₂ dynamics. A **node** is an internal model that traverses a continuous cycle of belief updating: perceive, predict, act, update. A closed loop with no endpoint — SO(2) dynamics.
 
-- **Z₂ → sensory precision** (likelihood). Higher Ω = more permeable blanket. Fast, frequent, shallow updates. The system stays responsive to evidence.
-- **SO(2) → prior precision** (transition model). Lower Ω = more stable internal model. Slow, rare, deep updates. The system maintains coherent beliefs.
+The assignment follows:
 
-The factor of 2 between Ω values (1/π vs 1/2π) is the geometric cost of revising priors versus updating sensory estimates. Sensory channels rupture ~2× as often as prior channels, but prior ruptures carry ~2× the precision gain. The totals balance exactly — a conservation law that holds across environment topologies, weight functions, and noise levels (precision-gain ratio = 1.003, 95% CI [1.000, 1.005]).
+- **Z₂ → sensory (likelihood) precision.** Edges are blanket states. $\Omega_{Z_2} = 1/\pi$ — higher variance, more permeable boundary. The system stays responsive to incoming evidence. Fast ruptures, frequent updates, shallow precision gain per event.
 
-The primary finding is **phase-gating**: the π/2π partition produces a strongly non-uniform phase relationship between channels (χ² = 8,041) that determines whether each update drives learning or action. This is structurally compatible with empirical findings on neuromodulatory timing — Jang et al. (2026) showed that relative timing, not magnitude, determines whether dopamine promotes reinforcement learning or movement vigour. CRR recovers this partition from geometry alone.
+- **SO(2) → prior (transition) precision.** Nodes are generative models. $\Omega_{SO(2)} = 1/2\pi$ — lower variance, more stable internal model. The system maintains coherent beliefs across time. Slow ruptures, rare updates, deep precision gain per event.
+
+Three independent lines of evidence converge on this assignment:
+
+1. **Graph structure.** Edges alternate (Z₂); nodes cycle (SO(2)). The symmetry classes are inherited from the roles the channels play in the network.
+
+2. **Permeability.** The regeneration kernel $\exp(C/\Omega)$ entails that higher Ω produces a flatter memory kernel (broad, flexible, permeable). Under the FEP, the Markov blanket must be receptive to sensory states; the internal model must maintain stability. Since $\Omega_{Z_2} > \Omega_{SO(2)}$, graph-structural and functional arguments converge.
+
+3. **Falsifiability.** Reversing the assignment (SO(2) → sensory, Z₂ → prior) produces measurably different dynamics: sensory ruptures become rare (modal 1 per prior cycle, versus 3), and the prior channel becomes irregular ($B = -0.16$ vs $-0.33$). The reversed assignment predicts that sensory updates are rarer than prior updates — contradicting the FEP's requirement that the blanket be responsive to evidence.
+
+The primary empirical finding is **phase-gating**: the π/2π partition produces a strongly non-uniform phase relationship between channels ($\chi^2 = 8{,}041$, $p < 10^{-100}$) that determines whether each update drives learning or action. Both channels process equal total precision gain per unit time (ratio = 1.003, 95% CI [1.000, 1.005]) — a conservation law that holds across environment topologies, weight functions, and noise levels. The Z₂ channel makes many small updates; the SO(2) channel makes few large ones. The factor of 2 sets the exchange rate between frequency and grain size.
+
+This is structurally compatible with Jang et al. (2026), who showed that relative timing, not magnitude, determines whether dopamine promotes reinforcement learning or movement vigour. CRR recovers the partition from geometry alone.
 
 ---
 
