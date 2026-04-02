@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRR Recovery — Biomechanical Detail</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0e;overflow:hidden;font-family:'Cormorant Garamond',serif;color:#c8b89a;cursor:crosshair}
+
+#panel{position:fixed;bottom:0;left:0;right:0;z-index:10;background:rgba(6,6,10,0.95);border-top:1px solid rgba(200,184,154,0.06);padding:10px 16px;backdrop-filter:blur(14px);display:flex;gap:16px;align-items:stretch;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:3px;min-width:80px}
+.col-wide{flex:1;min-width:160px}
+.lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:#4a4436;letter-spacing:1.2px;text-transform:uppercase}
+.val{font-family:'JetBrains Mono',monospace;font-size:12px;color:#d4a574}
+.phase-name{font-size:16px;color:#e8d5b5;font-weight:600}
+.sym-tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 6px;letter-spacing:0.5px;margin-top:2px}
+.sym-so2{background:rgba(91,192,190,0.15);color:#5bc0be;border:1px solid rgba(91,192,190,0.25)}
+.sym-z2{background:rgba(197,74,42,0.15);color:#e07050;border:1px solid rgba(197,74,42,0.25)}
+
+.bar-track{height:5px;background:rgba(200,184,154,0.06);width:100%;margin-top:3px;position:relative;overflow:hidden}
+.bar-c{height:100%;transition:width 0.08s}
+.bar-threshold{position:absolute;top:0;bottom:0;width:2px;background:#c54a2a}
+
+.phase-dots{display:flex;gap:2px;margin-top:3px;flex-wrap:wrap}
+.pd{width:7px;height:7px;border:1px solid rgba(200,184,154,0.12);transition:all 0.15s}
+.pd.done{background:rgba(68,170,136,0.5);border-color:rgba(68,170,136,0.4)}
+.pd.on{background:rgba(212,165,116,0.6);border-color:#d4a574;transform:scale(1.4)}
+
+.slider-row{display:flex;align-items:center;gap:6px}
+.slider-row input{-webkit-appearance:none;height:2px;background:rgba(200,184,154,0.15);outline:none;flex:1;min-width:60px}
+.slider-row input::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:#d4a574;cursor:pointer}
+
+#info{position:fixed;top:10px;left:10px;z-index:10;background:rgba(6,6,10,0.92);border:1px solid rgba(200,184,154,0.06);padding:10px 14px;max-width:260px;font-size:12px;line-height:1.55;color:#7a6e5e}
+#info strong{color:#d4a574}
+.eq{font-family:'JetBrains Mono',monospace;color:#5bc0be;font-size:10px}
+
+.btn-row{position:fixed;top:10px;right:10px;z-index:10;display:flex;gap:4px}
+.btn{background:rgba(6,6,10,0.92);border:1px solid rgba(200,184,154,0.12);color:#a09080;font-family:'Cormorant Garamond',serif;font-size:13px;padding:7px 14px;cursor:pointer;transition:all 0.2s}
+.btn:hover{border-color:#d4a574;color:#e8d5b5}
+
+#log{position:fixed;top:10px;right:10px;z-index:9;margin-top:44px;width:220px;font-family:'JetBrains Mono',monospace;font-size:8px;color:#4a4436;line-height:1.5;max-height:180px;overflow:hidden}
+.log-entry{padding:1px 0;border-bottom:1px solid rgba(200,184,154,0.03)}
+.log-entry .t{color:#d4a574}
+.log-entry .s{color:#5bc0be}
+</style>
+</head>
+<body>
+
+<div id="info">
+    <strong>Click anywhere</strong> to poke the agent.<br><br>
+    The CRR engine (4 lines) drives the entire recovery.<br>
+    <span class="eq">C += L × dt</span><br>
+    <span class="eq">if C·Ω ≥ 1 → δ (rupture)</span><br>
+    <span class="eq">C *= 0.35</span><br>
+    <span class="eq">gain = e^(C/Ω)</span><br><br>
+    <strong>SO(2)</strong> = gait cycle (continuous)<br>
+    <strong>Z₂</strong> = each phase transition (discrete)<br>
+    COM dot shows weight shift before each rupture.
+</div>
+
+<div class="btn-row">
+    <button class="btn" onclick="doPoke()">Poke</button>
+    <button class="btn" onclick="bigPoke()">Hard Poke</button>
+</div>
+<div id="log"></div>
+
+<div id="panel">
+    <div class="col">
+        <div class="lbl">Phase</div>
+        <div class="phase-name" id="pName">Walking</div>
+        <div id="symTag" class="sym-tag sym-so2">SO(2)</div>
+    </div>
+    <div class="col">
+        <div class="lbl">Phase C</div>
+        <div class="val" id="pcVal">—</div>
+        <div class="bar-track"><div class="bar-c" id="pcBar" style="width:0;background:#d4a574"></div><div class="bar-threshold" id="pcTh" style="left:80%"></div></div>
+        <div class="phase-dots" id="dots"></div>
+    </div>
+    <div class="col">
+        <div class="lbl">Global C</div>
+        <div class="val" id="gcVal">0.80</div>
+        <div class="bar-track"><div class="bar-c" id="gcBar" style="width:80%;background:#5bc0be"></div></div>
+    </div>
+    <div class="col">
+        <div class="lbl">exp(C/Ω)</div>
+        <div class="val" id="gainV">—</div>
+    </div>
+    <div class="col">
+        <div class="lbl">δ count</div>
+        <div class="val" id="dVal">0</div>
+    </div>
+    <div class="col">
+        <div class="lbl">Ω</div>
+        <div class="slider-row">
+            <input type="range" id="omS" min="0.06" max="0.9" step="0.01" value="0.318" oninput="S.omega=+this.value;document.getElementById('omV').textContent=(+this.value).toFixed(3)">
+            <span class="val" id="omV">0.318</span>
+        </div>
+    </div>
+    <div class="col">
+        <div class="lbl">Force</div>
+        <div class="slider-row">
+            <input type="range" id="fS" min="1" max="14" step="0.5" value="6" oninput="pokeForce=+this.value;document.getElementById('fV').textContent=this.value">
+            <span class="val" id="fV">6.0</span>
+        </div>
+    </div>
+    <div class="col-wide">
+        <div class="lbl">Description</div>
+        <div id="desc" style="font-size:11px;color:#8a7e6e;font-style:italic;line-height:1.4"></div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const π=Math.PI, φ=(1+Math.sqrt(5))/2, DUTY=φ/(1+φ), f0=1/(π*π);
+let pokeForce=6, gT=0, logs=[];
+
+// ═══════════════════════════════════════════════════════
+// PHASES — biomechanically accurate recovery sequence
+// ═══════════════════════════════════════════════════════
+const P={
+    WALK:0, STUMBLE:1, FALL:2, IMPACT:3, STILL:4,
+    HEAD_LIFT:5, ROLL:6, ARMS_PLANT:7, ALL_FOURS:8,
+    HALF_KNEEL:9, PUSH_RISE:10, STAND:11, STABILISE:12
+};
+const PN=['Walk','Stumble','Fall','Impact','Still','Head lift',
+          'Roll to front','Arms plant','All fours','Half kneel',
+          'Push to rise','Stand','Stabilise'];
+const PDESC=[
+    'SO(2) gait cycle on S¹. Phase wraps mod 2π. Z₂ left/right alternation at offset π.',
+    'Z₂ ankle/hip strategy. COM approaching BOS edge. Arms reaching for balance.',
+    'COM has exited BOS. Gravity wins. Z₂ catastrophic rupture from upright to fallen.',
+    'Ground contact. Energy dissipating. Secondary settlement.',
+    'Lying still. Coherence near zero. The dazed pause. System assessing damage.',
+    'First voluntary movement. Head lifts, eyes seek horizon. Vestibular recalibration.',
+    'Trunk rotation to prone/side. Arms positioning for push. Weight shifting to hands.',
+    'Hands plant on floor. Arms push, chest lifts. COM shifts over hand-knee base.',
+    'Stable 4-point base: hands + knees. Pause to accumulate coherence before rising.',
+    'One foot steps forward. Weight shifts over front foot. Preparing to drive upward.',
+    'Hip and knee extension drive COM upward. Hands release floor. Arms swing for momentum.',
+    'Upright but unstable. Residual sway. VOR re-engaging. Postural corrections.',
+    'Balance corrections damping. Coherence rebuilding. SO(2) gait about to resume.'
+];
+// Z₂ for discrete transitions, SO(2) for continuous gait
+const PSYM=[1,0,0,0,0,0,0,0,0,0,0,0,1]; // 1=SO(2), 0=Z₂
+
+// Joint targets: {hL,hR,kL,kR,sL,sR,eL,eR,sp,tilt,roll,y, headX,headY}
+// Based on biomechanics research: COM must be over BOS before each transition
+function targetPose(phase, fd) {
+    const d = fd; // fall direction: +1 forward, -1 back
+    const T = {
+[P.STUMBLE]:    {hL:0.3*d,hR:0.15*d,kL:0.4,kR:0.25,sL:-1.6,sR:-1.5,eL:-0.4,eR:-0.3,sp:-0.15*d,tilt:0.35*d,roll:0.1,y:0.88,headX:0,headY:0},
+[P.IMPACT]:     {hL:0.5,hR:0.4,kL:0.7,kR:0.5,sL:-1.0*d,sR:-0.6*d,eL:-1.0,eR:-0.8,sp:0.15*d,tilt:1.2*d,roll:0.2,y:0.15,headX:0.2*d,headY:0},
+[P.STILL]:      {hL:0.25,hR:0.4,kL:0.35,kR:0.25,sL:-0.6,sR:0.3,eL:-0.4,eR:-0.2,sp:0.05,tilt:1.45*d,roll:0.25,y:0.1,headX:0,headY:0},
+[P.HEAD_LIFT]:  {hL:0.25,hR:0.4,kL:0.35,kR:0.25,sL:-0.5,sR:0.2,eL:-0.4,eR:-0.2,sp:0.08,tilt:1.35*d,roll:0.2,y:0.11,headX:-0.4*d,headY:0.3},
+[P.ROLL]:       {hL:0.7,hR:0.6,kL:0.9,kR:0.8,sL:-0.9,sR:-1.1,eL:-1.1,eR:-1.3,sp:0.35,tilt:0.65,roll:0.35,y:0.15,headX:-0.2,headY:0.15},
+[P.ARMS_PLANT]: {hL:0.85,hR:0.85,kL:1.1,kR:1.1,sL:-0.15,sR:-0.15,eL:-1.7,eR:-1.7,sp:0.45,tilt:0.45,roll:0.03,y:0.25,headX:-0.3,headY:0},
+[P.ALL_FOURS]:  {hL:1.5,hR:1.5,kL:2.2,kR:2.2,sL:-0.05,sR:-0.05,eL:-1.85,eR:-1.85,sp:0.5,tilt:0.3,roll:0,y:0.35,headX:-0.2,headY:0},
+[P.HALF_KNEEL]: {hL:0.7,hR:1.7,kL:0.8,kR:2.3,sL:-0.25,sR:-0.1,eL:-0.4,eR:-0.6,sp:0.15,tilt:0.12,roll:0,y:0.52,headX:-0.1,headY:0},
+[P.PUSH_RISE]:  {hL:0.15,hR:0.25,kL:0.2,kR:0.3,sL:-0.35,sR:-0.25,eL:-0.25,eR:-0.15,sp:0.06,tilt:0.05,roll:0,y:0.9,headX:0,headY:0},
+[P.STAND]:      {hL:0.04,hR:0.04,kL:0.06,kR:0.06,sL:-0.05,sR:-0.05,eL:-0.1,eR:-0.1,sp:0.015,tilt:0.015,roll:0,y:0.98,headX:0,headY:0},
+[P.STABILISE]:  {hL:0,hR:0,kL:0,kR:0,sL:0,sR:0,eL:-0.08,eR:-0.08,sp:0,tilt:0,roll:0,y:1.0,headX:0,headY:0},
+    };
+    return T[phase]||T[P.STABILISE];
+}
+
+// How fast coherence accumulates in each phase (slower = longer pause)
+const PHASE_RATE = [0,0,0,0, 0.2, 0.35, 0.4, 0.45, 0.35, 0.5, 0.55, 0.5, 0.6];
+// Interpolation speed per phase (how fast joints move to target)
+const PHASE_LERP = [0,0,0,0, 0.8, 1.2, 1.5, 1.8, 1.5, 2.0, 2.5, 2.0, 3.0];
+
+// ═══════════════════════════════════════════════════════
+// THREE.JS SCENE
+// ═══════════════════════════════════════════════════════
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0a0a0e);
+scene.fog=new THREE.FogExp2(0x0a0a0e,0.012);
+
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.1,200);
+camera.position.set(2.5,2,4.5);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+document.body.appendChild(renderer.domElement);
+
+// ─── LIGHTS ───
+scene.add(new THREE.AmbientLight(0x7a6e5d,0.4));
+const sunL=new THREE.DirectionalLight(0xfff4e1,0.95);
+sunL.position.set(5,12,4);sunL.castShadow=true;
+sunL.shadow.mapSize.set(2048,2048);
+sunL.shadow.camera.left=-6;sunL.shadow.camera.right=6;
+sunL.shadow.camera.top=6;sunL.shadow.camera.bottom=-6;
+sunL.shadow.camera.near=1;sunL.shadow.camera.far=30;
+sunL.shadow.bias=-0.001;
+scene.add(sunL);
+const fill=new THREE.DirectionalLight(0x8a9ebb,0.25);
+fill.position.set(-4,6,-3);scene.add(fill);
+const rim=new THREE.DirectionalLight(0xd4a574,0.12);
+rim.position.set(0,4,-8);scene.add(rim);
+
+// ─── FLOOR: solid, visible, warm concrete ───
+const floorGeo=new THREE.PlaneGeometry(20,20,1,1);
+const floorMat=new THREE.MeshStandardMaterial({
+    color:0x2a2822, roughness:0.88, metalness:0.02
+});
+const floor=new THREE.Mesh(floorGeo,floorMat);
+floor.rotation.x=-π/2;floor.receiveShadow=true;
+scene.add(floor);
+
+// Floor grid (subtle)
+const gridH=new THREE.GridHelper(20,20,0x3a3428,0x22201a);
+gridH.position.y=0.002;scene.add(gridH);
+
+// Floor centre marker (subtle cross)
+const crossMat=new THREE.LineBasicMaterial({color:0x3a3428});
+[[-2,0,0,2,0,0],[0,0,-2,0,0,2]].forEach(c=>{
+    const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(c[0],0.003,c[1]),new THREE.Vector3(c[2],0.003,c[3])]);
+    scene.add(new THREE.Line(g,crossMat));
+});
+
+// ─── COM INDICATOR (dot on floor) ───
+const comGeo=new THREE.CircleGeometry(0.06,16);
+const comMat=new THREE.MeshBasicMaterial({color:0xd4a574,transparent:true,opacity:0.7,side:THREE.DoubleSide});
+const comDot=new THREE.Mesh(comGeo,comMat);
+comDot.rotation.x=-π/2;comDot.position.y=0.005;
+scene.add(comDot);
+
+// COM trail
+const comTrailGeo=new THREE.BufferGeometry();
+const comTrailPositions=new Float32Array(300);// 100 points x 3
+comTrailGeo.setAttribute('position',new THREE.BufferAttribute(comTrailPositions,3));
+const comTrail=new THREE.Line(comTrailGeo,new THREE.LineBasicMaterial({color:0xd4a574,transparent:true,opacity:0.2}));
+scene.add(comTrail);
+let comHistory=[];
+
+// ─── GROUND CONTACT MARKERS ───
+const contactMat=new THREE.MeshBasicMaterial({color:0x5bc0be,transparent:true,opacity:0,side:THREE.DoubleSide});
+const contacts={};
+['handL','handR','kneeL','kneeR','footL','footR'].forEach(name=>{
+    const m=new THREE.Mesh(new THREE.CircleGeometry(0.04,8),contactMat.clone());
+    m.rotation.x=-π/2;m.position.y=0.004;
+    scene.add(m);
+    contacts[name]=m;
+});
+
+// ═══════════════════════════════════════════════════════
+// BUILD AGENT
+// ═══════════════════════════════════════════════════════
+const HT=1.72, E=HT/8;
+const bones={};
+const group=new THREE.Group();
+
+function B(n,p){const g=new THREE.Group();g.name=n;(p||group).add(g);bones[n]=g;return g}
+function M(geo,mat,par,x,y,z,sx,sy,sz){
+    const m=new THREE.Mesh(geo,mat);
+    if(x!==undefined)m.position.set(x,y,z);
+    if(sx!==undefined)m.scale.set(sx,sy,sz);
+    m.castShadow=true;m.receiveShadow=true;par.add(m);return m;
+}
+
+const skin=new THREE.MeshStandardMaterial({color:0xc8a880,roughness:0.5,metalness:0.02});
+const cloth=new THREE.MeshStandardMaterial({color:0x3a5a4a,roughness:0.7});
+const clothD=new THREE.MeshStandardMaterial({color:0x2a3a32,roughness:0.72});
+const shoe=new THREE.MeshStandardMaterial({color:0x1a1a16,roughness:0.45,metalness:0.05});
+const hairM=new THREE.MeshStandardMaterial({color:0x281a06,roughness:0.88});
+
+const root=B('root');root.position.y=2*E;
+M(new THREE.SphereGeometry(0.42*E,8,6),clothD,root,0,0,0,1.25,0.62,0.92);
+
+const spine=B('spine',root);spine.position.y=0.15*E;
+M(new THREE.CylinderGeometry(0.35*E,0.4*E,1.65*E,8),cloth,spine,0,0.82*E,0);
+
+const chest=B('chest',spine);chest.position.y=0.88*E;
+M(new THREE.CylinderGeometry(0.45*E,0.35*E,0.92*E,8),cloth,chest,0,0.46*E,0);
+
+const neck=B('neck',chest);neck.position.y=0.95*E;
+M(new THREE.CylinderGeometry(0.085*E,0.1*E,0.2*E,6),skin,neck,0,0.1*E,0);
+
+const head=B('head',neck);head.position.y=0.25*E;
+M(new THREE.SphereGeometry(0.37*E,12,10),skin,head,0,0.24*E,0,0.87,1,0.9);
+M(new THREE.SphereGeometry(0.39*E,10,6,0,2*π,0,0.52*π),hairM,head,0,0.26*E,0,0.88,1,0.92);
+M(new THREE.SphereGeometry(0.035*E,5,4),skin,head,0,0.2*E,0.32*E);
+[-1,1].forEach(s=>{
+    M(new THREE.SphereGeometry(0.048*E,6,4),new THREE.MeshStandardMaterial({color:0xf0e8d8,roughness:0.3}),head,s*0.12*E,0.28*E,0.28*E);
+    M(new THREE.SphereGeometry(0.025*E,4,3),new THREE.MeshStandardMaterial({color:0x1a1a1a}),head,s*0.12*E,0.28*E,0.32*E);
+});
+
+['L','R'].forEach(side=>{
+    const s=side==='L'?-1:1;
+    const sh=B('s'+side,chest);sh.position.set(s*0.49*E,0.7*E,0);
+    M(new THREE.SphereGeometry(0.085*E,6,5),cloth,sh);
+    M(new THREE.CylinderGeometry(0.072*E,0.058*E,0.9*E,6),cloth,sh,0,-0.45*E,0);
+    const el=B('e'+side,sh);el.position.y=-0.9*E;
+    M(new THREE.SphereGeometry(0.05*E,5,4),skin,el);
+    M(new THREE.CylinderGeometry(0.048*E,0.038*E,0.75*E,6),skin,el,0,-0.37*E,0);
+    const wr=B('w'+side,el);wr.position.y=-0.75*E;
+    M(new THREE.SphereGeometry(0.05*E,6,4),skin,wr,0,-0.01*E,0,0.82,1.1,0.52);
+    for(let f=0;f<4;f++){
+        const a=0.14*(f-1.5);
+        M(new THREE.CylinderGeometry(0.011*E,0.009*E,0.1*E,3),skin,wr,Math.sin(a)*0.035*E,-0.08*E,Math.cos(a)*0.025*E);
+    }
+    M(new THREE.CylinderGeometry(0.012*E,0.009*E,0.08*E,3),skin,wr,s*0.035*E,-0.05*E,0.015*E);
+});
+
+['L','R'].forEach(side=>{
+    const s=side==='L'?-1:1;
+    const hip=B('h'+side,root);hip.position.set(s*0.19*E,-0.08*E,0);
+    M(new THREE.CylinderGeometry(0.11*E,0.082*E,1.28*E,6),clothD,hip,0,-0.64*E,0);
+    const knee=B('k'+side,hip);knee.position.y=-1.28*E;
+    M(new THREE.SphereGeometry(0.07*E,6,4),clothD,knee);
+    M(new THREE.CylinderGeometry(0.072*E,0.052*E,1.1*E,6),clothD,knee,0,-0.55*E,0);
+    const ankle=B('a'+side,knee);ankle.position.y=-1.1*E;
+    M(new THREE.BoxGeometry(0.095*E,0.042*E,0.21*E),shoe,ankle,0,-0.021*E,0.04*E);
+    M(new THREE.SphereGeometry(0.04*E,5,3,0,π,0,π),shoe,ankle,0,-0.008*E,0.14*E,1.05,0.45,0.75);
+});
+
+scene.add(group);
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+const S={
+    omega:1/π, C:0.8, phaseC:0, phase:P.WALK, fallDir:1, ruptures:0,
+    gaitPhase:0,
+    j:{hL:0,hR:0,kL:0,kR:0,sL:0,sR:0,eL:-0.08,eR:-0.08,sp:0,tilt:0,roll:0,y:1,headX:0,headY:0},
+    tiltV:0, rollV:0,
+    x:0, z:0, angle:0, wanderA:0, wanderT:0,
+    comX:0, comZ:0,
+};
+
+// ═══════════════════════════════════════════════════════
+// CRR GAIT
+// ═══════════════════════════════════════════════════════
+function cG(p,d){const q=((p%(2*π))+2*π)%(2*π),s=2*d*π;return q<s?-0.35*Math.sin(q/s*π):0.5*Math.sin((q-s)/(2*π-s)*π)}
+function cK(p,d){const q=((p%(2*π))+2*π)%(2*π),s=2*d*π;return q<0.3*s?0.15*Math.sin(q/(0.3*s)*π):q<s?0:Math.sin((q-s)/(2*π-s)*π)}
+function lerp(a,b,t){return a+(b-a)*Math.min(1,t)}
+function lerpJ(j,t,r){for(const k of Object.keys(t)){if(j[k]!==undefined)j[k]=lerp(j[k],t[k],r)}}
+
+// ═══════════════════════════════════════════════════════
+// POKE
+// ═══════════════════════════════════════════════════════
+function doPoke(){
+    const f=pokeForce;
+    const a=(Math.random()-0.5)*0.8;
+    const dx=Math.cos(S.angle+a), dz=Math.sin(S.angle+a);
+    S.tiltV+=dx*f*0.8; S.rollV+=dz*f*0.25;
+    const cap=Math.exp(S.C/S.omega)*S.omega*3;
+    if(f>cap||S.phase!==P.WALK){
+        S.phase=P.STUMBLE;S.phaseC=0;S.C=Math.max(0.05,S.C*0.15);
+        S.fallDir=Math.sign(dx)||1;S.ruptures++;
+        addLog(`δ FALL — force ${f.toFixed(1)} > capacity ${cap.toFixed(1)}`,true);
+    } else {
+        S.C*=Math.max(0.3,1-f*0.08);
+        addLog(`Stumble absorbed, C→${S.C.toFixed(2)}`);
+    }
+}
+function bigPoke(){const old=pokeForce;pokeForce=12;doPoke();pokeForce=old;}
+
+renderer.domElement.addEventListener('click',doPoke);
+document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();doPoke();}});
+
+function addLog(msg,isRupture){
+    logs.unshift({t:gT,msg,r:isRupture});if(logs.length>15)logs.pop();
+    document.getElementById('log').innerHTML=logs.slice(0,10).map(l=>
+        `<div class="log-entry"><span class="t">${l.t.toFixed(1)}s</span> ${l.r?'<span class="s">δ</span> ':''}${l.msg}</div>`
+    ).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// UPDATE
+// ═══════════════════════════════════════════════════════
+function update(dt){
+    const s=S;
+
+    // ─── WALKING (SO(2)) ───
+    if(s.phase===P.WALK){
+        s.wanderT-=dt;
+        if(s.wanderT<=0){s.wanderA+=(Math.random()-0.5)*0.7;s.wanderT=2.5+3*Math.random();}
+        let ad=s.wanderA-s.angle;while(ad>π)ad-=2*π;while(ad<-π)ad+=2*π;
+        s.angle+=ad*dt*1.0;
+        const spd=0.55*(0.4+0.6*s.C);
+        s.x+=Math.cos(s.angle)*spd*dt;s.z+=Math.sin(s.angle)*spd*dt;
+        const R=3.5,d=Math.sqrt(s.x*s.x+s.z*s.z);
+        if(d>R){s.wanderA=Math.atan2(-s.z,-s.x);s.x*=R/d;s.z*=R/d;}
+
+        const sr=spd/0.55;
+        s.gaitPhase+=f0*π*π*π*2*dt*sr;
+        s.j.hL=cG(s.gaitPhase,DUTY)*sr;s.j.hR=cG(s.gaitPhase+π,DUTY)*sr;
+        s.j.kL=cK(s.gaitPhase,DUTY)*sr;s.j.kR=cK(s.gaitPhase+π,DUTY)*sr;
+        s.j.sL=-s.j.hL*0.75;s.j.sR=-s.j.hR*0.75;
+        s.j.eL=-0.08-0.25*Math.max(0,s.j.hL)*sr;s.j.eR=-0.08-0.25*Math.max(0,s.j.hR)*sr;
+        s.j.sp=0;s.j.y=1+0.01*Math.abs(Math.sin(s.gaitPhase))*sr;
+        s.j.headX=0;s.j.headY=0;
+
+        const spr=10/s.omega*Math.exp(s.C/s.omega)/Math.exp(1/s.omega);
+        const dmp=3+5*s.omega;
+        s.tiltV+=(-spr*s.j.tilt-dmp*s.tiltV)*dt;s.rollV+=(-spr*s.j.roll-dmp*s.rollV)*dt;
+        s.j.tilt+=s.tiltV*dt;s.j.roll+=s.rollV*dt;
+        s.C=Math.min(1,s.C+0.25*dt);
+
+        const tm=Math.sqrt(s.j.tilt**2+s.j.roll**2);
+        if(tm>0.2){const f=Math.min(1,(tm-0.2)*4);s.j.sL+=-1.0*f*Math.sin(gT*10);s.j.sR+=-0.8*f*Math.sin(gT*10+1.2);}
+    }
+
+    // ─── STUMBLE (Z₂ ankle/hip switch) ───
+    else if(s.phase===P.STUMBLE){
+        const tgt=targetPose(P.STUMBLE,s.fallDir);
+        lerpJ(s.j,tgt,4*dt);
+        s.tiltV+=s.fallDir*5*dt;s.j.tilt+=s.tiltV*dt;s.j.roll+=s.rollV*dt;
+        s.j.y=Math.max(0.3,s.j.y-1.5*dt);
+        s.phaseC+=2.5*dt;
+        if(s.phaseC*s.omega>=1){s.phaseC*=0.35;s.phase=P.FALL;s.ruptures++;addLog('δ → Fall (COM exited BOS)',true);}
+    }
+
+    // ─── FALL (gravity) ───
+    else if(s.phase===P.FALL){
+        s.tiltV+=s.fallDir*7*dt;
+        s.j.tilt+=s.tiltV*dt;s.j.roll+=s.rollV*dt;
+        s.j.y=Math.max(0.1,s.j.y-4*dt);
+        s.j.sL=-1.3+Math.sin(gT*14)*0.7;s.j.sR=-1.1+Math.sin(gT*14+0.8)*0.7;
+        s.j.eL=-1.2;s.j.eR=-1.0;
+        s.j.hL+=1.5*dt;s.j.hR+=1.2*dt;s.j.kL+=2.5*dt;s.j.kR+=2*dt;
+        if(Math.abs(s.j.tilt)>1.1||s.j.y<=0.12){
+            s.phase=P.IMPACT;s.phaseC=0;s.tiltV*=0.15;s.rollV*=0.15;
+            s.ruptures++;addLog('δ → Impact (ground contact)',true);
+        }
+    }
+
+    // ─── IMPACT (settle) ───
+    else if(s.phase===P.IMPACT){
+        const tgt=targetPose(P.IMPACT,s.fallDir);
+        lerpJ(s.j,tgt,3*dt);
+        s.tiltV*=0.85;s.rollV*=0.85;
+        s.j.tilt+=s.tiltV*dt;s.j.roll+=s.rollV*dt;
+        s.j.y=Math.max(0.1,lerp(s.j.y,0.1,2*dt));
+        s.phaseC+=1.5*dt;
+        if(s.phaseC*s.omega>=1){s.phaseC*=0.35;s.phase=P.STILL;s.tiltV=0;s.rollV=0;s.ruptures++;addLog('δ → Still (settlement complete)',true);}
+    }
+
+    // ─── RECOVERY PHASES 4-12 (CRR engine) ───
+    else if(s.phase>=P.STILL){
+        // ═══ THE CRR ENGINE: 4 LINES ═══
+        const L = (PHASE_RATE[s.phase]||0.4) * (0.8+0.4*s.omega);
+        s.phaseC += L * dt;                                         // 1. accumulate
+        s.C = Math.min(0.95, s.C + 0.05*dt*(1+s.omega));
+        const gain = Math.exp(Math.min(s.C/s.omega, 5));            // 4. recovery gain
+        const maxG = Math.exp(Math.min(1/s.omega, 5));
+        const nG = gain/maxG;
+        // ═══════════════════════════════
+
+        const tgt = targetPose(s.phase, s.fallDir);
+        const rate = (PHASE_LERP[s.phase]||1.5) * (0.3+0.7*nG) * (0.7+0.5*s.omega);
+        lerpJ(s.j, tgt, rate*dt);
+
+        // Strain tremor
+        const tr = (1-s.C)*0.02/(s.omega+0.04);
+        s.j.tilt+=Math.sin(gT*13)*tr;
+        s.j.roll+=Math.sin(gT*11+0.5)*tr*0.6;
+
+        // Breathing near threshold
+        const prog=s.phaseC*s.omega;
+        if(prog>0.75)s.j.sp+=0.015*Math.sin(gT*2.5);
+
+        // ═══ RUPTURE CHECK ═══
+        if(s.phaseC*s.omega>=1.0){                                   // 2. rupture
+            s.phaseC*=0.35;                                          // 3. 65% reset
+            s.ruptures++;
+            if(s.phase<P.STABILISE){
+                s.phase++;
+                addLog(`δ → ${PN[s.phase]}`,true);
+            } else {
+                s.phase=P.WALK;s.C=0.55;s.tiltV=0;s.rollV=0;
+                addLog('δ → Walking (SO(2) restored)',true);
+            }
+        }
+    }
+
+    // ─── APPLY BONES ───
+    bones.root.position.y=s.j.y*2*E;
+    bones.root.rotation.x=s.j.tilt;bones.root.rotation.z=s.j.roll;
+    bones.spine.rotation.x=s.j.sp;
+    bones.spine.rotation.y=s.phase===P.WALK?0.035*Math.sin(s.gaitPhase):0;
+    bones.hL.rotation.x=s.j.hL;bones.hR.rotation.x=s.j.hR;
+    bones.kL.rotation.x=s.j.kL;bones.kR.rotation.x=s.j.kR;
+    bones.sL.rotation.x=s.j.sL;bones.sR.rotation.x=s.j.sR;
+    bones.eL.rotation.x=s.j.eL;bones.eR.rotation.x=s.j.eR;
+    const hc=Math.min(1,s.C*1.2);
+    bones.head.rotation.x=-s.j.tilt*hc*0.4+(s.j.headX||0);
+    bones.head.rotation.y=s.j.headY||0;
+    bones.head.rotation.z=-s.j.roll*hc*0.3;
+
+    group.position.set(s.x,0,s.z);
+    group.rotation.y=π/2-s.angle;
+
+    // ─── COM ───
+    const comWorldY=s.j.y*2*E*0.5;
+    const comFwd=Math.sin(s.j.tilt)*comWorldY;
+    s.comX=s.x+Math.cos(s.angle)*comFwd*0.4;
+    s.comZ=s.z+Math.sin(s.angle)*comFwd*0.4;
+    comDot.position.set(s.comX,0.005,s.comZ);
+    comDot.material.opacity=0.5+0.3*(1-s.C);
+    comDot.scale.set(1+2*(1-s.C),1,1+2*(1-s.C));
+
+    // COM trail
+    comHistory.push({x:s.comX,z:s.comZ});
+    if(comHistory.length>100)comHistory.shift();
+    const tp=comTrailGeo.attributes.position.array;
+    for(let i=0;i<100;i++){
+        const h=comHistory[Math.min(i,comHistory.length-1)];
+        tp[i*3]=h?h.x:s.comX;tp[i*3+1]=0.004;tp[i*3+2]=h?h.z:s.comZ;
+    }
+    comTrailGeo.attributes.position.needsUpdate=true;
+    comTrailGeo.setDrawRange(0,comHistory.length);
+
+    // ─── GROUND CONTACTS ───
+    const isDown=s.phase>=P.STILL&&s.phase<=P.PUSH_RISE;
+    const handsDown=s.phase>=P.ARMS_PLANT&&s.phase<=P.HALF_KNEEL;
+    const kneesDown=s.phase>=P.ALL_FOURS&&s.phase<=P.HALF_KNEEL;
+    const showContacts=isDown;
+
+    Object.values(contacts).forEach(c=>{c.material.opacity=0;});
+    if(showContacts){
+        if(handsDown){
+            contacts.handL.material.opacity=0.5;contacts.handR.material.opacity=0.5;
+            const hx=s.x+Math.cos(s.angle)*0.5;const hz=s.z+Math.sin(s.angle)*0.5;
+            contacts.handL.position.set(hx-Math.sin(s.angle)*0.15,0.004,hz+Math.cos(s.angle)*0.15);
+            contacts.handR.position.set(hx+Math.sin(s.angle)*0.15,0.004,hz-Math.cos(s.angle)*0.15);
+        }
+        if(kneesDown){
+            contacts.kneeL.material.opacity=0.4;contacts.kneeR.material.opacity=0.4;
+            contacts.kneeL.position.set(s.x-Math.sin(s.angle)*0.1,0.004,s.z+Math.cos(s.angle)*0.1);
+            contacts.kneeR.position.set(s.x+Math.sin(s.angle)*0.1,0.004,s.z-Math.cos(s.angle)*0.1);
+        }
+    }
+    // Always show feet when walking
+    if(s.phase===P.WALK||s.phase>=P.STAND){
+        contacts.footL.material.opacity=0.2;contacts.footR.material.opacity=0.2;
+        contacts.footL.position.set(s.x-Math.sin(s.angle)*0.08,0.004,s.z+Math.cos(s.angle)*0.08);
+        contacts.footR.position.set(s.x+Math.sin(s.angle)*0.08,0.004,s.z-Math.cos(s.angle)*0.08);
+    }
+
+    // ─── CAMERA ───
+    const cy=Math.max(0.4,s.j.y*1.5+0.5);
+    const camTgt=new THREE.Vector3(s.x,cy*0.5,s.z);
+    const cAngle=gT*0.06;
+    const cR=3.2+s.j.y*1.5;
+    const camPos=new THREE.Vector3(s.x+Math.sin(cAngle)*cR, cy+0.8, s.z+Math.cos(cAngle)*cR);
+    camera.position.lerp(camPos,0.035);
+    camera.lookAt(camTgt);
+}
+
+// ─── HUD ───
+function updateHUD(){
+    const s=S;
+    document.getElementById('pName').textContent=PN[s.phase];
+    const isSO2=PSYM[s.phase]===1;
+    const st=document.getElementById('symTag');
+    st.textContent=isSO2?'SO(2) continuous':'Z₂ discrete';
+    st.className='sym-tag '+(isSO2?'sym-so2':'sym-z2');
+
+    const Cstar=1/s.omega;
+    const prog=s.phase>=P.STILL&&s.phase<=P.STABILISE?s.phaseC*s.omega:s.C;
+    document.getElementById('pcVal').textContent=(s.phase>=P.STILL?s.phaseC.toFixed(2):'—');
+    document.getElementById('pcBar').style.width=Math.min(100,prog*100)+'%';
+    document.getElementById('pcBar').style.background=isSO2?'#5bc0be':'#d4a574';
+    document.getElementById('pcTh').style.left=Math.min(100,(s.phase>=P.STILL?s.phaseC/Cstar*100:s.C*100))+'%';
+    document.getElementById('gcVal').textContent=s.C.toFixed(3);
+    document.getElementById('gcBar').style.width=(s.C*100)+'%';
+    document.getElementById('gainV').textContent=Math.exp(Math.min(s.C/s.omega,5)).toFixed(1);
+    document.getElementById('dVal').textContent=s.ruptures;
+    document.getElementById('desc').textContent=PDESC[s.phase]||'';
+
+    let dots='';
+    for(let i=P.STILL;i<=P.STABILISE;i++){
+        const cls=i<s.phase?'done':i===s.phase?'on':'';
+        dots+=`<div class="pd ${cls}" title="${PN[i]}"></div>`;
+    }
+    document.getElementById('dots').innerHTML=dots;
+}
+
+// ─── LOOP ───
+let lastT=0;
+function animate(ts){
+    requestAnimationFrame(animate);
+    const dt=Math.min(0.033,(ts-lastT)/1000);lastT=ts;gT+=dt;
+    update(dt);
+    renderer.render(scene,camera);
+    if(Math.floor(gT*6)!==Math.floor((gT-dt)*6))updateHUD();
+}
+
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+addLog('Ready. Click or Space to poke.');
+updateHUD();
+animate(0);
+</script>
+</body>
+</html>
