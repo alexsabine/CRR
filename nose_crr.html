@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>The Living Nose — CRR | Active Inference Institute</title>
+<!--
+  =====================================================================
+  THE LIVING NOSE — CRR Olfactory Simulation
+  Alexander Sabine · Active Inference Institute (Board of Directors)
+  https://www.temporalgrammar.ai · Alexander@activeinference.institute
+  CRR computational method pending peer review (AGI-26, 2026)
+
+  CRR IN THE NOSE — three equations, one parameter, zero free parameters.
+
+  MOLECULAR: Swipe card = Z2 (shape) x SO(2) (vibration)
+  NEURAL:    Theta 4.72 Hz = SO(2), Gamma 84.94 Hz = Z2, phase-gated
+  BREATH:    Z2 bistable, 15/min = 6pi/theta (3 SO(2) revolutions)
+  =====================================================================
+-->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080604;overflow:hidden;height:100vh;height:100dvh;user-select:none;-webkit-user-select:none}
+canvas{display:block;position:absolute;left:0;top:0}
+#ui{position:fixed;left:14px;top:50%;transform:translateY(-50%);width:190px;padding:12px;
+  background:rgba(4,3,2,.94);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  border:1px solid rgba(180,140,100,.06);z-index:10;max-height:92vh;overflow-y:auto}
+#ui h2{font:500 14px/1 'Cormorant Garamond',Georgia,serif;letter-spacing:2px;text-transform:uppercase;color:rgba(220,195,170,.5);margin-bottom:10px}
+.sl{margin-bottom:6px}.sl label{display:flex;justify-content:space-between;font:400 10px/1.3 'JetBrains Mono',monospace;letter-spacing:.4px;text-transform:uppercase;color:rgba(220,195,170,.5);margin-bottom:3px}
+.vl{color:rgba(220,195,170,.75)}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:rgba(180,140,100,.12);outline:none;margin:3px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:rgba(220,195,170,.5);cursor:pointer}
+.sep{height:1px;background:rgba(180,140,100,.05);margin:6px 0}
+.tg{display:flex;align-items:center;gap:5px;margin:2px 0;font:400 10px/1.3 'Cormorant Garamond',Georgia,serif;color:rgba(220,195,170,.45);cursor:pointer}
+.tg input{width:12px;height:12px;cursor:pointer}
+#breathBtn{display:block;width:100%;padding:8px;margin:4px 0;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.8px;text-transform:uppercase;
+  background:rgba(180,100,60,.1);color:rgba(240,180,130,.65);border:1px solid rgba(180,100,60,.12);cursor:pointer;transition:all .3s}
+#breathBtn:hover{background:rgba(180,100,60,.2)}
+#breathBtn.on{background:rgba(100,180,140,.12);color:rgba(160,240,200,.75);border-color:rgba(100,180,140,.15)}
+.note{font:italic 300 9px/1.4 'Cormorant Garamond',serif;color:rgba(220,195,170,.22);margin-top:3px}
+#hud{font:300 9px/1.5 'JetBrains Mono',monospace;color:rgba(220,195,170,.3);margin-top:6px}
+#hud .h{color:rgba(220,195,170,.5)}
+#attr{position:fixed;left:14px;bottom:4px;font:300 7px/1 'JetBrains Mono',monospace;letter-spacing:.5px;color:rgba(220,195,170,.06);z-index:10}
+#attr a{color:rgba(220,195,170,.10);text-decoration:none}
+
+/* Right explainer panel */
+#ex{position:fixed;right:0;top:0;width:420px;height:100vh;background:rgba(6,4,3,.93);
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-left:1px solid rgba(180,140,100,.06);
+  z-index:15;transform:translateX(100%);transition:transform .5s cubic-bezier(.4,0,.2,1);
+  overflow-y:auto;padding:28px 22px 40px}
+#ex.open{transform:translateX(0)}
+#ex h3{font:500 16px/1.3 'Cormorant Garamond',Georgia,serif;letter-spacing:2px;text-transform:uppercase;
+  color:rgba(220,195,170,.55);margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid rgba(180,140,100,.07)}
+#ex h4{font:400 12px/1.2 'JetBrains Mono',monospace;letter-spacing:.8px;text-transform:uppercase;
+  margin:20px 0 8px;padding-top:10px;border-top:1px solid rgba(180,140,100,.05)}
+.hz{color:rgba(100,200,255,.6)}.hs{color:rgba(200,140,255,.55)}.hf{color:rgba(140,200,160,.5)}.hc{color:rgba(255,180,100,.5)}
+#ex p{font:300 15px/1.7 'Cormorant Garamond',Georgia,serif;color:rgba(220,195,170,.42);margin:0 0 9px}
+#ex em{color:rgba(220,195,170,.6);font-style:italic}
+.eq{font:400 12px/1.8 'JetBrains Mono',monospace;color:rgba(220,195,170,.55);padding:7px 11px;margin:6px 0;
+  background:rgba(60,50,40,.14);border-left:2px solid rgba(180,140,100,.1)}
+.eq span{font-size:9.5px;color:rgba(220,195,170,.28);display:block;margin-top:3px}
+.eq-z{border-left-color:rgba(100,200,255,.25)}.eq-s{border-left-color:rgba(200,140,255,.2)}
+.eq-f{border-left-color:rgba(140,200,160,.2)}.eq-c{border-left-color:rgba(255,180,100,.2)}
+.ref{font:300 12px/1.6 'Cormorant Garamond',Georgia,serif;color:rgba(220,195,170,.25);margin:4px 0;padding-left:12px;border-left:1px solid rgba(180,140,100,.07)}
+.ref em{color:rgba(220,195,170,.33)}
+.exBtn{position:fixed;right:14px;top:14px;font:400 11px/1 'JetBrains Mono',monospace;padding:9px 16px;
+  background:rgba(4,3,2,.9);color:rgba(220,195,170,.55);border:1px solid rgba(180,140,100,.15);cursor:pointer;z-index:16;
+  letter-spacing:.6px;text-transform:uppercase;transition:all .3s}
+.exBtn:hover{background:rgba(20,16,12,.95);color:rgba(220,195,170,.8);border-color:rgba(180,140,100,.3)}
+#brain{position:fixed;right:14px;bottom:14px;width:280px;padding:10px 12px;
+  background:rgba(4,3,2,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(180,140,100,.06);z-index:9}
+#brain h5{font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;color:rgba(220,195,170,.4);margin-bottom:8px}
+.brow{display:flex;align-items:center;gap:6px;margin:3px 0;height:18px}
+.bnode{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.bbar{flex:1;height:3px;background:rgba(180,140,100,.06);position:relative;overflow:hidden}
+.bfill{height:100%;width:0%;transition:width .1s}
+.blabel{font:300 9px/1 'JetBrains Mono',monospace;color:rgba(220,195,170,.3);width:52px;flex-shrink:0;text-align:right}
+.bthought{font:italic 300 11px/1 'Cormorant Garamond',Georgia,serif;color:rgba(220,195,170,.15);
+  margin-left:66px;transition:color .5s,opacity .5s;min-height:13px;white-space:nowrap;overflow:hidden}
+.bthought.lit{color:rgba(220,195,170,.55)}
+.bline{width:1px;height:4px;background:rgba(180,140,100,.08);margin:0 0 0 3px}
+@media(max-width:768px){#brain{right:3px;bottom:50px;width:220px;padding:6px 8px}
+  #ui{left:3px;width:160px;padding:6px;top:auto;bottom:3px;transform:none;max-height:40vh}
+  #ex{width:100%!important;height:55vh;top:auto!important;bottom:0;right:0;transform:translateY(100%)!important;border-left:none!important;border-top:1px solid rgba(180,140,100,.08)}
+  #ex.open{transform:translateY(0)!important}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="ui">
+<h2>The Living Nose</h2>
+<button id="breathBtn" onclick="toggleBreath()">Breathe</button>
+<div class="note">Click canvas for a single sniff. Button for<br>continuous breathing at 15/min (CRR: 6&#960;/&#952;).</div>
+<div class="sep"></div>
+<div class="sl"><label>Odorant strength<span class="vl" id="vConc">0.6</span></label><input type="range" id="sConc" min="0" max="1" step=".01" value="0.6"></div>
+<div class="sl"><label>Odorant<span class="vl" id="vOdor">Rose</span></label><input type="range" id="sOdor" min="0" max="4" step="1" value="0"></div>
+<div class="sl"><label>Tissue light<span class="vl" id="vLight">0.6</span></label><input type="range" id="sLight" min=".15" max="1" step=".01" value="0.6"></div>
+<div class="sep"></div>
+<label class="tg"><input type="checkbox" id="tMol" checked> Odorant molecules</label>
+<label class="tg"><input type="checkbox" id="tCilia" checked> Receptor cilia</label>
+<label class="tg"><input type="checkbox" id="tCRR" checked> CRR coherence</label>
+<label class="tg"><input type="checkbox" id="tLab" checked> Labels</label>
+<label class="tg" style="color:rgba(100,200,255,.45)"><input type="checkbox" id="tSym"> Z&#8322;/SO(2) overlay</label>
+<div class="sep"></div>
+<div id="hud">
+<span class="h">&#167;Z&#8322;</span> receptor · <span class="h">&#937;=1/&#960;</span><br>
+<span class="h">&#167;SO&#8322;</span> vibration · <span class="h">&#937;=1/2&#960;</span><br>
+<span class="h">&#167;&#948;</span> transduction · <span class="h">C&#183;&#937;=1</span>
+</div>
+</div>
+
+<div id="attr">CRR (A. Sabine, pending peer review) · <a href="https://www.temporalgrammar.ai">temporalgrammar.ai</a> · Active Inference Institute</div>
+
+<div id="brain">
+<h5>Decoding Pathway</h5>
+<div class="brow"><span class="blabel">Bulb</span><div class="bnode" id="bn0"></div><div class="bbar"><div class="bfill" id="bf0"></div></div></div>
+<div class="bthought" id="bt0"></div>
+<div class="bline"></div>
+<div class="brow"><span class="blabel">Piriform</span><div class="bnode" id="bn1"></div><div class="bbar"><div class="bfill" id="bf1"></div></div></div>
+<div class="bthought" id="bt1"></div>
+<div class="bline"></div>
+<div class="brow"><span class="blabel">Amygdala</span><div class="bnode" id="bn2"></div><div class="bbar"><div class="bfill" id="bf2"></div></div></div>
+<div class="bthought" id="bt2"></div>
+<div class="bline"></div>
+<div class="brow"><span class="blabel">Hippoc.</span><div class="bnode" id="bn3"></div><div class="bbar"><div class="bfill" id="bf3"></div></div></div>
+<div class="bthought" id="bt3"></div>
+<div class="bline"></div>
+<div class="brow"><span class="blabel">OFC</span><div class="bnode" id="bn4"></div><div class="bbar"><div class="bfill" id="bf4"></div></div></div>
+<div class="bthought" id="bt4"></div>
+</div>
+<button class="exBtn" onclick="document.getElementById('ex').classList.toggle('open')">CRR · AI</button>
+
+<div id="ex">
+<h3>The Nose as Active Inference</h3>
+<p>Every receptor binding, every sniff, and every oscillation in this simulation emerges from <em>CRR (Coherence-Rupture-Regeneration)</em>, a temporal grammar for the Free Energy Principle. Three equations, one parameter, zero free parameters.</p>
+
+<h4 class="hf">Active Inference in Olfaction</h4>
+<p>Olfaction is the brain's most <em>prediction-dependent</em> sense. The chemical world is noisy and turbulent, so the system invests more precision in its prior model than in sensory evidence alone.</p>
+<div class="eq eq-f">F = D<sub>KL</sub>[q(s) || p(s|o)] - ln p(o)<span>Olfaction relies more on predictive cues than vision (Perkins et al. 2024)</span></div>
+<p>Sniffing is <em>active inference</em>: a controlled sensory sampling act driven by predictions about what odors to expect, like a saccade or a whisker sweep.</p>
+
+<h4 class="hz">Z&#8322;: Receptor Binding</h4>
+<p>Each olfactory receptor neuron expresses one receptor type from ~400 genes. Odorant binding is <em>bistable</em>: the molecule fits or it does not.</p>
+<div class="eq eq-z">&#937;<sub>Z&#8322;</sub> = 1/&#960; &#8776; 0.318 · C* = &#960;<span>Each binding event = one observation. n = 1 per cycle.</span></div>
+
+<h4 class="hs">SO(2): Molecular Vibration</h4>
+<p>The <em>swipe card model</em> (Brookes et al. 2007) proposes that signal transduction requires shape fit (Z&#8322;) AND vibrational frequency match (SO(2)): phonon-assisted inelastic electron tunnelling.</p>
+<div class="eq eq-s">&#937;<sub>SO(2)</sub> = 1/2&#960; &#8776; 0.159 · C* = 2&#960;<span>Vibrational frequencies 70-400 meV. Ratio Z&#8322;/SO(2) = 2.</span></div>
+
+<h4 class="hc">Oscillation Hierarchy</h4>
+<p>Piriform cortex shows theta (4.72 Hz), beta (18.98 Hz), and gamma (84.94 Hz). Gamma amplitude is modulated by theta phase, ONLY when odor is present. Gamma/theta = 18 = 9 &#215; 2.</p>
+<div class="eq eq-c">Phase-gating: SO(2) theta sets WHEN<br>Z&#8322; gamma evidence accumulates<span>Stern et al. (2022) PLOS Biology. 18 = 9 x 2 (topological ratio as factor).</span></div>
+
+<h4 class="hs">Breath Rate</h4>
+<p>CRR predicts the resting rate from theta: period = 3 &#215; 2&#960;/&#952; = 6&#960;/4.72 = 4.0 s = <em>15/min</em>. Three SO(2) revolutions of the piriform theta pacemaker per breath. Zero free parameters.</p>
+
+<h4 class="hc">The Beauty Function</h4>
+<p>B(C) = exp(C/&#937;)&#183;(C* &#8722; C) peaks at C* &#8722; &#937;: <em>89.9% through each gamma cycle</em>. Maximum olfactory sensitivity one &#937; before rupture. The golden glow in the simulation marks this moment.</p>
+
+<h4 class="hf">References</h4>
+<p class="ref"><em>Parr, Pezzulo & Friston (2022)</em> Active Inference. MIT Press.</p>
+<p class="ref"><em>Stern et al. (2022)</em> Gamma in piriform cortex. PLOS Biol.</p>
+<p class="ref"><em>Brookes et al. (2007)</em> Phonon tunnelling. PRL 98:038101.</p>
+<p class="ref"><em>Wu et al. (2024)</em> 60 ms temporal resolution. Nat Hum Behav.</p>
+<p class="ref"><em>Shusterman et al. (2011)</em> Precise sniff responses. Nat Neurosci.</p>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// §CRR ENGINE — The Living Nose
+// Alexander Sabine · temporalgrammar.ai
+// Computational method pending peer review
+// ═══════════════════════════════════════════════════════════════
+const PI=Math.PI,TAU=2*PI,sin=Math.sin,cos=Math.cos,abs=Math.abs,
+  min=Math.min,max=Math.max,pow=Math.pow,sqrt=Math.sqrt,floor=Math.floor;
+function rnd(){return Math.random()}
+
+// §CRR constants
+const O_Z2=1/PI, O_SO2=1/TAU, CS_Z2=PI, CS_SO2=TAU;
+
+const cv=document.getElementById('c'),cx=cv.getContext('2d');
+let W,H,texDirty=true,texCv;
+function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;texDirty=true}
+resize();addEventListener('resize',resize);
+
+// ═══ BREATH STATE ═══
+// §CRR: breath is Z2 bistable. Default 15/min = 6π/θ (3 SO(2) theta revolutions).
+let breathing=false, breathT=0;
+const BREATH_HZ=15/60; // 0.25 Hz = 15 breaths/min
+let inhaleAmt=0; // 0..1 smooth inhale strength
+let singleSniff=0; // countdown for manual sniff
+
+function toggleBreath(){
+  breathing=!breathing;
+  const b=document.getElementById('breathBtn');
+  b.textContent=breathing?'Breathing...':'Breathe';
+  b.classList.toggle('on',breathing);
+}
+cv.addEventListener('click',()=>{singleSniff=2.5});// trigger ~2.5s sniff cycle
+
+// ═══ CONTROLS ═══
+let conc=0.6, odorIdx=0, light=0.6;
+const ODORS=['Rose','Lemon','Mint','Coffee','Smoke'];
+const OHUE=[340,55,150,30,15];
+document.getElementById('sConc').oninput=function(){conc=+this.value;document.getElementById('vConc').textContent=conc.toFixed(2)};
+document.getElementById('sOdor').oninput=function(){odorIdx=+this.value;document.getElementById('vOdor').textContent=ODORS[odorIdx]};
+document.getElementById('sLight').oninput=function(){light=+this.value;document.getElementById('vLight').textContent=light.toFixed(2)};
+
+// ═══ CRR OSCILLATOR ═══
+class CRR{
+  constructor(omega){
+    this.omega=omega;this.C=rnd()/omega*.1;
+    this.state=0;this.rt=0;this.flash=0;this.sf=0;this.rupN=0;
+  }
+  tick(L,dt){
+    if(this.state===0){
+      this.C+=max(0,L)*dt;
+      if(this.C>1.5/this.omega)this.C=1.5/this.omega;
+      const thr=(1/this.omega)*(1+(rnd()-.5)*this.omega);
+      if(this.C>=thr){this.state=1;this.flash=1;this.rupN++}
+    }else if(this.state===1){this.state=2;this.rt=0}
+    else{this.rt+=dt;if(this.rt>.04){this.state=0;this.C=0}}
+    this.sf+=(this.flash-this.sf)*min(1,dt*10);
+    this.flash*=pow(.005,dt);
+  }
+  get frac(){return min(1,this.C*this.omega)}
+  get beauty(){
+    const c=this.C,cs=1/this.omega;
+    if(c>=cs)return 0;
+    return Math.exp(min(c*this.omega,15))*(cs-c)/cs;
+  }
+}
+
+// ═══ RECEPTORS along epithelium ═══
+const NR=50;
+const recs=[];
+for(let i=0;i<NR;i++){
+  recs.push({
+    crr:new CRR(O_Z2),
+    type:floor(rnd()*5),
+    sens:.3+rnd()*.7,
+    bindGlow:0,
+    bound:false,
+    cilPh:rnd()*TAU,
+    cilLen:6+rnd()*10,
+  });
+}
+
+// ═══ GLOMERULI in olfactory bulb ═══
+const NG=12;
+const glom=[];
+for(let i=0;i<NG;i++){
+  glom.push({crr:new CRR(O_SO2),act:0,r:5+rnd()*3});
+}
+
+// ═══ BRAIN DECODING CASCADE ═══
+// §CRR: each stage accumulates coherence from the stage below,
+// ruptures when C·Ω = 1, and feeds the next stage.
+// Olfaction bypasses the thalamus — straight to piriform cortex.
+// Stage 0: Olfactory Bulb (Z2 gamma) → "chemical detected"
+// Stage 1: Piriform Cortex (SO(2) pattern completion) → "rose-like"
+// Stage 2: Amygdala (Z2 hedonic) → "pleasant"
+// Stage 3: Hippocampus (SO(2) memory) → "grandmother's garden"
+// Stage 4: OFC (integration) → "I smell a rose"
+const BRAIN_STAGES=[
+  {name:'Bulb',     omega:O_Z2,  hue:200, thoughts:['','chemical...','molecules detected','odorant present','signal acquired']},
+  {name:'Piriform', omega:O_SO2, hue:270, thoughts:['','pattern forming...','familiar shape...','floral signature','rose-like pattern']},
+  {name:'Amygdala', omega:O_Z2,  hue:340, thoughts:['','evaluating...','positive valence','pleasant','warm feeling']},
+  {name:'Hippoc.',  omega:O_SO2, hue:45,  thoughts:['','searching memory...','context forming...','a garden somewhere','a summer morning']},
+  {name:'OFC',      omega:O_Z2,  hue:140, thoughts:['','integrating...','almost there...','rose','I smell a rose']},
+];
+// Per-odor thought variants for stage 4 (conscious percept)
+const ODOR_THOUGHTS={
+  0:['rose','I smell a rose','roses in bloom'],
+  1:['lemon','I smell lemon','citrus, sharp'],
+  2:['mint','I smell mint','cool, fresh'],
+  3:['coffee','I smell coffee','dark, roasted'],
+  4:['smoke','I smell smoke','something burning'],
+};
+const ODOR_MEMORIES={
+  0:['a summer morning','grandmother\'s garden','a bouquet'],
+  1:['lemonade','a kitchen counter','Mediterranean sun'],
+  2:['toothpaste','a cold morning','peppermint tea'],
+  3:['a warm cafe','early morning','the grinder at home'],
+  4:['a campfire','autumn evening','toast left too long'],
+};
+const ODOR_HEDONIC={
+  0:['pleasant','warm feeling','lovely'],
+  1:['refreshing','bright','tangy'],
+  2:['cool, clean','invigorating','fresh'],
+  3:['comforting','rich','inviting'],
+  4:['alerting','acrid','warning'],
+};
+const brainCRR=BRAIN_STAGES.map(s=>new CRR(s.omega));
+let brainThoughts=['','','','',''];
+let brainLit=[0,0,0,0,0]; // glow timers
+
+// ═══ MOLECULES ═══
+let mols=[];
+function spawn(){
+  if(mols.length>150||inhaleAmt<.05)return;
+  if(rnd()>inhaleAmt*conc*.4)return;
+  const h=OHUE[odorIdx];
+  mols.push({
+    x:-10+rnd()*20, y:H*.25+rnd()*H*.45,
+    vx:0, vy:0,
+    sz:2+rnd()*2.5,
+    hue:h+(rnd()-.5)*20,
+    a:0, life:0, maxL:3+rnd()*3,
+    vibPh:rnd()*TAU, vibF:2+rnd()*5,
+    shape:floor(rnd()*3),
+    bound:false, bTo:-1,
+  });
+}
+
+// ═══ TISSUE TEXTURE (cached) ═══
+function buildTex(){
+  texCv=document.createElement('canvas');texCv.width=W;texCv.height=H;
+  const tc=texCv.getContext('2d');
+  for(let i=0;i<500;i++){
+    tc.fillStyle=`rgba(${130+rnd()*50|0},${70+rnd()*30|0},${55+rnd()*25|0},${rnd()*.04})`;
+    tc.fillRect(rnd()*W,rnd()*H,rnd()*4+1,rnd()*3+1);
+  }
+  texDirty=false;
+}
+
+// ═══ LAYOUT ═══
+function lay(){
+  const epiY=H*.50, epiH=H*.07;
+  const mucY=epiY-H*.035;
+  const bulbY=epiY+epiH+H*.12;
+  return{epiY,epiH,mucY,bulbY};
+}
+
+// ═══ UPDATE ═══
+let time=0, totalBind=0, totalRup=0;
+function update(dt){
+  time+=dt;
+
+  // ── Breath cycle ──
+  if(breathing){
+    breathT+=dt*BREATH_HZ*TAU;
+  }
+  if(singleSniff>0){
+    breathT+=dt*TAU*.5;// one sniff over ~2s
+    singleSniff-=dt;
+    if(singleSniff<=0)singleSniff=0;
+  }
+  // inhaleAmt: smooth positive half of sine = the inhalation
+  const rawInhale=sin(breathT);
+  inhaleAmt+=(max(0,rawInhale)-inhaleAmt)*min(1,dt*8);
+
+  const L=lay();
+
+  // ── Spawn molecules during inhale ──
+  if(inhaleAmt>.05){
+    for(let i=0;i<2;i++)spawn();
+  }
+
+  // ── Update molecules ──
+  for(let i=mols.length-1;i>=0;i--){
+    const m=mols[i];
+    m.life+=dt;
+    if(m.life>m.maxL||m.x>W+30){mols.splice(i,1);continue}
+    m.a=min(1,m.life*4)*max(0,1-m.life/m.maxL);
+
+    if(!m.bound){
+      // Airflow: inhale pushes right, exhale slows/reverses gently
+      const flow=inhaleAmt*3-.3;// net rightward during inhale
+      m.vx+=(flow*60-m.vx)*.03;
+      m.vy+=(rnd()-.5)*1.5;
+      m.vy*=.95;
+      // Turbinate deflection — push molecules toward epithelium
+      if(m.x>W*.3&&m.x<W*.8){
+        m.vy+=(L.mucY-m.y)*.001*inhaleAmt;
+      }
+      m.x+=m.vx*dt*60;
+      m.y+=m.vy*dt*60;
+      m.vibPh+=dt*m.vibF*TAU;
+
+      // Binding check near epithelium
+      if(m.y>L.mucY-10&&m.y<L.epiY+10&&m.x>W*.13&&m.x<W*.87){
+        for(let j=0;j<NR;j++){
+          const rec=recs[j];
+          if(rec.bound)continue;
+          if(rec.type!==odorIdx%5)continue;
+          const rx=W*.14+j*((W*.72)/NR);
+          const dx=m.x-rx,dy=m.y-L.epiY;
+          if(dx*dx+dy*dy<500&&rnd()<rec.sens*conc*.12){
+            m.bound=true;m.bTo=j;
+            rec.bound=true;rec.bindGlow=1;
+            totalBind++;
+            rec.crr.C+=.6;
+            break;
+          }
+        }
+      }
+    }else{
+      // Bound: sit at receptor, vibrate
+      const rx=W*.14+m.bTo*((W*.72)/NR);
+      m.x+=(rx-m.x)*.15;m.y+=(L.epiY-4-m.y)*.15;
+      m.vibPh+=dt*m.vibF*TAU;
+      if(rnd()<dt*.4){m.bound=false;recs[m.bTo].bound=false;m.maxL=m.life+.4}
+    }
+  }
+
+  // ── Update receptors ──
+  for(let i=0;i<NR;i++){
+    const r=recs[i];
+    r.crr.tick((r.bound?6:0.5)*inhaleAmt,dt);
+    r.bindGlow*=pow(.005,dt);
+    r.cilPh+=dt*(1.5+inhaleAmt*2.5);
+    if(r.crr.state===1){
+      totalRup++;
+      const gi=r.type%NG;
+      glom[gi].crr.C+=.4;glom[gi].act=1;
+    }
+  }
+
+  // ── Update glomeruli ──
+  for(const g of glom){g.crr.tick(1.5,dt);g.act*=pow(.01,dt)}
+
+  // ── Brain decoding cascade ──
+  // Stage 0 (Bulb) fed by glomerular ruptures (already done above)
+  // Each subsequent stage fed by the stage below's rupture
+  const bulbSignal=glom.reduce((s,g)=>s+g.act,0)/NG;
+  brainCRR[0].tick(bulbSignal*8,dt);
+
+  for(let i=1;i<5;i++){
+    // Feed from stage below: when it ruptures, kick this stage's coherence
+    if(brainCRR[i-1].state===1){
+      brainCRR[i].C+=.5;
+    }
+    // Slower tick rate for higher stages (hierarchical timescale)
+    brainCRR[i].tick(brainCRR[i-1].frac*3,dt);
+  }
+
+  // Update thoughts and DOM
+  for(let i=0;i<5;i++){
+    const bc=brainCRR[i];
+    const f=bc.frac;
+    const stg=BRAIN_STAGES[i];
+
+    // Pick thought based on coherence level
+    const tIdx=min(4,floor(f*5));
+
+    // Use odor-specific thoughts for amygdala, hippocampus, OFC
+    if(i===2&&tIdx>=3){// amygdala
+      const opts=ODOR_HEDONIC[odorIdx]||ODOR_HEDONIC[0];
+      brainThoughts[i]=opts[min(opts.length-1,tIdx-3)];
+    }else if(i===3&&tIdx>=3){// hippocampus
+      const opts=ODOR_MEMORIES[odorIdx]||ODOR_MEMORIES[0];
+      brainThoughts[i]=opts[min(opts.length-1,tIdx-3)];
+    }else if(i===4&&tIdx>=3){// OFC
+      const opts=ODOR_THOUGHTS[odorIdx]||ODOR_THOUGHTS[0];
+      brainThoughts[i]=opts[min(opts.length-1,tIdx-3)];
+    }else{
+      brainThoughts[i]=stg.thoughts[tIdx];
+    }
+
+    // Lit timer on rupture
+    if(bc.state===1)brainLit[i]=1.5;
+    if(brainLit[i]>0)brainLit[i]-=dt;
+
+    // Update DOM
+    const bar=document.getElementById('bf'+i);
+    const node=document.getElementById('bn'+i);
+    const thought=document.getElementById('bt'+i);
+    if(bar){
+      bar.style.width=(f*100)+'%';
+      bar.style.background=bc.state===1
+        ?`hsla(${stg.hue},70%,65%,1)`
+        :`hsla(${stg.hue},50%,45%,${.3+f*.5})`;
+    }
+    if(node){
+      node.style.background=bc.sf>.05
+        ?`hsla(${stg.hue},70%,65%,${.5+bc.sf*.5})`
+        :`hsla(${stg.hue},30%,35%,${.15+f*.2})`;
+    }
+    if(thought){
+      thought.textContent=brainThoughts[i];
+      thought.classList.toggle('lit',brainLit[i]>0||f>.6);
+    }
+  }
+}
+
+// ═══ DRAW ═══
+function draw(){
+  if(texDirty)buildTex();
+  const L=lay();
+  const sm=document.getElementById('tMol').checked;
+  const sc=document.getElementById('tCilia').checked;
+  const sr=document.getElementById('tCRR').checked;
+  const sl=document.getElementById('tLab').checked;
+  const sy=document.getElementById('tSym').checked;
+
+  // ── Background: nasal cavity tissue ──
+  const bg=cx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,`rgba(${18*light|0},${8*light|0},${6*light|0},1)`);
+  bg.addColorStop(.35,`rgba(${40*light|0},${18*light|0},${14*light|0},1)`);
+  bg.addColorStop(.5,`rgba(${50*light|0},${22*light|0},${18*light|0},1)`);
+  bg.addColorStop(.65,`rgba(${40*light|0},${18*light|0},${14*light|0},1)`);
+  bg.addColorStop(1,`rgba(${14*light|0},${6*light|0},${5*light|0},1)`);
+  cx.fillStyle=bg;cx.fillRect(0,0,W,H);
+  cx.globalAlpha=light;cx.drawImage(texCv,0,0);cx.globalAlpha=1;
+
+  // ── Turbinate ridges ──
+  for(let t=0;t<3;t++){
+    const ty=H*.18+t*H*.18;
+    cx.beginPath();cx.moveTo(W*.06,ty);
+    for(let x=W*.06;x<W*.94;x+=4){
+      cx.lineTo(x,ty+sin(x*.01+t*2+time*.2)*12+sin(x*.018+time*.4)*6);
+    }
+    cx.lineTo(W*.94,ty+30);cx.lineTo(W*.06,ty+30);cx.closePath();
+    cx.fillStyle=`rgba(${70*light|0},${30*light|0},${25*light|0},.4)`;cx.fill();
+  }
+
+  // ── Mucus layer ──
+  const mg=cx.createLinearGradient(0,L.mucY,0,L.epiY);
+  mg.addColorStop(0,`rgba(${170*light|0},${195*light|0},${150*light|0},.04)`);
+  mg.addColorStop(.5,`rgba(${150*light|0},${180*light|0},${130*light|0},.1)`);
+  mg.addColorStop(1,`rgba(${130*light|0},${160*light|0},${110*light|0},.06)`);
+  cx.fillStyle=mg;cx.fillRect(W*.1,L.mucY,W*.8,L.epiY-L.mucY);
+
+  // ── Olfactory epithelium ──
+  const eg=cx.createLinearGradient(0,L.epiY,0,L.epiY+L.epiH);
+  eg.addColorStop(0,`rgba(${155*light|0},${85*light|0},${70*light|0},.88)`);
+  eg.addColorStop(.4,`rgba(${135*light|0},${70*light|0},${60*light|0},.82)`);
+  eg.addColorStop(1,`rgba(${100*light|0},${50*light|0},${40*light|0},.7)`);
+  cx.fillStyle=eg;cx.fillRect(W*.1,L.epiY,W*.8,L.epiH);
+
+  // ── Airflow streaks ──
+  if(inhaleAmt>.08){
+    cx.globalAlpha=inhaleAmt*.04;
+    for(let i=0;i<floor(inhaleAmt*6);i++){
+      const ax=rnd()*W*.8+W*.1, ay=H*.15+rnd()*(L.mucY-H*.15);
+      cx.fillStyle=`rgba(${200*light|0},${195*light|0},${190*light|0},1)`;
+      cx.fillRect(ax,ay,inhaleAmt*8+2,1);
+    }
+    cx.globalAlpha=1;
+  }
+
+  // ── Receptor cilia ──
+  if(sc){
+    for(let i=0;i<NR;i++){
+      const r=recs[i];
+      const rx=W*.14+i*((W*.72)/NR);
+      const ry=L.epiY;
+
+      for(let c=0;c<3;c++){
+        const ang=-PI/2+(c-1)*.15+sin(r.cilPh+c*.7)*.18;
+        const len=r.cilLen*(1+inhaleAmt*.25);
+        const ex=rx+cos(ang)*len, ey=ry+sin(ang)*len;
+        cx.beginPath();cx.moveTo(rx,ry);cx.lineTo(ex,ey);
+        const bright=.12+r.crr.frac*.25+(r.bindGlow>.05?r.bindGlow*.4:0);
+        cx.strokeStyle=sr&&r.crr.frac>.5
+          ?`rgba(100,200,255,${bright})`
+          :`rgba(${190*light|0},${155*light|0},${120*light|0},${bright})`;
+        cx.lineWidth=r.bindGlow>.1?1.5:0.8;cx.stroke();
+      }
+
+      // Bind flash
+      if(r.bindGlow>.04){
+        cx.beginPath();cx.arc(rx,ry-3,max(1,3+r.bindGlow*7),0,TAU);
+        cx.fillStyle=`rgba(100,200,255,${min(1,r.bindGlow*.5)})`;cx.fill();
+      }
+
+      // CRR coherence bar
+      if(sr){
+        const h=18*r.crr.frac;
+        cx.fillStyle=`rgba(100,200,255,${.1+r.crr.frac*.2})`;
+        cx.fillRect(rx-.8,ry+2,1.6,h);
+        // Beauty glow
+        if(r.crr.frac>.85){
+          const b=r.crr.beauty;
+          cx.beginPath();cx.arc(rx,ry,max(1,2+b*5),0,TAU);
+          cx.fillStyle=`rgba(255,220,100,${min(.5,b*.25)})`;cx.fill();
+        }
+      }
+
+      // Rupture flash
+      if(r.crr.sf>.04){
+        cx.beginPath();cx.arc(rx,ry,max(1,2+r.crr.sf*12),0,TAU);
+        cx.fillStyle=`rgba(100,200,255,${min(.6,r.crr.sf*.4)})`;cx.fill();
+      }
+    }
+  }
+
+  // ── Molecules ──
+  if(sm){
+    for(const m of mols){
+      if(m.a<.01)continue;
+      const vib=sin(m.vibPh)*1.5;
+      cx.save();cx.translate(m.x+vib,m.y);cx.rotate(m.vibPh*.2);
+      cx.globalAlpha=m.a*.8;
+      cx.fillStyle=`hsla(${m.hue},65%,${50+m.a*12|0}%,${m.a})`;
+      const s=m.sz;
+      if(m.shape===0){cx.beginPath();cx.arc(0,0,s,0,TAU);cx.fill()}
+      else if(m.shape===1){
+        cx.beginPath();for(let v=0;v<3;v++){const a=v*TAU/3-PI/2;cx.lineTo(cos(a)*s,sin(a)*s)}cx.closePath();cx.fill();
+      }else{
+        cx.beginPath();for(let v=0;v<6;v++){const a=v*TAU/6;cx.lineTo(cos(a)*s,sin(a)*s)}cx.closePath();cx.fill();
+      }
+      if(m.bound){
+        cx.beginPath();cx.arc(0,0,max(1,s+2+sin(m.vibPh)*1.5),0,TAU);
+        cx.strokeStyle=`hsla(${m.hue},60%,65%,${m.a*.25})`;cx.lineWidth=.5;cx.stroke();
+      }
+      cx.globalAlpha=1;cx.restore();
+    }
+  }
+
+  // ── Cribriform plate ──
+  const cribY=L.epiY+L.epiH+3;
+  cx.fillStyle=`rgba(${170*light|0},${160*light|0},${140*light|0},.15)`;
+  cx.fillRect(W*.1,cribY,W*.8,3);
+
+  // ── Olfactory bulb ──
+  const bx=W*.5,by=L.bulbY,br=max(8,min(W,H)*.07);
+  cx.beginPath();cx.arc(bx,by,br,0,TAU);
+  const bGr=cx.createRadialGradient(bx,by,0,bx,by,br);
+  bGr.addColorStop(0,`rgba(${75*light|0},${45*light|0},${38*light|0},.55)`);
+  bGr.addColorStop(.7,`rgba(${55*light|0},${30*light|0},${25*light|0},.45)`);
+  bGr.addColorStop(1,`rgba(${35*light|0},${18*light|0},${15*light|0},.3)`);
+  cx.fillStyle=bGr;cx.fill();
+
+  // Glomeruli
+  for(let i=0;i<NG;i++){
+    const g=glom[i];
+    const ang=i*TAU/NG;
+    const gr=br*.5;
+    const gx=bx+cos(ang)*gr, gy=by+sin(ang)*gr;
+    const act=g.act+g.crr.frac*.25;
+    const gRad=max(1,g.r*(1+act*.2));
+    cx.beginPath();cx.arc(gx,gy,gRad,0,TAU);
+    cx.fillStyle=sr
+      ?`hsla(${g.crr.frac>.4?200:270},55%,45%,${.08+act*.35})`
+      :`rgba(${150*light|0},${90*light|0},${75*light|0},${.1+act*.25})`;
+    cx.fill();
+    if(g.crr.sf>.04){
+      cx.beginPath();cx.arc(gx,gy,max(1,gRad+g.crr.sf*8),0,TAU);
+      cx.fillStyle=`rgba(200,140,255,${min(.5,g.crr.sf*.35)})`;cx.fill();
+    }
+    // Axon bundle
+    const srcX=W*.14+(i/NG)*W*.72;
+    cx.beginPath();cx.moveTo(srcX,cribY+3);
+    cx.quadraticCurveTo((srcX+gx)/2,cribY+(gy-cribY)*.35,gx,gy);
+    cx.strokeStyle=`rgba(${190*light|0},${170*light|0},${130*light|0},${.03+act*.06})`;
+    cx.lineWidth=.4+act*.6;cx.stroke();
+  }
+
+  // ── Z2/SO(2) overlay ──
+  if(sy){
+    cx.fillStyle='rgba(100,200,255,.03)';
+    cx.fillRect(W*.1,L.epiY-2,W*.8,L.epiH/2+4);
+    cx.font='500 10px "JetBrains Mono",monospace';
+    cx.fillStyle='rgba(100,200,255,.3)';
+    cx.fillText('Z\u2082 SENSORY — receptor binding — \u03A9 = 1/\u03C0',W*.14,L.epiY-7);
+    cx.beginPath();cx.arc(bx,by,br+4,0,TAU);
+    cx.strokeStyle='rgba(200,140,255,.12)';cx.lineWidth=1.5;
+    cx.setLineDash([3,3]);cx.stroke();cx.setLineDash([]);
+    cx.fillStyle='rgba(200,140,255,.3)';
+    cx.fillText('SO(2) PRIOR — vibration / theta — \u03A9 = 1/2\u03C0',bx-110,by-br-8);
+  }
+
+  // ── Labels ──
+  if(sl){
+    cx.font='italic 300 13px "Cormorant Garamond",Georgia,serif';
+    cx.fillStyle=`rgba(${210*light|0},${190*light|0},${165*light|0},.28)`;
+    cx.fillText('Nasal cavity',W*.14,H*.14);
+    cx.fillText('Mucus layer',W*.14,L.mucY+12);
+    cx.fillText('Olfactory epithelium',W*.14,L.epiY+L.epiH*.5+4);
+    cx.fillText('Cribriform plate',W*.68,cribY-3);
+    cx.fillText('Olfactory bulb',bx-32,by+br+15);
+
+    cx.font='400 10px "JetBrains Mono",monospace';
+    cx.fillStyle=`rgba(${210*light|0},${190*light|0},${165*light|0},.35)`;
+    const inh=inhaleAmt>.15;
+    cx.fillText(inh?'INHALE':'',W*.78,H*.08);
+
+    cx.font='300 9px "JetBrains Mono",monospace';
+    cx.fillStyle=`rgba(${210*light|0},${190*light|0},${165*light|0},.22)`;
+    cx.fillText(`bindings ${totalBind}  ruptures ${totalRup}  molecules ${mols.length}`,W*.14,H*.94);
+  }
+}
+
+// ═══ LOOP ═══
+let last=0;
+function frame(ts){
+  const dt=min(.04,(ts-last)/1000);last=ts;
+  update(dt);draw();requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
