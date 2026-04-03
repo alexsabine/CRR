@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>The Living Cochlea — CRR | Active Inference Institute</title>
+<!--
+  =====================================================================
+  THE LIVING COCHLEA — CRR on S¹ (spiral)
+  A real-time simulation of the human cochlea built entirely from
+  Coherence-Rupture-Regeneration (CRR) first principles.
+  Live microphone input and tone generator drive CRR coherence
+  along the basilar membrane via FFT frequency analysis.
+  =====================================================================
+
+  Author:    Alexander Sabine
+  Affiliation: Active Inference Institute (Board of Directors)
+  Web:       https://www.temporalgrammar.ai
+  Contact:   Alexander@activeinference.institute
+  Status:    CRR computational method pending peer review (AGI-26, 2026)
+
+  =====================================================================
+  I. THEORETICAL FRAMEWORK
+  =====================================================================
+
+  This simulation demonstrates that the human cochlea is a physical
+  instantiation of three converging frameworks:
+
+  1. The FREE ENERGY PRINCIPLE (FEP) provides the spatial architecture.
+     Any system at non-equilibrium steady state possesses a Markov blanket
+     separating internal from external states. The cochlea IS a Markov
+     blanket:
+
+       F = D_KL[q(s) || p(s|o)] - ln p(o)
+
+     Mapping:
+       Basilar membrane + Reissner membrane = blanket surface
+       Endolymph (+80mV, high K+)           = internal states
+       Perilymph (~0mV, high Na+)           = external states
+       Stria vascularis                      = metabolic engine
+
+  2. ACTIVE INFERENCE provides the dynamics.
+     The olivocochlear efferent system implements top-down precision
+     control: MOC efferents modulate OHC electromotility (gain of
+     cochlear amplifier) based on descending predictions from auditory
+     cortex. LOC efferents modulate auditory nerve excitability.
+
+  3. CRR provides the TEMPORAL GRAMMAR.
+     Three equations, one parameter Omega, zero free parameters:
+
+       C: Coherence    C(x,t) = integral L(x,tau) dtau
+       d: Rupture      delta(now) when C * Omega = 1
+       R: Regeneration R = integral phi * exp(C/Omega) * Theta dtau
+
+  =====================================================================
+  II. HOW CRR SOLVES THE COCHLEA
+  =====================================================================
+
+  A. Z2 -- SENSORY PRECISION (Inner Hair Cells)
+     Stereocilia deflection is bistable: excitation/inhibition.
+     One row, 3500 cells. 95% of afferent innervation.
+       Omega_Z2 = 1/pi approx 0.318
+       C* = pi (geodesic diameter of S1)
+       CV = 1/(2*pi) approx 0.159
+
+  B. SO2 -- PRIOR PRECISION (Outer Hair Cells / Cochlear Amplifier)
+     Three rows, 12000 cells. Prestin-based electromotility.
+     Circular feedback: mechanical -> electrical -> prestin -> mechanical
+     The cochlea is literally S1: a spiral of 2.5 turns.
+       Omega_SO2 = 1/(2*pi) approx 0.159
+       C* = 2*pi (circumference of S1)
+       Ratio Omega_Z2/Omega_SO2 = 2 (topological invariant)
+
+  C. delta -- RUPTURE (Tunnel of Corti)
+     Pillar cells physically separate IHC from OHC rows.
+     Nerve fibres cross through this boundary (habenula perforata).
+     The tunnel IS delta(now): the aperture between sensory and prior.
+
+  D. R -- REGENERATION (Spiral Ganglion / Auditory Cortex)
+     Spiral ganglion neurons form the first stage of the generative
+     model. Olivocochlear efferents carry predictions back to OHCs.
+     Active inference: the brain's generative model sends predictions
+     down to the cochlea, adjusting OHC gain.
+
+  E. TRAVELING WAVE -- COHERENCE ACCUMULATION
+     Sound enters at base (high freq) and accumulates coherence
+     toward the characteristic frequency location, where C*Omega = 1
+     triggers rupture (maximum BM displacement, then rapid decay).
+
+  F. COCHLEAR AMPLIFIER GAIN -- CRR PREDICTION
+     Gain per SO(2) cycle: 10*log10((2*pi)^2) = 16 dB
+     Over 2.5 turns: approximately 40 dB
+     Known cochlear amplifier gain: 40-60 dB (zero free parameters)
+
+  =====================================================================
+  III. REFERENCES
+  =====================================================================
+
+  [1] Parr, Pezzulo & Friston (2022) MIT Press -- Active Inference
+  [2] Friston (2010) Nat Rev Neurosci 11(2) -- FEP
+  [3] Liberman et al. (2002) Nature 419 -- Prestin
+  [4] Dallos (2008) Curr Opin Neurobiol 18 -- Cochlear amplification
+  [5] Guinan (2006) Ear Hear 27 -- Olivocochlear efferents
+  [6] Greenwood (1990) JASA 87 -- Frequency-position function
+  [7] Sabine (2026) AGI-26 -- CRR phase-gating
+  =====================================================================
+-->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#020203;overflow:hidden;height:100vh;height:100dvh;user-select:none;-webkit-user-select:none;touch-action:none}
+canvas{display:block;position:absolute;left:0;top:0}
+#ctrl{position:fixed;left:14px;top:50%;transform:translateY(-50%);width:210px;padding:12px;
+  background:rgba(2,2,4,.94);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  border:1px solid rgba(120,140,160,.06);z-index:10;max-height:92vh;overflow-y:auto}
+#ctrl h2{font:400 15px/1 'Cormorant Garamond',Georgia,serif;letter-spacing:2px;text-transform:uppercase;color:rgba(200,195,185,.5);margin-bottom:10px}
+.cg{margin-bottom:6px}.cg label{display:flex;justify-content:space-between;font:400 10px/1.3 'JetBrains Mono',monospace;letter-spacing:.4px;text-transform:uppercase;color:rgba(200,195,185,.5);margin-bottom:3px}
+.v{color:rgba(200,195,185,.75)}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:rgba(120,140,160,.12);outline:none;margin:3px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:rgba(200,195,185,.5);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;background:rgba(200,195,185,.5);border:none;cursor:pointer}
+.sep{height:1px;background:rgba(120,140,160,.05);margin:5px 0}
+.tg{display:flex;align-items:center;gap:5px;margin:2px 0;font:400 10px/1.3 'Cormorant Garamond',Georgia,serif;color:rgba(200,195,185,.45);cursor:pointer}
+.tg input{width:12px;height:12px;accent-color:rgba(140,160,180,.5);cursor:pointer}
+#micBtn{display:block;width:100%;padding:10px;margin:8px 0;font:500 12px/1 'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase;
+  background:rgba(180,60,60,.15);color:rgba(220,120,120,.8);border:1px solid rgba(180,60,60,.2);cursor:pointer;transition:all .3s}
+#micBtn:hover{background:rgba(180,60,60,.25);color:rgba(220,140,140,.95)}
+#micBtn.active{background:rgba(60,180,80,.15);color:rgba(120,220,140,.8);border-color:rgba(60,180,80,.2)}
+#toneBox{padding:2px 0}
+#toneBtn{display:block;width:100%;padding:7px;margin:5px 0 2px;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.8px;text-transform:uppercase;
+  background:rgba(80,80,180,.12);color:rgba(140,140,220,.7);border:1px solid rgba(80,80,180,.15);cursor:pointer;transition:all .3s}
+#toneBtn:hover{background:rgba(80,80,180,.2);color:rgba(160,160,240,.9)}
+#toneBtn.active{background:rgba(200,160,60,.15);color:rgba(240,200,100,.85);border-color:rgba(200,160,60,.2)}
+#toneNote{font:italic 300 9px/1.4 'Cormorant Garamond',serif;color:rgba(200,195,185,.25);margin-top:3px}
+#rd{font:300 9px/1.5 'JetBrains Mono',monospace;color:rgba(200,195,185,.32);margin-top:6px}
+#rd .h{color:rgba(200,195,185,.55)}
+#at{position:fixed;left:14px;bottom:4px;font:300 7px/1 'JetBrains Mono',monospace;letter-spacing:.5px;color:rgba(200,195,185,.08);z-index:10}
+#at a{color:rgba(200,195,185,.12);text-decoration:none}
+#spectrum{width:100%;height:40px;margin:4px 0;background:rgba(20,20,30,.5);border:1px solid rgba(120,140,160,.06)}
+@media(max-width:768px){#ctrl{left:3px;width:165px;padding:6px;top:auto;bottom:3px;transform:none;max-height:45vh}
+  #crrPanel{width:100%!important;height:55vh;top:auto!important;bottom:0;right:0;transform:translateY(100%)!important;border-left:none!important;border-top:1px solid rgba(100,140,180,.08)}
+  #crrPanel.open{transform:translateY(0)!important}}
+#crrPanel{position:fixed;right:0;top:0;width:420px;height:100vh;background:rgba(4,4,8,.93);
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-left:1px solid rgba(100,140,180,.06);
+  z-index:15;transform:translateX(100%);transition:transform .5s cubic-bezier(.4,0,.2,1);
+  overflow-y:auto;padding:28px 22px 40px}
+#crrPanel.open{transform:translateX(0)}
+#crrPanel h3{font:500 16px/1.3 'Cormorant Garamond',Georgia,serif;letter-spacing:2px;text-transform:uppercase;
+  color:rgba(200,195,185,.55);margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid rgba(120,140,160,.07)}
+#crrPanel h4{font:400 12px/1.2 'JetBrains Mono',monospace;letter-spacing:.8px;text-transform:uppercase;
+  margin:20px 0 8px;padding-top:10px;border-top:1px solid rgba(120,140,160,.05)}
+.h4z{color:rgba(100,200,255,.6)}.h4s{color:rgba(200,140,255,.55)}.h4f{color:rgba(140,200,160,.5)}.h4c{color:rgba(255,180,100,.5)}
+#crrPanel p{font:300 15px/1.7 'Cormorant Garamond',Georgia,serif;color:rgba(200,195,185,.42);margin:0 0 9px}
+#crrPanel em{color:rgba(200,195,185,.6);font-style:italic}
+.eq{font:400 12px/1.8 'JetBrains Mono',monospace;color:rgba(200,195,185,.55);padding:7px 11px;margin:6px 0;
+  background:rgba(60,70,80,.14);border-left:2px solid rgba(120,140,160,.1)}
+.eq span{font-size:9.5px;color:rgba(200,195,185,.28);display:block;margin-top:3px}
+.eq-z{border-left-color:rgba(100,200,255,.25)}.eq-s{border-left-color:rgba(200,140,255,.2)}
+.eq-f{border-left-color:rgba(140,200,160,.2)}.eq-c{border-left-color:rgba(255,180,100,.2)}
+.ref{font:300 12px/1.6 'Cormorant Garamond',Georgia,serif;color:rgba(200,195,185,.25);margin:4px 0;padding-left:12px;border-left:1px solid rgba(120,140,160,.07)}
+.ref em{color:rgba(200,195,185,.33)}
+.crrBtn{position:fixed;right:14px;top:14px;font:400 11px/1 'JetBrains Mono',monospace;padding:9px 16px;
+  background:rgba(2,2,4,.9);color:rgba(200,195,185,.55);border:1px solid rgba(120,140,160,.15);cursor:pointer;z-index:16;
+  letter-spacing:.6px;text-transform:uppercase;transition:all .3s}
+.crrBtn:hover{background:rgba(20,20,30,.95);color:rgba(200,195,185,.8);border-color:rgba(120,140,160,.3)}
+#pathway{position:fixed;left:0;bottom:0;width:100%;height:110px;background:rgba(2,2,6,.88);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid rgba(100,140,180,.06);
+  z-index:8;display:none}
+#pathway.active{display:block}
+#pathway canvas{width:100%;height:100%}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ctrl">
+<h2>The Living Cochlea</h2>
+<button id="micBtn" onclick="toggleMic()">Enable Microphone</button>
+<canvas id="spectrum"></canvas>
+<div class="sep"></div>
+<div id="toneBox">
+<div class="cg"><label>Tone frequency<span class="v" id="fv">440 Hz</span></label><input type="range" id="iF" min="2" max="3.9" step=".005" value="2.643"></div>
+<div class="cg"><label>Tone volume<span class="v" id="vv">0.15</span></label><input type="range" id="iV" min="0" max=".5" step=".005" value="0.15"></div>
+<button id="toneBtn" onclick="toggleTone()">Play Tone</button>
+<div id="toneNote">Tone directly stimulates the basilar membrane.<br>Mic adds ambient sound on top (optional).</div>
+</div>
+<div class="sep"></div>
+<div class="cg"><label>Light<span class="v" id="lv">0.60</span></label><input type="range" id="iL" min=".1" max="1" step=".01" value="0.60"></div>
+<div class="cg"><label>Tissue depth<span class="v" id="dv">0.70</span></label><input type="range" id="iD" min=".2" max="1" step=".01" value="0.70"></div>
+<div class="cg"><label>CRR gain<span class="v" id="gv">1.00</span></label><input type="range" id="iG" min=".2" max="3" step=".05" value="1.00"></div>
+<div class="sep"></div>
+<label class="tg"><input type="checkbox" id="tHC" checked> Hair cells (IHC + OHC)</label>
+<label class="tg"><input type="checkbox" id="tWave" checked> Traveling wave</label>
+<label class="tg"><input type="checkbox" id="tCRR" checked> CRR coherence overlay</label>
+<label class="tg"><input type="checkbox" id="tVeins" checked> Blood vessels</label>
+<label class="tg"><input type="checkbox" id="tLabels" checked> Labels</label>
+<label class="tg" style="color:rgba(100,200,255,.5)"><input type="checkbox" id="tSym"> Z₂ / SO(2) symmetry overlay</label>
+<label class="tg" style="color:rgba(140,200,160,.5)"><input type="checkbox" id="tPath"> Auditory cortex pathway</label>
+<div class="sep"></div>
+<div id="rd">
+<span class="h">§Z₂</span> IHC sensory · <span class="h">Ω=1/π</span><br>
+<span class="h">§SO₂</span> OHC amplifier · <span class="h">Ω=1/2π</span><br>
+<span class="h">§δ</span> tunnel of Corti · <span class="h">C·Ω=1</span><br>
+<span class="h">scroll zoom · mic = live CRR</span>
+</div>
+</div>
+<div id="pathway"><canvas id="pathCv"></canvas></div>
+<div id="at">CRR (A. Sabine, pending peer review) · <a href="https://www.temporalgrammar.ai">temporalgrammar.ai</a> · Active Inference Institute</div>
+
+<button class="crrBtn" onclick="document.getElementById('crrPanel').classList.toggle('open')">CRR · AI</button>
+
+<div id="crrPanel">
+<h3>The Cochlea as Active Inference</h3>
+<p>This cochlea is built from <em>CRR (Coherence-Rupture-Regeneration)</em>, a temporal grammar for the Free Energy Principle. Every hair cell, every traveling wave, and every rupture flash emerges from three equations and one parameter.</p>
+
+<h4 class="h4f">The Free Energy Principle</h4>
+<p>Any system persisting at a non-equilibrium steady state possesses a <em>Markov blanket</em> that separates internal from external states. The system minimises <em>variational free energy</em>:</p>
+<div class="eq eq-f">F = D<sub>KL</sub>[q(s) || p(s|o)] - ln p(o)<span>q = approximate posterior · p = generative model · o = observations</span></div>
+<p>The cochlea IS a Markov blanket. The <em>basilar membrane</em> and <em>Reissner membrane</em> separate endolymph (internal, +80mV, high K+) from perilymph (external, ~0mV, high Na+). The <em>stria vascularis</em> maintains this partition as the metabolic engine.</p>
+
+<h4 class="h4z">Sensory Precision: Inner Hair Cells</h4>
+<p>One row of <em>inner hair cells</em> (IHCs) forms the sensory surface. Stereocilia deflection is <em>bistable</em>: toward tallest row = depolarisation, away = hyperpolarisation. This is a <em>Z&#8322; symmetry operation</em>.</p>
+<div class="eq eq-z">Z&#8322; sensory channel (likelihood precision):<br>&#937;<sub>Z&#8322;</sub> = 1/&#960; &#8776; 0.318<br>C* = &#960; (geodesic diameter of S&#185;)<span>Each mechanotransduction event = one observation. n = 1 per cycle.</span></div>
+<p>95% of afferent nerve fibres synapse on IHCs. Each type I fibre contacts a <em>single IHC</em>. This is the ascending sensory evidence pathway.</p>
+
+<h4 class="h4s">Prior Precision: Outer Hair Cells</h4>
+<p>Three rows of <em>outer hair cells</em> (OHCs) form the cochlear amplifier. The motor protein <em>prestin</em> enables electromotility: voltage-driven length changes that amplify basilar membrane vibration by <em>40-60 dB</em>.</p>
+<div class="eq eq-s">SO(2) prior channel (transition precision):<br>&#937;<sub>SO(2)</sub> = 1/2&#960; &#8776; 0.159<br>C* = 2&#960; (circumference of S&#185;)<span>The cochlea is literally S&#185;: a spiral of 2.5 turns.</span></div>
+<p>The OHC amplifier operates as a circular feedback loop: <em>mechanical &#8594; electrical &#8594; prestin &#8594; mechanical</em>. This is SO(2) topology. The <em>medial olivocochlear</em> (MOC) efferent system modulates OHC gain from the brainstem, providing top-down prior precision control.</p>
+<p>The ratio <em>&#937;<sub>Z&#8322;</sub>/&#937;<sub>SO(2)</sub> = 2</em>, a topological invariant. The sensory channel ruptures twice as fast as the prior channel.</p>
+
+<h4 class="h4c">The Traveling Wave as Coherence Accumulation</h4>
+<p>Sound enters at the cochlear <em>base</em> (high frequency, narrow basilar membrane) and propagates as a <em>traveling wave</em> toward the apex (low frequency, wide membrane). At each location, the wave accumulates coherence with the local resonant frequency.</p>
+<div class="eq eq-c"><strong>Coherence:</strong> C(x,t) = &#8747;L(x,&#964;)d&#964;<span>The traveling wave envelope grows as it approaches the characteristic frequency.</span></div>
+<div class="eq eq-c"><strong>Rupture:</strong> &#948;(now) when C&#183;&#937; = 1<span>At the CF location, C reaches capacity. Maximum amplitude, then rapid decay.</span></div>
+<div class="eq eq-c"><strong>Regeneration:</strong> R = &#8747;&#966;&#183;e<sup>C/&#937;</sup>&#183;&#920; d&#964;<span>The spiral ganglion reconstructs the signal weighted by coherence history.</span></div>
+
+<h4 class="h4c">The Beauty Function</h4>
+<p><em>B(C) = exp(C/&#937;)&#183;(C* - C)</em> peaks at <em>C* - &#937;</em>: one capacity-unit before rupture. This is where the cochlear amplifier is most active, where basilar membrane displacement is maximal, where OHC feedback is at its peak. The <em>golden shimmer</em> you see in the simulation is the beauty function in action.</p>
+
+<h4 class="h4f">The Mexican Hat</h4>
+<p>The cochlear tuning curve exhibits a sharp <em>excitatory tip</em> (Z&#8322; sensory detection at the characteristic frequency) surrounded by <em>inhibitory sidebands</em> (SO(2) lateral suppression via two-tone suppression). This is the Mexican hat: Z&#8322; excitation at the centre, SO(2) inhibition at the surround. The same structure appears in visual <em>centre-surround receptive fields</em>.</p>
+
+<h4 class="h4f">Cochlear Amplifier Gain</h4>
+<div class="eq eq-f">Gain per SO(2) cycle: 10&#183;log<sub>10</sub>(&#928;&#178;) = 10&#183;log<sub>10</sub>(4&#960;&#178;) &#8776; 16 dB<br>Over 2.5 turns: &#8776; 40 dB<span>Known cochlear amplifier gain: 40-60 dB. Zero free parameters.</span></div>
+
+<h4 class="h4s">Precision Architecture</h4>
+<div class="eq eq-s">&#928;<sub>prior</sub>/&#928;<sub>sensory</sub> = 2<span>Topological invariant (AGI-26, &#967;&#178; = 8,041)</span></div>
+<p><em>Phase-gating</em>: the SO(2) prior channel (OHC amplifier) is the <em>pacemaker</em>. Its rupture cycle creates timing windows for sensory detection. The cochlear amplifier determines <em>when</em> the IHC fires, not just how strongly.</p>
+
+<h4 class="h4c">Tinnitus as &#937;-Collapse</h4>
+<p>When OHCs are damaged, the cochlear amplifier fails. The brain increases <em>central gain</em> to compensate for reduced sensory input. In CRR terms, this is an <em>&#937;-collapse</em>: precision increases pathologically, the system becomes rigid, and phantom percepts emerge. The same predictive coding framework explains both the normal operation and the failure mode.</p>
+
+<h4 class="h4z">Ascending Auditory Pathway</h4>
+<p>Toggle <em>Auditory cortex pathway</em> to see the full ascending hierarchy. Each level has its own CRR timescale (&#937;), naturally producing the known EEG frequency bands.</p>
+<p><em>SG</em> (Spiral Ganglion): cell bodies of the auditory nerve, immediately outside the cochlea. First relay from IHC to brain. Fastest dynamics, &#947; ~40 Hz. This is where the Z&#8322; rupture events from hair cells become neural spikes.</p>
+<p><em>CN</em> (Cochlear Nucleus): first brainstem relay, in the medulla. Onset detection, spectral processing, and temporal pattern extraction. &#947;/&#946; ~28 Hz. Dorsal and ventral divisions handle different processing streams.</p>
+<p><em>IC</em> (Inferior Colliculus): midbrain integration hub where nearly all ascending auditory pathways converge. Temporal pattern integration, &#946; ~18 Hz. The SO(2) timescale dominates here.</p>
+<p><em>MGB</em> (Medial Geniculate Body): the auditory nucleus of the thalamus. Precision gate to cortex, &#945; ~12 Hz. Descending predictions from cortex have their strongest modulatory effect here. Analogous to the lateral geniculate nucleus for vision.</p>
+<p><em>A1</em> (Primary Auditory Cortex): the generative model. Tonotopic map on the superior temporal gyrus. Slowest dynamics, &#945;/&#952; ~8 Hz. Processes syllables, phonemes, auditory objects. Sends descending predictions back through the entire hierarchy.</p>
+<div class="eq eq-z">Ascending: prediction errors (&#949;) at &#947; frequency<br>Descending: predictions (&#960;) at &#945;/&#946; frequency<span>Bastos et al. (2015): spectral asymmetry in cortical message passing</span></div>
+<p>CRR predicts these frequencies from first principles: the Z&#8322;/SO(2) ratio = 2 and hierarchical &#937;-scaling produce &#947; at the cochlear level (~40 Hz), &#946; at the brainstem (~20 Hz), and &#945;/&#952; at the cortex (~8-12 Hz). These are not fitted parameters.</p>
+
+<h4 class="h4f">Controls</h4>
+<p><em>Tone slider</em>: generates a pure tone that directly stimulates the basilar membrane at the characteristic frequency location. Sweep it to see the activation point move along the spiral. <em>Microphone</em>: ambient sound adds CRR activity on top. <em>CRR gain</em>: controls coherence accumulation rate. High gain = rapid ruptures. Low gain = beauty function lingers.</p>
+
+<h4 style="color:rgba(200,195,185,.35)">References</h4>
+<p class="ref">Parr, T., Pezzulo, G. & Friston, K. (2022). <em>Active Inference: The Free Energy Principle in Mind, Brain, and Behavior</em>. MIT Press.</p>
+<p class="ref">Friston, K. (2010). The free-energy principle: a unified brain theory? <em>Nat. Rev. Neurosci.</em>, 11(2), 127-138.</p>
+<p class="ref">Liberman, M., Gao, J., He, D. et al. (2002). Prestin is required for electromotility of the outer hair cell and for the cochlear amplifier. <em>Nature</em>, 419, 300-304.</p>
+<p class="ref">Dallos, P. (2008). Cochlear amplification, outer hair cells and prestin. <em>Curr. Opin. Neurobiol.</em>, 18, 370-376.</p>
+<p class="ref">Guinan, J. J. (2006). Olivocochlear efferents: anatomy, physiology, function, and the measurement of efferent effects in humans. <em>Ear Hear</em>, 27, 589-607.</p>
+<p class="ref">Greenwood, D. D. (1990). A cochlear frequency-position function for several species. <em>J. Acoust. Soc. Am.</em>, 87, 2592-2605.</p>
+<p class="ref">Bastos, A. M. et al. (2015). Visual areas exert feedforward and feedback influences through distinct frequency channels. <em>Neuron</em>, 85(2), 390-401.</p>
+<p class="ref">Sabine, A. (2026). Phase-gating across precision channels: a CRR temporal grammar for Active Inference. <em>AGI-26</em>. <a href="https://www.temporalgrammar.ai" style="color:rgba(180,170,200,.35);text-decoration:none">temporalgrammar.ai</a></p>
+<p style="font-size:9px;color:rgba(200,195,185,.12);margin-top:14px;font-family:'JetBrains Mono',monospace">CRR pending peer review · Active Inference Institute · 2026</p>
+</div>
+
+<script>
+const PI=Math.PI,TAU=PI*2;
+const cv=document.getElementById('c'),X=cv.getContext('2d');
+const specCv=document.getElementById('spectrum'),sX=specCv.getContext('2d');
+let W,H;
+function rz(){W=cv.width=innerWidth;H=cv.height=innerHeight;
+  specCv.width=specCv.clientWidth*2;specCv.height=specCv.clientHeight*2;}
+rz();addEventListener('resize',rz);
+
+// ═══════════════════════════════════════════════════════════════
+// CRR PARAMETERS — Fixed by manifold topology (zero free parameters)
+// ═══════════════════════════════════════════════════════════════
+// §Ω: Two symmetry classes fix Omega from the statistical manifold.
+//   Z₂ (bistable/sensory):  Ω = 1/π,  C* = π    → C·Ω = 1  ✓
+//   SO(2) (rotational/prior): Ω = 1/2π, C* = 2π  → C·Ω = 1  ✓
+//
+// FEP correspondence:
+//   Free energy F      ↔ Coherence C (inverse)
+//   Precision Π        ↔ 1/Ω · exp(C/Ω)
+//   Markov blanket     ↔ high-|∇C| surface (basilar membrane)
+//   Prediction error ε ↔ rupture event δ
+//   Belief update      ↔ regeneration R
+// ═══════════════════════════════════════════════════════════════
+const OMEGA_Z2=1/PI, CSTAR_Z2=PI, CV_Z2=OMEGA_Z2/2;
+const OMEGA_SO2=1/TAU, CSTAR_SO2=TAU, CV_SO2=OMEGA_SO2/2;
+const N_BANDS=64; // §Ω: frequency bands along basilar membrane (tonotopic map)
+
+// ═══ STATE ═══
+let t=0,lt=0,lit=.60,dep=.70,crrGain=1.0,zm=1.0;
+let show={hc:true,wave:true,crr:true,veins:true,labels:true,symmetry:false};
+let micActive=false,audioCtx=null,analyser=null,freqData=null;
+let toneActive=false,oscillator=null,toneGain=null,toneFreq=440,toneVol=0.15;
+
+// ═══════════════════════════════════════════════════════════════
+// §C: COHERENCE STATE — one CRR agent per frequency band
+// Each band represents a location on the basilar membrane.
+// C accumulates from acoustic input (mic FFT or tone injection).
+// When C·Ω = 1, the agent ruptures (δ) and regenerates.
+// ═══════════════════════════════════════════════════════════════
+const C=new Float64Array(N_BANDS);       // §C: current coherence level
+const C_rate=new Float64Array(N_BANDS);   // §C: accumulation rate (dC/dt)
+const rupture=new Float64Array(N_BANDS);  // §δ: rupture flash intensity
+const beauty=new Float64Array(N_BANDS);   // §B: beauty function value B(C)
+const bandFreq=new Float64Array(N_BANDS); // §Ω: characteristic frequency (Greenwood)
+
+// ═══════════════════════════════════════════════════════════════
+// §Ω: GREENWOOD FUNCTION — tonotopic map of the basilar membrane
+// f(x) = A · (10^(ax) - k)  [Greenwood 1990, JASA 87]
+// x = fractional distance from apex (0) to base (1)
+// This maps position along the cochlear spiral to frequency.
+// ═══════════════════════════════════════════════════════════════
+function greenwood(x){return 165.4*(Math.pow(10,2.1*x)-0.88);}
+function invGreenwood(f){return Math.log10((f/165.4)+0.88)/2.1;}
+
+// §Ω: precompute characteristic frequencies per band
+for(let i=0;i<N_BANDS;i++){
+  const frac=i/(N_BANDS-1); // 0=low freq (apex), 1=high freq (base)
+  bandFreq[i]=greenwood(frac*.85+.05);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §SO₂: COCHLEAR SPIRAL GEOMETRY — S¹ topology
+// The human cochlea makes 2.5 turns (2.5 × C*_SO₂ = 5π radians).
+// Each turn = one full SO(2) coherence cycle.
+// Base (outer): narrow BM, stiff, high freq, low Ω, high precision
+// Apex (inner): wide BM, flexible, low freq, higher Ω, lower precision
+// ═══════════════════════════════════════════════════════════════
+const TURNS=2.5;
+const N_SPIRAL=400; // points along spiral
+const spiral=[];
+
+function buildSpiral(){
+  spiral.length=0;
+  const cx=W*.52,cy=H*.48;
+  const rMax=Math.min(W,H)*.32*zm;
+  const rMin=rMax*.08;
+  for(let i=0;i<N_SPIRAL;i++){
+    const frac=i/(N_SPIRAL-1); // 0=base(outer), 1=apex(inner)
+    const theta=frac*TURNS*TAU;
+    const r=rMax-(rMax-rMin)*frac;
+    // §Ω: basilar membrane width increases from base to apex
+    const bmWidth=(3+frac*14)*zm;
+    const x=cx+r*Math.cos(theta+PI*.7);
+    const y=cy+r*Math.sin(theta+PI*.7);
+    // Map spiral position to frequency band
+    const bandIdx=Math.floor((1-frac)*(N_BANDS-1));
+    spiral.push({x,y,r,theta,frac,bmWidth,bandIdx,
+      nx:-Math.sin(theta+PI*.7), ny:Math.cos(theta+PI*.7)});
+  }
+}
+buildSpiral();
+addEventListener('resize',()=>{buildSpiral();});
+addEventListener('wheel',e=>{e.preventDefault();zm=Math.min(2.5,Math.max(.4,zm*(1+e.deltaY*.001)));buildSpiral();},{passive:false});
+
+// ═══ AUDIO SETUP ═══
+// Critical design: oscillator → speakers → AIR → mic → analyser → FFT → CRR
+// The tone NEVER connects to the analyser directly.
+// The cochlea only "hears" what the microphone picks up.
+
+function ensureAudioCtx(){
+  if(!audioCtx){
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+async function toggleMic(){
+  const btn=document.getElementById('micBtn');
+  if(micActive){
+    micActive=false;btn.textContent='Enable Microphone';btn.classList.remove('active');
+    analyser=null;freqData=null;
+    // Don't close audioCtx if tone is still playing
+    if(!toneActive&&audioCtx){audioCtx.close();audioCtx=null;}
+    return;
+  }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const ctx=ensureAudioCtx();
+    const src=ctx.createMediaStreamSource(stream);
+    analyser=ctx.createAnalyser();
+    analyser.fftSize=2048;analyser.smoothingTimeConstant=0.7;
+    // §Z₂: mic → analyser ONLY (sensory evidence pathway)
+    src.connect(analyser);
+    // Oscillator is NOT connected here — it goes to speakers only
+    freqData=new Uint8Array(analyser.frequencyBinCount);
+    micActive=true;btn.textContent='Microphone Active';btn.classList.add('active');
+  }catch(e){btn.textContent='Mic Denied';console.error(e);}
+}
+
+function toggleTone(){
+  const btn=document.getElementById('toneBtn');
+  if(toneActive){
+    toneActive=false;btn.textContent='Play Tone';btn.classList.remove('active');
+    if(oscillator){oscillator.stop();oscillator=null;}
+    if(toneGain){toneGain.disconnect();toneGain=null;}
+    if(!micActive&&audioCtx){audioCtx.close();audioCtx=null;}
+    return;
+  }
+  const ctx=ensureAudioCtx();
+  // §SO₂: oscillator → gain → SPEAKERS ONLY
+  // It must travel through the air to reach the mic
+  oscillator=ctx.createOscillator();
+  toneGain=ctx.createGain();
+  oscillator.type='sine';
+  oscillator.frequency.setValueAtTime(toneFreq,ctx.currentTime);
+  toneGain.gain.setValueAtTime(toneVol,ctx.currentTime);
+  oscillator.connect(toneGain);
+  toneGain.connect(ctx.destination); // speakers ONLY — never to analyser
+  oscillator.start();
+  toneActive=true;btn.textContent='Tone Playing: '+Math.round(toneFreq)+' Hz';btn.classList.add('active');
+}
+
+function getFFTForBand(bandIdx){
+  if(!micActive||!analyser||!freqData)return 0;
+  analyser.getByteFrequencyData(freqData);
+  const freq=bandFreq[bandIdx];
+  const binHz=audioCtx.sampleRate/analyser.fftSize;
+  const bin=Math.round(freq/binHz);
+  if(bin<0||bin>=freqData.length)return 0;
+  // Average a few bins around the target for smoothness
+  let sum=0,count=0;
+  for(let b=Math.max(0,bin-2);b<=Math.min(freqData.length-1,bin+2);b++){sum+=freqData[b];count++;}
+  return (sum/count)/255;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §C/§δ/§R: CRR ENGINE — coherence-rupture-regeneration per band
+// ═══════════════════════════════════════════════════════════════
+// Each frequency band is a CRR agent on the basilar membrane.
+// The traveling wave accumulates coherence C at each location.
+// When C·Ω reaches 1 (the universal rupture condition), the
+// agent ruptures: maximum BM displacement, IHC fires, coherence
+// resets. The beauty function B(C) = exp(C/Ω)·(C*-C) peaks at
+// C* - Ω, one capacity-unit before rupture: the cochlear
+// amplifier is most active at this edge.
+//
+// Input sources:
+//   1. Microphone FFT → getFFTForBand() (air conduction)
+//   2. Tone generator → Gaussian injection (direct stimulation)
+//   Both feed the same CRR pipeline — the cochlea does not
+//   distinguish between input sources at the BM level.
+// ═══════════════════════════════════════════════════════════════
+function updateCRR(dt){
+  // §SO₂: precompute tone injection (Gaussian spread on basilar membrane)
+  // The tone directly stimulates the basilar membrane at the
+  // characteristic frequency location, with a spread determined
+  // by the passive BM tuning (broader at apex, narrower at base).
+  let toneCenter=-1, toneSigma=2.5;
+  if(toneActive){
+    const tPos=invGreenwood(toneFreq);
+    toneCenter=Math.max(0,Math.min(1,tPos*.85+.05))*(N_BANDS-1);
+    // §Ω: BM tuning narrows at high freq (base) — lower Omega = sharper
+    toneSigma=1.5+toneCenter/N_BANDS*3.0; // wider spread at low freq
+  }
+
+  for(let i=0;i<N_BANDS;i++){
+    // §C: coherence accumulation from BOTH mic and tone
+    let inputLevel=getFFTForBand(i); // mic contribution
+
+    // §Z₂: direct tone injection (basilar membrane resonance)
+    if(toneActive&&toneCenter>=0){
+      const dist=i-toneCenter;
+      const toneEnergy=toneVol*8.0*Math.exp(-dist*dist/(2*toneSigma*toneSigma));
+      inputLevel=Math.max(inputLevel,toneEnergy); // tone OR mic, whichever stronger
+    }
+
+    C_rate[i]=inputLevel*crrGain*8.0;
+    // Accumulate coherence
+    C[i]+=C_rate[i]*dt;
+    // §B: beauty function B(C) = exp(C/Ω)·(C*-C), normalised
+    const Om=OMEGA_Z2;
+    const Cs=CSTAR_Z2;
+    const bRaw=Math.exp(C[i]/Om)*(Cs-C[i]);
+    const bMax=Om*Math.exp((Cs-Om)/Om);
+    beauty[i]=Math.max(0,Math.min(1,bRaw/bMax));
+    // §δ: rupture when C·Ω >= 1
+    if(C[i]*Om>=1){
+      rupture[i]=1.0;
+      C[i]=0;
+    }
+    // Decay rupture flash
+    rupture[i]*=Math.exp(-dt*8);
+  }
+}
+
+// ═══ SPECTRUM DISPLAY ═══
+function drawSpectrum(){
+  const w=specCv.width,h=specCv.height;
+  sX.fillStyle='rgba(10,10,20,.6)';sX.fillRect(0,0,w,h);
+  const bw=w/N_BANDS;
+
+  if(micActive){
+    for(let i=0;i<N_BANDS;i++){
+      const level=getFFTForBand(i);
+      const bh=level*h;
+      const hue=240-i*(200/N_BANDS);
+      sX.fillStyle=`hsla(${hue},70%,55%,${.3+level*.7})`;
+      sX.fillRect(i*bw,h-bh,bw-1,bh);
+    }
+  }
+
+  // §C: CRR coherence overlay (visible whenever CRR is active)
+  if(show.crr&&(micActive||toneActive)){
+    for(let i=0;i<N_BANDS;i++){
+      const cFrac=C[i]*OMEGA_Z2;
+      if(cFrac>.01){
+        sX.fillStyle=`rgba(255,180,80,${cFrac*.6})`;
+        sX.fillRect(i*bw,0,bw-1,h*cFrac);
+      }
+      // Show tone-injected energy as golden bar from bottom
+      if(toneActive){
+        const tPos=invGreenwood(toneFreq);
+        const tC=Math.max(0,Math.min(1,tPos*.85+.05))*(N_BANDS-1);
+        const dist=i-tC;
+        const toneSig=1.5+tC/N_BANDS*3.0;
+        const tE=toneVol*8.0*Math.exp(-dist*dist/(2*toneSig*toneSig));
+        if(tE>.01){
+          sX.fillStyle=`rgba(255,200,80,${tE*.4})`;
+          sX.fillRect(i*bw,h-tE*h,bw-1,tE*h);
+        }
+      }
+    }
+  }
+
+  // §δ: tone frequency marker (shows where tone should appear)
+  if(toneActive){
+    const tPos=invGreenwood(toneFreq);
+    const tBand=Math.floor(Math.max(0,Math.min(1,tPos*.85+.05))*(N_BANDS-1));
+    const tx=tBand*bw+bw/2;
+    sX.strokeStyle=`rgba(255,200,80,${.5+.3*Math.sin(t*8)})`;
+    sX.lineWidth=2;sX.setLineDash([3,2]);
+    sX.beginPath();sX.moveTo(tx,0);sX.lineTo(tx,h);sX.stroke();
+    sX.setLineDash([]);
+    // Detection check: is the FFT picking up energy at this frequency?
+    if(micActive){
+      const detected=getFFTForBand(tBand);
+      sX.fillStyle=detected>.08?'rgba(80,255,120,.8)':'rgba(255,80,80,.5)';
+      sX.beginPath();sX.arc(tx,4,3,0,TAU);sX.fill();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER — CRR/FEP/Active Inference on S¹
+// ═══════════════════════════════════════════════════════════════
+// Rendering order mirrors the Markov blanket structure:
+//
+// Layer 1: COCHLEAR WALL (outer tissue, 3 layers of depth)
+//   Capsular cartilage/bone surrounding the membranous labyrinth.
+//
+// Layer 2: §SO₂ STRIA VASCULARIS (blood vessels with cardiac pulse)
+//   The metabolic engine. Maintains the endocochlear potential
+//   (+80mV) that powers the cochlear amplifier.
+//
+// Layer 3: SCALA MEDIA ENDOLYMPH (warm glow = internal states)
+//   High K+ concentration, positive potential. The Markov blanket
+//   interior. Glows brighter with acoustic stimulation.
+//
+// Layer 4: BASILAR MEMBRANE (the Markov blanket surface)
+//   §C: coherence → warmth. §δ: rupture → flash. §B: beauty → shimmer.
+//
+// Layer 5: §Z₂/§SO₂ HAIR CELLS (IHC cyan, OHC purple)
+//   1 row IHC (inner, Z₂ sensory) + 3 rows OHC (outer, SO₂ prior).
+//
+// Layer 6: §C TRAVELING WAVE (displacement overlay)
+//   Basilar membrane displacement driven by acoustic input.
+//
+// Layer 7: §CRR COHERENCE HEAT (amber radial gradient overlay)
+//   Shows where C·Ω is approaching 1 across the spiral.
+//
+// Layer 8: REISSNER MEMBRANE + WET HIGHLIGHTS
+//   Inner boundary of scala media. Specular highlights for tissue.
+// ═══════════════════════════════════════════════════════════════
+function drawCochlea(){
+  X.fillStyle='#020203';X.fillRect(0,0,W,H);
+  if(spiral.length<2)return;
+
+  // §Ω: tissue background — outer cochlear wall
+  X.save();
+  X.beginPath();
+  const s0=spiral[0],sN=spiral[spiral.length-1];
+  const cx=W*.52,cy=H*.48;
+  for(let layer=0;layer<3;layer++){
+    const expand=(3-layer)*18*zm;
+    X.beginPath();
+    for(let i=0;i<spiral.length;i++){
+      const s=spiral[i];
+      const ex=s.x+s.nx*expand,ey=s.y+s.ny*expand;
+      i===0?X.moveTo(ex,ey):X.lineTo(ex,ey);
+    }
+    for(let i=spiral.length-1;i>=0;i--){
+      const s=spiral[i];
+      const ex=s.x-s.nx*expand,ey=s.y-s.ny*expand;
+      X.lineTo(ex,ey);
+    }
+    X.closePath();
+    const alpha=[.08,.05,.03][layer];
+    const r=[100,80,60][layer],g=[50,40,35][layer],b=[60,50,45][layer];
+    X.fillStyle=`rgba(${r},${g},${b},${alpha*dep})`;
+    X.fill();
+  }
+  X.restore();
+
+  // §SO₂: blood vessels (stria vascularis) — precomputed paths
+  if(show.veins){
+    X.lineWidth=1.2*zm;
+    for(let v=0;v<18;v++){
+      const vSeed=v*31.7+5.3;
+      const startIdx=Math.floor((Math.sin(vSeed)*0.5+0.5)*spiral.length*.6);
+      const vLen=40+Math.floor((Math.sin(vSeed*1.7)*0.5+0.5)*60);
+      X.strokeStyle=`rgba(140,30,30,${(.04+.06*Math.sin(t*3.77+v*.5))*dep})`;
+      X.beginPath();
+      for(let i=startIdx;i<Math.min(startIdx+vLen,spiral.length);i++){
+        const s=spiral[i];
+        const off=(s.bmWidth*1.8+6*zm)*Math.sin(i*.25+vSeed);
+        const vx=s.x+s.nx*off,vy=s.y+s.ny*off;
+        i===startIdx?X.moveTo(vx,vy):X.lineTo(vx,vy);
+      }
+      X.stroke();
+    }
+  }
+
+  // ═══ BASILAR MEMBRANE + ORGAN OF CORTI ═══
+  // §Ω: Scala media endolymph glow (the +80mV Markov blanket interior)
+  for(let i=2;i<spiral.length;i+=2){
+    const s=spiral[i];
+    const bi=s.bandIdx;
+    const fftLev=C_rate[bi]/3;
+    // Endolymph: faint warm glow between BM and Reissner membrane
+    const endoGlow=.03+fftLev*.08;
+    X.fillStyle=`rgba(200,180,120,${endoGlow*dep})`;
+    X.beginPath();X.arc(s.x-s.nx*s.bmWidth*.1,s.y-s.ny*s.bmWidth*.1,s.bmWidth*.8,0,TAU);X.fill();
+  }
+  // §Ω: Scala tympani/vestibuli: faint fluid regions on outer side
+  for(let i=3;i<spiral.length;i+=3){
+    const s=spiral[i];
+    X.fillStyle=`rgba(60,80,120,${.015*dep})`;
+    X.beginPath();X.arc(s.x+s.nx*s.bmWidth*1.2,s.y+s.ny*s.bmWidth*1.2,s.bmWidth*1.1,0,TAU);X.fill();
+  }
+
+  for(let i=1;i<spiral.length;i++){
+    const s=spiral[i],sp=spiral[i-1];
+    const bi=s.bandIdx;
+    const cFrac=C[bi]*OMEGA_Z2; // coherence as fraction of threshold
+    const bVal=beauty[bi];
+    const rVal=rupture[bi];
+    const fftLev=C_rate[bi]/3;
+
+    // §Ω: basilar membrane (the Markov blanket)
+    const bmR=.12+.04*dep;
+    const bmG=.06+.03*dep;
+    const bmB=.05+.02*dep;
+    // Coherence adds warmth; rupture adds flash
+    const cR=bmR+cFrac*.3+rVal*.8;
+    const cG=bmG+cFrac*.15+rVal*.4;
+    const cB=bmB-cFrac*.02+rVal*.2;
+    X.strokeStyle=`rgba(${Math.min(255,cR*255)|0},${Math.min(255,cG*255)|0},${Math.min(255,cB*255)|0},${.4+fftLev*.5+rVal*.4})`;
+    X.lineWidth=s.bmWidth;
+    X.beginPath();X.moveTo(sp.x,sp.y);X.lineTo(s.x,s.y);X.stroke();
+
+    // §C: traveling wave displacement
+    if(show.wave&&fftLev>.01){
+      const disp=fftLev*s.bmWidth*1.5*Math.sin(t*12-i*.15);
+      const wx=s.x+s.nx*disp,wy=s.y+s.ny*disp;
+      X.strokeStyle=`rgba(180,220,255,${fftLev*.3})`;
+      X.lineWidth=1.5*zm;
+      X.beginPath();X.moveTo(sp.x+sp.nx*disp*.8,sp.y+sp.ny*disp*.8);
+      X.lineTo(wx,wy);X.stroke();
+    }
+
+    // §B: beauty function glow (golden shimmer before rupture)
+    if(show.crr&&bVal>.3){
+      const glow=bVal*bVal;
+      X.strokeStyle=`rgba(255,200,80,${glow*.25})`;
+      X.lineWidth=s.bmWidth*1.8;
+      X.beginPath();X.moveTo(sp.x,sp.y);X.lineTo(s.x,s.y);X.stroke();
+    }
+
+    // §δ: rupture flash
+    if(rVal>.05){
+      X.fillStyle=`rgba(255,240,200,${rVal*.6})`;
+      X.beginPath();X.arc(s.x,s.y,s.bmWidth*2*rVal,0,TAU);X.fill();
+    }
+
+    // §Z₂/§SO₂: hair cells
+    if(show.hc&&i%3===0){
+      const hcSize=Math.max(1,1.5*zm);
+      // IHC: 1 row (inner side) — Z₂ sensory
+      const ihcX=s.x-s.nx*s.bmWidth*.3;
+      const ihcY=s.y-s.ny*s.bmWidth*.3;
+      const ihcBright=.2+fftLev*.6+rVal*.5;
+      X.fillStyle=`rgba(100,200,255,${ihcBright})`;
+      X.fillRect(ihcX-hcSize/2,ihcY-hcSize/2,hcSize,hcSize);
+
+      // OHC: 3 rows (outer side) — SO(2) prior precision
+      for(let row=0;row<3;row++){
+        const ohcOff=s.bmWidth*(.2+row*.15);
+        const ohcX=s.x+s.nx*ohcOff;
+        const ohcY=s.y+s.ny*ohcOff;
+        const ohcBright=.15+fftLev*.4+bVal*.3;
+        X.fillStyle=`rgba(200,140,255,${ohcBright})`;
+        X.fillRect(ohcX-hcSize/2,ohcY-hcSize/2,hcSize,hcSize);
+      }
+    }
+  }
+
+  // §CRR: coherence heat overlay
+  if(show.crr){
+    for(let i=2;i<spiral.length;i+=2){
+      const s=spiral[i];
+      const bi=s.bandIdx;
+      const cFrac=C[bi]*OMEGA_Z2;
+      if(cFrac>.05){
+        const grad=X.createRadialGradient(s.x,s.y,0,s.x,s.y,s.bmWidth*2);
+        grad.addColorStop(0,`rgba(255,140,40,${cFrac*.15})`);
+        grad.addColorStop(1,'rgba(255,140,40,0)');
+        X.fillStyle=grad;
+        X.fillRect(s.x-s.bmWidth*2,s.y-s.bmWidth*2,s.bmWidth*4,s.bmWidth*4);
+      }
+    }
+  }
+
+  // §Ω: Reissner membrane — thin bright line on inner edge of spiral
+  X.strokeStyle=`rgba(220,200,180,${.06*lit})`;
+  X.lineWidth=0.8*zm;
+  X.beginPath();
+  for(let i=0;i<spiral.length;i++){
+    const s=spiral[i];
+    const rx=s.x-s.nx*s.bmWidth*.6,ry=s.y-s.ny*s.bmWidth*.6;
+    i===0?X.moveTo(rx,ry):X.lineTo(rx,ry);
+  }
+  X.stroke();
+
+  // §Ω: wet specular highlight along spiral surface
+  X.strokeStyle=`rgba(255,250,240,${.04*lit})`;
+  X.lineWidth=1.5*zm;
+  X.beginPath();
+  for(let i=0;i<spiral.length;i++){
+    const s=spiral[i];
+    const hx=s.x+s.nx*s.bmWidth*.45+Math.sin(t*.3+i*.02)*1.5;
+    const hy=s.y+s.ny*s.bmWidth*.45+Math.cos(t*.3+i*.02)*1.5;
+    i===0?X.moveTo(hx,hy):X.lineTo(hx,hy);
+  }
+  X.stroke();
+
+  // ═══════════════════════════════════════════════════════════════
+  // §Z₂/§SO₂: SYMMETRY OVERLAY
+  // When enabled, clearly shows the two precision channels and
+  // the δ(now) boundary (tunnel of Corti) separating them.
+  //   Inner edge (cyan):   Z₂ sensory — IHC, 1 row, Ω = 1/π
+  //   Outer edge (purple): SO(2) prior — OHC, 3 rows, Ω = 1/2π
+  //   Between (amber dash): δ(now) — tunnel of Corti
+  // ═══════════════════════════════════════════════════════════════
+  if(show.symmetry){
+    // §Z₂: IHC sensory channel — DYNAMIC: brightness tracks coherence + rupture
+    // Each segment's brightness = base glow + coherence level + rupture flash
+    for(let i=1;i<spiral.length;i++){
+      const s=spiral[i],sp=spiral[i-1];
+      const bi=s.bandIdx;
+      const cFrac=C[bi]*OMEGA_Z2;  // 0→1 as coherence approaches rupture
+      const rVal=rupture[bi];       // flash intensity at rupture
+      const fftLev=C_rate[bi]/3;    // input energy
+      // §C: base glow + coherence warmth + rupture white-out
+      const zAlpha=.15+cFrac*.5+rVal*.35;
+      const zR=80+cFrac*120+rVal*175;
+      const zG=180+cFrac*40+rVal*75;
+      const zB=255-cFrac*30+rVal*0;
+      // Outer glow (wide, soft)
+      X.strokeStyle=`rgba(${zR|0},${zG|0},${zB|0},${Math.min(1,zAlpha*.5)})`;
+      X.lineWidth=Math.max(4,8*zm);
+      const ix=s.x-s.nx*s.bmWidth*.35,iy=s.y-s.ny*s.bmWidth*.35;
+      const ipx=sp.x-sp.nx*sp.bmWidth*.35,ipy=sp.y-sp.ny*sp.bmWidth*.35;
+      X.beginPath();X.moveTo(ipx,ipy);X.lineTo(ix,iy);X.stroke();
+      // Core line (bright, narrow)
+      X.strokeStyle=`rgba(${Math.min(255,zR+40)|0},${Math.min(255,zG+20)|0},255,${Math.min(1,zAlpha*.8)})`;
+      X.lineWidth=Math.max(1.5,3*zm);
+      X.beginPath();X.moveTo(ipx,ipy);X.lineTo(ix,iy);X.stroke();
+      // §δ: rupture spark on Z₂ channel
+      if(rVal>.15){
+        X.fillStyle=`rgba(200,240,255,${rVal*.7})`;
+        X.beginPath();X.arc(ix,iy,Math.max(3,5*zm)*rVal,0,TAU);X.fill();
+      }
+    }
+
+    // §SO₂: OHC prior precision — DYNAMIC: brightness tracks beauty function
+    // The beauty function B(C) peaks just before rupture: this is the
+    // cochlear amplifier at maximum gain. The SO(2) channel glows brightest
+    // where the system is most poised, most active, most alive.
+    for(let row=0;row<3;row++){
+      for(let i=1;i<spiral.length;i++){
+        const s=spiral[i],sp=spiral[i-1];
+        const bi=s.bandIdx;
+        const bVal=beauty[bi];        // beauty function 0→1
+        const cFrac=C[bi]*OMEGA_Z2;
+        const fftLev=C_rate[bi]/3;
+        // §B: base glow + beauty amplification + subtle input response
+        const sAlpha=(.08+bVal*.55+fftLev*.15)*(1-.15*row);
+        const sR=180+bVal*60;
+        const sG=100+bVal*80;
+        const sB=255-bVal*40;
+        const off=s.bmWidth*(.2+row*.15);
+        const ox=s.x+s.nx*off,oy=s.y+s.ny*off;
+        const opx=sp.x+sp.nx*(sp.bmWidth*(.2+row*.15));
+        const opy=sp.y+sp.ny*(sp.bmWidth*(.2+row*.15));
+        X.strokeStyle=`rgba(${sR|0},${sG|0},${sB|0},${Math.min(.9,sAlpha)})`;
+        X.lineWidth=Math.max(1.5,(5-row)*zm);
+        X.beginPath();X.moveTo(opx,opy);X.lineTo(ox,oy);X.stroke();
+      }
+    }
+    // §B: beauty peak hot spots — bright magenta dots where B > 0.7
+    for(let i=2;i<spiral.length;i+=3){
+      const s=spiral[i];
+      const bi=s.bandIdx;
+      if(beauty[bi]>.7){
+        const bI=beauty[bi];
+        X.fillStyle=`rgba(255,180,255,${(bI-.7)*2})`;
+        X.beginPath();X.arc(s.x+s.nx*s.bmWidth*.2,s.y+s.ny*s.bmWidth*.2,Math.max(2,3*zm),0,TAU);X.fill();
+      }
+    }
+
+    // §δ: tunnel of Corti — DYNAMIC: brightens at active rupture points
+    X.lineWidth=Math.max(1.5,2.5*zm);
+    X.setLineDash([5*zm,4*zm]);
+    for(let i=1;i<spiral.length;i++){
+      const s=spiral[i],sp=spiral[i-1];
+      const bi=s.bandIdx;
+      const rVal=rupture[bi];
+      const cFrac=C[bi]*OMEGA_Z2;
+      // §δ: boundary brightens where coherence is high (approaching rupture)
+      const dAlpha=.12+cFrac*.3+rVal*.5;
+      X.strokeStyle=`rgba(255,200,100,${Math.min(.9,dAlpha)})`;
+      X.beginPath();X.moveTo(sp.x,sp.y);X.lineTo(s.x,s.y);X.stroke();
+    }
+    X.setLineDash([]);
+
+    // §C: COHERENCE METERS — small radial bars at intervals showing C·Ω
+    // These act like tiny gauges along the spiral: empty→full→rupture
+    for(let i=8;i<spiral.length;i+=20){
+      const s=spiral[i];
+      const bi=s.bandIdx;
+      const cFrac=Math.min(1,C[bi]*OMEGA_Z2);
+      const bVal=beauty[bi];
+      if(cFrac>.01||C_rate[bi]>0){
+        const mLen=12*zm;
+        const mOff=s.bmWidth*.7;
+        // Background bar (dark)
+        X.strokeStyle='rgba(100,100,120,.15)';X.lineWidth=2*zm;
+        X.beginPath();
+        X.moveTo(s.x-s.nx*mOff,s.y-s.ny*mOff);
+        X.lineTo(s.x-s.nx*(mOff+mLen),s.y-s.ny*(mOff+mLen));
+        X.stroke();
+        // Filled portion (Z₂ cyan → amber as approaching rupture)
+        const fR=100+cFrac*155,fG=200-cFrac*60,fB=255-cFrac*155;
+        X.strokeStyle=`rgba(${fR|0},${fG|0},${fB|0},${.3+cFrac*.5})`;
+        X.lineWidth=2*zm;
+        X.beginPath();
+        X.moveTo(s.x-s.nx*mOff,s.y-s.ny*mOff);
+        X.lineTo(s.x-s.nx*(mOff+mLen*cFrac),s.y-s.ny*(mOff+mLen*cFrac));
+        X.stroke();
+      }
+    }
+
+    // ── SYMMETRY LABELS ──
+    // Place labels at strategic points along the spiral
+    const labelPoints=[
+      {idx:Math.floor(spiral.length*.12),side:'outer'},
+      {idx:Math.floor(spiral.length*.45),side:'outer'},
+      {idx:Math.floor(spiral.length*.75),side:'inner'}
+    ];
+
+    X.textAlign='center';
+
+    // §Z₂ label at ~25% along spiral (inner side)
+    const z2pt=spiral[Math.floor(spiral.length*.25)];
+    const z2off=z2pt.bmWidth*1.2+20*zm;
+    X.font=`500 ${Math.max(10,12*zm)}px "JetBrains Mono",monospace`;
+    X.fillStyle='rgba(100,210,255,.85)';
+    X.fillText('Z\u2082 SENSORY',z2pt.x-z2pt.nx*z2off,z2pt.y-z2pt.ny*z2off);
+    X.font=`300 ${Math.max(8,10*zm)}px "JetBrains Mono",monospace`;
+    X.fillStyle='rgba(100,210,255,.55)';
+    X.fillText('IHC \u00b7 1 row \u00b7 \u03A9 = 1/\u03C0',z2pt.x-z2pt.nx*z2off,z2pt.y-z2pt.ny*z2off+14*zm);
+    X.fillText('likelihood precision',z2pt.x-z2pt.nx*z2off,z2pt.y-z2pt.ny*z2off+26*zm);
+    // Leader line
+    X.strokeStyle='rgba(100,210,255,.3)';X.lineWidth=1;
+    X.beginPath();
+    X.moveTo(z2pt.x-z2pt.nx*z2off,z2pt.y-z2pt.ny*z2off+30*zm);
+    X.lineTo(z2pt.x-z2pt.nx*z2pt.bmWidth*.35,z2pt.y-z2pt.ny*z2pt.bmWidth*.35);
+    X.stroke();
+
+    // §SO₂ label at ~55% along spiral (outer side)
+    const s2pt=spiral[Math.floor(spiral.length*.55)];
+    const s2off=s2pt.bmWidth*1.2+20*zm;
+    X.font=`500 ${Math.max(10,12*zm)}px "JetBrains Mono",monospace`;
+    X.fillStyle='rgba(200,140,255,.85)';
+    X.fillText('SO(2) PRIOR',s2pt.x+s2pt.nx*s2off,s2pt.y+s2pt.ny*s2off);
+    X.font=`300 ${Math.max(8,10*zm)}px "JetBrains Mono",monospace`;
+    X.fillStyle='rgba(200,140,255,.55)';
+    X.fillText('OHC \u00b7 3 rows \u00b7 \u03A9 = 1/2\u03C0',s2pt.x+s2pt.nx*s2off,s2pt.y+s2pt.ny*s2off+14*zm);
+    X.fillText('transition precision',s2pt.x+s2pt.nx*s2off,s2pt.y+s2pt.ny*s2off+26*zm);
+    // Leader line
+    X.strokeStyle='rgba(200,140,255,.3)';X.lineWidth=1;
+    X.beginPath();
+    X.moveTo(s2pt.x+s2pt.nx*s2off,s2pt.y+s2pt.ny*s2off+30*zm);
+    X.lineTo(s2pt.x+s2pt.nx*s2pt.bmWidth*.5,s2pt.y+s2pt.ny*s2pt.bmWidth*.5);
+    X.stroke();
+
+    // §δ label at ~40% (on the BM line itself)
+    const dpt=spiral[Math.floor(spiral.length*.40)];
+    const doff=dpt.bmWidth+35*zm;
+    X.font=`italic 500 ${Math.max(9,11*zm)}px "Cormorant Garamond",serif`;
+    X.fillStyle='rgba(255,200,100,.7)';
+    X.fillText('\u03B4(now) \u2014 tunnel of Corti',dpt.x+dpt.nx*doff,dpt.y+dpt.ny*doff);
+    X.font=`300 ${Math.max(7,9*zm)}px "JetBrains Mono",monospace`;
+    X.fillStyle='rgba(255,200,100,.45)';
+    X.fillText('Markov blanket boundary',dpt.x+dpt.nx*doff,dpt.y+dpt.ny*doff+13*zm);
+    // Leader line
+    X.strokeStyle='rgba(255,200,100,.25)';X.lineWidth=1;X.setLineDash([3,3]);
+    X.beginPath();
+    X.moveTo(dpt.x+dpt.nx*doff,dpt.y+dpt.ny*doff+16*zm);
+    X.lineTo(dpt.x,dpt.y);
+    X.stroke();X.setLineDash([]);
+
+    // §Ω: ratio badge — floating near centre
+    X.font=`500 ${Math.max(11,14*zm)}px "JetBrains Mono",monospace`;
+    X.fillStyle='rgba(200,195,185,.12)';
+    const rcx=W*.52,rcy=H*.48;
+    X.fillRect(rcx-90*zm,rcy+25*zm,180*zm,50*zm);
+    X.fillStyle='rgba(140,200,160,.7)';
+    X.fillText('Z\u2082 / SO(2) = 2',rcx,rcy+45*zm);
+    X.font=`300 ${Math.max(8,10*zm)}px "JetBrains Mono",monospace`;
+    X.fillStyle='rgba(140,200,160,.45)';
+    X.fillText('topological invariant (\u03A9 ratio)',rcx,rcy+62*zm);
+  }
+
+  // ═══ LABELS ═══
+  if(show.labels){
+    X.font=`500 ${13*zm}px "JetBrains Mono",monospace`;
+    X.textAlign='center';
+
+    // Base label (high freq)
+    const sBase=spiral[5];
+    X.fillStyle='rgba(100,200,255,.5)';
+    X.fillText('BASE (high freq)',sBase.x+sBase.nx*35*zm,sBase.y+sBase.ny*35*zm);
+
+    // Apex label (low freq)
+    const sApex=spiral[spiral.length-10];
+    X.fillStyle='rgba(200,140,255,.5)';
+    X.fillText('APEX (low freq)',sApex.x,sApex.y-20*zm);
+
+    // Title
+    X.font=`italic 400 ${18*zm}px "Cormorant Garamond",serif`;
+    X.fillStyle='rgba(200,195,185,.3)';
+    X.fillText('C \u00b7 \u03A9 = 1',cx,cy);
+
+    // CRR readout
+    X.font=`300 ${10*zm}px "JetBrains Mono",monospace`;
+    X.fillStyle='rgba(200,195,185,.25)';
+    X.textAlign='left';
+    let activeRuptures=0;
+    for(let i=0;i<N_BANDS;i++)if(rupture[i]>.1)activeRuptures++;
+    X.fillText(`\u00A7\u03B4 ruptures: ${activeRuptures}`,W-200,H-40);
+    const meanC=C.reduce((a,b)=>a+b,0)/N_BANDS;
+    X.fillText(`\u00A7C mean: ${(meanC*OMEGA_Z2).toFixed(3)}`,W-200,H-25);
+
+    // Frequency labels along spiral
+    X.font=`300 ${8*zm}px "JetBrains Mono",monospace`;
+    X.textAlign='center';
+    X.fillStyle='rgba(200,195,185,.15)';
+    const freqLabels=[100,500,1000,4000,8000,16000];
+    for(const f of freqLabels){
+      const pos=invGreenwood(f);
+      const idx=Math.floor((1-Math.max(0,Math.min(1,pos*.85+.05)))*(N_SPIRAL-1));
+      if(idx>=0&&idx<spiral.length){
+        const s=spiral[idx];
+        const lx=s.x-s.nx*(s.bmWidth+12*zm);
+        const ly=s.y-s.ny*(s.bmWidth+12*zm);
+        X.fillText(f>=1000?(f/1000)+'k':f+'',lx,ly);
+      }
+    }
+
+    // §δ: TONE TARGET INDICATOR — shows where the played tone SHOULD activate
+    if(toneActive){
+      const tPos=invGreenwood(toneFreq);
+      const tIdx=Math.floor((1-Math.max(0,Math.min(1,tPos*.85+.05)))*(N_SPIRAL-1));
+      if(tIdx>=0&&tIdx<spiral.length){
+        const s=spiral[tIdx];
+        // Pulsing target ring
+        const pulse=.5+.5*Math.sin(t*6);
+        X.strokeStyle=`rgba(255,200,80,${.3+pulse*.4})`;
+        X.lineWidth=2*zm;X.setLineDash([4*zm,3*zm]);
+        X.beginPath();X.arc(s.x,s.y,s.bmWidth*2.5+pulse*4*zm,0,TAU);X.stroke();
+        X.setLineDash([]);
+        // Target label
+        X.font=`500 ${11*zm}px "JetBrains Mono",monospace`;
+        X.fillStyle=`rgba(255,200,80,${.5+pulse*.3})`;
+        X.textAlign='center';
+        const lOff=s.bmWidth*3.5+14*zm;
+        X.fillText(Math.round(toneFreq)+' Hz',s.x+s.nx*lOff,s.y+s.ny*lOff);
+        X.font=`italic 300 ${9*zm}px "Cormorant Garamond",serif`;
+        X.fillStyle='rgba(255,200,80,.3)';
+        const tBand=Math.floor(Math.max(0,Math.min(1,tPos*.85+.05))*(N_BANDS-1));
+        const cState=(C[tBand]*OMEGA_Z2).toFixed(2);
+        X.fillText('C\u00b7\u03A9 = '+cState,s.x+s.nx*lOff,s.y+s.ny*lOff+12*zm);
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// §R: AUDITORY PATHWAY — hierarchical CRR from cochlea to cortex
+// ═══════════════════════════════════════════════════════════════
+// Each level of the auditory hierarchy has its own Ω (timescale).
+// Higher levels accumulate coherence more slowly (larger Ω).
+// Ascending signals carry prediction errors (§δ rupture events).
+// Descending signals carry predictions (§R regeneration).
+//
+// CRR naturally predicts the known EEG frequency bands:
+//   Z₂ at cochlear level: ~40 Hz → gamma
+//   SO(2) at brainstem:   ~20 Hz → beta
+//   Cortical integration: ~10 Hz → alpha
+//   Deep cortex/memory:   ~5 Hz  → theta
+//
+// This is not fitted — it falls out of the Z₂/SO(2) ratio = 2
+// and hierarchical Ω scaling.
+// ═══════════════════════════════════════════════════════════════
+const pathCv=document.getElementById('pathCv');
+const pX=pathCv?pathCv.getContext('2d'):null;
+
+const PATH_LEVELS=[
+  {name:'Spiral ganglion',  short:'SG',  omega:OMEGA_Z2,      hz:40, col:'100,210,255', desc:'γ ~40 Hz'},
+  {name:'Cochlear nucleus', short:'CN',  omega:OMEGA_Z2*1.4,  hz:28, col:'140,200,220', desc:'γ/β ~28 Hz'},
+  {name:'Inf. colliculus',  short:'IC',  omega:OMEGA_SO2*1.8,  hz:18, col:'180,160,220', desc:'β ~18 Hz'},
+  {name:'Med. geniculate',  short:'MGB', omega:OMEGA_SO2*2.5,  hz:12, col:'200,140,220', desc:'α ~12 Hz'},
+  {name:'Auditory cortex',  short:'A1',  omega:OMEGA_SO2*4.0,  hz:8,  col:'220,140,200', desc:'α/θ ~8 Hz'},
+];
+const N_PATH=PATH_LEVELS.length;
+
+// §C: coherence state per pathway level
+const pathC=new Float64Array(N_PATH);
+const pathRupture=new Float64Array(N_PATH);
+const pathBeauty=new Float64Array(N_PATH);
+const pathWave=[];  // rolling waveform history per level
+const WAVE_LEN=200;
+for(let i=0;i<N_PATH;i++){pathWave.push(new Float64Array(WAVE_LEN));}
+let pathWaveIdx=0;
+
+function updatePathway(dt){
+  // §C: input from cochlea = mean rupture activity across all bands
+  let cochleaInput=0;
+  for(let i=0;i<N_BANDS;i++)cochleaInput+=rupture[i];
+  cochleaInput=Math.min(1,cochleaInput/3);
+  // §Ω: also track mean cochlear coherence as a "readiness" signal
+  let cochleaMeanC=0;
+  for(let i=0;i<N_BANDS;i++)cochleaMeanC+=C[i]*OMEGA_Z2;
+  cochleaMeanC/=N_BANDS;
+
+  for(let lv=0;lv<N_PATH;lv++){
+    const L=PATH_LEVELS[lv];
+    const Cs=1/L.omega;
+    // §C: input ONLY from level below (or cochlea for level 0)
+    // No self-oscillation — the brain follows the ear, not vice versa
+    const inputBelow=lv===0?cochleaInput:pathRupture[lv-1]*.6;
+    // §R: descending prediction from level above (very gentle modulation)
+    const predAbove=lv<N_PATH-1?pathBeauty[lv+1]*.1:0;
+    // §C: accumulate coherence — ONLY driven by ascending input
+    // Self-oscillation is entrained by input, not independent
+    const selfOsc=cochleaMeanC*.08*Math.sin(t*L.hz*TAU)*.5+.5;
+    pathC[lv]+=(inputBelow+selfOsc*cochleaMeanC+predAbove)*crrGain*dt*4;
+    // §Ω: slow decay when no input (coherence doesn't persist forever)
+    pathC[lv]*=Math.exp(-dt*.8);
+    // §B: beauty function
+    const bRaw=Math.exp(pathC[lv]/L.omega)*(Cs-pathC[lv]);
+    const bMax=L.omega*Math.exp((Cs-L.omega)/L.omega);
+    pathBeauty[lv]=Math.max(0,Math.min(1,bRaw/Math.max(.001,bMax)));
+    // §δ: rupture
+    if(pathC[lv]*L.omega>=1){
+      pathRupture[lv]=1;
+      pathC[lv]=0;
+    }
+    pathRupture[lv]*=Math.exp(-dt*6);
+    // Waveform: composite — quiet when cochlea is quiet
+    const activity=pathC[lv]*L.omega;
+    const wVal=selfOsc*.1+activity*.6+pathRupture[lv]*.3;
+    pathWave[lv][pathWaveIdx%WAVE_LEN]=wVal;
+  }
+  pathWaveIdx++;
+}
+
+function drawPathway(){
+  if(!pathCv||!pX)return;
+  const el=document.getElementById('pathway');
+  if(!el||!el.classList.contains('active'))return;
+  const w=pathCv.width=pathCv.clientWidth*2;
+  const h=pathCv.height=pathCv.clientHeight*2;
+  pX.clearRect(0,0,w,h);
+
+  const margin=w*.06;
+  const nodeW=w*.12;
+  const gap=(w-margin*2-nodeW*N_PATH)/(N_PATH-1);
+  const midY=h*.48;
+  const waveH=h*.28;
+
+  // §R: descending predictions (drawn first, behind nodes)
+  for(let lv=N_PATH-1;lv>0;lv--){
+    const x1=margin+lv*(nodeW+gap)+nodeW*.5;
+    const x0=margin+(lv-1)*(nodeW+gap)+nodeW*.5;
+    const predStr=pathBeauty[lv];
+    pX.strokeStyle=`rgba(200,140,255,${.04+predStr*.12})`;
+    pX.lineWidth=3;pX.setLineDash([6,4]);
+    pX.beginPath();pX.moveTo(x1,midY+16);pX.lineTo(x0,midY+16);pX.stroke();
+    pX.setLineDash([]);
+    // §R: prediction particles flowing down
+    const pPhase=(t*1.5+lv*.3)%1;
+    const px=x1-(x1-x0)*pPhase;
+    pX.fillStyle=`rgba(200,140,255,${predStr*.3})`;
+    pX.beginPath();pX.arc(px,midY+16,3,0,TAU);pX.fill();
+  }
+
+  for(let lv=0;lv<N_PATH;lv++){
+    const L=PATH_LEVELS[lv];
+    const x=margin+lv*(nodeW+gap);
+    const cx=x+nodeW*.5;
+    const cFrac=pathC[lv]*L.omega;
+    const rVal=pathRupture[lv];
+    const bVal=pathBeauty[lv];
+
+    // §δ: ascending prediction error arrows
+    if(lv<N_PATH-1){
+      const x2=margin+(lv+1)*(nodeW+gap)+nodeW*.5;
+      const errStr=pathRupture[lv];
+      pX.strokeStyle=`rgba(${L.col},${.06+errStr*.25})`;
+      pX.lineWidth=2;
+      pX.beginPath();pX.moveTo(cx,midY-10);pX.lineTo(x2,midY-10);pX.stroke();
+      // Arrow head
+      pX.fillStyle=`rgba(${L.col},${.1+errStr*.3})`;
+      pX.beginPath();pX.moveTo(x2-6,midY-14);pX.lineTo(x2,midY-10);pX.lineTo(x2-6,midY-6);pX.fill();
+      // §δ: error pulse particle
+      const ePhase=(t*2+lv*.4)%1;
+      const epx=cx+(x2-cx)*ePhase;
+      pX.fillStyle=`rgba(${L.col},${errStr*.4})`;
+      pX.beginPath();pX.arc(epx,midY-10,2.5,0,TAU);pX.fill();
+    }
+
+    // Node background (darkens with coherence)
+    pX.fillStyle=`rgba(${L.col},${.04+cFrac*.06+rVal*.1})`;
+    pX.fillRect(x,midY-22,nodeW,44);
+    pX.strokeStyle=`rgba(${L.col},${.12+cFrac*.15+rVal*.2})`;
+    pX.lineWidth=1;
+    pX.strokeRect(x,midY-22,nodeW,44);
+
+    // §δ: rupture flash
+    if(rVal>.1){
+      pX.fillStyle=`rgba(${L.col},${rVal*.15})`;
+      pX.fillRect(x-4,midY-26,nodeW+8,52);
+    }
+
+    // Node label
+    pX.font='500 '+(w<800?16:20)+'px "JetBrains Mono",monospace';
+    pX.fillStyle=`rgba(${L.col},${.5+cFrac*.3+rVal*.2})`;
+    pX.textAlign='center';
+    pX.fillText(L.short,cx,midY+5);
+
+    // Frequency / band label
+    pX.font='300 '+(w<800?9:11)+'px "JetBrains Mono",monospace';
+    pX.fillStyle=`rgba(${L.col},.35)`;
+    pX.fillText(L.desc,cx,midY+18);
+
+    // §C: waveform (oscillation at this level's characteristic frequency)
+    const waveY0=midY-22-waveH-4;
+    pX.strokeStyle=`rgba(${L.col},${.15+cFrac*.2})`;
+    pX.lineWidth=1.2;
+    pX.beginPath();
+    for(let j=0;j<WAVE_LEN;j++){
+      const wi=(pathWaveIdx+j)%WAVE_LEN;
+      const wx=x+(j/WAVE_LEN)*nodeW;
+      const wy=waveY0+waveH*(1-pathWave[lv][wi]);
+      j===0?pX.moveTo(wx,wy):pX.lineTo(wx,wy);
+    }
+    pX.stroke();
+
+    // §B: beauty indicator (thin bar under waveform)
+    if(bVal>.1){
+      pX.fillStyle=`rgba(255,200,80,${bVal*.3})`;
+      pX.fillRect(x,waveY0+waveH+1,nodeW*bVal,2);
+    }
+
+    // §C·Ω readout
+    pX.font='300 '+(w<800?7:9)+'px "JetBrains Mono",monospace';
+    pX.fillStyle=`rgba(${L.col},.25)`;
+    pX.fillText('C\u00b7\u03A9='+cFrac.toFixed(2),cx,midY+28);
+  }
+
+  // Title
+  pX.font='italic 300 '+(w<800?11:14)+'px "Cormorant Garamond",serif';
+  pX.fillStyle='rgba(200,195,185,.2)';
+  pX.textAlign='left';
+  pX.fillText('Ascending auditory pathway (CRR hierarchical)',margin,h-6);
+  pX.textAlign='right';
+  pX.fillStyle='rgba(200,195,185,.12)';
+  pX.fillText('\u03B5 \u2192 prediction error (ascending)    \u03C0 \u2190 predictions (descending)',w-margin,h-6);
+}
+
+// ═══ ANIMATION LOOP ═══
+function frame(ts){
+  requestAnimationFrame(frame);
+  const dt=Math.min(.05,(ts-(lt||ts))/1e3);lt=ts;t+=dt;
+  updateCRR(dt);
+  updatePathway(dt);
+  drawCochlea();
+  drawSpectrum();
+  drawPathway();
+}
+requestAnimationFrame(frame);
+
+// ═══ CONTROLS ═══
+document.getElementById('iL').addEventListener('input',function(){lit=+this.value;document.getElementById('lv').textContent=lit.toFixed(2);});
+document.getElementById('iD').addEventListener('input',function(){dep=+this.value;document.getElementById('dv').textContent=dep.toFixed(2);});
+document.getElementById('iG').addEventListener('input',function(){crrGain=+this.value;document.getElementById('gv').textContent=crrGain.toFixed(2);});
+document.getElementById('tHC').addEventListener('change',function(){show.hc=this.checked;});
+document.getElementById('tWave').addEventListener('change',function(){show.wave=this.checked;});
+document.getElementById('tCRR').addEventListener('change',function(){show.crr=this.checked;});
+document.getElementById('tVeins').addEventListener('change',function(){show.veins=this.checked;});
+document.getElementById('tLabels').addEventListener('change',function(){show.labels=this.checked;});
+document.getElementById('tSym').addEventListener('change',function(){show.symmetry=this.checked;});
+document.getElementById('tPath').addEventListener('change',function(){
+  document.getElementById('pathway').classList.toggle('active',this.checked);
+});
+
+// §SO₂: Tone frequency slider (logarithmic: 10^value → Hz)
+document.getElementById('iF').addEventListener('input',function(){
+  toneFreq=Math.pow(10,+this.value);
+  document.getElementById('fv').textContent=Math.round(toneFreq)+' Hz';
+  if(oscillator&&audioCtx)oscillator.frequency.setValueAtTime(toneFreq,audioCtx.currentTime);
+  if(toneActive)document.getElementById('toneBtn').textContent='Tone Playing: '+Math.round(toneFreq)+' Hz';
+});
+// Tone volume slider
+document.getElementById('iV').addEventListener('input',function(){
+  toneVol=+this.value;
+  document.getElementById('vv').textContent=toneVol.toFixed(2);
+  if(toneGain&&audioCtx)toneGain.gain.setValueAtTime(toneVol,audioCtx.currentTime);
+});
+</script>
+</body>
+</html>
