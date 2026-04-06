@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Physics of Recorded Sound — CRR Decoder — Active Inference Institute</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a12;overflow:hidden;font-family:'Cormorant Garamond',Georgia,serif;color:#dce8f0}
+#bar{position:fixed;top:0;left:0;right:0;height:42px;background:rgba(4,8,16,.96);border-bottom:1px solid rgba(80,140,160,.1);display:flex;align-items:center;padding:0 14px;z-index:30;gap:10px}
+.t{font-size:13px;color:rgba(220,235,240,.85)}.sub{font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(160,220,200,.4);letter-spacing:1px}
+.tabs{display:flex;gap:0;margin-left:auto}
+.tab{padding:10px 14px;font-size:9px;font-family:'JetBrains Mono',monospace;letter-spacing:1.3px;text-transform:uppercase;color:rgba(200,220,225,.35);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;height:42px;transition:all .2s}
+.tab:hover{color:rgba(220,235,240,.6)}.tab.on{color:rgba(160,240,220,.85);border-bottom-color:rgba(140,220,200,.45)}
+#ov{position:fixed;inset:0;background:rgba(4,8,16,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity .5s}
+#ov.off{opacity:0;pointer-events:none}
+.ub{width:380px;padding:36px;text-align:center;border:1px solid rgba(80,140,160,.12);background:rgba(10,18,28,.8);cursor:pointer;transition:all .3s}
+.ub:hover{border-color:rgba(140,220,200,.35)}
+.ub h2{font-size:22px;font-weight:300;margin-bottom:8px}.ub p{font-size:12px;color:rgba(200,220,225,.45);line-height:1.5;margin-bottom:8px}
+#fi{display:none}#lt{color:rgba(160,220,200,.6);font-size:12px;margin-top:12px;display:none}
+#ui{position:fixed;top:42px;left:0;width:208px;height:calc(100vh - 42px);background:rgba(4,12,20,.93);border-right:1px solid rgba(80,140,160,.06);padding:9px;overflow-y:auto;z-index:10;scrollbar-width:thin;scrollbar-color:rgba(80,140,160,.1) transparent}
+.sc{margin-bottom:8px;border-bottom:1px solid rgba(80,140,160,.04);padding-bottom:7px}.sc:last-child{border-bottom:none}
+.sc h3{color:rgba(160,220,200,.7);font-size:8px;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:4px;font-family:'JetBrains Mono',monospace}
+.sg{margin-bottom:5px}.sg .lb{display:flex;justify-content:space-between;color:rgba(220,235,240,.7);font-size:9.5px;margin-bottom:1px}
+.vl{color:rgba(160,240,220,.85);font-size:9.5px;font-weight:bold;font-family:'JetBrains Mono',monospace}
+.sg .ds{color:rgba(180,200,210,.3);font-size:7px;font-family:'JetBrains Mono',monospace;margin-top:1px}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:rgba(80,150,170,.1);outline:none;margin:2px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;cursor:pointer;border:2px solid rgba(5,15,25,.8);background:rgba(140,220,200,.6)}
+.btns{display:flex;gap:3px;margin-bottom:5px}
+.btn{flex:1;padding:5px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.6px;border:1px solid rgba(80,140,160,.12);background:rgba(15,25,38,.45);color:rgba(220,235,240,.5);cursor:pointer;transition:all .15s}
+.btn:hover{background:rgba(25,40,55,.6)}.btn.on{background:rgba(140,220,200,.1);border-color:rgba(140,220,200,.25);color:rgba(160,240,220,.85)}
+.rd{font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(160,220,200,.4);line-height:1.4;padding:4px 5px;background:rgba(10,20,30,.4);border-left:2px solid rgba(140,220,200,.08);margin-top:3px}
+.rd b{color:rgba(160,240,220,.7)}
+.mp{display:none}.mp.on{display:block}
+#cv{position:fixed;top:42px;left:208px;width:calc(100vw - 208px);height:calc(100vh - 76px)}
+#wb{position:fixed;bottom:0;left:208px;right:0;height:34px;background:rgba(4,8,16,.9);border-top:1px solid rgba(80,140,160,.04);z-index:10}
+#wc{width:100%;height:100%;cursor:pointer;display:block}
+#td{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(160,220,200,.3)}
+</style></head><body>
+
+<div id="ov">
+  <div style="font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(160,220,200,.3);letter-spacing:2px;margin-bottom:16px">ACTIVE INFERENCE INSTITUTE</div>
+  <div class="ub" id="ub"><div style="font-size:36px;margin-bottom:8px;opacity:.3">&#9835;</div>
+    <h2>The Physics of Recorded Sound</h2>
+    <p>Upload an MP3. CRR reads the raw bytes, detects frames, processes the signal, and renders four physical substrates: vinyl, CD, tape, digital.</p>
+    <p style="font-size:10px;color:rgba(160,220,200,.4)">Click or drag &amp; drop</p></div>
+  <div style="font-size:7px;font-family:'JetBrains Mono',monospace;color:rgba(160,220,200,.25);letter-spacing:1px;margin-top:12px">C&middot;&Omega; = 1 &mdash; one equation, four substrates</div>
+  <div id="lt">Reading raw bytes...</div>
+</div>
+<input type="file" id="fi" accept=".mp3,audio/*">
+
+<div id="bar"><div><div class="t">The Physics of Recorded Sound</div><div class="sub">CRR Decoder &middot; Active Inference Institute</div></div>
+  <div class="tabs">
+    <button class="tab on" data-m="vinyl">Vinyl</button>
+    <button class="tab" data-m="cd">CD</button>
+    <button class="tab" data-m="tape">Tape</button>
+    <button class="tab" data-m="digital">Digital</button>
+  </div></div>
+
+<div id="ui">
+  <div class="sc"><h3>Transport</h3>
+    <div class="btns"><button class="btn" id="bP">&#9654;</button><button class="btn" id="bPa">&#10074;&#10074;</button><button class="btn" id="bS">&#9632;</button></div>
+    <div class="sg"><div class="lb"><span>Speed</span><span class="vl" id="vSp">1.0x</span></div><input type="range" id="sSp" min="10" max="200" value="100"></div></div>
+  <div class="sc"><h3>Microscope</h3>
+    <div class="sg"><div class="lb"><span>Zoom</span><span class="vl" id="vZ">1.0x</span></div><input type="range" id="sZ" min="10" max="400" value="100"></div>
+    <div class="sg"><div class="lb"><span>Amplitude</span><span class="vl" id="vA">3.0x</span></div><input type="range" id="sA" min="10" max="800" value="300"></div>
+    <div class="sg"><div class="lb"><span>Light</span><span class="vl" id="vL">45&deg;</span></div><input type="range" id="sL" min="0" max="90" value="45"></div></div>
+  <div class="sc mp on" id="pV"><h3>Vinyl</h3>
+    <div class="sg"><div class="lb"><span>Radial</span><span class="vl" id="vR">outer</span></div><input type="range" id="sR" min="0" max="100" value="10">
+    <div class="ds">Outer: fast, faithful. Inner: slow, lossy.</div></div></div>
+  <div class="sc mp" id="pC"><h3>CD</h3>
+    <div class="sg"><div class="lb"><span>&lambda;</span><span class="vl" id="vLa">780nm</span></div><input type="range" id="sLa" min="400" max="800" value="780"></div></div>
+  <div class="sc mp" id="pT"><h3>Tape</h3>
+    <div class="sg"><div class="lb"><span>Coercivity</span><span class="vl" id="vCo">300 Oe</span></div><input type="range" id="sCo" min="100" max="800" value="300">
+    <div class="ds">Coercivity IS &Omega;. Type I:300, IV:750.</div></div></div>
+  <div class="sc mp" id="pD"><h3>Digital</h3>
+    <div class="sg"><div class="lb"><span>Bit depth</span><span class="vl" id="vBd">16</span></div><input type="range" id="sBd" min="4" max="24" value="16">
+    <div class="ds">&Omega; = 1/2^n. Precision = quantisation.</div></div></div>
+  <div class="sc"><h3>CRR Decoder</h3>
+    <div class="rd" id="decInfo">No file</div></div>
+  <div class="sc"><h3>CRR Engine</h3>
+    <div class="rd">C=<b id="dC">0</b> C&middot;&Omega;=<b id="dP">0</b><br>&Omega;=<b id="dO">.318</b> &Pi;=<b id="dPi">3.14</b><br>Rup=<b id="dR">0</b> B=<b id="dB">0</b></div></div>
+</div>
+
+<canvas id="cv"></canvas>
+<div id="wb"><canvas id="wc"></canvas><div id="td">0:00</div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  THE PHYSICS OF RECORDED SOUND — CRR DECODER
+//  Alexander Sabine · Active Inference Institute · Board of Directors
+//  www.temporalgrammar.ai · Alexander@activeinference.institute
+//
+//  ARCHITECTURE: MP3 file → raw bytes → CRR frame detection →
+//  CRR signal processing → four photorealistic physics views.
+//  Single CRR engine, four physical substrates.
+//
+//  CRR (Coherence-Rupture-Regeneration) pending peer review.
+//    C(x,t) = ∫L(x,τ)dτ   — coherence accumulation
+//    δ(now) when C·Ω = 1   — rupture
+//    R = ∫φ·exp(C/Ω)·Θ dτ — regeneration
+//    Π = (1/Ω)·exp(C/Ω)   — precision
+//    B = exp(C/Ω)·(C*-C)  — beauty function
+// ═══════════════════════════════════════════════════════════════
+
+const{sin,cos,sqrt,abs,min,max,PI,random:rnd,floor,pow,exp,log,round,ceil}=Math;
+const TAU=PI*2;
+
+// ═══ CRR PROCESSOR ═══════════════════════════════════════════
+// PCM enters as L(x,τ). Returns full CRR state per sample.
+class CRR{
+  constructor(omega=1/PI){this.o=omega;this.C=0;this.n=0;this.z=1;this.prev=0;this.rC=0}
+  tick(L){
+    this.C+=abs(L)/sr;
+    const p=min(1,this.C*this.o),e=exp(min(18,this.C/this.o)),
+      pi=e/this.o,B=e*max(0,1/this.o-this.C);
+    const crossed=L*this.prev<0&&abs(this.prev)>0.001;
+    let r=false;
+    if(crossed||p>=1){r=true;this.n++;this.rC=this.C;this.z*=-1;this.C=0}
+    this.prev=L;
+    return{s:L,C:this.C,p:min(1,this.C*this.o),e,pi,B,r,z:this.z,n:this.n,rC:this.rC}
+  }
+}
+
+function processWindow(t,count,omega){
+  const proc=new CRR(omega),c=floor(t*sr),h=floor(count/2),st=new Array(count);
+  for(let i=0;i<count;i++){const j=c-h+i;st[i]=proc.tick(j>=0&&j<pcm.length?pcm[j]:0)}
+  return st;
+}
+
+// ═══ CRR FRAME DETECTOR ═════════════════════════════════════
+function detectFrames(bytes){
+  const fr=[];
+  for(let i=0;i<bytes.length-4;i++){
+    if(bytes[i]===0xFF&&(bytes[i+1]&0xE0)===0xE0){
+      const h=parseHdr(bytes,i);
+      if(h&&h.fs>0&&i+h.fs<=bytes.length){fr.push({off:i,...h});i+=h.fs-1}
+    }}return fr;
+}
+function parseHdr(b,o){
+  if(o+4>b.length)return null;
+  const b1=b[o+1],b2=b[o+2],ver=(b1>>3)&3,lay=(b1>>1)&3,bi=(b2>>4)&15,si=(b2>>2)&3,pad=(b2>>1)&1,ch=(b[o+3]>>6)&3;
+  if(ver===1||lay===0||bi===0||bi===15||si===3)return null;
+  const br=[0,32,40,48,56,64,80,96,112,128,160,192,224,256,320,0][bi]*1000;
+  const srt=ver===3?[44100,48000,32000]:[22050,24000,16000];
+  const s=srt[si];if(!br||!s)return null;
+  const spf=ver===3?1152:576;
+  return{br,sr:s,fs:floor(spf*br/(8*s))+pad,spf,ch}
+}
+
+// ═══ STATE ═══════════════════════════════════════════════════
+let mode='vinyl',rawBytes=null,pcm=null,sr=44100,dur=0,frames=[];
+let audioCtx,audioBuffer,sourceNode,gainNode;
+let playing=false,paused=false,startT=0,offset=0,speed=1;
+let zoom=1,amp=3,light=45,radPos=.1,laserWL=780,coer=300,bits=16;
+const cv=document.getElementById('cv'),X=cv.getContext('2d');
+const wc=document.getElementById('wc'),wX=wc.getContext('2d');
+let W,H,WW,WH;const DR=devicePixelRatio||1;
+function resize(){let r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*DR;cv.height=H*DR;X.setTransform(DR,0,0,DR,0,0);
+  r=wc.getBoundingClientRect();WW=r.width;WH=r.height;wc.width=WW*DR;wc.height=WH*DR;wX.setTransform(DR,0,0,DR,0,0)}
+addEventListener('resize',resize);
+
+// ═══ LOAD ════════════════════════════════════════════════════
+const ub=document.getElementById('ub'),fi=document.getElementById('fi');
+ub.onclick=()=>fi.click();ub.ondragover=e=>e.preventDefault();
+ub.ondrop=e=>{e.preventDefault();if(e.dataTransfer.files.length)load(e.dataTransfer.files[0])};
+fi.onchange=e=>{if(e.target.files.length)load(e.target.files[0])};
+async function load(file){
+  ub.style.display='none';const lt=document.getElementById('lt');lt.style.display='block';
+  lt.textContent='Reading raw bytes...';
+  const ab=await file.arrayBuffer();rawBytes=new Uint8Array(ab);
+  lt.textContent='CRR frame detection...';frames=detectFrames(rawBytes);
+  lt.textContent='Huffman decode (browser, Stage 2\u2192CRR)...';
+  try{audioCtx=new(AudioContext||webkitAudioContext)();
+    audioBuffer=await audioCtx.decodeAudioData(ab.slice(0));
+    sr=audioBuffer.sampleRate;dur=audioBuffer.duration;pcm=audioBuffer.getChannelData(0);
+  }catch(e){lt.textContent='Error: '+e.message;return}
+  document.getElementById('decInfo').innerHTML=
+    `<b>${file.name}</b><br>${rawBytes.length.toLocaleString()} bytes \u2192 ${(rawBytes.length*8).toLocaleString()} Z\u2082 bits<br>${frames.length} SO(2) frames detected<br>${frames[0]?.br/1000||'?'}kbps ${frames[0]?.sr||'?'}Hz`;
+  document.getElementById('ov').classList.add('off');resize();requestAnimationFrame(loop);
+}
+
+// ═══ PLAYBACK ════════════════════════════════════════════════
+function now(){return playing?min(dur,offset+(audioCtx.currentTime-startT)*speed):offset}
+document.getElementById('bP').onclick=()=>{if(!pcm||playing)return;if(audioCtx.state==='suspended')audioCtx.resume();
+  sourceNode=audioCtx.createBufferSource();sourceNode.buffer=audioBuffer;sourceNode.playbackRate.value=speed;
+  gainNode=audioCtx.createGain();sourceNode.connect(gainNode);gainNode.connect(audioCtx.destination);
+  sourceNode.start(0,offset);startT=audioCtx.currentTime;playing=true;paused=false;
+  document.getElementById('bP').classList.add('on');document.getElementById('bPa').classList.remove('on');
+  sourceNode.onended=()=>{playing=false;document.getElementById('bP').classList.remove('on')}};
+document.getElementById('bPa').onclick=()=>{if(playing){paused=true;offset=now();if(sourceNode)sourceNode.stop();playing=false;
+  document.getElementById('bP').classList.remove('on');document.getElementById('bPa').classList.add('on')}
+  else if(paused){paused=false;document.getElementById('bPa').classList.remove('on');document.getElementById('bP').click()}};
+document.getElementById('bS').onclick=()=>{if(sourceNode&&playing)sourceNode.stop();playing=false;paused=false;offset=0;
+  document.getElementById('bP').classList.remove('on');document.getElementById('bPa').classList.remove('on')};
+
+// ═══ CONTROLS ════════════════════════════════════════════════
+const SL=(id,cb)=>document.getElementById(id).oninput=function(){cb(+this.value)};
+SL('sSp',v=>{speed=v/100;document.getElementById('vSp').textContent=speed.toFixed(1)+'x';if(sourceNode&&playing)sourceNode.playbackRate.value=speed});
+SL('sZ',v=>{zoom=v/100;document.getElementById('vZ').textContent=zoom.toFixed(1)+'x'});
+SL('sA',v=>{amp=v/100;document.getElementById('vA').textContent=amp.toFixed(1)+'x'});
+SL('sL',v=>{light=v;document.getElementById('vL').textContent=v+'\u00B0'});
+SL('sR',v=>{radPos=v/100;document.getElementById('vR').textContent=v<30?'outer':v<70?'mid':'inner'});
+SL('sLa',v=>{laserWL=v;document.getElementById('vLa').textContent=v+'nm'});
+SL('sCo',v=>{coer=v;document.getElementById('vCo').textContent=v+' Oe'});
+SL('sBd',v=>{bits=v;document.getElementById('vBd').textContent=v});
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');mode=b.dataset.m;
+  document.querySelectorAll('.mp').forEach(x=>x.classList.remove('on'));
+  ({vinyl:'pV',cd:'pC',tape:'pT',digital:'pD'})[mode]&&document.getElementById({vinyl:'pV',cd:'pC',tape:'pT',digital:'pD'}[mode]).classList.add('on')});
+wc.onclick=e=>{if(!pcm)return;offset=(e.clientX-wc.getBoundingClientRect().left)/WW*dur;
+  if(playing){sourceNode.stop();playing=false;document.getElementById('bP').click()}};
+
+// ═══ WAVEFORM BAR ════════════════════════════════════════════
+function drawWF(){if(!pcm)return;wX.clearRect(0,0,WW,WH);wX.fillStyle='rgba(4,8,16,.9)';wX.fillRect(0,0,WW,WH);
+  const spp=max(1,floor(pcm.length/WW)),mid=WH/2;
+  const c=mode==='vinyl'?'180,140,100':mode==='cd'?'100,160,255':mode==='tape'?'200,120,140':'100,220,180';
+  wX.fillStyle=`rgba(${c},.08)`;wX.strokeStyle=`rgba(${c},.25)`;wX.lineWidth=1;wX.beginPath();
+  for(let x=0;x<WW;x++){const s=x*spp;let mn=0,mx=0;for(let j=0;j<spp;j+=max(1,spp>>3)){const v=pcm[min(s+j,pcm.length-1)]||0;if(v<mn)mn=v;if(v>mx)mx=v}wX.lineTo(x,mid+mn*mid)}
+  for(let x=WW-1;x>=0;x--){const s=x*spp;let mx=0;for(let j=0;j<spp;j+=max(1,spp>>3)){const v=pcm[min(s+j,pcm.length-1)]||0;if(v>mx)mx=v}wX.lineTo(x,mid+mx*mid)}
+  wX.closePath();wX.fill();wX.stroke();wX.fillStyle='rgba(255,255,255,.6)';wX.fillRect(now()/dur*WW-.5,0,1.5,WH)}
+
+// ═══ MAIN LOOP ═══════════════════════════════════════════════
+let lt2=0;
+function loop(ts){requestAnimationFrame(loop);const dt=min(.05,(ts-lt2)/1000);lt2=ts;if(!pcm)return;
+  const t=now(),n=floor(800/zoom);
+  const omega=mode==='tape'?1/(coer/100):mode==='digital'?1/pow(2,bits):1/PI;
+  const S=processWindow(t,n,omega); // ═══ THE SINGLE CRR PASS ═══
+  X.clearRect(0,0,W,H);
+  if(mode==='vinyl')rVinyl(S);else if(mode==='cd')rCD(S);else if(mode==='tape')rTape(S);else rDigital(S,t);
+  drawWF();
+  const fmt=s=>{const m=floor(s/60);return m+':'+('0'+floor(s%60)).slice(-2)};
+  document.getElementById('td').textContent=fmt(min(t,dur))+'/'+fmt(dur);
+  const ph=S[floor(n/2)]||{C:0,p:0,e:1,pi:PI,B:0,n:0};
+  document.getElementById('dC').textContent=ph.C.toFixed(4);
+  document.getElementById('dP').textContent=ph.p.toFixed(3);
+  document.getElementById('dO').textContent=omega.toFixed(5);
+  document.getElementById('dPi').textContent=min(9999,ph.pi).toFixed(1);
+  document.getElementById('dR').textContent=ph.n;
+  document.getElementById('dB').textContent=ph.B.toFixed(3)}
+
+// ═══════════════════════════════════════════════════════════════
+//  VINYL — Lateral modulation: BOTH walls move together.
+//  Stylus rides in the groove, following the modulation.
+//  Beauty function → wall glow. Rupture → spark.
+// ═══════════════════════════════════════════════════════════════
+function rVinyl(S){
+  const n=S.length,mid=H*.5,sc=H*.32*amp,gap=H*.04*amp,pps=W/n;
+  const lr=light*PI/180,ldx=cos(lr),ldy=-sin(lr);
+  X.fillStyle='#0e0c08';X.fillRect(0,0,W,H);
+
+  // Both walls move TOGETHER — this is lateral modulation
+  // The groove channel shifts up/down as a unit
+  const uY=new Float32Array(W),lY=new Float32Array(W);
+  for(let px=0;px<W;px++){
+    const si=px/pps,i0=floor(si),i1=min(n-1,i0+1),f=si-i0;
+    const s=S[i0].s*(1-f)+S[i1].s*f;
+    const shift=s*sc; // both walls shift by the same amount
+    uY[px]=mid-gap+shift;
+    lY[px]=mid+gap+shift; // SAME sign — groove moves as unit
+  }
+
+  // Upper vinyl body
+  X.beginPath();X.moveTo(0,0);for(let px=0;px<W;px++)X.lineTo(px,uY[px]);X.lineTo(W,0);X.closePath();
+  const ug=X.createLinearGradient(0,0,0,mid+sc);
+  ug.addColorStop(0,'#1e1810');ug.addColorStop(.5,'#3a3020');ug.addColorStop(.85,'#2a2015');ug.addColorStop(1,'#100c06');
+  X.fillStyle=ug;X.fill();
+
+  // Upper wall edge with beauty lighting
+  let py=uY[0];
+  for(let px=0;px<W;px++){
+    const y=uY[px],sl=y-py,nl=sqrt(1+sl*sl);
+    const nx=-sl/nl,ny=1/nl,dot=max(0,nx*ldx+ny*ldy);
+    const si=min(n-1,floor(px/pps));
+    const bN=min(1,S[si].B*.4);
+    const br=dot+bN*.35,sp=pow(max(0,dot),14);
+    X.fillStyle=`rgba(${148+floor(102*br)},${128+floor(87*br)},${78+floor(57*br)},${.5+br*.48})`;
+    X.fillRect(px,y-1,1,3);
+    if(sp>.03){X.fillStyle=`rgba(255,248,220,${sp*.55})`;X.fillRect(px,y,1,1)}
+    if(S[si].r){X.fillStyle='rgba(255,220,140,.4)';X.fillRect(px-1,y-4,3,8)}
+    py=y;
+  }
+
+  // Groove interior (dark channel)
+  X.beginPath();for(let px=0;px<W;px++){if(!px)X.moveTo(0,uY[0]);else X.lineTo(px,uY[px])}
+  for(let px=W-1;px>=0;px--)X.lineTo(px,lY[px]);X.closePath();
+  X.fillStyle='rgba(3,2,1,.97)';X.fill();
+  // Subtle groove floor reflection that follows the modulation
+  X.strokeStyle='rgba(100,85,55,.06)';X.lineWidth=1;X.beginPath();
+  for(let px=0;px<W;px++){const y=(uY[px]+lY[px])/2;if(!px)X.moveTo(px,y);else X.lineTo(px,y)}
+  X.stroke();
+
+  // Lower vinyl body
+  X.beginPath();X.moveTo(0,H);for(let px=0;px<W;px++)X.lineTo(px,lY[px]);X.lineTo(W,H);X.closePath();
+  const lg=X.createLinearGradient(0,mid-sc,0,H);
+  lg.addColorStop(0,'#100c06');lg.addColorStop(.15,'#2a2015');lg.addColorStop(.5,'#3a3020');lg.addColorStop(1,'#1e1810');
+  X.fillStyle=lg;X.fill();
+  // Lower edge
+  py=lY[0];for(let px=0;px<W;px++){const y=lY[px],sl=y-py,nl=sqrt(1+sl*sl);
+    const dot=max(0,sl/nl*ldx+1/nl*(-ldy))*.45;
+    X.fillStyle=`rgba(${128+floor(62*dot)},${108+floor(52*dot)},${68+floor(32*dot)},${.32+dot*.28})`;
+    X.fillRect(px,y-2,1,3);py=y}
+
+  // ── STYLUS — now actually tracks the groove ──
+  const hi=floor(n/2);
+  const stylusShift=S[hi].s*sc; // same shift as groove walls
+  const tipY=mid+stylusShift;   // centre of groove at playhead
+  const sx=W/2;
+
+  X.save();X.translate(sx,tipY);
+  // Contact glow
+  const cg=X.createRadialGradient(0,0,0,0,0,20);
+  cg.addColorStop(0,'rgba(255,230,180,.22)');cg.addColorStop(1,'rgba(255,230,180,0)');
+  X.fillStyle=cg;X.beginPath();X.arc(0,0,20,0,TAU);X.fill();
+  // Diamond
+  X.beginPath();X.moveTo(0,3);X.lineTo(-6,-10);X.lineTo(-3,-62);X.lineTo(3,-62);X.lineTo(6,-10);X.closePath();
+  const dg=X.createLinearGradient(-6,-62,6,3);
+  dg.addColorStop(0,'rgba(190,200,215,.55)');dg.addColorStop(.35,'rgba(240,245,255,.82)');
+  dg.addColorStop(.7,'rgba(215,225,240,.65)');dg.addColorStop(1,'rgba(175,185,195,.35)');
+  X.fillStyle=dg;X.fill();X.strokeStyle='rgba(255,255,255,.1)';X.lineWidth=.5;X.stroke();
+  // Sparkles
+  X.fillStyle='rgba(255,255,255,.65)';X.beginPath();X.arc(0,-6,1.8,0,TAU);X.fill();
+  X.fillStyle='rgba(255,255,255,.3)';X.beginPath();X.arc(-1,-30,1,0,TAU);X.fill();
+  // Cantilever
+  X.beginPath();X.moveTo(0,-62);X.lineTo(95,-128);
+  X.strokeStyle='rgba(160,170,185,.22)';X.lineWidth=2.5;X.stroke();
+  X.fillStyle='rgba(140,150,165,.2)';X.beginPath();X.arc(95,-128,4,0,TAU);X.fill();
+  X.restore();
+
+  // Rupture flash
+  if(S[hi].p>.9){X.fillStyle=`rgba(255,220,140,${(S[hi].p-.9)*4})`;X.fillRect(0,0,W,H)}
+
+  X.fillStyle='rgba(180,160,120,.18)';X.font='8px "JetBrains Mono",monospace';
+  X.fillText(`disp:${(S[hi].s*25).toFixed(1)}\u00B5m vel:${(0.5-radPos*.3).toFixed(2)}m/s B:${S[hi].B.toFixed(2)} \u03A0:${min(99,S[hi].pi).toFixed(1)}`,8,H-8);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CD — CRR ruptures → pit/land transitions
+// ═══════════════════════════════════════════════════════════════
+function rCD(S){
+  const n=S.length,pps=W/n;X.fillStyle='#060a14';X.fillRect(0,0,W,H);
+  const sH=H*.48,sY=8,tM=sY+sH*.5;
+  for(let y=sY;y<sY+sH;y+=5){X.fillStyle=`hsla(${230+sin(y*.02)*15},35%,${12+sin(y*.04)*3}%,.2)`;X.fillRect(0,y,W,4)}
+  const pH=max(4,10*zoom),pW=max(1.5,pps*.6);let inPit=false;
+  for(let px=0;px<W;px+=max(1,floor(pW))){const si=min(n-1,floor(px/pps));
+    if(S[si].r)inPit=!inPit;
+    X.fillStyle=inPit?'rgba(8,12,30,.88)':`rgba(130,170,230,${.04+.02*sin(px*.03)})`;
+    X.fillRect(px,tM-pH/2,pW,pH);
+    if(inPit){X.fillStyle='rgba(90,130,200,.08)';X.fillRect(px,tM-pH/2,pW,1)}}
+  // Laser
+  const lx=W/2;X.save();X.globalAlpha=.3;X.beginPath();
+  X.moveTo(lx-30,sY+sH+50);X.lineTo(lx-1.5,tM+pH/2);X.lineTo(lx+1.5,tM+pH/2);X.lineTo(lx+30,sY+sH+50);X.closePath();
+  const lc=laserWL<500?[80,80,255]:laserWL<600?[80,220,80]:laserWL<680?[255,180,60]:[220,60,60];
+  const lcg=X.createLinearGradient(0,tM,0,sY+sH+50);lcg.addColorStop(0,`rgba(${lc},.8)`);lcg.addColorStop(1,`rgba(${lc},0)`);
+  X.fillStyle=lcg;X.fill();X.restore();
+  X.fillStyle=`rgba(${lc},.7)`;X.beginPath();X.arc(lx,tM,3,0,TAU);X.fill();
+  X.fillStyle='rgba(255,255,255,.8)';X.beginPath();X.arc(lx,tM,1,0,TAU);X.fill();
+  // Waveform
+  const dY=sY+sH+58,dH=H-dY-8,wM=dY+dH/2,wA=dH*.4;
+  X.beginPath();for(let px=0;px<W;px++){const si=px/pps,i0=floor(si),i1=min(n-1,i0+1),f=si-i0;
+    const s=S[i0].s*(1-f)+S[i1].s*f;if(!px)X.moveTo(px,wM-s*wA);else X.lineTo(px,wM-s*wA)}
+  X.strokeStyle='rgba(100,160,255,.4)';X.lineWidth=1.2;X.stroke();
+  for(let i=0;i<n;i++){if(S[i].r){X.fillStyle='rgba(100,160,255,.12)';X.fillRect(i*pps,dY,1,dH)}}
+  X.fillStyle='rgba(100,160,255,.18)';X.font='8px "JetBrains Mono",monospace';
+  X.fillText('PIT/LAND (CRR ruptures\u2192transitions)',8,sY+12);X.fillText(`\u03BB/4=${round(laserWL/4)}nm`,8,sY+sH-6);
+  X.fillText('WAVEFORM (ruptures marked)',8,dY+10)}
+
+// ═══════════════════════════════════════════════════════════════
+//  TAPE — Full CRR magnetic field physics
+//  Coercivity IS Ω. exp(C/Ω) → magnetisation. Field lines from CRR.
+// ═══════════════════════════════════════════════════════════════
+function rTape(S){
+  const n=S.length,pps=W/n,mid=H*.38;
+  X.fillStyle='#100808';X.fillRect(0,0,W,H);
+  const tT=mid-52,tB=mid+52,tH=tB-tT;
+  // Tape substrate
+  const tg=X.createLinearGradient(0,tT,0,tB);
+  tg.addColorStop(0,'rgba(95,52,28,.88)');tg.addColorStop(.3,'rgba(125,72,40,.82)');
+  tg.addColorStop(.5,'rgba(135,78,44,.85)');tg.addColorStop(.7,'rgba(125,72,40,.82)');tg.addColorStop(1,'rgba(95,52,28,.88)');
+  X.fillStyle=tg;X.fillRect(0,tT,W,tH);
+  for(let x=0;x<W;x+=2){X.fillStyle=`rgba(255,200,150,${.005+rnd()*.012})`;X.fillRect(x,tT,1,tH)}
+
+  // ── MAGNETIC DOMAINS: orientation=signal, strength=exp(C/Ω) ──
+  const aL=min(15,max(5,7*zoom))*amp*.18,domStep=max(2,floor(pps*.8));
+  for(let px=0;px<W;px+=domStep){
+    const si=min(n-1,floor(px/pps)),st=S[si];
+    const strength=min(1,st.e*.12),angle=st.s*PI*.45,prog=st.p;
+    for(let layer=0;layer<4;layer++){
+      const ly=tT+10+layer*(tH-20)/3;
+      const r=150+floor(100*max(0,st.s))+floor(30*strength);
+      const g=70+floor(40*(1-strength));
+      const b=150+floor(100*max(0,-st.s))+floor(30*strength);
+      const a=.12+strength*.55;
+      X.save();X.translate(px,ly);X.rotate(angle);
+      // Domain ellipse
+      X.beginPath();X.ellipse(0,0,aL,aL*.3,0,0,TAU);X.fillStyle=`rgba(${r},${g},${b},${a*.3})`;X.fill();
+      // Arrow
+      X.beginPath();X.moveTo(-aL*.8,0);X.lineTo(aL*.35,0);X.strokeStyle=`rgba(${r},${g},${b},${a})`;X.lineWidth=1.2;X.stroke();
+      X.beginPath();X.moveTo(aL,0);X.lineTo(aL*.25,-2.5);X.lineTo(aL*.25,2.5);X.closePath();X.fillStyle=`rgba(${r},${g},${b},${a})`;X.fill();
+      X.restore();
+      // Coupling field between adjacent domains
+      if(px>domStep&&strength>.3&&layer<3){
+        const prevSi=min(n-1,floor((px-domStep)/pps));
+        const coup=abs(S[prevSi].s-st.s);
+        if(coup>.05){X.strokeStyle=`rgba(160,180,220,${coup*.12})`;X.lineWidth=.4;
+          X.beginPath();X.moveTo(px-domStep,ly);X.quadraticCurveTo(px-domStep/2,ly-coup*12*amp,px,ly);X.stroke()}}
+    }
+    if(prog>.7){X.fillStyle=`rgba(255,200,140,${(prog-.7)*.12})`;X.fillRect(px-domStep/2,tT,domStep,tH)}
+  }
+
+  // ── HEAD with CRR field lines ──
+  const hx=W/2,hw=26;
+  X.fillStyle='rgba(50,55,62,.9)';X.fillRect(hx-hw,tT-34,hw*2,34);X.fillRect(hx-hw,tB,hw*2,34);
+  X.fillStyle='rgba(85,90,98,.7)';X.fillRect(hx-hw+4,tT-30,hw*2-8,28);X.fillRect(hx-hw+4,tB+3,hw*2-8,28);
+  X.fillStyle='rgba(220,240,255,.1)';X.fillRect(hx-1,tT-2,2,tH+4);
+
+  // CRR field lines from head gap
+  const cs=S[floor(n/2)],fieldStr=cs.s,fPrec=min(5,cs.pi*.1);
+  for(let f=-5;f<=5;f++){
+    if(!f)continue;const fN=f/5,intensity=abs(fieldStr)*(1-abs(fN)*.6);
+    if(intensity<.02)continue;
+    const r=fieldStr>0?180+floor(70*intensity):100,b=fieldStr<0?180+floor(70*intensity):100;
+    X.strokeStyle=`rgba(${r},120,${b},${intensity*.22})`;X.lineWidth=.5+intensity*.5;
+    X.beginPath();const curve=fieldStr*20*fPrec*.3;
+    X.moveTo(hx-hw*.4,tT-3);
+    X.bezierCurveTo(hx+curve,tT+tH*(.3+fN*.15),hx+curve*.6,tT+tH*(.7+fN*.15),hx+hw*.4,tB+3);
+    X.stroke();
+  }
+  // Gap glow
+  const gg=X.createRadialGradient(hx,mid,0,hx,mid,20+abs(fieldStr)*18);
+  gg.addColorStop(0,`rgba(200,220,255,${abs(fieldStr)*.12})`);gg.addColorStop(1,'rgba(200,220,255,0)');
+  X.fillStyle=gg;X.beginPath();X.arc(hx,mid,25+abs(fieldStr)*18,0,TAU);X.fill();
+  // Coils
+  X.strokeStyle='rgba(200,150,80,.18)';X.lineWidth=.6;
+  for(let w=0;w<5;w++){X.beginPath();X.ellipse(hx,tT-22+w*4,hw-6,1.3,0,0,PI);X.stroke();
+    X.beginPath();X.ellipse(hx,tB+8+w*4,hw-6,1.3,0,PI,TAU);X.stroke()}
+
+  // ── M(x), dΦ/dt, exp(C/Ω) curves ──
+  const wY=tB+45;X.beginPath();
+  for(let px=0;px<W;px++){const si=px/pps,i0=floor(si),i1=min(n-1,i0+1),f=si-i0;
+    const s=S[i0].s*(1-f)+S[i1].s*f;if(!px)X.moveTo(px,wY-s*24*amp);else X.lineTo(px,wY-s*24*amp)}
+  X.strokeStyle='rgba(200,120,140,.32)';X.lineWidth=1;X.stroke();
+  const dY=wY+35;X.beginPath();
+  for(let px=1;px<W;px++){const si=floor(px/pps),s0=max(0,si-1);
+    const ds=(S[si].s-S[s0].s)*sr*.00005;if(px===1)X.moveTo(px,dY-ds*20*amp);else X.lineTo(px,dY-ds*20*amp)}
+  X.strokeStyle='rgba(255,180,100,.25)';X.lineWidth=.8;X.stroke();
+  const pY=dY+30;X.beginPath();
+  for(let px=0;px<W;px++){const si=min(n-1,floor(px/pps)),e=min(8,S[si].e);
+    if(!px)X.moveTo(px,pY-e*3*amp);else X.lineTo(px,pY-e*3*amp)}
+  X.strokeStyle='rgba(100,200,220,.18)';X.lineWidth=.6;X.stroke();
+
+  if(playing){X.fillStyle='rgba(200,160,130,.08)';const t2=now();
+    for(let ax=0;ax<W;ax+=60){const ox=((ax+t2*47.5)%W+W)%W;
+      X.beginPath();X.moveTo(ox+5,mid-48);X.lineTo(ox,mid-51);X.lineTo(ox+5,mid-54);X.fill()}}
+  X.fillStyle='rgba(200,120,140,.16)';X.font='7px "JetBrains Mono",monospace';
+  X.fillText(`DOMAINS \u03A9=${(1/(coer/100)).toFixed(3)} exp(C/\u03A9)\u2192strength`,8,tT-4);
+  X.fillText('HEAD',hx+hw+4,tT+6);X.fillText('GAP',hx+4,mid+3);
+  X.fillText('M(x)',8,wY-26);X.fillText('d\u03A6/dt',8,dY-10);X.fillText('exp(C/\u03A9)',8,pY-8);
+  X.fillText(`H_c=${coer}Oe B:${cs.B.toFixed(2)} \u03A0:${min(99,cs.pi).toFixed(1)}`,8,H-6)}
+
+// ═══════════════════════════════════════════════════════════════
+//  DIGITAL — CRR Ω=1/2^n → quantisation precision
+// ═══════════════════════════════════════════════════════════════
+function rDigital(S,t){
+  const n=S.length,pps=W/n,levels=pow(2,bits),half=pow(2,bits-1)-1;
+  X.fillStyle='#050a0d';X.fillRect(0,0,W,H);
+  X.strokeStyle='rgba(80,200,160,.025)';X.lineWidth=.5;
+  for(let y=0;y<H;y+=30){X.beginPath();X.moveTo(0,y);X.lineTo(W,y);X.stroke()}
+  for(let x=0;x<W;x+=30){X.beginPath();X.moveTo(x,0);X.lineTo(x,H);X.stroke()}
+  const ph=S[floor(n/2)],cv=ph.s,cq=round(cv*half),aq=abs(cq),sb=cq<0?1:0;
+  const bs=sb.toString()+aq.toString(2).padStart(bits-1,'0');
+
+  if(paused){drawDP(S,t,cv,cq,aq,sb,bs,half);return}
+
+  // Analogue + staircase
+  const aY=H*.1,aH=H*.18;X.beginPath();
+  for(let px=0;px<W;px++){const si=px/pps,i0=floor(si),i1=min(n-1,i0+1),f=si-i0;
+    const s=S[i0].s*(1-f)+S[i1].s*f;if(!px)X.moveTo(px,aY+aH/2-s*aH*.45);else X.lineTo(px,aY+aH/2-s*aH*.45)}
+  X.strokeStyle='rgba(80,200,160,.4)';X.lineWidth=1.2;X.stroke();
+  X.beginPath();let py2=aY+aH/2;
+  for(let px=0;px<W;px++){const si=floor(px/pps),s=S[min(n-1,si)].s,q=round(s*half)/half;
+    const y=aY+aH/2-q*aH*.45;X.lineTo(px,py2);X.lineTo(px,y);py2=y}
+  X.strokeStyle='rgba(100,220,180,.16)';X.lineWidth=.7;X.stroke();
+  // Bits
+  const bY=aY+aH+18;X.font='bold 16px "JetBrains Mono",monospace';
+  const bw=13,bSt=W/2-(bits*bw)/2;
+  for(let b=0;b<bits;b++){const x=bSt+b*bw,bit=bs[b]||'0',isOne=bit==='1';
+    X.fillStyle=isOne?'rgba(100,255,180,.1)':'rgba(100,255,180,.01)';X.fillRect(x,bY,bw-1,18);
+    X.fillStyle=isOne?'rgba(100,255,180,.8)':'rgba(100,255,180,.1)';X.fillText(bit,x+1,bY+14)}
+  X.font='6px "JetBrains Mono",monospace';X.fillStyle='rgba(100,255,180,.15)';
+  X.fillText('S',bSt+2,bY-2);X.fillText('MSB',bSt+bw,bY-2);X.fillText('LSB',bSt+(bits-1)*bw,bY-2);
+  X.font='7px "JetBrains Mono",monospace';X.fillText(`dec:${cq} flt:${cv.toFixed(5)}`,bSt,bY+28);
+  // Matrix
+  const mY=bY+36;X.font='7px "JetBrains Mono",monospace';const sO=floor(t*sr);
+  for(let row=0;row<8;row++){for(let col=0;col<floor(W/6);col++){const idx=sO-floor(W/12)+col;
+    if(idx<0||idx>=pcm.length)continue;const sv=pcm[idx],q2=round(abs(sv)*half),bI=row%bits,bit=(q2>>(bits-1-bI))&1;
+    X.fillStyle=bit?'rgba(100,255,180,.28)':'rgba(100,255,180,.025)';X.fillText(bit.toString(),col*6,mY+row*10)}}
+  // Error
+  const eY=mY+90;X.beginPath();for(let px=0;px<W;px++){const si=floor(px/pps),s=S[min(n-1,si)].s;
+    const q=round(s*half)/half;if(!px)X.moveTo(px,eY-(s-q)*amp*H*.08);else X.lineTo(px,eY-(s-q)*amp*H*.08)}
+  X.strokeStyle='rgba(255,120,100,.25)';X.lineWidth=.8;X.stroke();
+  X.strokeStyle='rgba(100,255,180,.08)';X.setLineDash([2,2]);X.beginPath();X.moveTo(W/2,0);X.lineTo(W/2,H);X.stroke();X.setLineDash([]);
+  X.fillStyle='rgba(100,220,180,.16)';X.font='7px "JetBrains Mono",monospace';
+  X.fillText('ANALOGUE',8,aY-3);X.fillText(`${bits}-BIT (${levels} lvl)`,W/2+30,aY-3);
+  X.fillText(`PCM ${bits}-bit@${(sr/1000).toFixed(1)}kHz \u03A9=${(1/pow(2,bits)).toExponential(1)}`,8,bY-10);
+  X.fillText('STREAM',8,mY-4);X.fillText(`ERROR SNR\u2248${(6.02*bits+1.76).toFixed(0)}dB`,8,eY-8)}
+
+// Paused digital math decode
+function drawDP(S,t,cv,cq,aq,sb,bs,half){
+  const n=S.length,pps=W/n,levels=pow(2,bits);
+  X.fillStyle='rgba(255,180,80,.08)';X.fillRect(0,0,W,22);
+  X.font='8px "JetBrains Mono",monospace';X.fillStyle='rgba(255,200,120,.5)';
+  X.fillText(`\u275A\u275A PAUSED \u2014 sample #${floor(t*sr).toLocaleString()} t=${t.toFixed(6)}s`,8,14);
+  let y=36;const c1=30,c2=W*.5,lh=13;
+  const T=(x,yy,s,c='rgba(200,230,220,.4)')=>{X.fillStyle=c;X.fillText(s,x,yy)};
+  const H3=(x,yy,s)=>{X.font='9px "JetBrains Mono",monospace';X.fillStyle='rgba(100,255,180,.5)';X.fillText(s,x,yy);X.font='8px "JetBrains Mono",monospace'};
+  const BIG=(x,yy,s)=>{X.font='bold 12px "JetBrains Mono",monospace';X.fillStyle='rgba(100,255,180,.75)';X.fillText(s,x,yy);X.font='8px "JetBrains Mono",monospace'};
+  H3(c1,y,'STEP 1: SAMPLE');y+=14;T(c1,y,`x(t) = ${cv.toFixed(8)}`);y+=lh;
+  H3(c1,y,'STEP 2: QUANTISE (\u03A9=1/2^'+bits+'='+(1/pow(2,bits)).toExponential(1)+')');y+=14;
+  T(c1,y,`\u00D7${half} = ${(cv*half).toFixed(3)} \u2192 round \u2192`);y+=lh;BIG(c1+6,y,`q = ${cq}`);y+=16;
+  H3(c1,y,'STEP 3: BINARY');y+=14;T(c1,y,`sign:${sb} |${cq}|=${aq}`);y+=lh+2;
+  const bw=16,bSt=c1+4;X.font='bold 14px "JetBrains Mono",monospace';
+  for(let b=0;b<bits;b++){const x=bSt+b*bw,bit=bs[b]||'0',isOne=bit==='1';
+    X.fillStyle=isOne?'rgba(100,255,180,.1)':'rgba(100,255,180,.01)';X.fillRect(x-1,y-2,bw-1,20);
+    X.fillStyle=isOne?'rgba(100,255,180,.85)':'rgba(100,255,180,.08)';X.fillText(bit,x+1,y+12)}
+  y+=24;X.font='5px "JetBrains Mono",monospace';X.fillStyle='rgba(100,255,180,.15)';
+  for(let b=1;b<bits;b++){X.fillText(pow(2,bits-1-b).toString(),bSt+b*bw,y)}y+=10;X.font='8px "JetBrains Mono",monospace';
+  const nz=[];for(let b=1;b<bits;b++){if(bs[b]==='1')nz.push(pow(2,bits-1-b))}
+  if(nz.length){T(c1+6,y,'= '+nz.join('+'));y+=lh;T(c1+6,y,`= ${aq}${sb?' \u2192 -'+aq:''}`);y+=14}
+  // Right: reconstruct
+  let ry=36;H3(c2,ry,'STEP 4: RECONSTRUCT');ry+=14;
+  const recon=cq/half;T(c2,ry,`${cq} / ${half} =`);ry+=lh;BIG(c2+6,ry,`x\u0302 = ${recon.toFixed(8)}`);ry+=16;
+  H3(c2,ry,'ERROR');ry+=14;const err=cv-recon;
+  T(c2,ry,`e = ${cv.toFixed(8)} - ${recon.toFixed(8)}`);ry+=lh;
+  X.fillStyle=abs(err)<.0001?'rgba(100,255,180,.7)':'rgba(255,180,100,.7)';
+  X.font='bold 11px "JetBrains Mono",monospace';X.fillText(`e = ${err.toExponential(3)}`,c2+6,ry);ry+=16;
+  X.font='8px "JetBrains Mono",monospace';
+  T(c2,ry,`\u0394=1/${half}=${(1/half).toExponential(2)}`);ry+=lh;
+  T(c2,ry,`SNR=6.02\u00D7${bits}+1.76=${(6.02*bits+1.76).toFixed(1)}dB`);ry+=16;
+  H3(c2,ry,'CRR');ry+=14;T(c2,ry,'Each sample = one C\u2192\u03B4\u2192R cycle');ry+=lh;
+  T(c2,ry,`\u03A9 = 1/2^${bits} = ${(1/pow(2,bits)).toExponential(1)}`);ry+=lh;
+  T(c2,ry,'C\u00B7\u03A9 = 1 at quantisation boundary');ry+=lh;
+  // Frozen waveform
+  const wY=max(y,ry)+12,wH=H-wY-6;if(wH>40){const wM=wY+wH/2,wA2=wH*.4;
+    X.beginPath();for(let px=0;px<W;px++){const si=px/pps,i0=floor(si),i1=min(n-1,i0+1),f=si-i0;
+      const s=S[i0].s*(1-f)+S[i1].s*f;if(!px)X.moveTo(px,wM-s*wA2);else X.lineTo(px,wM-s*wA2)}
+    X.strokeStyle='rgba(80,200,160,.25)';X.lineWidth=1;X.stroke();
+    const sx=W/2,sy=wM-cv*wA2;X.fillStyle='rgba(100,255,180,.6)';X.beginPath();X.arc(sx,sy,4,0,TAU);X.fill();
+    X.strokeStyle='rgba(100,255,180,.15)';X.setLineDash([2,2]);
+    X.beginPath();X.moveTo(sx,wY);X.lineTo(sx,wY+wH);X.stroke();
+    X.beginPath();X.moveTo(0,sy);X.lineTo(W,sy);X.stroke();X.setLineDash([])}}
+
+resize();
+</script></body></html>
