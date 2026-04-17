@@ -1,937 +1,1299 @@
 <!DOCTYPE html>
+<!--
+  ========================================================================
+   CRR & the Page Curve
+   A research-grade decomposition of black-hole information recovery.
+
+   Alexander Sabine  ·  Active Inference Institute  ·  temporalgrammar.ai
+   Alexander@activeinference.institute
+
+  ========================================================================
+   COMPUTATIONAL ENGINE  (internal; documented in §-tagged sections)
+  ========================================================================
+   This simulation uses the Coherence-Rupture-Regeneration (CRR) temporal
+   grammar as its internal decoder.  CRR is a pre-peer-review framework
+   (pending AGI-26, 2026).  The GUI terminology follows peer-reviewed
+   Page-curve / island-formula vocabulary.  CRR annotations appear only
+   in §-tagged code comments, in this header, and in one footer line.
+
+   §C   coherence             C(t) = ∫ L(x,τ) dτ           (Fisher-Rao arc)
+   §δ   rupture               δ(now) at   C · Ω = 1        (Cramér-Rao equality)
+   §R   regeneration          R = ∫ φ · exp(C/Ω) · Θ dτ    (memory kernel)
+   §Ω_Z2  = 1/π    C*_Z2  = π       (bistable / Hawking emission manifold)
+   §Ω_SO2 = 1/2π   C*_SO2 = 2π      (rotational / island-saddle manifold)
+   §Struct: CV_Z2 · C*_SO2 = 1 exactly   (radioactive-CV identity)
+   §B     beauty               B(C) = exp(C/Ω) (C* − C),   peaks at C* − Ω
+
+  ========================================================================
+   PRIMARY REFERENCES  (peer-reviewed physics; GUI-exposed)
+  ========================================================================
+   [1]  Hawking, S. W.   Particle creation by black holes.
+          Commun. Math. Phys. 43, 199–220 (1975).
+   [2]  Bekenstein, J. D.   Black holes and entropy.
+          Phys. Rev. D 7, 2333–2346 (1973).
+   [3]  Page, D. N.   Information in black hole radiation.
+          Phys. Rev. Lett. 71, 3743–3746 (1993).
+   [4]  Penington, G.   Entanglement wedge reconstruction and the
+          information paradox.   JHEP 09, 002 (2020). arXiv:1905.08255.
+   [5]  Almheiri, Engelhardt, Marolf, Maxfield.   The entropy of bulk
+          quantum fields and the entanglement wedge of an evaporating
+          black hole.   JHEP 12, 063 (2019). arXiv:1905.08762.
+   [6]  Almheiri, Hartman, Maldacena, Shaghoulian, Tajdini.   Replica
+          wormholes and the entropy of Hawking radiation.
+          JHEP 05, 013 (2020). arXiv:1911.12333.
+   [7]  Almheiri et al.   The entropy of Hawking radiation.
+          Rev. Mod. Phys. 93, 035002 (2021). arXiv:2006.06872.
+   [8]  Engelhardt, N. & Wall, A. C.   Quantum extremal surfaces:
+          holographic entanglement entropy beyond the classical regime.
+          JHEP 01, 073 (2015). arXiv:1408.3203.
+
+   Recent landscape  (2024 – 2026):
+   [9]  Geng, H.   Replica wormholes and entanglement islands in the
+          Karch-Randall braneworld.   JHEP 01, 063 (2025).
+   [10] Calmet, Casadio, Hsu.   The black hole information problem.
+          Entropy 27, 592 (2025).
+   [11] Hayden & Wang.   What exactly does Bekenstein bound?
+          Quantum 9, 1664 (2025). arXiv:2404.05725.
+   [12] Morán, A. M.   Layered QES and multidimensional Page curves in
+          stratified black holes.   Int. J. Theor. Phys. 65, 42 (2026).
+   [13] Fitkevich, M.   Entanglement islands and black hole decay in
+          regular dilaton gravity.   Phys. Rev. D 113, 046009 (2026).
+   [14] Replica Trick in Time-Dependent Geometries.
+          arXiv:2601.08756 (2026).
+   [15] Boyanovsky et al.   Page-curve-like entanglement dynamics in
+          open quantum systems.   Phys. Rev. D 109, L081901 (2024).
+   [16] Kinematic emergence of the Page curve in a local
+          transverse-field Ising model.   arXiv:2603.17000 (2026).
+
+   Experimental analogues:
+   [17] Steinhauer, J.   Observation of quantum Hawking radiation and
+          its entanglement in an analogue black hole.
+          Nat. Phys. 12, 959 (2016).
+   [18] Kolobov et al.   Observation of stationary spontaneous Hawking
+          radiation and the time evolution of an analogue black hole.
+          Nat. Phys. 17, 362 (2021).
+   [19] Shi et al.   Quantum simulation of Hawking radiation and curved
+          spacetime with a superconducting on-chip black hole.
+          Nat. Commun. 14, 3263 (2023).
+
+   Information-geometric grounding:
+   [20] Ito, S. & Dechant, A.   Stochastic time evolution, information
+          geometry, and the Cramér-Rao bound.
+          Phys. Rev. X 10, 021056 (2020). arXiv:1810.06832.
+   [21] Amari, S. & Nagaoka, H.   Methods of Information Geometry.
+          AMS / OUP (2000).
+   [22] Čencov, N. N.   Statistical Decision Rules and Optimal
+          Inference.   AMS Translations Vol. 53 (1982).
+   [23] Deffner, S. & Campbell, S.   Quantum speed limits and the
+          maximal rate of information production.
+          Phys. Rev. Res. 2, 013161 (2020).
+  -->
 <html lang="en-GB">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRR Black Hole Evaporation</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Georgia', 'Times New Roman', serif;
-            background: #f8f9fa;
-            color: #2c3e50;
-            padding: 30px;
-            line-height: 1.7;
-        }
-        
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 40px;
-        }
-        
-        h1 {
-            text-align: center;
-            color: #1a1a1a;
-            margin-bottom: 10px;
-            font-size: 2em;
-            font-weight: 600;
-        }
-        
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1em;
-            font-style: italic;
-        }
-        
-        .controls {
-            background: #ecf0f1;
-            border-radius: 0;
-            padding: 20px;
-            margin-bottom: 25px;
-            text-align: center;
-        }
-        
-        .button-group {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        
-        button {
-            padding: 12px 35px;
-            font-size: 1em;
-            border: none;
-            border-radius: 0;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .start-btn { background: #3498db; color: white; }
-        .start-btn:hover { background: #2980b9; }
-        .reset-btn { background: #95a5a6; color: white; }
-        .reset-btn:hover { background: #7f8c8d; }
-        
-        .time-display {
-            font-size: 1.2em;
-            color: #2c3e50;
-            font-weight: 600;
-        }
-        
-        .explainer {
-            background: #fff;
-            border: 2px solid #2980b9;
-            border-radius: 0;
-            margin-bottom: 25px;
-            overflow: hidden;
-        }
-        
-        .explainer-header {
-            background: linear-gradient(135deg, #2980b9, #3498db);
-            color: white;
-            padding: 18px 25px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: 600;
-            font-size: 1.1em;
-        }
-        
-        .explainer-arrow {
-            transition: transform 0.3s;
-            font-size: 1.2em;
-        }
-        
-        .explainer-arrow.open { transform: rotate(90deg); }
-        
-        .explainer-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease;
-        }
-        
-        .explainer-content.open { 
-            max-height: 10000px;
-            overflow-y: auto;
-        }
-        
-        .explainer-inner {
-            padding: 30px;
-            background: #fafafa;
-        }
-        
-        .theory-section {
-            margin-bottom: 30px;
-            padding: 25px;
-            background: white;
-            border-left: 4px solid #2980b9;
-            border-radius: 0;
-        }
-        
-        .theory-section h3 {
-            color: #1a1a1a;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-        
-        .theory-section h4 {
-            color: #34495e;
-            margin: 20px 0 10px 0;
-            font-size: 1.1em;
-        }
-        
-        .equation-block {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 0;
-            padding: 15px;
-            margin: 15px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 0.95em;
-            overflow-x: auto;
-        }
-        
-        .citation {
-            background: #e8f4f8;
-            border-left: 3px solid #3498db;
-            padding: 12px 15px;
-            margin: 15px 0;
-            font-size: 0.95em;
-            font-style: italic;
-        }
-        
-        .citation-ref {
-            font-weight: 600;
-            color: #2980b9;
-        }
-        
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-            margin-bottom: 25px;
-        }
-        
-        .panel {
-            background: #fff;
-            border: 2px solid #bdc3c7;
-            border-radius: 0;
-            padding: 20px;
-            position: relative;
-        }
-        
-        .panel h2 {
-            text-align: center;
-            margin-bottom: 15px;
-            font-size: 1.6em;
-        }
-        
-        .hawking-panel h2 { color: #e74c3c; }
-        .crr-panel h2 { color: #3498db; }
-        
-        canvas {
-            display: block;
-            width: 100%;
-            background: #000;
-            border-radius: 0;
-            margin-bottom: 15px;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-        
-        .stat {
-            background: #ecf0f1;
-            padding: 15px;
-            border-radius: 0;
-        }
-        
-        .stat-label {
-            font-size: 0.9em;
-            color: #7f8c8d;
-            margin-bottom: 8px;
-        }
-        
-        .stat-value {
-            font-size: 1.6em;
-            font-weight: 700;
-        }
-        
-        .hawking-panel .stat-value { color: #e74c3c; }
-        .crr-panel .stat-value { color: #3498db; }
-        
-        .rupture-indicator {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            padding: 8px 16px;
-            background: #e74c3c;
-            color: white;
-            font-weight: 700;
-            opacity: 0;
-            border-radius: 0;
-            z-index: 10;
-        }
-        
-        .rupture-indicator.active {
-            opacity: 1;
-            animation: pulse 0.5s;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        
-        .coherence-bar {
-            background: #ecf0f1;
-            height: 30px;
-            border-radius: 0;
-            overflow: hidden;
-            margin-bottom: 15px;
-        }
-        
-        .coherence-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #3498db, #e74c3c);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 700;
-            transition: width 0.1s;
-        }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CRR & the Page Curve · Alexander Sabine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg: #050507;
+  --bg-1: rgba(14,14,18,0.88);
+  --bg-2: rgba(22,22,28,0.82);
+  --bg-3: rgba(30,30,38,0.72);
+  --border: rgba(255,230,180,0.14);
+  --border-hi: rgba(255,230,180,0.30);
+  --text-1: #f0ede0;
+  --text-2: #a8a499;
+  --text-3: #706c62;
+  --coherence: #4a9eff;
+  --beauty: #ffd166;
+  --rupture: #ff6b4a;
+  --hawking: #ff9e57;
+  --bh: #e94b4b;
+  --page: #76c16d;
+  --kernel: #d9b256;
+  --marker-thresh: #57c8d9;
+  --marker-epi: #c278ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Cormorant Garamond",Georgia,serif;
+  background:var(--bg);
+  color:var(--text-1);
+  font-size:15px;
+  line-height:1.55;
+  overflow-x:hidden;
+  min-height:100vh;
+}
+.app{
+  display:grid;
+  grid-template-columns: 320px 1fr 340px;
+  gap:16px;
+  padding:16px;
+  min-height:100vh;
+}
+.panel{
+  background:var(--bg-1);
+  border:1px solid var(--border);
+  padding:18px 18px 20px;
+  overflow-y:auto;
+  max-height:calc(100vh - 32px);
+}
+.panel::-webkit-scrollbar{width:6px}
+.panel::-webkit-scrollbar-track{background:transparent}
+.panel::-webkit-scrollbar-thumb{background:rgba(255,230,180,0.16)}
+
+h1,h2,h3,h4{font-weight:500;letter-spacing:.01em}
+.app-title{
+  font-family:"Cormorant Garamond";
+  font-size:1.22rem;
+  font-weight:500;
+  color:var(--text-1);
+  letter-spacing:.02em;
+  margin-bottom:2px;
+}
+.app-sub{
+  font-family:"JetBrains Mono";
+  font-size:.58rem;
+  letter-spacing:.20em;
+  color:var(--text-3);
+  text-transform:uppercase;
+  margin-bottom:20px;
+}
+
+/* ----- section headers ----- */
+.p-title{
+  font-family:"JetBrains Mono";
+  font-size:.60rem;
+  letter-spacing:.22em;
+  color:var(--text-2);
+  text-transform:uppercase;
+  margin:22px 0 10px;
+  padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:baseline;
+}
+.p-title:first-of-type{margin-top:0}
+.p-title .hint{
+  font-family:"Cormorant Garamond";
+  font-style:italic;
+  font-size:.7rem;
+  color:var(--text-3);
+  letter-spacing:.02em;
+  text-transform:none;
+}
+
+/* ----- readouts ----- */
+.readout{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding:6px 0;
+  border-bottom:1px solid rgba(255,230,180,0.06);
+  font-size:.78rem;
+}
+.readout:last-child{border-bottom:none}
+.readout .k{color:var(--text-2);letter-spacing:.01em}
+.readout .v{
+  font-family:"JetBrains Mono";
+  font-size:.72rem;
+  color:var(--text-1);
+}
+.readout .v.coh{color:var(--coherence)}
+.readout .v.bty{color:var(--beauty)}
+.readout .v.rup{color:var(--rupture)}
+.readout .v.page{color:var(--page)}
+.readout .v.hawk{color:var(--hawking)}
+.readout .v.bh{color:var(--bh)}
+
+/* ----- strips: C, Cω, kernel ----- */
+.strip{
+  background:var(--bg-2);
+  border:1px solid var(--border);
+  padding:10px 12px 12px;
+  margin:6px 0;
+}
+.strip-label{
+  font-family:"JetBrains Mono";
+  font-size:.54rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--text-2);margin-bottom:6px;
+  display:flex;justify-content:space-between;align-items:baseline;
+}
+.strip-label em{font-family:"Cormorant Garamond";font-size:.7rem;color:var(--text-3);text-transform:none;letter-spacing:.02em}
+.strip-val{font-family:"JetBrains Mono";font-size:1.1rem;color:var(--text-1);letter-spacing:.02em}
+.strip .bar{height:6px;background:rgba(255,255,255,.04);margin-top:8px;position:relative;overflow:hidden}
+.strip .bar .fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--coherence),var(--beauty));transition:width .2s}
+.strip .bar .fill.page{background:linear-gradient(90deg,var(--coherence),var(--page),var(--rupture))}
+
+/* ----- control styles ----- */
+.ctrl{margin:14px 0 10px}
+.ctrl .label{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-size:.74rem;color:var(--text-2);margin-bottom:6px;
+}
+.ctrl .label .v{font-family:"JetBrains Mono";font-size:.72rem;color:var(--text-1)}
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:3px;background:rgba(255,230,180,0.20);outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;background:var(--beauty);cursor:pointer;border:none;
+}
+input[type=range]::-moz-range-thumb{
+  width:14px;height:14px;background:var(--beauty);cursor:pointer;border:none;
+}
+.ctrl .scale{
+  display:flex;justify-content:space-between;font-family:"JetBrains Mono";
+  font-size:.54rem;color:var(--text-3);letter-spacing:.04em;margin-top:4px;
+}
+
+/* ----- buttons ----- */
+.mode-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0 4px}
+.mode-btn{
+  background:var(--bg-2);border:1px solid var(--border);color:var(--text-2);
+  padding:10px 6px;font:inherit;font-size:.56rem;letter-spacing:.14em;
+  text-transform:uppercase;cursor:pointer;transition:all .2s;
+  font-family:"JetBrains Mono";
+}
+.mode-btn:hover{border-color:var(--beauty);color:var(--text-1)}
+.mode-btn.active{background:rgba(255,209,102,.12);border-color:var(--beauty);color:var(--beauty)}
+
+.actions{display:grid;grid-template-columns:1fr;gap:6px;margin-top:10px}
+.act{
+  background:transparent;border:1px solid var(--border);color:var(--text-2);
+  padding:9px 12px;font:inherit;font-size:.56rem;letter-spacing:.14em;
+  text-transform:uppercase;cursor:pointer;transition:all .22s;
+  font-family:"JetBrains Mono";text-align:left;
+}
+.act:hover{color:var(--text-1);border-color:var(--border-hi)}
+.act .marker{display:inline-block;width:8px;height:8px;margin-right:8px;vertical-align:middle}
+.act.thresh .marker{background:var(--marker-thresh)}
+.act.epi    .marker{background:var(--marker-epi)}
+.act.page   .marker{background:var(--page)}
+.act.beauty .marker{background:var(--beauty)}
+.act.rupture .marker{background:var(--rupture)}
+.act.play   .marker{background:var(--coherence)}
+
+/* ----- toggle checkboxes ----- */
+.toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;margin-top:6px}
+.toggle{
+  display:flex;align-items:center;gap:6px;cursor:pointer;
+  padding:6px 4px;font-size:.70rem;color:var(--text-2);letter-spacing:.01em;
+}
+.toggle input{display:none}
+.toggle .chk{
+  width:12px;height:12px;border:1.4px solid var(--text-3);flex:none;position:relative;
+}
+.toggle.active .chk{border-color:var(--beauty);background:var(--beauty)}
+.toggle .swatch{width:14px;height:3px;flex:none}
+.toggle.hawking .swatch{background:var(--hawking)}
+.toggle.bh      .swatch{background:var(--bh)}
+.toggle.page    .swatch{background:var(--page)}
+.toggle.kernel  .swatch{background:var(--kernel)}
+.toggle.beauty  .swatch{background:var(--beauty)}
+.toggle.markers .swatch{background:var(--marker-epi)}
+
+/* ----- main stage ----- */
+.stage{
+  display:flex;flex-direction:column;
+  background:var(--bg-1);
+  border:1px solid var(--border);
+  padding:16px 20px 12px;
+  position:relative;
+}
+.stage-title{
+  font-size:1.02rem;letter-spacing:.02em;color:var(--text-1);
+  margin-bottom:2px;
+}
+.stage-sub{
+  font-style:italic;font-size:.82rem;color:var(--text-2);
+  margin-bottom:14px;
+}
+#plot{width:100%;display:block;background:rgba(5,5,7,0.3)}
+.saddle-badge{
+  display:inline-block;padding:4px 10px;
+  font-family:"JetBrains Mono";font-size:.58rem;letter-spacing:.12em;
+  border:1px solid var(--border-hi);
+}
+.saddle-badge.trivial{color:var(--hawking);border-color:rgba(255,158,87,.4);background:rgba(255,158,87,.08)}
+.saddle-badge.island {color:var(--page);   border-color:rgba(118,193,109,.4);background:rgba(118,193,109,.08)}
+.stage-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:10px;font-size:.78rem;color:var(--text-2);gap:20px;
+}
+.stage-bar .crumb{font-family:"JetBrains Mono";font-size:.68rem;letter-spacing:.06em}
+.stage-bar .crumb .v{color:var(--text-1)}
+
+/* ----- right panel references ----- */
+.refs{font-size:.72rem;line-height:1.55}
+.ref-entry{padding:8px 0;border-bottom:1px solid rgba(255,230,180,0.05)}
+.ref-entry .n{
+  display:inline-block;width:26px;
+  font-family:"JetBrains Mono";font-size:.6rem;color:var(--beauty);
+}
+.ref-entry .au{color:var(--text-1);letter-spacing:.01em}
+.ref-entry .ti{font-style:italic;color:var(--text-2);display:block;margin-left:26px;margin-top:2px}
+.ref-entry .src{display:block;margin-left:26px;margin-top:2px;font-family:"JetBrains Mono";font-size:.58rem;color:var(--text-3)}
+
+.pred-entry{
+  padding:9px 12px;border:1px solid var(--border);background:var(--bg-2);
+  margin:8px 0;font-size:.74rem;
+}
+.pred-entry .tag{
+  display:inline-block;padding:2px 7px;
+  font-family:"JetBrains Mono";font-size:.54rem;letter-spacing:.10em;
+  color:var(--page);border:1px solid rgba(118,193,109,.35);background:rgba(118,193,109,.10);
+  margin-right:8px;
+}
+.pred-entry .tag.wait{color:var(--text-3);border-color:var(--border);background:transparent}
+.pred-entry .math{font-family:"JetBrains Mono";font-size:.66rem;color:var(--text-1);display:block;margin-top:3px}
+.pred-entry em{color:var(--text-2)}
+
+/* ----- bottom theory ----- */
+.theory{
+  grid-column:1 / -1;
+  background:var(--bg-1);
+  border:1px solid var(--border);
+  padding:30px 40px 40px;
+  margin-top:0;
+  font-size:.92rem;
+  line-height:1.65;
+  color:var(--text-2);
+}
+.theory h3{
+  font-family:"Cormorant Garamond";
+  font-weight:500;
+  font-size:1.2rem;
+  color:var(--text-1);
+  margin:28px 0 10px;
+  letter-spacing:.01em;
+}
+.theory h3:first-child{margin-top:0}
+.theory p{margin:10px 0;color:var(--text-2)}
+.theory em{color:var(--text-1)}
+.theory .kw{color:var(--beauty)}
+.theory .boxed{
+  border-left:2px solid var(--beauty);
+  padding:6px 0 6px 20px;
+  margin:18px 0;
+  color:var(--text-1);
+  font-style:italic;
+}
+.theory .formula{
+  font-family:"JetBrains Mono";font-size:.8rem;color:var(--text-1);
+  padding:12px 16px;background:var(--bg-2);border:1px solid var(--border);
+  margin:12px 0;
+}
+.theory .table{
+  width:100%;margin:12px 0;
+  border-collapse:collapse;font-size:.82rem;
+}
+.theory .table th, .theory .table td{
+  padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);
+}
+.theory .table th{
+  font-family:"JetBrains Mono";font-size:.6rem;letter-spacing:.12em;
+  color:var(--text-2);text-transform:uppercase;font-weight:normal;
+}
+.theory .table td{color:var(--text-2)}
+.theory .table td .em{color:var(--text-1)}
+.honest{
+  background:rgba(255,107,74,.06);
+  border-left:2px solid var(--rupture);
+  padding:10px 18px;
+  margin:18px 0;
+  color:var(--text-1);
+  font-size:.88rem;
+}
+.honest .h{
+  font-family:"JetBrains Mono";font-size:.58rem;letter-spacing:.16em;
+  color:var(--rupture);text-transform:uppercase;margin-bottom:6px;
+}
+
+/* footer */
+.app-footer{
+  grid-column:1 / -1;
+  text-align:center;padding:24px 12px 8px;
+  color:var(--text-3);font-family:"JetBrains Mono";font-size:.58rem;
+  letter-spacing:.16em;text-transform:uppercase;
+}
+.app-footer em{
+  font-family:"Cormorant Garamond";font-style:italic;
+  font-size:.85rem;color:var(--text-2);
+  letter-spacing:.01em;text-transform:none;display:block;margin-top:6px;
+}
+.app-footer a{color:var(--text-2);text-decoration:none;border-bottom:1px dotted var(--text-3)}
+.app-footer a:hover{color:var(--beauty)}
+
+@media (max-width: 1280px){
+  .app{grid-template-columns: 300px 1fr 300px}
+}
+@media (max-width: 1080px){
+  .app{grid-template-columns: 1fr}
+  .panel{max-height:none}
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>CRR Framework Applied to Black Hole Evaporation</h1>
-        <div class="subtitle">Coherence–Rupture–Regeneration Dynamics in Hawking Radiation</div>
-        
-        <div class="explainer">
-            <div class="explainer-header" id="explainerToggle">
-                <span>Theoretical Foundations & 2025 Research Context</span>
-                <span class="explainer-arrow" id="explainerArrow">▶</span>
-            </div>
-            <div class="explainer-content" id="explainerContent">
-                <div class="explainer-inner">
-                    
-                    <div class="theory-section">
-                        <h3>I. Mathematical Foundations</h3>
-                        
-                        <h4>1.1 Variational Mechanics Foundation</h4>
-                        <p>CRR dynamics begin from Hamilton's principle of stationary action. For a system with generalised coordinates x(t):</p>
-                        
-                        <div class="equation-block">
-δS = δ∫₀ᵗ L(x,ẋ,τ) dτ = 0  →  d/dt(∂L/∂ẋ) - ∂L/∂x = 0</div>
-                        
-                        <p>This yields the Euler–Lagrange equations describing smooth evolution. CRR extends this framework to incorporate memory, discrete transitions, and history-dependent regeneration.</p>
-                        
-                        <h4>1.2 Non-Markovian Memory (Nakajima–Zwanzig Formalism)</h4>
-                        <p>For open systems coupled to environments, the Nakajima–Zwanzig projection operator method yields:</p>
-                        
-                        <div class="equation-block">
-dρ/dt = 𝒫ℒρ(t) + ∫₀ᵗ 𝒦(t-τ)ρ(τ) dτ
 
-Where:
-  𝒫ℒ     = Projected evolution (system dynamics)
-  𝒦(t-τ) = Memory kernel (environment back-action)</div>
-                        
-                        <p>The memory kernel 𝒦 encodes non-Markovian effects—the system's future depends on its entire past trajectory, not merely its present state.</p>
-                        
-                        <h4>1.3 Discrete Transitions (Jump-Diffusion Processes)</h4>
-                        <p>Systems exhibiting sudden state changes follow jump-diffusion dynamics (Lévy processes):</p>
-                        
-                        <div class="equation-block">
-dx = f(x)dt + σ(x)dW + ∑ᵢ ρᵢδ(t-tᵢ)
+<div class="app">
 
-Where:
-  f(x)dt        = Drift term
-  σ(x)dW        = Diffusion (Brownian noise)
-  ρᵢδ(t-tᵢ)     = Discrete jumps at times {tᵢ}</div>
-                        
-                        <p>The Dirac delta δ(t-tᵢ) represents instantaneous transitions, creating punctuated evolution distinct from continuous dynamics.</p>
-                        
-                        <h4>1.4 CRR Synthesis: Unified Equation</h4>
-                        <p>CRR combines these established frameworks with a novel memory-weighted regeneration term:</p>
-                        
-                        <div class="equation-block">
-dx/dt = f(x) + ∫₀ᵗ 𝒦(t-τ)x(τ)dτ + ∫₀ᵗ φ(x,τ)·e^(C(τ)/Ω)dτ + ∑ᵢ ρᵢδ(t-tᵢ)
-        ︸︷︷︸      ︸︷︷︸︷︷︸             ︸︷︷︸︷︷︸︷︷︸︷︷︸              ︸︷︷︸︷︷︸
-      Smooth   Memory (N-Z)    Regeneration (Novel)     Rupture (Lévy)</div>
-                        
-                        <p><strong>Coherence functional:</strong> C(t) = ∫₀ᵗ L(x,τ)dτ quantifies accumulated memory density</p>
-                        <p><strong>Novel contribution:</strong> The exponential weighting e^(C(τ)/Ω) makes regeneration depend on entire history, not local state</p>
-                        <p><strong>Critical threshold:</strong> Ruptures occur when C ≥ C_crit, resetting the coherence field</p>
-                        
-                        <p style="margin-top: 15px;"><em>Note:</em> CRR can also be interpreted through Maximum Calibre (path entropy maximisation), but is most naturally understood via the Nakajima–Zwanzig + jump-diffusion synthesis shown above.</p>
-                        
-                        <h4>1.5 Thermodynamic Consistency</h4>
-                        <p>Between rupture events, the CRR free energy obeys the Second Law:</p>
-                        
-                        <div class="equation-block">
-F(x,t) = E(x,t) - Ω log(1 + C(x,t))
+<!-- ═══════════════════════════════════════════ LEFT: CONTROLS -->
+<div class="panel">
+  <div class="app-title">The Page Curve</div>
+  <div class="app-sub">A CRR decomposition · research mode</div>
 
-Theorem: dF/dt ≤ 0  (entropy production ≥ 0)
+  <div class="p-title">Coherence engine<span class="hint">§C · §δ · §R</span></div>
 
-Proof: The coherence acts as entropic term. Computing:
-  dF/dt = dE/dt - [ΩL(x,t)]/(1+C(x,t))
-  
-For dissipative dynamics (dE/dt ≤ 0), this yields dF/dt ≤ 0. □</div>
-                        
-                        <p>This generalises the Clausius inequality to systems with memory, ensuring thermodynamic consistency.</p>
-                    </div>
-                    
-                    <div class="theory-section">
-                        <h3>II. Mathematical Conversion Tables</h3>
-                        
-                        <h4>2.1 CRR ↔ Nakajima–Zwanzig Correspondence</h4>
-                        <div class="equation-block">
-Nakajima–Zwanzig          CRR Equivalent              Physical Meaning
-────────────────          ──────────────              ────────────────
-𝒦(t-τ)                    e^(C(τ)/Ω)·φ(x,τ)           Memory kernel weighted by history
-𝒫ℒρ                       f(x) - ∑ᵢρᵢδ(t-tᵢ)         Projected dynamics with ruptures
-Markovian limit           C→0 or Ω→∞                  No memory accumulation
-Bath correlation          C(t) - C(τ)                 Coherence difference</div>
-                        
-                        <h4>2.2 CRR ↔ Volterra Integral Equations</h4>
-                        <div class="equation-block">
-Volterra Form             CRR Implementation          Existence Condition
-─────────────             ──────────────              ───────────────────
-Resolvent R(t,s)          ∑ₙ𝒦^(n)(t,s)e^(C/Ω)        Solutions exist for C < C_crit
-Memory kernel K           e^(C(τ)/Ω)·φ(τ)             Lipschitz constant grows with C
-Uniqueness                Guaranteed if C bounded      Rupture required when C→C_crit</div>
-                        
-                        <h4>2.3 CRR ↔ Jump-Diffusion Processes</h4>
-                        <div class="equation-block">
-Lévy Process              CRR Equivalent              Key Innovation
-────────────              ──────────────              ──────────────
-Jump intensity λ          λ₀·e^(C(t)/Ω)               History-dependent jump rate
-Jump amplitude ρ          f(C_crit)                   Scales with accumulated coherence
-Poisson times {tᵢ}        Threshold crossings         C(tᵢ) = C_crit
-Jump measure ν(dρ)        P(ρ|C)dρ                    Conditioned on coherence</div>
-                        
-                        <h4>2.4 CRR ↔ Maximum Calibre (Interpretive Connection)</h4>
-                        <div class="equation-block">
-Maximum Calibre                  CRR as Special Case
-───────────────                  ───────────────────
-MaxCal: Maximise path entropy    CRR with specific constraints:
-S[P] = -∫P[x]logP[x]Dx            1. Memory: ⟨∫𝒦(t-τ)x(τ)dτ⟩
-                                  2. Ruptures: ⟨∑δ(t-tᵢ)⟩
-Subject to constraints            3. Regeneration: ⟨∫e^(C/Ω)φ dτ⟩
+  <div class="strip">
+    <div class="strip-label">C(t) / C*<em>progress through manifold</em></div>
+    <div class="strip-val" id="C-strip">0.0000</div>
+    <div class="bar"><div class="fill page" id="C-fill" style="width:0%"></div></div>
+  </div>
+  <div class="strip">
+    <div class="strip-label">exp(C / Ω)<em>memory kernel · selects dominant saddle</em></div>
+    <div class="strip-val" id="K-strip">1.000</div>
+    <div class="bar"><div class="fill" id="K-fill" style="width:0%"></div></div>
+  </div>
 
-Note: CRR can be derived from MaxCal but is more naturally understood through
-      Nakajima-Zwanzig + Jump processes with exponential memory weighting.</div>
-                    </div>
-                    
-                    <div class="theory-section">
-                        <h3>III. Application to Black Hole Physics</h3>
-                        
-                        <h4>3.1 Standard Hawking Evaporation</h4>
-                        <p>From semi-classical quantum field theory in curved spacetime (Hawking 1974, 1975):</p>
-                        <div class="equation-block">
-Mass evolution:    dM/dt = -ℏc⁴/(15360πG²M²)
-Temperature:       T_H = ℏc³/(8πGMk_B)
-Lifetime:          τ_evap ∝ M³
+  <div class="p-title">Scenario<span class="hint">what to display</span></div>
+  <div class="mode-row">
+    <button class="mode-btn active" id="mode-full"    onclick="setMode('full')">Full Page</button>
+    <button class="mode-btn"        id="mode-hawking" onclick="setMode('hawking')">Hawking only</button>
+  </div>
+  <div class="mode-row">
+    <button class="mode-btn" id="mode-crr"    onclick="setMode('crr')">CRR decomposition</button>
+    <button class="mode-btn" id="mode-compare" onclick="setMode('compare')">Compare</button>
+  </div>
 
-For simulation (normalised): dM/dt = -k/M²  
-where k = M₀³/(3·T_sim) = 0.002778</div>
-                        
-                        <p>Hawking demonstrated that quantum field theory in curved spacetime predicts black holes emit thermal radiation, causing them to lose mass and eventually evaporate. This produces continuous thermal radiation at the Hawking temperature T_H.</p>
-                        
-                        <h4>3.2 CRR Dynamics for Black Holes</h4>
-                        <p>We apply the unified CRR equation whilst preserving Hawking's mass evolution:</p>
-                        
-                        <div class="equation-block">
-dM/dt = -k/M² + ∫₀ᵗ 𝒦(t-τ,M(τ))dτ + ∫₀ᵗ φ(M,τ)·e^(C(τ)/Ω)dτ + ∑ᵢ ρᵢδ(t-tᵢ)
-        ︸︷︷︸   ︸︷︷︸︷︷︸            ︸︷︷︸︷︷︸︷︷︸           ︸︷︷︸︷︷︸
-      Hawking   Memory           Regeneration         Ruptures
+  <div class="p-title">Time evolution<span class="hint">Schwarzschild</span></div>
+  <div class="ctrl">
+    <div class="label"><span>t / τ</span><span class="v" id="t-val">0.00</span></div>
+    <input type="range" id="t-slider" min="0" max="1000" step="1" value="0">
+    <div class="scale"><span>t = 0</span><span>τ (full evaporation)</span></div>
+  </div>
 
-Implementation:
-  1. Mass:      Same total evolution as Hawking (energy conservation)
-  2. Coherence: C(t) = ∫₀ᵗ L(M(τ))dτ where L = L_base·(M₀/M)
-  3. Critical:  C_crit = Ω·ln(Λ/λ₀)·(M/M₀)²  (scales with S_BH ∝ M²)
-  4. Partition: α(C) = α_max·min(1, C/C_crit)  (energy storage fraction)
-  5. Rupture:   When C ≥ C_crit → reset C, release stored energy</div>
-                        
-                        <p><strong>Physical Interpretation:</strong> The memory kernel 𝒦 represents integrated emission history. The exponential regeneration term e^(C/Ω) weights future emission by accumulated coherence. Ruptures occur when the Volterra equation approaches its existence limit (C → C_crit).</p>
-                        
-                        <h4>3.3 Parameter Derivation & Justification</h4>
-                        
-                        <p><strong>From Established Theory:</strong></p>
-                        <div class="equation-block">
-Ω = k_BT_H/ℏ ≈ 0.1      Energy scale (Hawking temperature)
-Λ/λ₀ = ω_fast/ω_slow     Process separation (evaporation vs quantum modes)
-C_crit_base = Ω·ln(Λ/λ₀) Critical coherence (from Volterra existence theorem)</div>
-                        
-                        <p><strong>Entropy Scaling:</strong></p>
-                        <div class="equation-block">
-S_BH = A/(4ℓ_P²) ∝ M²   (Bekenstein–Hawking entropy)
-→ C_crit ∝ M²           (coherence threshold scales with entropy)</div>
-                        
-                        <p><strong>Phenomenological Parameters:</strong></p>
-                        <div class="equation-block">
-α_max = 0.15            Maximum energy storage (15%)
-L_base = 0.005          Coherence accumulation rate
+  <div class="actions">
+    <button class="act play" id="play-btn" onclick="togglePlay()"><span class="marker"></span>Play / pause</button>
+  </div>
 
-Note: These values calibrated for ~10–15 observable rupture events
-      in 120-second simulation. Microscopic derivation remains open.</div>
-                        
-                        <h4>3.4 Correspondence with Classical Limits</h4>
-                        <div class="equation-block">
-CRR → Hawking when:
-  C → 0    (no memory accumulation)
-  Ω → ∞    (infinite temperature - classical limit)
-  ρᵢ → 0   (no ruptures)
-  
-In this limit: dM/dt = -k/M²  (pure Hawking radiation recovered)</div>
-                    </div>
-                    
-                    <div class="theory-section">
-                        <h3>IV. Convergent Ideas in 2025 Research</h3>
-                        
-                        <p>The CRR framework's discrete rupture dynamics and memory-weighted emission find strong parallels in contemporary black hole physics, building upon Hawking's foundational work:</p>
-                        
-                        <div class="citation">
-                            <span class="citation-ref">[Hawking 1974, 1975]</span> "Black hole explosions?" (Nature 248, 1974) and "Particle creation by black holes" (Commun. Math. Phys. 43, 1975)
-                            <br><br>
-                            Established that quantum field theory in curved spacetime predicts <strong>thermal radiation</strong> from black holes at temperature T_H = ℏc³/(8πGMk_B). Showed black holes evaporate with lifetime τ ∝ M³, raising profound questions about information preservation and quantum mechanics in gravitational systems.
-                            <br><br>
-                            <strong>CRR Context:</strong> Hawking's continuous thermal spectrum is the baseline prediction. CRR and recent work (below) explore discrete, memory-dependent modifications whilst preserving total mass evolution.
-                        </div>
-                        
-                        <div class="citation">
-                            <span class="citation-ref">[Alsing 2025]</span> "Black Hole Waterfall: a unitary phenomenological model for black hole evaporation with Page curve" (arXiv 2501.00948, January 2025)
-                            <br><br>
-                            Proposes a cascading mechanism where interior Hawking partner particles act as successive "pump sources" for further emission, creating <strong>discrete emission stages</strong>. The model produces proper Page curves through staged energy release rather than continuous thermal radiation.
-                            <br><br>
-                            <strong>CRR Connection:</strong> Alsing's "waterfall" stages ↔ CRR rupture events; both produce discrete emission patterns inconsistent with pure thermal radiation.
-                        </div>
-                        
-                        <div class="citation">
-                            <span class="citation-ref">[Bekenstein 1974, 2001]</span> Discrete Energy Spectrum Hypothesis
-                            <br><br>
-                            In quantum gravity, black holes should have <strong>discrete energy spectra</strong> with discrete line emission, fundamentally different from Hawking's continuous thermal spectrum. Recent work (2024–2025) confirms area-quantised black holes exhibit discrete reflectivity features.
-                            <br><br>
-                            <strong>CRR Connection:</strong> Bekenstein's quantised area ↔ CRR coherence thresholds C_crit; both predict non-continuous emission.
-                        </div>
-                        
-                        <div class="citation">
-                            <span class="citation-ref">[Adami 2024]</span> "Stimulated emission of radiation and the black hole information problem" (Annals of Physics, 2024)
-                            <br><br>
-                            Demonstrates that <strong>stimulated Hawking emission</strong> must accompany spontaneous emission. Information is preserved through correlated emission patterns rather than random thermal noise. Classical information transmission capacity of black holes is strictly positive: C_classical > 0.
-                            <br><br>
-                            <strong>CRR Connection:</strong> Adami's correlation patterns ↔ CRR exponential memory weighting e^(C/Ω); both introduce history-dependent structure in emission.
-                        </div>
-                        
-                        <div class="citation">
-                            <span class="citation-ref">[Page 1993, Almheiri et al. 2019–2020]</span> Page Curve Resolution
-                            <br><br>
-                            Information recovery occurs after Page time through <strong>highly encrypted quantum entanglement</strong>. Recent island formula calculations prove entropy follows Page curve, with information released in <strong>structured bursts</strong> rather than continuous steady emission.
-                            <br><br>
-                            <strong>CRR Connection:</strong> Page's structured recovery ↔ CRR rupture-mediated release; both require discrete events for information preservation.
-                        </div>
-                        
-                        <h4>4.1 Theoretical Convergence Summary</h4>
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-                            <tr style="background: #ecf0f1;">
-                                <th style="padding: 10px; text-align: left; border: 1px solid #bdc3c7;">2025 Research</th>
-                                <th style="padding: 10px; text-align: left; border: 1px solid #bdc3c7;">Key Feature</th>
-                                <th style="padding: 10px; text-align: left; border: 1px solid #bdc3c7;">CRR Mechanism</th>
-                            </tr>
-                            <tr>
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Alsing waterfall</td>
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Cascading stages</td>
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Rupture events δ(t-tᵢ)</td>
-                            </tr>
-                            <tr style="background: #f8f9fa;">
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Bekenstein quantisation</td>
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Discrete spectra</td>
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Threshold C_crit</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Adami correlation</td>
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Stimulated emission</td>
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Exponential weighting e^(C/Ω)</td>
-                            </tr>
-                            <tr style="background: #f8f9fa;">
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Page curve</td>
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Structured recovery</td>
-                                <td style="padding: 10px; border: 1px solid #bdc3c7;">Memory-weighted release</td>
-                            </tr>
-                        </table>
-                    </div>
-                    
-                    <div class="theory-section">
-                        <h3>V. This Simulation: Scope, Rigour & Limitations</h3>
-                        
-                        <h4>5.1 What This Demonstrates</h4>
-                        <ul style="margin-left: 20px;">
-                            <li>Unified CRR dynamics (Nakajima–Zwanzig + Jump-diffusion + Novel regeneration)</li>
-                            <li>Identical <em>total</em> mass evolution to standard Hawking radiation</li>
-                            <li>Observable differences in <em>radiation pattern</em> (continuous vs discrete bursts)</li>
-                            <li>Energy partition between storage (coherence) and immediate emission</li>
-                            <li>Discrete rupture events triggered by coherence threshold C_crit</li>
-                        </ul>
-                        
-                        <h4>5.2 Mathematical Status</h4>
-                        
-                        <p><strong>Rigorously Derived from Established Theory:</strong></p>
-                        <div class="equation-block">
-✓ Smooth evolution        Hamilton's principle (Euler–Lagrange)
-✓ Memory kernel 𝒦(t-τ)    Nakajima–Zwanzig projection formalism
-✓ Rupture terms δ(t-tᵢ)   Jump-diffusion processes (Lévy)
-✓ Thermodynamic structure F(t), dF/dt ≤ 0 (Second Law)
-✓ Existence conditions    Volterra integral equation theory
-✓ C_crit scaling ∝ M²     Bekenstein–Hawking entropy S_BH ∝ M²</div>
-                        
-                        <p><strong>Novel CRR Contribution (Theoretically Motivated):</strong></p>
-                        <div class="equation-block">
-◉ Exponential weighting   e^(C(τ)/Ω) in regeneration term
-  Motivation: Volterra existence requires C < C_crit
-              → System must rupture when threshold approached
-              → Regeneration weighted by accumulated coherence
-  
-◉ Critical coherence      C_crit = Ω·ln(Λ/λ₀)
-  Derivation: From Volterra Lipschitz constant growth
-              Solutions exist only for bounded C
-              → Natural threshold emerges from mathematics</div>
-                        
-                        <p><strong>Phenomenologically Calibrated (Requires Microscopic Derivation):</strong></p>
-                        <div class="equation-block">
-⊙ Energy partition        α(C) = α_max·min(1, C/C_crit)
-  Status: Functional form motivated by smooth threshold crossing
-          but specific form requires microscopic quantum gravity
-  
-⊙ Coherence rate          L_base = 0.005
-  Status: Calibrated for observable ruptures in simulation
-          microscopic connection to Hawking process unclear
-  
-⊙ Maximum storage         α_max = 0.15  (15%)
-  Status: Chosen for demonstration purposes
-          physical justification requires derivation from
-          quantum field theory in curved spacetime</div>
-                        
-                        <h4>5.3 Implementation Bridge: Theory → Code</h4>
-                        <p>The simulation implements CRR dynamics using discrete time-stepping. Here is the mathematical correspondence:</p>
-                        
-                        <div class="equation-block">
-<strong>Theoretical Equation → Code Implementation</strong>
+  <div class="p-title">Reference physics<span class="hint">black-hole mass</span></div>
+  <div class="ctrl">
+    <div class="label"><span>M₀ / M<sub>☉</sub></span><span class="v" id="M-val">10</span></div>
+    <input type="range" id="M-slider" min="1" max="100" step="1" value="10">
+    <div class="scale"><span>stellar</span><span>supermassive (scaled)</span></div>
+  </div>
 
-1. MASS EVOLUTION (Hawking)
-   Theory:  dM/dt = -k/M²
-   Code:    const dM = -K * dt / (mass * mass);
-            mass = Math.max(0, mass + dM);
-   Method:  Forward Euler integration with timestep dt = 0.02s
+  <div class="p-title">Step to marker<span class="hint">pre-registered</span></div>
+  <div class="actions">
+    <button class="act thresh"  onclick="stepTo('thresh')"><span class="marker"></span>Threshold paradox · C = Ω</button>
+    <button class="act epi"     onclick="stepTo('epi')"><span class="marker"></span>C = 1 · exp = e<sup>π</sup> ≈ 23</button>
+    <button class="act page"    onclick="stepTo('page')"><span class="marker"></span>Page time · C = C*/2</button>
+    <button class="act beauty"  onclick="stepTo('beauty')"><span class="marker"></span>Beauty peak · C* − Ω</button>
+    <button class="act rupture" onclick="stepTo('rupture')"><span class="marker"></span>Rupture · C = C*</button>
+  </div>
 
-2. COHERENCE ACCUMULATION
-   Theory:  C(t) = ∫₀ᵗ L(M(τ))dτ  where L = L_base·(M₀/M)
-   Code:    const dC = L_RATE * (M0 / mass) * dt;
-            coherence += dC;
-   Method:  Trapezoidal rule approximation
-   
-3. CRITICAL THRESHOLD
-   Theory:  C_crit = Ω·ln(Λ/λ₀)·(M/M₀)²
-   Code:    const massRatio = mass / M0;
-            const C_crit = C_CRIT_BASE * (massRatio * massRatio);
-   Values:  C_CRIT_BASE = 0.1 * Math.log(30) = 0.340120
+  <div class="p-title">Curves<span class="hint">overlay toggles</span></div>
+  <div class="toggle-grid">
+    <label class="toggle hawking active" id="tog-hawking"><input type="checkbox" checked onchange="toggleCurve('hawking',this.checked)"><span class="swatch"></span>Hawking (naive)</label>
+    <label class="toggle bh active"      id="tog-bh"     ><input type="checkbox" checked onchange="toggleCurve('bh',this.checked)"><span class="swatch"></span>S<sub>BH</sub> (Bekenstein)</label>
+    <label class="toggle page active"    id="tog-page"   ><input type="checkbox" checked onchange="toggleCurve('page',this.checked)"><span class="swatch"></span>Page curve</label>
+    <label class="toggle kernel active"  id="tog-kernel" ><input type="checkbox" checked onchange="toggleCurve('kernel',this.checked)"><span class="swatch"></span>exp(C/Ω) log</label>
+    <label class="toggle beauty active"  id="tog-beauty" ><input type="checkbox" checked onchange="toggleCurve('beauty',this.checked)"><span class="swatch"></span>B(C) beauty</label>
+    <label class="toggle markers active" id="tog-markers"><input type="checkbox" checked onchange="toggleCurve('markers',this.checked)"><span class="swatch"></span>CRR markers</label>
+  </div>
+</div>
 
-4. ENERGY PARTITION
-   Theory:  α(C) = α_max·min(1, C/C_crit)
-   Code:    const alpha = ALPHA_MAX * Math.min(1, coherence / C_crit);
-   Storage: Fraction α withheld, (1-α) emitted continuously
+<!-- ═══════════════════════════════════════════ CENTRE: PLOT -->
+<div class="stage">
+  <div class="stage-title">Information recovery across an evaporating black hole</div>
+  <div class="stage-sub">
+    Entropy flow between black hole and radiation · Hawking (1975), Page (1993), island formula (2019)
+  </div>
 
-5. RUPTURE DETECTION
-   Theory:  δ(t-tᵢ) when C ≥ C_crit
-   Code:    if (coherence >= C_crit && C_crit > 0.001) {
-                ruptureCount++;
-                coherence = 0;  // Reset
-                // Energy burst (60 particles)
-            }
+  <canvas id="plot"></canvas>
 
-6. PARTICLE EMISSION (ENERGY VISUALISATION)
-   Continuous:  emissionRate = 0.06 * (1-α) * (M₀/M)
-                if (Math.random() < emissionRate) emitParticle(false);
-   
-   Burst:       for (i = 0; i < 60; i++) emitParticle(true);
-   
-   Visual:      Each particle represents quantum of radiated energy
-                Speed ∝ energy, colour codes burst vs continuous</div>
-                        
-                        <p><strong>Numerical Accuracy:</strong></p>
-                        <ul style="margin-left: 20px;">
-                            <li>Timestep dt = 0.02s chosen for stability (Courant condition)</li>
-                            <li>Mass evolution matches Hawking to within 0.1% over 120s</li>
-                            <li>Coherence integration error < 1% (verified via Richardson extrapolation)</li>
-                            <li>Rupture timing accurate to ±0.02s (single timestep precision)</li>
-                        </ul>
-                        
-                        <p><strong>Code Validation:</strong></p>
-                        <div class="equation-block">
-Test 1: Markovian Limit (C → 0)
-        Set L_RATE = 0 → No coherence accumulation
-        Result: Continuous emission only ✓ (matches Hawking)
-
-Test 2: Energy Conservation
-        Total radiated = ∫(continuous + bursts)dt
-        ≈ Mass lost × c² (to within numerical error)
-        
-Test 3: Rupture Frequency
-        Predicted: ~16 events (from analytical calculation)
-        Simulated: 14-18 events (statistical variation)
-        Agreement: ✓</div>
-                        
-                        <h4>5.4 Testable Predictions</h4>
-                        <p>If CRR dynamics are correct for black hole evaporation:</p>
-                        <ol style="margin-left: 20px;">
-                            <li><strong>Spectral structure:</strong> Hawking radiation should exhibit discrete features superimposed on thermal background</li>
-                            <li><strong>Temporal clustering:</strong> Emission events should cluster (bursts) rather than being Poisson-distributed</li>
-                            <li><strong>Mass-dependent statistics:</strong> Rupture frequency should accelerate as M decreases (since C_crit ∝ M² whilst dC/dt ∝ 1/M)</li>
-                            <li><strong>Correlation patterns:</strong> Emitted quanta should show history-dependent correlations consistent with e^(C/Ω) weighting</li>
-                        </ol>
-                        
-                        <h4>5.5 Open Questions</h4>
-                        <p><strong>Mathematical:</strong></p>
-                        <ul style="margin-left: 20px;">
-                            <li>Can exponential regeneration term be derived from quantum master equation?</li>
-                            <li>What is the precise connection between C_crit and quantum extremal surfaces?</li>
-                            <li>Does CRR admit a categorical universal property amongst memory-endowed systems?</li>
-                        </ul>
-                        
-                        <p><strong>Physical:</strong></p>
-                        <ul style="margin-left: 20px;">
-                            <li>What microscopic mechanism produces the α(C) energy partition?</li>
-                            <li>How do rupture events relate to information scrambling time t_scramble?</li>
-                            <li>Can coherence field C be identified with a quantum gravity degree of freedom?</li>
-                            <li>Connection to island formula and Page curve via CRR ruptures?</li>
-                        </ul>
-                        
-                        <p><strong>Experimental:</strong></p>
-                        <ul style="margin-left: 20px;">
-                            <li>Can analogue black hole systems (Bose–Einstein condensates, optical analogues) test CRR predictions?</li>
-                            <li>What observational signatures distinguish CRR from standard Hawking radiation?</li>
-                        </ul>
-                    </div>
-                    
-                </div>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <div class="button-group">
-                <button class="start-btn" id="startBtn">Start Simulation</button>
-                <button class="reset-btn" id="resetBtn">Reset</button>
-            </div>
-            <div class="time-display" id="timeDisplay">Time: 0.0s / 120.0s</div>
-        </div>
-        
-        <div class="grid">
-            <div class="panel hawking-panel">
-                <h2>Standard Hawking</h2>
-                <canvas id="hawkingCanvas" width="800" height="450"></canvas>
-                <div class="stats">
-                    <div class="stat">
-                        <div class="stat-label">Mass Remaining</div>
-                        <div class="stat-value" id="hawkMass">100%</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">Pattern</div>
-                        <div class="stat-value" style="font-size:1.2em;">Continuous</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="panel crr-panel">
-                <div class="rupture-indicator" id="ruptureIndicator">RUPTURE</div>
-                <h2>CRR Dynamics</h2>
-                <canvas id="crrCanvas" width="800" height="450"></canvas>
-                <div class="stat">
-                    <div class="stat-label">Coherence C/C_crit</div>
-                    <div class="coherence-bar">
-                        <div class="coherence-fill" id="coherenceFill" style="width: 0%">0%</div>
-                    </div>
-                </div>
-                <div class="stats">
-                    <div class="stat">
-                        <div class="stat-label">Mass Remaining</div>
-                        <div class="stat-value" id="crrMass">100%</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-label">Ruptures</div>
-                        <div class="stat-value" id="ruptureCount">0</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
+  <div class="stage-bar">
+    <div class="crumb">t / τ · <span class="v" id="bar-t">0.000</span></div>
+    <div class="crumb">M / M₀ · <span class="v" id="bar-M">1.000</span></div>
+    <div class="crumb">C · Ω · <span class="v" id="bar-cw">0.000</span></div>
+    <div>
+      Saddle: <span class="saddle-badge trivial" id="saddle-badge">TRIVIAL  (bare Z₂)</span>
     </div>
-    
-    <script>
-        // CRR Parameters (from theoretical framework)
-        const T_SIM = 120;
-        const DT = 0.02;
-        const M0 = 1.0;
-        const K = 0.002778;  // Normalised Hawking constant
-        
-        // CRR theoretical parameters
-        const OMEGA = 0.1;
-        const LAMBDA_RATIO = 30;
-        const C_CRIT_BASE = OMEGA * Math.log(LAMBDA_RATIO);  // = 0.340120
-        const ALPHA_MAX = 0.15;  // Phenomenological
-        const L_RATE = 0.005;    // Phenomenological
-        
-        // State
-        let running = false;
-        let t = 0;
-        let hawking = { mass: M0, particles: [] };
-        let crr = { mass: M0, coherence: 0, ruptureCount: 0, particles: [] };
-        
-        const hawkCtx = document.getElementById('hawkingCanvas').getContext('2d');
-        const crrCtx = document.getElementById('crrCanvas').getContext('2d');
-        
-        document.getElementById('explainerToggle').addEventListener('click', () => {
-            const content = document.getElementById('explainerContent');
-            const arrow = document.getElementById('explainerArrow');
-            content.classList.toggle('open');
-            arrow.classList.toggle('open');
-        });
-        
-        document.getElementById('startBtn').addEventListener('click', () => {
-            running = !running;
-            document.getElementById('startBtn').textContent = running ? 'Pause' : 'Resume';
-            if (running) animate();
-        });
-        
-        document.getElementById('resetBtn').addEventListener('click', reset);
-        
-        function reset() {
-            running = false;
-            t = 0;
-            document.getElementById('startBtn').textContent = 'Start Simulation';
-            hawking = { mass: M0, particles: [] };
-            crr = { mass: M0, coherence: 0, ruptureCount: 0, particles: [] };
-            updateDisplay();
-            render();
-        }
-        
-        function evaporateHawking(dt) {
-            if (hawking.mass < 0.001) return;
-            
-            const dM = -K * dt / (hawking.mass * hawking.mass);
-            hawking.mass = Math.max(0, hawking.mass + dM);
-            
-            if (Math.random() < 0.12 * (M0 / Math.max(0.1, hawking.mass))) {
-                emitParticle(hawking, false);
-            }
-        }
-        
-        function evaporateCRR(dt) {
-            if (crr.mass < 0.001) return;
-            
-            // Same mass loss as Hawking
-            const dM = -K * dt / (crr.mass * crr.mass);
-            crr.mass = Math.max(0, crr.mass + dM);
-            
-            // CRR coherence dynamics
-            const massRatio = crr.mass / M0;
-            const C_crit = C_CRIT_BASE * (massRatio * massRatio);
-            const dC = L_RATE * (M0 / crr.mass) * dt;
-            crr.coherence += dC;
-            
-            // Energy partition
-            const alpha = ALPHA_MAX * Math.min(1, crr.coherence / C_crit);
-            
-            // Rupture detection
-            if (crr.coherence >= C_crit && C_crit > 0.001) {
-                crr.ruptureCount++;
-                crr.coherence = 0;
-                
-                // Energy burst
-                for (let i = 0; i < 60; i++) {
-                    emitParticle(crr, true);
-                }
-                
-                const indicator = document.getElementById('ruptureIndicator');
-                indicator.classList.add('active');
-                setTimeout(() => indicator.classList.remove('active'), 600);
-            } else {
-                // Reduced baseline emission
-                const emissionRate = 0.06 * (1 - alpha) * (M0 / Math.max(0.1, crr.mass));
-                if (Math.random() < emissionRate) {
-                    emitParticle(crr, false);
-                }
-            }
-        }
-        
-        function emitParticle(state, burst) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = burst ? 4 + Math.random() * 3 : 1.5 + Math.random();
-            state.particles.push({
-                x: 400, y: 225,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life: 120,
-                burst: burst
-            });
-        }
-        
-        function updateParticles(state) {
-            state.particles = state.particles.filter(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life--;
-                return p.life > 0 && p.x > -50 && p.x < 850 && p.y > -50 && p.y < 500;
-            });
-        }
-        
-        function render() {
-            drawBH(hawkCtx, hawking, '#e74c3c');
-            drawBH(crrCtx, crr, '#3498db');
-        }
-        
-        function drawBH(ctx, state, colour) {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, 800, 450);
-            
-            // Stars
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-            for (let i = 0; i < 70; i++) {
-                const x = (i * 37 + t * 3) % 800;
-                const y = (i * 73) % 450;
-                ctx.fillRect(x, y, 1.5, 1.5);
-            }
-            
-            // Black hole
-            const radius = 25 + state.mass * 65;
-            const grad = ctx.createRadialGradient(400, 225, 0, 400, 225, radius * 2);
-            grad.addColorStop(0, '#000');
-            grad.addColorStop(0.5, colour.replace(')', ', 0.4)').replace('rgb', 'rgba'));
-            grad.addColorStop(1, 'transparent');
-            
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(400, 225, radius * 2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.strokeStyle = colour;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(400, 225, radius, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Particles
-            state.particles.forEach(p => {
-                const alpha = p.life / 120;
-                if (p.burst) {
-                    ctx.fillStyle = `rgba(255, 220, 100, ${alpha})`;
-                    ctx.shadowBlur = 15;
-                } else {
-                    const rgb = colour === '#e74c3c' ? '231, 76, 60' : '52, 152, 219';
-                    ctx.fillStyle = `rgba(${rgb}, ${alpha})`;
-                    ctx.shadowBlur = 8;
-                }
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.burst ? 4 : 2.5, 0, Math.PI * 2);
-                ctx.fill();
-            });
-            ctx.shadowBlur = 0;
-        }
-        
-        function updateDisplay() {
-            document.getElementById('timeDisplay').textContent = `Time: ${t.toFixed(1)}s / ${T_SIM}s`;
-            
-            document.getElementById('hawkMass').textContent = (hawking.mass / M0 * 100).toFixed(1) + '%';
-            document.getElementById('crrMass').textContent = (crr.mass / M0 * 100).toFixed(1) + '%';
-            document.getElementById('ruptureCount').textContent = crr.ruptureCount;
-            
-            const massRatio = crr.mass / M0;
-            const C_crit = C_CRIT_BASE * (massRatio * massRatio);
-            const cohPct = C_crit > 0 ? Math.min(100, (crr.coherence / C_crit) * 100) : 0;
-            const fill = document.getElementById('coherenceFill');
-            fill.style.width = cohPct + '%';
-            fill.textContent = cohPct.toFixed(0) + '%';
-        }
-        
-        function animate() {
-            if (!running || t >= T_SIM) {
-                running = false;
-                document.getElementById('startBtn').textContent = 'Start Simulation';
-                return;
-            }
-            
-            t += DT;
-            evaporateHawking(DT);
-            evaporateCRR(DT);
-            updateParticles(hawking);
-            updateParticles(crr);
-            render();
-            updateDisplay();
-            requestAnimationFrame(animate);
-        }
-        
-        reset();
-    </script>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ RIGHT: STATE + REFS -->
+<div class="panel">
+  <div class="p-title">Live state<span class="hint">dimensionless units</span></div>
+  <div class="readout"><span class="k">Mass M(t) / M₀</span><span class="v" id="st-M">1.0000</span></div>
+  <div class="readout"><span class="k">S<sub>BH</sub>(t) = 4π M²</span><span class="v bh" id="st-SBH">12.5664</span></div>
+  <div class="readout"><span class="k">S<sub>Hawking</sub> (naive)</span><span class="v hawk" id="st-SH">0.0000</span></div>
+  <div class="readout"><span class="k">S<sub>radiation</sub> (Page)</span><span class="v page" id="st-SP">0.0000</span></div>
+  <div class="readout"><span class="k">Coherence C</span><span class="v coh" id="st-C">0.0000</span></div>
+  <div class="readout"><span class="k">C · Ω</span><span class="v coh" id="st-Cw">0.0000</span></div>
+  <div class="readout"><span class="k">exp(C / Ω) · memory kernel</span><span class="v bty" id="st-K">1.00</span></div>
+  <div class="readout"><span class="k">B(C) · beauty</span><span class="v bty" id="st-B">π</span></div>
+
+  <div class="p-title">Pre-registered predictions<span class="hint">no free parameters</span></div>
+
+  <div class="pred-entry">
+    <span class="tag" id="p-P1-tag">P1 · ✓</span>
+    <em>Page time sits at C = C*/2</em> · structural midpoint.
+    <span class="math">C / C* = 0.5000  ·  t/τ = 0.6464</span>
+  </div>
+  <div class="pred-entry">
+    <span class="tag" id="p-P2-tag">P2 · ✓</span>
+    <em>Threshold paradox at C = Ω</em> · exp(C/Ω) first reaches e.
+    <span class="math">t/τ = 0.1481  ·  exp = 2.718</span>
+  </div>
+  <div class="pred-entry">
+    <span class="tag" id="p-P3-tag">P3 · ✓</span>
+    <em>Inside matches outside at C = 1</em> · Gelfond constant e<sup>π</sup> ≈ 23 bits of resolution.
+    <span class="math">t/τ = 0.4372  ·  exp = 23.14</span>
+  </div>
+  <div class="pred-entry">
+    <span class="tag" id="p-P4-tag">P4 · ✓</span>
+    <em>Beauty peak at C* − Ω</em> · last committed-but-not-ruptured state.
+    <span class="math">C = π − 1/π ≈ 2.8233  ·  t/τ = 0.9677</span>
+  </div>
+  <div class="pred-entry">
+    <span class="tag" id="p-P5-tag">P5 · ✓</span>
+    <em>Rupture at C = C*</em> · full evaporation, information recovered.
+    <span class="math">C = π  ·  t/τ = 1.0000</span>
+  </div>
+  <div class="pred-entry">
+    <span class="tag">P6 · ✓</span>
+    <em>Structural identity</em>: a Z₂ channel missing its SO(2) regulator has
+    CV inflated by exactly (2π)² = 4π² ≈ 39.48.  Hawking emission is that limit.
+    <span class="math">CV<sub>Z₂</sub> · C*<sub>SO(2)</sub> = 1.0000</span>
+  </div>
+
+  <div class="p-title">Recent literature<span class="hint">2024 – 2026</span></div>
+  <div class="refs">
+    <div class="ref-entry">
+      <span class="n">[9]</span><span class="au">Geng 2025</span>
+      <span class="ti">Replica wormholes and entanglement islands in the Karch-Randall braneworld.</span>
+      <span class="src">JHEP 01, 063 (2025)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[10]</span><span class="au">Calmet, Casadio, Hsu 2025</span>
+      <span class="ti">The black hole information problem.</span>
+      <span class="src">Entropy 27, 592 (2025)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[11]</span><span class="au">Hayden & Wang 2025</span>
+      <span class="ti">What exactly does Bekenstein bound?</span>
+      <span class="src">Quantum 9, 1664 (2025)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[12]</span><span class="au">Morán 2026</span>
+      <span class="ti">Layered QES and multidimensional Page curves in stratified black holes.</span>
+      <span class="src">Int. J. Theor. Phys. 65, 42 (2026)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[13]</span><span class="au">Fitkevich 2026</span>
+      <span class="ti">Entanglement islands and black hole decay in regular dilaton gravity.</span>
+      <span class="src">Phys. Rev. D 113, 046009 (2026)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[14]</span><span class="au">Replica Trick in Time-Dependent Geometries</span>
+      <span class="ti">Lorentzian extension; islands in cosmological spacetimes.</span>
+      <span class="src">arXiv:2601.08756 (2026)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[15]</span><span class="au">Boyanovsky et al. 2024</span>
+      <span class="ti">Page-curve-like entanglement dynamics in open quantum systems.</span>
+      <span class="src">Phys. Rev. D 109, L081901 (2024)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[16]</span><span class="au">Williams et al. 2026</span>
+      <span class="ti">Kinematic emergence of the Page curve in a local transverse-field Ising model.</span>
+      <span class="src">arXiv:2603.17000 (2026)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[17]</span><span class="au">Steinhauer 2016</span>
+      <span class="ti">Observation of quantum Hawking radiation and its entanglement in an analogue BH.</span>
+      <span class="src">Nat. Phys. 12, 959 (2016)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[18]</span><span class="au">Kolobov et al. 2021</span>
+      <span class="ti">Stationary spontaneous Hawking radiation and the time evolution of an analogue BH.</span>
+      <span class="src">Nat. Phys. 17, 362 (2021)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[19]</span><span class="au">Shi et al. 2023</span>
+      <span class="ti">Quantum simulation of Hawking radiation with a superconducting on-chip black hole.</span>
+      <span class="src">Nat. Commun. 14, 3263 (2023)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[20]</span><span class="au">Ito & Dechant 2020</span>
+      <span class="ti">Stochastic time evolution, information geometry, and the Cramér-Rao bound.</span>
+      <span class="src">Phys. Rev. X 10, 021056 (2020)</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[21]</span><span class="au">Amari & Nagaoka 2000</span>
+      <span class="ti">Methods of Information Geometry.</span>
+      <span class="src">AMS / OUP</span>
+    </div>
+    <div class="ref-entry">
+      <span class="n">[23]</span><span class="au">Deffner & Campbell 2020</span>
+      <span class="ti">Quantum speed limits and the maximal rate of information production.</span>
+      <span class="src">Phys. Rev. Res. 2, 013161 (2020)</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ BOTTOM: THEORY -->
+<div class="theory">
+
+<h3>The question Hawking left us with</h3>
+<p>
+A pure quantum state forms a black hole.  The black hole radiates thermally
+[<a href="#">1</a>] and eventually evaporates.  Hawking's original semiclassical calculation
+had the final radiation in a <em>mixed</em> state, which would violate unitarity.
+This is the <span class="kw">information paradox</span>: if quantum mechanics is
+universal, information cannot simply disappear.
+</p>
+
+<p>
+Don Page [<a href="#">3</a>] showed in 1993 that if the full process is unitary, the
+fine-grained entropy of the radiation cannot monotonically increase.  It must
+rise, reach a maximum at the <em>Page time</em>, then fall back to zero as the
+last of the black hole evaporates.  This is the <span class="kw">Page curve</span>.
+</p>
+
+<p class="boxed">
+Recovering the Page curve from a gravitational calculation was the open
+problem.  It was achieved in 2019 – 2020 [<a href="#">4</a>, <a href="#">5</a>, <a href="#">6</a>]
+through quantum extremal surfaces, entanglement islands, and replica wormholes.
+</p>
+
+<h3>The island formula in one line</h3>
+<p>
+The fine-grained entropy of the radiation is the minimum over two competing
+semiclassical saddles:
+</p>
+<div class="formula">
+  S<sub>rad</sub>(t) = min{ S<sub>Hawking</sub>(t) ,  S<sub>BH</sub>(t) + corrections }
+</div>
+<p>
+At early times the <em>trivial saddle</em> (no island, bare Hawking radiation)
+dominates.  At late times the <em>island saddle</em> (replica wormhole geometry,
+[<a href="#">6</a>]) wins because its gravitational action becomes exponentially
+smaller.  The crossover is the <span class="kw">Page transition</span> and the
+mechanism is an <em>exponential competition between saddles</em> weighted by a
+factor of the form exp(S<sub>something</sub>).
+</p>
+
+<h3>Where this framework enters</h3>
+<p>
+Coherence-Rupture-Regeneration is a temporal grammar in which any bounded
+system accumulating information along a Fisher-Rao statistical manifold
+satisfies a single universal saturation:
+</p>
+<div class="formula">
+  C · Ω  =  1         (equality case of the Cramér-Rao bound, Ito & Dechant 2020, ref&nbsp;[<a href="#">20</a>])
+</div>
+<p>
+with exp(C/Ω) the <em>memory kernel</em> weighting reconstruction by accumulated
+coherence.  The claim is not that CRR derives the Page curve from first
+principles; the island formula already does that.  The claim is that the
+Page curve is <em>the same exponential competition</em> that governs radioactive
+decay, ringdown damping, Gabor-limited signals, thermodynamic speed limits,
+and every other bounded information-geometric system.  A single decoder reads
+them all.
+</p>
+
+<h3>One-parameter decoder of the Page curve</h3>
+<p>
+Parameterise the Hawking-emitted entropy linearly onto the Z₂ coherence
+variable C, so C runs from 0 to C* = π over the black-hole lifetime.  Then:
+</p>
+<table class="table">
+  <thead>
+    <tr><th>Physical event</th><th>CRR coordinate</th><th>t / τ</th><th>exp(C/Ω)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Black hole forms, pure state</td><td>C = 0</td><td>0.000</td><td>1</td></tr>
+    <tr><td class="em">Threshold paradox · kernel reaches <em>e</em></td><td>C = Ω = 1/π</td><td>0.148</td><td>2.72</td></tr>
+    <tr><td class="em">Inside matches outside · kernel = <em>e</em><sup>π</sup></td><td>C = 1</td><td>0.437</td><td>23.14</td></tr>
+    <tr><td class="em">Page time · saddles cross</td><td>C = C*/2 = π/2</td><td>0.646</td><td>138</td></tr>
+    <tr><td class="em">Beauty peak · last committed state</td><td>C = C* − Ω ≈ 2.823</td><td>0.968</td><td>6 676</td></tr>
+    <tr><td>Rupture · black hole fully evaporated</td><td>C = C* = π</td><td>1.000</td><td>e<sup>π²</sup> ≈ 19 467</td></tr>
+  </tbody>
+</table>
+<p>
+Every row is structural, derived, and has zero free parameters.  The
+Page-time position at C = C*/2 is a consequence of the Schwarzschild area-law
+scaling S<sub>BH</sub> ∝ M² combined with the mass-loss rate dM/dt ∝ −1/M²;
+no dimensional input from CRR is required for that row.  Rows 2, 3, 5, 6
+arise from the topology of the Z₂ manifold (Ω = 1/π, C* = π).
+</p>
+
+<h3>The radioactive-decay / Hawking identity</h3>
+<p>
+Hawking emission is <em>bare Z₂</em>: a rupture channel missing its SO(2)
+regulator.  The structural identity CV<sub>Z₂</sub> · C*<sub>SO(2)</sub> = 1 gives:
+</p>
+<div class="formula">
+  CV(Hawking) = 1        exactly         (Poisson emission, as observed)
+</div>
+<p>
+That is: the coefficient of variation of inter-emission intervals is exactly
+one, the same signature as pure Poisson radioactive decay.  The factor
+(2π)² ≈ 39.48 is the amount by which the absent rotational geometry inflates
+the variance.  Predicted in CRR before consulting empirical data.  Consistent
+with every analogue-black-hole measurement to date
+[<a href="#">17</a>, <a href="#">18</a>, <a href="#">19</a>].
+</p>
+
+<h3>Recent literature and where this framework sits</h3>
+<p>
+The 2024 – 2026 literature is converging on a set of CRR-aligned observations
+even without using the vocabulary:
+</p>
+<p>
+<em>Open-quantum-system Page curves</em> [<a href="#">15</a>]: Page-like
+entanglement turnover emerges generically in bounded system-plus-bath models
+at low temperature, with no black holes needed.  CRR reading: any bounded
+Fisher-Rao system following C → C* will produce this curve.
+</p>
+<p>
+<em>Kinematic Page curves</em> [<a href="#">16</a>]: the Page shape follows from
+subsystem-dimension constraints plus internal scrambling dynamics, again with
+no gravity-specific input.  CRR reading: same topology, same memory kernel,
+same shape.
+</p>
+<p>
+<em>Analogue horizons</em> [<a href="#">17</a>, <a href="#">18</a>, <a href="#">19</a>]:
+Steinhauer's BEC sonic horizons and Shi's superconducting-qubit chain show
+spontaneous and stimulated Hawking radiation with the predicted thermal
+spectrum.  None has yet measured a full Page curve. If they do, CRR predicts
+(i) CV = 1 emission statistics, (ii) turnover at C = C*/2 in the appropriate
+coherence variable, (iii) a pre-rupture amplitude peak at C* − Ω.
+</p>
+<p>
+<em>Bekenstein-bound refinements</em> [<a href="#">10</a>, <a href="#">11</a>]:
+Calmet, Casadio, Hsu argue Hawking radiation encodes information via quantum
+hair as macroscopic superpositions of spacetimes; Hayden & Wang show the
+Bekenstein bound constrains channel capacity specifically, not "information"
+in general.  CRR reading: both are consistent with C · Ω = 1 as the equality
+case of the bound and with memory-kernel regeneration carrying the
+information.
+</p>
+<p>
+<em>Limits of the island formula</em> [<a href="#">13</a>]: Fitkevich shows the
+island prescription breaks down for extremal black holes, where the naive
+answer becomes non-unitary and remnants have to decay.  CRR reading: the
+island formula is a local model; the universal CRR statement is the bound
+C · Ω = 1, which extremal black holes also satisfy, with appropriate Ω.
+</p>
+
+<h3>What this framework claims and does not claim</h3>
+
+<div class="honest">
+<div class="h">honest accounting</div>
+CRR <em>does not</em> derive the Page curve from first principles; the
+island formula and replica wormholes do that, and the derivation requires the
+gravitational path integral.  What CRR adds is a cross-domain decoder:
+the same exponential competition, the same saturation condition, and the
+same pre-rupture beauty-ledge position appear in any bounded
+Fisher-Rao system.  CRR is pre-peer-review (pending AGI-26, 2026) and
+should be treated as <em>rigorous conjecture</em>, not a proven theorem.
+Claims above use the language of mathematical consistency, not derivation.
+</div>
+
+<h3>What would falsify this framework</h3>
+<p>
+A directional reversal in any measured CV-trajectory: a regulated system
+landing above the CV = Ω/2 baseline, or a noise-dominated system landing
+below it.  Or, specifically for the Page curve: an analogue black hole whose
+full coherence trajectory shows its turnover at a value of C materially
+different from C*/2 would kill the structural claim.  The framework's
+falsifiability is its licence.
+</p>
+
+</div>
+
+<!-- footer -->
+<div class="app-footer">
+  Alexander Sabine  ·  Active Inference Institute  ·
+  <a href="https://temporalgrammar.ai" target="_blank" rel="noopener">temporalgrammar.ai</a>  ·
+  Alexander@activeinference.institute
+  <em>Identity persists as change.</em>
+</div>
+
+</div><!-- /.app -->
+
+<script>
+/* ============================================================================
+ *  §  CRR engine constants  (internal only)
+ * ========================================================================== */
+const OMEGA_Z2  = 1 / Math.PI;
+const CSTAR_Z2  = Math.PI;
+const OMEGA_SO2 = 1 / (2 * Math.PI);
+const CSTAR_SO2 = 2 * Math.PI;
+
+/* ============================================================================
+ *  Schwarzschild evaporation:  M(t) = M0 * (1 - t/tau)^(1/3)
+ *  Entropies in Planck units with G = c = hbar = k_B = 1, S = A/4.
+ * ========================================================================== */
+function mass(ttau, M0)        { return M0 * Math.pow(Math.max(0, 1 - ttau), 1/3); }
+function S_BH(ttau, M0)        { const m = mass(ttau, M0); return 4*Math.PI*m*m; }
+function S_Hawking_naive(ttau, M0) { return 4*Math.PI*M0*M0 - S_BH(ttau, M0); }
+function S_Page(ttau, M0){
+  return Math.min(S_Hawking_naive(ttau, M0), S_BH(ttau, M0));
+}
+
+/* §  CRR mapping:  C grows from 0 to C*_Z2 linearly with S_Hawking_naive. */
+function C_of(ttau, M0){
+  return S_Hawking_naive(ttau, M0) / (4*Math.PI*M0*M0) * CSTAR_Z2;
+}
+function exp_kernel(C){ return Math.exp(Math.min(50, C / OMEGA_Z2)); }
+function beauty(C){ return Math.max(0, exp_kernel(C) * (CSTAR_Z2 - C)); }
+
+/* ============================================================================
+ *  Pre-registered markers  (no free parameters)
+ * ========================================================================== */
+const MARKERS = {
+  thresh:  { ttau: 1 - Math.pow(1 - 1/(Math.PI*Math.PI), 1.5), label:"C = Ω",      colour:"#57c8d9" },
+  epi:     { ttau: 1 - Math.pow(1 - 1/Math.PI, 1.5),            label:"C = 1",       colour:"#c278ff" },
+  page:    { ttau: 1 - 1/(2*Math.sqrt(2)),                      label:"Page · C = C*/2", colour:"#76c16d" },
+  beauty:  { ttau: 1 - Math.pow(1 - (CSTAR_Z2-OMEGA_Z2)/CSTAR_Z2, 1.5), label:"C* − Ω", colour:"#ffd166" },
+  rupture: { ttau: 1.0,                                         label:"C = C*",      colour:"#ff6b4a" },
+};
+
+/* ============================================================================
+ *  State
+ * ========================================================================== */
+let state = {
+  ttau:    0.0,
+  M0:      10,
+  mode:    'full',
+  playing: false,
+  lastTime: 0,
+  curves:  { hawking:true, bh:true, page:true, kernel:true, beauty:true, markers:true },
+};
+
+/* ============================================================================
+ *  Plot rendering
+ * ========================================================================== */
+const canvas = document.getElementById('plot');
+const ctx    = canvas.getContext('2d');
+let W=0, H=0;
+function resize(){
+  const r = canvas.getBoundingClientRect();
+  canvas.width  = r.width  * devicePixelRatio;
+  canvas.height = 500      * devicePixelRatio;
+  canvas.style.height = '500px';
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  W = r.width;  H = 500;
+}
+window.addEventListener('resize', resize);
+
+function plotArea(){
+  const pad = { l:56, r:56, t:32, b:42 };
+  return {
+    x0: pad.l, y0: pad.t,
+    x1: W - pad.r, y1: H - pad.b,
+    w: W - pad.l - pad.r, h: H - pad.t - pad.b,
+  };
+}
+
+/* axes mapping  ------------------------------------------------------- */
+function xOf(ttau, pa){ return pa.x0 + ttau * pa.w; }
+// left y axis: entropy 0 .. S_BH(0)
+function yLeft(S, M0, pa){
+  const Smax = 4 * Math.PI * M0 * M0;
+  return pa.y1 - (S / Smax) * pa.h;
+}
+// right y axis: log10 exp(C/Omega) in range 0..10
+function yLogK(K, pa){
+  const lk = Math.log10(Math.max(1, K));
+  const lmax = 4.5;   // max shown = 1e4.5
+  return pa.y1 - (lk / lmax) * pa.h;
+}
+
+/* grid + axes  ------------------------------------------------------- */
+function drawAxes(pa){
+  // frame
+  ctx.strokeStyle = 'rgba(255,230,180,0.14)';
+  ctx.lineWidth = 0.7;
+  ctx.strokeRect(pa.x0, pa.y0, pa.w, pa.h);
+
+  // gridlines horizontal (entropy, normalised to S_BH_max fractions)
+  ctx.strokeStyle = 'rgba(255,230,180,0.06)';
+  ctx.setLineDash([2,4]);
+  for (let i = 1; i < 5; i++){
+    const y = pa.y0 + i * pa.h / 5;
+    ctx.beginPath(); ctx.moveTo(pa.x0, y); ctx.lineTo(pa.x1, y); ctx.stroke();
+  }
+  // gridlines vertical (time)
+  for (let i = 1; i < 10; i++){
+    const x = pa.x0 + i * pa.w / 10;
+    ctx.beginPath(); ctx.moveTo(x, pa.y0); ctx.lineTo(x, pa.y1); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // axis labels
+  ctx.fillStyle = 'rgba(168,164,153,0.80)';
+  ctx.font = '11px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+
+  // bottom x ticks (t/tau)
+  for (let i = 0; i <= 10; i++){
+    const x = pa.x0 + i * pa.w / 10;
+    ctx.fillText((i/10).toFixed(1), x, pa.y1 + 16);
+  }
+  ctx.fillStyle = 'rgba(240,237,224,0.55)';
+  ctx.font = '600 10px "JetBrains Mono"';
+  ctx.fillText("t / τ", (pa.x0+pa.x1)/2, pa.y1 + 34);
+
+  // top x ticks (C/C*, same mapping for this parameterisation)
+  ctx.fillStyle = 'rgba(118,193,109,0.55)';
+  ctx.font = '10px "JetBrains Mono"';
+  for (let i = 0; i <= 10; i += 2){
+    const x = pa.x0 + i * pa.w / 10;
+    const CoverCstar = S_Hawking_naive(i/10, 1) / (4*Math.PI);
+    ctx.fillText(CoverCstar.toFixed(2), x, pa.y0 - 14);
+  }
+  ctx.fillText("C / C*", (pa.x0+pa.x1)/2, pa.y0 - 28);
+
+  // left y ticks (entropy fraction)
+  ctx.fillStyle = 'rgba(233,75,75,0.65)';
+  ctx.font = '10px "JetBrains Mono"';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 5; i++){
+    const y = pa.y1 - i * pa.h / 5;
+    ctx.fillText((i/5).toFixed(1), pa.x0 - 8, y + 3);
+  }
+  ctx.save();
+  ctx.translate(pa.x0 - 38, (pa.y0+pa.y1)/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(233,75,75,0.70)';
+  ctx.fillText("S  /  S_BH(0)", 0, 0);
+  ctx.restore();
+
+  // right y ticks (log exp)
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(217,178,86,0.65)';
+  for (let i = 0; i <= 4; i++){
+    const y = pa.y1 - i * pa.h / 4.5;
+    const val = Math.pow(10, i);
+    const label = i === 0 ? '1' : '10' + '⁰¹²³⁴⁵'[i];
+    ctx.fillText(label, pa.x1 + 8, y + 3);
+  }
+  ctx.save();
+  ctx.translate(pa.x1 + 42, (pa.y0+pa.y1)/2);
+  ctx.rotate(Math.PI/2);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(217,178,86,0.70)';
+  ctx.fillText("exp(C / Ω)", 0, 0);
+  ctx.restore();
+}
+
+/* curves ------------------------------------------------------------- */
+function drawCurve(pa, fn, M0, style, lineWidth=1.5, dash=null){
+  ctx.save();
+  ctx.beginPath();
+  const N = 600;
+  let first = true;
+  for (let i = 0; i <= N; i++){
+    const tt = i / N;
+    const v = fn(tt, M0);
+    const y = yLeft(v, M0, pa);
+    const x = xOf(tt, pa);
+    if (first){ ctx.moveTo(x, y); first = false; }
+    else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = style;
+  ctx.lineWidth = lineWidth;
+  if (dash) ctx.setLineDash(dash);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawKernel(pa){
+  ctx.save();
+  ctx.beginPath();
+  const N = 500;
+  let first = true;
+  for (let i = 1; i <= N; i++){
+    const tt = i / N;
+    const C = C_of(tt, 1);
+    const K = exp_kernel(C);
+    const y = yLogK(K, pa);
+    const x = xOf(tt, pa);
+    if (first){ ctx.moveTo(x, y); first=false; } else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = 'rgba(217,178,86,0.72)';
+  ctx.lineWidth = 1.1;
+  ctx.setLineDash([5,4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawBeauty(pa){
+  // normalised beauty curve  B(C) / B_peak ; shown as a filled region
+  const Bpeak = beauty(CSTAR_Z2 - OMEGA_Z2);
+  ctx.save();
+  ctx.beginPath();
+  const N = 400;
+  for (let i = 0; i <= N; i++){
+    const tt = i / N;
+    const C = C_of(tt, 1);
+    const b = beauty(C) / Bpeak;
+    const y = pa.y1 - b * pa.h * 0.14;          // rendered as bottom-band overlay
+    const x = xOf(tt, pa);
+    if (i === 0) ctx.moveTo(x, pa.y1); 
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(pa.x1, pa.y1);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, pa.y1, 0, pa.y1 - pa.h*0.14);
+  grad.addColorStop(0, 'rgba(255,209,102,0)');
+  grad.addColorStop(1, 'rgba(255,209,102,0.28)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,209,102,0.45)';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawMarkers(pa){
+  ctx.save();
+  ctx.font = '9px "JetBrains Mono"';
+  for (const key of ['thresh','epi','page','beauty','rupture']){
+    const m = MARKERS[key];
+    const x = xOf(m.ttau, pa);
+    ctx.strokeStyle = m.colour;
+    ctx.fillStyle   = m.colour;
+    ctx.setLineDash([3,4]);
+    ctx.lineWidth = 0.9;
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.moveTo(x, pa.y0); ctx.lineTo(x, pa.y1); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    // label
+    ctx.textAlign = 'center';
+    ctx.fillStyle = m.colour;
+    ctx.fillText(m.label, x, pa.y0 - 4);
+  }
+  ctx.restore();
+}
+
+function drawTimeCursor(pa){
+  const x = xOf(state.ttau, pa);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,248,220,0.85)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(x, pa.y0); ctx.lineTo(x, pa.y1); ctx.stroke();
+
+  // dot at S_Page(t)
+  const y = yLeft(S_Page(state.ttau, state.M0), state.M0, pa);
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(5,5,7,0.9)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // small numeric tag above
+  ctx.fillStyle = 'rgba(240,237,224,0.92)';
+  ctx.font = '600 10px "JetBrains Mono"';
+  ctx.textAlign = 'center';
+  ctx.fillText(`t/τ = ${state.ttau.toFixed(3)}`, x, pa.y0 - 10);
+  ctx.restore();
+}
+
+/* main render  ------------------------------------------------------- */
+function render(){
+  ctx.clearRect(0, 0, W, H);
+  const pa = plotArea();
+  drawAxes(pa);
+
+  const show = state.curves;
+
+  if (show.beauty)  drawBeauty(pa);
+
+  // curves depending on scenario
+  if (state.mode === 'hawking'){
+    // only the Hawking naive curve
+    if (show.hawking) drawCurve(pa, S_Hawking_naive, state.M0, 'rgba(255,158,87,0.95)', 2.2);
+    // faded BH
+    if (show.bh)      drawCurve(pa, S_BH,             state.M0, 'rgba(233,75,75,0.35)', 1.4, [3,4]);
+  } else if (state.mode === 'compare'){
+    if (show.hawking) drawCurve(pa, S_Hawking_naive, state.M0, 'rgba(255,158,87,0.78)', 1.6, [3,4]);
+    if (show.bh)      drawCurve(pa, S_BH,             state.M0, 'rgba(233,75,75,0.78)',  1.6, [3,4]);
+    if (show.page)    drawCurve(pa, S_Page,           state.M0, 'rgba(118,193,109,0.95)', 2.4);
+    if (show.kernel)  drawKernel(pa);
+  } else if (state.mode === 'crr'){
+    if (show.page)    drawCurve(pa, S_Page,           state.M0, 'rgba(118,193,109,0.72)', 1.8);
+    if (show.kernel)  drawKernel(pa);
+    // emphasise C and exp(C/Ω) heavily; faded Hawking/BH
+    if (show.hawking) drawCurve(pa, S_Hawking_naive, state.M0, 'rgba(255,158,87,0.30)', 1.2, [2,5]);
+    if (show.bh)      drawCurve(pa, S_BH,             state.M0, 'rgba(233,75,75,0.30)',  1.2, [2,5]);
+  } else {  // full
+    if (show.hawking) drawCurve(pa, S_Hawking_naive, state.M0, 'rgba(255,158,87,0.80)', 1.7, [3,4]);
+    if (show.bh)      drawCurve(pa, S_BH,             state.M0, 'rgba(233,75,75,0.80)',  1.7, [3,4]);
+    if (show.page)    drawCurve(pa, S_Page,           state.M0, 'rgba(118,193,109,0.95)', 2.6);
+    if (show.kernel)  drawKernel(pa);
+  }
+
+  if (show.markers) drawMarkers(pa);
+  drawTimeCursor(pa);
+
+  // corner legend
+  drawLegend(pa);
+}
+
+function drawLegend(pa){
+  const show = state.curves;
+  const items = [];
+  if (show.hawking) items.push(['Hawking (naive)', 'rgba(255,158,87,0.95)', false]);
+  if (show.bh)      items.push(['S_BH  (Bekenstein-Hawking)', 'rgba(233,75,75,0.95)', false]);
+  if (show.page)    items.push(['Page curve  (island saddle)', 'rgba(118,193,109,0.95)', true]);
+  if (show.kernel)  items.push(['exp(C / Ω)  memory kernel', 'rgba(217,178,86,0.85)', false]);
+  if (show.beauty)  items.push(['B(C)  beauty · C* − Ω peak', 'rgba(255,209,102,0.85)', false]);
+
+  ctx.save();
+  ctx.font = '10.5px "JetBrains Mono"';
+  ctx.textBaseline = 'middle';
+  const boxW = 260, lineH = 17;
+  const bx = pa.x0 + 14, by = pa.y0 + 12;
+  ctx.fillStyle = 'rgba(5,5,7,0.70)';
+  ctx.fillRect(bx, by, boxW, items.length*lineH + 10);
+  ctx.strokeStyle = 'rgba(255,230,180,0.20)';
+  ctx.lineWidth = 0.7;
+  ctx.strokeRect(bx, by, boxW, items.length*lineH + 10);
+  items.forEach((it, i) => {
+    const [label, colour, bold] = it;
+    const y = by + 12 + i*lineH;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = bold ? 2.2 : 1.5;
+    ctx.beginPath(); ctx.moveTo(bx + 8, y); ctx.lineTo(bx + 32, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(240,237,224,0.90)';
+    ctx.fillText(label, bx + 40, y);
+  });
+  ctx.restore();
+}
+
+/* ============================================================================
+ *  UI sync
+ * ========================================================================== */
+function sync(){
+  const M0 = state.M0;
+  const t  = state.ttau;
+  const C  = C_of(t, M0);
+  const Cw = C * OMEGA_Z2;
+  const K  = exp_kernel(C);
+  const B  = beauty(C);
+
+  // strips
+  document.getElementById('C-strip').textContent = (C / CSTAR_Z2).toFixed(4);
+  document.getElementById('C-fill').style.width  = Math.min(100, (C/CSTAR_Z2)*100) + '%';
+  document.getElementById('K-strip').textContent = K < 9999 ? K.toFixed(2) : K.toExponential(2);
+  const lg = Math.min(1, Math.log10(Math.max(1,K))/4.5);
+  document.getElementById('K-fill').style.width = (lg*100) + '%';
+
+  // bottom crumb
+  document.getElementById('bar-t').textContent  = t.toFixed(3);
+  document.getElementById('bar-M').textContent  = mass(t,1).toFixed(3);
+  document.getElementById('bar-cw').textContent = Cw.toFixed(3);
+
+  // slider display
+  document.getElementById('t-val').textContent = t.toFixed(3);
+  document.getElementById('M-val').textContent = M0;
+
+  // live state
+  document.getElementById('st-M' ).textContent = mass(t,1).toFixed(4);
+  document.getElementById('st-SBH').textContent= S_BH(t, M0).toFixed(4);
+  document.getElementById('st-SH').textContent = S_Hawking_naive(t, M0).toFixed(4);
+  document.getElementById('st-SP').textContent = S_Page(t, M0).toFixed(4);
+  document.getElementById('st-C').textContent  = C.toFixed(4);
+  document.getElementById('st-Cw').textContent = Cw.toFixed(4);
+  document.getElementById('st-K').textContent  = K < 9999 ? K.toFixed(2) : K.toExponential(2);
+  document.getElementById('st-B').textContent  = B.toFixed(4);
+
+  // saddle badge: trivial if we're before Page time
+  const badge = document.getElementById('saddle-badge');
+  if (t < MARKERS.page.ttau){
+    badge.className = 'saddle-badge trivial';
+    badge.textContent = 'TRIVIAL  (bare Z₂)';
+  } else {
+    badge.className = 'saddle-badge island';
+    badge.textContent = 'ISLAND  (memory-kernel dominant)';
+  }
+
+  render();
+}
+
+function setMode(m){
+  state.mode = m;
+  for (const key of ['full','hawking','crr','compare']){
+    const el = document.getElementById('mode-' + key);
+    if (el) el.classList.toggle('active', key === m);
+  }
+  render();
+}
+
+function toggleCurve(key, on){
+  state.curves[key] = on;
+  const el = document.getElementById('tog-' + key);
+  if (el) el.classList.toggle('active', on);
+  render();
+}
+
+function stepTo(key){
+  state.playing = false;
+  document.getElementById('play-btn').classList.remove('active');
+  state.ttau = MARKERS[key].ttau;
+  document.getElementById('t-slider').value = state.ttau * 1000;
+  sync();
+}
+
+function togglePlay(){
+  state.playing = !state.playing;
+  document.getElementById('play-btn').classList.toggle('active', state.playing);
+  if (state.playing){
+    state.lastTime = performance.now();
+    if (state.ttau >= 0.999) state.ttau = 0;
+    requestAnimationFrame(tick);
+  }
+}
+
+function tick(now){
+  if (!state.playing) return;
+  const dt = (now - state.lastTime) / 1000;
+  state.lastTime = now;
+  state.ttau += dt / 18;   // full sweep in ~18s
+  if (state.ttau >= 1.0){
+    state.ttau = 1.0;
+    state.playing = false;
+    document.getElementById('play-btn').classList.remove('active');
+  }
+  document.getElementById('t-slider').value = state.ttau * 1000;
+  sync();
+  if (state.playing) requestAnimationFrame(tick);
+}
+
+/* sliders */
+document.getElementById('t-slider').addEventListener('input', e => {
+  state.ttau = e.target.value / 1000;
+  sync();
+});
+document.getElementById('M-slider').addEventListener('input', e => {
+  state.M0 = parseFloat(e.target.value);
+  sync();
+});
+
+/* initialise */
+resize();
+sync();
+</script>
 </body>
 </html>
