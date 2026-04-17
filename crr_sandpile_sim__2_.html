@@ -1,1383 +1,1532 @@
 <!DOCTYPE html>
-<html lang="en-GB">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRR-BTW Sandpile: Rigorous Validation</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #ffffff;
-            color: #1a1a1a;
-            line-height: 1.6;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-            color: white;
-            padding: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .header h1 {
-            font-size: 2em;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            font-size: 1.05em;
-            opacity: 0.95;
-        }
-
-        .container {
-            max-width: 1800px;
-            margin: 0 auto;
-            padding: 30px;
-        }
-
-        .validation-banner {
-            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
-            color: white;
-            padding: 20px 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.2);
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .validation-icon {
-            font-size: 3em;
-        }
-
-        .validation-text h2 {
-            font-size: 1.4em;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-        .validation-text p {
-            font-size: 0.95em;
-            opacity: 0.95;
-        }
-
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-
-        .panel {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            border: 1px solid #e0e0e0;
-        }
-
-        .panel h2 {
-            font-size: 1.3em;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #2c3e50;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #3498db;
-        }
-
-        .canvas-wrapper {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        canvas {
-            display: block;
-            width: 100%;
-            height: auto;
-            border-radius: 8px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-        }
-
-        .view-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .view-btn {
-            flex: 1;
-            min-width: 120px;
-            padding: 12px;
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.9em;
-            transition: all 0.2s ease;
-            color: #2c3e50;
-        }
-
-        .view-btn:hover {
-            border-color: #3498db;
-            background: #f8f9fa;
-        }
-
-        .view-btn.active {
-            background: #3498db;
-            color: white;
-            border-color: #3498db;
-        }
-
-        .controls {
-            display: grid;
-            gap: 18px;
-        }
-
-        .control-group {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .control-group label {
-            display: block;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 10px;
-            font-size: 0.9em;
-        }
-
-        .control-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        input[type="range"] {
-            flex: 1;
-            height: 6px;
-            border-radius: 3px;
-            background: #d0d0d0;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #3498db;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #3498db;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .value-display {
-            min-width: 50px;
-            text-align: center;
-            font-weight: 700;
-            color: #3498db;
-            background: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.9em;
-            border: 1px solid #e0e0e0;
-        }
-
-        .button-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        button {
-            padding: 14px;
-            font-size: 0.95em;
-            font-weight: 600;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .btn-primary {
-            background: #3498db;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2980b9;
-            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-        }
-
-        .btn-secondary {
-            background: #95a5a6;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #7f8c8d;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #dee2e6;
-        }
-
-        .stat-label {
-            font-size: 0.75em;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        .stat-value {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: #2c3e50;
-            line-height: 1;
-        }
-
-        .critical-validation {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            border: 2px solid #ffc107;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-
-        .critical-validation h3 {
-            color: #856404;
-            font-size: 1.1em;
-            margin-bottom: 12px;
-            font-weight: 700;
-        }
-
-        .exponent-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-top: 10px;
-        }
-
-        .exponent-box {
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #ffc107;
-        }
-
-        .exponent-label {
-            font-size: 0.8em;
-            color: #856404;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .exponent-values {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-        }
-
-        .exponent-measured {
-            font-size: 1.4em;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-
-        .exponent-theoretical {
-            font-size: 0.85em;
-            color: #6c757d;
-        }
-
-        .match-indicator {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.75em;
-            font-weight: 700;
-            margin-left: 8px;
-        }
-
-        .match-indicator.good {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .match-indicator.excellent {
-            background: #cce5ff;
-            color: #004085;
-        }
-
-        .chart-container {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid #e0e0e0;
-            margin-top: 20px;
-            height: 350px;
-            position: relative;
-        }
-
-        .explainer {
-            margin-top: 30px;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            border: 1px solid #e0e0e0;
-        }
-
-        .explainer-header {
-            background: #2c3e50;
-            color: white;
-            padding: 20px 25px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.2s ease;
-        }
-
-        .explainer-header:hover {
-            background: #34495e;
-        }
-
-        .explainer-header h2 {
-            margin: 0;
-            font-size: 1.2em;
-            font-weight: 600;
-        }
-
-        .explainer-toggle {
-            font-size: 1.3em;
-            transition: transform 0.3s ease;
-        }
-
-        .explainer-toggle.open {
-            transform: rotate(180deg);
-        }
-
-        .explainer-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease;
-        }
-
-        .explainer-content.open {
-            max-height: 6000px;
-        }
-
-        .explainer-body {
-            padding: 30px;
-            color: #2c3e50;
-        }
-
-        .explainer-body h3 {
-            color: #2c3e50;
-            margin-top: 25px;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            font-weight: 600;
-            border-left: 4px solid #3498db;
-            padding-left: 15px;
-        }
-
-        .explainer-body p {
-            margin-bottom: 15px;
-            line-height: 1.8;
-        }
-
-        .equation {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #3498db;
-            margin: 15px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            overflow-x: auto;
-        }
-
-        .highlight-box {
-            background: #e7f3ff;
-            border: 2px solid #3498db;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-
-        @media (max-width: 1400px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .legend {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 15px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.85em;
-            color: #2c3e50;
-            background: white;
-            padding: 6px 12px;
-            border-radius: 6px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .legend-color {
-            width: 16px;
-            height: 16px;
-            border-radius: 3px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-    </style>
+<html lang="en-GB"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self-Organised Criticality — A Temporal Grammar Study</title>
+<!--
+  §CRR ─ Self-Organised Criticality study
+  Author: Alexander Sabine, Active Inference Institute
+          Alexander@activeinference.institute
+          temporalgrammar.ai
+
+  This simulation runs canonical Bak-Tang-Wiesenfeld sandpile dynamics
+  and annotates its internals through the CRR (Coherence-Rupture-Regeneration)
+  temporal grammar, showing where the grammar applies and where it does not.
+
+  Epistemic position (see tested-tab): the topological CRR prediction
+  CV = Ω/2 is falsified for BTW in its strong form — CV grows logarithmically
+  with lattice size rather than converging to 1. What remains is position 3:
+  CRR as vocabulary for the spatial/temporal asymmetry that SOC exhibits.
+  This reading is what CRR adds to FEP.
+-->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box }
+html, body { width:100%; height:100%; overflow:hidden }
+body {
+  background:#040a10; color:rgba(220,235,240,.85);
+  font-family:'Cormorant Garamond', Georgia, serif;
+  font-weight:300;
+}
+
+/* ═══════════ CANVAS STAGE ═══════════ */
+#stage { position:fixed; inset:0; display:block }
+#main-canvas {
+  position:absolute;
+  top:0; left:0;
+  width:100%; height:100%;
+  display:block;
+}
+
+/* ═══════════ SPLASH / OPENING SEQUENCE ═══════════ */
+#splash {
+  position:fixed; inset:0; z-index:100;
+  background:radial-gradient(ellipse at center, #081420 0%, #020608 80%);
+  display:flex; align-items:flex-start; justify-content:center;
+  overflow-y:auto;
+  transition:opacity .8s ease, visibility .8s;
+}
+#splash.hidden { opacity:0; visibility:hidden; pointer-events:none }
+#splash-inner {
+  max-width:780px; width:100%; padding:64px 48px 80px;
+  color:rgba(230,240,242,.88);
+}
+.splash-h1 {
+  font-size:42px; font-weight:400; line-height:1.15;
+  color:rgba(245,250,248,.95); margin-bottom:6px;
+  letter-spacing:.3px;
+}
+.splash-h1 em {
+  color:rgba(200,240,220,.85); font-weight:400;
+  font-style:italic; font-family:'Cormorant Garamond';
+}
+.splash-sub {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10.5px; font-weight:400;
+  letter-spacing:2.4px; text-transform:uppercase;
+  color:rgba(160,220,200,.6); margin-bottom:42px;
+}
+.splash-lead {
+  font-size:19px; line-height:1.65; color:rgba(225,238,240,.82);
+  margin-bottom:40px; font-weight:300;
+}
+.splash-lead em { color:rgba(200,240,220,.9); font-style:italic }
+.splash-lead strong { color:rgba(245,255,250,.95); font-weight:500 }
+
+.splash-section {
+  margin-bottom:36px;
+  padding-top:24px;
+  border-top:1px solid rgba(80,140,160,.1);
+}
+.splash-section h3 {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10.5px; font-weight:400;
+  letter-spacing:1.8px; text-transform:uppercase;
+  color:rgba(160,220,200,.7); margin-bottom:18px;
+}
+.splash-section p {
+  font-size:15.5px; line-height:1.7; color:rgba(220,235,240,.78);
+  margin-bottom:12px; font-weight:300;
+}
+.splash-section p em { color:rgba(200,240,220,.85); font-style:italic }
+.splash-section p strong { color:rgba(245,250,248,.92); font-weight:500 }
+
+/* Three canonical equations */
+.eq-block {
+  background:rgba(140,220,200,.04);
+  border:1px solid rgba(140,220,200,.12);
+  padding:16px 18px; margin:14px 0;
+  font-family:'JetBrains Mono', monospace;
+}
+.eq-block .eq-label {
+  font-size:9.5px; letter-spacing:1.6px; text-transform:uppercase;
+  color:rgba(255,180,90,.8); margin-bottom:6px;
+}
+.eq-block .eq-formula {
+  font-size:16px; color:rgba(200,240,220,.95);
+  letter-spacing:.4px; margin-bottom:8px;
+}
+.eq-block .eq-gloss {
+  font-family:'Cormorant Garamond', Georgia, serif;
+  font-size:14px; line-height:1.5; font-style:italic;
+  color:rgba(210,228,230,.65); font-weight:300;
+}
+
+/* FEP correspondence table */
+.corr-table {
+  width:100%; border-collapse:collapse; margin:10px 0 6px;
+  font-size:14px;
+}
+.corr-table th {
+  text-align:left; font-weight:500;
+  font-family:'JetBrains Mono', monospace;
+  font-size:9.5px; letter-spacing:1.4px; text-transform:uppercase;
+  color:rgba(160,220,200,.7);
+  padding:8px 10px 8px 0;
+  border-bottom:1px solid rgba(80,140,160,.25);
+}
+.corr-table td {
+  padding:10px 10px 10px 0;
+  border-bottom:1px solid rgba(80,140,160,.08);
+  vertical-align:top; line-height:1.5;
+  color:rgba(220,235,240,.75); font-weight:300;
+}
+.corr-table td:first-child {
+  color:rgba(200,240,220,.88);
+  font-family:'JetBrains Mono', monospace;
+  font-size:12.5px;
+  white-space:nowrap; padding-right:18px;
+}
+.corr-table td:nth-child(2) {
+  color:rgba(220,235,240,.82);
+  font-weight:400;
+  padding-right:16px;
+}
+
+.begin-btn {
+  display:inline-block;
+  margin-top:28px; padding:13px 28px;
+  background:rgba(140,220,200,.08);
+  border:1px solid rgba(140,220,200,.35);
+  color:rgba(200,240,220,.95);
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px; letter-spacing:2.2px;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:all .25s;
+}
+.begin-btn:hover {
+  background:rgba(140,220,200,.18);
+  border-color:rgba(140,220,200,.6);
+  color:rgba(220,250,235,1);
+}
+
+.attribution {
+  margin-top:44px; padding-top:20px;
+  border-top:1px solid rgba(80,140,160,.08);
+  font-family:'JetBrains Mono', monospace;
+  font-size:9.5px; letter-spacing:1.1px;
+  color:rgba(160,200,200,.5); line-height:1.7;
+}
+.attribution a { color:rgba(180,220,210,.75); text-decoration:none }
+.attribution a:hover { color:rgba(200,240,220,.95) }
+
+/* ═══════════ TOP-LEFT STATS ═══════════ */
+#stats {
+  position:fixed; top:16px; left:16px; z-index:10;
+  background:rgba(4,10,16,.7); backdrop-filter:blur(10px);
+  border:1px solid rgba(80,140,160,.12);
+  padding:14px 18px; min-width:240px;
+}
+#stats h2 {
+  font-size:16px; font-weight:500;
+  color:rgba(240,250,248,.92); margin-bottom:2px;
+  letter-spacing:.2px;
+}
+#stats .stats-sub {
+  font-family:'JetBrains Mono', monospace;
+  font-size:8.5px; letter-spacing:1.6px; text-transform:uppercase;
+  color:rgba(160,220,200,.55); margin-bottom:14px;
+}
+.stat-row {
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding:3px 0;
+  font-family:'JetBrains Mono', monospace; font-size:11px;
+}
+.stat-row .label {
+  color:rgba(180,200,210,.55);
+  letter-spacing:.4px;
+}
+.stat-row .val {
+  color:rgba(200,240,220,.95); font-weight:500;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ═══════════ LEFT CONTROLS (collapsible) ═══════════ */
+#controls {
+  position:fixed; top:16px; left:276px; z-index:10;
+  width:232px;
+  background:rgba(4,10,16,.7); backdrop-filter:blur(10px);
+  border:1px solid rgba(80,140,160,.12);
+  padding:14px 16px;
+  transition:transform .3s;
+}
+#controls h3 {
+  font-family:'JetBrains Mono', monospace;
+  font-size:9.5px; letter-spacing:1.6px; text-transform:uppercase;
+  color:rgba(160,220,200,.7); margin-bottom:10px;
+}
+.ctrl-grp { margin-bottom:14px }
+.ctrl-lbl {
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-family:'JetBrains Mono', monospace; font-size:10.5px;
+  color:rgba(200,220,225,.7); margin-bottom:4px;
+  letter-spacing:.3px;
+}
+.ctrl-lbl .v { color:rgba(200,240,220,.95); font-weight:500; font-variant-numeric:tabular-nums }
+input[type=range] {
+  -webkit-appearance:none; width:100%; height:2px;
+  background:rgba(80,150,170,.22); outline:none; margin:3px 0;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:12px; height:12px;
+  border-radius:50%; background:rgba(160,240,220,.7);
+  cursor:pointer; border:2px solid rgba(5,15,25,.8);
+}
+input[type=range]::-moz-range-thumb {
+  width:12px; height:12px; border-radius:50%;
+  background:rgba(160,240,220,.7); cursor:pointer;
+  border:2px solid rgba(5,15,25,.8);
+}
+.ctrl-grp .hint {
+  font-size:10px; color:rgba(180,200,210,.4);
+  margin-top:3px; line-height:1.4;
+}
+.btn-row {
+  display:grid; grid-template-columns:1fr 1fr; gap:6px;
+  margin-top:4px;
+}
+.btn {
+  padding:7px 10px;
+  background:rgba(140,220,200,.06);
+  border:1px solid rgba(140,220,200,.2);
+  color:rgba(200,240,220,.85);
+  font-family:'JetBrains Mono', monospace;
+  font-size:9.5px; letter-spacing:1.2px;
+  text-transform:uppercase; cursor:pointer;
+  transition:all .2s;
+}
+.btn:hover {
+  background:rgba(140,220,200,.14);
+  color:rgba(220,250,235,1);
+}
+.btn.active {
+  background:rgba(140,220,200,.18);
+  border-color:rgba(140,220,200,.5);
+  color:rgba(220,250,235,1);
+}
+.view-row {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px;
+  margin-top:3px;
+}
+.view-row .btn { padding:6px 4px; font-size:8.5px; letter-spacing:.9px }
+
+/* ═══════════ DIST PLOT (bottom-left) ═══════════ */
+#dist-panel {
+  position:fixed; bottom:16px; left:16px; z-index:10;
+  width:340px;
+  background:rgba(4,10,16,.75); backdrop-filter:blur(10px);
+  border:1px solid rgba(80,140,160,.12);
+  padding:12px 14px;
+}
+#dist-panel h4 {
+  font-family:'JetBrains Mono', monospace;
+  font-size:9.5px; letter-spacing:1.6px; text-transform:uppercase;
+  color:rgba(160,220,200,.7); margin-bottom:4px;
+}
+#dist-panel .cap {
+  font-size:11.5px; font-style:italic; color:rgba(180,200,210,.55);
+  margin-bottom:6px; line-height:1.45;
+}
+#dist-canvas { display:block; width:100%; height:130px }
+.dist-readout {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; color:rgba(180,200,210,.6);
+  display:flex; justify-content:space-between; margin-top:4px;
+}
+.dist-readout .tau { color:rgba(200,240,220,.9); font-weight:500 }
+
+/* ═══════════ RIGHT EXPLAINER ═══════════ */
+#explainer {
+  position:fixed; top:0; right:0; width:0; height:100vh;
+  background:rgba(4,10,16,.95); backdrop-filter:blur(14px);
+  border-left:1px solid rgba(80,140,160,.12);
+  overflow-y:auto; z-index:20;
+  transition:width .35s cubic-bezier(.4,0,.2,1);
+  scrollbar-width:thin; scrollbar-color:rgba(80,140,160,.2) transparent;
+}
+#explainer.open { width:440px }
+#explainer::-webkit-scrollbar { width:4px }
+#explainer::-webkit-scrollbar-thumb { background:rgba(80,140,160,.2) }
+#ex-inner {
+  padding:28px 28px 50px;
+  opacity:0; transition:opacity .3s .15s;
+}
+#explainer.open #ex-inner { opacity:1 }
+.ex-close {
+  position:absolute; top:14px; right:16px;
+  width:28px; height:28px;
+  background:none; border:none; cursor:pointer;
+  color:rgba(220,235,240,.5); font-size:20px;
+  display:flex; align-items:center; justify-content:center;
+}
+.ex-close:hover { color:rgba(240,250,248,.95) }
+
+.tab-bar {
+  display:flex; gap:0; margin-bottom:22px; flex-wrap:wrap;
+  border-bottom:1px solid rgba(80,140,160,.12);
+}
+.tab {
+  padding:8px 13px 9px; font-size:9.5px;
+  font-family:'JetBrains Mono', monospace;
+  letter-spacing:1.2px; text-transform:uppercase;
+  color:rgba(200,220,225,.5);
+  background:none; border:none; cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:all .2s;
+}
+.tab:hover { color:rgba(220,235,240,.8) }
+.tab.active {
+  color:rgba(160,240,220,.95);
+  border-bottom-color:rgba(140,220,200,.6);
+}
+.tab-content { display:none }
+.tab-content.active { display:block }
+
+.ex-h1 {
+  font-size:26px; font-weight:400;
+  color:rgba(240,250,248,.95);
+  margin-bottom:4px; line-height:1.25;
+  letter-spacing:.3px;
+}
+.ex-h1 em { color:rgba(200,240,220,.88); font-style:italic }
+.ex-sub {
+  font-family:'JetBrains Mono', monospace;
+  font-size:9.5px; letter-spacing:1.6px; text-transform:uppercase;
+  color:rgba(160,220,200,.65);
+  margin-bottom:24px;
+}
+.ex-section { margin-bottom:22px }
+.ex-section h4 {
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px; letter-spacing:1.6px; text-transform:uppercase;
+  color:rgba(160,220,200,.7);
+  margin-bottom:10px; font-weight:400;
+}
+.ex-section p {
+  font-size:15.5px; line-height:1.7;
+  color:rgba(228,240,242,.82); margin-bottom:12px;
+  font-weight:300;
+}
+.ex-section p em { color:rgba(200,240,220,.88); font-style:italic }
+.ex-section p strong { color:rgba(245,250,248,.92); font-weight:500 }
+.ex-section ul { list-style:none; padding:0; margin:10px 0 }
+.ex-section ul li {
+  font-size:14.5px; line-height:1.65; padding:4px 0 4px 20px;
+  position:relative; color:rgba(225,238,240,.78); font-weight:300;
+}
+.ex-section ul li::before {
+  content:'·'; color:rgba(160,220,200,.6);
+  position:absolute; left:8px; top:0; font-size:20px;
+}
+
+.quote {
+  border-left:2px solid rgba(140,220,200,.3);
+  padding:12px 16px; margin:16px 0;
+  background:rgba(140,220,200,.04);
+  font-size:14.5px; line-height:1.65;
+  color:rgba(220,235,240,.78); font-style:italic;
+  font-weight:300;
+}
+.quote .src {
+  display:block; font-style:normal;
+  font-family:'JetBrains Mono', monospace;
+  font-size:9.5px; letter-spacing:.6px;
+  color:rgba(160,220,200,.55);
+  margin-top:8px;
+}
+
+.formula {
+  background:rgba(140,220,200,.06);
+  border:1px solid rgba(140,220,200,.14);
+  padding:12px 16px; margin:14px 0;
+  font-family:'JetBrains Mono', monospace;
+  font-size:13px; color:rgba(200,240,220,.92);
+  line-height:1.55;
+}
+.formula .lbl {
+  font-size:9px; letter-spacing:1.4px; text-transform:uppercase;
+  color:rgba(255,180,90,.7); margin-bottom:5px;
+  display:block;
+}
+
+.verdict {
+  padding:14px 16px; margin:16px 0;
+  border-left:3px solid rgba(255,180,80,.5);
+  background:rgba(255,180,80,.05);
+  font-size:14.5px; line-height:1.65;
+  color:rgba(230,235,220,.82);
+  font-weight:300;
+}
+.verdict strong { color:rgba(255,210,140,.95); font-weight:500 }
+
+/* ═══════════ TOGGLE BUTTONS ═══════════ */
+#toggle-ex, #toggle-ctl {
+  position:fixed; z-index:25;
+  padding:8px 14px;
+  background:rgba(15,30,40,.85); backdrop-filter:blur(8px);
+  border:1px solid rgba(80,140,160,.2);
+  color:rgba(220,235,240,.85);
+  font-family:'JetBrains Mono', monospace;
+  font-size:9.5px; letter-spacing:1.6px;
+  text-transform:uppercase; cursor:pointer;
+  transition:all .2s;
+}
+#toggle-ex { top:16px; right:16px }
+#toggle-ctl { bottom:16px; right:16px }
+#toggle-ex:hover, #toggle-ctl:hover {
+  background:rgba(20,45,55,.95);
+  color:rgba(240,250,248,.95);
+}
+
+/* ═══════════ FOOTER ═══════════ */
+#footer {
+  position:fixed; bottom:8px; left:50%;
+  transform:translateX(-50%); z-index:5;
+  font-family:'JetBrains Mono', monospace;
+  font-size:9px; letter-spacing:1.1px;
+  color:rgba(160,200,200,.4);
+  pointer-events:auto;
+}
+#footer a {
+  color:rgba(160,200,200,.55); text-decoration:none;
+  margin:0 6px;
+}
+#footer a:hover { color:rgba(200,240,220,.85) }
+
+/* Mobile */
+@media (max-width: 900px) {
+  #controls { position:static; display:none }
+  #splash-inner { padding:40px 24px }
+  .splash-h1 { font-size:32px }
+  #stats { min-width:200px; font-size:10px }
+  #dist-panel { width:calc(100% - 32px) }
+  #explainer.open { width:100vw }
+}
+</style>
 </head>
 <body>
-    <div class="header">
-        <h1>🏔️ CRR-BTW Sandpile: Rigorous Mathematical Validation</h1>
-        <p>Demonstrating exact correspondence between Coherence-Rupture-Regeneration dynamics and BTW critical exponents</p>
+
+<!-- ═══════════ OPENING SPLASH ═══════════ -->
+<div id="splash">
+  <div id="splash-inner">
+
+    <div class="splash-sub">Active Inference Institute · Pedagogical Study</div>
+    <h1 class="splash-h1">Self-Organised Criticality:<br>
+      <em>a temporal grammar for the Bak–Tang–Wiesenfeld sandpile</em></h1>
+
+    <p class="splash-lead">
+      A sandpile, fed one grain at a time, organises itself to the edge of
+      catastrophe. Most grains land and do nothing. A few trigger avalanches
+      of every size, with no characteristic scale. The pile tunes itself to
+      its own critical point, without being told where that is. This is
+      <em>self-organised criticality</em> (Bak, Tang &amp; Wiesenfeld, 1987),
+      and it sits at the meeting-point of statistical physics, biology, and
+      the theory of self-organising systems. This demonstration runs the
+      canonical sandpile and reads its internal structure through two
+      complementary lenses: the <strong>Free Energy Principle</strong>, which
+      gives the spatial grammar of inference and precision, and
+      <strong>Coherence–Rupture–Regeneration</strong> (CRR), which
+      adds a temporal grammar for accumulation, transition, and rebuilding.
+    </p>
+
+    <div class="splash-section">
+      <h3>The canonical CRR formalism</h3>
+      <p>
+        CRR names three structural moments through which a self-organising
+        system articulates itself in time. Each has a formal signature and
+        a phenomenological reading.
+      </p>
+
+      <div class="eq-block">
+        <div class="eq-label">1 ─ Coherence (the past, inside the temporal blanket)</div>
+        <div class="eq-formula">C(x, t) = ∫ L(x, τ) dτ</div>
+        <div class="eq-gloss">
+          Accumulated significance, integrated over lived time. L is the
+          Fisher–Rao line element — the rate at which the system
+          distinguishes itself from what it is not.
+        </div>
+      </div>
+
+      <div class="eq-block">
+        <div class="eq-label">2 ─ Rupture (the now, the temporal blanket itself)</div>
+        <div class="eq-formula">δ(now) &nbsp;&nbsp;when&nbsp; C · Ω = 1</div>
+        <div class="eq-gloss">
+          The scale-invariant present moment — the Cramér–Rao saturation
+          point, equivalent to the Heisenberg and Gabor limits, where inside
+          matches outside and a transition becomes inevitable.
+        </div>
+      </div>
+
+      <div class="eq-block">
+        <div class="eq-label">3 ─ Regeneration (the future, outside the temporal blanket)</div>
+        <div class="eq-formula">R = ∫ φ(x, τ) · exp(C/Ω) · Θ(...) dτ</div>
+        <div class="eq-gloss">
+          Reconstruction weighted by an exponential memory kernel.
+          Moments of high coherence are exponentially amplified; Θ enforces
+          causality; φ is the reconstruction resource available at each past
+          moment.
+        </div>
+      </div>
+
+      <p style="margin-top:18px">
+        The parameter <em>Ω</em> binds the three. Small Ω gives a rigid system
+        that reconstitutes the same pattern (habit, crystal, pacemaker). Large
+        Ω gives a flexible system open to transformation (insight, phase
+        transition). At <em>C · Ω = 1</em> the system achieves perfect
+        self-characterisation and a rupture becomes the natural next step.
+      </p>
     </div>
 
-        <div class="main-grid">
-            <!-- Left: Visualisation -->
-            <div class="panel">
-                <h2>Photorealistic Sandpile Visualisation</h2>
-                
-                <div class="view-controls">
-                    <button class="view-btn active" onclick="setView('realistic')">📷 Photorealistic</button>
-                    <button class="view-btn" onclick="setView('height')">📊 Height Map</button>
-                    <button class="view-btn" onclick="setView('coherence')">⚡ Coherence Field</button>
-                </div>
+    <div class="splash-section">
+      <h3>CRR as a temporal complement to the Free Energy Principle</h3>
+      <p>
+        The Free Energy Principle (Parr, Pezzulo &amp; Friston, 2022) provides
+        a spatial grammar: a system maintains itself by minimising variational
+        free energy across its Markov blanket, which partitions internal from
+        external states. It tells us <em>what</em> updates and
+        <em>how</em> precision is weighted. CRR places a complementary
+        temporal Markov blanket across time — past, now, future — and
+        supplies the grammar for <em>when</em> the updating ruptures into
+        a new regime. The two frameworks share structure:
+      </p>
 
-                <div class="canvas-wrapper">
-                    <canvas id="sandpileCanvas" width="700" height="700"></canvas>
-                </div>
-
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #2c1810;"></div>
-                        <span>Empty (0)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #8B6B47;"></div>
-                        <span>Low (1-2)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #C4A574;"></div>
-                        <span>Medium (3)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #E8D4A0;"></div>
-                        <span>Near Critical (4)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color" style="background: #FFD700;"></div>
-                        <span>Critical (≥5)</span>
-                    </div>
-                </div>
-
-                <div class="critical-validation">
-                    <h3>🎯 Critical Exponent Validation</h3>
-                    <div class="exponent-grid">
-                        <div class="exponent-box">
-                            <div class="exponent-label">Size Distribution (τ)</div>
-                            <div class="exponent-values">
-                                <span class="exponent-measured" id="tauMeasured">-</span>
-                                <span class="exponent-theoretical">Theory: 1.27</span>
-                            </div>
-                            <span class="match-indicator" id="tauMatch">Calculating...</span>
-                        </div>
-                        <div class="exponent-box">
-                            <div class="exponent-label">Coherence → C*</div>
-                            <div class="exponent-values">
-                                <span class="exponent-measured" id="coherenceRatio">-</span>
-                                <span class="exponent-theoretical">Target: 1.0</span>
-                            </div>
-                            <span class="match-indicator" id="coherenceMatch">Calculating...</span>
-                        </div>
-                        <div class="exponent-box">
-                            <div class="exponent-label">Mean Height</div>
-                            <div class="exponent-values">
-                                <span class="exponent-measured" id="meanHeight">-</span>
-                                <span class="exponent-theoretical">Theory: 2.125</span>
-                            </div>
-                            <span class="match-indicator" id="heightMatch">Calculating...</span>
-                        </div>
-                        <div class="exponent-box">
-                            <div class="exponent-label">Criticality (%)</div>
-                            <div class="exponent-values">
-                                <span class="exponent-measured" id="criticalPercent">-</span>
-                                <span class="exponent-theoretical">SOC: 40-60%</span>
-                            </div>
-                            <span class="match-indicator" id="critMatch">Calculating...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right: Controls & Stats -->
-            <div class="panel">
-                <h2>Simulation Parameters</h2>
-
-                <div class="controls">
-                    <div class="control-group">
-                        <label>Grid Size (L×L)</label>
-                        <div class="control-row">
-                            <input type="range" id="gridSize" min="40" max="100" value="60" step="10">
-                            <span class="value-display" id="gridSizeValue">60</span>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label>System Temperature (Ω) - Memory Strength</label>
-                        <div class="control-row">
-                            <input type="range" id="omega" min="1" max="10" value="5" step="0.5">
-                            <span class="value-display" id="omegaValue">5.0</span>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label>Critical Threshold (z_c)</label>
-                        <div class="control-row">
-                            <input type="range" id="threshold" min="3" max="6" value="4" step="1">
-                            <span class="value-display" id="thresholdValue">4</span>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label>Simulation Speed</label>
-                        <div class="control-row">
-                            <input type="range" id="speed" min="1" max="10" value="5" step="1">
-                            <span class="value-display" id="speedValue">5</span>
-                        </div>
-                    </div>
-
-                    <div class="button-group">
-                        <button class="btn-primary" onclick="toggleSimulation()">
-                            <span id="playPauseText">▶ Start</span>
-                        </button>
-                        <button class="btn-secondary" onclick="resetSimulation()">↻ Reset</button>
-                    </div>
-                </div>
-
-                <h2 style="margin-top: 25px;">Real-Time Statistics</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Total Grains</div>
-                        <div class="stat-value" id="totalGrains">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Avalanches</div>
-                        <div class="stat-value" id="avalancheCount">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Largest Avalanche</div>
-                        <div class="stat-value" id="largestAvalanche">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Mean Coherence</div>
-                        <div class="stat-value" id="meanCoherence">0.0</div>
-                    </div>
-                </div>
-
-                <div class="chart-container">
-                    <canvas id="distributionChart" width="450" height="300"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mathematical Explainer -->
-        <div class="explainer">
-            <div class="explainer-header" onclick="toggleExplainer()">
-                <h2>📐 Complete Mathematical Framework & Validation Protocol</h2>
-                <span class="explainer-toggle" id="explainerToggle">▼</span>
-            </div>
-            <div class="explainer-content" id="explainerContent">
-                <div class="explainer-body">
-                    <h3>Validation Protocol: How We Know CRR Matches BTW</h3>
-                    
-                    <div class="highlight-box">
-                        <strong>Key Result:</strong> This simulation measures critical exponents in real-time and compares them against theoretical BTW predictions. When CRR parameters correctly implement BTW dynamics, measured exponents match theory within statistical error.
-                    </div>
-
-                    <h3>1. Theoretical BTW Critical Exponents (2D Square Lattice)</h3>
-                    <div class="equation">
-<strong>Size Distribution:</strong> P(s) ~ s^(-τ)<br>
-τ ≈ 1.27 ± 0.03 (numerical simulations)<br><br>
-<strong>Mean Height at Criticality:</strong><br>
-⟨z⟩ = 2.125 ± 0.005<br><br>
-<strong>Correlation Length:</strong><br>
-ξ → ∞ (diverges at critical point)<br><br>
-<strong>Dynamic Exponent:</strong><br>
-z ≈ 1.20 (relates avalanche size to duration)
-                    </div>
-
-                    <h3>2. CRR Implementation: Exact Correspondence</h3>
-                    
-                    <p><strong>State Variable:</strong></p>
-                    <div class="equation">x_n(t) = z_n(t) = grain height at site n</div>
-
-                    <p><strong>Coherence Functional (Integrated Stress):</strong></p>
-                    <div class="equation">
-C_n(t) = ∫₀ᵗ L_n(τ) dτ<br>
-where L_n = z_n(t) - z_c/2 = z_n(t) - 2<br><br>
-Physical meaning: C_n accumulates when z_n > 2<br>
-                    </div>
-
-                    <p><strong>Rupture Condition:</strong></p>
-                    <div class="equation">
-Toppling occurs when z_n ≥ z_c = 4<br>
-Equivalently: when C_n exceeds critical threshold C*
-                    </div>
-
-                    <p><strong>Rupture Dynamics:</strong></p>
-                    <div class="equation">
-z_n → z_n - 4 (remove 4 grains)<br>
-z_neighbour → z_neighbour + 1 (for each of 4 neighbours)<br>
-C_n → C_n × decay_factor (partial reset after rupture)
-                    </div>
-
-                    <p><strong>Regeneration with Memory:</strong></p>
-                    <div class="equation">
-R_n = Σ_m K_nm ∫ z_m(τ) exp(C_m(τ)/Ω) dτ<br><br>
-where:<br>
-K_nm = lattice connectivity (1 if neighbours, 0 otherwise)<br>
-exp(C_m/Ω) = exponential memory weighting<br>
-Ω = system temperature parameter
-                    </div>
-
-                    <h3>3. Validation Metrics</h3>
-
-                    <p><strong>Metric 1: Power-Law Exponent τ</strong></p>
-                    <p>We bin avalanche sizes and fit P(s) ~ s^(-τ) using log-log regression.</p>
-                    <div class="equation">
-<strong>Method:</strong> Linear regression on log(P(s)) vs log(s)<br>
-<strong>Expected:</strong> τ ≈ 1.27<br>
-<strong>Acceptance:</strong> |τ_measured - 1.27| < 0.1<br>
-<strong>Status:</strong> <span id="tauValidation">Calculating...</span>
-                    </div>
-
-                    <p><strong>Metric 2: Mean Height at Criticality</strong></p>
-                    <p>After transient period, system should stabilise around theoretical critical density.</p>
-                    <div class="equation">
-<strong>Expected:</strong> ⟨z⟩ = 2.125<br>
-<strong>Acceptance:</strong> 2.0 < ⟨z⟩ < 2.3<br>
-<strong>Status:</strong> <span id="heightValidation">Calculating...</span>
-                    </div>
-
-                    <p><strong>Metric 3: Coherence Convergence</strong></p>
-                    <p>CRR predicts coherence converges to fixed point C → C*.</p>
-                    <div class="equation">
-<strong>Test:</strong> Ratio ⟨C_n⟩ / C* should approach 1.0<br>
-<strong>Expected:</strong> Ratio ≈ 1.0 ± 0.2<br>
-<strong>Status:</strong> <span id="coherenceValidation">Calculating...</span>
-                    </div>
-
-                    <p><strong>Metric 4: Self-Organised Criticality</strong></p>
-                    <p>Fraction of sites near threshold should stabilise in critical range.</p>
-                    <div class="equation">
-<strong>Measure:</strong> % of sites with z ≥ 3<br>
-<strong>Expected:</strong> 40-60% (SOC regime)<br>
-<strong>Status:</strong> <span id="socValidation">Calculating...</span>
-                    </div>
-
-                    <h3>4. Why This Proves CRR = BTW</h3>
-
-                    <div class="highlight-box">
-                        <p><strong>If CRR is a correct formalisation of BTW, then:</strong></p>
-                        <ol>
-                            <li>Power-law exponent τ must match theory (τ ≈ 1.27)</li>
-                            <li>Mean height must match critical density (⟨z⟩ ≈ 2.125)</li>
-                            <li>Coherence must converge to fixed point (C → C*)</li>
-                            <li>System must self-organise to critical state (no tuning)</li>
-                        </ol>
-                        <p><strong>Result:</strong> All four conditions are satisfied, confirming that CRR with coherence C = ∫(z - z_c/2)dt correctly implements BTW dynamics.</p>
-                    </div>
-
-                    <h3>5. Novel CRR Predictions Beyond Standard BTW</h3>
-
-                    <p><strong>Memory Effects via Temperature Ω:</strong></p>
-                    <ul>
-                        <li>Higher Ω → stronger memory → different avalanche statistics</li>
-                        <li>Lower Ω → weaker memory → approaches memoryless BTW</li>
-                        <li>Tuneable parameter absent in standard formulations</li>
-                    </ul>
-
-                    <p><strong>Coherence as Early Warning:</strong></p>
-                    <ul>
-                        <li>Sites with high C_n more likely to participate in next avalanche</li>
-                        <li>Spatial patterns in coherence field predict avalanche paths</li>
-                        <li>Testable prediction not captured by height alone</li>
-                    </ul>
-
-                    <p><strong>Non-Markovian Dynamics:</strong></p>
-                    <ul>
-                        <li>Standard BTW is Markovian (future depends only on current state)</li>
-                        <li>CRR is non-Markovian (future depends on integrated history C_n)</li>
-                        <li>Opens pathway to memory-dependent SOC systems</li>
-                    </ul>
-
-                    <h3>6. Photorealistic Rendering</h3>
-                    <p>The visualisation uses:</p>
-                    <ul>
-                        <li><strong>Isometric 3D projection:</strong> Each grain rendered as stacked particle</li>
-                        <li><strong>Realistic sand colours:</strong> Browns (#8B6B47) to gold (#FFD700)</li>
-                        <li><strong>Lighting and shadows:</strong> Depth perception via shading</li>
-                        <li><strong>Granular texture:</strong> Subtle noise for grain-like appearance</li>
-                    </ul>
-
-                    <h3>Conclusion</h3>
-                    <div class="highlight-box">
-                        <p><strong>This simulation shows:</strong></p>
-                        <ol>
-                            <li>CRR with C = ∫(z - z_c/2)dt reproduces BTW</li>
-                            <li>Measured exponents match theory within error bars</li>
-                            <li>Self-organised criticality emerges as CRR fixed point</li>
-                            <li>Framework extends BTW with memory and prediction</li>
-                        </ol>
-                    </div>
-
-                    <h3>References</h3>
-                    <ul>
-                        <li>Bak, P., Tang, C., & Wiesenfeld, K. (1987). Self-organised criticality. Phys. Rev. Lett. 59(4), 381–384.</li>
-                        <li>Dhar, D. (1990). Self-organised critical state of sandpile automaton models. Phys. Rev. Lett. 64(14), 1613–1616.</li>
-                        <li>Lübeck, S., & Usadel, K. D. (1997). Numerical determination of the avalanche exponents of the Bak-Tang-Wiesenfeld model. Phys. Rev. E 55, 4095.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+      <table class="corr-table">
+        <thead><tr>
+          <th>CRR</th><th>FEP</th><th>Reading</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td>C(x, t)</td>
+            <td>−F (negative free energy)</td>
+            <td>Accumulated evidence for the self-model</td>
+          </tr>
+          <tr>
+            <td>Ω</td>
+            <td>1 / precision</td>
+            <td>Uncertainty, variance, or geodesic extent</td>
+          </tr>
+          <tr>
+            <td>δ(now)</td>
+            <td>Belief-update event</td>
+            <td>Perception-action transition, regime shift</td>
+          </tr>
+          <tr>
+            <td>R (regeneration)</td>
+            <td>Generative-model update</td>
+            <td>Posterior weighted by history</td>
+          </tr>
+          <tr>
+            <td>Spatial blanket</td>
+            <td>Markov blanket</td>
+            <td>Shared: inside / boundary / outside in space</td>
+          </tr>
+          <tr>
+            <td>Temporal blanket</td>
+            <td>— (not explicit)</td>
+            <td>Past / now / future: what CRR adds</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <script>
-        // Simulation State
-        let grid = [];
-        let coherence = [];
-        let gridSize = 60;
-        let threshold = 4;
-        let omega = 5.0;
-        let isRunning = false;
-        let totalGrainsAdded = 0;
-        let avalancheCount = 0;
-        let largestAvalanche = 0;
-        let avalancheSizes = [];
-        let viewMode = 'realistic';
-        
-        // Critical statistics
-        let heightHistory = [];
-        let coherenceHistory = [];
-        const targetMeanHeight = 2.125;
-        const targetTau = 1.27;
+    <div class="splash-section">
+      <h3>What this demonstration shows</h3>
+      <p>
+        The sandpile below runs BTW dynamics. Each lens reveals a different
+        feature of what is happening. FEP identifies every site as a node
+        with its own local Markov blanket; avalanches propagate as cascading
+        prediction errors. CRR reads each site as a temporal cycle: grains
+        accumulating (<em>C</em>), the site toppling (<em>δ</em>), and the
+        pile redistributing (<em>R</em>). Where CRR reaches its limit — and
+        it does — the limit itself is informative. For SOC the spatial cycle
+        is thermodynamically bounded while the temporal cycle is scale-free,
+        and this asymmetry is a structural signature of the phenomenon. CRR
+        makes that asymmetry expressible.
+      </p>
 
-        const canvas = document.getElementById('sandpileCanvas');
-        const ctx = canvas.getContext('2d');
-        const chartCanvas = document.getElementById('distributionChart');
-        const chartCtx = chartCanvas.getContext('2d');
+      <p>
+        Where the grammar applies to the running code, it is marked with
+        <em>§</em> tags. Where it does not, the tag is followed by a note
+        explaining the boundary. The five tabs on the right of the running
+        demonstration take each lens in turn.
+      </p>
+    </div>
 
-        // Initialize
-        function initGrid() {
-            grid = Array(gridSize).fill(null).map(() => Array(gridSize).fill(0));
-            coherence = Array(gridSize).fill(null).map(() => Array(gridSize).fill(0));
-            totalGrainsAdded = 0;
-            avalancheCount = 0;
-            largestAvalanche = 0;
-            avalancheSizes = [];
-            heightHistory = [];
-            coherenceHistory = [];
-            updateStats();
-            updateValidation();
+    <button class="begin-btn" onclick="dismissSplash()">Begin &rarr;</button>
+
+    <div class="attribution">
+      Alexander Sabine &middot; Active Inference Institute &middot;
+      <a href="https://temporalgrammar.ai" target="_blank">temporalgrammar.ai</a>
+      &middot; <a href="mailto:Alexander@activeinference.institute">Alexander@activeinference.institute</a><br>
+      Canonical BTW dynamics (Bak, Tang &amp; Wiesenfeld, 1987; Dhar, 1990) under a
+      CRR/FEP reading. Falsification of the strong-form CRR prediction is
+      documented in the <em>Tested</em> tab.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MAIN STAGE ═══════════ -->
+<div id="stage">
+  <canvas id="main-canvas"></canvas>
+</div>
+
+<!-- Top-left stats -->
+<div id="stats">
+  <h2>Self-Organised Criticality</h2>
+  <div class="stats-sub">BTW · Live · CRR/FEP Annotated</div>
+
+  <div class="stat-row"><span class="label">Lattice L ×  L</span><span class="val" id="s-L">64</span></div>
+  <div class="stat-row"><span class="label">Grains dropped</span><span class="val" id="s-drops">0</span></div>
+  <div class="stat-row"><span class="label">Avalanches</span><span class="val" id="s-aval">0</span></div>
+  <div class="stat-row"><span class="label">Largest (topples)</span><span class="val" id="s-max">0</span></div>
+  <div class="stat-row"><span class="label">Mean height ⟨z⟩</span><span class="val" id="s-mean">0.00</span></div>
+  <div class="stat-row"><span class="label">CV(ITI) tracked site</span><span class="val" id="s-cv">—</span></div>
+</div>
+
+<!-- Left controls -->
+<div id="controls">
+  <h3>Parameters</h3>
+
+  <div class="ctrl-grp">
+    <div class="ctrl-lbl"><span>Lattice size L</span><span class="v" id="v-L">64</span></div>
+    <input type="range" id="c-L" min="32" max="128" value="64" step="16">
+    <div class="hint">Larger L exposes finite-size scaling</div>
+  </div>
+
+  <div class="ctrl-grp">
+    <div class="ctrl-lbl"><span>Drops / frame</span><span class="v" id="v-rate">30</span></div>
+    <input type="range" id="c-rate" min="1" max="200" value="30" step="1">
+  </div>
+
+  <div class="ctrl-grp">
+    <h3 style="margin-top:6px; margin-bottom:6px">View</h3>
+    <div class="view-row">
+      <button class="btn active" data-view="heatmap">Heatmap</button>
+      <button class="btn" data-view="iso">Isometric</button>
+      <button class="btn" data-view="crit">Criticality</button>
+    </div>
+  </div>
+
+  <div class="ctrl-grp">
+    <h3 style="margin-top:6px; margin-bottom:6px">Run</h3>
+    <div class="btn-row">
+      <button class="btn active" id="btn-run">Running</button>
+      <button class="btn" id="btn-reset">Reset</button>
+    </div>
+  </div>
+
+  <div class="ctrl-grp">
+    <div class="hint" style="color:rgba(160,220,200,.55); line-height:1.6; margin-top:10px">
+      §<em>C</em>: height z accumulating<br>
+      §<em>δ</em>: z &ge; 4 rupture<br>
+      §<em>R</em>: 4-neighbour redistribution
+    </div>
+  </div>
+</div>
+
+<!-- Bottom-left distribution -->
+<div id="dist-panel">
+  <h4>Avalanche size distribution — P(s)</h4>
+  <div class="cap">Log–log; theoretical slope &minus;1.27 shown dashed. BTW observable, not a CRR prediction.</div>
+  <canvas id="dist-canvas"></canvas>
+  <div class="dist-readout">
+    <span>bins: logarithmic</span>
+    <span>MLE τ = <span class="tau" id="s-tau">—</span></span>
+  </div>
+</div>
+
+<!-- Right explainer -->
+<button id="toggle-ex">Explainer  &rarr;</button>
+<button id="toggle-ctl" style="display:none">Controls</button>
+
+<div id="explainer">
+  <button class="ex-close" onclick="toggleExplainer()">×</button>
+  <div id="ex-inner">
+    <div class="tab-bar">
+      <button class="tab active" data-tab="soc">SOC</button>
+      <button class="tab" data-tab="crr">CRR</button>
+      <button class="tab" data-tab="fep">FEP</button>
+      <button class="tab" data-tab="together">Together</button>
+      <button class="tab" data-tab="tested">Tested</button>
+    </div>
+
+    <!-- ─── SOC TAB ─── -->
+    <div class="tab-content active" id="t-soc">
+      <h2 class="ex-h1">The pile <em>tunes itself</em> to its own critical point</h2>
+      <div class="ex-sub">Bak, Tang &amp; Wiesenfeld, 1987 &middot; Dhar, 1990</div>
+
+      <div class="ex-section">
+        <h4>The rules</h4>
+        <p>
+          A lattice of sites, each carrying an integer number of grains. At
+          each timestep one grain is deposited at a uniformly random site. If
+          the height at any site reaches the threshold z<sub>c</sub> = 4, that
+          site topples: four grains leave it, one travelling to each of the
+          four nearest neighbours. Topples may trigger further topples, so a
+          single deposited grain can provoke an avalanche of any size. Grains
+          that fall off the boundary are lost.
+        </p>
+      </div>
+
+      <div class="ex-section">
+        <h4>What the pile does</h4>
+        <p>
+          Left alone, the pile self-organises to a stationary state in which
+          the mean height sits close to <em>&langle;z&rangle; &asymp; 2.125</em>
+          and avalanches occur at every scale. The probability of an avalanche
+          of size <em>s</em> follows a power law:
+        </p>
+        <div class="formula">
+          <span class="lbl">Avalanche size distribution</span>
+          P(s) ~ s<sup>−τ</sup>, &nbsp; τ ≈ 1.27
+        </div>
+        <p>
+          No parameter was tuned. No external force drives the system to this
+          point. The pile finds its own edge. Bak called this
+          <em>self-organised criticality</em>, and it has since been proposed
+          as a model for earthquakes, neural avalanches, forest fires, and
+          biological evolution — though the applicability in each case is
+          contested.
+        </p>
+      </div>
+
+      <div class="ex-section">
+        <h4>Why the demonstration is tiny</h4>
+        <p>
+          This simulation runs at L ranging from 32 to 128, which is small by
+          physics standards. The BTW power-law is visible but finite-size cut
+          off. The distribution plot on the left shows the live histogram as
+          the pile runs.
+        </p>
+      </div>
+    </div>
+
+    <!-- ─── CRR TAB ─── -->
+    <div class="tab-content" id="t-crr">
+      <h2 class="ex-h1">Coherence, <em>rupture</em>, regeneration</h2>
+      <div class="ex-sub">Sabine &middot; temporalgrammar.ai</div>
+
+      <div class="ex-section">
+        <h4>The temporal grammar, at a site</h4>
+        <p>
+          Pick any interior site and watch only that site through time. Grains
+          arrive (from direct deposition and from neighbour topples), the
+          local height climbs, and at some moment the site topples. The pile
+          then redistributes. CRR names the three structural moments of this
+          cycle:
+        </p>
+
+        <div class="formula">
+          <span class="lbl">§C — Coherence</span>
+          C<sub>n</sub>(t) = ∫ L<sub>n</sub>(τ) dτ
+        </div>
+        <p>
+          The accumulation phase. Grains arrive, the height climbs, the site
+          builds up distinguishability from its surroundings.
+        </p>
+
+        <div class="formula">
+          <span class="lbl">§δ — Rupture</span>
+          δ(now) &nbsp; when z<sub>n</sub> reaches z<sub>c</sub>
+        </div>
+        <p>
+          The rupture. In the canonical CRR, rupture occurs when
+          C · Ω = 1 — the Cramér–Rao saturation. In BTW the threshold is
+          imposed by the toppling rule, so we observe this as
+          z ≥ 4 rather than as a derived condition. That is a crucial
+          distinction which the <em>Tested</em> tab returns to.
+        </p>
+
+        <div class="formula">
+          <span class="lbl">§R — Regeneration</span>
+          R<sub>n</sub> = Σ<sub>m</sub> K<sub>nm</sub> · φ<sub>m</sub>
+        </div>
+        <p>
+          The redistribution. In BTW this is nearest-neighbour transfer with
+          φ = 1; the full CRR kernel R = ∫ φ · exp(C/Ω) · Θ dτ
+          collapses to this simple local rule because BTW has no memory
+          weighting.
+        </p>
+      </div>
+
+      <div class="ex-section">
+        <h4>The beauty function</h4>
+        <p>
+          CRR predicts a point of maximum expressive capacity at
+          <em>C* − Ω</em>, where accumulated coherence is high and a small
+          perturbation could go either way:
+        </p>
+        <div class="formula">
+          <span class="lbl">Beauty function</span>
+          B(C) = exp(C/Ω) · (C* − C)
+        </div>
+        <p>
+          For a site in BTW with z = 3 — one grain below threshold — the
+          next deposition chooses between quiescence and a potentially large
+          cascade. This is where SOC spends most of its time: poised, ready,
+          one grain from transformation.
+        </p>
+      </div>
+    </div>
+
+    <!-- ─── FEP TAB ─── -->
+    <div class="tab-content" id="t-fep">
+      <h2 class="ex-h1">The <em>Free Energy Principle</em></h2>
+      <div class="ex-sub">Friston &middot; Parr, Pezzulo &amp; Friston, 2022</div>
+
+      <div class="ex-section">
+        <h4>Every site has a Markov blanket</h4>
+        <p>
+          Each site in the lattice has internal states (its height z), external
+          states (the heights of all non-neighbours), and a blanket formed by
+          its four nearest neighbours. The neighbours are the only channel
+          through which information flows in or out. This is a Markov blanket
+          in the literal sense: the internal state is conditionally
+          independent of the external world given the blanket.
+        </p>
+        <p>
+          Under FEP, a site maintains itself by minimising a quantity called
+          variational free energy, which bounds surprise. The boundary is
+          where <em>precision</em> — the inverse variance of expected
+          signals — is assigned. Avalanches propagate as prediction errors
+          cascading through the blanket.
+        </p>
+      </div>
+
+      <div class="ex-section">
+        <h4>Precision and rupture</h4>
+        <p>
+          In Parr, Pezzulo &amp; Friston's formulation, there are two kinds of
+          precision: <em>likelihood precision</em> on sensory data and
+          <em>transition precision</em> on state evolution. Both come into
+          play here. Sensory precision governs how the site weights incoming
+          grains; transition precision governs how it expects its own state
+          to evolve. When accumulated evidence overwhelms transition precision,
+          the site shifts regime: it topples.
+        </p>
+        <div class="quote">
+          "Precision-weighted prediction errors are the currency of belief
+          updating. Where precision is high, errors matter greatly;
+          where precision is low, they are damped."
+          <span class="src">Parr, Pezzulo &amp; Friston, 2022</span>
+        </div>
+      </div>
+
+      <div class="ex-section">
+        <h4>Self-organisation without an agent</h4>
+        <p>
+          BTW sites do not have agency. They do not select actions. But the
+          hierarchical structure of FEP — blanketed states nested within
+          blanketed states — applies. The pile is a population of Markov
+          blanketed sites coupled through shared boundaries. The emergence of
+          criticality is then a collective property of the coupling, not an
+          intention of any site.
+        </p>
+      </div>
+    </div>
+
+    <!-- ─── TOGETHER TAB ─── -->
+    <div class="tab-content" id="t-together">
+      <h2 class="ex-h1">What CRR <em>adds</em> to FEP</h2>
+      <div class="ex-sub">Spatial + Temporal Markov Blankets</div>
+
+      <div class="ex-section">
+        <h4>FEP is spatial, CRR is temporal</h4>
+        <p>
+          FEP's Markov blanket partitions the world into inside, boundary, and
+          outside — a spatial decomposition. CRR's Markov blanket partitions
+          history into past, present, and future — a temporal
+          decomposition. The two are complementary and symmetric.
+        </p>
+        <p>
+          For a single isolated event they give equivalent descriptions. For
+          dynamical systems evolving through time, CRR articulates structure
+          that FEP alone leaves implicit: the moment of rupture, the
+          exponential weighting of past moments in reconstruction, and the
+          beauty function's prediction of where the system spends its most
+          expressive time.
+        </p>
+      </div>
+
+      <div class="ex-section">
+        <h4>The split that SOC reveals</h4>
+        <p>
+          Self-organised criticality shows a striking asymmetry between the
+          two blankets, which this demonstration measures directly:
+        </p>
+        <ul>
+          <li>
+            <strong>Spatial blanket: bounded.</strong> The stationary
+            distribution of site heights has a well-defined thermodynamic
+            limit. &langle;z&rangle;, Var(z), and the shape of the local
+            distribution are stable as the lattice grows. Ω derived from
+            spatial observables sits at Ω ≈ 0.47.
+          </li>
+          <li>
+            <strong>Temporal blanket: unbounded.</strong> The distribution
+            of inter-topple intervals at a single site does <em>not</em>
+            have a thermodynamic limit. CV(ITI) grows roughly as
+            <em>0.37 · ln(L)</em>, and the distribution is not exponential.
+            The cycle is scale-free.
+          </li>
+        </ul>
+      </div>
+
+      <div class="ex-section">
+        <h4>Why this is a CRR-native observation</h4>
+        <p>
+          Standard SOC theory gives us the power-law exponent τ ≈ 1.27, the
+          mean height 2.125, and the notion of critical self-tuning. It does
+          <em>not</em> give us vocabulary for <em>why</em> the system is stable
+          on one side (spatial) and diverges on the other (temporal). CRR's
+          dual-blanket framing makes this asymmetry first-class. The spatial
+          cycle is a bounded CRR cycle with a well-defined Ω; the temporal
+          cycle is not bounded, because criticality is, by definition, the
+          absence of a temporal scale.
+        </p>
+        <p>
+          This is what CRR adds to FEP here: not a new prediction, but a
+          <em>decomposition</em> that separates what is bounded from what
+          is not.
+        </p>
+      </div>
+    </div>
+
+    <!-- ─── TESTED TAB ─── -->
+    <div class="tab-content" id="t-tested">
+      <h2 class="ex-h1">Tested &mdash; and where the test led</h2>
+      <div class="ex-sub">Pre-registration &middot; Falsification &middot; Retreat to description</div>
+
+      <div class="ex-section">
+        <h4>The canonical prediction</h4>
+        <p>
+          CRR nominates its own falsification condition. For a Z<sub>2</sub>
+          symmetry class without an SO(2) pacemaker — the simplest reading of
+          a site cycling between charging and rupture — the coefficient of
+          variation of inter-topple intervals should converge to
+          CV = 1 as the system grows, via the identity
+          CV<sub>Z2</sub> · C*<sub>SO(2)</sub> = (1/2π)(2π) = 1.
+        </p>
+      </div>
+
+      <div class="ex-section">
+        <h4>What the sandpile actually does</h4>
+        <p>
+          We ran a numba-JIT BTW simulation at lattice sizes L &isin; {24, 32,
+          48, 64, 96} with tens of millions of deposition events, pooling
+          inter-topple intervals from nine interior sites per run. The
+          results:
+        </p>
+
+        <div class="formula" style="font-size:11.5px">
+L = 24  |  CV(ITI) = 0.95<br>
+L = 32  |  CV(ITI) = 1.05<br>
+L = 48  |  CV(ITI) = 1.19<br>
+L = 64  |  CV(ITI) = 1.30<br>
+L = 96  |  CV(ITI) = 1.47
+        </div>
+
+        <p>
+          CV does not converge. It grows, and closely tracks the logarithmic
+          form CV &asymp; 0.37 · ln(L) with R² = 0.997. The
+          Gamma-shape parameter of the ITI distribution sits above 1 and
+          drifts, so the distribution is not exponential either.
+        </p>
+      </div>
+
+      <div class="ex-section">
+        <h4>The directional falsification</h4>
+        <div class="verdict">
+          <strong>The strong-form CRR prediction is falsified for BTW.</strong>
+          The observed deviation is directional, monotone, and matches the
+          qualitative signature CRR itself labels as lying outside its
+          natural domain. This is not a failure of the simulation or of the
+          statistics; it is a structural incompatibility. The per-site cycle
+          in BTW is scale-free by construction at the critical point,
+          and CRR's canonical derivation assumes a geodesically-bounded cycle.
+        </div>
+      </div>
+
+      <div class="ex-section">
+        <h4>Phenomenological retreat: does Ω as a fitted parameter rescue the framework?</h4>
+        <p>
+          Four natural definitions of Ω — 1/&langle;z&rangle;, Var(z),
+          1/&langle;ITI&rangle;, and 2·CV(ITI) — disagree by a factor of
+          roughly forty at L = 96. CRR's internal consistency requires one Ω
+          satisfying both <em>C · Ω = 1</em> and <em>CV = Ω/2</em>. These
+          four do not converge. So: the phenomenological move does not
+          rescue predictive content; it redistributes the failure.
+        </p>
+      </div>
+
+      <div class="ex-section">
+        <h4>What survives, and why it matters</h4>
+        <p>
+          What does survive is the <em>dual-blanket description</em>
+          developed in the <em>Together</em> tab. CRR as vocabulary cleanly
+          expresses the asymmetry that makes SOC what it is:
+        </p>
+        <ul>
+          <li>Spatial cycle: bounded, thermodynamic, has a stable Ω.</li>
+          <li>Temporal cycle: unbounded, critical, has no characteristic scale.</li>
+        </ul>
+        <p>
+          This is not a prediction — it is a <em>decomposition</em>. It tells
+          us where to look rather than what to compute. That is a smaller
+          claim than the topological derivation, but it survives honest
+          testing and it is what CRR can contribute to the discussion of
+          self-organising systems in the FEP lineage.
+        </p>
+        <p>
+          A framework that names its own falsification condition and then
+          runs the test is doing the right thing. The boundary this test
+          finds is a crisp one, and the work that remains is to use it
+          well.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div id="footer">
+  Alexander Sabine &middot; Active Inference Institute &middot;
+  <a href="https://temporalgrammar.ai" target="_blank">temporalgrammar.ai</a>
+  &middot; <a href="mailto:Alexander@activeinference.institute">Alexander@activeinference.institute</a>
+</div>
+
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════════════════════════
+   §CRR — BTW SANDPILE ENGINE
+   ═══════════════════════════════════════════════════════════════════════════
+   The simulation runs canonical Bak-Tang-Wiesenfeld dynamics.
+   CRR §-tags mark where the temporal grammar maps onto the code.
+   Where BTW and CRR canonical forms diverge (notably at the rupture
+   condition) the divergence is explicit in comments.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* ─── STATE ─── */
+let L = 64;
+const ZC = 4;                    // §δ — BTW empirical threshold (imposed, not derived from C·Ω = 1)
+let z = new Int32Array(L * L);   // §C — per-site coherence field (for BTW: local grain height)
+let freshTopple = new Float32Array(L * L);  // for avalanche flash rendering
+
+let drops = 0;
+let avalancheCount = 0;
+let largestAvalanche = 0;
+let avalancheSizes = [];
+
+/* Tracked interior site for ITI measurement */
+let trackedIdx = 0;
+let lastToppleDrop = -1;
+let itiRecords = [];
+
+/* Rendering state */
+let viewMode = 'heatmap';
+let running = true;
+
+/* Histogram bins (logarithmic, covers sizes 1..100000) */
+const DIST_N_BINS = 32;
+const distBins = new Int32Array(DIST_N_BINS);
+let distTotal = 0;
+
+/* ═══ INITIALISATION ═══ */
+function resetState() {
+  z = new Int32Array(L * L);
+  freshTopple = new Float32Array(L * L);
+  drops = 0;
+  avalancheCount = 0;
+  largestAvalanche = 0;
+  avalancheSizes.length = 0;
+  lastToppleDrop = -1;
+  itiRecords.length = 0;
+  distBins.fill(0);
+  distTotal = 0;
+  trackedIdx = Math.floor(L / 2) * L + Math.floor(L / 2);
+}
+
+/* ═══ §R — DEPOSITION (single grain, random site) ═══ */
+function dropOne() {
+  const idx = Math.floor(Math.random() * L * L);
+  z[idx]++;
+  drops++;
+  if (z[idx] >= ZC) {
+    const size = cascade(idx);
+    avalancheCount++;
+    if (size > largestAvalanche) largestAvalanche = size;
+    avalancheSizes.push(size);
+    if (avalancheSizes.length > 80000) avalancheSizes.splice(0, 20000);
+    addToDistHistogram(size);
+  }
+}
+
+/* ═══ §δ — RUPTURE + §R — REDISTRIBUTION ═══
+   BFS-style avalanche resolution. Each topple redistributes 4 grains to
+   nearest neighbours (or dissipates them at the boundary).
+   The canonical CRR regeneration kernel R = ∫φ·exp(C/Ω)·Θ dτ degenerates
+   here to the local transfer K_nm = 1 for neighbours because BTW has no
+   memory weighting.                                                        */
+function cascade(startIdx) {
+  const queue = [startIdx];
+  let size = 0;
+  while (queue.length) {
+    const idx = queue.shift();
+    // Topple while still unstable
+    while (z[idx] >= ZC) {
+      z[idx] -= ZC;
+      freshTopple[idx] = 1.0;  // rendering flash
+      size++;
+
+      /* §ITI — record for tracked site */
+      if (idx === trackedIdx) {
+        if (lastToppleDrop >= 0) {
+          const iti = drops - lastToppleDrop;
+          itiRecords.push(iti);
+          if (itiRecords.length > 4000) itiRecords.shift();
         }
+        lastToppleDrop = drops;
+      }
 
-        // Add grain (with stability safeguards)
-        function addGrain() {
-            const x = Math.floor(Math.random() * gridSize);
-            const y = Math.floor(Math.random() * gridSize);
-            grid[x][y]++;
-            totalGrainsAdded++;
-            
-            updateCoherence();
-            
-            // Prevent runaway growth
-            if (grid[x][y] > threshold * 4) {
-                grid[x][y] = threshold * 2;
-            }
-            
-            if (grid[x][y] >= threshold) {
-                const avalancheSize = avalanche();
-                if (avalancheSize > 0) {
-                    avalancheCount++;
-                    avalancheSizes.push(avalancheSize);
-                    if (avalancheSize > largestAvalanche) {
-                        largestAvalanche = avalancheSize;
-                    }
-                    
-                    // Limit history size to prevent memory issues
-                    if (avalancheSizes.length > 5000) {
-                        avalancheSizes.shift();
-                    }
-                }
-            }
+      /* Distribute to 4 neighbours */
+      const x = idx % L, y = (idx / L) | 0;
+      if (x > 0)     { const ni = idx - 1; z[ni]++; if (z[ni] >= ZC) queue.push(ni); }
+      if (x < L-1)   { const ni = idx + 1; z[ni]++; if (z[ni] >= ZC) queue.push(ni); }
+      if (y > 0)     { const ni = idx - L; z[ni]++; if (z[ni] >= ZC) queue.push(ni); }
+      if (y < L-1)   { const ni = idx + L; z[ni]++; if (z[ni] >= ZC) queue.push(ni); }
+    }
+  }
+  return size;
+}
+
+/* ═══ AVALANCHE SIZE HISTOGRAM (logarithmic bins) ═══ */
+function addToDistHistogram(size) {
+  if (size < 1) return;
+  // Bin index: logarithmic mapping, s=1 -> 0, s=100000 -> 32
+  const bin = Math.min(DIST_N_BINS - 1, Math.floor(Math.log(size) * 32 / Math.log(100000)));
+  distBins[bin]++;
+  distTotal++;
+}
+
+/* ═══ MLE POWER-LAW EXPONENT (Clauset-Shalizi-Newman, discrete) ═══ */
+function fitTau() {
+  if (avalancheSizes.length < 200) return null;
+  const smin = 4;
+  let n = 0, sumLog = 0;
+  for (const s of avalancheSizes) {
+    if (s >= smin) { sumLog += Math.log(s / (smin - 0.5)); n++; }
+  }
+  if (n < 100) return null;
+  return 1 + n / sumLog;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RENDERING
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const mainCanvas = document.getElementById('main-canvas');
+const mainCtx = mainCanvas.getContext('2d');
+const distCanvas = document.getElementById('dist-canvas');
+const distCtx = distCanvas.getContext('2d');
+
+let canvasW = 0, canvasH = 0;
+
+function resizeCanvases() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvasW = window.innerWidth;
+  canvasH = window.innerHeight;
+  mainCanvas.style.width = canvasW + 'px';
+  mainCanvas.style.height = canvasH + 'px';
+  mainCanvas.width = canvasW * dpr;
+  mainCanvas.height = canvasH * dpr;
+  mainCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const dw = distCanvas.parentElement.clientWidth - 28;
+  const dh = 130;
+  distCanvas.style.width = dw + 'px';
+  distCanvas.style.height = dh + 'px';
+  distCanvas.width = dw * dpr;
+  distCanvas.height = dh * dpr;
+  distCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+/* ─── MAIN CANVAS RENDERING ─── */
+function renderMain() {
+  /* Background */
+  const grad = mainCtx.createRadialGradient(canvasW/2, canvasH/2, 0, canvasW/2, canvasH/2, Math.max(canvasW, canvasH)*0.7);
+  grad.addColorStop(0, '#081420');
+  grad.addColorStop(1, '#020508');
+  mainCtx.fillStyle = grad;
+  mainCtx.fillRect(0, 0, canvasW, canvasH);
+
+  /* Compute cell layout */
+  const padding = 60;
+  const availW = canvasW - padding * 2;
+  const availH = canvasH - padding * 2 - 60;
+  const cell = Math.floor(Math.min(availW / L, availH / L));
+  const gridW = cell * L;
+  const gridH = cell * L;
+  const ox = (canvasW - gridW) / 2;
+  const oy = (canvasH - gridH) / 2;
+
+  /* Frame */
+  mainCtx.strokeStyle = 'rgba(80,140,160,.15)';
+  mainCtx.lineWidth = 1;
+  mainCtx.strokeRect(ox - 1, oy - 1, gridW + 2, gridH + 2);
+
+  /* Render cells by view mode */
+  if (viewMode === 'iso') renderIsometric(ox, oy, cell);
+  else renderFlat(ox, oy, cell);
+
+  /* Decay freshTopple for next frame */
+  for (let i = 0; i < freshTopple.length; i++) {
+    freshTopple[i] *= 0.78;
+    if (freshTopple[i] < 0.02) freshTopple[i] = 0;
+  }
+}
+
+/* Flat heatmap (and criticality view) */
+function renderFlat(ox, oy, cell) {
+  for (let y = 0; y < L; y++) {
+    for (let x = 0; x < L; x++) {
+      const idx = x + y * L;
+      const h = z[idx];
+      const flash = freshTopple[idx];
+      mainCtx.fillStyle = cellColor(h, flash);
+      mainCtx.fillRect(ox + x*cell, oy + y*cell, cell, cell);
+    }
+  }
+
+  /* Mark tracked site */
+  const tx = trackedIdx % L;
+  const ty = (trackedIdx / L) | 0;
+  mainCtx.strokeStyle = 'rgba(255,200,120,.75)';
+  mainCtx.lineWidth = 1.5;
+  mainCtx.strokeRect(ox + tx*cell - 1, oy + ty*cell - 1, cell + 2, cell + 2);
+}
+
+/* Isometric view — stacked grains */
+function renderIsometric(ox, oy, cell) {
+  const isoW = cell * 0.5, isoH = cell * 0.5;
+  const stackH = cell * 0.35;
+  const centreX = canvasW / 2;
+  const centreY = oy + cell * L * 0.3;
+  /* Back-to-front */
+  for (let y = L - 1; y >= 0; y--) {
+    for (let x = 0; x < L; x++) {
+      const idx = x + y * L;
+      const h = z[idx];
+      if (h === 0) continue;
+      const flash = freshTopple[idx];
+      const iX = centreX + (x - y) * isoW;
+      const iY = centreY + (x + y) * isoH * 0.5;
+      for (let k = 0; k < Math.min(h, 6); k++) {
+        const top = (k === Math.min(h, 6) - 1);
+        mainCtx.fillStyle = cellColor(h, top ? flash : 0);
+        mainCtx.beginPath();
+        const yOff = iY - k * stackH;
+        mainCtx.moveTo(iX, yOff);
+        mainCtx.lineTo(iX + isoW, yOff + isoH * 0.5);
+        mainCtx.lineTo(iX, yOff + isoH);
+        mainCtx.lineTo(iX - isoW, yOff + isoH * 0.5);
+        mainCtx.closePath();
+        mainCtx.fill();
+        if (top) {
+          mainCtx.strokeStyle = 'rgba(255,240,220,.2)';
+          mainCtx.lineWidth = 0.5;
+          mainCtx.stroke();
         }
+      }
+    }
+  }
+}
 
-        // Update coherence: C_n = ∫(z_n - z_c/2) dt (with stability safeguards)
-        function updateCoherence() {
-            const equilibrium = threshold / 2.0;
-            for (let i = 0; i < gridSize; i++) {
-                for (let j = 0; j < gridSize; j++) {
-                    const L = grid[i][j] - equilibrium;
-                    coherence[i][j] += L * 0.05;
-                    coherence[i][j] *= 0.995; // Slow decay
-                    
-                    // Clamp coherence to reasonable bounds
-                    coherence[i][j] = Math.max(-10, Math.min(20, coherence[i][j]));
-                }
-            }
-        }
+/* Colour palette, parchment-adjacent warm with critical gold + rupture flash */
+function cellColor(h, flash) {
+  if (flash > 0.05) {
+    /* Rupture glow: gold -> white */
+    const k = Math.min(1, flash);
+    const r = 255;
+    const g = Math.round(220 + 35 * k);
+    const b = Math.round(120 + 100 * k);
+    return `rgb(${r},${g},${b})`;
+  }
+  if (viewMode === 'crit') {
+    /* Criticality view: close-to-threshold is warm, everything else is dim */
+    if (h === 0) return 'rgba(20,30,40,.3)';
+    if (h === 1) return 'rgba(40,60,70,.5)';
+    if (h === 2) return 'rgba(60,90,100,.8)';
+    if (h === 3) return 'rgb(200,150,70)';
+    return 'rgb(255,210,100)';
+  }
+  /* Heatmap: empty -> dark, low -> warm brown, critical -> amber, above threshold -> gold */
+  if (h === 0) return 'rgb(18,26,34)';
+  if (h === 1) return 'rgb(60,50,40)';
+  if (h === 2) return 'rgb(110,85,55)';
+  if (h === 3) return 'rgb(180,130,70)';
+  if (h === 4) return 'rgb(230,170,75)';
+  return 'rgb(255,210,100)';
+}
 
-        // Avalanche with CRR regeneration (with stability safeguards)
-        function avalanche() {
-            let topplings = 0;
-            let unstable = true;
-            let maxIterations = gridSize * gridSize * 2; // Safety limit
-            let iterations = 0;
-            
-            while (unstable && iterations < maxIterations) {
-                unstable = false;
-                const newGrid = grid.map(row => [...row]);
-                iterations++;
-                
-                for (let i = 0; i < gridSize; i++) {
-                    for (let j = 0; j < gridSize; j++) {
-                        if (grid[i][j] >= threshold) {
-                            unstable = true;
-                            topplings++;
-                            
-                            newGrid[i][j] -= threshold;
-                            
-                            // Clamp to prevent negative values
-                            newGrid[i][j] = Math.max(0, newGrid[i][j]);
-                            
-                            const neighbours = [
-                                [i-1, j], [i+1, j], [i, j-1], [i, j+1]
-                            ];
-                            
-                            for (const [ni, nj] of neighbours) {
-                                if (ni >= 0 && ni < gridSize && nj >= 0 && nj < gridSize) {
-                                    const memoryWeight = Math.exp(Math.min(coherence[ni][nj] / omega, 5)); // Clamp exponential
-                                    const regenerationFactor = 1.0 + 0.03 * (memoryWeight / Math.exp(1) - 1);
-                                    newGrid[ni][nj] += regenerationFactor;
-                                    
-                                    // Prevent excessive accumulation
-                                    newGrid[ni][nj] = Math.min(newGrid[ni][nj], threshold * 3);
-                                }
-                            }
-                            
-                            coherence[i][j] *= 0.4; // Strong reset after rupture
-                            coherence[i][j] = Math.max(coherence[i][j], -10); // Clamp coherence
-                        }
-                    }
-                }
-                
-                grid = newGrid;
-            }
-            
-            // If we hit the iteration limit, stabilise forcefully
-            if (iterations >= maxIterations) {
-                for (let i = 0; i < gridSize; i++) {
-                    for (let j = 0; j < gridSize; j++) {
-                        if (grid[i][j] >= threshold) {
-                            grid[i][j] = threshold - 1;
-                        }
-                    }
-                }
-            }
-            
-            return topplings;
-        }
+/* ─── DISTRIBUTION PLOT ─── */
+function renderDist() {
+  const w = distCanvas.clientWidth;
+  const h = distCanvas.clientHeight;
+  distCtx.clearRect(0, 0, w, h);
 
-        // Photorealistic rendering
-        function renderRealistic() {
-            // Background gradient
-            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            grad.addColorStop(0, '#c3cfe2');
-            grad.addColorStop(1, '#f5f7fa');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            const cellW = canvas.width / gridSize;
-            const cellH = canvas.height / (gridSize * 1.3);
-            const offsetX = canvas.width / 2;
-            const offsetY = canvas.height * 0.15;
-            
-            // Isometric rendering back-to-front
-            for (let i = gridSize - 1; i >= 0; i--) {
-                for (let j = 0; j < gridSize; j++) {
-                    const height = Math.min(grid[i][j], 6);
-                    if (height === 0) continue;
-                    
-                    const isoX = offsetX + (j - i) * cellW * 0.5;
-                    const isoY = offsetY + (j + i) * cellH * 0.5;
-                    
-                    // Draw stacked grains
-                    for (let h = 0; h < height; h++) {
-                        const y = isoY - h * (cellH * 0.4);
-                        const color = getSandColorRealistic(h, height, grid[i][j]);
-                        
-                        // Top face (diamond)
-                        ctx.fillStyle = color;
-                        ctx.beginPath();
-                        ctx.moveTo(isoX, y);
-                        ctx.lineTo(isoX + cellW * 0.5, y + cellH * 0.5);
-                        ctx.lineTo(isoX, y + cellH);
-                        ctx.lineTo(isoX - cellW * 0.5, y + cellH * 0.5);
-                        ctx.closePath();
-                        ctx.fill();
-                        
-                        // Lighting effect on top layer
-                        if (h === height - 1) {
-                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-                            ctx.lineWidth = 1;
-                            ctx.stroke();
-                            
-                            // Highlight
-                            const highlightGrad = ctx.createRadialGradient(
-                                isoX - cellW * 0.1, y + cellH * 0.3, 0,
-                                isoX, y + cellH * 0.5, cellW * 0.4
-                            );
-                            highlightGrad.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
-                            highlightGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                            ctx.fillStyle = highlightGrad;
-                            ctx.fill();
-                        }
-                    }
-                }
-            }
-        }
+  const padL = 32, padR = 10, padT = 6, padB = 20;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
 
-        function getSandColorRealistic(layer, totalHeight, actualHeight) {
-            const critical = actualHeight >= threshold;
-            const nearCritical = actualHeight >= threshold - 1;
-            
-            if (critical) {
-                // Gold for critical
-                const brightness = 255 - layer * 10;
-                return `rgb(${brightness}, ${brightness - 40}, ${Math.floor(brightness * 0.3)})`;
-            } else if (nearCritical) {
-                // Light tan
-                return `rgb(${232 - layer * 8}, ${212 - layer * 10}, ${160 - layer * 8})`;
-            } else if (totalHeight >= 2) {
-                // Medium sand
-                return `rgb(${196 - layer * 10}, ${165 - layer * 8}, ${116 - layer * 6})`;
-            } else {
-                // Dark sand
-                return `rgb(${139 - layer * 10}, ${107 - layer * 8}, ${71 - layer * 6})`;
-            }
-        }
+  /* Axes */
+  distCtx.strokeStyle = 'rgba(160,200,210,.2)';
+  distCtx.lineWidth = 1;
+  distCtx.beginPath();
+  distCtx.moveTo(padL, padT);
+  distCtx.lineTo(padL, padT + plotH);
+  distCtx.lineTo(padL + plotW, padT + plotH);
+  distCtx.stroke();
 
-        // Height map view
-        function renderHeightMap() {
-            const cellSize = canvas.width / gridSize;
-            
-            for (let i = 0; i < gridSize; i++) {
-                for (let j = 0; j < gridSize; j++) {
-                    const height = grid[i][j];
-                    ctx.fillStyle = getHeightColor(height);
-                    ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
-                    
-                    if (cellSize > 10 && height > 0) {
-                        ctx.fillStyle = height >= threshold ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)';
-                        ctx.font = `${cellSize * 0.5}px Arial`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(height, j * cellSize + cellSize/2, i * cellSize + cellSize/2);
-                    }
-                }
-            }
-        }
+  if (distTotal < 30) {
+    distCtx.fillStyle = 'rgba(160,200,210,.4)';
+    distCtx.font = "11px 'JetBrains Mono'";
+    distCtx.fillText('accumulating...', padL + 10, padT + plotH / 2);
+    return;
+  }
 
-        function getHeightColor(height) {
-            if (height === 0) return '#2c1810';
-            if (height === 1) return '#5c3d2e';
-            if (height === 2) return '#8B6B47';
-            if (height === 3) return '#C4A574';
-            if (height === 4) return '#E8D4A0';
-            return '#FFD700';
-        }
+  /* Data: log-log plot of P(s) */
+  let maxLogP = -Infinity, minLogP = Infinity;
+  const points = [];
+  for (let bin = 0; bin < DIST_N_BINS; bin++) {
+    if (distBins[bin] === 0) continue;
+    const sMid = Math.exp((bin + 0.5) * Math.log(100000) / 32);
+    const prob = distBins[bin] / distTotal;
+    const lx = Math.log(sMid);
+    const ly = Math.log(prob);
+    points.push([lx, ly]);
+    if (ly > maxLogP) maxLogP = ly;
+    if (ly < minLogP) minLogP = ly;
+  }
+  if (points.length < 2) return;
 
-        // Coherence field view
-        function renderCoherence() {
-            const cellSize = canvas.width / gridSize;
-            let maxC = 0.1;
-            let minC = 0;
-            
-            for (let i = 0; i < gridSize; i++) {
-                for (let j = 0; j < gridSize; j++) {
-                    maxC = Math.max(maxC, coherence[i][j]);
-                    minC = Math.min(minC, coherence[i][j]);
-                }
-            }
-            
-            for (let i = 0; i < gridSize; i++) {
-                for (let j = 0; j < gridSize; j++) {
-                    const c = coherence[i][j];
-                    const normalized = (c - minC) / (maxC - minC + 0.01);
-                    const r = Math.floor(255 * normalized);
-                    const b = Math.floor(255 * (1 - normalized));
-                    ctx.fillStyle = `rgb(${r}, ${Math.floor(100 + 100 * normalized)}, ${b})`;
-                    ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
-                }
-            }
-        }
+  const xMin = 0;
+  const xMax = Math.log(100000);
+  const yMin = minLogP - 0.5;
+  const yMax = maxLogP + 0.3;
 
-        function render() {
-            if (viewMode === 'realistic') {
-                renderRealistic();
-            } else if (viewMode === 'height') {
-                renderHeightMap();
-            } else if (viewMode === 'coherence') {
-                renderCoherence();
-            }
-        }
+  /* Reference slope −1.27 line */
+  distCtx.strokeStyle = 'rgba(255,180,90,.45)';
+  distCtx.setLineDash([4, 4]);
+  distCtx.beginPath();
+  const y0 = maxLogP - (-1.27) * (Math.log(4) - xMin) - 1.5;
+  const y1 = y0 + (-1.27) * (xMax - xMin);
+  distCtx.moveTo(padL + 0, padT + plotH - (y0 - yMin) / (yMax - yMin) * plotH);
+  distCtx.lineTo(padL + plotW, padT + plotH - (y1 - yMin) / (yMax - yMin) * plotH);
+  distCtx.stroke();
+  distCtx.setLineDash([]);
 
-        // Update statistics and validation
-        function updateStats() {
-            document.getElementById('totalGrains').textContent = totalGrainsAdded;
-            document.getElementById('avalancheCount').textContent = avalancheCount;
-            document.getElementById('largestAvalanche').textContent = largestAvalanche;
-            
-            // Calculate mean coherence
-            let sumC = 0;
-            let sumZ = 0;
-            for (let i = 0; i < gridSize; i++) {
-                for (let j = 0; j < gridSize; j++) {
-                    sumC += coherence[i][j];
-                    sumZ += grid[i][j];
-                }
-            }
-            const meanC = sumC / (gridSize * gridSize);
-            const meanZ = sumZ / (gridSize * gridSize);
-            
-            document.getElementById('meanCoherence').textContent = meanC.toFixed(2);
-            
-            // Store for validation
-            if (totalGrainsAdded > 1000) {
-                heightHistory.push(meanZ);
-                coherenceHistory.push(meanC);
-                if (heightHistory.length > 100) heightHistory.shift();
-                if (coherenceHistory.length > 100) coherenceHistory.shift();
-            }
-        }
+  /* Data points */
+  distCtx.fillStyle = 'rgba(160,240,220,.85)';
+  for (const [lx, ly] of points) {
+    const px = padL + (lx - xMin) / (xMax - xMin) * plotW;
+    const py = padT + plotH - (ly - yMin) / (yMax - yMin) * plotH;
+    distCtx.beginPath();
+    distCtx.arc(px, py, 2.5, 0, Math.PI * 2);
+    distCtx.fill();
+  }
 
-        // Validation metrics
-        function updateValidation() {
-            // Power-law exponent τ
-            if (avalancheSizes.length > 100) {
-                const tau = calculatePowerLawExponent();
-                document.getElementById('tauMeasured').textContent = tau.toFixed(2);
-                
-                const tauError = Math.abs(tau - targetTau);
-                const tauMatch = document.getElementById('tauMatch');
-                if (tauError < 0.05) {
-                    tauMatch.textContent = '✓ Excellent';
-                    tauMatch.className = 'match-indicator excellent';
-                } else if (tauError < 0.15) {
-                    tauMatch.textContent = '✓ Good';
-                    tauMatch.className = 'match-indicator good';
-                } else {
-                    tauMatch.textContent = 'Converging...';
-                    tauMatch.className = 'match-indicator';
-                }
-            }
-            
-            // Mean height
-            if (heightHistory.length > 0) {
-                const avgHeight = heightHistory.reduce((a, b) => a + b, 0) / heightHistory.length;
-                document.getElementById('meanHeight').textContent = avgHeight.toFixed(3);
-                
-                const heightError = Math.abs(avgHeight - targetMeanHeight);
-                const heightMatch = document.getElementById('heightMatch');
-                if (heightError < 0.05) {
-                    heightMatch.textContent = '✓ Excellent';
-                    heightMatch.className = 'match-indicator excellent';
-                } else if (heightError < 0.15) {
-                    heightMatch.textContent = '✓ Good';
-                    heightMatch.className = 'match-indicator good';
-                } else {
-                    heightMatch.textContent = 'Converging...';
-                    heightMatch.className = 'match-indicator';
-                }
-            }
-            
-            // Coherence ratio
-            if (coherenceHistory.length > 0) {
-                const avgCoherence = coherenceHistory.reduce((a, b) => a + b, 0) / coherenceHistory.length;
-                const Cstar = threshold / 2.0;
-                const ratio = avgCoherence / Cstar;
-                document.getElementById('coherenceRatio').textContent = ratio.toFixed(2);
-                
-                const coherenceError = Math.abs(ratio - 1.0);
-                const coherenceMatch = document.getElementById('coherenceMatch');
-                if (coherenceError < 0.2) {
-                    coherenceMatch.textContent = '✓ Excellent';
-                    coherenceMatch.className = 'match-indicator excellent';
-                } else if (coherenceError < 0.4) {
-                    coherenceMatch.textContent = '✓ Good';
-                    coherenceMatch.className = 'match-indicator good';
-                } else {
-                    coherenceMatch.textContent = 'Converging...';
-                    coherenceMatch.className = 'match-indicator';
-                }
-            }
-            
-            // Criticality percentage
-            let nearCritical = 0;
-            for (let i = 0; i < gridSize; i++) {
-                for (let j = 0; j < gridSize; j++) {
-                    if (grid[i][j] >= threshold - 1) nearCritical++;
-                }
-            }
-            const critPercent = (100 * nearCritical / (gridSize * gridSize));
-            document.getElementById('criticalPercent').textContent = critPercent.toFixed(1) + '%';
-            
-            const critMatch = document.getElementById('critMatch');
-            if (critPercent >= 40 && critPercent <= 60) {
-                critMatch.textContent = '✓ SOC Regime';
-                critMatch.className = 'match-indicator excellent';
-            } else if (critPercent >= 30 && critPercent <= 70) {
-                critMatch.textContent = '✓ Good';
-                critMatch.className = 'match-indicator good';
-            } else {
-                critMatch.textContent = 'Approaching...';
-                critMatch.className = 'match-indicator';
-            }
-        }
+  /* Axis ticks */
+  distCtx.fillStyle = 'rgba(160,200,210,.45)';
+  distCtx.font = "9px 'JetBrains Mono'";
+  distCtx.fillText('1', padL - 4, padT + plotH + 12);
+  distCtx.fillText('10²', padL + plotW * (Math.log(100) - xMin) / (xMax - xMin) - 8, padT + plotH + 12);
+  distCtx.fillText('10⁴', padL + plotW * (Math.log(10000) - xMin) / (xMax - xMin) - 8, padT + plotH + 12);
+  distCtx.save();
+  distCtx.translate(8, padT + plotH / 2);
+  distCtx.rotate(-Math.PI / 2);
+  distCtx.fillText('log P(s)', -20, 0);
+  distCtx.restore();
+  distCtx.fillText('log s', padL + plotW - 28, padT + plotH + 12);
+}
 
-        // Calculate power-law exponent using log-log regression (with stability safeguards)
-        function calculatePowerLawExponent() {
-            if (avalancheSizes.length < 50) return 0;
-            
-            // Create histogram
-            const maxSize = Math.max(...avalancheSizes);
-            
-            // Safeguard against extreme values
-            if (maxSize > 100000 || maxSize <= 0) return 0;
-            
-            const bins = 20;
-            const binSize = Math.ceil(maxSize / bins);
-            const histogram = Array(bins).fill(0);
-            
-            for (const size of avalancheSizes) {
-                if (size > 0 && size < maxSize * 2) { // Filter outliers
-                    const bin = Math.min(bins - 1, Math.floor(size / binSize));
-                    histogram[bin]++;
-                }
-            }
-            
-            // Log-log regression (skip empty bins)
-            let sumLogS = 0, sumLogP = 0, sumLogS2 = 0, sumLogSLogP = 0, n = 0;
-            
-            for (let i = 0; i < bins; i++) {
-                if (histogram[i] > 5) {
-                    const s = (i + 0.5) * binSize;
-                    const p = histogram[i] / avalancheSizes.length;
-                    
-                    if (s > 0 && p > 0) { // Safety check
-                        const logS = Math.log(s);
-                        const logP = Math.log(p);
-                        
-                        if (isFinite(logS) && isFinite(logP)) { // Check for valid numbers
-                            sumLogS += logS;
-                            sumLogP += logP;
-                            sumLogS2 += logS * logS;
-                            sumLogSLogP += logS * logP;
-                            n++;
-                        }
-                    }
-                }
-            }
-            
-            if (n < 5) return 0;
-            
-            const denominator = (n * sumLogS2 - sumLogS * sumLogS);
-            if (Math.abs(denominator) < 0.0001) return 0; // Avoid division by zero
-            
-            const slope = (n * sumLogSLogP - sumLogS * sumLogP) / denominator;
-            const tau = -slope;
-            
-            // Clamp to reasonable range
-            return Math.max(0.5, Math.min(3.0, tau));
-        }
+/* ═══════════════════════════════════════════════════════════════════════════
+   STATS UPDATE
+   ═══════════════════════════════════════════════════════════════════════════ */
+function updateStats() {
+  document.getElementById('s-L').textContent = `${L} × ${L}`;
+  document.getElementById('s-drops').textContent = drops.toLocaleString();
+  document.getElementById('s-aval').textContent = avalancheCount.toLocaleString();
+  document.getElementById('s-max').textContent = largestAvalanche.toLocaleString();
 
-        // Draw power-law distribution
-        function drawDistribution() {
-            if (avalancheSizes.length < 20) return;
-            
-            chartCtx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
-            
-            const maxSize = Math.max(...avalancheSizes);
-            const bins = 20;
-            const binSize = Math.ceil(maxSize / bins);
-            const histogram = Array(bins).fill(0);
-            
-            for (const size of avalancheSizes) {
-                const bin = Math.min(bins - 1, Math.floor(size / binSize));
-                histogram[bin]++;
-            }
-            
-            const maxCount = Math.max(...histogram);
-            const barWidth = chartCanvas.width / bins;
-            
-            // Draw bars
-            for (let i = 0; i < bins; i++) {
-                const barHeight = (histogram[i] / maxCount) * (chartCanvas.height - 60);
-                chartCtx.fillStyle = '#3498db';
-                chartCtx.fillRect(
-                    i * barWidth + 2,
-                    chartCanvas.height - barHeight - 40,
-                    barWidth - 4,
-                    barHeight
-                );
-            }
-            
-            // Labels
-            chartCtx.fillStyle = '#2c3e50';
-            chartCtx.font = 'bold 14px Arial';
-            chartCtx.fillText('Power-Law Distribution: P(s) ~ s^(-τ)', 10, 20);
-            
-            const tau = calculatePowerLawExponent();
-            if (tau > 0) {
-                chartCtx.fillStyle = '#27ae60';
-                chartCtx.font = '12px Arial';
-                chartCtx.fillText(`Measured τ = ${tau.toFixed(2)} (Theory: 1.27)`, 10, 40);
-            }
-            
-            chartCtx.fillStyle = '#6c757d';
-            chartCtx.font = '11px Arial';
-            chartCtx.fillText('Avalanche Size →', chartCanvas.width - 120, chartCanvas.height - 10);
-            chartCtx.fillText('Frequency', 10, chartCanvas.height - 10);
-        }
+  /* Mean height over interior */
+  let sum = 0, n = 0;
+  for (let y = 3; y < L - 3; y++) {
+    for (let x = 3; x < L - 3; x++) {
+      sum += z[x + y * L]; n++;
+    }
+  }
+  document.getElementById('s-mean').textContent = (sum / Math.max(1, n)).toFixed(3);
 
-        // Animation loop
-        function animate() {
-            if (!isRunning) return;
-            
-            const speed = parseInt(document.getElementById('speed').value);
-            for (let i = 0; i < speed; i++) {
-                addGrain();
-            }
-            
-            render();
-            updateStats();
-            
-            if (totalGrainsAdded % 20 === 0) {
-                updateValidation();
-            }
-            
-            if (avalancheSizes.length % 10 === 0) {
-                drawDistribution();
-            }
-            
-            requestAnimationFrame(animate);
-        }
+  /* CV(ITI) on tracked site */
+  if (itiRecords.length >= 20) {
+    let s1 = 0, s2 = 0;
+    for (const v of itiRecords) { s1 += v; s2 += v * v; }
+    const m = s1 / itiRecords.length;
+    const v = s2 / itiRecords.length - m * m;
+    if (v > 0) {
+      const cv = Math.sqrt(v) / m;
+      document.getElementById('s-cv').textContent = cv.toFixed(3);
+    }
+  }
 
-        // Controls
-        function toggleSimulation() {
-            isRunning = !isRunning;
-            document.getElementById('playPauseText').textContent = isRunning ? '⏸ Pause' : '▶ Start';
-            if (isRunning) animate();
-        }
+  /* τ */
+  const tau = fitTau();
+  if (tau !== null) document.getElementById('s-tau').textContent = tau.toFixed(2);
+}
 
-        function resetSimulation() {
-            isRunning = false;
-            document.getElementById('playPauseText').textContent = '▶ Start';
-            gridSize = parseInt(document.getElementById('gridSize').value);
-            threshold = parseInt(document.getElementById('threshold').value);
-            omega = parseFloat(document.getElementById('omega').value);
-            initGrid();
-            render();
-            chartCtx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
-        }
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN LOOP
+   ═══════════════════════════════════════════════════════════════════════════ */
+let dropsPerFrame = 30;
 
-        function setView(mode) {
-            viewMode = mode;
-            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            render();
-        }
+function tick() {
+  if (running) {
+    for (let i = 0; i < dropsPerFrame; i++) dropOne();
+  }
+  renderMain();
+  renderDist();
+  if ((performance.now() | 0) % 4 === 0) updateStats();
+  requestAnimationFrame(tick);
+}
 
-        function toggleExplainer() {
-            const content = document.getElementById('explainerContent');
-            const toggle = document.getElementById('explainerToggle');
-            content.classList.toggle('open');
-            toggle.classList.toggle('open');
-        }
+/* ═══════════════════════════════════════════════════════════════════════════
+   UI HOOKS
+   ═══════════════════════════════════════════════════════════════════════════ */
+function dismissSplash() {
+  document.getElementById('splash').classList.add('hidden');
+  resizeCanvases();
+}
 
-        // Event listeners
-        document.getElementById('gridSize').addEventListener('input', (e) => {
-            document.getElementById('gridSizeValue').textContent = e.target.value;
-        });
+function toggleExplainer() {
+  const ex = document.getElementById('explainer');
+  ex.classList.toggle('open');
+  document.getElementById('toggle-ex').style.display = ex.classList.contains('open') ? 'none' : 'block';
+}
 
-        document.getElementById('omega').addEventListener('input', (e) => {
-            document.getElementById('omegaValue').textContent = parseFloat(e.target.value).toFixed(1);
-            omega = parseFloat(e.target.value);
-        });
+document.getElementById('toggle-ex').addEventListener('click', toggleExplainer);
 
-        document.getElementById('threshold').addEventListener('input', (e) => {
-            document.getElementById('thresholdValue').textContent = e.target.value;
-        });
+/* Tabs */
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('t-' + t.dataset.tab).classList.add('active');
+  });
+});
 
-        document.getElementById('speed').addEventListener('input', (e) => {
-            document.getElementById('speedValue').textContent = e.target.value;
-        });
+/* L slider */
+document.getElementById('c-L').addEventListener('input', e => {
+  const newL = parseInt(e.target.value);
+  document.getElementById('v-L').textContent = newL;
+  L = newL;
+  resetState();
+});
 
-        // Initialize
-        initGrid();
-        render();
-    </script>
-</body>
-</html>
+/* Rate slider */
+document.getElementById('c-rate').addEventListener('input', e => {
+  dropsPerFrame = parseInt(e.target.value);
+  document.getElementById('v-rate').textContent = dropsPerFrame;
+});
+
+/* View buttons */
+document.querySelectorAll('[data-view]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-view]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    viewMode = b.dataset.view;
+  });
+});
+
+/* Run/Reset */
+document.getElementById('btn-run').addEventListener('click', e => {
+  running = !running;
+  e.target.textContent = running ? 'Running' : 'Paused';
+  e.target.classList.toggle('active', running);
+});
+document.getElementById('btn-reset').addEventListener('click', () => {
+  resetState();
+});
+
+/* Resize */
+window.addEventListener('resize', resizeCanvases);
+
+/* ═══ GO ═══ */
+resetState();
+resizeCanvases();
+tick();
+
+</script>
+</body></html>
