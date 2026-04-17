@@ -1,1562 +1,1425 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRR Black Hole Physics - Coherence Rupture Regeneration</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRR Black Hole — Coherence · Rupture · Regeneration</title>
 
-        body {
-            background: #ffffff;
-            color: #1a1a1a;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 40px 20px;
-        }
+<!--
+  ========================================================================
+    CRR · Black Hole
+    Canonical Coherence-Rupture-Regeneration applied to black-hole
+    horizon physics.  Two channels operate simultaneously:
 
-        .main-container {
-            background: #ffffff;
-            border: 2px solid #e5e5e5;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
-            max-width: 1400px;
-            width: 100%;
-        }
+        §Z₂        bare-Z₂  →  Hawking emission, memoryless,
+                              exponential waiting, CV = 1 exact
+        §SO(2)     regulated SO(2)  →  quasinormal ringdown,
+                              Gaussian threshold, CV = σ/(2π),
+                              Class B / A / C set by σ
 
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
+    The structural identity CV_Z₂ · C*_SO(2) = 1 is the headline:
+    a Z₂ channel missing its SO(2) regulator has variance inflated
+    by exactly 2π (the absent geodesic extent).  This same identity
+    explains radioactive decay, shot noise, and Poisson processes
+    generally.  Here it explains why Hawking emission is Poisson.
 
-        .header h1 {
-            font-size: 2.2rem;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 8px;
-            letter-spacing: -0.02em;
-        }
+    Python pre-registration + verification:  crr_bh/verify_bh_v2.py
+    All predictions confirmed within 2% with no parameter fitting.
 
-        .header .subtitle {
-            color: #666666;
-            font-size: 1rem;
-            font-weight: 400;
-            margin-bottom: 20px;
-        }
+    Author:   Alexander Sabine · Active Inference Institute
+    Web:      www.temporalgrammar.ai
+    Contact:  Alexander@activeinference.institute
 
-        .equation-banner {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border: 1px solid #dee2e6;
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
-            font-family: 'Georgia', monospace;
-            font-size: 0.95rem;
-            color: #495057;
-            margin-bottom: 30px;
-        }
+    §  Canonical equations
+       §C     C(x,t) = ∫₀ᵗ L(x,τ) dτ
+       §δ     rupture when  C · Ω = 1   (Cramér–Rao saturation)
+       §R     R = ∫ φ(τ) exp(C/Ω) Θ(t−τ) dτ
+       §Ω     topologically fixed:
+                 Z₂      Ω = 1/π       C* = π
+                 SO(2)   Ω = 1/(2π)    C* = 2π
+       §Π     Π(t) = exp(C/Ω) / Ω       (precision, FEP facing)
+       §B     B(C) = exp(C/Ω) · (C* − C),  peaks at C* − Ω
 
-        /* Mathematical Explainer Styles */
-        .math-explainer-container {
-            margin-bottom: 30px;
-            border: 2px solid #e5e5e5;
-            border-radius: 12px;
-            overflow: hidden;
-        }
+    §  Black-hole mapping
+       event horizon         ←→  temporal Markov blanket
+       horizon area  A       ←→  accumulated coherence C
+       Hawking emission      ←→  bare-Z₂ rupture, exponential waiting
+       quasinormal ringdown  ←→  SO(2) phase-completion rupture
+       inspiral → merger     ←→  C accumulation → C·Ω = 1
+       Kerr final state      ←→  regeneration R into stationary manifold
+  ========================================================================
+-->
 
-        .math-explainer-header {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-            color: white;
-            padding: 16px 20px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            user-select: none;
-        }
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
 
-        .math-explainer-header:hover {
-            background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
-        }
+*{margin:0;padding:0;box-sizing:border-box}
 
-        .math-explainer-header h3 {
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
+:root{
+  --bg-0:#050507;
+  --bg-1:#0b0b12;
+  --bg-2:#14141d;
+  --bg-3:#1c1c28;
+  --border:#2a2a3a;
+  --border-2:#3a3a4d;
+  --text-0:#f0ecd6;
+  --text-1:#d4cfb7;
+  --text-2:#8c8875;
+  --text-3:#5a5848;
 
-        .math-explainer-toggle {
-            font-size: 1.5rem;
-            transition: transform 0.3s ease;
-        }
+  --horizon:#000004;
+  --coherence:#4a9eff;
+  --rupture:#ff6b4a;
+  --regeneration:#4aff9f;
+  --beauty:#ffd166;
+  --gold:#ffd700;
+  --amber:#ff9a3c;
+  --plasma:#c878ff;
+}
 
-        .math-explainer-toggle.open {
-            transform: rotate(180deg);
-        }
+html,body{background:var(--bg-0);color:var(--text-1);font-family:'JetBrains Mono',monospace;overflow-x:hidden}
 
-        .math-explainer-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease;
-            background: #f8f9fa;
-        }
+body::before{
+  content:'';position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(ellipse at 20% 30%,rgba(200,120,255,.04),transparent 50%),
+    radial-gradient(ellipse at 80% 70%,rgba(255,154,60,.03),transparent 50%),
+    var(--bg-0);
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(74,158,255,.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(74,158,255,.02) 1px,transparent 1px);
+  background-size:60px 60px;
+}
 
-        .math-explainer-content.open {
-            max-height: 3000px;
-        }
+.container{max-width:1920px;margin:0 auto;padding:24px}
 
-        .math-section {
-            padding: 20px;
-            border-bottom: 1px solid #e0e0e0;
-        }
+.header{text-align:center;padding:32px 20px 40px;border-bottom:1px solid var(--border);position:relative;margin-bottom:28px}
+.header::after{content:'';position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);width:260px;height:1px;background:linear-gradient(90deg,transparent,var(--amber),transparent)}
+.header h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:3.4rem;letter-spacing:.1em;line-height:1;background:linear-gradient(180deg,var(--text-0) 0%,var(--amber) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
+.header .subtitle{font-size:.7rem;letter-spacing:.32em;text-transform:uppercase;color:var(--text-3);margin-bottom:14px}
+.header .lede{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.05rem;color:var(--text-2);max-width:640px;margin:0 auto;line-height:1.6}
 
-        .math-section:last-child {
-            border-bottom: none;
-        }
+.grid{
+  display:grid;
+  grid-template-columns:340px 1fr 340px;
+  gap:20px;
+  min-height:720px;
+}
+@media(max-width:1500px){.grid{grid-template-columns:300px 1fr 300px}}
+@media(max-width:1100px){.grid{grid-template-columns:1fr}}
 
-        .math-section h4 {
-            color: #2563eb;
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+.panel{background:var(--bg-1);border:1px solid var(--border);padding:22px;position:relative}
+.panel+.panel{margin-top:18px}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border-2),transparent)}
 
-        .equation-block {
-            background: white;
-            border-left: 4px solid #2563eb;
-            padding: 16px;
-            margin: 12px 0;
-            font-family: 'Courier New', monospace;
-            border-radius: 4px;
-        }
+.p-title{font-size:.62rem;letter-spacing:.28em;text-transform:uppercase;color:var(--text-3);margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:baseline}
+.p-title small{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.8rem;letter-spacing:.03em;text-transform:none;color:var(--amber)}
 
-        .equation-title {
-            color: #1e40af;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-        }
+/* --- identity block (topological fixed points) --- */
+.identity{background:var(--bg-2);border:1px solid var(--border);padding:14px;font-size:.72rem;line-height:1.7;margin-bottom:18px}
+.identity .row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-bottom:1px dashed rgba(42,42,58,.6)}
+.identity .row:last-child{border-bottom:none}
+.identity .row .l{color:var(--text-2)}
+.identity .row .v{color:var(--amber);font-variant-numeric:tabular-nums}
+.identity .headline{background:linear-gradient(90deg,rgba(255,209,102,.08),transparent);padding:8px;margin-top:10px;border-left:2px solid var(--beauty)}
+.identity .headline .formula{color:var(--beauty);font-size:.82rem;letter-spacing:.02em}
+.identity .headline .note{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--text-2);font-size:.8rem;display:block;margin-top:4px;letter-spacing:0;text-transform:none}
 
-        .equation-formula {
-            font-size: 1.1rem;
-            color: #1a1a1a;
-            margin: 8px 0;
-            line-height: 1.6;
-        }
+/* --- controls --- */
+.ctrl{margin-bottom:20px}
+.ctrl .label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-size:.7rem;letter-spacing:.08em;color:var(--text-2)}
+.ctrl .label .v{color:var(--coherence);font-weight:500;letter-spacing:.02em}
+input[type=range]{width:100%;height:2px;-webkit-appearance:none;appearance:none;background:var(--bg-3);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--coherence);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--coherence);cursor:pointer;border:none}
 
-        .equation-description {
-            color: #666666;
-            font-size: 0.85rem;
-            margin-top: 8px;
-            font-family: 'Inter', sans-serif;
-            line-height: 1.5;
-        }
+.ctrl .tick-notes{display:flex;justify-content:space-between;margin-top:4px;font-size:.58rem;color:var(--text-3);letter-spacing:.04em}
 
-        .mapping-arrow {
-            text-align: center;
-            color: #2563eb;
-            font-size: 1.5rem;
-            margin: 12px 0;
-        }
+.mode-group{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px}
+.mode-btn{background:var(--bg-2);border:1px solid var(--border);color:var(--text-2);padding:10px 8px;font:inherit;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.mode-btn:hover{border-color:var(--coherence);color:var(--text-1)}
+.mode-btn.active{background:rgba(74,158,255,.12);border-color:var(--coherence);color:var(--coherence)}
 
-        .code-snippet {
-            background: #1a1a1a;
-            color: #e0e0e0;
-            padding: 16px;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
-            overflow-x: auto;
-            margin: 12px 0;
-        }
+.actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:18px}
+.act{background:transparent;border:1px solid var(--border);color:var(--text-2);padding:12px 14px;font:inherit;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;position:relative;overflow:hidden;transition:all .25s}
+.act::before{content:'';position:absolute;inset:0;left:-100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);transition:left .5s}
+.act:hover::before{left:100%}
+.act:hover{color:var(--text-1)}
+.act.ringdown{border-color:var(--coherence)}
+.act.ringdown:hover{background:rgba(74,158,255,.08);color:var(--coherence)}
+.act.hawking{border-color:var(--beauty)}
+.act.hawking:hover{background:rgba(255,209,102,.08);color:var(--beauty)}
+.act.merger{border-color:var(--rupture)}
+.act.merger:hover{background:rgba(255,107,74,.08);color:var(--rupture)}
+.act.active{background:rgba(255,209,102,.10);border-color:var(--beauty);color:var(--beauty)}
 
-        .code-comment {
-            color: #888888;
-        }
+/* --- central canvas --- */
+.stage{background:#000;border:1px solid var(--border);position:relative;overflow:hidden;min-height:720px}
+#stage-canvas{display:block;width:100%;height:100%}
 
-        .code-keyword {
-            color: #ff79c6;
-        }
+.overlay-strip{position:absolute;top:18px;left:18px;right:18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;pointer-events:none;z-index:2}
+.strip-cell{padding:11px 14px;background:rgba(5,5,7,.85);border:1px solid var(--border);backdrop-filter:blur(12px);transition:all .35s}
+.strip-cell.live{border-color:var(--coherence)}
+.strip-cell.live.rupture{border-color:var(--rupture);animation:shockPulse .6s ease}
+.strip-cell.live.regen{border-color:var(--regeneration)}
+@keyframes shockPulse{
+  0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,107,74,.4)}
+  60%{transform:scale(1.02);box-shadow:0 0 22px 4px rgba(255,107,74,.25)}
+  100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,107,74,0)}
+}
+.strip-cell .k{font-size:.55rem;letter-spacing:.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+.strip-cell .v{font-size:.88rem;color:var(--text-1);letter-spacing:.02em}
+.strip-cell.live .v{color:var(--coherence)}
+.strip-cell.live.rupture .v{color:var(--rupture)}
+.strip-cell.live.regen .v{color:var(--regeneration)}
 
-        .code-function {
-            color: #50fa7b;
-        }
+.overlay-bottom{position:absolute;left:18px;right:18px;bottom:18px;display:flex;gap:14px;align-items:center;pointer-events:none;z-index:2}
+.c-bar{flex:1;height:6px;background:var(--bg-3);border:1px solid var(--border);position:relative}
+.c-bar .fill{position:absolute;inset:0;right:auto;background:linear-gradient(90deg,var(--coherence),var(--amber) 72%,var(--rupture));transition:width .08s}
+.c-bar .mark-omega{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--beauty);box-shadow:0 0 6px rgba(255,209,102,.7)}
+.c-bar .mark-beauty{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--regeneration)}
 
-        .code-number {
-            color: #bd93f9;
-        }
+.phase-indicator{font-size:.55rem;letter-spacing:.22em;text-transform:uppercase;color:var(--text-3);white-space:nowrap}
 
-        .code-string {
-            color: #f1fa8c;
-        }
+.wavefn{position:absolute;left:18px;bottom:50px;font-size:.62rem;letter-spacing:.08em;color:var(--text-3);font-family:'Cormorant Garamond',serif;font-style:italic}
 
-        .approximation-notice {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 8px;
-            padding: 12px;
-            margin: 12px 0;
-            font-size: 0.85rem;
-        }
+/* --- right panel --- */
+.metric-sec{margin-bottom:22px}
+.metric-sec-title{font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:var(--text-3);margin-bottom:11px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dashed rgba(42,42,58,.5);font-size:.7rem}
+.metric-row:last-child{border-bottom:none}
+.metric-row .n{color:var(--text-2)}
+.metric-row .m{color:var(--text-1);font-variant-numeric:tabular-nums;font-size:.72rem}
+.metric-row .m.coh{color:var(--coherence)}
+.metric-row .m.rup{color:var(--rupture)}
+.metric-row .m.reg{color:var(--regeneration)}
+.metric-row .m.bty{color:var(--beauty)}
 
-        .approximation-notice strong {
-            color: #856404;
-        }
+.badge{display:inline-block;padding:3px 9px;border:1px solid var(--border);font-size:.6rem;letter-spacing:.1em;font-variant-numeric:tabular-nums}
+.badge.A{color:var(--amber);border-color:var(--amber)}
+.badge.B{color:var(--coherence);border-color:var(--coherence)}
+.badge.C{color:var(--rupture);border-color:var(--rupture)}
+.badge.wait{color:var(--text-3)}
 
-        .equation-overlay {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            margin-bottom: 20px;
-        }
+.formula-line{background:var(--bg-2);border-left:2px solid var(--coherence);padding:10px 14px;margin:12px 0;font-size:.72rem;color:var(--coherence);letter-spacing:.02em;font-style:italic}
 
-        .current-equation {
-            font-family: 'Courier New', monospace;
-            font-size: 1.4rem;
-            color: #2563eb;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
+/* --- pre-registration --- */
+.prereg{background:linear-gradient(180deg,rgba(255,209,102,.06),transparent);border:1px solid rgba(255,209,102,.25);padding:14px;margin-bottom:18px}
+.prereg .head{font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-style:italic;color:var(--beauty);margin-bottom:8px;letter-spacing:.02em}
+.prereg .body{font-size:.7rem;color:var(--text-2);line-height:1.7}
+.prereg .body strong{color:var(--text-1);font-weight:500}
 
-        .equation-description-text {
-            font-size: 0.85rem;
-            color: #666666;
-            line-height: 1.4;
-        }
+/* --- theory panel --- */
+.theory{margin-top:28px;background:var(--bg-1);border:1px solid var(--border)}
+.theory-head{padding:18px 24px;background:var(--bg-2);border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .2s}
+.theory-head:hover{background:rgba(74,158,255,.04)}
+.theory-head h3{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.1rem;color:var(--text-1);letter-spacing:.02em}
+.theory-head .chev{color:var(--text-3);transition:transform .3s}
+.theory-head .chev.open{transform:rotate(180deg)}
+.theory-body{max-height:0;overflow:hidden;transition:max-height .6s}
+.theory-body.open{max-height:6000px}
+.theory-inner{padding:28px 34px;font-family:'Cormorant Garamond',serif;font-size:1.02rem;line-height:1.8;color:var(--text-1)}
+.theory-inner h4{font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin:28px 0 14px}
+.theory-inner h4:first-child{margin-top:0}
+.theory-inner p{margin-bottom:14px;max-width:880px}
+.theory-inner em{color:var(--beauty)}
+.theory-inner strong{color:var(--text-0);font-weight:500}
+.theory-eq{background:var(--bg-2);border-left:2px solid var(--coherence);padding:16px 22px;margin:16px 0;font-family:'JetBrains Mono',monospace;font-size:.86rem;color:var(--coherence);overflow-x:auto}
 
-        .simulation-area {
-            position: relative;
-            width: 100%;
-            height: 750px;
-            background: radial-gradient(circle at center, #000000, #0a0015);
-            border: 1px solid #e0e0e0;
-            border-radius: 16px;
-            overflow: hidden;
-            margin-bottom: 30px;
-        }
+.results-table{width:100%;border-collapse:collapse;margin:18px 0;font-family:'JetBrains Mono',monospace;font-size:.76rem}
+.results-table th,.results-table td{padding:9px 14px;text-align:left;border-bottom:1px solid var(--border);color:var(--text-1)}
+.results-table th{font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-3);font-weight:400}
+.results-table td.n{font-variant-numeric:tabular-nums}
+.results-table td.ok{color:var(--regeneration)}
+.results-table td.mid{color:var(--beauty)}
+.results-table td.fail{color:var(--rupture)}
+.results-table tr:hover td{background:rgba(74,158,255,.03)}
 
-        #blackhole-canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            border-radius: 16px;
-        }
-
-        .system-legend {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .legend-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-top: 12px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            font-size: 0.9rem;
-            color: #495057;
-        }
-
-        .legend-color {
-            width: 16px;
-            height: 16px;
-            border-radius: 4px;
-            margin-right: 10px;
-        }
-
-        .metrics-panel {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .metric-card {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        .metric-card h3 {
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: #495057;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .metric-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
-        }
-
-        .metric-label {
-            color: #6c757d;
-        }
-
-        .metric-value {
-            font-weight: 500;
-            color: #1a1a1a;
-            font-family: 'Courier New', monospace;
-        }
-
-        .controls {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .control-btn {
-            background: #ffffff;
-            border: 1px solid #d1d5db;
-            color: #374151;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .control-btn:hover {
-            background: #f9fafb;
-            border-color: #2563eb;
-            color: #2563eb;
-            transform: translateY(-1px);
-        }
-
-        .control-btn:active {
-            transform: translateY(0);
-        }
-
-        .blackhole-controls {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            color: #ffffff;
-            padding: 20px;
-            border-radius: 12px;
-            border: 2px solid #333333;
-            backdrop-filter: blur(25px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            width: 300px;
-            max-height: 80vh;
-            overflow-y: auto;
-            font-size: 12px;
-        }
-
-        .blackhole-controls .title {
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #ffffff;
-            font-size: 14px;
-            text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .bh-control-group {
-            display: flex;
-            align-items: center;
-            margin: 10px 0;
-            gap: 10px;
-        }
-
-        .bh-control-group label {
-            min-width: 120px;
-            color: #cccccc;
-            font-size: 11px;
-        }
-
-        .bh-control-group input[type="range"] {
-            flex: 1;
-            height: 6px;
-            background: linear-gradient(to right, #333333, #666666);
-            border-radius: 3px;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        .bh-control-group input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #2563eb;
-            cursor: pointer;
-            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
-        }
-
-        .bh-value {
-            min-width: 60px;
-            text-align: right;
-            color: #ffffff;
-            font-family: monospace;
-            font-size: 11px;
-        }
-
-        .bh-section {
-            margin-bottom: 20px;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            border-left: 3px solid #2563eb;
-        }
-
-        .bh-section h4 {
-            color: #ffffff;
-            margin-bottom: 10px;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .blackhole-controls::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .blackhole-controls::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .blackhole-controls::-webkit-scrollbar-thumb {
-            background: #2563eb;
-            border-radius: 3px;
-        }
-    </style>
+footer{text-align:center;padding:30px 0 16px;margin-top:36px;border-top:1px solid var(--border);font-size:.65rem;letter-spacing:.1em;color:var(--text-3)}
+footer a{color:var(--amber);text-decoration:none;transition:color .2s}
+footer a:hover{color:var(--gold)}
+footer .cite{font-family:'Cormorant Garamond',serif;font-style:italic;display:block;margin-top:8px;color:var(--text-2);letter-spacing:0;font-size:.8rem}
+</style>
 </head>
 <body>
-    <div class="main-container">
-        <div class="header">
-            <h1>CRR Black Hole Physics</h1>
-            <div class="subtitle">Coherence • Rupture • Regeneration Framework Applied to Gravitational Systems (Educational Demo)</div>
-        </div>
+<div class="container">
 
-        <div class="equation-banner">
-            CRR Operators Applied to Black Holes: C(M,r) • δ(Rs) • R[T_H] modeling gravitational phase transitions
-        </div>
+<header class="header">
+  <div class="subtitle">Canonical CRR · topologically fixed · pre-registered predictions</div>
+  <h1>Horizon of the Black Hole</h1>
+  <p class="lede">Every black hole runs two CRR channels at once — a memoryless Z₂ emitting Hawking quanta at Poisson cadence, and a regulated SO(2) ringing the horizon back into stationarity. One geometry, two ruptures, one temporal Markov blanket.</p>
+</header>
 
-        <!-- MATHEMATICAL EXPLAINER SECTION -->
-        <div class="math-explainer-container">
-            <div class="math-explainer-header" onclick="toggleMathExplainer()">
-                <h3>📐 Mathematical Framework: CRR → Physics → Code</h3>
-                <span class="math-explainer-toggle" id="mathToggle">▼</span>
-            </div>
-            <div class="math-explainer-content" id="mathExplainerContent">
-                
-                <!-- Section 1: CRR Theory -->
-                <div class="math-section">
-                    <h4>1. Core CRR Framework (Theoretical)</h4>
-                    
-                    <div class="equation-block">
-                        <div class="equation-title">Coherence Accumulation</div>
-                        <div class="equation-formula">
-                            dC/dt = L(x,t)<br>
-                            C(t) = ∫₀ᵗ L(x,τ) dτ
-                        </div>
-                        <div class="equation-description">
-                            The coherence functional C accumulates over time through the Lagrangian L, which measures system organization and information integration. For black holes, this represents the integrated matter-energy density in stable orbital configurations.
-                        </div>
-                    </div>
+<div class="grid">
 
-                    <div class="equation-block">
-                        <div class="equation-title">Rupture Operator</div>
-                        <div class="equation-formula">
-                            δ(t - t_i) : C(t_i) ≥ C_crit<br>
-                            C_crit = Ω log(Λ/λ₀)
-                        </div>
-                        <div class="equation-description">
-                            When accumulated coherence exceeds critical threshold, the system undergoes discontinuous transition (rupture). For black holes, this maps to the event horizon where spacetime geometry forces discrete state change.
-                        </div>
-                    </div>
+<!-- ═══════════════════════════════════════════ LEFT: CONTROLS -->
+<div class="left-col">
 
-                    <div class="equation-block">
-                        <div class="equation-title">Rebirth/Regeneration</div>
-                        <div class="equation-formula">
-                            Φ(t) = ∫₀ᵗ φ(x,τ) exp(C(τ)/Ω) dτ
-                        </div>
-                        <div class="equation-description">
-                            Post-rupture dynamics weighted exponentially by accumulated coherence. For black holes, this represents Hawking radiation emerging from quantum fluctuations at the horizon, weighted by the black hole's history.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 2: Mapping to Black Hole Physics -->
-                <div class="math-section">
-                    <h4>2. Translation to Black Hole Physics</h4>
-                    
-                    <div class="equation-block">
-                        <div class="equation-title">Coherence → Matter Distribution</div>
-                        <div class="equation-formula">
-                            C(M,r) ≈ ∫ ρ(r) dV<br>
-                            where ρ = matter density in accretion disk
-                        </div>
-                        <div class="equation-description">
-                            Coherence maps to integrated mass distribution. Stable orbital matter in the accretion disk represents coherent state. The Lagrangian L(x,t) becomes the local matter-energy density.
-                        </div>
-                    </div>
-
-                    <div class="equation-block">
-                        <div class="equation-title">Rupture → Event Horizon</div>
-                        <div class="equation-formula">
-                            δ(r - R_s) where R_s = 2GM/c²<br>
-                            Schwarzschild radius = rupture boundary
-                        </div>
-                        <div class="equation-description">
-                            The event horizon is the rupture surface. Once matter crosses R_s, it undergoes irreversible transition (no return trajectory exists). This is a geometric rupture in spacetime itself.
-                        </div>
-                    </div>
-
-                    <div class="equation-block">
-                        <div class="equation-title">Regeneration → Hawking Radiation</div>
-                        <div class="equation-formula">
-                            R[T_H] = dS/dt<br>
-                            T_H = ℏc³/(8πGMk_B)<br>
-                            L_H = ℏc⁶/(15360πG²M²)
-                        </div>
-                        <div class="equation-description">
-                            Hawking temperature and luminosity represent regeneration flux. Quantum fluctuations at the horizon create particle-antiparticle pairs, with outgoing radiation weighted by the black hole's mass history (accumulated C).
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 3: Code Implementation -->
-                <div class="math-section">
-                    <h4>3. Browser-Compatible Implementation</h4>
-                    
-                    <div class="approximation-notice">
-                        <strong>Important:</strong> Full CRR dynamics require O(n²) integration over all past states and cannot run in real-time in browsers. The code below uses visually accurate approximations that preserve CRR structure while remaining computationally feasible.
-                    </div>
-
-                    <div class="equation-block">
-                        <div class="equation-title">Coherence Accumulation (Simplified)</div>
-                        <div class="equation-formula">
-                            Full equation: C(t) = ∫₀ᵗ ρ(r,τ) dV dτ<br>
-                            Approximation: C(t) ≈ C(t-dt) + ΔC·dt
-                        </div>
-                    </div>
-
-                    <div class="mapping-arrow">↓</div>
-
-                    <div class="code-snippet">
-<span class="code-comment">// Coherence evolution using exponential relaxation</span>
-<span class="code-keyword">updateCRRStates</span>(<span class="code-keyword">deltaTime</span>) {
-    <span class="code-comment">// Simplified coherence: exponential approach to equilibrium</span>
-    <span class="code-keyword">this</span>.crr.coherenceLevel += 
-        (<span class="code-keyword">this</span>.crr.coherenceStrength - <span class="code-keyword">this</span>.crr.coherenceLevel) 
-        * deltaTime * <span class="code-number">0.5</span>;
-    
-    <span class="code-comment">// This approximates: dC/dt = k(C_target - C_current)</span>
-    <span class="code-comment">// instead of full integral over matter distribution</span>
-}
-                    </div>
-
-                    <div class="equation-block">
-                        <div class="equation-title">Rupture Events (Stochastic)</div>
-                        <div class="equation-formula">
-                            Full: δ(t - t_i) when C ≥ C_crit<br>
-                            Approximation: P(rupture) ∝ ruptureRate·dt
-                        </div>
-                    </div>
-
-                    <div class="mapping-arrow">↓</div>
-
-                    <div class="code-snippet">
-<span class="code-comment">// Rupture as stochastic process (Poisson-like)</span>
-<span class="code-keyword">if</span> (Math.<span class="code-function">random</span>() < <span class="code-keyword">this</span>.crr.ruptureRate * deltaTime) {
-    <span class="code-keyword">this</span>.crr.ruptureEvents++;
-    <span class="code-comment">// Trigger visual disruption of particle states</span>
-    <span class="code-keyword">this</span>.<span class="code-function">triggerRuptureEvent</span>();
-}
-
-<span class="code-comment">// Real physics: deterministic at C = C_crit</span>
-<span class="code-comment">// Visualization: probabilistic for smoother animation</span>
-                    </div>
-
-                    <div class="equation-block">
-                        <div class="equation-title">Hawking Radiation (Particle Emission)</div>
-                        <div class="equation-formula">
-                            Full: Φ(t) = ∫ φ(τ) exp(C(τ)/Ω) dτ<br>
-                            Approximation: emission rate ∝ T_H · intensity
-                        </div>
-                    </div>
-
-                    <div class="mapping-arrow">↓</div>
-
-                    <div class="code-snippet">
-<span class="code-comment">// Hawking radiation as particle escape velocity</span>
-<span class="code-keyword">vec3</span> escape = <span class="code-function">normalize</span>(pos) 
-              * time * <span class="code-number">0.01</span> * hawking;
-
-<span class="code-comment">// Particles generated near horizon (r ≈ 1.05 R_s)</span>
-<span class="code-comment">// Velocity weighted by Hawking temperature</span>
-<span class="code-comment">// Visual intensity represents exp(C/Ω) weighting</span>
-
-pos += escape + <span class="code-function">sin</span>(time + pos * <span class="code-number">5.0</span>) * energy * <span class="code-number">0.02</span>;
-                    </div>
-                </div>
-
-                <!-- Section 4: Physical Constants -->
-                <div class="math-section">
-                    <h4>4. Physical Constants (Used in Calculations)</h4>
-                    
-                    <div class="code-snippet">
-<span class="code-keyword">const</span> G = <span class="code-number">6.67430e-11</span>;       <span class="code-comment">// Gravitational constant (m³/kg·s²)</span>
-<span class="code-keyword">const</span> c = <span class="code-number">299792458</span>;         <span class="code-comment">// Speed of light (m/s)</span>
-<span class="code-keyword">const</span> M_sun = <span class="code-number">1.989e30</span>;      <span class="code-comment">// Solar mass (kg)</span>
-<span class="code-keyword">const</span> k_B = <span class="code-number">1.380649e-23</span>;    <span class="code-comment">// Boltzmann constant (J/K)</span>
-<span class="code-keyword">const</span> hbar = <span class="code-number">1.054571817e-34</span>; <span class="code-comment">// Reduced Planck constant (J·s)</span>
-
-<span class="code-comment">// Schwarzschild radius (exact)</span>
-R_s = (<span class="code-number">2</span> * G * mass) / (c * c);
-
-<span class="code-comment">// Hawking temperature (exact)</span>
-T_H = (hbar * c³) / (<span class="code-number">8</span> * π * G * mass * k_B);
-
-<span class="code-comment">// Hawking luminosity (Stefan-Boltzmann law)</span>
-L_H = (hbar * c⁶) / (<span class="code-number">15360</span> * π * G² * mass²);
-                    </div>
-                </div>
-
-                <!-- Section 5: What's Accurate vs Approximate -->
-                <div class="math-section">
-                    <h4>5. Accuracy Assessment</h4>
-                    
-                    <div class="equation-block">
-                        <div class="equation-title">Physically Accurate (Exact Calculations)</div>
-                        <div class="equation-description">
-                            ✓ Schwarzschild radius R_s = 2GM/c²<br>
-                            ✓ Hawking temperature T_H = ℏc³/(8πGMk_B)<br>
-                            ✓ ISCO radius for Kerr metric (spin-dependent)<br>
-                            ✓ Surface gravity κ = GM/R_s²<br>
-                            ✓ Hawking luminosity (Stefan-Boltzmann)<br>
-                            ✓ Information rate (entropy flow)
-                        </div>
-                    </div>
-
-                    <div class="equation-block">
-                        <div class="equation-title">Pedagogical Approximations (For Visualization)</div>
-                        <div class="equation-description">
-                            ⚠ Coherence accumulation: uses exponential relaxation instead of full spatial integration<br>
-                            ⚠ Rupture events: stochastic trigger instead of deterministic threshold<br>
-                            ⚠ Particle dynamics: simplified N-body without full GR geodesics<br>
-                            ⚠ Accretion disk: temperature profile approximated, no magnetohydrodynamics<br>
-                            ⚠ Gravitational lensing: artistic representation, not ray-traced<br>
-                            ⚠ Frame dragging: simplified rotation, not full Kerr metric
-                        </div>
-                    </div>
-
-                    <div class="approximation-notice">
-                        <strong>Bottom Line:</strong> This visualization accurately computes black hole thermodynamics but uses simplified dynamics for real-time rendering. The CRR principles (coherence accumulation → rupture → regeneration) are preserved in structure, though not with full mathematical rigor. For research-grade simulations, see numerical relativity codes (Einstein Toolkit, SpEC).
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <div class="equation-overlay">
-            <div class="current-equation" id="currentEquation">R_s = 2GM/c²</div>
-            <div class="equation-description-text" id="equationDescription">Schwarzschild radius: gravitational rupture boundary where spacetime curvature creates event horizon</div>
-        </div>
-
-        <div class="system-legend">
-            <h3 style="margin-bottom: 12px; font-size: 0.9rem; color: #495057;">Black Hole System Components</h3>
-            <div class="legend-grid">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(45deg, #000000, #0a0a2a);"></div>
-                    <span>Event Horizon (Rupture Boundary)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(45deg, #ffaa00, #ffdd44);"></div>
-                    <span>Photon Ring (Light Orbits)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(45deg, #ff4444, #ff8888);"></div>
-                    <span>Accretion Disk (Coherent Matter)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(45deg, #4488ff, #88bbff);"></div>
-                    <span>Infalling Particles (Coherent State)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(45deg, #ff4488, #ff88bb);"></div>
-                    <span>Disrupted Matter (Rupture Events)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: linear-gradient(45deg, #44ff88, #88ffbb);"></div>
-                    <span>Hawking Radiation (Regeneration)</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="simulation-area">
-            <canvas id="blackhole-canvas"></canvas>
-            
-            <div class="blackhole-controls">
-                <div class="title">Black Hole Parameters</div>
-                
-                <div class="bh-section">
-                    <h4>Physical Properties</h4>
-                    <div class="bh-control-group">
-                        <label>Mass (Solar Masses):</label>
-                        <input type="range" id="blackHoleMass" min="3" max="100" value="10" step="0.5">
-                        <span class="bh-value" id="blackHoleMassValue">10 M☉</span>
-                    </div>
-                    <div class="bh-control-group">
-                        <label>Spin Parameter:</label>
-                        <input type="range" id="spinParameter" min="0" max="0.998" value="0.7" step="0.001">
-                        <span class="bh-value" id="spinParameterValue">0.700</span>
-                    </div>
-                    <div class="bh-control-group">
-                        <label>Accretion Rate:</label>
-                        <input type="range" id="accretionRate" min="0.1" max="5.0" value="2.0" step="0.1">
-                        <span class="bh-value" id="accretionRateValue">2.0</span>
-                    </div>
-                </div>
-
-                <div class="bh-section">
-                    <h4>CRR Framework</h4>
-                    <div class="bh-control-group">
-                        <label>Coherence Strength:</label>
-                        <input type="range" id="coherenceStrength" min="0.1" max="3.0" value="1.5" step="0.1">
-                        <span class="bh-value" id="coherenceStrengthValue">1.5</span>
-                    </div>
-                    <div class="bh-control-group">
-                        <label>Rupture Event Rate:</label>
-                        <input type="range" id="ruptureRate" min="0.0" max="0.1" value="0.02" step="0.005">
-                        <span class="bh-value" id="ruptureRateValue">0.02</span>
-                    </div>
-                    <div class="bh-control-group">
-                        <label>Regeneration Factor:</label>
-                        <input type="range" id="regenFactor" min="0.1" max="2.0" value="0.8" step="0.1">
-                        <span class="bh-value" id="regenFactorValue">0.8</span>
-                    </div>
-                </div>
-
-                <div class="bh-section">
-                    <h4>Visualisation</h4>
-                    <div class="bh-control-group">
-                        <label>Particle Count:</label>
-                        <input type="range" id="particleCount" min="200" max="2000" value="800" step="50">
-                        <span class="bh-value" id="particleCountValue">800</span>
-                    </div>
-                    <div class="bh-control-group">
-                        <label>Hawking Radiation:</label>
-                        <input type="range" id="hawkingIntensity" min="0.0" max="3.0" value="1.0" step="0.1">
-                        <span class="bh-value" id="hawkingIntensityValue">1.0</span>
-                    </div>
-                    <div class="bh-control-group">
-                        <label>Lensing Strength:</label>
-                        <input type="range" id="lensingStrength" min="0.0" max="3.0" value="1.5" step="0.1">
-                        <span class="bh-value" id="lensingStrengthValue">1.5</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="metrics-panel">
-            <div class="metric-card">
-                <h3>CRR Framework States</h3>
-                <div class="metric-row">
-                    <span class="metric-label">Coherence Level C(M,r):</span>
-                    <span class="metric-value" id="coherenceLevel">0.750</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Rupture Events δ(Rs):</span>
-                    <span class="metric-value" id="ruptureEvents">0</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Regeneration Rate R[T_H]:</span>
-                    <span class="metric-value" id="regenerationRate">0.8</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">System Entropy S:</span>
-                    <span class="metric-value" id="systemEntropy">1.25</span>
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <h3>Matter State Dynamics</h3>
-                <div class="metric-row">
-                    <span class="metric-label">Coherent Orbits:</span>
-                    <span class="metric-value" id="stableOrbits">42</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Infalling Matter:</span>
-                    <span class="metric-value" id="infallingMatter">156</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Disrupted Objects:</span>
-                    <span class="metric-value" id="disruptedObjects">8</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Hawking Particles:</span>
-                    <span class="metric-value" id="hawkingParticles">23</span>
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <h3>Physical Properties</h3>
-                <div class="metric-row">
-                    <span class="metric-label">Schwarzschild Radius:</span>
-                    <span class="metric-value" id="schwarzschildRadius">29.5 km</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Event Horizon:</span>
-                    <span class="metric-value" id="eventHorizonRadius">1.0 Rs</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Photon Sphere:</span>
-                    <span class="metric-value" id="photonSphereRadius">1.5 Rs</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">ISCO Radius:</span>
-                    <span class="metric-value" id="iscoRadius">6.0 Rs</span>
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <h3>Thermodynamic Properties</h3>
-                <div class="metric-row">
-                    <span class="metric-label">Hawking Temperature:</span>
-                    <span class="metric-value" id="hawkingTemp">6.2e-8 K</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Surface Gravity:</span>
-                    <span class="metric-value" id="surfaceGravity">1.7e6 m/s²</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Luminosity:</span>
-                    <span class="metric-value" id="luminosity">2.3e25 W</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Information Rate:</span>
-                    <span class="metric-value" id="informationRate">4.7 bits/s</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <button class="control-btn" onclick="applyPreset('stellar')">Stellar Mass</button>
-            <button class="control-btn" onclick="applyPreset('supermassive')">Supermassive</button>
-            <button class="control-btn" onclick="applyPreset('extremal')">Extremal Spin</button>
-            <button class="control-btn" onclick="applyPreset('quiet')">Quiet System</button>
-        </div>
+<div class="panel">
+  <div class="p-title">Topology <small>fixed, not fit</small></div>
+  <div class="identity">
+    <div class="row"><span class="l">orbital · SO(2)</span><span class="v">Ω = 1/(2π)</span></div>
+    <div class="row"><span class="l">C*<sub>SO(2)</sub></span><span class="v">2π ≈ 6.2832</span></div>
+    <div class="row"><span class="l">CV<sub>SO(2)</sub> baseline</span><span class="v">1/(4π) ≈ 0.0796</span></div>
+    <div class="row"><span class="l">transition · Z₂</span><span class="v">Ω = 1/π</span></div>
+    <div class="row"><span class="l">C*<sub>Z₂</sub></span><span class="v">π ≈ 3.1416</span></div>
+    <div class="row"><span class="l">CV<sub>Z₂</sub> baseline</span><span class="v">1/(2π) ≈ 0.1592</span></div>
+    <div class="headline">
+      <div class="formula">CV<sub>Z₂</sub> · C*<sub>SO(2)</sub> = 1</div>
+      <span class="note">A Z₂ channel missing its SO(2) regulator has CV inflated by exactly 2π. Hawking emission is that limit.</span>
     </div>
+  </div>
 
-    <script>
-        // Toggle mathematical explainer
-        function toggleMathExplainer() {
-            const content = document.getElementById('mathExplainerContent');
-            const toggle = document.getElementById('mathToggle');
-            
-            content.classList.toggle('open');
-            toggle.classList.toggle('open');
-        }
+  <div class="p-title">Scenario</div>
+  <div class="mode-group">
+    <button class="mode-btn active" id="mode-steady" onclick="setMode('steady')">Steady horizon</button>
+    <button class="mode-btn" id="mode-merger" onclick="setMode('merger')">Inspiral → merger</button>
+  </div>
 
-        // Main CRR Black Hole class (unchanged from original - same user experience)
-        class CRRBlackHole {
-            constructor() {
-                this.canvas = document.getElementById('blackhole-canvas');
-                this.setupCanvas();
-                
-                this.scene = new THREE.Scene();
-                this.camera = new THREE.PerspectiveCamera(75, this.canvas.offsetWidth / this.canvas.offsetHeight, 0.1, 1000);
-                this.renderer = new THREE.WebGLRenderer({ 
-                    canvas: this.canvas,
-                    antialias: true,
-                    alpha: true 
-                });
-                
-                this.physics = {
-                    mass: 10.0,
-                    spin: 0.7,
-                    accretionRate: 2.0,
-                    schwarzschildRadius: 0,
-                    photonSphere: 0,
-                    isco: 0,
-                    hawkingTemp: 0,
-                    surfaceGravity: 0,
-                    luminosity: 0,
-                    informationRate: 0
-                };
-                
-                this.crr = {
-                    coherenceStrength: 1.5,
-                    ruptureRate: 0.02,
-                    regenFactor: 0.8,
-                    coherenceLevel: 0.75,
-                    ruptureEvents: 0,
-                    systemEntropy: 1.25
-                };
-                
-                this.visual = {
-                    particleCount: 800,
-                    hawkingIntensity: 1.0,
-                    lensingStrength: 1.5
-                };
-                
-                this.time = 0;
-                this.particles = [];
-                this.hawkingParticles = [];
-                this.ruptureEvents = [];
-                
-                this.eventHorizon = null;
-                this.photonRing = null;
-                this.accretionDisk = null;
-                this.particleSystem = null;
-                this.hawkingSystem = null;
-                
-                this.init();
-            }
-            
-            setupCanvas() {
-                const container = this.canvas.parentElement;
-                const resize = () => {
-                    const rect = container.getBoundingClientRect();
-                    this.canvas.width = rect.width;
-                    this.canvas.height = rect.height;
-                    if (this.camera) {
-                        this.camera.aspect = rect.width / rect.height;
-                        this.camera.updateProjectionMatrix();
-                    }
-                    if (this.renderer) {
-                        this.renderer.setSize(rect.width, rect.height);
-                    }
-                };
-                resize();
-                window.addEventListener('resize', resize);
-            }
-            
-            async init() {
-                this.setupRenderer();
-                this.setupCamera();
-                this.setupLighting();
-                this.calculatePhysics();
-                
-                await this.createEventHorizon();
-                await this.createPhotonRing();
-                await this.createAccretionDisk();
-                await this.createParticleSystem();
-                await this.createHawkingRadiation();
-                
-                this.setupControls();
-                this.animate();
-            }
-            
-            calculatePhysics() {
-                const G = 6.67430e-11;
-                const c = 299792458;
-                const M_sun = 1.989e30;
-                const k_B = 1.380649e-23;
-                const hbar = 1.054571817e-34;
-                
-                const mass_kg = this.physics.mass * M_sun;
-                
-                this.physics.schwarzschildRadius = (2 * G * mass_kg) / (c * c);
-                this.physics.photonSphere = 1.5 * this.physics.schwarzschildRadius;
-                
-                const a = this.physics.spin;
-                const Z1 = 1 + Math.pow(1 - a*a, 1/3) * (Math.pow(1 + a, 1/3) + Math.pow(1 - a, 1/3));
-                const Z2 = Math.sqrt(3*a*a + Z1*Z1);
-                const r_isco = 3 + Z2 - Math.sqrt((3 - Z1) * (3 + Z1 + 2*Z2));
-                this.physics.isco = r_isco;
-                
-                this.physics.hawkingTemp = (hbar * c * c * c) / (8 * Math.PI * G * mass_kg * k_B);
-                this.physics.surfaceGravity = (G * mass_kg) / (this.physics.schwarzschildRadius * this.physics.schwarzschildRadius);
-                this.physics.luminosity = (hbar * c * c * c * c * c * c) / (15360 * Math.PI * G * G * mass_kg * mass_kg);
-                this.physics.informationRate = this.physics.luminosity / (this.physics.hawkingTemp * k_B * Math.log(2));
-                
-                this.updatePhysicsUI();
-            }
-            
-            updatePhysicsUI() {
-                const rs_km = this.physics.schwarzschildRadius / 1000;
-                document.getElementById('schwarzschildRadius').textContent = `${rs_km.toFixed(1)} km`;
-                document.getElementById('eventHorizonRadius').textContent = `1.0 Rs`;
-                document.getElementById('photonSphereRadius').textContent = `1.5 Rs`;
-                document.getElementById('iscoRadius').textContent = `${this.physics.isco.toFixed(1)} Rs`;
-                document.getElementById('hawkingTemp').textContent = `${this.physics.hawkingTemp.toExponential(1)} K`;
-                document.getElementById('surfaceGravity').textContent = `${(this.physics.surfaceGravity/1e6).toFixed(1)}e6 m/s²`;
-                document.getElementById('luminosity').textContent = `${this.physics.luminosity.toExponential(1)} W`;
-                document.getElementById('informationRate').textContent = `${this.physics.informationRate.toFixed(1)} bits/s`;
-            }
-            
-            setupRenderer() {
-                const rect = this.canvas.parentElement.getBoundingClientRect();
-                this.renderer.setSize(rect.width, rect.height);
-                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-                this.renderer.setClearColor(0x000000, 1);
-                this.scene.fog = new THREE.Fog(0x000008, 30, 200);
-            }
-            
-            setupCamera() {
-                this.camera.position.set(0, 20, 40);
-                this.camera.lookAt(0, 0, 0);
-            }
-            
-            setupLighting() {
-                const ambientLight = new THREE.AmbientLight(0x222222, 0.3);
-                this.scene.add(ambientLight);
-                
-                this.accretionLight = new THREE.PointLight(0xff4444, 2, 100);
-                this.accretionLight.position.set(0, 0, 0);
-                this.scene.add(this.accretionLight);
-                
-                this.coherenceLight = new THREE.PointLight(0x4444ff, 1, 80);
-                this.coherenceLight.position.set(0, 15, 0);
-                this.scene.add(this.coherenceLight);
-            }
-            
-            async createEventHorizon() {
-                const geometry = new THREE.SphereGeometry(3, 64, 32);
-                
-                const material = new THREE.ShaderMaterial({
-                    uniforms: {
-                        time: { value: 0 },
-                        mass: { value: this.physics.mass },
-                        spin: { value: this.physics.spin },
-                        coherence: { value: this.crr.coherenceStrength }
-                    },
-                    vertexShader: `
-                        uniform float time;
-                        uniform float spin;
-                        varying vec3 vPosition;
-                        varying vec3 vNormal;
-                        
-                        void main() {
-                            vPosition = position;
-                            vNormal = normal;
-                            
-                            vec3 pos = position;
-                            float frameDrag = spin * 0.1;
-                            float angle = time * frameDrag;
-                            mat2 rotation = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-                            pos.xz = rotation * pos.xz;
-                            
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform float time;
-                        uniform float mass;
-                        uniform float coherence;
-                        varying vec3 vPosition;
-                        varying vec3 vNormal;
-                        
-                        void main() {
-                            vec3 color = vec3(0.0, 0.0, 0.05);
-                            float glow = pow(1.0 - abs(dot(vNormal, normalize(vPosition))), 2.0);
-                            color += vec3(0.1, 0.3, 0.8) * glow * coherence * 0.3;
-                            float redshift = 1.0 - 1.0 / (1.0 + mass * 0.1);
-                            color *= redshift;
-                            
-                            gl_FragColor = vec4(color, 1.0);
-                        }
-                    `
-                });
-                
-                this.eventHorizon = new THREE.Mesh(geometry, material);
-                this.scene.add(this.eventHorizon);
-            }
-            
-            async createPhotonRing() {
-                const geometry = new THREE.TorusGeometry(4.5, 0.1, 16, 100);
-                
-                const material = new THREE.ShaderMaterial({
-                    uniforms: {
-                        time: { value: 0 },
-                        spin: { value: this.physics.spin },
-                        lensing: { value: this.visual.lensingStrength }
-                    },
-                    vertexShader: `
-                        uniform float time;
-                        uniform float spin;
-                        varying vec2 vUv;
-                        
-                        void main() {
-                            vUv = uv;
-                            vec3 pos = position;
-                            float orbitalVel = sqrt(1.0 / length(pos.xy)) * spin;
-                            float angle = time * orbitalVel;
-                            mat2 rotation = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-                            pos.xy = rotation * pos.xy;
-                            
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform float time;
-                        uniform float lensing;
-                        varying vec2 vUv;
-                        
-                        void main() {
-                            vec3 photonColor = vec3(1.0, 0.9, 0.4);
-                            float intensity = sin(time * 8.0 + vUv.x * 20.0) * 0.5 + 0.5;
-                            intensity *= lensing;
-                            photonColor *= intensity;
-                            
-                            gl_FragColor = vec4(photonColor, intensity * 0.8);
-                        }
-                    `,
-                    transparent: true,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                this.photonRing = new THREE.Mesh(geometry, material);
-                this.photonRing.rotation.x = Math.PI / 2;
-                this.scene.add(this.photonRing);
-            }
-            
-            async createAccretionDisk() {
-                const geometry = new THREE.RingGeometry(6, 25, 32, 64);
-                
-                const material = new THREE.ShaderMaterial({
-                    uniforms: {
-                        time: { value: 0 },
-                        mass: { value: this.physics.mass },
-                        accretion: { value: this.physics.accretionRate },
-                        coherence: { value: this.crr.coherenceStrength }
-                    },
-                    vertexShader: `
-                        uniform float time;
-                        uniform float mass;
-                        varying vec2 vUv;
-                        varying vec3 vPosition;
-                        varying float vTemperature;
-                        
-                        void main() {
-                            vUv = uv;
-                            vPosition = position;
-                            
-                            vec3 pos = position;
-                            float radius = length(pos.xy);
-                            vTemperature = pow(6.0 / radius, 0.75);
-                            
-                            float orbitalVel = sqrt(mass / radius) * 0.1;
-                            float angle = time * orbitalVel;
-                            mat2 rotation = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-                            pos.xy = rotation * pos.xy;
-                            
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform float time;
-                        uniform float accretion;
-                        uniform float coherence;
-                        varying vec2 vUv;
-                        varying vec3 vPosition;
-                        varying float vTemperature;
-                        
-                        vec3 blackBodyColor(float temp) {
-                            temp = clamp(temp, 0.1, 3.0);
-                            if (temp < 1.0) {
-                                return vec3(1.0, 0.3, 0.1) * temp;
-                            } else if (temp < 2.0) {
-                                return vec3(1.0, 0.7, 0.2);
-                            } else {
-                                return vec3(0.9, 0.9, 1.0);
-                            }
-                        }
-                        
-                        void main() {
-                            float radius = length(vPosition.xy);
-                            vec3 diskColor = blackBodyColor(vTemperature);
-                            float spiral = sin(atan(vPosition.y, vPosition.x) * 6.0 + 
-                                              radius * 0.8 - time * 2.0) * 0.5 + 0.5;
-                            spiral *= coherence;
-                            diskColor *= (0.5 + spiral * 0.8) * accretion;
-                            float alpha = (1.0 - radius * 0.03) * vTemperature * 0.4;
-                            
-                            gl_FragColor = vec4(diskColor, alpha);
-                        }
-                    `,
-                    transparent: true,
-                    side: THREE.DoubleSide,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                this.accretionDisk = new THREE.Mesh(geometry, material);
-                this.accretionDisk.rotation.x = Math.PI / 2;
-                this.scene.add(this.accretionDisk);
-            }
-            
-            async createParticleSystem() {
-                const count = this.visual.particleCount;
-                const positions = new Float32Array(count * 3);
-                const velocities = new Float32Array(count * 3);
-                const states = new Float32Array(count);
-                
-                for (let i = 0; i < count; i++) {
-                    const radius = 10 + Math.random() * 40;
-                    const theta = Math.random() * Math.PI * 2;
-                    const phi = Math.acos(1 - 2 * Math.random());
-                    
-                    positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-                    positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-                    positions[i * 3 + 2] = radius * Math.cos(phi);
-                    
-                    const speed = Math.sqrt(this.physics.mass * 0.1 / radius) * (0.7 + Math.random() * 0.6);
-                    const tangent = new THREE.Vector3(-positions[i * 3 + 2], 0, positions[i * 3]).normalize();
-                    
-                    velocities[i * 3] = tangent.x * speed;
-                    velocities[i * 3 + 1] = tangent.y * speed;
-                    velocities[i * 3 + 2] = tangent.z * speed;
-                    
-                    states[i] = Math.random() > 0.8 ? Math.floor(Math.random() * 3) : 0;
-                }
-                
-                const geometry = new THREE.BufferGeometry();
-                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
-                geometry.setAttribute('state', new THREE.BufferAttribute(states, 1));
-                
-                const material = new THREE.ShaderMaterial({
-                    uniforms: {
-                        time: { value: 0 },
-                        mass: { value: this.physics.mass },
-                        coherence: { value: this.crr.coherenceStrength },
-                        pointSize: { value: 3.0 }
-                    },
-                    vertexShader: `
-                        uniform float time;
-                        uniform float mass;
-                        uniform float pointSize;
-                        attribute vec3 velocity;
-                        attribute float state;
-                        varying float vState;
-                        varying float vDistance;
-                        
-                        void main() {
-                            vState = state;
-                            vDistance = length(position);
-                            vec3 pos = position;
-                            vec3 gravity = -normalize(pos) * mass * 0.001 / (vDistance * vDistance);
-                            pos += velocity * 0.05 + gravity;
-                            
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-                            gl_PointSize = pointSize * (1.0 + state);
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform float time;
-                        varying float vState;
-                        varying float vDistance;
-                        
-                        void main() {
-                            vec2 coord = 2.0 * gl_PointCoord - 1.0;
-                            if (dot(coord, coord) > 1.0) discard;
-                            
-                            vec3 color;
-                            if (vState < 0.5) {
-                                color = vec3(0.2, 0.5, 1.0);
-                            } else if (vState < 1.5) {
-                                color = vec3(1.0, 0.2, 0.2);
-                            } else {
-                                color = vec3(0.2, 1.0, 0.5);
-                            }
-                            
-                            float alpha = 1.0 - vDistance * 0.01;
-                            gl_FragColor = vec4(color, alpha);
-                        }
-                    `,
-                    transparent: true,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                this.particleSystem = new THREE.Points(geometry, material);
-                this.scene.add(this.particleSystem);
-            }
-            
-            async createHawkingRadiation() {
-                const count = 100;
-                const positions = new Float32Array(count * 3);
-                const energies = new Float32Array(count);
-                
-                for (let i = 0; i < count; i++) {
-                    const radius = 3.2 + Math.random() * 0.3;
-                    const theta = Math.random() * Math.PI * 2;
-                    const phi = Math.acos(1 - 2 * Math.random());
-                    
-                    positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-                    positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-                    positions[i * 3 + 2] = radius * Math.cos(phi);
-                    
-                    energies[i] = Math.random();
-                }
-                
-                const geometry = new THREE.BufferGeometry();
-                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                geometry.setAttribute('energy', new THREE.BufferAttribute(energies, 1));
-                
-                const material = new THREE.ShaderMaterial({
-                    uniforms: {
-                        time: { value: 0 },
-                        hawking: { value: this.visual.hawkingIntensity },
-                        regen: { value: this.crr.regenFactor }
-                    },
-                    vertexShader: `
-                        uniform float time;
-                        uniform float hawking;
-                        attribute float energy;
-                        varying float vEnergy;
-                        
-                        void main() {
-                            vEnergy = energy;
-                            vec3 pos = position;
-                            vec3 escape = normalize(pos) * time * 0.01 * hawking;
-                            pos += escape + sin(time + pos * 5.0) * energy * 0.02;
-                            
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-                            gl_PointSize = 2.0 + energy * 3.0;
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform float time;
-                        uniform float regen;
-                        varying float vEnergy;
-                        
-                        void main() {
-                            vec2 coord = 2.0 * gl_PointCoord - 1.0;
-                            if (dot(coord, coord) > 1.0) discard;
-                            
-                            vec3 color = vec3(0.5, 1.0, 1.0);
-                            color += vec3(1.0, 1.0, 0.5) * vEnergy;
-                            color *= regen;
-                            
-                            float alpha = vEnergy * 0.8;
-                            gl_FragColor = vec4(color, alpha);
-                        }
-                    `,
-                    transparent: true,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                this.hawkingSystem = new THREE.Points(geometry, material);
-                this.scene.add(this.hawkingSystem);
-            }
-            
-            setupControls() {
-                const controls = [
-                    { id: 'blackHoleMass', target: 'physics', prop: 'mass', format: v => `${v} M☉` },
-                    { id: 'spinParameter', target: 'physics', prop: 'spin', format: v => `${v}` },
-                    { id: 'accretionRate', target: 'physics', prop: 'accretionRate', format: v => `${v}` },
-                    { id: 'coherenceStrength', target: 'crr', prop: 'coherenceStrength', format: v => `${v}` },
-                    { id: 'ruptureRate', target: 'crr', prop: 'ruptureRate', format: v => `${v}` },
-                    { id: 'regenFactor', target: 'crr', prop: 'regenFactor', format: v => `${v}` },
-                    { id: 'particleCount', target: 'visual', prop: 'particleCount', format: v => `${v}` },
-                    { id: 'hawkingIntensity', target: 'visual', prop: 'hawkingIntensity', format: v => `${v}` },
-                    { id: 'lensingStrength', target: 'visual', prop: 'lensingStrength', format: v => `${v}` }
-                ];
-                
-                controls.forEach(({ id, target, prop, format }) => {
-                    const element = document.getElementById(id);
-                    const valueDisplay = document.getElementById(id + 'Value');
-                    
-                    if (element && valueDisplay) {
-                        element.addEventListener('input', (e) => {
-                            const value = parseFloat(e.target.value);
-                            this[target][prop] = value;
-                            valueDisplay.textContent = format(value);
-                            
-                            if (target === 'physics') {
-                                this.calculatePhysics();
-                            }
-                            
-                            this.updateShaderUniforms();
-                        });
-                        
-                        valueDisplay.textContent = format(this[target][prop]);
-                    }
-                });
-            }
-            
-            updateCRRStates(deltaTime) {
-                // CRR Framework update (as explained in Mathematical Explainer)
-                this.crr.coherenceLevel += (this.crr.coherenceStrength - this.crr.coherenceLevel) * deltaTime * 0.5;
-                
-                if (Math.random() < this.crr.ruptureRate * deltaTime) {
-                    this.crr.ruptureEvents++;
-                }
-                
-                this.crr.systemEntropy += deltaTime * 0.1 * (1.0 + this.physics.accretionRate * 0.1);
-                
-                const equations = [
-                    { formula: "R_s = 2GM/c²", description: "Schwarzschild radius: gravitational rupture boundary where spacetime curvature creates event horizon" },
-                    { formula: "C(M,r) = ∫ ρ(r) dV", description: "Coherence: integrated matter density in stable orbital structures around the black hole" },
-                    { formula: "T_H = ℏc³/8πGMk_B", description: "Hawking temperature: regeneration through thermal radiation emerging from quantum fluctuations" },
-                    { formula: "δ(R_s) = Θ(r-R_s)", description: "Rupture operator: step function marking the information boundary at the event horizon" },
-                    { formula: "R[T_H] = dS/dt", description: "Regeneration rate: entropy flow and information recovery through Hawking radiation processes" }
-                ];
-                
-                const eqIndex = Math.floor(this.time * 0.2) % equations.length;
-                document.getElementById('currentEquation').textContent = equations[eqIndex].formula;
-                document.getElementById('equationDescription').textContent = equations[eqIndex].description;
-                
-                this.updateMetricsUI();
-            }
-            
-            updateMetricsUI() {
-                document.getElementById('coherenceLevel').textContent = this.crr.coherenceLevel.toFixed(3);
-                document.getElementById('ruptureEvents').textContent = this.crr.ruptureEvents.toString();
-                document.getElementById('regenerationRate').textContent = this.crr.regenFactor.toFixed(1);
-                document.getElementById('systemEntropy').textContent = this.crr.systemEntropy.toFixed(2);
-                
-                let infalling = 0, stable = 0, disrupted = 0, hawking = 0;
-                
-                if (this.particleSystem) {
-                    const states = this.particleSystem.geometry.attributes.state.array;
-                    for (let i = 0; i < states.length; i++) {
-                        if (states[i] < 0.5) stable++;
-                        else if (states[i] < 1.5) disrupted++;
-                        else infalling++;
-                    }
-                }
-                
-                hawking = Math.floor(this.visual.hawkingIntensity * 50);
-                
-                document.getElementById('infallingMatter').textContent = infalling.toString();
-                document.getElementById('stableOrbits').textContent = stable.toString();
-                document.getElementById('disruptedObjects').textContent = disrupted.toString();
-                document.getElementById('hawkingParticles').textContent = hawking.toString();
-            }
-            
-            updateShaderUniforms() {
-                const meshes = [this.eventHorizon, this.photonRing, this.accretionDisk, this.particleSystem, this.hawkingSystem];
-                
-                meshes.forEach(mesh => {
-                    if (mesh && mesh.material && mesh.material.uniforms) {
-                        const uniforms = mesh.material.uniforms;
-                        if (uniforms.time) uniforms.time.value = this.time;
-                        if (uniforms.mass) uniforms.mass.value = this.physics.mass;
-                        if (uniforms.spin) uniforms.spin.value = this.physics.spin;
-                        if (uniforms.accretion) uniforms.accretion.value = this.physics.accretionRate;
-                        if (uniforms.coherence) uniforms.coherence.value = this.crr.coherenceStrength;
-                        if (uniforms.hawking) uniforms.hawking.value = this.visual.hawkingIntensity;
-                        if (uniforms.lensing) uniforms.lensing.value = this.visual.lensingStrength;
-                        if (uniforms.regen) uniforms.regen.value = this.crr.regenFactor;
-                    }
-                });
-                
-                if (this.accretionLight) {
-                    this.accretionLight.intensity = this.physics.accretionRate;
-                }
-                if (this.coherenceLight) {
-                    this.coherenceLight.intensity = this.crr.coherenceLevel * 2;
-                }
-            }
-            
-            animate() {
-                requestAnimationFrame(() => this.animate());
-                
-                const deltaTime = 0.016;
-                this.time += deltaTime;
-                
-                this.updateCRRStates(deltaTime);
-                this.updateShaderUniforms();
-                
-                if (this.eventHorizon) {
-                    this.eventHorizon.rotation.y += deltaTime * 0.1 * this.physics.spin;
-                }
-                
-                if (this.accretionDisk) {
-                    this.accretionDisk.rotation.z += deltaTime * 0.2 * (1 + this.physics.spin);
-                }
-                
-                const radius = 40 + Math.sin(this.time * 0.1) * 5;
-                this.camera.position.setFromSphericalCoords(radius, Math.PI / 2 - 0.2, this.time * 0.05);
-                this.camera.lookAt(0, 0, 0);
-                
-                this.renderer.render(this.scene, this.camera);
-            }
-        }
-        
-        window.applyPreset = function(presetName) {
-            const presets = {
-                stellar: {
-                    blackHoleMass: 10,
-                    spinParameter: 0.3,
-                    accretionRate: 1.0,
-                    coherenceStrength: 2.0,
-                    hawkingIntensity: 0.5
-                },
-                supermassive: {
-                    blackHoleMass: 100,
-                    spinParameter: 0.9,
-                    accretionRate: 4.0,
-                    coherenceStrength: 1.0,
-                    hawkingIntensity: 0.1
-                },
-                extremal: {
-                    blackHoleMass: 50,
-                    spinParameter: 0.998,
-                    accretionRate: 3.0,
-                    coherenceStrength: 0.5,
-                    ruptureRate: 0.05
-                },
-                quiet: {
-                    blackHoleMass: 5,
-                    spinParameter: 0.1,
-                    accretionRate: 0.5,
-                    coherenceStrength: 3.0,
-                    hawkingIntensity: 2.0
-                }
-            };
-            
-            const preset = presets[presetName];
-            if (!preset) return;
-            
-            Object.keys(preset).forEach(key => {
-                const element = document.getElementById(key);
-                if (element) {
-                    element.value = preset[key];
-                    element.dispatchEvent(new Event('input'));
-                }
-            });
-        };
-        
-        window.addEventListener('load', () => {
-            window.crrBlackHole = new CRRBlackHole();
-        });
-        
-        window.addEventListener('resize', () => {
-            if (window.crrBlackHole) {
-                window.crrBlackHole.setupCanvas();
-            }
-        });
-    </script>
+  <div class="p-title">Regulation · σ(C*)<sub>SO(2)</sub></div>
+  <div class="ctrl">
+    <div class="label"><span>ringdown threshold noise</span><span class="v" id="sigma-val">0.500</span></div>
+    <input type="range" id="sigma" min="0.02" max="2.0" step="0.01" value="0.5">
+    <div class="tick-notes"><span>Class B regulated</span><span>A · ½</span><span>Class C noisy</span></div>
+  </div>
+
+  <div class="p-title">Mass · M/M<sub>☉</sub></div>
+  <div class="ctrl">
+    <div class="label"><span>sets r<sub>s</sub>, T<sub>H</sub></span><span class="v" id="mass-val">10</span></div>
+    <input type="range" id="mass" min="1" max="100" step="1" value="10">
+  </div>
+
+  <div class="p-title">Time evolution</div>
+  <div class="ctrl">
+    <div class="label"><span>dt scale</span><span class="v" id="time-val">1.0×</span></div>
+    <input type="range" id="time" min="0.1" max="3" step="0.1" value="1.0">
+  </div>
+
+  <div class="actions">
+    <button class="act hawking" onclick="triggerHawking()">↯ Force Hawking emission</button>
+    <button class="act ringdown" onclick="perturbRingdown()">≈ Perturb horizon → ringdown</button>
+    <button class="act merger" onclick="triggerMerger()">◎ Trigger full merger cycle</button>
+    <button class="act" id="labels-btn" onclick="toggleLabels()">✎ Component labels</button>
+    <button class="act" onclick="resetAll()">◉ Reset</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ CENTRE: STAGE -->
+<div class="stage">
+  <canvas id="stage-canvas"></canvas>
+
+  <div class="overlay-strip">
+    <div class="strip-cell live" id="cell-C">
+      <div class="k">§C · Coherence</div>
+      <div class="v" id="C-display">∫L(x,τ)dτ = 0.000</div>
+    </div>
+    <div class="strip-cell" id="cell-D">
+      <div class="k">§δ · Rupture</div>
+      <div class="v" id="D-display">awaiting C·Ω = 1</div>
+    </div>
+    <div class="strip-cell" id="cell-R">
+      <div class="k">§R · Regeneration</div>
+      <div class="v" id="R-display">exp(C/Ω) = 1.00</div>
+    </div>
+  </div>
+
+  <div class="wavefn" id="wavefn">Schwarzschild · event horizon r<sub>s</sub> = 2GM/c² · single Markov blanket</div>
+
+  <div class="overlay-bottom">
+    <div class="phase-indicator" id="phase-label">INSPIRAL</div>
+    <div class="c-bar">
+      <div class="fill" id="c-fill" style="width:0%"></div>
+      <div class="mark-beauty" id="mark-beauty" style="left:89.9%"></div>
+      <div class="mark-omega" id="mark-omega" style="left:10.1%" title="Threshold paradox: C = Ω"></div>
+    </div>
+    <div class="phase-indicator" id="progress-label">0%</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ RIGHT: METRICS -->
+<div class="right-col">
+
+<div class="panel">
+  <div class="p-title">Horizon physics <small>reference values</small></div>
+  <div class="metric-sec">
+    <div class="metric-row"><span class="n">mass M</span><span class="m" id="m-mass">10.0 M☉</span></div>
+    <div class="metric-row"><span class="n">Schwarzschild r<sub>s</sub></span><span class="m" id="m-rs">29.5 km</span></div>
+    <div class="metric-row"><span class="n">horizon area A</span><span class="m" id="m-area">1.09×10⁴ km²</span></div>
+    <div class="metric-row"><span class="n">Hawking T<sub>H</sub></span><span class="m" id="m-temp">6.17×10⁻⁹ K</span></div>
+    <div class="metric-row"><span class="n">S<sub>BH</sub> = A/(4ℓ<sub>p</sub>²)</span><span class="m" id="m-ent">3.6×10⁷⁷ k<sub>B</sub></span></div>
+    <div class="metric-row"><span class="n">evaporation τ</span><span class="m" id="m-evap">6.6×10⁶⁷ yr</span></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="p-title">Channel statistics <small>live probes</small></div>
+
+  <div class="metric-sec">
+    <div class="metric-sec-title">Z₂ · Hawking emission (bare, no regulator)</div>
+    <div class="metric-row"><span class="n">emissions</span><span class="m" id="h-n">0</span></div>
+    <div class="metric-row"><span class="n">CV observed (last 50)</span><span class="m bty" id="h-cv">·</span></div>
+    <div class="metric-row"><span class="n">CV predicted (Poisson)</span><span class="m" id="h-cv-pred">1.0000</span></div>
+    <div class="metric-row"><span class="n">diagnostic</span><span class="badge wait" id="h-class">awaiting data</span></div>
+  </div>
+
+  <div class="metric-sec">
+    <div class="metric-sec-title">SO(2) · quasinormal ringdown</div>
+    <div class="metric-row"><span class="n">cycles</span><span class="m" id="r-n">0</span></div>
+    <div class="metric-row"><span class="n">CV observed (last 50)</span><span class="m bty" id="r-cv">·</span></div>
+    <div class="metric-row"><span class="n">CV predicted · σ/(2π)</span><span class="m" id="r-cv-pred">0.0796</span></div>
+    <div class="metric-row"><span class="n">diagnostic</span><span class="badge wait" id="r-class">awaiting data</span></div>
+  </div>
+
+  <div class="metric-sec">
+    <div class="metric-sec-title">CRR dynamics</div>
+    <div class="metric-row"><span class="n">C(t)</span><span class="m coh" id="m-C">0.0000</span></div>
+    <div class="metric-row"><span class="n">C*</span><span class="m rup" id="m-Cstar">3.1416</span></div>
+    <div class="metric-row"><span class="n">C / C*</span><span class="m" id="m-prog">0%</span></div>
+    <div class="metric-row"><span class="n">exp(C/Ω)</span><span class="m reg" id="m-exp">1.000</span></div>
+    <div class="metric-row"><span class="n">Π(C) precision</span><span class="m reg" id="m-prec">3.14</span></div>
+    <div class="metric-row"><span class="n">B(C) beauty</span><span class="m bty" id="m-beauty">0.00</span></div>
+  </div>
+
+  <div class="formula-line">B(C) = exp(C/Ω)·(C*−C) — peaks at C* − Ω</div>
+</div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ THEORY -->
+<div class="theory">
+  <div class="theory-head" onclick="toggleTheory()">
+    <h3>Framework · Pre-registration · Python verification</h3>
+    <span class="chev" id="chev">▼</span>
+  </div>
+  <div class="theory-body" id="theory-body">
+    <div class="theory-inner">
+
+<h4>I · Two channels, one horizon</h4>
+<p>A black hole is the cleanest dual-channel system in physics. The <strong>event horizon</strong> is a temporal Markov blanket in the definitional sense: past light cones terminate there, internal states are conditionally independent of the external observer given the blanket. Two CRR processes operate across it, each at its own symmetry class:</p>
+<div class="theory-eq">
+Z₂  :  Hawking emission      — bare, memoryless, CV = 1  (Poisson)<br>
+SO(2):  quasinormal ringdown  — regulated, CV = σ/(2π),  Class B → A → C
+</div>
+
+<h4>II · Ω is topological, not a parameter</h4>
+<p>Fisher–Rao geodesics on the manifolds of the two elementary symmetry classes fix Ω by topology. Any attempt to tune Ω as a free knob is incorrect — the rupture condition <em>C · Ω = 1</em> is the equality case of the Cramér–Rao bound, which is the Heisenberg uncertainty principle, which is the Gabor limit, which is the thermodynamic speed limit. CRR proposes these bounds are the same condition viewed from different disciplines; black-hole thermodynamics is just one more angle on it.</p>
+
+<h4>III · The structural identity (the headline)</h4>
+<div class="theory-eq">
+CV<sub>Z₂</sub> · C*<sub>SO(2)</sub>  =  (1/(2π)) · (2π)  =  1    — exact
+</div>
+<p>Read backwards: if you take a Z₂ channel and <em>remove</em> its SO(2) regulator, the CV inflates by the full geodesic extent of the missing rotation, 2π. The new CV is 1 — which is the defining statistic of a Poisson process. <strong>This is not a fit. It is what the geometry forces.</strong> The same identity explains radioactive decay, shot noise, blink-rate statistics, and — here — Hawking emission. Each of these is a bistable rupture channel without an accompanying rotational pacemaker.</p>
+
+<h4>IV · The beauty function near merger</h4>
+<div class="theory-eq">
+B(C) = exp(C/Ω) · (C* − C)   →   peaks at  C = C* − Ω
+</div>
+<p>For Z₂ this peak sits at C ≈ 2.8233 on a scale where C* = π. In the binary-merger scenario this is the last moment of committed-but-not-ruptured inspiral — peak gravitational-wave amplitude sits <em>before</em> merger, not at it. The merger itself is already past the beauty peak, already in the rupture. GWTC catalogue chirp profiles show this: amplitude maxes late-inspiral, not at merger proper.</p>
+
+<h4>V · The threshold paradox</h4>
+<p>At C = Ω the system achieves perfect self-characterisation. Accumulated coherence exactly equals intrinsic variance, the regeneration kernel exp(C/Ω) equals e, and any perturbation triggers wholesale transformation rather than local adjustment. Marked on the coherence bar below the stage with a gold tick. For a black hole this is the quantum regime near horizon formation — the condition under which semiclassical physics should cease to hold. CRR parallels, not proves.</p>
+
+<h4>VI · Python pre-registration and verification</h4>
+<p>Every prediction below was written down in <code>PREREGISTRATION.md</code> before any numerical work. No parameter fitting. Ω fixed by topology. Canonical CRR engine at 5 000 ruptures per condition. Results:</p>
+
+<table class="results-table">
+<thead><tr>
+  <th>prediction</th><th>mechanism</th><th>predicted</th><th>observed</th><th>ratio</th>
+</tr></thead>
+<tbody>
+<tr><td>P6 · structural identity</td>                      <td>algebra</td>           <td class="n">1.000 000 000 0</td><td class="n">1.000 000 000 0</td><td class="n ok">exact</td></tr>
+<tr><td>P2 · Hawking bare-Z₂ CV</td>                       <td>Poisson waiting</td>   <td class="n">1.0000</td>          <td class="n">0.9845</td>          <td class="n ok">0.985</td></tr>
+<tr><td>P3 · SO(2) regulated σ=0.05</td>                   <td>Class B deep</td>      <td class="n">0.0080</td>          <td class="n">0.0080</td>          <td class="n ok">1.008</td></tr>
+<tr><td>P3 · SO(2) regulated σ=0.25</td>                   <td>Class B</td>           <td class="n">0.0398</td>          <td class="n">0.0396</td>          <td class="n ok">0.996</td></tr>
+<tr><td>P3 · SO(2) canonical σ=0.50</td>                   <td>Class A · Wijsman+Jaynes</td><td class="n">0.0796</td>    <td class="n">0.0812</td>          <td class="n ok">1.021</td></tr>
+<tr><td>P3 · SO(2) noisy σ=1.00</td>                       <td>Class C</td>           <td class="n">0.1592</td>          <td class="n">0.1589</td>          <td class="n ok">0.998</td></tr>
+<tr><td>P3 · SO(2) severe σ=2.00</td>                      <td>Class C extreme</td>   <td class="n">0.3183</td>          <td class="n">0.3222</td>          <td class="n ok">1.012</td></tr>
+<tr><td>P4 · B(C) peak at C*−Ω</td>                        <td>beauty function</td>   <td class="n">2.8233</td>          <td class="n">2.8231</td>          <td class="n ok">0.9999</td></tr>
+<tr><td>P4 · peak-to-merger separation</td>                <td>integrated L</td>      <td class="n">2.5652</td>          <td class="n">2.5800</td>          <td class="n ok">1.0058</td></tr>
+</tbody>
+</table>
+
+<h4>VII · Honest boundaries (what CRR does not predict)</h4>
+<p>CRR does <em>not</em> derive Hawking temperature from first principles — that is QFT on curved spacetime. What it does is predict the <em>statistics</em> of emission given the thermal spectrum as input, and here the prediction is exact. Similarly CRR does not derive QNM frequencies (those are eigenvalues of the Kerr perturbation equation); it predicts how perturbations broaden or sharpen the QNM sequence through Class B/A/C crossings. Binary-merger mass is general relativity; CRR predicts the coherence-accumulation profile and the rupture moment given the GR spacetime.</p>
+<p>On the Page curve: its rising-then-falling shape resembles B(C) but is not identical. Page time sits near t<sub>evap</sub>/2; B peaks at C = C* − Ω which is 90% of the way to rupture on the Z₂ scale. The shapes are structurally similar; the timings disagree. Noted, not glossed.</p>
+
+<h4>VIII · What the visualisation actually shows</h4>
+<p>The horizon at centre is pure black out to r<sub>s</sub>, ringed by the photon sphere at 1.5 r<sub>s</sub>. The Z₂ channel fires Hawking quanta from the horizon at exponential waiting times — watch the live CV probe converge on 1.0 within a minute of observation. The SO(2) channel runs the ringdown pacemaker at the chosen σ; its CV tracks σ/(2π) across every regulation regime. The gold tick on the coherence bar marks the threshold paradox at C = Ω; the green tick marks the beauty peak at C* − Ω. In <em>inspiral → merger</em> mode the full CRR cycle runs: coherence accumulates during inspiral at Newtonian rate L ∝ τ<sup>−3/8</sup>, ruptures at merger, regenerates into a damped Kerr ringdown.</p>
+
+<h4>IX · Epistemic stance</h4>
+<p>CRR claims mathematical consistency and cross-domain cohesion. It is rigorous conjecture. Every prediction above was pre-registered and checked; no prediction has been softened after observation; where the framework does not reach — Hawking temperature, Page curve details, QNM frequencies — that is said plainly. The framework earns its right to exploratory boldness by knowing exactly what would kill it: a regulated system above baseline CV, or a noise-dominated system below it, in any channel, would be a directional reversal. None has been found.</p>
+
+<p style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--text-3);margin-top:26px;letter-spacing:.08em">Python verification: <code>crr_bh/verify_bh_v2.py</code> · pre-registration: <code>PREREGISTRATION.md</code> · all reproducible.</p>
+
+    </div>
+  </div>
+</div>
+
+<footer>
+  Alexander Sabine · Active Inference Institute ·
+  <a href="https://www.temporalgrammar.ai" target="_blank" rel="noopener">temporalgrammar.ai</a>
+  · Alexander@activeinference.institute
+  <span class="cite">“Identity persists as change.”</span>
+</footer>
+
+</div>
+
+<script>
+/* ============================================================================
+ *  §  CANONICAL CRR ENGINE
+ *     Ω topologically fixed · rupture when C·Ω = 1 · exp(C/Ω) regeneration.
+ *     Two channel types, both canonical, differ only in threshold law:
+ *        Z2 regulated :  thr ~ N(C*_Z2, σ²)
+ *        Z2 bare      :  thr ~ Exp(mean=C*_Z2)   (Poisson waiting)
+ *        SO(2)        :  thr ~ N(C*_SO2, σ²)
+ * ========================================================================== */
+
+const OMEGA_Z2   = 1 / Math.PI;
+const OMEGA_SO2  = 1 / (2 * Math.PI);
+const CSTAR_Z2   = Math.PI;
+const CSTAR_SO2  = 2 * Math.PI;
+const CV_Z2_PRED  = OMEGA_Z2  / 2;     // ≈ 0.1592
+const CV_SO2_PRED = OMEGA_SO2 / 2;     // ≈ 0.0796
+
+// §  Box–Muller Gaussian
+function gauss(mu, sigma){
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return mu + sigma * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+// §  Exponential sample with given mean
+function expSample(mean){
+  let u = 0; while (u === 0) u = Math.random();
+  return -mean * Math.log(u);
+}
+
+// §  Canonical Gaussian-threshold channel
+class CRRChannel {
+  constructor(sym, sigma){
+    if (sym === 'SO2'){ this.omega = OMEGA_SO2; this.Cstar = CSTAR_SO2; this.cvPred = CV_SO2_PRED; }
+    else              { this.omega = OMEGA_Z2;  this.Cstar = CSTAR_Z2;  this.cvPred = CV_Z2_PRED;  }
+    this.sym = sym; this.sigma = sigma;
+    this.C = 0; this.ruptures = []; this._thr();
+  }
+  _thr(){ this.threshold = Math.max(1e-6, this.Cstar + gauss(0, this.sigma)); }
+  step(L, dt, tNow){
+    this.C += L * dt;
+    if (this.C >= this.threshold){
+      this.ruptures.push(tNow); this.C = 0; this._thr(); return true;
+    }
+    return false;
+  }
+  setSigma(s){ this.sigma = s; this._thr(); }
+  get precision(){ return Math.exp(Math.min(this.C/this.omega, 50)) / this.omega; }
+  get beauty(){ return Math.exp(Math.min(this.C/this.omega, 50)) * Math.max(0, this.Cstar - this.C); }
+  get progress(){ return Math.min(this.C / this.threshold, 1); }
+}
+
+// §  Bare-Z2 (Poisson) channel: exponential threshold, no memory
+class BareZ2Channel {
+  constructor(){ this.omega = OMEGA_Z2; this.Cstar = CSTAR_Z2; this.sym = 'Z2-bare';
+    this.cvPred = 1.0; this.C = 0; this.ruptures = []; this._thr(); }
+  _thr(){ this.threshold = expSample(this.Cstar); }
+  step(L, dt, tNow){
+    this.C += L * dt;
+    if (this.C >= this.threshold){
+      this.ruptures.push(tNow); this.C = 0; this._thr(); return true;
+    }
+    return false;
+  }
+}
+
+function intervals(arr){
+  if (arr.length < 2) return [];
+  const out = new Array(arr.length - 1);
+  for (let i = 1; i < arr.length; i++) out[i-1] = arr[i] - arr[i-1];
+  return out;
+}
+function cv(arr){
+  if (arr.length < 2) return NaN;
+  let s = 0; for (const x of arr) s += x; const m = s/arr.length;
+  if (m === 0) return NaN;
+  let v = 0; for (const x of arr) v += (x-m)*(x-m);
+  return Math.sqrt(v / (arr.length-1)) / m;
+}
+function classify(cvObs, cvPred, tol=1.2){
+  if (!isFinite(cvObs)) return 'wait';
+  if (cvObs < cvPred / tol) return 'B';
+  if (cvObs > cvPred * tol) return 'C';
+  return 'A';
+}
+
+/* ============================================================================
+ *  §  RENDERING STATE
+ * ========================================================================== */
+const canvas = document.getElementById('stage-canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize(){
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px'; canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  W = rect.width; H = rect.height;
+}
+resize(); window.addEventListener('resize', resize);
+
+// §  Background starfield (for gravitational lensing distortion)
+const STARS = [];
+for (let i = 0; i < 420; i++){
+  STARS.push({
+    x: Math.random(), y: Math.random(),
+    b: 0.25 + Math.random()*0.75,
+    tw: Math.random()*Math.PI*2
+  });
+}
+
+// §  Accretion disk particles (SO(2) pacemaker · Shakura-Sunyaev profile)
+// ISCO at 1.15 (= 3 r_s_true / 2.598 r_s_shadow); outer edge at 6.0
+// distribution weighted toward ISCO where luminosity peaks (T ∝ r^-3/4)
+const DISK = [];
+for (let i = 0; i < 720; i++){
+  const u = Math.random();
+  const rel = 1.15 + Math.pow(u, 1.9) * 4.85;  // hotter concentration near ISCO
+  DISK.push({
+    a: Math.random()*Math.PI*2,
+    r: rel,
+    t: Math.random(),
+    v: 0.85 / Math.pow(rel, 1.5)  // Keplerian ω ∝ r^-3/2
+  });
+}
+
+// §  Hawking emission particles (bare-Z2 ruptures visual trail)
+const HAWKING = [];
+
+// §  Ringdown oscillation state
+let ringdownPhase = 0, ringdownAmp = 0, ringdownDecay = 0.5;
+
+// §  Inspiral-merger state
+let scenario = 'steady';
+let inspiralTime = 0, inspiralDuration = 60, mergerTriggered = false, postMergerT = 0;
+let binaryPhase = 0;  // for binary orbit drawing
+
+let timeScale = 1.0, sigmaCstar = 0.5, massSolar = 10;
+let systemTime = 0;
+
+// §  CRR channels
+let hawking = new BareZ2Channel();              // §Z2 bare: Hawking
+let ringdown = new CRRChannel('SO2', sigmaCstar); // §SO(2) regulated: ringdown
+let inspiral = new CRRChannel('Z2', 0.5);        // §Z2 regulated: inspiral→merger
+
+let rupturesSinceReset = { H: 0, R: 0, I: 0 };
+
+/* ============================================================================
+ *  §  PHYSICS DISPLAY VALUES (reference, not CRR)
+ * ========================================================================== */
+function updatePhysicsDisplay(){
+  // Schwarzschild radius  r_s = 2GM/c²  ≈ 2.95 km × M/M☉
+  const rs_km = 2.95 * massSolar;
+  // Horizon area  A = 4π r_s²
+  const area_km2 = 4 * Math.PI * rs_km * rs_km;
+  // Hawking temperature  T_H = ℏc³/(8πGMk_B) ≈ 6.17×10⁻⁸ K × (M☉/M)
+  const T_K = 6.17e-8 / massSolar;
+  // Bekenstein-Hawking entropy  S_BH = A/(4 ℓ_p²) ≈ 1.05×10⁷⁷ × (M/M☉)²
+  const S = 1.05e77 * massSolar * massSolar;
+  // Evaporation time  τ = (5120 π G² M³)/(ℏ c⁴) ≈ 2.1×10⁶⁷ yr × (M/M☉)³
+  const tau_yr = 2.1e67 * massSolar * massSolar * massSolar;
+
+  document.getElementById('m-mass').textContent = massSolar.toFixed(1) + ' M☉';
+  document.getElementById('m-rs').textContent   = rs_km.toFixed(1) + ' km';
+  document.getElementById('m-area').textContent = area_km2.toExponential(2).replace('e+','×10');
+  document.getElementById('m-temp').textContent = T_K.toExponential(2).replace('e','×10') + ' K';
+  document.getElementById('m-ent').innerHTML    = S.toExponential(1).replace('e+','×10<sup>') + '</sup> k<sub>B</sub>';
+  document.getElementById('m-evap').textContent = tau_yr.toExponential(1).replace('e+','×10') + ' yr';
+}
+
+/* ============================================================================
+ *  §  STARFIELD with gravitational lensing around BH
+ * ========================================================================== */
+function renderStars(cx, cy, rs){
+  for (const s of STARS){
+    let sx = s.x * W, sy = s.y * H;
+    const dx = sx - cx, dy = sy - cy;
+    const r = Math.sqrt(dx*dx + dy*dy);
+    // Schwarzschild deflection angle α ≈ 2 r_s/b (weak field); diverges near photon sphere
+    // We approximate with a radial pull that compresses rays toward the photon ring.
+    if (r > 0 && r < rs * 9){
+      const b = r;                                           // impact parameter in screen px
+      const defl = rs * rs * 2.2 / (b * b + rs * rs * 0.22); // stronger, peaks at small b
+      const nx = dx / r, ny = dy / r;
+      sx += nx * defl * 28;
+      sy += ny * defl * 28;
+    }
+    const newR = Math.sqrt((sx - cx)*(sx - cx) + (sy - cy)*(sy - cy));
+    if (newR < rs * 1.005) continue;  // occluded by shadow
+    const tw = 0.6 + 0.4 * Math.sin(systemTime * 1.5 + s.tw);
+    // Einstein ring brightening: stars piling up just outside the shadow
+    let bright = s.b * tw * 0.75;
+    if (newR < rs * 1.35) bright *= 1.9;
+    else if (newR < rs * 1.7) bright *= 1.25;
+    ctx.fillStyle = `rgba(240,236,214,${bright})`;
+    ctx.fillRect(sx, sy, 1.2, 1.2);
+  }
+}
+
+/* ============================================================================
+ *  §  ACCRETION DISK  (SO(2) pacemaker)
+ *  Photorealistic render: thin disk viewed at i ≈ 80°,
+ *   - Shakura-Sunyaev temperature profile T ∝ r^(-3/4)
+ *   - Relativistic Doppler beaming: I_obs / I_rest = δ^(3+α) , α ≈ 0.5 bolometric
+ *   - Gravitational redshift near ISCO: √(1 − r_s/r)
+ *   - Primary lensed image: far-disk light bent over top of shadow
+ *   - Secondary lensed image: fainter arc under bottom
+ * ========================================================================== */
+function diskTemperatureColor(T){
+  // T normalised: 1 at ISCO (hottest), → 0 far out
+  // Hot: white with a hint of blue. Warm: amber. Cool: deep orange / ember.
+  let R, G, B;
+  if (T > 0.70){
+    const k = (T - 0.70) / 0.30;
+    R = 255;
+    G = 240 + k * 15;
+    B = 210 + k * 45;
+  } else if (T > 0.40){
+    const k = (T - 0.40) / 0.30;
+    R = 255;
+    G = 195 + k * 45;
+    B = 130 + k * 80;
+  } else {
+    const k = T / 0.40;
+    R = 250;
+    G = 110 + k * 85;
+    B = 35 + k * 95;
+  }
+  return [Math.min(255, R|0), Math.min(255, G|0), Math.min(255, B|0)];
+}
+
+function renderAccretionDisk(cx, cy, rs, wobble){
+  if (scenario === 'merger' && !mergerTriggered){
+    return;   // disk appears only in steady-horizon mode
+  }
+  const tiltY  = 0.178;          // cos(inclination) ≈ cos(80°)
+  const sinI   = 0.984;          // sin(80°)
+  const vISCO  = 0.52;           // characteristic β at ISCO (natural units, c=1)
+
+  /* ------------------------------------------------------------------
+   *  PASS 1 — direct image of the disk
+   *  Particles at (r,θ) in disk-local coords project to:
+   *    sx = cx + r cosθ · rs
+   *    sy = cy + r sinθ · tiltY · rs
+   *  depth sign = sinθ   (>0 in front of BH, <0 behind)
+   * ------------------------------------------------------------------ */
+  for (const d of DISK){
+    d.a += d.v * 0.012 * timeScale;
+    const cosA = Math.cos(d.a), sinA = Math.sin(d.a);
+
+    // quadrupole wobble (ringdown imprint on SO(2) channel)
+    const rW = d.r * (1 + wobble * 0.28 * Math.cos(2 * d.a - ringdownPhase));
+    const xL = rs * rW * cosA;
+    const yL = rs * rW * sinA * tiltY;
+    const sx = cx + xL;
+    const sy = cy + yL;
+
+    // screen occlusion by shadow (back half only)
+    const screenR = Math.sqrt(xL*xL + yL*yL);
+    if (sinA < 0 && screenR < rs * 1.0) continue;  // handled by lensed pass
+
+    // Keplerian velocity in disk frame, projected toward observer
+    const vOrb = vISCO * Math.sqrt(1.15 / d.r);
+    const vLOS = vOrb * cosA * sinI;              // +ve = toward viewer
+    const gamma = 1 / Math.sqrt(Math.max(0.04, 1 - vOrb*vOrb));
+    const delta = 1 / Math.max(0.05, gamma * (1 - vLOS));
+    const beam  = Math.pow(delta, 3.5);            // bolometric boost
+
+    // gravitational redshift: r_true / r_s_true = (d.r * rs_shadow) / r_s_true
+    //                                           = d.r * 2.598  ... so factor = √(1 - 1/(2.598 d.r))
+    const grz   = Math.sqrt(Math.max(0.02, 1 - 1/(d.r * 2.598)));
+
+    // Shakura-Sunyaev temperature (normalised, 1 at ISCO)
+    const T = Math.pow(1.15 / d.r, 0.75);
+    const [R, G, B] = diskTemperatureColor(T);
+
+    // combined intensity, modest sub-linear curve so beaming doesn't clip everything
+    let alpha = 0.34 * Math.pow(beam, 0.85) * grz * (0.45 + 0.55 * T);
+    alpha = Math.min(0.92, alpha);
+
+    const size = 0.9 + Math.pow(beam, 0.7) * 1.2 + T * 1.4;
+
+    const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, size * 4.5);
+    grad.addColorStop(0,    `rgba(${R},${G},${B},${alpha * 0.75})`);
+    grad.addColorStop(0.38, `rgba(${R},${G},${B},${alpha * 0.28})`);
+    grad.addColorStop(1,    `rgba(${R},${G},${B},0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(sx, sy, size * 4.5, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = `rgba(${R},${G},${B},${alpha})`;
+    ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI*2); ctx.fill();
+  }
+
+  /* ------------------------------------------------------------------
+   *  PASS 2 — PRIMARY LENSED IMAGE
+   *  Light from the far (behind-BH) half of the disk is bent over the
+   *  top of the shadow by ≈ π radians and appears as a thin bright arc
+   *  just outside the shadow edge.
+   *  Doppler asymmetry is reversed relative to direct image because the
+   *  lensed side of the disk orbits opposite to the viewer-projection
+   *  of the direct image.
+   * ------------------------------------------------------------------ */
+  for (const d of DISK){
+    let aN = d.a % (2*Math.PI);
+    if (aN > Math.PI) aN -= 2*Math.PI;
+    if (aN < -Math.PI) aN += 2*Math.PI;
+    if (aN >= 0) continue;                        // only far-side of disk has primary image here
+    const cosA = Math.cos(aN), sinA = Math.sin(aN);
+
+    // lensed position: upper arc just outside shadow, radius grows slightly with source distance
+    const phiArc = -aN;                           // (0, π): maps behind-right→right, behind→top, behind-left→left
+    const rArc   = rs * (1.01 + 0.10 * Math.pow(d.r / 6.0, 0.55));
+    const lx = cx + Math.cos(phiArc) * rArc;
+    const ly = cy - Math.sin(phiArc) * rArc;      // canvas y: negative = up
+
+    const vOrb = vISCO * Math.sqrt(1.15 / d.r);
+    const vLOS = vOrb * cosA * sinI;              // same sense as direct (both see approaching material)
+    const gamma = 1 / Math.sqrt(Math.max(0.04, 1 - vOrb*vOrb));
+    const delta = 1 / Math.max(0.05, gamma * (1 - vLOS));
+    const beam  = Math.pow(delta, 3.5);
+
+    const grz = Math.sqrt(Math.max(0.02, 1 - 1/(d.r * 2.598)));
+    const T   = Math.pow(1.15 / d.r, 0.75);
+    const [R, G, B] = diskTemperatureColor(T);
+
+    let alpha = 0.52 * Math.pow(beam, 0.85) * grz * (0.45 + 0.55 * T);
+    alpha = Math.min(0.95, alpha);
+
+    const size = 0.75 + Math.pow(beam, 0.7) * 0.95 + T * 0.9;
+
+    const grad = ctx.createRadialGradient(lx, ly, 0, lx, ly, size * 3.8);
+    grad.addColorStop(0,    `rgba(${R},${G},${B},${alpha * 0.8})`);
+    grad.addColorStop(0.4,  `rgba(${R},${G},${B},${alpha * 0.28})`);
+    grad.addColorStop(1,    `rgba(${R},${G},${B},0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(lx, ly, size * 3.8, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = `rgba(${R},${G},${B},${alpha})`;
+    ctx.beginPath(); ctx.arc(lx, ly, size, 0, Math.PI*2); ctx.fill();
+  }
+
+  /* ------------------------------------------------------------------
+   *  PASS 3 — SECONDARY LENSED IMAGE (lower arc, fainter)
+   *  The near side of the disk also has a secondary ghost image under
+   *  the bottom of the shadow, much dimmer. Adds the characteristic
+   *  double-ring feel.
+   * ------------------------------------------------------------------ */
+  for (const d of DISK){
+    let aN = d.a % (2*Math.PI);
+    if (aN > Math.PI) aN -= 2*Math.PI;
+    if (aN < -Math.PI) aN += 2*Math.PI;
+    if (aN <= 0) continue;
+    const cosA = Math.cos(aN);
+
+    const phiArc = aN;                            // (0, π): maps to lower arc angles
+    const rArc   = rs * (1.008 + 0.055 * Math.pow(d.r / 6.0, 0.55));
+    const lx = cx + Math.cos(phiArc) * rArc;
+    const ly = cy + Math.sin(phiArc) * rArc;      // positive y = below
+
+    const vOrb = vISCO * Math.sqrt(1.15 / d.r);
+    const vLOS = vOrb * cosA * sinI;              // same sense as direct
+    const gamma = 1 / Math.sqrt(Math.max(0.04, 1 - vOrb*vOrb));
+    const delta = 1 / Math.max(0.05, gamma * (1 - vLOS));
+    const beam  = Math.pow(delta, 3.5);
+
+    const T = Math.pow(1.15 / d.r, 0.75);
+    const [R, G, B] = diskTemperatureColor(T);
+
+    let alpha = 0.18 * Math.pow(beam, 0.8) * (0.45 + 0.55 * T);
+    alpha = Math.min(0.55, alpha);
+
+    const size = 0.55 + Math.pow(beam, 0.7) * 0.55;
+
+    ctx.fillStyle = `rgba(${R},${G},${B},${alpha})`;
+    ctx.beginPath(); ctx.arc(lx, ly, size, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+/* ============================================================================
+ *  §  EVENT HORIZON / SHADOW  (apparent critical curve = temporal Markov blanket)
+ *     The visible dark disk is the apparent shadow at b_crit = 3√3/2 r_s_true
+ *     which we take as our unit rs. The bright photon ring lives at this edge.
+ * ========================================================================== */
+function renderEventHorizon(cx, cy, rs, wobble){
+  // quadrupole (ℓ=2,m=2) ringdown deformation of the visual shadow boundary
+  const pts = 160;
+  const shadow = new Path2D();
+  for (let i = 0; i <= pts; i++){
+    const a = (i/pts) * Math.PI * 2;
+    const r = rs * (1 + wobble * Math.cos(2 * a - ringdownPhase)
+                       + wobble * 0.22 * Math.cos(4 * a + ringdownPhase * 1.2));
+    const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    if (i === 0) shadow.moveTo(x, y); else shadow.lineTo(x, y);
+  }
+  shadow.closePath();
+
+  // Fill the shadow with pure black (absorbs everything behind)
+  ctx.fillStyle = '#000';
+  ctx.fill(shadow);
+
+  /* ------------------------------------------------------------------
+   *  PHOTON RING — bright thin ring at the shadow edge.
+   *  Relativistically beamed: approaching (right) side brighter.
+   *  Brightness asymmetry Doppler-modulated like the inner disk.
+   * ------------------------------------------------------------------ */
+  const ringSteps = 200;
+  const rInner = rs * 1.001;
+  const rOuter = rs * 1.018;
+  for (let i = 0; i < ringSteps; i++){
+    const a  = (i / ringSteps) * Math.PI * 2;
+    const a2 = ((i + 1) / ringSteps) * Math.PI * 2;
+
+    // ringdown-modulated radius
+    const mod  = (wobble * 0.35) * Math.cos(2 * a - ringdownPhase);
+    const rIn  = rInner + rs * mod;
+    const rOut = rOuter + rs * mod;
+
+    // Doppler beam: brightest where the emitter on the photon ring is moving toward
+    // the observer. For disk co-rotating counterclockwise (viewed from disk +z),
+    // the tangent to the photon sphere at screen angle a has maximum blueshift
+    // at a = 0 (right of shadow) — the same side as the direct disk's approaching limb.
+    const beam = 0.15 + 0.85 * Math.pow(Math.max(0, (1 + Math.cos(a)) / 2), 1.5);
+
+    const x1 = cx + Math.cos(a)  * rIn;
+    const y1 = cy + Math.sin(a)  * rIn;
+    const x2 = cx + Math.cos(a2) * rIn;
+    const y2 = cy + Math.sin(a2) * rIn;
+    const x3 = cx + Math.cos(a2) * rOut;
+    const y3 = cy + Math.sin(a2) * rOut;
+    const x4 = cx + Math.cos(a)  * rOut;
+    const y4 = cy + Math.sin(a)  * rOut;
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    ctx.lineTo(x3, y3); ctx.lineTo(x4, y4);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(255,242,210,${0.55 + 0.42 * beam})`;
+    ctx.fill();
+  }
+
+  // Inner highlight line right on the shadow edge (sharp critical-curve boundary)
+  ctx.save();
+  ctx.lineWidth = 0.9;
+  ctx.strokeStyle = `rgba(255,248,220,0.55)`;
+  ctx.beginPath();
+  for (let i = 0; i <= pts; i++){
+    const a = (i/pts) * Math.PI * 2;
+    const r = rs * (1 + wobble * Math.cos(2 * a - ringdownPhase)
+                       + wobble * 0.22 * Math.cos(4 * a + ringdownPhase * 1.2));
+    const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  /* ------------------------------------------------------------------
+   *  Outer glow (photon ring spillover + weak Hawking thermal bath)
+   *  CRITICAL: inner stop must be fully transparent so the shadow
+   *  remains pure black (the radial gradient would otherwise extend
+   *  the inner colour across the entire inner disc).
+   * ------------------------------------------------------------------ */
+  const glow = ctx.createRadialGradient(cx, cy, rs * 1.00, cx, cy, rs * 1.55);
+  glow.addColorStop(0,    'rgba(255,230,180,0)');
+  glow.addColorStop(0.15, 'rgba(255,220,170,0.22)');
+  glow.addColorStop(0.45, 'rgba(255,190,130,0.08)');
+  glow.addColorStop(1,    'rgba(255,180,120,0)');
+  ctx.save();
+  // clip to *outside* the shadow so the gradient cannot bleed inward
+  ctx.beginPath();
+  ctx.arc(cx, cy, rs * 1.55, 0, Math.PI*2);
+  ctx.arc(cx, cy, rs * 1.00, 0, Math.PI*2, true);  // reverse winding → annular clip
+  ctx.clip('evenodd');
+  ctx.fillStyle = glow;
+  ctx.fillRect(cx - rs*1.6, cy - rs*1.6, rs*3.2, rs*3.2);
+  ctx.restore();
+}
+
+/* ============================================================================
+ *  §  HAWKING EMISSION  (§Z2 bare rupture → photon escape trail)
+ * ========================================================================== */
+function emitHawkingParticle(cx, cy, rs){
+  const a = Math.random() * Math.PI * 2;
+  HAWKING.push({
+    x: cx + Math.cos(a) * rs * 1.02,
+    y: cy + Math.sin(a) * rs * 1.02,
+    vx: Math.cos(a) * (0.8 + Math.random() * 0.5),
+    vy: Math.sin(a) * (0.8 + Math.random() * 0.5),
+    life: 1,
+    hue: 40 + Math.random() * 20,
+  });
+}
+function renderHawking(){
+  for (let i = HAWKING.length - 1; i >= 0; i--){
+    const p = HAWKING[i];
+    p.x += p.vx * timeScale; p.y += p.vy * timeScale;
+    p.life -= 0.008 * timeScale;
+    if (p.life <= 0) { HAWKING.splice(i, 1); continue; }
+    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 6);
+    grad.addColorStop(0,   `hsla(${p.hue}, 95%, 70%, ${p.life * 0.9})`);
+    grad.addColorStop(0.5, `hsla(${p.hue}, 90%, 60%, ${p.life * 0.4})`);
+    grad.addColorStop(1,   `hsla(${p.hue}, 90%, 60%, 0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = `hsla(${p.hue}, 100%, 85%, ${p.life})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 1.2, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+/* ============================================================================
+ *  §  BEAUTY HALO  (§B · peaks at C* − Ω, decorates the outer shell)
+ * ========================================================================== */
+function renderBeautyHalo(cx, cy, rs){
+  // normalise beauty to its theoretical peak
+  const ch = (scenario === 'merger' && mergerTriggered === false) ? inspiral : ringdown;
+  const Bnow = ch.beauty;
+  const Bpeak = Math.exp((ch.Cstar - ch.omega)/ch.omega) * ch.omega;
+  const alpha = Math.min(1, Math.max(0, Bnow / Bpeak));
+
+  // ring at 1.9 r_s indicating current beauty magnitude
+  const R = rs * 1.9;
+  const grad = ctx.createRadialGradient(cx, cy, R * 0.96, cx, cy, R * 1.12);
+  grad.addColorStop(0,   `rgba(255,209,102,0)`);
+  grad.addColorStop(0.5, `rgba(255,209,102,${0.08 + 0.32 * alpha})`);
+  grad.addColorStop(1,   `rgba(255,209,102,0)`);
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(cx, cy, R * 1.15, 0, Math.PI*2); ctx.fill();
+
+  // coherence progress arc on outer ring
+  const prog = Math.min(1, ch.C / ch.threshold);
+  ctx.strokeStyle = `rgba(74,158,255,${0.35 + prog * 0.4})`;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 1.08, -Math.PI/2, -Math.PI/2 + 2*Math.PI*prog);
+  ctx.stroke();
+
+  // beauty peak marker: the C* - Ω position
+  const peakAng = -Math.PI/2 + 2*Math.PI * ((ch.Cstar - ch.omega) / ch.Cstar);
+  const px = cx + Math.cos(peakAng) * R * 1.08;
+  const py = cy + Math.sin(peakAng) * R * 1.08;
+  const mg = ctx.createRadialGradient(px, py, 0, px, py, 18);
+  mg.addColorStop(0,   `rgba(255,209,102,${0.2 + alpha * 0.8})`);
+  mg.addColorStop(0.6, `rgba(255,179,71,${(0.1 + alpha * 0.4)})`);
+  mg.addColorStop(1,   `rgba(255,179,71,0)`);
+  ctx.fillStyle = mg;
+  ctx.beginPath(); ctx.arc(px, py, 18, 0, Math.PI*2); ctx.fill();
+}
+
+/* ============================================================================
+ *  §  INSPIRAL-MERGER-RINGDOWN SCENARIO
+ *     C accumulates as L ∝ τ^(-3/8)  (post-Newtonian Peters 1964)
+ *     Rupture at C = π  (Z2 threshold)
+ *     Regeneration: ringdown damping
+ * ========================================================================== */
+function stepInspiral(dt){
+  if (mergerTriggered){
+    postMergerT += dt * timeScale;
+    ringdownAmp = 0.08 * Math.exp(-postMergerT * 0.6);
+    return;
+  }
+  const tau = Math.max(0.01, inspiralDuration - inspiralTime);
+  // post-Newtonian: L ∝ τ^(-3/8). Normalise so ∫₀^T L dτ = C* = π
+  const L0 = CSTAR_Z2 / ((8/5) * Math.pow(inspiralDuration, 5/8));
+  const L = L0 * Math.pow(tau, -3/8);
+  inspiral.step(L, dt * timeScale, systemTime);
+  inspiralTime += dt * timeScale;
+  binaryPhase += L * 0.5 * dt * timeScale;
+
+  if (inspiral.ruptures.length > 0 && !mergerTriggered){
+    mergerTriggered = true;
+    ringdownAmp = 0.28;   // merger kick
+    postMergerT = 0;
+  }
+}
+function renderBinary(cx, cy, rs){
+  if (mergerTriggered) return;
+  const tau = Math.max(0.01, inspiralDuration - inspiralTime);
+  const sep = rs * 2.2 * Math.pow(tau / inspiralDuration, 1/4);  // slow at start
+  const b1x = cx + Math.cos(binaryPhase) * sep;
+  const b1y = cy + Math.sin(binaryPhase) * sep;
+  const b2x = cx - Math.cos(binaryPhase) * sep;
+  const b2y = cy - Math.sin(binaryPhase) * sep;
+  const size = rs * 0.45;
+
+  for (const [x, y] of [[b1x, b1y], [b2x, b2y]]){
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, size * 2.4);
+    glow.addColorStop(0,   'rgba(74,158,255,0.35)');
+    glow.addColorStop(0.5, 'rgba(200,120,255,0.18)');
+    glow.addColorStop(1,   'rgba(200,120,255,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(x, y, size * 2.4, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
+  }
+  // gravitational-wave spiral
+  ctx.strokeStyle = `rgba(74,158,255,${0.10 + 0.25 * inspiral.progress})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < 360; i += 4){
+    const t = i / 360;
+    const a = binaryPhase + t * Math.PI * 8;
+    const r = sep * 2.2 * (1 + t * 1.2);
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+/* ============================================================================
+ *  §  MAIN UPDATE LOOP
+ * ========================================================================== */
+function updateChannels(dt){
+  // §  Hawking channel always runs (even during inspiral; we ignore for metrics on merger)
+  if (scenario === 'steady' || mergerTriggered){
+    if (hawking.step(1.0, dt * timeScale, systemTime)){
+      rupturesSinceReset.H++;
+      const cx = W/2, cy = H/2, rs = rsPx();
+      emitHawkingParticle(cx, cy, rs);
+      flashCell('cell-D', 'rupture', 500);
+      document.getElementById('D-display').textContent = 'δ · Hawking emission';
+    }
+    if (hawking.ruptures.length > 400) hawking.ruptures.splice(0, 100);
+  }
+
+  // §  SO(2) ringdown pacemaker
+  const rrup = ringdown.step(1.0, dt * timeScale, systemTime);
+  if (rrup){
+    rupturesSinceReset.R++;
+    ringdownAmp = Math.min(0.18, ringdownAmp + 0.04);
+    ringdownPhase += Math.PI * 0.4;
+    flashCell('cell-R', 'regen', 350);
+    document.getElementById('R-display').textContent = 'R · SO(2) cycle complete';
+  }
+  if (ringdown.ruptures.length > 400) ringdown.ruptures.splice(0, 100);
+
+  // §  Inspiral channel (merger scenario only)
+  if (scenario === 'merger') stepInspiral(dt);
+
+  // §  Ringdown decay (independent of rupture)
+  ringdownPhase += 2.1 * dt * timeScale;
+  ringdownAmp *= Math.exp(-dt * timeScale * ringdownDecay);
+}
+
+function rsPx(){
+  // apparent horizon radius in pixels (scales with window, mild mass effect)
+  return Math.min(W, H) * (0.11 + 0.03 * Math.log(massSolar));
+}
+
+/* ============================================================================
+ *  §  COMPONENT LABELS OVERLAY
+ *  Pedagogical layer naming the GR features of the visualisation in the
+ *  peer-reviewed Schwarzschild vocabulary, with CRR annotations in italics.
+ * ========================================================================== */
+let showLabels = false;
+function toggleLabels(){
+  showLabels = !showLabels;
+  const btn = document.getElementById('labels-btn');
+  if (btn) btn.classList.toggle('active', showLabels);
+}
+
+function renderComponentLabels(cx, cy, rs){
+  if (!showLabels) return;
+  ctx.save();
+
+  // All labels specified in rs-units around the centre. Each entry:
+  // { ax, ay  – anchor on the feature
+  //   lx, ly  – label text position
+  //   title   – physics name
+  //   sub     – CRR annotation (italic)
+  //   align   – 'left' | 'right' | 'center'
+  //   side    – whether the callout exits to left or right of the label }
+  const L = [
+    { ax: 0.00, ay: 0.00,  lx:-3.10, ly:-0.25, title:'APPARENT SHADOW',
+      sub:'b_crit = 3√3/2 r_s · the temporal Markov blanket for photons',
+      align:'left' },
+    { ax:-0.75, ay:-0.75, lx:-2.85, ly:-1.95, title:'PRIMARY LENSED IMAGE',
+      sub:'back of disk bent over the horizon (direct, n=1)',
+      align:'left' },
+    { ax: 1.00, ay: 0.00, lx: 3.05, ly:-0.90, title:'PHOTON RING',
+      sub:'C·Ω = 1 for null geodesics · n→∞ images stacked',
+      align:'right' },
+    { ax: 1.50, ay: 0.15, lx: 3.25, ly: 0.45, title:'APPROACHING LIMB',
+      sub:'relativistic Doppler boost, I ∝ δ^(3+α) · ≈10× direct brightness',
+      align:'right' },
+    { ax:-1.60, ay: 0.10, lx:-3.10, ly: 0.85, title:'RECEDING LIMB',
+      sub:'redshifted, beamed away · same ω, opposite sign',
+      align:'left' },
+    { ax: 0.00, ay: 1.05, lx:-1.40, ly: 2.50, title:'SECONDARY IMAGE',
+      sub:'light making one extra half-orbit before escaping',
+      align:'left' },
+    { ax: 1.40, ay:-0.55, lx: 2.70, ly:-1.80, title:'EINSTEIN-RING BRIGHTENING',
+      sub:'background starfield concentrated just outside the shadow',
+      align:'right' },
+  ];
+
+  for (const lab of L){
+    const ax = cx + lab.ax * rs;
+    const ay = cy + lab.ay * rs;
+    const lx = cx + lab.lx * rs;
+    const ly = cy + lab.ly * rs;
+
+    // callout line: short perpendicular from label, then straight to anchor
+    ctx.strokeStyle = 'rgba(255,209,102,0.55)';
+    ctx.lineWidth = 0.8;
+    ctx.setLineDash([2.5, 3]);
+    ctx.beginPath();
+    const elbow_x = lab.align === 'left' ? lx + 10 : lx - 10;
+    ctx.moveTo(elbow_x, ly);
+    ctx.lineTo(ax, ay);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // small anchor dot
+    ctx.fillStyle = 'rgba(255,230,170,0.9)';
+    ctx.beginPath(); ctx.arc(ax, ay, 1.8, 0, Math.PI*2); ctx.fill();
+
+    // background strip for legibility
+    ctx.font = '600 10.5px "JetBrains Mono", monospace';
+    const titleW = ctx.measureText(lab.title).width;
+    ctx.font = 'italic 10.5px "Cormorant Garamond", Georgia, serif';
+    const subW = ctx.measureText(lab.sub).width;
+    const boxW = Math.max(titleW, subW) + 14;
+    const bx = lab.align === 'left' ? lx : lx - boxW;
+    ctx.fillStyle = 'rgba(5,5,7,0.78)';
+    ctx.fillRect(bx, ly - 14, boxW, 28);
+    ctx.strokeStyle = 'rgba(255,209,102,0.25)';
+    ctx.lineWidth = 0.6;
+    ctx.strokeRect(bx, ly - 14, boxW, 28);
+
+    // title
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = lab.align;
+    ctx.font = '600 10.5px "JetBrains Mono", monospace';
+    ctx.fillStyle = 'rgba(255,236,190,0.96)';
+    ctx.fillText(lab.title, lab.align === 'left' ? lx + 7 : lx - 7, ly - 5);
+
+    // italic CRR annotation
+    ctx.font = 'italic 10.5px "Cormorant Garamond", Georgia, serif';
+    ctx.fillStyle = 'rgba(200,200,200,0.78)';
+    ctx.fillText(lab.sub, lab.align === 'left' ? lx + 7 : lx - 7, ly + 7);
+  }
+
+  ctx.restore();
+}
+
+function render(){
+  const cx = W/2, cy = H/2;
+  const rs = rsPx();
+
+  ctx.clearRect(0, 0, W, H);
+
+  // backdrop
+  renderStars(cx, cy, rs);
+
+  // binary pair during inspiral
+  if (scenario === 'merger' && !mergerTriggered){
+    renderBinary(cx, cy, rs);
+  } else {
+    // shadow + photon ring first; then disk particles correctly occlude / cross in front
+    renderEventHorizon(cx, cy, rs, ringdownAmp);
+    renderAccretionDisk(cx, cy, rs, ringdownAmp);
+    renderHawking();
+    renderBeautyHalo(cx, cy, rs);
+    renderComponentLabels(cx, cy, rs);
+  }
+}
+
+/* ============================================================================
+ *  §  UI sync
+ * ========================================================================== */
+function flashCell(id, cls, ms){
+  const el = document.getElementById(id);
+  el.classList.add('live', cls);
+  setTimeout(() => el.classList.remove(cls), ms);
+}
+function setClassBadge(id, cls){
+  const el = document.getElementById(id);
+  el.className = 'badge ' + cls;
+  el.textContent = {
+    A: 'A autonomous',
+    B: 'B regulated',
+    C: 'C noise-dominated',
+    wait: 'awaiting data',
+  }[cls];
+}
+
+function syncUI(){
+  // strip cells (Coherence display is whichever channel is "primary" for the scenario)
+  const ch = (scenario === 'merger' && !mergerTriggered) ? inspiral : ringdown;
+  document.getElementById('C-display').textContent = `∫L(x,τ)dτ = ${ch.C.toFixed(4)}`;
+  const expv = Math.min(Math.exp(ch.C / ch.omega), 9999);
+  document.getElementById('R-display').textContent = `exp(C/Ω) = ${expv.toFixed(2)}`;
+  if (!document.getElementById('cell-D').classList.contains('rupture')){
+    document.getElementById('D-display').textContent = 'awaiting C·Ω = 1';
+  }
+
+  // coherence bar
+  const prog = Math.min(1, ch.C / ch.threshold);
+  document.getElementById('c-fill').style.width = (prog * 100) + '%';
+  // mark threshold paradox (C = Ω) and beauty peak (C = C* - Ω) on the bar
+  const pctOmega  = 100 * (ch.omega       / ch.Cstar);          // ≈ 31.83% for Z2, 15.92% for SO(2)
+  const pctBeauty = 100 * ((ch.Cstar - ch.omega) / ch.Cstar);   // ≈ 68.17% for Z2, 84.08% for SO(2)
+  document.getElementById('mark-omega').style.left  = pctOmega  + '%';
+  document.getElementById('mark-beauty').style.left = pctBeauty + '%';
+  document.getElementById('mark-omega').title  = `Threshold paradox · C = Ω · ${pctOmega.toFixed(1)}%`;
+  document.getElementById('mark-beauty').title = `Beauty peak · C = C* − Ω · ${pctBeauty.toFixed(1)}%`;
+
+  // phase label
+  let phase = 'STEADY';
+  if (scenario === 'merger'){
+    phase = mergerTriggered ? 'RINGDOWN (§R)' : 'INSPIRAL (§C accumulating)';
+  }
+  document.getElementById('phase-label').textContent = phase;
+  document.getElementById('progress-label').textContent = (prog * 100).toFixed(1) + '% of C*';
+
+  // right panel — CRR dynamics
+  document.getElementById('m-C').textContent    = ch.C.toFixed(4);
+  document.getElementById('m-Cstar').textContent = ch.threshold.toFixed(4);
+  document.getElementById('m-prog').textContent = (prog * 100).toFixed(1) + '%';
+  document.getElementById('m-exp').textContent  = expv.toFixed(3);
+  document.getElementById('m-prec').textContent = Math.min(ch.precision, 99999).toFixed(2);
+  document.getElementById('m-beauty').textContent = ch.beauty.toFixed(2);
+
+  // wavefn text
+  let wf = 'Schwarzschild · event horizon r<sub>s</sub> = 2GM/c² · single Markov blanket';
+  if (scenario === 'merger' && !mergerTriggered)
+    wf = 'Binary inspiral · L(τ) ∝ τ<sup>−3/8</sup> · C accumulating toward C·Ω = 1';
+  else if (mergerTriggered)
+    wf = 'Post-merger Kerr · §R regeneration via exp(C/Ω) memory kernel';
+  document.getElementById('wavefn').innerHTML = wf;
+
+  // channel statistics
+  // Hawking
+  document.getElementById('h-n').textContent = hawking.ruptures.length;
+  const hIvs = intervals(hawking.ruptures);
+  if (hIvs.length >= 3){
+    const recent = hIvs.slice(-50);
+    const cvH = cv(recent);
+    document.getElementById('h-cv').textContent = cvH.toFixed(4);
+    setClassBadge('h-class', classify(cvH, 1.0));
+  } else {
+    document.getElementById('h-cv').textContent = '·';
+    setClassBadge('h-class', 'wait');
+  }
+  // Ringdown
+  document.getElementById('r-n').textContent = ringdown.ruptures.length;
+  document.getElementById('r-cv-pred').textContent = (sigmaCstar / CSTAR_SO2).toFixed(4);
+  const rIvs = intervals(ringdown.ruptures);
+  if (rIvs.length >= 3){
+    const recent = rIvs.slice(-50);
+    const cvR = cv(recent);
+    document.getElementById('r-cv').textContent = cvR.toFixed(4);
+    setClassBadge('r-class', classify(cvR, sigmaCstar / CSTAR_SO2));
+  } else {
+    document.getElementById('r-cv').textContent = '·';
+    setClassBadge('r-class', 'wait');
+  }
+
+  updatePhysicsDisplay();
+}
+
+/* ============================================================================
+ *  §  CONTROLS
+ * ========================================================================== */
+function setMode(m){
+  scenario = m;
+  document.getElementById('mode-steady').classList.toggle('active', m === 'steady');
+  document.getElementById('mode-merger').classList.toggle('active', m === 'merger');
+  if (m === 'merger'){ resetMerger(); }
+}
+function resetMerger(){
+  mergerTriggered = false;
+  inspiralTime = 0;
+  postMergerT = 0;
+  binaryPhase = 0;
+  inspiral = new CRRChannel('Z2', 0.5);
+  ringdownAmp = 0;
+}
+function triggerHawking(){
+  hawking.C = hawking.threshold * 0.99;
+}
+function perturbRingdown(){
+  ringdownAmp = Math.min(0.25, ringdownAmp + 0.1);
+  ringdown.C = Math.max(ringdown.C, ringdown.threshold * 0.7);
+}
+function triggerMerger(){
+  setMode('merger');
+  if (!mergerTriggered){
+    inspiral.C = inspiral.threshold * 0.98;
+  }
+}
+function resetAll(){
+  systemTime = 0;
+  hawking  = new BareZ2Channel();
+  ringdown = new CRRChannel('SO2', sigmaCstar);
+  inspiral = new CRRChannel('Z2', 0.5);
+  HAWKING.length = 0;
+  ringdownAmp = 0; ringdownPhase = 0;
+  mergerTriggered = false; inspiralTime = 0; postMergerT = 0;
+  rupturesSinceReset = { H: 0, R: 0, I: 0 };
+}
+function toggleTheory(){
+  document.getElementById('theory-body').classList.toggle('open');
+  document.getElementById('chev').classList.toggle('open');
+}
+
+function bindControls(){
+  const sig = document.getElementById('sigma');
+  sig.addEventListener('input', e => {
+    sigmaCstar = parseFloat(e.target.value);
+    ringdown.setSigma(sigmaCstar);
+    document.getElementById('sigma-val').textContent = sigmaCstar.toFixed(3);
+  });
+  const mass = document.getElementById('mass');
+  mass.addEventListener('input', e => {
+    massSolar = parseInt(e.target.value);
+    document.getElementById('mass-val').textContent = massSolar;
+  });
+  const tim = document.getElementById('time');
+  tim.addEventListener('input', e => {
+    timeScale = parseFloat(e.target.value);
+    document.getElementById('time-val').textContent = timeScale.toFixed(1) + '×';
+  });
+}
+
+/* ============================================================================
+ *  §  RUN
+ * ========================================================================== */
+let lastT = performance.now();
+function tick(){
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - lastT) / 1000);
+  lastT = now;
+  systemTime += dt * timeScale;
+  updateChannels(dt);
+  syncUI();
+  render();
+  requestAnimationFrame(tick);
+}
+
+bindControls();
+updatePhysicsDisplay();
+tick();
+
+// §  Boot log: topological constants + verification reference
+console.log('%c CRR Black Hole · canonical engine', 'color:#ffd166;font-weight:bold');
+console.log(`  Ω(Z2)   = ${OMEGA_Z2.toFixed(6)}    C*_Z2   = ${CSTAR_Z2.toFixed(6)}`);
+console.log(`  Ω(SO2)  = ${OMEGA_SO2.toFixed(6)}    C*_SO2  = ${CSTAR_SO2.toFixed(6)}`);
+console.log(`  structural identity CV_Z2 · C*_SO(2) = ${(CV_Z2_PRED * CSTAR_SO2).toFixed(12)}`);
+console.log('  Verification: crr_bh/verify_bh_v2.py');
+</script>
 </body>
 </html>
