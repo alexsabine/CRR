@@ -1,1484 +1,1149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRR Kettle Simulation - Coherence, Rupture, Regeneration</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-            color: #e5e5e5;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .disclaimer {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border: 2px solid #f59e0b;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px;
-            text-align: center;
-            color: #92400e;
-        }
-
-        .disclaimer h3 {
-            color: #92400e;
-            font-size: 1.1rem;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .disclaimer p {
-            color: #78350f;
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-
-        .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            border: 2px solid #e5e5e5;
-            border-radius: 20px;
-            padding: 30px;
-            margin: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            position: relative;
-            z-index: 10;
-            color: #1a1a1a;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .header h1 {
-            font-size: 2.2rem;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 8px;
-            letter-spacing: -0.02em;
-        }
-
-        .header .subtitle {
-            color: #666666;
-            font-size: 1rem;
-            font-weight: 400;
-            margin-bottom: 15px;
-        }
-
-        .framework-explanation {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border: 1px solid #dee2e6;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-
-        .framework-explanation h3 {
-            color: #495057;
-            font-size: 1.1rem;
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-
-        .crr-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .crr-item {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 8px;
-            padding: 15px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .crr-item h4 {
-            color: #2563eb;
-            font-size: 0.9rem;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .crr-item p {
-            font-size: 0.8rem;
-            color: #666;
-            line-height: 1.4;
-        }
-
-        .equation-banner {
-            background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
-            border: 2px solid #4a90e2;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            font-family: 'Georgia', serif;
-            font-size: 0.95rem;
-            color: #2563eb;
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-
-        .simulation-area {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 25px;
-            height: 600px;
-            margin-bottom: 25px;
-        }
-
-        .kettle-display {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
-            border: 2px solid #3a3a5e;
-            border-radius: 15px;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .control-panel {
-            background: #ffffff;
-            border: 2px solid #e5e5e5;
-            border-radius: 15px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .panel-title {
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: 600;
-            color: #2563eb;
-        }
-
-        .atmospheric-zone {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            overflow: visible;
-            z-index: 1;
-        }
-
-        .kettle-container {
-            position: relative;
-            perspective: 1200px;
-            z-index: 5;
-        }
-
-        .kettle {
-            width: 280px;
-            height: 360px;
-            position: relative;
-            transform-style: preserve-3d;
-            transform: rotateX(-10deg) rotateY(15deg);
-            filter: drop-shadow(0 20px 40px rgba(0,0,0,0.3));
-        }
-
-        .kettle-glass {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, 
-                rgba(255,255,255,0.12) 0%, 
-                rgba(255,255,255,0.02) 20%, 
-                rgba(255,255,255,0.06) 40%, 
-                rgba(255,255,255,0.15) 60%, 
-                rgba(255,255,255,0.01) 80%, 
-                rgba(255,255,255,0.1) 100%);
-            border: 2px solid rgba(255,255,255,0.4);
-            border-radius: 20px 20px 35px 35px;
-            position: relative;
-            backdrop-filter: blur(8px);
-            box-shadow: 
-                0 0 40px rgba(255,255,255,0.15),
-                inset 0 0 40px rgba(255,255,255,0.08),
-                inset -12px -12px 30px rgba(255,255,255,0.06);
-            overflow: hidden;
-        }
-
-        .glass-reflections {
-            position: absolute;
-            top: 6%;
-            left: 10%;
-            width: 25%;
-            height: 60%;
-            background: linear-gradient(135deg, 
-                rgba(255,255,255,0.3) 0%, 
-                rgba(255,255,255,0.12) 30%, 
-                transparent 60%);
-            border-radius: 20px;
-            transform: skew(-10deg, 6deg);
-            animation: glassShimmer 4s ease-in-out infinite;
-        }
-
-        @keyframes glassShimmer {
-            0%, 100% { opacity: 0.6; transform: skew(-10deg, 6deg) translateX(0); }
-            50% { opacity: 0.8; transform: skew(-10deg, 6deg) translateX(6px); }
-        }
-
-        .water-container {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            height: 70%;
-            border-radius: 0 0 35px 35px;
-            overflow: hidden;
-            background: linear-gradient(to bottom, 
-                rgba(80,130,220,0.85) 0%, 
-                rgba(40,90,180,0.9) 100%);
-            transition: height 0.3s ease;
-        }
-
-        .kettle-handle {
-            position: absolute;
-            right: -40px;
-            top: 60px;
-            width: 60px;
-            height: 140px;
-            border: 5px solid #2c3e50;
-            border-radius: 30px;
-            background: linear-gradient(135deg, #7f8c8d, #95a5a6, #bdc3c7);
-            box-shadow: 
-                0 8px 25px rgba(0,0,0,0.4),
-                inset 0 2px 12px rgba(255,255,255,0.3);
-        }
-
-        .handle-grip {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 45px;
-            height: 100px;
-            background: linear-gradient(135deg, #34495e, #2c3e50);
-            border-radius: 22px;
-            box-shadow: inset 0 2px 10px rgba(0,0,0,0.4);
-        }
-
-        .kettle-spout {
-            position: absolute;
-            left: -35px;
-            top: 95px;
-            width: 80px;
-            height: 24px;
-            background: linear-gradient(90deg, 
-                rgba(255,255,255,0.15), 
-                rgba(255,255,255,0.06),
-                transparent);
-            border: 2px solid rgba(255,255,255,0.4);
-            border-radius: 25px 8px 8px 25px;
-            transform: rotate(-15deg);
-            overflow: visible;
-        }
-
-        .heating-element {
-            position: absolute;
-            bottom: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 200px;
-            height: 50px;
-            background: linear-gradient(135deg, #7f8c8d, #95a5a6);
-            border-radius: 25px;
-            box-shadow: 0 0 25px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-
-        .heating-coils {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 160px;
-            height: 10px;
-            background: repeating-linear-gradient(
-                90deg,
-                #34495e 0px,
-                #2c3e50 6px,
-                #34495e 12px
-            );
-            border-radius: 5px;
-            transition: all 0.3s ease;
-        }
-
-        .heating-element.active {
-            background: linear-gradient(135deg, #e74c3c, #c0392b, #a93226);
-            box-shadow: 0 0 40px rgba(231,76,60,0.8);
-            animation: heatingIntensity 1s ease-in-out infinite;
-        }
-
-        .heating-element.active .heating-coils {
-            background: repeating-linear-gradient(
-                90deg,
-                #ff6b4a 0px,
-                #e74c3c 3px,
-                #ff6b4a 6px,
-                #c0392b 9px,
-                #ff6b4a 12px
-            );
-            box-shadow: 0 0 20px rgba(255,107,74,0.7);
-            animation: coilGlow 0.6s ease-in-out infinite;
-        }
-
-        @keyframes heatingIntensity {
-            0%, 100% { 
-                box-shadow: 0 0 40px rgba(231,76,60,0.8);
-                transform: translateX(-50%) scale(1);
-            }
-            50% { 
-                box-shadow: 0 0 55px rgba(231,76,60,1.1);
-                transform: translateX(-50%) scale(1.02);
-            }
-        }
-
-        @keyframes coilGlow {
-            0%, 100% { filter: brightness(1) saturate(1); }
-            50% { filter: brightness(1.4) saturate(1.2); }
-        }
-
-        .n2-molecule {
-            position: absolute;
-            width: 3px;
-            height: 3px;
-            border-radius: 50%;
-            background: rgba(135, 206, 250, 0.7);
-            animation: atmosphericFloat 7s ease-in-out infinite;
-            box-shadow: 0 0 2px rgba(135, 206, 250, 0.3);
-        }
-
-        .o2-molecule {
-            position: absolute;
-            width: 3px;
-            height: 3px;
-            border-radius: 50%;
-            background: rgba(255, 182, 193, 0.7);
-            animation: atmosphericFloat 5s ease-in-out infinite;
-            box-shadow: 0 0 2px rgba(255, 182, 193, 0.3);
-        }
-
-        .co2-molecule {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            border-radius: 50%;
-            background: rgba(200, 200, 200, 0.6);
-            animation: atmosphericFloat 9s ease-in-out infinite;
-            box-shadow: 0 0 1px rgba(200, 200, 200, 0.4);
-        }
-
-        @keyframes atmosphericFloat {
-            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.7; }
-            25% { transform: translateY(-25px) translateX(12px); opacity: 0.9; }
-            50% { transform: translateY(-12px) translateX(-10px); opacity: 0.5; }
-            75% { transform: translateY(-35px) translateX(15px); opacity: 0.8; }
-        }
-
-        .steam-particle {
-            position: absolute;
-            width: 14px;
-            height: 14px;
-            background: radial-gradient(circle, 
-                rgba(255,255,255,0.9) 0%, 
-                rgba(255,255,255,0.6) 40%, 
-                rgba(255,255,255,0.2) 80%,
-                transparent 100%);
-            border-radius: 50%;
-        }
-
-        .atmospheric-steam {
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            background: radial-gradient(circle, 
-                rgba(255,255,255,0.8) 0%, 
-                rgba(255,255,255,0.5) 40%, 
-                rgba(255,255,255,0.15) 80%,
-                transparent 100%);
-            border-radius: 50%;
-        }
-
-        .control-section {
-            margin-bottom: 20px;
-        }
-
-        .control-section h4 {
-            color: #495057;
-            font-size: 0.95rem;
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-
-        .slider-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 10px 0;
-        }
-
-        .slider-group label {
-            min-width: 100px;
-            color: #6c757d;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        .slider-group input[type="range"] {
-            flex: 1;
-            height: 6px;
-            background: linear-gradient(to right, #e9ecef, #2563eb);
-            border-radius: 3px;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        .slider-group input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #2563eb;
-            cursor: pointer;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-        }
-
-        .slider-value {
-            min-width: 50px;
-            text-align: right;
-            color: #2563eb;
-            font-family: monospace;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .display-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin: 15px 0;
-        }
-
-        .display-card {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 12px;
-            text-align: center;
-        }
-
-        .display-card h5 {
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: #6c757d;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        .display-value {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 4px;
-        }
-
-        .display-unit {
-            font-size: 0.7rem;
-            color: #6c757d;
-        }
-
-        .control-btn {
-            background: #ffffff;
-            border: 2px solid #dee2e6;
-            color: #495057;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            margin: 4px;
-        }
-
-        .control-btn:hover {
-            background: #f8f9fa;
-            border-color: #2563eb;
-            color: #2563eb;
-            transform: translateY(-1px);
-        }
-
-        .control-btn.active {
-            background: #e74c3c;
-            border-color: #c0392b;
-            color: white;
-        }
-
-        .control-btn.active:hover {
-            background: #c0392b;
-        }
-
-        .state-indicator {
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            margin-bottom: 20px;
-            font-weight: 500;
-            transition: all 0.6s ease;
-            font-size: 0.95rem;
-        }
-
-        .state-liquid {
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05));
-            border: 2px solid #22c55e;
-            color: #166534;
-        }
-
-        .state-heating {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
-            border: 2px solid #f59e0b;
-            color: #92400e;
-        }
-
-        .state-boiling {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
-            border: 2px solid #ef4444;
-            color: #991b1b;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .metric-card {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .metric-card h3 {
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: #6c757d;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-
-        .metric-value {
-            font-size: 1.4rem;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 6px;
-            transition: color 0.6s ease;
-        }
-
-        .metric-unit {
-            font-size: 0.7rem;
-            color: #6c757d;
-        }
-
-        .math-display {
-            background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-            text-align: center;
-            font-family: 'Georgia', serif;
-            font-size: 0.9rem;
-            color: #2563eb;
-        }
-
-        .bubble {
-            position: absolute;
-            border-radius: 50%;
-            background: radial-gradient(circle at 25% 25%, 
-                rgba(255,255,255,0.7) 0%, 
-                rgba(255,255,255,0.2) 30%, 
-                rgba(80,130,220,0.15) 60%, 
-                transparent 100%);
-            box-shadow: 
-                inset 0 0 6px rgba(255,255,255,0.3),
-                0 0 4px rgba(255,255,255,0.15);
-        }
-
-        .thermal-convection {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: repeating-linear-gradient(
-                to top,
-                transparent 0px,
-                rgba(255,120,120,0.12) 20px,
-                transparent 40px
-            );
-            animation: convectionFlow 1.8s linear infinite;
-            opacity: 0;
-        }
-
-        @keyframes convectionFlow {
-            0% { transform: translateY(0); opacity: 0.2; }
-            100% { transform: translateY(-40px); opacity: 0.5; }
-        }
-
-        .phase-transition-zone {
-            position: absolute;
-            top: 0;
-            width: 100%;
-            height: 16px;
-            background: linear-gradient(to bottom,
-                rgba(255,255,255,0.7) 0%,
-                rgba(255,255,255,0.2) 50%,
-                transparent 100%);
-            animation: phaseInterface 0.8s ease-in-out infinite;
-            opacity: 0;
-        }
-
-        @keyframes phaseInterface {
-            0%, 100% { transform: scaleY(1); opacity: 0.5; }
-            50% { transform: scaleY(1.3); opacity: 0.8; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Song of the Boil — CRR Composition</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#060504;overflow:hidden;height:100vh;height:100dvh;
+  user-select:none;-webkit-user-select:none;touch-action:none;-webkit-touch-callout:none}
+canvas{position:absolute;top:0;left:0}
+#cv{pointer-events:none}
+.hud{position:fixed;pointer-events:none;
+  font:300 clamp(9px,.9vw,10px)/1.6 'Cormorant Garamond',Georgia,serif;
+  letter-spacing:.06em;color:rgba(180,150,120,.14)}
+#title{top:14px;left:18px;letter-spacing:.28em;font-size:clamp(11px,1.2vw,13px)}
+#eq{top:14px;right:18px;text-align:right}
+#stats{bottom:14px;right:18px;text-align:right;white-space:pre;
+  color:rgba(180,150,120,0);transition:color 2s}
+#stats.show{color:rgba(180,150,120,.18)}
+#sliderWrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:12px;z-index:20;padding:8px 18px;
+  border-radius:24px;background:rgba(15,13,10,.85);border:1px solid rgba(80,65,45,.12)}
+#sliderWrap label{font:300 clamp(10px,1vw,12px) 'Cormorant Garamond',Georgia,serif;
+  color:rgba(180,150,120,.35);letter-spacing:.15em;white-space:nowrap}
+#gasSlider{-webkit-appearance:none;width:clamp(140px,30vw,280px);height:3px;
+  background:linear-gradient(90deg,rgba(60,80,140,.3),rgba(220,160,60,.4),rgba(200,80,30,.5));
+  border-radius:2px;outline:none}
+#gasSlider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  cursor:pointer;border:2px solid rgba(15,13,10,.9);
+  background:radial-gradient(circle at 40% 35%,#4a4540,#2a2825);
+  box-shadow:0 1px 4px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08)}
+#gasSlider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;cursor:pointer;
+  border:2px solid rgba(15,13,10,.9);background:radial-gradient(circle at 40% 35%,#4a4540,#2a2825)}
+#markLabel{font:400 clamp(12px,1.3vw,15px) 'Cormorant Garamond',Georgia,serif;
+  color:rgba(220,180,120,.4);letter-spacing:.12em;min-width:2.5em;text-align:center}
+</style>
 </head>
 <body>
-    <div class="disclaimer">
-        <h3>Educational Computational Tool - CRR Framework</h3>
-        <p>This is an educational demonstration of Coherence-Rupture-Regeneration principles applied to thermodynamics and fluid dynamics. 
-        The simulation shows CRR cycles in water phase transitions using computational modeling.</p>
-    </div>
+<canvas id="gl"></canvas><canvas id="cv"></canvas>
+<div class="hud" id="title">SONG OF THE BOIL</div>
+<div class="hud" id="eq">C·Ω = 1 — nucleation δ<br>B(C/Ω) peaks at π⁻¹<br>
+R = ((Ω₁−Ω₂)/(Ω₁+Ω₂))²<br>f<sub>M</sub> = 3260/R<sub>mm</sub> Hz</div>
+<div class="hud" id="stats"></div>
+<div id="sliderWrap">
+  <label>GAS</label>
+  <input type="range" id="gasSlider" min="0" max="9" step="0.1" value="0">
+  <span id="markLabel">OFF</span>
+</div>
+<script>
+/*╔═══════════════════════════════════════════════════════════════════════════╗
+  ║  S O N G   O F   T H E   B O I L                                       ║
+  ║  A CRR Composition — Production Version                                 ║
+  ║                                                                         ║
+  ║  Coherence–Rupture–Regeneration (Sabine 2025)                          ║
+  ║  Pre-production: crr_boil_analysis.py · crr_external_audit.py          ║
+  ║                                                                         ║
+  ║  Three equations. Every parameter traces to CRR or is honestly          ║
+  ║  labelled as external physics.                                          ║
+  ║                                                                         ║
+  ║  EPISTEMOLOGICAL KEY:                                                   ║
+  ║  §CRR     — derived from the three equations                           ║
+  ║  §SOLVED  — CRR derivation gives exact physical result                 ║
+  ║  §PARTIAL — CRR derives form/exponent, not coefficient                 ║
+  ║  §EXT     — external physics (CRR does not derive)                     ║
+  ║                                                                         ║
+  ║  Alexander Sabine · cohere.org.uk · temporalgrammar.ai                 ║
+  ╚═══════════════════════════════════════════════════════════════════════════╝*/
 
-    <div class="main-container">
-        <div class="header">
-            <h1>CRR Kettle Simulation</h1>
-            <div class="subtitle">Coherence • Rupture • Regeneration in Thermodynamic Systems</div>
-        </div>
+// ═══════════════════════════════════════════════════════════════════════
+// §0  MATHEMATICS
+// ═══════════════════════════════════════════════════════════════════════
+const PI=Math.PI, TAU=2*PI, PHI=(1+Math.sqrt(5))/2;
+const{sin,cos,sqrt,pow,abs,min,max,exp,log,random:rnd,atan2,floor:flr,ceil,round}=Math;
 
-        <div class="framework-explanation">
-            <h3>Coherence-Rupture-Regeneration (CRR) - Applied Thermodynamics</h3>
-            <div class="crr-grid">
-                <div class="crr-item">
-                    <h4>Coherence State C(x,t)</h4>
-                    <p>Organized liquid water with stable hydrogen bonds and thermal equilibrium. Low entropy, high molecular organization.</p>
-                </div>
-                <div class="crr-item">
-                    <h4>Rupture Event δ(t-t₀)</h4>
-                    <p>Phase transition triggered by thermal energy. Discrete boiling events where coherent liquid becomes chaotic steam.</p>
-                </div>
-                <div class="crr-item">
-                    <h4>Regeneration R[χ](x,t)</h4>
-                    <p>Steam formation and atmospheric dispersion. Reorganization of water molecules into new coherent state in atmosphere.</p>
-                </div>
-            </div>
-            <p style="font-size: 0.85rem; color: #666; text-align: center; margin-top: 12px;">
-                <em>Mathematical modeling of thermal coherence patterns and phase transitions</em>
-            </p>
-        </div>
+// ═══════════════════════════════════════════════════════════════════════
+// §1  CRR CONSTANTS — all derived from symmetry classification
+//
+//     C(x,t) = ∫ L(x,τ) dτ        coherence accumulates
+//     δ(now)                        rupture is instantaneous
+//     R = ∫ φ exp(C/Ω) Θ dτ        regeneration from weighted memory
+//
+//     Universal rupture condition:  C · Ω = 1
+//     Beauty function:              B(r) = exp(r)·(1 − r/π)
+// ═══════════════════════════════════════════════════════════════════════
+const Om_Z2  = 1/PI;       // §CRR Z₂ variance (bistable: liquid↔vapour, premixed↔product)
+const Om_SO2 = 1/TAU;      // §CRR SO(2) variance (rotational: convection cells)
+const CV_Z2  = 1/TAU;      // §CRR ≈ 0.1592 — predicted CV for Z₂ inter-event intervals
+const CV_SO2 = 1/(4*PI);   // §CRR ≈ 0.0796 — predicted CV for SO(2) oscillation periods
+const C_STAR = PI;          // §CRR coherence at Z₂ rupture (C·Ω = 1 → C = 1/Ω = π)
+const R_BEAUTY = PI - 1;   // §CRR beauty peak location r ≈ 2.14
+const B_MAX = exp(R_BEAUTY)/PI; // normalisation constant
 
-        <div class="equation-banner">
-            CRR(x,t) = C(liquid) → δ(boiling) → R[steam] | Computational Thermodynamics
-        </div>
+function B(r)  { return max(0, exp(min(8,r)) * (1 - r/PI)) }        // §CRR beauty function
+function Bn(r) { return max(0, min(1, B(r) / B_MAX)) }              // §CRR normalised [0,1]
 
-        <div id="stateIndicator" class="state-indicator state-liquid">
-            💧 LIQUID STATE - Coherent molecular organization | C(x,t) = 1.886 | T = 20.0°C
-        </div>
+// §SOLVED Fresnel reflectance from CRR: Ωᵢ = 1/(π·nᵢ)
+// R = ((Ω₁−Ω₂)/(Ω₁+Ω₂))² = ((n₂−n₁)/(n₂+n₁))². The 1/π cancels.
+// Physical content: Ω ∝ 1/n identifies medium variance with electromagnetic impedance.
+const R0_WATER = ((1.333-1)/(1.333+1))**2; // = 0.02037, exact
 
-        <div class="simulation-area">
-            <div class="kettle-display">
-                <div class="atmospheric-zone" id="atmosphericZone"></div>
-                <div class="kettle-container">
-                    <div class="kettle">
-                        <div class="kettle-glass">
-                            <div class="glass-reflections"></div>
-                            <div class="water-container" id="waterContainer">
-                                <div class="thermal-convection" id="thermalConvection"></div>
-                                <div class="phase-transition-zone" id="phaseZone"></div>
-                            </div>
-                        </div>
-                        <div class="kettle-handle">
-                            <div class="handle-grip"></div>
-                        </div>
-                        <div class="kettle-spout" id="spout"></div>
-                        <div class="heating-element" id="heatingElement">
-                            <div class="heating-coils"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+// §EXT External physics — CRR does not derive these
+const MINNAERT_K = 3260;                       // Hz·mm (Minnaert 1933)
+function minnaertF(rmm) { return MINNAERT_K / max(0.05, rmm) }
+const D_FRITZ_MM = 2.08, R_FRITZ_MM = D_FRITZ_MM/2; // Fritz 1935 (empirical 0.0208 coeff)
 
-            <div class="control-panel">
-                <div class="panel-title">CRR Controls & Monitoring</div>
-                
-                <div class="control-section">
-                    <h4>System Controls</h4>
-                    <button class="control-btn" id="powerButton" onclick="toggleHeating()">🔥 Start Heating</button>
-                    <div class="slider-group">
-                        <label>Target Temp:</label>
-                        <input type="range" id="tempSlider" min="20" max="110" value="100">
-                        <span class="slider-value" id="tempValue">100°C</span>
-                    </div>
-                </div>
+// ═══════════════════════════════════════════════════════════════════════
+// §2  THERMODYNAMIC STATE
+// ═══════════════════════════════════════════════════════════════════════
+// §EXT Energy balance: dT/dt = (Q_in − Q_loss − Q_evap)/(m·cp)
+// NOT a CRR threshold process. CRR constrains fluctuation CV = 1/4π only.
+const WATER_MASS = 1.0;     // kg
+const CP_WATER   = 4186;    // J/(kg·K) §EXT
+const Q_MAX      = 2200;    // W (typical gas hob)
+const H_LOSS     = 8;       // W/(m²·K) convective loss coefficient
+const A_POT      = 0.06;    // m² pot surface area
+const T_AMB      = 20;      // °C
+const T_SAT      = 100;     // °C
+const H_FG       = 2.257e6; // J/kg latent heat §EXT
+let T_water = T_AMB;
+let gasPower = 0;
 
-                <div class="control-section">
-                    <h4>CRR Parameters</h4>
-                    <div class="slider-group">
-                        <label>Coherence:</label>
-                        <input type="range" id="coherenceSlider" min="0.5" max="3.0" step="0.1" value="1.8">
-                        <span class="slider-value" id="coherenceValue">1.8</span>
-                    </div>
-                    <div class="slider-group">
-                        <label>Heat Rate:</label>
-                        <input type="range" id="heatSlider" min="1000" max="3000" step="100" value="3000">
-                        <span class="slider-value" id="heatValue">3000W</span>
-                    </div>
-                </div>
+function updateTemperature(dt) {
+  const Q_loss = H_LOSS * A_POT * (T_water - T_AMB);
+  let Q_evap = 0;
+  if (T_water > 90) {
+    const dT_s = max(0, T_water - T_SAT);
+    Q_evap = ((T_water-90)/10*0.0001 + dT_s*0.0008) * H_FG;
+  }
+  // §EXT 100% physical. 1kg water cools slowly — this is correct.
+  T_water += (gasPower - Q_loss - Q_evap) / (WATER_MASS * CP_WATER) * dt;
+  T_water = max(T_AMB-2, min(T_water, 103));
+}
 
-                <div class="display-grid">
-                    <div class="display-card">
-                        <h5>Temperature</h5>
-                        <div class="display-value" id="tempDisplay">20.0</div>
-                        <div class="display-unit">°C</div>
-                    </div>
-                    <div class="display-card">
-                        <h5>Water Level</h5>
-                        <div class="display-value" id="waterDisplay">500</div>
-                        <div class="display-unit">ml</div>
-                    </div>
-                    <div class="display-card">
-                        <h5>Steam Rate</h5>
-                        <div class="display-value" id="steamDisplay">0.0</div>
-                        <div class="display-unit">g/min</div>
-                    </div>
-                    <div class="display-card">
-                        <h5>Phase State</h5>
-                        <div class="display-value" id="phaseDisplay">Liquid</div>
-                        <div class="display-unit">H₂O</div>
-                    </div>
-                </div>
+function Tnorm() { return max(0, min(1, (T_water-T_AMB) / (T_SAT+3-T_AMB))) }
 
-                <div class="math-display" id="mathDisplay">
-                    C(x,t) = 1.886 | δ-events: 0 | R[steam]: 0.000
-                </div>
-            </div>
-        </div>
+// §CRR observables — all derived from the three equations
+// Onset at Tnorm ≈ 0.78 (≈85°C: subcooled nucleation at heated surface)
+// Beauty peak at r=π−1 maps to ~97°C (singing kettle just before boiling)
+// Full rupture at r=π maps to 103°C (our physical temperature cap)
+function nucRate(){
+  const t = Tnorm();
+  if(t < 0.78) return 0; // §CRR no nucleation below ~85°C
+  const s = (t - 0.78) / 0.22; // 0→1 from 85°C to 103°C
+  return min(55, (exp(s * PI) - 1) * 3); // §CRR exp ramp, caps at 55/s
+}
+function beautyAtT(){
+  const t = Tnorm();
+  if(t < 0.78) return 0;
+  const s = (t - 0.78) / 0.22;
+  return Bn(s * PI); // §CRR peak at s=(π−1)/π → T≈97°C
+}
+function steamRate(){
+  const t = Tnorm();
+  if(t < 0.93) return 0; // §EXT steam visible only above ~97°C
+  // §CRR Regeneration phase: exp(+C/Ω) — high-energy molecules escape
+  // Rate ramps sharply: gentle wisps at 97°C, continuous blanket at 100°C+
+  return pow((t - 0.93) / 0.07, 2) * 80;
+}
+function departR(){ const t=Tnorm(); return R_FRITZ_MM * (1 + t*t*3.5) }
 
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <h3>Coherence Level</h3>
-                <div class="metric-value" id="coherenceMetric">1.886</div>
-                <div class="metric-unit">CRR</div>
-            </div>
-            <div class="metric-card">
-                <h3>Rupture Events</h3>
-                <div class="metric-value" id="ruptureMetric">0</div>
-                <div class="metric-unit">count</div>
-            </div>
-            <div class="metric-card">
-                <h3>Regeneration Cycles</h3>
-                <div class="metric-value" id="regenerationMetric">0</div>
-                <div class="metric-unit">cycles</div>
-            </div>
-            <div class="metric-card">
-                <h3>Molecular Motion</h3>
-                <div class="metric-value" id="motionMetric">3400</div>
-                <div class="metric-unit">cm⁻¹</div>
-            </div>
-            <div class="metric-card">
-                <h3>H-Bond Network</h3>
-                <div class="metric-value" id="bondMetric">3.7</div>
-                <div class="metric-unit">bonds/mol</div>
-            </div>
-            <div class="metric-card">
-                <h3>System Energy</h3>
-                <div class="metric-value" id="energyMetric">0</div>
-                <div class="metric-unit">kJ</div>
-            </div>
-        </div>
-    </div>
+// ═══════════════════════════════════════════════════════════════════════
+// §3  GLSL FRAGMENT SHADER
+// ═══════════════════════════════════════════════════════════════════════
+const VS = `attribute vec2 a; void main() { gl_Position = vec4(a,0,1); }`;
+const FS = `precision highp float;
+uniform vec2 u_res;
+uniform float u_time, u_temp, u_beauty, u_nucRate, u_gas;
 
-    <script>
-        // CRR Kettle Physics Engine
-        class CRRKettleSimulation {
-            constructor() {
-                // Core CRR Parameters
-                this.coherenceField = new Array(100).fill(0).map((_, i) => {
-                    // Add spatial variation to create initial gradients
-                    const baseCoherence = 1.5 + Math.random() * 0.3;
-                    const spatialVariation = Math.sin(i * 0.2) * 0.15;
-                    return baseCoherence + spatialVariation;
-                });
-                this.mnemonicEntanglement = new Array(100).fill(0);
-                this.temporalDecay = 0.002;
-                this.coherenceThreshold = 0.12;
-                this.regenerationMemory = new Map();
-                this.ruptureEvents = 0;
-                this.regenerationCycles = 0;
-                
-                // Physical Parameters
-                this.temperature = 20.0;
-                this.targetTemperature = 100.0;
-                this.isHeating = false;
-                this.waterMass = 500;
-                this.heatingPower = 3000;
-                this.ambientTemperature = 20.0;
-                this.coolingRate = 0.05;
-                this.steamProductionRate = 0;
-                this.totalEvaporated = 0;
-                
-                // Molecular Parameters
-                this.waterStructure = {
-                    clusterSize: 5.2,
-                    bondAngle: 104.5,
-                    dipoleMoment: 1.85,
-                    deuteriumRatio: 0.000156,
-                    vibrationFrequency: 3400
-                };
-                
-                this.hydrogenBondNetwork = new Array(100).fill(3.7);
-                this.nucleationSites = 0;
-                this.phaseState = 'liquid';
-                
-                // Atmosphere parameters
-                this.atmosphere = {
-                    n2Concentration: 0.78,
-                    o2Concentration: 0.21,
-                    co2Concentration: 0.0004,
-                    pressure: 1.0,
-                    temperature: 20.0,
-                    humidity: 0.4
-                };
-                
-                this.atmosphericCoherence = new Array(80).fill(0).map(() => Math.random() * 0.3 + 0.2);
-                
-                // DOM Elements
-                this.waterContainer = document.getElementById('waterContainer');
-                this.heatingElement = document.getElementById('heatingElement');
-                this.powerButton = document.getElementById('powerButton');
-                this.tempSlider = document.getElementById('tempSlider');
-                this.coherenceSlider = document.getElementById('coherenceSlider');
-                this.heatSlider = document.getElementById('heatSlider');
-                this.atmosphericZone = document.getElementById('atmosphericZone');
-                this.thermalConvection = document.getElementById('thermalConvection');
-                this.phaseZone = document.getElementById('phaseZone');
-                
-                // Particle arrays
-                this.steamParticles = [];
-                this.bubbles = [];
-                this.n2Molecules = [];
-                this.o2Molecules = [];
-                this.co2Molecules = [];
-                
-                this.initializeEventListeners();
-                this.initializeAtmosphere();
-                this.startSimulation();
-            }
-            
-            initializeEventListeners() {
-                this.tempSlider.addEventListener('input', (e) => {
-                    this.targetTemperature = parseFloat(e.target.value);
-                    document.getElementById('tempValue').textContent = this.targetTemperature + '°C';
-                });
-                
-                this.coherenceSlider.addEventListener('input', (e) => {
-                    const newCoherence = parseFloat(e.target.value);
-                    document.getElementById('coherenceValue').textContent = newCoherence.toFixed(1);
-                    this.coherenceField = this.coherenceField.map(val => newCoherence + (val - 1.8));
-                });
-                
-                this.heatSlider.addEventListener('input', (e) => {
-                    this.heatingPower = parseInt(e.target.value);
-                    document.getElementById('heatValue').textContent = this.heatingPower + 'W';
-                });
-            }
-            
-            initializeAtmosphere() {
-                for (let i = 0; i < 50; i++) {
-                    const n2 = document.createElement('div');
-                    n2.className = 'n2-molecule';
-                    n2.style.left = Math.random() * window.innerWidth + 'px';
-                    n2.style.top = Math.random() * window.innerHeight + 'px';
-                    n2.style.animationDelay = Math.random() * 7 + 's';
-                    this.atmosphericZone.appendChild(n2);
-                    this.n2Molecules.push(n2);
-                }
-                
-                for (let i = 0; i < 15; i++) {
-                    const o2 = document.createElement('div');
-                    o2.className = 'o2-molecule';
-                    o2.style.left = Math.random() * window.innerWidth + 'px';
-                    o2.style.top = Math.random() * window.innerHeight + 'px';
-                    o2.style.animationDelay = Math.random() * 5 + 's';
-                    this.atmosphericZone.appendChild(o2);
-                    this.o2Molecules.push(o2);
-                }
-                
-                for (let i = 0; i < 4; i++) {
-                    const co2 = document.createElement('div');
-                    co2.className = 'co2-molecule';
-                    co2.style.left = Math.random() * window.innerWidth + 'px';
-                    co2.style.top = Math.random() * window.innerHeight + 'px';
-                    co2.style.animationDelay = Math.random() * 9 + 's';
-                    this.atmosphericZone.appendChild(co2);
-                    this.co2Molecules.push(co2);
-                }
-            }
-            
-            updateCRRCoherence() {
-                const deltaTime = 0.016;
-                
-                // Add thermal fluctuations that create local coherence spikes
-                if (this.temperature > 70 && Math.random() < 0.08) {
-                    const hotspot = Math.floor(Math.random() * 100);
-                    this.coherenceField[hotspot] += 0.3 + (this.temperature / 100) * 0.4;
-                }
-                
-                for (let i = 0; i < 100; i++) {
-                    // CRR Coherence calculation
-                    const fieldState = Math.sin(Date.now() * 0.0001 + i * 0.03) * Math.cos(Date.now() * 0.00012 + i * 0.02);
-                    const thermalNormalization = 1.0 / (1.0 + Math.exp((this.temperature - 273.15) / 8.0));
-                    const hydrogenBondModulation = 1 + 0.15 * Math.sin(Date.now() * 0.0001 + i * 0.06) * (this.temperature / 300.0);
-                    
-                    this.mnemonicEntanglement[i] = fieldState * thermalNormalization * hydrogenBondModulation;
-                    
-                    const mnemonicContribution = this.mnemonicEntanglement[i] * Math.exp(-this.temporalDecay * deltaTime);
-                    this.coherenceField[i] += mnemonicContribution * 0.006;
-                    this.coherenceField[i] *= (1 - this.temporalDecay);
-                    
-                    if (this.isHeating) {
-                        this.coherenceField[i] += 0.008 * (this.temperature / 100);
-                        
-                        // Add spatial perturbations during heating to create gradients
-                        if (this.temperature > 80 && Math.random() < 0.02) {
-                            const perturbation = (Math.random() - 0.5) * 0.4 * (this.temperature / 100);
-                            this.coherenceField[i] += perturbation;
-                        }
-                    }
-                    
-                    this.coherenceField[i] = Math.max(0.8, Math.min(3.5, this.coherenceField[i]));
-                    
-                    // Rupture detection with higher rate when boiling
-                    if (i > 1 && i < 98) {
-                        const coherenceGradient = Math.abs(this.coherenceField[i+1] - this.coherenceField[i-1]) / 2;
-                        let decoherenceRate = 0.0008 * (1 + this.temperature / 273.15);
-                        
-                        if (this.temperature >= 100) {
-                            decoherenceRate *= 12;
-                        } else if (this.temperature >= 85) {
-                            decoherenceRate *= 2.5;
-                        }
-                        
-                        // Dynamic threshold based on temperature
-                        const adaptiveThreshold = this.temperature > 90 ? 0.08 : this.coherenceThreshold;
-                        
-                        if (coherenceGradient > adaptiveThreshold && Math.random() < decoherenceRate) {
-                            this.processRupture(i);
-                        }
-                    }
-                }
-                
-                this.updateAtmosphericCoherence();
-            }
-            
-            updateAtmosphericCoherence() {
-                for (let i = 0; i < 80; i++) {
-                    const fieldState = Math.sin(Date.now() * 0.0002 + i * 0.06);
-                    const temperatureEffect = 1.0 / (1.0 + Math.exp((this.atmosphere.temperature - 273.15) / 15.0));
-                    const pressureEffect = this.atmosphere.pressure * 0.85;
-                    const humidityEffect = 1 + this.atmosphere.humidity * 0.2;
-                    
-                    this.atmosphericCoherence[i] += fieldState * temperatureEffect * pressureEffect * humidityEffect * 0.002;
-                    this.atmosphericCoherence[i] *= 0.997;
-                    this.atmosphericCoherence[i] = Math.max(0.1, Math.min(0.7, this.atmosphericCoherence[i]));
-                }
-                
-                if (this.temperature >= 100) {
-                    this.atmosphere.humidity = Math.min(0.9, this.atmosphere.humidity + 0.001);
-                    this.updateAtmosphericInteraction();
-                } else {
-                    this.atmosphere.humidity = Math.max(0.4, this.atmosphere.humidity - 0.0008);
-                }
-            }
-            
-            updateAtmosphericInteraction() {
-                const steamEffect = (this.temperature - 100) / 15;
-                
-                this.n2Molecules.forEach(molecule => {
-                    if (Math.random() < steamEffect * 0.15) {
-                        const drift = (Math.random() - 0.5) * 3;
-                        const lift = -Math.random() * 6;
-                        molecule.style.transform = `translateX(${drift}px) translateY(${lift}px) scale(1.05)`;
-                        molecule.style.opacity = '0.9';
-                    }
-                });
-                
-                this.o2Molecules.forEach(molecule => {
-                    if (Math.random() < steamEffect * 0.2) {
-                        const drift = (Math.random() - 0.5) * 4;
-                        const lift = -Math.random() * 8;
-                        molecule.style.transform = `translateX(${drift}px) translateY(${lift}px) scale(1.1)`;
-                        molecule.style.opacity = '0.95';
-                    }
-                });
-            }
-            
-            processRupture(location) {
-                const memoryRecord = {
-                    originalCoherence: this.coherenceField[location],
-                    hydrogenBonds: this.hydrogenBondNetwork[location],
-                    timestamp: Date.now(),
-                    molecularState: {...this.waterStructure}
-                };
-                
-                this.regenerationMemory.set(location, memoryRecord);
-                this.ruptureEvents++;
-                
-                this.coherenceField[location] *= 0.3;
-                this.hydrogenBondNetwork[location] *= 0.5;
-                
-                if (this.temperature > 85) {
-                    this.createBubble(location);
-                }
-                
-                if (this.temperature >= 100) {
-                    this.createSteamFromSurface(location);
-                }
-                
-                setTimeout(() => {
-                    this.processRegeneration(location);
-                }, 800 + Math.random() * 1500);
-            }
-            
-            processRegeneration(location) {
-                if (this.regenerationMemory.has(location)) {
-                    const memory = this.regenerationMemory.get(location);
-                    
-                    this.coherenceField[location] = memory.originalCoherence * 0.75 + this.coherenceField[location] * 0.25;
-                    this.hydrogenBondNetwork[location] = memory.hydrogenBonds * 0.85;
-                    
-                    this.regenerationCycles++;
-                    this.regenerationMemory.delete(location);
-                }
-            }
-            
-            updateThermodynamics(deltaTime) {
-                if (this.isHeating && this.temperature < this.targetTemperature) {
-                    const baseHeatingRate = (this.heatingPower / (this.waterMass * 4.186));
-                    const averageCoherence = this.coherenceField.reduce((a, b) => a + b, 0) / 100;
-                    const coherenceAmplification = 1.2 + (averageCoherence - 1.8) * 0.5;
-                    const massReduction = Math.max(0.8, (this.waterMass - this.totalEvaporated) / this.waterMass);
-                    
-                    const effectiveHeatingRate = baseHeatingRate * coherenceAmplification * massReduction;
-                    this.temperature += effectiveHeatingRate * deltaTime;
-                    
-                } else if (!this.isHeating || this.temperature > this.targetTemperature) {
-                    const coolingRate = (this.temperature - this.ambientTemperature) * this.coolingRate * deltaTime;
-                    this.temperature -= coolingRate;
-                }
-                
-                this.nucleationSites = Math.floor(Math.max(0, (this.temperature - 80) / 2));
-                
-                if (this.temperature >= 100) {
-                    this.phaseState = 'boiling';
-                    this.calculateSteamProduction(deltaTime);
-                    this.generateSteamFromWaterSurface();
-                } else if (this.temperature >= 85) {
-                    this.phaseState = 'pre-boiling';
-                    this.createNucleationBubbles();
-                } else if (this.temperature >= 60) {
-                    this.phaseState = 'heating';
-                } else {
-                    this.phaseState = 'liquid';
-                }
-                
-                this.temperature = Math.max(this.ambientTemperature, Math.min(110, this.temperature));
-                
-                this.waterStructure.clusterSize = 5.2 - (this.temperature - 20) * 0.015;
-                this.waterStructure.vibrationFrequency = 3400 + (this.temperature - 20) * 1.8;
-            }
-            
-            calculateSteamProduction(deltaTime) {
-                if (this.temperature >= 100) {
-                    const excessHeat = this.temperature - 100;
-                    const baseRate = 1.0 + excessHeat * 0.25;
-                    const coherenceBoost = this.coherenceField.reduce((a, b) => a + b, 0) / 100;
-                    
-                    this.steamProductionRate = baseRate * (1 + coherenceBoost * 0.6) * deltaTime;
-                    this.totalEvaporated += this.steamProductionRate;
-                    
-                    this.waterMass = Math.max(0, this.waterMass - this.steamProductionRate);
-                    
-                    if (this.waterMass < 100) {
-                        this.steamProductionRate *= 1.3;
-                    }
-                } else {
-                    this.steamProductionRate = 0;
-                }
-            }
-            
-            createBubble(location) {
-                if (this.temperature > 85) {
-                    const bubble = document.createElement('div');
-                    bubble.className = 'bubble';
-                    
-                    const coherenceInfluence = this.coherenceField[location];
-                    const baseSize = 3 + Math.random() * 15;
-                    const size = baseSize * (0.6 + coherenceInfluence * 0.4);
-                    
-                    bubble.style.width = size + 'px';
-                    bubble.style.height = size + 'px';
-                    bubble.style.left = (10 + Math.random() * 80) + '%';
-                    bubble.style.bottom = (5 + Math.random() * 15) + 'px';
-                    bubble.style.opacity = '0.7';
-                    
-                    this.waterContainer.appendChild(bubble);
-                    this.animateBubble(bubble);
-                    
-                    setTimeout(() => {
-                        if (bubble.parentNode) {
-                            bubble.remove();
-                        }
-                    }, 3500);
-                }
-            }
-            
-            animateBubble(bubble) {
-                let y = 0;
-                let x = 0;
-                let opacity = 0.7;
-                let scale = 0.4;
-                
-                const animate = () => {
-                    y += 1.2 + Math.random() * 1.2;
-                    x += (Math.random() - 0.5) * 0.5;
-                    opacity -= 0.002;
-                    scale += 0.006;
-                    
-                    bubble.style.transform = `translateY(-${y}px) translateX(${x}px) scale(${scale})`;
-                    bubble.style.opacity = opacity;
-                    
-                    if (opacity > 0 && y < 250) {
-                        requestAnimationFrame(animate);
-                    }
-                };
-                
-                animate();
-            }
-            
-            createSteamFromSurface(location) {
-                if (this.temperature >= 100) {
-                    for (let i = 0; i < 3; i++) {
-                        setTimeout(() => {
-                            const steam = document.createElement('div');
-                            steam.className = 'steam-particle';
-                            
-                            const waterLevel = Math.max(5, 70 * (this.waterMass / 500));
-                            steam.style.left = (20 + Math.random() * 60) + '%';
-                            steam.style.bottom = waterLevel + '%';
-                            
-                            this.waterContainer.appendChild(steam);
-                            this.animateSteamFromSurface(steam);
-                            
-                            setTimeout(() => {
-                                if (steam.parentNode) {
-                                    steam.remove();
-                                }
-                            }, 3000);
-                        }, i * 40);
-                    }
-                }
-            }
-            
-            animateSteamFromSurface(particle) {
-                let y = 0;
-                let x = 0;
-                let opacity = 0.9;
-                let scale = 0.6;
-                
-                const animate = () => {
-                    y += 2 + Math.random() * 1.5;
-                    x += (Math.random() - 0.5) * 1.2;
-                    opacity -= 0.008;
-                    scale += 0.012;
-                    
-                    particle.style.transform = `translateY(-${y}px) translateX(${x}px) scale(${scale})`;
-                    particle.style.opacity = opacity;
-                    
-                    if (opacity > 0 && y < 200) {
-                        requestAnimationFrame(animate);
-                    }
-                };
-                
-                animate();
-            }
-            
-            generateSteamFromWaterSurface() {
-                if (this.temperature >= 100) {
-                    for (let i = 0; i < 12; i++) {
-                        const surfaceSteam = document.createElement('div');
-                        surfaceSteam.className = 'steam-particle';
-                        
-                        const startX = 15 + Math.random() * 70;
-                        surfaceSteam.style.left = startX + '%';
-                        const waterLevel = Math.max(5, 70 * (this.waterMass / 500));
-                        surfaceSteam.style.bottom = waterLevel + '%';
-                        
-                        this.waterContainer.appendChild(surfaceSteam);
-                        this.animateSurfaceSteam(surfaceSteam, startX);
-                        
-                        setTimeout(() => {
-                            if (surfaceSteam.parentNode) {
-                                surfaceSteam.remove();
-                            }
-                        }, 8000);
-                    }
-                    
-                    for (let j = 0; j < 18; j++) {
-                        const atmosphericSteam = document.createElement('div');
-                        atmosphericSteam.className = 'atmospheric-steam';
-                        
-                        const kettleCenterX = window.innerWidth * 0.4;
-                        const kettleCenterY = window.innerHeight * 0.65;
-                        
-                        const clusterRadius = 60 + Math.random() * 40;
-                        const angle = Math.random() * Math.PI * 2;
-                        const startX = kettleCenterX + Math.cos(angle) * clusterRadius * Math.random();
-                        const startY = kettleCenterY + Math.sin(angle) * clusterRadius * 0.3;
-                        
-                        atmosphericSteam.style.left = startX + 'px';
-                        atmosphericSteam.style.top = startY + 'px';
-                        
-                        this.atmosphericZone.appendChild(atmosphericSteam);
-                        this.animateAtmosphericSteam(atmosphericSteam, startX, startY);
-                        
-                        setTimeout(() => {
-                            if (atmosphericSteam.parentNode) {
-                                atmosphericSteam.remove();
-                            }
-                        }, 12000);
-                    }
-                }
-            }
-            
-            animateSurfaceSteam(particle, startX) {
-                let y = 0;
-                let x = startX;
-                let opacity = 0.9;
-                let scale = 0.5;
-                let age = 0;
-                
-                const animate = () => {
-                    age += 0.016;
-                    
-                    const spreadFactor = Math.min(1.5, y / 60);
-                    const riseSpeed = Math.max(1, 4 - (y / 80));
-                    y += riseSpeed + Math.random() * 1.5;
-                    
-                    const horizontalDrift = (Math.random() - 0.5) * (1 + spreadFactor);
-                    x += horizontalDrift;
-                    
-                    const heightFade = Math.max(0, 1 - (y / 280));
-                    const ageFade = Math.exp(-age * 0.05);
-                    opacity = 0.9 * heightFade * ageFade;
-                    
-                    scale += (0.01 + spreadFactor * 0.008);
-                    
-                    particle.style.transform = `translateY(-${y}px) translateX(${x - startX}px) scale(${scale})`;
-                    particle.style.opacity = opacity;
-                    
-                    if (opacity > 0.05 && y < 350) {
-                        requestAnimationFrame(animate);
-                    }
-                };
-                
-                animate();
-            }
-            
-            animateAtmosphericSteam(particle, startX, startY) {
-                let y = startY;
-                let x = startX;
-                let opacity = 0.8;
-                let scale = 0.7;
-                let age = 0;
-                
-                const animate = () => {
-                    age += 0.016;
-                    
-                    const height = startY - y;
-                    const spreadFactor = Math.min(4, height / 50);
-                    
-                    const riseSpeed = Math.max(0.6, 3 - (height / 100));
-                    y -= riseSpeed + Math.random() * 1.2;
-                    
-                    const horizontalDrift = (Math.random() - 0.5) * (2 + spreadFactor * 2.5);
-                    x += horizontalDrift;
-                    
-                    const heightFade = Math.max(0, 1 - (height / 400));
-                    const ageFade = Math.exp(-age * 0.05);
-                    opacity = 0.8 * heightFade * ageFade;
-                    
-                    scale += (0.014 + spreadFactor * 0.01);
-                    
-                    x = Math.max(-150, Math.min(window.innerWidth + 150, x));
-                    
-                    particle.style.left = x + 'px';
-                    particle.style.top = y + 'px';
-                    particle.style.opacity = opacity;
-                    particle.style.transform = `scale(${scale})`;
-                    
-                    if (opacity > 0.02 && y > -100) {
-                        requestAnimationFrame(animate);
-                    }
-                };
-                
-                animate();
-            }
-            
-            createNucleationBubbles() {
-                if (Math.random() < 0.3 && this.nucleationSites > 0) {
-                    const location = Math.floor(Math.random() * 100);
-                    this.createBubble(location);
-                    
-                    // Nucleation creates local coherence discontinuity
-                    if (location > 1 && location < 98) {
-                        this.coherenceField[location] += 0.5;
-                        this.coherenceField[location - 1] -= 0.2;
-                        this.coherenceField[location + 1] -= 0.2;
-                    }
-                }
-            }
-            
-            updateVisualEffects() {
-                const indicator = document.getElementById('stateIndicator');
-                indicator.className = 'state-indicator';
-                
-                if (this.phaseState === 'liquid') {
-                    indicator.classList.add('state-liquid');
-                    indicator.textContent = `💧 LIQUID STATE - Coherent organization | C(x,t) = ${this.getAverageCoherence().toFixed(3)} | T = ${this.temperature.toFixed(1)}°C`;
-                } else if (this.phaseState === 'heating' || this.phaseState === 'pre-boiling') {
-                    indicator.classList.add('state-heating');
-                    indicator.textContent = `🔥 HEATING STATE - Thermal energy input | C(x,t) = ${this.getAverageCoherence().toFixed(3)} | T = ${this.temperature.toFixed(1)}°C`;
-                } else if (this.phaseState === 'boiling') {
-                    indicator.classList.add('state-boiling');
-                    indicator.textContent = `💨 BOILING STATE - Phase transition active | δ-events: ${this.ruptureEvents} | T = ${this.temperature.toFixed(1)}°C`;
-                }
-                
-                document.getElementById('tempDisplay').textContent = this.temperature.toFixed(1);
-                document.getElementById('waterDisplay').textContent = Math.floor(this.waterMass);
-                document.getElementById('steamDisplay').textContent = (this.steamProductionRate * 60).toFixed(1);
-                document.getElementById('phaseDisplay').textContent = this.phaseState.charAt(0).toUpperCase() + this.phaseState.slice(1);
-                
-                document.getElementById('coherenceMetric').textContent = this.getAverageCoherence().toFixed(3);
-                document.getElementById('ruptureMetric').textContent = this.ruptureEvents;
-                document.getElementById('regenerationMetric').textContent = this.regenerationCycles;
-                document.getElementById('motionMetric').textContent = Math.floor(this.waterStructure.vibrationFrequency);
-                document.getElementById('bondMetric').textContent = this.getAverageBonds().toFixed(1);
-                document.getElementById('energyMetric').textContent = Math.floor((this.temperature - 20) * this.waterMass * 4.186 / 1000);
-                
-                const regenValue = this.temperature >= 100 ? (this.steamProductionRate * 10).toFixed(3) : '0.000';
-                document.getElementById('mathDisplay').textContent = 
-                    `C(x,t) = ${this.getAverageCoherence().toFixed(3)} | δ-events: ${this.ruptureEvents} | R[steam]: ${regenValue}`;
-                
-                const tempRatio = Math.min(1, (this.temperature - 20) / 80);
-                const blueIntensity = 220 - (tempRatio * 120);
-                const redIntensity = tempRatio * 160;
-                const greenIntensity = Math.max(40, 130 - (tempRatio * 100));
-                
-                const coherenceEffect = this.getAverageCoherence();
-                const opacity = 0.8 + (coherenceEffect - 1.8) * 0.1;
-                
-                this.waterContainer.style.background = `linear-gradient(to bottom, 
-                    rgba(${redIntensity}, ${greenIntensity}, ${blueIntensity}, ${opacity}) 0%, 
-                    rgba(${Math.floor(redIntensity * 0.8)}, ${Math.floor(greenIntensity * 0.6)}, ${Math.floor(blueIntensity * 1.2)}, ${opacity + 0.05}) 100%)`;
-                
-                const waterLevel = Math.max(5, 70 * (this.waterMass / 500));
-                this.waterContainer.style.height = waterLevel + '%';
-                
-                if (this.temperature > 60) {
-                    this.thermalConvection.style.opacity = Math.min(0.6, (this.temperature - 60) / 25);
-                    this.thermalConvection.style.animationDuration = Math.max(1, 2.5 - tempRatio * 1.5) + 's';
-                } else {
-                    this.thermalConvection.style.opacity = 0;
-                }
-                
-                if (this.temperature > 95) {
-                    this.phaseZone.style.opacity = Math.min(0.8, (this.temperature - 95) / 5);
-                    this.phaseZone.style.animationDuration = Math.max(0.4, 1.2 - (this.temperature - 95) * 0.15) + 's';
-                } else {
-                    this.phaseZone.style.opacity = 0;
-                }
-            }
-            
-            getAverageCoherence() {
-                return this.coherenceField.reduce((a, b) => a + b, 0) / 100;
-            }
-            
-            getAverageBonds() {
-                return this.hydrogenBondNetwork.reduce((a, b) => a + b, 0) / 100;
-            }
-            
-            startSimulation() {
-                let lastTime = Date.now();
-                
-                const simulate = () => {
-                    const currentTime = Date.now();
-                    const deltaTime = (currentTime - lastTime) / 1000;
-                    lastTime = currentTime;
-                    
-                    this.updateCRRCoherence();
-                    this.updateThermodynamics(deltaTime);
-                    this.updateVisualEffects();
-                    
-                    requestAnimationFrame(simulate);
-                };
-                
-                simulate();
-            }
+// ── §CRR constants ──
+const float PI  = 3.14159265;
+const float TAU = 6.28318530;
+const float PHI = 1.6180339887;
+const float Om  = 1./PI;              // Ω_Z2
+const float rP  = PI - 1.;            // beauty peak
+const float BM  = exp(PI-1.)/PI;      // B normalisation
+const float R0W = 0.02037;            // §SOLVED Fresnel R₀ for air→water
+const vec3  AW  = vec3(.45,.064,.005); // §EXT Pope & Fry 1997 absorption
+
+// ── Scene geometry ──
+const float PR = .82;   // pot radius
+const float PB = .12;   // pot bottom y
+const float PT = .66;   // pot top y
+const float WL = .025;  // wall thickness
+const float RR = .022;  // rim torus radius
+const float WY = .62;   // water level y
+const float BR = .90;   // burner ring radius
+
+// ── CRR functions ──
+float B(float r) { return max(0., exp(min(8.,r))*(1.-r/PI)/BM); }
+
+// ── Noise ──
+float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5); }
+float noise(vec2 p){
+  vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+             mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// §3a  POT — raymarched stainless steel
+// ══════════════════════════════════════════════════════════════════════
+float sdTorus(vec3 p, float R, float r){
+  vec2 q = vec2(length(p.xz)-R, p.y);
+  return length(q)-r;
+}
+float potSDF(vec3 p){
+  float rr = length(p.xz);
+  float side = max(abs(rr-PR+WL*.5)-WL*.5, max(p.y-PT, PB-p.y));
+  float bot  = max(abs(p.y-PB-WL*.3)-WL*.3, rr-(PR-WL*.5));
+  float rim  = sdTorus(p-vec3(0,PT,0), PR-RR*.5, RR);
+  vec3 h1 = p-vec3(PR+.04, PT*.65, 0);
+  vec3 h2 = p-vec3(-PR-.04, PT*.65, 0);
+  return min(min(min(side,bot),rim), min(sdTorus(h1.xzy,.06,.012), sdTorus(h2.xzy,.06,.012)));
+}
+vec3 potN(vec3 p){
+  float e = .001;
+  return normalize(vec3(potSDF(p+vec3(e,0,0))-potSDF(p-vec3(e,0,0)),
+                        potSDF(p+vec3(0,e,0))-potSDF(p-vec3(0,e,0)),
+                        potSDF(p+vec3(0,0,e))-potSDF(p-vec3(0,0,e))));
+}
+vec3 steel(vec3 p, vec3 n, vec3 L, vec3 V){
+  float brush = sin(atan(p.z,p.x)*60.+p.y*160.)*.5+.5;
+  vec3 base = vec3(.52,.50,.49)*(.85+.15*brush);
+  base = mix(base, vec3(.65,.45,.28), smoothstep(PB+.12,PB,p.y)*u_temp*.3);
+  float d = max(0.,dot(n,L))*.45;
+  vec3 H = normalize(L+V);
+  float s = pow(max(0.,dot(n,H)),100.)*1.8;
+  return base*(.1+d) + vec3(1.,.98,.95)*s + vec3(.45)*pow(1.-max(0.,dot(n,V)),4.)*.1;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// §3b  FLAME — CRR-solved gas burner jets
+//
+//  Each of 36 jets is a Z₂ system: premixed reactants ↔ combustion
+//  products. The flame front is δ(now). Height maps to C·Ω.
+//
+//  Jet width:   w(y) = w₀·(1 − C·Ω)^(1/φ)           §CRR
+//  Intensity:   I = B(r)·exp(−er²/2Ω)                 §CRR
+//  Turbulence:  amplitude 2^(−g/3) per octave          §PARTIAL (Kolmogorov via CRR)
+//  Colour:      blue→white→blue (premixed CH₄/air)    §EXT (spectroscopy)
+//  Yellow:      rare Z₂ micro-rupture to diffusion     §CRR
+//  Radial:      exp(−er²/2Ω) — no hard cutoff          §CRR
+//
+//  The CRR regeneration kernel IS the spatial envelope.
+//  No ad hoc distance cutoffs. Smooth Gaussian falloff everywhere.
+// ══════════════════════════════════════════════════════════════════════
+
+// §PARTIAL Turbulence: each eddy survives π turnovers before rupture.
+// Combined with constant-ε gives E(k) = π^(2/3)·ε^(2/3)·k^(-5/3).
+// Amplitude per octave: 2^(-1/3) ≈ 0.794.
+float flameTurb(vec3 p, float t){
+  float v=0., a=1., f=1.;
+  for(int g=0; g<5; g++){
+    float s = f*p.x + t*(g==0?2.:g==1?-1.5:g==2?3.:g==3?-2.:1.7);
+    float q = f*p.y + t*(g==0?-1.:g==1?2.5:g==2?-1.8:g==3?1.2:-2.3);
+    float cs = cos(float(g)*1.047), sn = sin(float(g)*1.047);
+    float u = s*cs-q*sn, w = s*sn+q*cs;
+    v += a * (sin(u + sin(w*PHI)) * cos(w/PHI + sin(u/PHI)));
+    a *= 0.794;  // §PARTIAL 2^(-1/3) per octave (CRR + Kolmogorov)
+    f *= 2.0;    // standard octave doubling
+  }
+  return v;
+}
+
+vec4 flameAt(vec3 p, float t){
+  float gas = u_gas;
+  if(gas < .01) return vec4(0);
+
+  float rr = length(p.xz), h = p.y;
+  // Flame height stays below pot bottom (PB = 0.12). Max ≈ 0.10.
+  float flameH = .04 + gas*.06;
+  if(h < 0. || h > flameH) return vec4(0);
+  float ny = h / flameH;  // normalised height = C·Ω proxy
+  float angle = atan(p.z, p.x);
+
+  // Outward lean: ceramic crown deflects jets radially outward.
+  // Ring radius INCREASES with height.
+  float ringAtH = BR + (1.2 + gas*.4) * h;
+  float dRing = rr - ringAtH;
+
+  // §CRR No hard cutoff. The regeneration kernel exp(−er²/2Ω) IS the
+  // correct radial envelope. Hard cutoffs create staircase artifacts.
+  // Inward side decays faster (dark unburnt core).
+  float radDist = dRing < 0. ? abs(dRing)*2.5 : dRing;
+
+  // 36 discrete jets — individual petal tongues
+  float jetA = angle * 36./TAU;
+  float jetFrac = fract(jetA + .5) - .5;
+  float jetDist = abs(jetFrac) * 2.;
+
+  // §CRR Jet width: w(y) = w₀·(1 − C·Ω)^(1/φ)
+  // Narrowing toward rupture. The 1/φ exponent is suggestive (not rigorously derived).
+  float w0 = .05 * pow(max(.001, 1.-min(.999, ny)), 1./PHI);
+  // Subtle core shimmer (.12) + tip wobble (ny²)
+  float w = w0 * (1. + .08*sin(t*PI*1.5)*(ny*ny + .12));
+
+  // Inner cone (premixed, tight) — bright white-blue root
+  float innerW = w * .45 * (1. - ny*.6);
+  float innerR = (radDist + jetDist*.04) / max(.002, innerW);
+
+  // Outer envelope — jets stay distinct until 70% height
+  float outerW = w * 1.2;
+  float gapFade = smoothstep(0., .7, ny);
+  float outerGap = jetDist * .055 * (1. - gapFade);
+  float outerR = (radDist + outerGap) / max(.002, outerW);
+
+  // §PARTIAL Turbulence — gentle shimmer at root, full wobble at tip
+  float tb = flameTurb(vec3(angle*3., h*30., rr*5.), t*6.) * .18 * (ny*ny + .08);
+  float innerEr = max(0., innerR + tb*.15);
+  float outerEr = max(0., outerR + tb);
+
+  // §CRR Intensity = B(r) × exp(−er²/2Ω)
+  // Beauty function shapes the axial profile; regeneration kernel shapes the radial.
+  float innerI = B(rP*(1.-innerEr*.5)) * exp(-innerEr*innerEr/(1.5*Om));
+  innerI *= max(0., 1.-pow(ny,2.)) * (1.-smoothstep(0.,.55,ny)*.6);
+
+  float outerI = B(rP*(1.-outerEr*.6)) * B(rP*(.3+.7*pow(max(.01,sin(ny*PI*.75)),1.2)));
+  outerI *= exp(-outerEr*outerEr/(2.*Om)) * max(0., 1.-pow(ny,2.5));
+
+  // §EXT Colour: premixed methane spectroscopy
+  // Root: brilliant white-blue (C₂ Swan bands + CH radicals)
+  // Mid: bright blue (CH* emission at 431nm)
+  // Tip: pale translucent blue, fading
+  vec3 innerCol = mix(vec3(.7,.8,1.), vec3(.85,.9,1.), smoothstep(0.,.1,ny));
+  innerCol = mix(innerCol, vec3(.4,.55,1.), smoothstep(.15,.4,ny));
+
+  vec3 outerCol = mix(vec3(.2,.35,1.), vec3(.3,.5,1.), smoothstep(0.,.25,ny));
+  outerCol = mix(outerCol, vec3(.35,.5,.9), smoothstep(.25,.6,ny));
+  outerCol = mix(outerCol, vec3(.3,.4,.75), smoothstep(.6,.95,ny));
+
+  // Root flash — bright white where gas exits port
+  float rootFlash = exp(-ny*15.) * (1.-smoothstep(0.,.06,radDist));
+  innerCol += vec3(.5,.5,.3) * rootFlash;
+
+  // Combine inner cone + outer envelope
+  vec3 col = outerCol*max(0.,outerI) + innerCol*max(0.,innerI)*1.8;
+  float I = max(0., outerI + innerI*.9);
+
+  // Tip transparency — upper flame becomes translucent
+  I *= 1. - smoothstep(.5,.95,ny)*.6;
+
+  // Base glow at burner ports
+  float baseGlow = exp(-outerEr)*.15*(1.-ny)*exp(-ny*5.);
+  I += baseGlow;
+  col += vec3(.2,.3,.9) * baseGlow;
+
+  // §CRR Yellow micro-rupture: rare Z₂ excursion to diffusion mode.
+  // Turbulence disrupts premixed air entrainment → C·Ω = 1 for the
+  // local mixing state → brief soot incandescence → regenerates to blue.
+  // Rare (high threshold), tip-biased (ny²), amber-orange (~1800K soot).
+  float yellowNoise = flameTurb(vec3(angle*7.+t*1.3, h*50., rr*8.), t*2.5);
+  float yellowProb = smoothstep(.72, .92, yellowNoise) * ny*ny;
+  col = mix(col, vec3(.95,.6,.08)*max(0.,I)*2.5, yellowProb*.25);
+
+  // Scale by gas level (quadratic feels physical)
+  I *= gas*gas;
+  col *= gas*gas * 2.5;
+  return vec4(col, max(0.,I));
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// §3c  BOILING WATER SURFACE — CRR nucleation + convection
+//
+//  Two CRR systems superposed:
+//  1. SO(2) Rayleigh-Bénard convection cells (CV = 1/4π)
+//  2. Z₂ nucleation bubble domes (CV = 1/2π per site)
+//     Each dome cycles C→δ(pop)→R at its nucleation site.
+// ══════════════════════════════════════════════════════════════════════
+float boilH(vec2 p, float t){
+  float temp = u_temp, r = length(p);
+  if(r > .95) return 0.;
+  float h = 0.;
+
+  // §CRR SO(2) convection: hexagonal cell pattern
+  float kc = 5.5;
+  float c1 = sin(kc*p.x + t*.5) * sin(kc*p.y + t*.35);
+  float c2 = sin(kc*(p.x*.866+p.y*.5) - t*.4) * sin(kc*(-p.x*.5+p.y*.866) + t*.55);
+  h += (c1 + c2*.7) * temp * .008;
+
+  // §CRR Z₂ nucleation bubble domes
+  for(int i=0; i<16; i++){
+    float fi = float(i);
+    vec2 site = vec2(sin(fi*2.37+t*.13)*(.15+fi*.035),
+                     cos(fi*3.14+t*.11)*(.15+fi*.03));
+    float d = length(p - site);
+    float rate = .18 + fi*.028 + temp*.15;
+    float phase = fract(t*rate + fi*.37);
+    // CRR lifecycle: coherence→rupture→regeneration
+    float amp;
+    if     (phase < .60) amp = sin(phase/.6*PI*.5);       // coherence: dome rises
+    else if(phase < .68) amp = cos((phase-.6)/.08*PI*.5); // δ(now): sharp pop
+    else if(phase < .78) amp = -sin((phase-.68)/.1*PI)*.2;// ring wave (regeneration)
+    else                 amp = 0.;                         // quiescent
+    h += amp * smoothstep(.06+fi*.006+temp*.015, 0., d) * max(0.,temp-.78) * .18;
+  }
+
+  // Rolling boil heave (only above ~98°C) + capillary waves
+  float boil = max(0., temp-.94);
+  h += sin(p.x*2.1+t*2.5)*sin(p.y*1.7-t*2.)*boil*.5;
+  h += (noise(p*8.+t*2.5)-.5) * max(0.,temp-.96) * .8;
+  h += sin(p.x*14.+t*6.)*sin(p.y*12.+t*5.) * temp*temp * .008;
+
+  return h * smoothstep(.97,.82,r);
+}
+
+vec3 waterN(vec2 p, float t){
+  float e=.003, hc=boilH(p,t);
+  return normalize(vec3(-(boilH(p+vec2(e,0),t)-hc)/e*8., 1.,
+                        -(boilH(p+vec2(0,e),t)-hc)/e*8.));
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// §3d  MAIN — scene compositing
+// ══════════════════════════════════════════════════════════════════════
+mat3 lookAt(vec3 e, vec3 t, vec3 u){
+  vec3 f=normalize(t-e), r=normalize(cross(f,u));
+  return mat3(r, cross(r,f), -f);
+}
+
+void main(){
+  vec2 uv = (gl_FragCoord.xy - .5*u_res) / u_res.y;
+  vec3 ro = vec3(.7, 1.2, 2.1);
+  mat3 cam = lookAt(ro, vec3(0,.32,0), vec3(0,1,0));
+  vec3 rd = cam * normalize(vec3(uv, -1.15));
+  vec3 L = normalize(vec3(.4,1.1,.5)), V = -rd;
+  vec3 col = vec3(.02,.018,.015); // dark kitchen
+
+  // ── Floor ──
+  float tFloor = -1e6;
+  if(rd.y < -.001){
+    tFloor = (-.01-ro.y)/rd.y;
+    if(tFloor > 0.){
+      vec3 fp = ro+rd*tFloor; float fd = length(fp.xz);
+      float gg = sin(fp.x*2.5+sin(fp.z*2.)*.3)*.015+.015;
+      col = vec3(.04+gg, .035+gg*.7, .028+gg*.4) / (1.+fd*fd*.2);
+      // Burner grate rings
+      col += vec3(.025)*(smoothstep(.006,0.,abs(fd-BR+.04))+smoothstep(.006,0.,abs(fd-BR-.04)));
+    }
+  }
+
+  // ── §CRR Flame ring — 40 volumetric height slices ──
+  // 40 slices eliminates banding on nearly-horizontal flames.
+  if(u_gas > .01){
+    float flameH = .04 + u_gas*.06;
+    for(int i=0; i<40; i++){
+      float fh = float(i)*flameH/39. + .001;
+      if(rd.y > -.0001 && fh > ro.y) continue;
+      float tH = (fh-ro.y)/rd.y;
+      if(tH < 0. || tH > 8.) continue;
+      vec3 fp = ro+rd*tH;
+      // Occlude only if deep inside pot body
+      if(length(fp.xz) < PR-WL*2. && fp.y > PB+WL*2. && fp.y < PT-.05) continue;
+      vec4 fi = flameAt(fp, u_time);
+      if(fi.w > .001) col += fi.rgb * .18;
+    }
+    // Blue floor glow from flame ring
+    if(tFloor > 0.){
+      float fd = length((ro+rd*tFloor).xz);
+      float glowR = BR + .06;
+      col += vec3(.06,.10,.30) * exp(-pow(fd-glowR,2.)*6.) * u_gas*.5;
+    }
+  }
+
+  // ── Water surface: §SOLVED Fresnel + §EXT Beer-Lambert ──
+  float tW = -1e6;
+  if(rd.y < -.001) tW = (WY-ro.y)/rd.y;
+  bool hitW = false;
+
+  if(tW > 0.){
+    vec3 wp = ro+rd*tW; float wr = length(wp.xz);
+    if(wr < PR-WL*2.){  // water sits inside pot wall with visible gap
+      hitW = true;
+      vec2 wuv = wp.xz/(PR-WL*2.);
+      vec3 wn = waterN(wuv, u_time);
+
+      // §SOLVED Fresnel from CRR Ω-mismatch (Schlick approximation at angle)
+      float NdV = max(.001, dot(wn,V));
+      float fres = R0W + (1.-R0W)*pow(1.-NdV, 5.);
+      fres += pow(wr/(PR-WL*2.), 10.)*.08; // edge boost
+
+      // Specular highlights
+      vec3 Hf = normalize(L+V);
+      float spec  = pow(max(0.,dot(wn,Hf)), 400.)*5.;   // tight white glint
+      float spec2 = pow(max(0.,dot(wn,Hf)), 40.)*.15;    // broader secondary
+      float spec3 = pow(max(0.,dot(wn,normalize(vec3(.1,-1.,.1)+V))), 80.)*.08*u_temp; // flame-lit
+
+      // §EXT Beer-Lambert: I = exp(−α·d). Form from CRR; α values from Pope & Fry 1997.
+      vec3 absorption = exp(-AW*.9);
+
+      // Water base colour: shallow water over stainless steel pot bottom.
+      // Steel reflects ~50% of light → visible through 10-15cm of water.
+      vec3 potBase = vec3(.14,.14,.16) * absorption; // brighter steel bottom
+      vec3 waterTint = vec3(.03,.05,.12);             // water's own blue scatter
+      vec3 wb = potBase + waterTint;
+
+      // Warming: dissolved gas micro-bubbles scatter light → slightly milkier
+      wb = mix(wb, vec3(.10,.10,.11), u_temp*.3);
+      float fr = length(wuv);
+      wb *= .85 + .15*(1.-fr);
+
+      // Caustics — refracted light dancing on pot bottom
+      float eps=.004, hc=boilH(wuv,u_time);
+      float lap = (boilH(wuv+vec2(eps,0),u_time)+boilH(wuv-vec2(eps,0),u_time)+
+                   boilH(wuv+vec2(0,eps),u_time)+boilH(wuv-vec2(0,eps),u_time)-4.*hc)/(eps*eps);
+      float caust = min(2.5, max(0., 1./max(.12,abs(1.-.1*lap*max(.1,u_temp+.15)))-1.));
+      wb += vec3(.20,.18,.15) * caust * min(1.,u_temp+.25) * absorption;
+
+      // Subsurface flame glow (warm amber through water)
+      wb += vec3(.06,.03,.01) * u_gas * .08 * (1.-fr*.4);
+
+      // Foam at vigorous boil only (~99°C+)
+      if(u_temp > .95){
+        float foam = max(0., noise(wuv*6.+u_time*.5)-.3) * (u_temp-.95)*40.;
+        wb += vec3(.18,.17,.16) * min(1.,foam);
+      }
+
+      // Environment reflection — kitchen ceiling + ambient light
+      vec3 env = vec3(.06,.06,.07); // brighter ambient — kitchen isn't pitch black
+      env += vec3(.04,.06,.12) * u_gas * max(0., 1.-abs(wr/(PR-WL*2.)-.85)*6.); // flame ring
+      env += vec3(.06,.04,.015) * u_temp * max(0., 1.-abs(wr/(PR-WL*2.)-.85)*8.); // warm glow
+
+      // Fresnel blend
+      col = mix(wb, env, min(.35, fres));
+      col += vec3(1,.97,.92)*spec + vec3(.6,.55,.48)*spec2 + vec3(.9,.5,.2)*spec3;
+
+      // Meniscus
+      float pr = wr/(PR-WL*2.);
+      col += vec3(.1,.08,.05) * smoothstep(.93,.99,pr) * smoothstep(1.,.99,pr);
+      col *= 1. - smoothstep(.93,1.,pr)*.12;
+    }
+  }
+
+  // ── Pot (raymarch) — ALWAYS run, compare depth with water ──
+  // On the near side, pot wall is closer than water surface.
+  // Must check pot first to prevent water bleeding over rim.
+  float tPot = 1e6;
+  vec3 potCol = col;
+  bool hitP = false;
+  {
+    float t2=.01, tMax=min(tFloor>0.?tFloor:6., 6.);
+    vec3 bp;
+    for(int i=0; i<52; i++){
+      bp = ro+rd*t2; float d = potSDF(bp);
+      if(d < .001){ hitP=true; tPot=t2; break; }
+      t2 += d*.7; if(t2>tMax) break;
+    }
+    if(hitP){
+      vec3 bn = potN(bp);
+      potCol = steel(bp, bn, L, V);
+      // Blue flame glow on pot bottom
+      if(u_gas>.01 && bp.y < PB+.18){
+        float glow = exp(-(bp.y-PB)*5.) * u_gas*.3;
+        potCol += vec3(.12,.15,.35)*glow + vec3(.05,.08,.25)*glow*.5;
+      }
+      // Condensation on inner rim (steam forms above ~93°C)
+      if(u_temp>.88 && bp.y > PT-.08){
+        float cond = (u_temp-.88)*6. * smoothstep(PT-.08,PT-.02,bp.y);
+        potCol += vec3(.08,.07,.06) * max(0., sin(bp.x*80.+bp.z*60.)*.5+.1) * cond;
+      }
+    }
+  }
+
+  // If pot is closer than water, pot wins (prevents water over rim)
+  if(hitP && tPot < tW){
+    col = potCol;
+    hitW = false;
+  } else if(hitW){
+    // water colour already set above — keep it
+  } else if(hitP){
+    col = potCol;
+  }
+
+  // ── Steam fog (visible above ~95°C) ──
+  // §CRR Regeneration made visible: water vapour = high-C molecules
+  // that escaped the liquid. exp(+C/Ω) correct for evaporation.
+  if(u_temp > .90){
+    float fogD = (u_temp-.90)*8.; // doubled density
+    float tLow = (WY-ro.y)/rd.y, tHigh = (WY+.5-ro.y)/rd.y;
+    if(tLow>0. && tHigh>0.){
+      float tMn=min(tLow,tHigh), tMx=max(tLow,tHigh);
+      for(int j=0; j<5; j++){
+        float fT = tMn + (tMx-tMn)*(float(j)+.5)/5.;
+        vec3 sp = ro+rd*fT; float sr = length(sp.xz);
+        if(sr < PR+.08){
+          float fog = fogD * smoothstep(PR*.05,PR*.5,sr) * smoothstep(PR+.05,PR*.7,sr);
+          fog *= .5 + .5*noise(sp.xz*3.+u_time*.6);
+          fog *= smoothstep(WY,WY+.08,sp.y) * smoothstep(WY+.55,WY+.15,sp.y);
+          col = mix(col, vec3(.38,.37,.36), min(.5, fog*.25));
         }
-        
-        function toggleHeating() {
-            const button = document.getElementById('powerButton');
-            const element = document.getElementById('heatingElement');
-            
-            window.kettleSimulation.isHeating = !window.kettleSimulation.isHeating;
-            
-            if (window.kettleSimulation.isHeating) {
-                button.textContent = '🔴 Stop Heating';
-                button.classList.add('active');
-                element.classList.add('active');
-            } else {
-                button.textContent = '🔥 Start Heating';
-                button.classList.remove('active');
-                element.classList.remove('active');
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            window.kettleSimulation = new CRRKettleSimulation();
-            console.log("CRR Kettle Simulation Initialized - Coherence-Rupture-Regeneration Framework Active");
-        });
-    </script>
+      }
+    }
+  }
+
+  // Vignette + subtle colour grade
+  col *= max(0., 1.-.22*length(uv*1.1));
+  col = pow(col, vec3(.95, 1., 1.05));
+  gl_FragColor = vec4(col, 1);
+}`;
+
+// ═══════════════════════════════════════════════════════════════════════
+// §4  WEBGL SETUP
+// ═══════════════════════════════════════════════════════════════════════
+const glCv = document.getElementById('gl');
+const gl = glCv.getContext('webgl', {alpha:false, antialias:false});
+const cvEl = document.getElementById('cv');
+const cx = cvEl.getContext('2d');
+let W, H;
+
+function mkShader(src, type){
+  const sh = gl.createShader(type);
+  gl.shaderSource(sh, src); gl.compileShader(sh);
+  if(!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(sh));
+  return sh;
+}
+const prog = (() => {
+  const p = gl.createProgram();
+  gl.attachShader(p, mkShader(VS, gl.VERTEX_SHADER));
+  gl.attachShader(p, mkShader(FS, gl.FRAGMENT_SHADER));
+  gl.linkProgram(p);
+  if(!gl.getProgramParameter(p, gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(p));
+  return p;
+})();
+gl.useProgram(prog);
+const vb = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+const aP = gl.getAttribLocation(prog, 'a');
+gl.enableVertexAttribArray(aP);
+gl.vertexAttribPointer(aP, 2, gl.FLOAT, false, 0, 0);
+const U = {};
+['u_res','u_time','u_temp','u_beauty','u_nucRate','u_gas'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+
+// Camera (matches GLSL)
+const EYE=[.7,1.2,2.1], TGT=[0,.32,0], FOV=1.15;
+const cf=[TGT[0]-EYE[0],TGT[1]-EYE[1],TGT[2]-EYE[2]];
+const cfl=sqrt(cf[0]*cf[0]+cf[1]*cf[1]+cf[2]*cf[2]);
+const fwd=[cf[0]/cfl,cf[1]/cfl,cf[2]/cfl];
+const rR=[fwd[1]*0-fwd[2]*1,fwd[2]*0-fwd[0]*0,fwd[0]*1-fwd[1]*0];
+const rL=sqrt(rR[0]*rR[0]+rR[1]*rR[1]+rR[2]*rR[2]);
+const right=[rR[0]/rL,rR[1]/rL,rR[2]/rL];
+const up=[right[1]*fwd[2]-right[2]*fwd[1],right[2]*fwd[0]-right[0]*fwd[2],right[0]*fwd[1]-right[1]*fwd[0]];
+
+function proj3D(wx,wy,wz){
+  const dx=wx-EYE[0], dy=wy-EYE[1], dz=wz-EYE[2];
+  const px=right[0]*dx+right[1]*dy+right[2]*dz;
+  const py=up[0]*dx+up[1]*dy+up[2]*dz;
+  const pz=fwd[0]*dx+fwd[1]*dy+fwd[2]*dz;
+  if(pz<.01) return null;
+  return { x: W/2+(FOV*px/pz)*H, y: H/2-(FOV*py/pz)*H, z: pz };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// §5  AUDIO — CRR-solved acoustic scene
+//
+//  Gas hiss:     §PARTIAL Kolmogorov-shaped noise (gentle sibilance)
+//  Bubble pop:   §EXT Minnaert f = 3260/R_mm, amplitude × §CRR B(C/Ω)
+//  Singing:      §CRR B(C/Ω) peak = maximum acoustic expressiveness
+//                f_center ≈ 1738 Hz, bandwidth ≈ 1107 Hz (from CV=1/2π)
+//  Rumble:       §CRR aggregate of many bubble δ events
+//  Steam:        §CRR regeneration phase made audible
+//  Convection:   §CRR SO(2) sub-harmonic drone
+// ═══════════════════════════════════════════════════════════════════════
+let ac=null, mGain=null;
+let gasG=null, rumG=null, steamG=null, singG=null, convG=null;
+let pt=0, lastT=0;
+
+function mkNoise(dur){
+  const len=ac.sampleRate*dur, buf=ac.createBuffer(2,len,ac.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++)d[i]=rnd()*2-1}
+  return buf;
+}
+
+function initAudio(){
+  if(ac) return;
+  ac = new (AudioContext || webkitAudioContext)();
+  const comp = ac.createDynamicsCompressor();
+  comp.threshold.value=-16; comp.knee.value=10; comp.ratio.value=5;
+  comp.connect(ac.destination);
+  mGain = ac.createGain(); mGain.gain.value = 0.5;
+
+  // Kitchen reverb
+  const rLen=ac.sampleRate*2.2, rBuf=ac.createBuffer(2,rLen,ac.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=rBuf.getChannelData(ch);
+    for(let i=0;i<rLen;i++) d[i]=(rnd()*2-1)*pow(1-i/rLen,3)}
+  const rev=ac.createConvolver(); rev.buffer=rBuf;
+  const wet=ac.createGain(), dry=ac.createGain();
+  wet.gain.value=.18; dry.gain.value=.85;
+  mGain.connect(dry); dry.connect(comp);
+  mGain.connect(rev); rev.connect(wet); wet.connect(comp);
+  const nb = mkNoise(2);
+
+  // Gas hiss — soft sustained sibilance, 2–6 kHz
+  const gSrc=ac.createBufferSource(); gSrc.buffer=nb; gSrc.loop=true;
+  const gHP=ac.createBiquadFilter(); gHP.type='highpass'; gHP.frequency.value=2000; gHP.Q.value=.3;
+  const gLP=ac.createBiquadFilter(); gLP.type='lowpass';  gLP.frequency.value=6000; gLP.Q.value=.4;
+  gasG=ac.createGain(); gasG.gain.value=0;
+  gSrc.connect(gHP); gHP.connect(gLP); gLP.connect(gasG); gasG.connect(mGain); gSrc.start();
+
+  // §CRR Rumble: aggregate of many bubble δ events → broadband low
+  const rSrc=ac.createBufferSource(); rSrc.buffer=nb; rSrc.loop=true;
+  const rLP2=ac.createBiquadFilter(); rLP2.type='lowpass'; rLP2.frequency.value=350; rLP2.Q.value=.7;
+  rumG=ac.createGain(); rumG.gain.value=0;
+  rSrc.connect(rLP2); rLP2.connect(rumG); rumG.connect(mGain); rSrc.start();
+
+  // §CRR Steam: regeneration phase (exp(+C/Ω) correct for evaporation)
+  const sSrc=ac.createBufferSource(); sSrc.buffer=nb; sSrc.loop=true;
+  const sBP=ac.createBiquadFilter(); sBP.type='bandpass'; sBP.frequency.value=5000; sBP.Q.value=.8;
+  steamG=ac.createGain(); steamG.gain.value=0;
+  sSrc.connect(sBP); sBP.connect(steamG); steamG.connect(mGain); sSrc.start();
+
+  // §CRR Singing kettle = B(C/Ω) at beauty peak
+  // Pre-production: f_center ≈ 1738 Hz, bandwidth ≈ 1107 Hz (from CV = 1/2π of bubble sizes)
+  const kSrc=ac.createBufferSource(); kSrc.buffer=nb; kSrc.loop=true;
+  const kBP=ac.createBiquadFilter(); kBP.type='bandpass'; kBP.frequency.value=1100; kBP.Q.value=3;
+  const kBP2=ac.createBiquadFilter(); kBP2.type='bandpass'; kBP2.frequency.value=1700; kBP2.Q.value=2.5;
+  singG=ac.createGain(); singG.gain.value=0;
+  kSrc.connect(kBP); kBP.connect(singG);
+  const kSrc2=ac.createBufferSource(); kSrc2.buffer=nb; kSrc2.loop=true;
+  kSrc2.connect(kBP2); kBP2.connect(singG);
+  singG.connect(mGain); kSrc.start(); kSrc2.start();
+
+  // §CRR SO(2) convective drone
+  const cOsc=ac.createOscillator(); cOsc.type='sine'; cOsc.frequency.value=38;
+  const cLP3=ac.createBiquadFilter(); cLP3.type='lowpass'; cLP3.frequency.value=65;
+  convG=ac.createGain(); convG.gain.value=0;
+  cOsc.connect(cLP3); cLP3.connect(convG); convG.connect(mGain); cOsc.start();
+}
+
+// §CRR + §EXT Bubble pop = δ(now) made audible via Minnaert resonance
+let lastPop = 0;
+function popBubble(rmm){
+  if(!ac || ac.currentTime - lastPop < .012) return;
+  lastPop = ac.currentTime;
+  const now = ac.currentTime;
+  const freq = min(7000, minnaertF(rmm));
+  const dur = .015 + rmm*.006;
+
+  // Damped Minnaert oscillation
+  const osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
+  osc.frequency.setTargetAtTime(freq*.82, now, dur*.4); // frequency chirp-down
+  const gn = ac.createGain();
+  const amp = min(.1, .015+rmm*.012) * (0.6 + beautyAtT()*.6); // §CRR beauty modulation
+  gn.gain.setValueAtTime(amp, now);
+  gn.gain.exponentialRampToValueAtTime(.0001, now+dur);
+  const flt = ac.createBiquadFilter(); flt.type='bandpass'; flt.frequency.value=freq; flt.Q.value=1.5+rmm;
+  osc.connect(flt); flt.connect(gn); gn.connect(mGain);
+  osc.start(now); osc.stop(now+dur+.01);
+
+  // Broadband δ transient (the pop itself)
+  const nD=.005, nB=ac.createBuffer(1, ceil(ac.sampleRate*nD), ac.sampleRate);
+  const nd=nB.getChannelData(0);
+  for(let i=0;i<nd.length;i++) nd[i]=(rnd()*2-1)*pow(1-i/nd.length,2)*.25;
+  const ns=ac.createBufferSource(); ns.buffer=nB;
+  const ng=ac.createGain(); ng.gain.setValueAtTime(amp*.3, now);
+  ng.gain.exponentialRampToValueAtTime(.0001, now+nD);
+  ns.connect(ng); ng.connect(mGain); ns.start(now); ns.stop(now+nD+.01);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// §6  PARTICLES — CRR nucleation sites + bubbles + steam
+//
+//  32 nucleation sites on the pot bottom, each with its own
+//  coherence accumulator C. Rupture at C·Ω_Z₂ ≥ 1 spawns a bubble.
+//  Reset: C = rand() × CV_Z2 × C_STAR (weighted memory).
+//  This produces inter-bubble intervals with CV ≈ 1/2π.
+// ═══════════════════════════════════════════════════════════════════════
+const PARTS=[], MAX_P=2000;
+const PB_Y=0.12+0.025, WY_=0.62;
+const N_SITES=32;
+const sites = Array.from({length: N_SITES}, () => {
+  const a = rnd()*TAU, r2 = .15+rnd()*.5;
+  return { nx: cos(a)*r2, nz: sin(a)*r2, C: rnd()*C_STAR*0.4, Om: Om_Z2 };
+});
+
+function spawnBubbles(dt){
+  const tn = Tnorm();
+
+  // §CRR DISSOLVED GAS BUBBLES (40–85°C)
+  // As water warms, dissolved N₂/O₂/CO₂ solubility drops (Henry's law §EXT).
+  // Each dissolved gas pocket is Z₂: dissolved ↔ free gas.
+  // C accumulates as local supersaturation grows. Rupture at C·Ω = 1
+  // releases a tiny bubble. Much smaller and slower than boiling bubbles.
+  // Rate increases with temperature (more supersaturation).
+  if(tn > 0.24 && tn < 0.85 && PARTS.length < MAX_P){ // ~40°C to ~90°C
+    const gasRate = (tn - 0.24) * 3; // gentle: ~0–2 per second
+    if(rnd() < gasRate * dt){
+      const a = rnd()*TAU, r2 = .1 + rnd()*.6;
+      const bot = proj3D(cos(a)*r2*.72, PB_Y+.01, sin(a)*r2*.72);
+      const surf = proj3D(cos(a)*r2*.72, WY_-.01, sin(a)*r2*.72);
+      if(bot && surf){
+        const rmm = 0.3 + rnd()*0.4; // tiny: 0.3–0.7mm (vs 1–4mm for boiling)
+        PARTS.push({ type:'bubble',
+          x0:bot.x+(rnd()-.5)*4, y0:bot.y, x1:surf.x+(rnd()-.5)*4, y1:surf.y,
+          prog:0, speed:.2+rnd()*.15, rmm, // slow rise
+          sz:rmm*3, startSz:rmm*.8,
+          wobAmp:1+rmm*2, wobPh:rnd()*TAU, wobF:1.5+rnd()*2,
+          opacity:.12+rmm*.08 }); // fainter than boiling bubbles
+      }
+    }
+  }
+
+  // §CRR NUCLEATION BOILING (85°C+)
+  // Each site: liquid ↔ vapour, Z₂. C·Ω = 1 at rupture.
+  if(PARTS.length > MAX_P || tn < 0.78) return;
+  for(const s of sites){
+    // §CRR Coherence accumulates: dC/dt = L(T)·(1 + noise)
+    s.C += dt * tn * (1.5 + rnd()*.6);
+    // §CRR Rupture at C·Ω ≥ 1
+    if(s.C * s.Om >= 1){
+      const rmm = departR() * (.5 + rnd());
+      const bot = proj3D(s.nx*.72, PB_Y+.01, s.nz*.72);
+      const surf = proj3D(s.nx*.72, WY_-.01, s.nz*.72);
+      if(bot && surf){
+        PARTS.push({ type:'bubble',
+          x0:bot.x+(rnd()-.5)*6, y0:bot.y, x1:surf.x+(rnd()-.5)*6, y1:surf.y,
+          prog:0, speed:.5+rmm*.2+tn*.35, rmm,
+          sz:rmm*4.5, startSz:rmm*1.2,
+          wobAmp:2+rmm*3, wobPh:rnd()*TAU, wobF:2+rnd()*3,
+          opacity:.22+rmm*.1 });
+      }
+      // §CRR Regeneration: reset with weighted memory near CV
+      s.C = rnd() * CV_Z2 * C_STAR * 1.2;
+    }
+  }
+}
+
+function spawnSteam(dt){
+  if(PARTS.length > MAX_P) return;
+  const rate = steamRate(); if(rate < .01) return;
+  const tn = Tnorm();
+  // §CRR Regeneration: every point on the surface emits vapour.
+  // exp(+C/Ω) — high-energy molecules escape preferentially.
+  // At rolling boil: continuous blanket rising from entire surface.
+  const count = rate * dt;
+  for(let i=0; i < count; i++){
+    const a = rnd()*TAU, r2 = rnd()*.7; // cover full surface
+    const pp = proj3D(cos(a)*r2*.72, WY_, sin(a)*r2*.72);
+    if(!pp) continue;
+    const isL = rnd() < .45; // more large wisps at boil
+    PARTS.push({ type:'steam', x:pp.x+(rnd()-.5)*20, y:pp.y,
+      vx:(rnd()-.5)*12,
+      vy:-(12+rnd()*35+tn*25), // rise faster and higher
+      sz: isL ? 14+rnd()*22+tn*12 : 5+rnd()*10+tn*6,
+      opacity: isL ? .04+rnd()*.06*tn : .05+rnd()*.06*tn,
+      life:1, maxLife:2.5+rnd()*3.0, turbPh:rnd()*TAU, large:isL });
+  }
+}
+
+function doPop(bub){
+  popBubble(bub.rmm);
+  const n=flr(2+bub.rmm*2.5), tn=Tnorm();
+  for(let i=0; i<n && PARTS.length<MAX_P; i++){
+    const a=rnd()*TAU, sp=1.5+bub.rmm*3+rnd()*4;
+    PARTS.push({ type:'drop', x:bub.x1, y:bub.y1,
+      vx:cos(a)*sp, vy:-sp*(1.5+rnd()),
+      sz:.5+rnd()*bub.rmm*.6, life:.4+rnd()*.35, opacity:.3+rnd()*.4 });
+  }
+  if(tn > .4){
+    for(let i=0; i<2+flr(bub.rmm*1.5); i++){
+      if(PARTS.length >= MAX_P) break;
+      const isL = rnd() < .4;
+      PARTS.push({ type:'steam', x:bub.x1+(rnd()-.5)*8, y:bub.y1,
+        vx:(rnd()-.5)*5, vy:-(6+rnd()*18),
+        sz: isL ? 5+rnd()*8+bub.rmm*3 : 2+rnd()*4+bub.rmm,
+        opacity: isL ? .015+rnd()*.03 : .02+rnd()*.05,
+        life:1, maxLife:.6+rnd(), turbPh:rnd()*TAU, large:isL });
+    }
+  }
+}
+
+function updateParts(dt){
+  for(let i=PARTS.length-1; i>=0; i--){
+    const p = PARTS[i];
+    if(p.type === 'bubble'){
+      p.prog += dt*p.speed; p.wobPh += dt*p.wobF*TAU;
+      const t2 = min(1, p.prog);
+      p.cx = p.x0+(p.x1-p.x0)*t2 + sin(p.wobPh)*p.wobAmp*(1-t2*.5);
+      p.cy = p.y0+(p.y1-p.y0)*t2;
+      p.curSz = p.startSz+(p.sz-p.startSz)*t2;
+      p.curOp = min(.45, p.opacity*(.3+t2*.7));
+      if(p.prog >= 1){ doPop(p); PARTS.splice(i,1); continue; }
+    } else if(p.type === 'steam'){
+      p.life -= dt/p.maxLife; p.y += p.vy*dt; p.vy *= 1-dt*.4; // slower decel → rise higher
+      p.turbPh += dt*2.2; p.x += p.vx*dt + sin(p.turbPh)*4.*dt; // more lateral drift
+      p.vx += (rnd()-.5)*dt*12;
+      p.sz += dt*(6+Tnorm()*12); // expand faster
+      p.opacity *= 1-dt*.22; // fade slower → linger longer
+      if(p.life<=0 || p.opacity<.001){ PARTS.splice(i,1); continue; }
+    } else if(p.type === 'drop'){
+      p.vy += 55*dt; p.x += p.vx*dt; p.y += p.vy*dt;
+      p.life -= dt; p.opacity *= 1-dt*1.2;
+      if(p.life <= 0){ PARTS.splice(i,1); continue; }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// §7  PARTICLE SPRITES
+// ═══════════════════════════════════════════════════════════════════════
+const BSZ = 64;
+const BUB_S = document.createElement('canvas'); BUB_S.width = BUB_S.height = BSZ;
+const DRP_S = document.createElement('canvas'); DRP_S.width = DRP_S.height = BSZ;
+const STM_S = document.createElement('canvas'); STM_S.width = STM_S.height = BSZ;
+const STM_L = document.createElement('canvas'); STM_L.width = STM_L.height = 128;
+
+(function(){
+  const cr = BSZ/2, R = BSZ/2;
+
+  // Bubble: transparent body, Fresnel rim, specular highlight
+  const bc = BUB_S.getContext('2d');
+  const bg = bc.createRadialGradient(cr,cr,0, cr,cr,R);
+  bg.addColorStop(0,   'rgba(255,255,255,0)');
+  bg.addColorStop(.65, 'rgba(240,245,255,0.02)');
+  bg.addColorStop(.88, 'rgba(200,225,255,0.12)');
+  bg.addColorStop(.94, 'rgba(220,240,255,0.25)');
+  bg.addColorStop(1,   'rgba(255,255,255,0)');
+  bc.fillStyle=bg; bc.beginPath(); bc.arc(cr,cr,R*.96,0,TAU); bc.fill();
+  const sx=cr+R*.22, sy=cr-R*.28, sr=R*.14;
+  const sg = bc.createRadialGradient(sx,sy,0, sx,sy,sr);
+  sg.addColorStop(0,  'rgba(255,255,255,0.95)');
+  sg.addColorStop(.5, 'rgba(255,255,255,0.25)');
+  sg.addColorStop(1,  'rgba(255,255,255,0)');
+  bc.fillStyle=sg; bc.beginPath(); bc.arc(sx,sy,sr,0,TAU); bc.fill();
+  bc.strokeStyle='rgba(255,255,255,0.3)'; bc.lineWidth=1.5;
+  bc.beginPath(); bc.arc(cr,cr,R*.9,-1.8,0.8); bc.stroke();
+
+  // Drop
+  const dc = DRP_S.getContext('2d');
+  const dg = dc.createRadialGradient(cr,cr-R*.08,0, cr,cr,R);
+  dg.addColorStop(0,  'rgba(255,252,248,0.7)');
+  dg.addColorStop(.5, 'rgba(240,235,225,0.3)');
+  dg.addColorStop(1,  'rgba(200,198,195,0)');
+  dc.fillStyle=dg; dc.beginPath(); dc.arc(cr,cr,R,0,TAU); dc.fill();
+
+  // Steam (small) — brighter core for visibility
+  const sc = STM_S.getContext('2d');
+  const stg = sc.createRadialGradient(cr,cr,0, cr,cr,R);
+  stg.addColorStop(0,  'rgba(240,238,235,0.22)');
+  stg.addColorStop(.4, 'rgba(225,223,220,0.12)');
+  stg.addColorStop(.7, 'rgba(210,208,206,0.04)');
+  stg.addColorStop(1,  'rgba(200,200,200,0)');
+  sc.fillStyle=stg; sc.beginPath(); sc.arc(cr,cr,R,0,TAU); sc.fill();
+
+  // Steam (large wisp) — brighter, more visible against dark
+  const lc = STM_L.getContext('2d'), lR = 64;
+  const lg = lc.createRadialGradient(lR-8,lR+5,0, lR,lR,lR);
+  lg.addColorStop(0,  'rgba(245,242,238,0.18)');
+  lg.addColorStop(.3, 'rgba(230,228,225,0.10)');
+  lg.addColorStop(.6, 'rgba(215,213,210,0.04)');
+  lg.addColorStop(1,  'rgba(200,200,200,0)');
+  lc.fillStyle=lg; lc.beginPath(); lc.arc(lR,lR,lR,0,TAU); lc.fill();
+})();
+
+function drawParts(){
+  cx.clearRect(0,0,W,H);
+  cx.save();
+
+  // Pass 1: Bubbles + drops (additive blend)
+  cx.globalCompositeOperation = 'lighter';
+  for(const p of PARTS){
+    if(p.type === 'bubble'){
+      const dR = max(1.5, p.curSz);
+      const surfProx = max(0, min(1, (p.prog-.7)/.3));
+      const strY = 1+surfProx*.4, sqX = 1/sqrt(strY);
+      cx.save(); cx.translate(p.cx, p.cy); cx.scale(sqX, strY);
+      cx.globalAlpha = min(.65, p.curOp);
+      cx.drawImage(BUB_S, -dR,-dR, dR*2,dR*2);
+      cx.restore();
+      if(dR > 3){
+        cx.globalAlpha = min(.25, p.curOp*.5);
+        cx.strokeStyle = 'rgba(200,220,255,0.35)';
+        cx.lineWidth = max(.5, dR*.06);
+        cx.beginPath(); cx.ellipse(p.cx,p.cy, dR*.88*sqX,dR*.88*strY, 0,0,TAU); cx.stroke();
+      }
+    } else if(p.type === 'drop'){
+      const dR = max(.5, p.sz);
+      cx.globalAlpha = min(.8, p.opacity);
+      cx.drawImage(DRP_S, p.x-dR, p.y-dR, dR*2, dR*2);
+    }
+  }
+
+  // Pass 2: Steam (normal blend, back-to-front)
+  cx.globalCompositeOperation = 'source-over';
+  const stm = PARTS.filter(p => p.type==='steam').sort((a,b) => a.y-b.y);
+  for(const p of stm){
+    const dR = max(2, p.sz);
+    cx.globalAlpha = min(.4, p.opacity); // visible against dark background
+    cx.save(); cx.translate(p.x, p.y); cx.rotate(p.turbPh*.15);
+    cx.drawImage(p.large ? STM_L : STM_S, -dR,-dR, dR*2,dR*2);
+    cx.restore();
+  }
+  cx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// §8  THERMOMETER — 2D canvas overlay with °C markings
+// ═══════════════════════════════════════════════════════════════════════
+function drawThermometer(){
+  const base = proj3D(.52, .67, .38);
+  const tip  = proj3D(.58, 1.04, .42);
+  if(!base || !tip) return;
+  const thX = base.x, thBot = base.y, thTop = tip.y;
+  const thH = thBot - thTop;
+  if(thH < 30) return;
+
+  cx.save();
+
+  // Glass tube
+  cx.strokeStyle = 'rgba(200,210,220,0.12)'; cx.lineWidth = 7; cx.lineCap = 'round';
+  cx.beginPath(); cx.moveTo(thX, thBot+4); cx.lineTo(thX, thTop); cx.stroke();
+  cx.strokeStyle = 'rgba(180,190,200,0.35)'; cx.lineWidth = 5;
+  cx.beginPath(); cx.moveTo(thX, thBot+4); cx.lineTo(thX, thTop); cx.stroke();
+
+  // Mercury column
+  const frac = max(0, min(1, (T_water-10)/100));
+  cx.strokeStyle = 'rgba(200,30,20,0.85)'; cx.lineWidth = 3; cx.lineCap = 'round';
+  cx.beginPath(); cx.moveTo(thX, thBot+4); cx.lineTo(thX, thBot-thH*frac); cx.stroke();
+
+  // Bulb
+  cx.fillStyle = 'rgba(200,30,20,0.9)';
+  cx.beginPath(); cx.arc(thX, thBot+6, 5, 0, TAU); cx.fill();
+  cx.strokeStyle = 'rgba(180,190,200,0.2)'; cx.lineWidth = 1;
+  cx.beginPath(); cx.arc(thX, thBot+6, 6, 0, TAU); cx.stroke();
+
+  // Tick marks and labels
+  cx.font = '300 9px Cormorant Garamond, Georgia, serif';
+  cx.fillStyle = 'rgba(180,170,155,0.3)';
+  cx.textAlign = 'left'; cx.textBaseline = 'middle';
+  for(let deg=20; deg<=100; deg+=10){
+    const yy = thBot - thH*(deg-10)/100;
+    cx.strokeStyle = 'rgba(180,170,155,0.18)'; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(thX+5, yy); cx.lineTo(thX+9, yy); cx.stroke();
+    if(deg%20===0 || deg===100) cx.fillText(deg+'°', thX+11, yy);
+  }
+
+  // Current readout
+  cx.font = '300 11px Cormorant Garamond, Georgia, serif';
+  cx.fillStyle = 'rgba(220,180,140,0.4)'; cx.textAlign = 'center';
+  cx.fillText(round(T_water)+'°C', thX, thTop-12);
+  cx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// §9  GAS SLIDER
+// ═══════════════════════════════════════════════════════════════════════
+const gasSlider = document.getElementById('gasSlider');
+const markLabel = document.getElementById('markLabel');
+let gasMark = 0;
+
+gasSlider.addEventListener('input', e => {
+  gasMark = parseFloat(e.target.value);
+  // Gas power: immediate. Temperature: thermodynamic lag.
+  gasPower = gasMark <= 0.05 ? 0 : Q_MAX * pow(gasMark/9, 0.8);
+  markLabel.textContent = gasMark < 0.1 ? 'OFF' : round(gasMark).toString() || '½';
+  const w = gasMark/9;
+  markLabel.style.color = gasMark < 0.1 ? 'rgba(180,150,120,.3)' :
+    `rgba(${180+flr(w*60)},${150-flr(w*60)},${120-flr(w*80)},${.3+w*.4})`;
+  if(gasMark > 0.1 && !ac) initAudio();
+  if(ac && ac.state === 'suspended') ac.resume();
+  if(gasMark > 0.1) document.getElementById('stats').classList.add('show');
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// §10  RESIZE
+// ═══════════════════════════════════════════════════════════════════════
+function resize(){
+  const dpr = min(devicePixelRatio||1, 1.5);
+  W = innerWidth; H = innerHeight;
+  glCv.width = W*dpr; glCv.height = H*dpr;
+  glCv.style.width = W+'px'; glCv.style.height = H+'px';
+  gl.viewport(0, 0, W*dpr, H*dpr);
+  cvEl.width = W; cvEl.height = H;
+}
+resize();
+addEventListener('resize', resize);
+
+// ═══════════════════════════════════════════════════════════════════════
+// §11  RENDER LOOP
+// ═══════════════════════════════════════════════════════════════════════
+const statsEl = document.getElementById('stats');
+
+function render(ts){
+  requestAnimationFrame(render);
+  const dt = min(.05, (ts-lastT)/1e3);
+  lastT = ts; pt += dt;
+
+  // §EXT Temperature: First Law energy balance (realistic thermodynamic lag)
+  updateTemperature(dt);
+  const tn = Tnorm();
+  const nR = nucRate();
+  const bV = beautyAtT();
+  const stm = steamRate();
+
+  // Audio: gas hiss tracks slider (instant), water sounds track temperature (slow)
+  const gasLevel = gasMark/9;
+  if(ac){
+    const now = ac.currentTime;
+    gasG.gain.setTargetAtTime(min(.012, gasLevel*.012), now, .03);
+    rumG.gain.setTargetAtTime(min(.10, nR*.003), now, .1);
+    steamG.gain.setTargetAtTime(min(.05, stm*.003), now, .1);
+    singG.gain.setTargetAtTime(bV*.035, now, .12);  // §CRR beauty = singing amplitude
+    convG.gain.setTargetAtTime(min(.025, tn*tn*.025), now, .2);
+  }
+
+  // Particles
+  spawnBubbles(dt); spawnSteam(dt); updateParts(dt);
+
+  // GPU uniforms: u_gas (instant) vs u_temp (slow)
+  const dpr = min(devicePixelRatio||1, 1.5);
+  gl.uniform2f(U.u_res, W*dpr, H*dpr);
+  gl.uniform1f(U.u_time, pt);
+  gl.uniform1f(U.u_temp, tn);
+  gl.uniform1f(U.u_beauty, bV);
+  gl.uniform1f(U.u_nucRate, nR);
+  gl.uniform1f(U.u_gas, gasLevel);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  // 2D overlay
+  drawParts();
+  drawThermometer();
+
+  // HUD
+  if(gasPower > 0 || T_water > T_AMB+1){
+    const bC = PARTS.filter(p=>p.type==='bubble').length;
+    const sC = PARTS.filter(p=>p.type==='steam').length;
+    let txt = `${round(T_water)}°C  gas ${round(gasMark)} (${round(gasPower)}W)  Ω=${Om_Z2.toFixed(4)}\n`;
+    txt += `λ=${nR.toFixed(1)}/s  B=${bV.toFixed(2)}\n`;
+    if(bC) txt += `${bC} bubble${bC>1?'s':''}`;
+    if(sC) txt += `  ${sC} steam`;
+    txt += '\n';
+    if(T_water < 50) txt += 'warming';
+    else if(T_water < 80) txt += 'heating — convection';
+    else if(T_water < 95) txt += 'first bubbles — subcooled nucleation';
+    else if(T_water < 100) txt += 'singing kettle — B(C/Ω) peak';
+    else if(T_water < 102) txt += 'rolling boil';
+    else txt += 'vigorous boil';
+    if(bV > .3) txt += ' ♫';
+    statsEl.textContent = txt;
+  } else {
+    statsEl.textContent = '';
+  }
+}
+
+requestAnimationFrame(render);
+</script>
 </body>
 </html>
