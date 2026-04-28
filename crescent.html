@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Crescent City — The Redwood Dawn Chorus | CRR</title>
+<title>Aviana Crescent City — The Redwood Dawn Chorus | CRR</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Space+Mono:wght@400;700&display=swap');
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
@@ -287,9 +287,10 @@ font-size:.3rem;opacity:.18;letter-spacing:.03em;white-space:nowrap}
   </g>
 </svg>
 
-<h1>CRESCENT</h1>
+<h1>AVIANA</h1>
 <div class="sub">Crescent City — The Redwood Dawn Chorus
-<span class="small">ten Pacific-coast voices · four cetaceans · three black bears · syrinx · air sacs · canopy</span></div>
+<span class="small">ten Pacific-coast voices · four cetaceans · three black bears · Tolowa Dee-niʼ + Yurok instruments</span>
+<span class="small" style="margin-top:6px;font-size:.74em;opacity:.55">on the homeland of the Tolowa Dee-niʼ Nation and the Yurok</span></div>
 
 <div class="letter">
 <div class="salutation">To the Esteemed Editors of <em>The Triplicate</em>, the Vice Principal of the Del Norte Bee Keeping Society, and the Officer/Principal of the Active Inference Institute,</div>
@@ -312,7 +313,7 @@ C(x,t) = ∫ L(x,τ) dτ&emsp;·&emsp;δ(now)&emsp;·&emsp;R = ∫ φ exp(C/Ω) 
 <div id="tab-bar">
 <button class="tab-btn active" data-mode="chorus">DAWN CHORUS</button>
 <div class="spacer"></div>
-<span class="title-sm">CRESCENT</span>
+<span class="title-sm">AVIANA — CRESCENT CITY</span>
 </div>
 <div id="canvas-wrap">
 <canvas id="ocean"></canvas>
@@ -338,6 +339,10 @@ C(x,t) = ∫ L(x,τ) dτ&emsp;·&emsp;δ(now)&emsp;·&emsp;R = ∫ φ exp(C/Ω) 
   <div id="strip-bears-wrap" style="display:none">
     <div class="sp-divider"></div>
     <div id="strip-bears"></div>
+  </div>
+  <div id="strip-tribes-wrap" style="display:none">
+    <div class="sp-divider"></div>
+    <div id="strip-tribes"></div>
   </div>
 </div>
 
@@ -836,6 +841,13 @@ const SPECIES_STRIP = {
     { key:'closeGrowl',     label:'b. bear (near)',    colour:'rgb(180,120,80)' },
     { key:'veryNearGrowl',  label:'b. bear (here!)',   colour:'rgb(220,140,60)' },
   ],
+  // §TRIBES — Tolowa Dee-niʼ + Yurok instruments
+  tribes: [
+    { key:'flute',       label:'elderberry flute', colour:'rgb(200,170,90)'  },
+    { key:'hoofRattle',  label:'hoof rattle',      colour:'rgb(160,140,90)'  },
+    { key:'clapper',     label:'clapper stick',    colour:'rgb(190,150,80)'  },
+    { key:'basketDrum',  label:'basket drum',      colour:'rgb(150,110,75)'  },
+  ],
 };
 const bearMonitor = { distantMoan: 0, closeGrowl: 0, veryNearGrowl: 0 };
 
@@ -862,7 +874,8 @@ function buildSpeciesStrip(){
   const birdsEl = document.getElementById('strip-birds');
   const whalesEl = document.getElementById('strip-whales');
   const bearsEl = document.getElementById('strip-bears');
-  if(!birdsEl || !whalesEl || !bearsEl) return;
+  const tribesEl = document.getElementById('strip-tribes');
+  if(!birdsEl || !whalesEl || !bearsEl || !tribesEl) return;
   function rowHtml(sp){
     return `<div class="sp-row" id="sp-row-${sp.key}">
       <span class="sp-name">${sp.label}</span>
@@ -878,8 +891,11 @@ function buildSpeciesStrip(){
   bearsEl.innerHTML =
     `<div class="sp-section-label">black bear</div>` +
     SPECIES_STRIP.bears.map(rowHtml).join('');
+  tribesEl.innerHTML =
+    `<div class="sp-section-label">tolowa · yurok</div>` +
+    SPECIES_STRIP.tribes.map(rowHtml).join('');
   // Init ring buffers + cache canvas refs
-  for(const group of ['birds','whales','bears']){
+  for(const group of ['birds','whales','bears','tribes']){
     for(const sp of SPECIES_STRIP[group]){
       _initSpHistoryFor(sp.key);
       const c = document.getElementById('sp-hist-'+sp.key);
@@ -1008,6 +1024,29 @@ function updateSpeciesStrip(){
   if(bearVisible) window._bearsHaveAppeared = true;
   const wrap = document.getElementById('strip-bears-wrap');
   if(wrap) wrap.style.display = window._bearsHaveAppeared ? 'block' : 'none';
+
+  // §TRIBES — same pattern as bears, sticky-visible once any tribal
+  // instrument has fired. tribesMonitor is populated by the four
+  // instrument synth functions; they share the same monitor decay.
+  let tribesVisible = false;
+  for(const sp of SPECIES_STRIP.tribes){
+    const v = (typeof tribesMonitor !== 'undefined' && tribesMonitor[sp.key]) || 0;
+    const row = document.getElementById('sp-row-'+sp.key);
+    if(!row) continue;
+    const hist = _spHistory[sp.key];
+    if(hist){
+      for(let i=0;i<hist.length-1;i++) hist[i] = hist[i+1];
+      hist[hist.length-1] = v;
+    }
+    const active = v > 0.05;
+    if(active) tribesVisible = true;
+    row.classList.toggle('active', active);
+    const can = _spCanvases[sp.key];
+    if(can) _drawSpeciesHistogram(can, hist, sp.colour, active);
+  }
+  if(tribesVisible) window._tribesHaveAppeared = true;
+  const tribesWrap = document.getElementById('strip-tribes-wrap');
+  if(tribesWrap) tribesWrap.style.display = window._tribesHaveAppeared ? 'block' : 'none';
 }
 
 function midiToFreq(m){return 440*Math.pow(2,(m-69)/12)}
@@ -2304,6 +2343,971 @@ function scheduleBreaths(time, dur, brPerMinStart, brPerMinEnd, gainPeak){
     }
     curT += cycleT;
     safetyCount++;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §TRIBES — Tolowa Dee-niʼ + Yurok instruments passing through forest
+// ═══════════════════════════════════════════════════════════════════
+//
+// CULTURAL CONTEXT: Crescent City (Taa-ʼat-dvn in Tolowa) sits on the
+// homeland of the Tolowa Dee-niʼ Nation. The Yurok homeland begins
+// just south at Wilson Creek and extends down the coast and along
+// the Klamath. This implementation evokes the SOUNDSCAPE of these
+// peoples walking through the forest with their everyday instruments
+// — NOT their songs, which are family/individual property and would
+// not be reproduced without permission. We use instruments documented
+// in the ethnographic record (Penn Museum Bulletin, Lost Coast
+// Outpost) for non-ceremonial recreational/walking contexts:
+//
+//   - elderberry flute (Yurok — historically used for courting and
+//     recreation — Sambucus branch, hollowed and finger-holed)
+//   - deer-hoof rattle (Tolowa, Yurok, Wiyot — hoof clusters tied to
+//     a stick, used both standalone and as basket-drum striker)
+//   - clapper stick (split-elderberry, snaps when struck — bright
+//     wooden clack)
+//   - basket drum (woven coil construction, soft thump)
+//
+// CRR derivation: the procedural pitch sequences for the flute use
+// only the chorus's D mixolydian scale degrees, with note placement
+// determined by the SO(2) phase of the Ω cycle (the framework's
+// mathematics, not any tribe's repertoire). The instruments
+// therefore "speak" CRR fluently while remaining respectful of
+// cultural-IP boundaries.
+
+let tribesGain = null;
+let fluteGain = null;
+
+function initTribesAudio(){
+  if(!ac || tribesGain) return;
+  tribesGain = ac.createGain();
+  tribesGain.gain.value = 0.0;
+  tribesGain.connect(compressor);
+  // Generous reverb send — they're walking through deep forest, the
+  // canopy returns plenty of reverberation
+  tribesGain.gain.setTargetAtTime(0.55, ac.currentTime, 0.5);
+
+  // §FLUTE BUS — separate from percussion so we can balance the flute
+  // independently. The flute carries the most musical weight and needs
+  // careful dynamic placement against birdsong + chord pad. Routed
+  // through a high-shelf cut to soften any sibilant breath/jet content,
+  // then to tribesGain.
+  fluteGain = ac.createGain();
+  fluteGain.gain.value = 0.62;
+  // High-shelf cut at 4kHz, -3dB — softens jet/whistle/breath sibilance
+  // so the flute sits inside the mix rather than poking out of the top
+  const fluteShelf = ac.createBiquadFilter();
+  fluteShelf.type = 'highshelf';
+  fluteShelf.frequency.value = 4000;
+  fluteShelf.gain.value = -3.5;
+  fluteGain.connect(fluteShelf);
+  fluteShelf.connect(tribesGain);
+}
+
+// Monitor for the species panel
+const tribesMonitor = { flute: 0, hoofRattle: 0, clapper: 0, basketDrum: 0 };
+
+// §FLUTE: a single sustained flute note. Soft sine + triangle blend
+// with breath noise underneath. Frequency-modulated very slightly to
+// emulate human breath unsteadiness.
+// ═══════════════════════════════════════════════════════════════════
+// §VIRTUOSO FLUTE ENGINE — CRR-governed mastery progression
+// ═══════════════════════════════════════════════════════════════════
+//
+// The elderberry flute is played by a master. Mastery itself is a
+// CRR variable — coherence accumulates over the passing arc, and as
+// Ω rises (proximity → 1), the available technique palette EXPANDS.
+//
+//   LOW MASTERY (Ω small)     — sustained tone only (rigid)
+//   MID MASTERY (Ω moderate)  — vibrato, ornaments, trills, harmonics
+//   HIGH MASTERY (Ω large)    — flutter tongue, multiphonics, jet
+//                               whistle, singing+playing, whistle tones
+//
+// 12 techniques, each gated by a mastery threshold. Phrase generator
+// procedurally selects techniques whose Ω-threshold ≤ current mastery.
+// At peak proximity (beat 190), all 12 are accessible — the cadenza.
+//
+// CRR equation tags inline: §C (coherence), §Ω (mastery), §δ (rupture
+// note), §R (regeneration tail), §B (beauty function envelope).
+
+// §SUSTAINED TONE — the baseline (Ω_tech = 0.0)
+// Same engine as before but parameterised by mastery for vibrato rate
+// and breath quality. Accepts an optional `pitchModFn(time)` for
+// dynamic pitch modulation (used by trill, bend, multiphonic layers).
+function playFluteNote(midi, dur, gain, time, opts){
+  if(!ac) return;
+  initTribesAudio();
+  if(!tribesGain) return;
+  opts = opts || {};
+  const mastery = opts.mastery || 0;
+  const t = time || ac.currentTime;
+  const f0 = midiToFreq(midi);
+  const v = (gain || 0.5) * 0.32;
+
+  const o1 = ac.createOscillator();
+  o1.type = 'sine';
+  o1.frequency.setValueAtTime(f0, t);
+
+  // §Ω VIBRATO — rate scales with mastery (4 Hz untrained → 6 Hz master)
+  const vibRate = 4 + mastery * 2;
+  const vibDepth = 1.2 + mastery * 1.4;  // 1.2 Hz → 2.6 Hz at peak mastery
+  const vib = ac.createOscillator();
+  vib.type = 'sine';
+  vib.frequency.value = vibRate;
+  const vibG = ac.createGain();
+  vibG.gain.value = vibDepth;
+  vib.connect(vibG); vibG.connect(o1.frequency);
+
+  // §PITCH BEND — if requested, ramp frequency over the note
+  if(opts.bendToMidi !== undefined){
+    const f1 = midiToFreq(opts.bendToMidi);
+    const bendStart = t + dur * (opts.bendStart || 0.20);
+    const bendEnd   = t + dur * (opts.bendEnd   || 0.85);
+    o1.frequency.setValueAtTime(f0, bendStart);
+    o1.frequency.linearRampToValueAtTime(f1, bendEnd);
+  }
+
+  // Triangle harmonic for body (suppressed at high mastery — the
+  // master's tone is purer, less reedy)
+  const o2 = ac.createOscillator();
+  o2.type = 'triangle';
+  o2.frequency.value = f0;
+
+  // Breath noise — bandpassed to the formant range. At high mastery,
+  // breath is far cleaner (less audible) — the master doesn't waste air.
+  const bn = ac.createBufferSource();
+  bn.buffer = noiseBuf;
+  bn.loop = true;
+  const bnBp = ac.createBiquadFilter();
+  bnBp.type = 'bandpass';
+  bnBp.frequency.value = f0 * 2.5;
+  bnBp.Q.value = 1.5;
+  const bnG = ac.createGain();
+  bnG.gain.value = v * (0.18 - mastery * 0.10);  // 0.18 → 0.08 at peak
+
+  // Master envelope
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t);
+  // §FLUTTER TONGUE — amplitude modulation at 22-28 Hz when active
+  if(opts.flutterTongue){
+    const flutterRate = 22 + mastery * 6;  // 22 → 28 Hz
+    const flutter = ac.createOscillator();
+    flutter.type = 'sine';
+    flutter.frequency.value = flutterRate;
+    const flutterG = ac.createGain();
+    flutterG.gain.value = v * 0.55;  // 55% modulation depth
+    flutter.connect(flutterG); flutterG.connect(g.gain);
+    flutter.start(t); flutter.stop(t + dur + 0.1);
+  }
+  g.gain.linearRampToValueAtTime(v * 0.92,   t + Math.min(0.18, dur*0.15));
+  g.gain.setValueAtTime(v * 0.85, t + dur - 0.25);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+  // §LP — at higher mastery, brighter tone (less rolloff)
+  const lp = ac.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = f0 * (4 + mastery * 4);  // 4× → 8× at peak
+  lp.Q.value = 0.7;
+
+  o1.connect(lp);
+  // o2 (triangle reediness) attenuated at high mastery
+  const o2g = ac.createGain();
+  o2g.gain.value = 0.65 - mastery * 0.4;  // 0.65 → 0.25
+  o2.connect(o2g); o2g.connect(lp);
+  lp.connect(g);
+  bn.connect(bnBp); bnBp.connect(bnG); bnG.connect(g);
+  g.connect(fluteGain);
+
+  o1.start(t); o2.start(t); vib.start(t); bn.start(t);
+  o1.stop(t + dur + 0.1);
+  o2.stop(t + dur + 0.1);
+  vib.stop(t + dur + 0.1);
+  bn.stop(t + dur + 0.1);
+
+  tribesMonitor.flute = gain || 0.5;
+  setTimeout(()=>{ tribesMonitor.flute *= 0.4 }, dur * 1000);
+}
+
+// §GRACE NOTE — brief upper-neighbour ornament, very short attack
+function playFluteGrace(midi, gain, time, mastery){
+  if(!ac || !fluteGain) return;
+  const t = time || ac.currentTime;
+  const f0 = midiToFreq(midi);
+  const v = (gain || 0.5) * 0.18;
+  const dur = 0.08 + Math.random() * 0.05;  // 80-130ms — more breathy
+  const o = ac.createOscillator();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(f0, t);
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(v, t + 0.020);   // 20ms breathy attack
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  const lp = ac.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = f0 * 4;
+  o.connect(lp); lp.connect(g); g.connect(fluteGain);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+
+// §TRILL — rapid alternation between two adjacent notes (Ω_tech = 0.35)
+// Trill rate scales with mastery: 8 Hz untrained → 15 Hz master
+function playFluteTrill(midi1, midi2, dur, gain, time, mastery){
+  if(!ac) return;
+  initTribesAudio();
+  if(!fluteGain) return;
+  const t = time || ac.currentTime;
+  const f1 = midiToFreq(midi1);
+  const f2 = midiToFreq(midi2);
+  const trillRate = 8 + mastery * 7;  // 8 → 15 Hz
+  const v = (gain || 0.5) * 0.30;
+
+  const o = ac.createOscillator();
+  o.type = 'sine';
+  // Square LFO on frequency — alternates between f1 and f2
+  // We do this by computing a step-pattern on the frequency parameter
+  const period = 1.0 / trillRate;
+  let curT = t;
+  let useF1 = true;
+  o.frequency.setValueAtTime(f1, t);
+  while(curT < t + dur){
+    o.frequency.setValueAtTime(useF1 ? f1 : f2, curT);
+    curT += period * 0.5;
+    useF1 = !useF1;
+  }
+
+  // Subtle vibrato on top
+  const vib = ac.createOscillator();
+  vib.type = 'sine';
+  vib.frequency.value = 6;
+  const vibG = ac.createGain();
+  vibG.gain.value = 1.5;
+  vib.connect(vibG); vibG.connect(o.frequency);
+
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(v * 0.95, t + 0.04);
+  g.gain.setValueAtTime(v * 0.88, t + dur - 0.15);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+  const lp = ac.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = Math.max(f1, f2) * 5;
+  o.connect(lp); lp.connect(g); g.connect(fluteGain);
+  o.start(t); vib.start(t);
+  o.stop(t + dur + 0.05);
+  vib.stop(t + dur + 0.05);
+
+  tribesMonitor.flute = gain || 0.5;
+  setTimeout(()=>{ tribesMonitor.flute *= 0.4 }, dur * 1000);
+}
+
+// §HARMONIC OVERBLOW — fundamental + emphasised upper partial (Ω_tech = 0.50)
+// Sound: the player overblows the fundamental, sounding the 2nd or
+// 3rd harmonic. Implemented as the fundamental fading into the
+// harmonic over the note's duration.
+function playFluteHarmonic(midi, dur, gain, time, partial, mastery){
+  if(!ac) return;
+  initTribesAudio();
+  if(!fluteGain) return;
+  const t = time || ac.currentTime;
+  const f0 = midiToFreq(midi);
+  const fH = f0 * (partial || 2);   // 2nd harmonic = octave up
+  const v = (gain || 0.5) * 0.28;
+
+  // Fundamental — fades down over first half
+  const oF = ac.createOscillator();
+  oF.type = 'sine';
+  oF.frequency.value = f0;
+  const gF = ac.createGain();
+  gF.gain.setValueAtTime(0, t);
+  gF.gain.linearRampToValueAtTime(v * 0.85, t + 0.05);
+  gF.gain.linearRampToValueAtTime(v * 0.30, t + dur * 0.5);
+  gF.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+  // Harmonic — fades in over first half, sustains
+  const oH = ac.createOscillator();
+  oH.type = 'sine';
+  oH.frequency.value = fH;
+  const gH = ac.createGain();
+  gH.gain.setValueAtTime(0, t);
+  gH.gain.linearRampToValueAtTime(v * 0.20, t + 0.10);
+  gH.gain.linearRampToValueAtTime(v * 0.95, t + dur * 0.4);
+  gH.gain.setValueAtTime(v * 0.85, t + dur - 0.15);
+  gH.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+  // Slight vibrato on harmonic
+  const vib = ac.createOscillator();
+  vib.type = 'sine';
+  vib.frequency.value = 5.5;
+  const vibG = ac.createGain();
+  vibG.gain.value = 2.0;
+  vib.connect(vibG); vibG.connect(oH.frequency);
+
+  oF.connect(gF); gF.connect(fluteGain);
+  oH.connect(gH); gH.connect(fluteGain);
+  oF.start(t); oH.start(t); vib.start(t);
+  oF.stop(t + dur + 0.05);
+  oH.stop(t + dur + 0.05);
+  vib.stop(t + dur + 0.05);
+
+  tribesMonitor.flute = gain || 0.5;
+  setTimeout(()=>{ tribesMonitor.flute *= 0.4 }, dur * 1000);
+}
+
+// §RAPID RUN — fast sixteenth-note scalar passage (Ω_tech = 0.65)
+// Double-tonguing rate. notes[] is a sequence of MIDI numbers,
+// each played for noteDur seconds.
+function playFluteRapidRun(notes, noteDur, gain, time, mastery){
+  if(!ac) return;
+  initTribesAudio();
+  if(!fluteGain) return;
+  const t = time || ac.currentTime;
+  const v = (gain || 0.5) * 0.26;
+  for(let i = 0; i < notes.length; i++){
+    const noteT = t + i * noteDur;
+    const f = midiToFreq(notes[i]);
+    const o = ac.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = f;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, noteT);
+    // Sharp ku-tu-ku-tu articulation — fast attack, fast release
+    g.gain.linearRampToValueAtTime(v, noteT + 0.005);
+    g.gain.setValueAtTime(v * 0.95, noteT + noteDur * 0.65);
+    g.gain.exponentialRampToValueAtTime(0.001, noteT + noteDur * 0.95);
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = f * 5;
+    o.connect(lp); lp.connect(g); g.connect(fluteGain);
+    o.start(noteT);
+    o.stop(noteT + noteDur + 0.02);
+  }
+  tribesMonitor.flute = gain || 0.5;
+  setTimeout(()=>{ tribesMonitor.flute *= 0.4 }, notes.length * noteDur * 1000);
+}
+
+// §MULTIPHONIC — two pitches simultaneously (Ω_tech = 0.75)
+// Player splits the airstream. Implementation: two oscillators at
+// related-but-not-harmonic intervals, with beating between them.
+function playFluteMultiphonic(midi1, midi2, dur, gain, time, mastery){
+  if(!ac) return;
+  initTribesAudio();
+  if(!fluteGain) return;
+  const t = time || ac.currentTime;
+  const f1 = midiToFreq(midi1);
+  const f2 = midiToFreq(midi2);
+  const v = (gain || 0.5) * 0.22;
+
+  // Both tones share a slightly imperfect intonation — the master's
+  // multiphonic is unstable, the beating is part of the sound
+  const o1 = ac.createOscillator();
+  o1.type = 'sine';
+  o1.frequency.value = f1;
+  const o2 = ac.createOscillator();
+  o2.type = 'sine';
+  o2.frequency.value = f2 * 1.003;  // 3 cents sharp — beating
+
+  const g1 = ac.createGain();
+  g1.gain.setValueAtTime(0, t);
+  g1.gain.linearRampToValueAtTime(v * 0.85, t + 0.08);
+  g1.gain.setValueAtTime(v * 0.78, t + dur - 0.15);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+  const g2 = ac.createGain();
+  g2.gain.setValueAtTime(0, t);
+  g2.gain.linearRampToValueAtTime(v * 0.65, t + 0.12);
+  g2.gain.setValueAtTime(v * 0.60, t + dur - 0.15);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+  o1.connect(g1); g1.connect(fluteGain);
+  o2.connect(g2); g2.connect(fluteGain);
+  o1.start(t); o2.start(t);
+  o1.stop(t + dur + 0.05);
+  o2.stop(t + dur + 0.05);
+
+  tribesMonitor.flute = gain || 0.5;
+  setTimeout(()=>{ tribesMonitor.flute *= 0.4 }, dur * 1000);
+}
+
+// §JET WHISTLE — loud air burst (Ω_tech = 0.80)
+// White noise sweep with bandpass moving 200 Hz → 4 kHz over ~200ms
+function playFluteJetWhistle(gain, time, mastery){
+  if(!ac) return;
+  initTribesAudio();
+  if(!fluteGain) return;
+  const t = time || ac.currentTime;
+  const dur = 0.18 + Math.random() * 0.08;
+  const v = (gain || 0.5) * 0.30;
+
+  const noise = ac.createBufferSource();
+  noise.buffer = noiseBuf;
+  const bp = ac.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.setValueAtTime(250, t);
+  bp.frequency.exponentialRampToValueAtTime(3500, t + dur);
+  bp.Q.value = 5;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(v, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  noise.connect(bp); bp.connect(g); g.connect(fluteGain);
+  noise.start(t);
+  noise.stop(t + dur + 0.02);
+  tribesMonitor.flute = gain || 0.5;
+  setTimeout(()=>{ tribesMonitor.flute *= 0.4 }, dur * 1000);
+}
+
+// §WHISTLE TONE — extremely high-pitched fragile pure tone (Ω_tech = 0.90)
+function playFluteWhistleTone(midiBase, dur, gain, time){
+  if(!ac) return;
+  initTribesAudio();
+  if(!fluteGain) return;
+  const t = time || ac.currentTime;
+  // Whistle tones are 2-3 octaves above the fundamental
+  const f = midiToFreq(midiBase + 24);  // 2 octaves up
+  const v = (gain || 0.5) * 0.10;  // very quiet — fragile
+
+  const o = ac.createOscillator();
+  o.type = 'sine';
+  o.frequency.value = f;
+  // Fragility: very subtle pitch wander — the whistle tone struggles
+  const wander = ac.createOscillator();
+  wander.type = 'sine';
+  wander.frequency.value = 0.7;
+  const wanderG = ac.createGain();
+  wanderG.gain.value = 8;
+  wander.connect(wanderG); wanderG.connect(o.frequency);
+
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(v, t + 0.20);    // slow appearance
+  g.gain.setValueAtTime(v * 0.85, t + dur - 0.25);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g); g.connect(fluteGain);
+  o.start(t); wander.start(t);
+  o.stop(t + dur + 0.05);
+  wander.stop(t + dur + 0.05);
+
+  tribesMonitor.flute = gain || 0.5;
+  setTimeout(()=>{ tribesMonitor.flute *= 0.4 }, dur * 1000);
+}
+
+// §SINGING + PLAYING — voice + flute simultaneously (Ω_tech = 0.85)
+function playFluteSinging(fluteMidi, voiceMidi, dur, gain, time, mastery){
+  if(!ac) return;
+  initTribesAudio();
+  if(!fluteGain) return;
+  const t = time || ac.currentTime;
+  const fF = midiToFreq(fluteMidi);
+  const fV = midiToFreq(voiceMidi);
+  const v = (gain || 0.5) * 0.26;
+
+  // Flute carrier
+  const oF = ac.createOscillator();
+  oF.type = 'sine';
+  oF.frequency.value = fF;
+  const gF = ac.createGain();
+  gF.gain.setValueAtTime(0, t);
+  gF.gain.linearRampToValueAtTime(v * 0.85, t + 0.10);
+  gF.gain.setValueAtTime(v * 0.78, t + dur - 0.20);
+  gF.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+  // Voice — sawtooth filtered through throat formants
+  const oV = ac.createOscillator();
+  oV.type = 'sawtooth';
+  oV.frequency.value = fV;
+  // Throat formants — F1 ~700 Hz (open vowel), F2 ~1200 Hz
+  const formant1 = ac.createBiquadFilter();
+  formant1.type = 'bandpass';
+  formant1.frequency.value = 700;
+  formant1.Q.value = 5;
+  const formant2 = ac.createBiquadFilter();
+  formant2.type = 'bandpass';
+  formant2.frequency.value = 1200;
+  formant2.Q.value = 4;
+  const gV = ac.createGain();
+  gV.gain.setValueAtTime(0, t);
+  gV.gain.linearRampToValueAtTime(v * 0.55, t + 0.15);
+  gV.gain.setValueAtTime(v * 0.50, t + dur - 0.20);
+  gV.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  // Voice vibrato — slower, deeper than flute
+  const vVib = ac.createOscillator();
+  vVib.type = 'sine';
+  vVib.frequency.value = 4.5;
+  const vVibG = ac.createGain();
+  vVibG.gain.value = 3.5;
+  vVib.connect(vVibG); vVibG.connect(oV.frequency);
+
+  oF.connect(gF); gF.connect(fluteGain);
+  oV.connect(formant1); formant1.connect(formant2); formant2.connect(gV); gV.connect(fluteGain);
+  oF.start(t); oV.start(t); vVib.start(t);
+  oF.stop(t + dur + 0.05);
+  oV.stop(t + dur + 0.05);
+  vVib.stop(t + dur + 0.05);
+
+  tribesMonitor.flute = gain || 0.5;
+  setTimeout(()=>{ tribesMonitor.flute *= 0.4 }, dur * 1000);
+}
+
+// §FLUTE PHRASE — mastery-driven dispatcher selecting techniques
+// based on Ω-thresholds. Each phrase is itself a CRR cycle:
+//   coherence accumulation → δ rupture (peak technique) → R tail
+//
+// At low mastery: 3-5 sustained notes
+// At mid mastery: vibrato, ornaments, trills, harmonics
+// At high mastery: flutter tongue, multiphonics, jet whistles, etc.
+//
+// At peak mastery (Ω = 1, beat 190): all 12 techniques accessible —
+// the cadenza phrase deploys them in sequence.
+function playFlutePhrase(time, gain, durBeats, density, mastery, chord){
+  if(!ac) return;
+  initTribesAudio();
+  if(!tribesGain) return;
+  mastery = mastery !== undefined ? mastery : (density || 0);
+  const t = time || ac.currentTime;
+  const totalDur = durBeats * BEAT_S;
+  // §HARMONIC LOCK — D mixolydian set: D4=62, E4=64, F#4=66, G4=67,
+  // A4=69, B4=71, C5=72, D5=74, E5=76. The chord parameter contains
+  // the bass + extension tones currently sounding in the chorus
+  // (e.g. D = [50,57,62,66] for D5add). We map the chord tones onto
+  // the upper octaves and weight them 3:1 over passing tones, so the
+  // flute stays harmonically locked to the active chord. This is the
+  // master flutist listening to the ensemble rather than playing
+  // an independent pitch sequence.
+  const noteSet = [62, 64, 66, 67, 69, 71, 72, 74, 76];
+  // Compute which noteSet entries are chord tones. Chord tones are
+  // any noteSet pitch whose pitch class matches a chord pitch class.
+  const chordPitchClasses = chord
+    ? chord.map(m => ((m % 12) + 12) % 12)
+    : [2, 6, 9];   // fallback: D triad pitch classes (D, F#, A)
+  const chordToneIdx = [];
+  const passingToneIdx = [];
+  for(let i = 0; i < noteSet.length; i++){
+    const pc = ((noteSet[i] % 12) + 12) % 12;
+    if(chordPitchClasses.indexOf(pc) >= 0) chordToneIdx.push(i);
+    else passingToneIdx.push(i);
+  }
+  // If somehow no chord tones (shouldn't happen), fall back
+  if(chordToneIdx.length === 0){
+    for(let i = 0; i < noteSet.length; i++) chordToneIdx.push(i);
+  }
+
+  // §C COHERENCE — phrase note count rises with mastery
+  // 3-5 at low mastery, 6-10 at mid, 12-20 at peak
+  const numNotes = Math.max(3, Math.round(3 + mastery * 12 + density * 3));
+
+  // §SO(2) NOTE SEQUENCE — choose between chord tones (75%) and
+  // passing tones (25%). The phase of the SO(2) cycle determines
+  // which TONE within the chosen pool, giving us a smooth procedural
+  // melody that follows the harmony rather than the random walk.
+  const phaseStart = Math.random() * 2 * Math.PI;
+  const notes = [];
+  for(let i=0; i<numNotes; i++){
+    const ph = phaseStart + i * (0.5 + mastery * 0.4);
+    // 75% chord tone, 25% passing tone — but the FIRST and LAST notes
+    // are ALWAYS chord tones (anchors the phrase harmonically)
+    const isAnchor = (i === 0) || (i === numNotes - 1);
+    const useChordTone = isAnchor || (Math.random() < 0.75);
+    const pool = useChordTone ? chordToneIdx : passingToneIdx;
+    const phaseIdx = Math.floor((Math.sin(ph) * 0.5 + 0.5) * pool.length);
+    const setIdx = pool[Math.max(0, Math.min(pool.length - 1, phaseIdx))];
+    notes.push(noteSet[setIdx]);
+  }
+
+  // §B BEAUTY ENVELOPE — note durations follow CRR:
+  //   short notes accumulating, then a long δ-hold near the end,
+  //   then short tail (R)
+  const noteDurs = [];
+  let totalUnits = 0;
+  // Position of the δ rupture note (peak tension): about 75% through
+  const ruptureIdx = Math.floor(numNotes * 0.75);
+  for(let i=0; i<numNotes; i++){
+    let u;
+    if(i === ruptureIdx)         u = 2.0 + mastery * 1.5;  // δ hold
+    else if(i === numNotes - 1)  u = 1.6 + mastery * 0.5;  // R tail
+    else if(mastery > 0.6 && Math.random() < 0.35) u = 0.25;  // rapid run notes
+    else                          u = 0.7 + Math.random() * 0.5;
+    noteDurs.push(u);
+    totalUnits += u;
+  }
+  const unitDur = (totalDur * 0.85) / totalUnits;
+
+  // §Ω TECHNIQUE SELECTION — for each note, decide what technique to use
+  // based on mastery thresholds plus a procedural phase.
+  let off = 0;
+  for(let i=0; i<numNotes; i++){
+    const dur = noteDurs[i] * unitDur;
+    const noteT = t + off;
+    const noteGain = gain * (0.85 + Math.random() * 0.2);
+    const m = noteSet[notes[i] === undefined ? 0 : Math.max(0, noteSet.indexOf(notes[i]))];
+    const note = notes[i];
+    // Mastery-driven technique selection per note:
+    const techRoll = Math.random();
+    const isRupture = (i === ruptureIdx);
+
+    // §GRACE NOTE — Ω_tech = 0.25
+    if(mastery > 0.25 && techRoll < 0.25 && !isRupture && i > 0){
+      const upperNeighbour = noteSet[Math.min(noteSet.length - 1, noteSet.indexOf(note) + 1)];
+      playFluteGrace(upperNeighbour, noteGain * 0.7, noteT, mastery);
+      // Then the main note follows after the grace
+      playFluteNote(note, dur * 0.9, noteGain, noteT + 0.07,
+        { mastery: mastery });
+
+    // §TRILL — Ω_tech = 0.35
+    } else if(mastery > 0.35 && techRoll < 0.18 && dur > 0.5){
+      const upper = noteSet[Math.min(noteSet.length - 1, noteSet.indexOf(note) + 1)];
+      playFluteTrill(note, upper, dur * 0.9, noteGain, noteT, mastery);
+
+    // §PITCH BEND — Ω_tech = 0.40
+    } else if(mastery > 0.40 && techRoll < 0.10 && dur > 0.4){
+      const bendTarget = noteSet[Math.max(0, Math.min(noteSet.length - 1,
+        noteSet.indexOf(note) + (Math.random() < 0.5 ? 1 : -1)))];
+      playFluteNote(note, dur * 0.95, noteGain, noteT, {
+        mastery: mastery, bendToMidi: bendTarget,
+        bendStart: 0.30, bendEnd: 0.85 });
+
+    // §HARMONIC OVERBLOW — Ω_tech = 0.50
+    } else if(mastery > 0.50 && techRoll < 0.12 && dur > 0.5){
+      const partial = mastery > 0.75 ? 3 : 2;
+      playFluteHarmonic(note - 12, dur * 0.95, noteGain, noteT, partial, mastery);
+
+    // §FLUTTER TONGUE — Ω_tech = 0.55 (often used on the rupture)
+    } else if(mastery > 0.55 && (isRupture || techRoll < 0.10) && dur > 0.4){
+      playFluteNote(note, dur * 0.95, noteGain, noteT, {
+        mastery: mastery, flutterTongue: true });
+
+    // §RAPID RUN — Ω_tech = 0.65 — replaces a single long note with a
+    // burst of short notes. Only triggers on already-short notes.
+    } else if(mastery > 0.65 && techRoll < 0.10 && dur > 0.18 && dur < 0.35){
+      // Build a 4-6 note run starting from this note, ascending or descending
+      const runLen = 4 + Math.floor(Math.random() * 3);
+      const runDir = Math.random() < 0.5 ? 1 : -1;
+      const runNotes = [];
+      const startIdx = noteSet.indexOf(note);
+      for(let k=0; k<runLen; k++){
+        const idx = Math.max(0, Math.min(noteSet.length - 1,
+          startIdx + k * runDir));
+        runNotes.push(noteSet[idx]);
+      }
+      const noteSubDur = dur / runLen;
+      playFluteRapidRun(runNotes, noteSubDur, noteGain, noteT, mastery);
+
+    // §MULTIPHONIC — Ω_tech = 0.75
+    } else if(mastery > 0.75 && techRoll < 0.10 && dur > 0.5){
+      // Pair the note with a 4th or 5th interval
+      const intervalSemitones = Math.random() < 0.5 ? 5 : 7;
+      const second = note + intervalSemitones;
+      playFluteMultiphonic(note, second, dur * 0.95, noteGain, noteT, mastery);
+
+    // §JET WHISTLE — Ω_tech = 0.80 (used as accent before a note)
+    } else if(mastery > 0.80 && techRoll < 0.06){
+      playFluteJetWhistle(noteGain * 0.9, noteT, mastery);
+      // Follow with the actual note
+      playFluteNote(note, dur * 0.85, noteGain, noteT + 0.20,
+        { mastery: mastery });
+
+    // §SINGING + PLAYING — Ω_tech = 0.85
+    } else if(mastery > 0.85 && techRoll < 0.08 && dur > 0.6){
+      const voiceNote = note - 7;  // perfect 5th below — pleasing interval
+      playFluteSinging(note, voiceNote, dur * 0.95, noteGain, noteT, mastery);
+
+    // §WHISTLE TONE — Ω_tech = 0.90 — fragile, used as an ornamental hover
+    } else if(mastery > 0.90 && techRoll < 0.05 && dur > 0.5){
+      playFluteWhistleTone(note, dur * 0.95, noteGain * 0.6, noteT);
+
+    // §DEFAULT — sustained tone with vibrato
+    } else {
+      playFluteNote(note, dur * 0.95, noteGain, noteT, { mastery: mastery });
+    }
+    off += dur;
+  }
+}
+
+// §CADENZA — the peak rupture moment of the entire passing arc.
+// At beat 190 (peak proximity), the master plays an extended phrase
+// demonstrating EVERY technique in the palette. This is C·Ω = 1 of
+// the outer CRR — the moment of maximal expression.
+function playFluteCadenza(time, gain, chord){
+  if(!ac) return;
+  initTribesAudio();
+  if(!tribesGain) return;
+  const t = time || ac.currentTime;
+  const noteSet = [62, 64, 66, 67, 69, 71, 72, 74, 76];
+
+  // §HARMONIC LOCK — pick chord-tone anchors for the opening and
+  // closing held notes. The cadenza is harmonically locked to the
+  // chord that's sounding in the chorus when it begins.
+  const chordPitchClasses = chord
+    ? chord.map(m => ((m % 12) + 12) % 12)
+    : [2, 6, 9];
+  // Find a low chord tone for the opening (D4, E4, or F#4)
+  let openNote = 62;
+  for(const c of [62, 64, 66]){
+    if(chordPitchClasses.indexOf(c % 12) >= 0){ openNote = c; break; }
+  }
+  // Find an upper chord tone for the close (C5, D5, or E5)
+  let closeNote = 74;
+  for(const c of [74, 72, 76]){
+    if(chordPitchClasses.indexOf(c % 12) >= 0){ closeNote = c; break; }
+  }
+  // Run notes — first beat lands on opening chord tone, rest scale up
+  // through chord tones favoured. Filter noteSet to chord tones first.
+  const chordTones = noteSet.filter(n => chordPitchClasses.indexOf(n % 12) >= 0);
+  // Build run as 8 notes ascending, alternating chord tones and passing
+  const runNotes = [];
+  for(let i = 0; i < 8; i++){
+    const useChord = (i % 2 === 0);
+    const idx = Math.min(noteSet.length - 1,
+      Math.floor(i / 8 * noteSet.length));
+    if(useChord && chordTones.length > 0){
+      runNotes.push(chordTones[Math.min(chordTones.length - 1,
+        Math.floor(i / 2))]);
+    } else {
+      runNotes.push(noteSet[idx]);
+    }
+  }
+
+  // Eight-section cadenza — each demonstrates a different technique
+  let off = 0;
+
+  // 1. Opening — sustained low chord tone (the master settles)
+  playFluteNote(openNote, 0.6, gain * 0.85, t + off, { mastery: 1.0 });
+  off += 0.7;
+
+  // 2. Rapid ascending run (8 sixteenths) — chord-tone-weighted
+  playFluteRapidRun(runNotes, 0.08, gain * 0.95, t + off, 1.0);
+  off += 0.08 * 8 + 0.05;
+
+  // 3. Held note with flutter tongue — close chord tone
+  playFluteNote(closeNote, 0.8, gain * 1.0, t + off, { mastery: 1.0, flutterTongue: true });
+  off += 0.85;
+
+  // 4. Pitch bend up to a harmonic overblow
+  playFluteNote(closeNote, 0.5, gain * 0.92, t + off, { mastery: 1.0, bendToMidi: closeNote + 2 });
+  off += 0.55;
+  playFluteHarmonic(closeNote - 12, 0.6, gain * 0.92, t + off, 3, 1.0);
+  off += 0.65;
+
+  // 5. Trill — bisbigliando feel between two adjacent chord-friendly notes
+  playFluteTrill(72, 74, 0.7, gain * 0.95, t + off, 1.0);
+  off += 0.75;
+
+  // 6. Multiphonic with singing — the master's most complex technique
+  // Voice on a chord 5th below
+  const voiceNote = closeNote - 7;
+  playFluteSinging(closeNote + 2, voiceNote, 0.8, gain * 0.90, t + off, 1.0);
+  off += 0.85;
+
+  // 7. Jet whistle into a multiphonic (the rupture δ) — multiphonic
+  // pair on chord tones
+  playFluteJetWhistle(gain * 0.85, t + off, 1.0);
+  off += 0.20;
+  playFluteMultiphonic(closeNote, closeNote + 7, 0.7, gain * 1.0, t + off, 1.0);
+  off += 0.75;
+
+  // 8. Whistle tone hover, then resolution to held closing chord tone
+  playFluteWhistleTone(openNote, 0.6, gain * 0.55, t + off);
+  off += 0.40;
+  playFluteNote(closeNote, 1.4, gain * 0.92, t + off, { mastery: 1.0 });
+}
+
+
+// §HOOF RATTLE: filtered noise burst with shaped envelope. Each "shake"
+// is a brief percussive clatter. We chain a sequence at walking pace.
+function playHoofRattle(time, gain, dur, shakes){
+  if(!ac) return;
+  initTribesAudio();
+  if(!tribesGain) return;
+  const t = time || ac.currentTime;
+  const numShakes = shakes || Math.max(2, Math.floor(dur * 2));
+  const shakeInterval = dur / numShakes;
+  for(let i=0; i<numShakes; i++){
+    const shakeT = t + i * shakeInterval + (Math.random() - 0.5) * 0.05;
+    const shakeDur = 0.20 + Math.random() * 0.06;
+    const v = (gain || 0.4) * 0.30 * (0.7 + Math.random() * 0.4);
+
+    const noise = ac.createBufferSource();
+    noise.buffer = noiseBuf;
+    noise.loop = true;
+    // Bandpass for the dry wooden clatter — multi-frequency
+    const bp1 = ac.createBiquadFilter();
+    bp1.type = 'bandpass';
+    bp1.frequency.value = 1200 + Math.random() * 800;
+    bp1.Q.value = 3.5;
+    const bp2 = ac.createBiquadFilter();
+    bp2.type = 'highpass';
+    bp2.frequency.value = 600;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, shakeT);
+    g.gain.linearRampToValueAtTime(v, shakeT + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.001, shakeT + shakeDur);
+    noise.connect(bp1); bp1.connect(bp2); bp2.connect(g); g.connect(tribesGain);
+    noise.start(shakeT);
+    noise.stop(shakeT + shakeDur + 0.05);
+  }
+  tribesMonitor.hoofRattle = gain || 0.4;
+  setTimeout(()=>{ tribesMonitor.hoofRattle *= 0.3 }, dur * 1000);
+}
+
+// §CLAPPER STICK: sharp bright wooden clack — split-elderberry stick
+// snaps. Short noise burst with high-Q resonance at ~1500 Hz.
+function playClapperStick(time, gain){
+  if(!ac) return;
+  initTribesAudio();
+  if(!tribesGain) return;
+  const t = time || ac.currentTime;
+  const v = (gain || 0.5) * 0.42;
+  const dur = 0.10;
+
+  const noise = ac.createBufferSource();
+  noise.buffer = noiseBuf;
+  // High-Q bandpass at the wood resonance
+  const bp = ac.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 1500 + (Math.random() - 0.5) * 200;
+  bp.Q.value = 8;
+  // Highpass to keep just the clack character
+  const hp = ac.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 800;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(v, t + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  noise.connect(hp); hp.connect(bp); bp.connect(g); g.connect(tribesGain);
+  noise.start(t);
+  noise.stop(t + dur + 0.02);
+
+  tribesMonitor.clapper = gain || 0.5;
+  setTimeout(()=>{ tribesMonitor.clapper *= 0.2 }, 150);
+}
+
+// §BASKET DRUM: low soft thump — the woven coil-basket struck by
+// hand or stick. D2 fundamental fuses with humpback B and bear D2.
+function playBasketDrum(time, gain){
+  if(!ac) return;
+  initTribesAudio();
+  if(!tribesGain) return;
+  const t = time || ac.currentTime;
+  const f0 = midiToFreq(38);   // D2 = 73.42 Hz
+  const v = (gain || 0.5) * 0.42;
+  const dur = 0.40;
+
+  const o = ac.createOscillator();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(f0 * 1.15, t);
+  o.frequency.exponentialRampToValueAtTime(f0, t + 0.05);
+
+  // Body resonance via bandpass
+  const bp = ac.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 90;
+  bp.Q.value = 1.2;
+
+  // Initial "thwack" — short noise burst at attack
+  const noise = ac.createBufferSource();
+  noise.buffer = noiseBuf;
+  const noiseLp = ac.createBiquadFilter();
+  noiseLp.type = 'lowpass';
+  noiseLp.frequency.value = 350;
+  noiseLp.Q.value = 0.7;
+  const noiseG = ac.createGain();
+  noiseG.gain.setValueAtTime(v * 0.6, t);
+  noiseG.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+  noise.connect(noiseLp); noiseLp.connect(noiseG); noiseG.connect(tribesGain);
+
+  // Tonal body
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(v, t + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(bp); bp.connect(g); g.connect(tribesGain);
+
+  noise.start(t); o.start(t);
+  noise.stop(t + 0.05);
+  o.stop(t + dur + 0.05);
+
+  tribesMonitor.basketDrum = gain || 0.5;
+  setTimeout(()=>{ tribesMonitor.basketDrum *= 0.25 }, dur * 1000);
+}
+
+// §SCHEDULE TRIBES PASSING — proximity-modulated walking presence
+// across a span of chorus beats. Generates a sequence of flute phrases,
+// hoof rattle bursts, clapper stick punctuation, and basket drum
+// walking pulses, with density and gain shaped by a proximity envelope
+// (0 = not yet there, 1 = passing nearest, 0 = gone).
+function scheduleTribesPassing(timeOrigin, beatStart, beatEnd, beatPeak, gainPeak){
+  if(!ac) return;
+  initTribesAudio();
+  const startT = timeOrigin + beatStart * BEAT_S;
+  const totalDurS = (beatEnd - beatStart) * BEAT_S;
+
+  // Proximity envelope: 0 at start, peak at beatPeak, 0 at end
+  // Using a smooth Hann-like window
+  function proximity(beat){
+    if(beat < beatStart || beat > beatEnd) return 0;
+    if(beat <= beatPeak){
+      const f = (beat - beatStart) / (beatPeak - beatStart);
+      return f * f * (3 - 2*f);  // smoothstep up
+    } else {
+      const f = (beat - beatPeak) / (beatEnd - beatPeak);
+      return 1 - f * f * (3 - 2*f);  // smoothstep down
+    }
+  }
+
+  // §FLUTE PHRASES — sparse at first, denser at peak, sparse on retreat
+  // Phrase every 8-12 beats depending on proximity
+  let curBeat = beatStart;
+  while(curBeat < beatEnd){
+    const prox = proximity(curBeat);
+    // Phrase only fires if proximity exceeds threshold (prevents flute
+    // at very-far distances)
+    if(prox > 0.10){
+      const phraseT = timeOrigin + curBeat * BEAT_S;
+      // Phrase length: 4-7 beats
+      const phraseLen = 4 + Math.random() * 3;
+      const phraseGain = gainPeak * prox * (0.7 + Math.random() * 0.4);
+      playFlutePhrase(phraseT, phraseGain, phraseLen, prox);
+    }
+    // Next phrase: 8-14 beats away (longer gaps when distant)
+    curBeat += 8 + Math.random() * 6 + (1 - proximity(curBeat)) * 4;
+  }
+
+  // §HOOF RATTLE — louder, more frequent at peak proximity. The
+  // rattle is associated with the walking gait.
+  curBeat = beatStart + 4;  // start a bit after the flute
+  while(curBeat < beatEnd){
+    const prox = proximity(curBeat);
+    if(prox > 0.18){
+      const rattleT = timeOrigin + curBeat * BEAT_S;
+      const rattleDur = 1.2 + Math.random() * 0.8;
+      const numShakes = Math.floor(3 + prox * 4);
+      playHoofRattle(rattleT, gainPeak * prox * 0.8, rattleDur, numShakes);
+    }
+    curBeat += 6 + Math.random() * 4;
+  }
+
+  // §BASKET DRUM walking pulse — only at higher proximity. Steady at
+  // half the chorus tempo (one strike per two beats), like footsteps.
+  curBeat = beatStart;
+  while(curBeat < beatEnd){
+    const prox = proximity(curBeat);
+    if(prox > 0.35){  // only kick in once they're close enough to hear
+      const drumT = timeOrigin + curBeat * BEAT_S;
+      playBasketDrum(drumT, gainPeak * prox * 0.85);
+    }
+    curBeat += 2;  // one strike per two beats — steady walking pulse
+  }
+
+  // §CLAPPER STICK — sparse rhythmic punctuation, only at peak
+  curBeat = beatStart + 8;
+  while(curBeat < beatEnd){
+    const prox = proximity(curBeat);
+    if(prox > 0.55){
+      const clapT = timeOrigin + curBeat * BEAT_S;
+      playClapperStick(clapT, gainPeak * prox * 0.7);
+    }
+    curBeat += 8 + Math.random() * 6;  // every 8-14 beats
   }
 }
 
@@ -3815,6 +4819,117 @@ function buildChorusSequence(){
             brStart, brEnd,
             gain: gainPeak});
   }
+  // §TRIBES: schedule a passing event by enqueueing individual
+  // instrument events at their actual beat positions. This means
+  // scrubbing into the middle of the passing arc still triggers
+  // the right notes/rattles/drums for that moment (rather than
+  // missing the schedule-spawning event). Proximity envelope
+  // shapes density and gain.
+  function tribesPassing(beatStart, beatEnd, beatPeak, gainPeak){
+    function proximity(beat){
+      if(beat < beatStart || beat > beatEnd) return 0;
+      if(beat <= beatPeak){
+        const f = (beat - beatStart) / (beatPeak - beatStart);
+        return f * f * (3 - 2*f);
+      } else {
+        const f = (beat - beatPeak) / (beatEnd - beatPeak);
+        return 1 - f * f * (3 - 2*f);
+      }
+    }
+    // §MASTERY function — Ω-modulated coherence accumulation. Slightly
+    // non-linear (proximity^0.7) so mastery rises faster than linear at
+    // the start, then plateaus near peak — like an actual learning
+    // curve. By peak proximity the player has access to all 12
+    // techniques.
+    function mastery(beat){
+      const p = proximity(beat);
+      return Math.pow(p, 0.7);
+    }
+
+    // §FLUTE PHRASES — bar-quantized, harmonically locked to the
+    // chorus's chord progression. The master flutist enters on
+    // downbeats and the phrase note pool is biased toward chord tones
+    // of whatever chord is sounding at the start of the phrase.
+    //
+    // The chorus uses a 16-chord cycle (ch[0..15]), 4 beats per chord
+    // = 64 beats per full cycle. Look up which chord is sounding at
+    // each phrase start and embed it with the phrase event so the
+    // dispatcher can pass it through to playFlutePhrase.
+    //
+    // Phrase intervals are quantized to integer bars (4-beat units).
+    //   Low mastery: 12 bars between phrases (rare, distant)
+    //   Mid mastery: 6-8 bars between phrases
+    //   Peak mastery: 2-3 bars between phrases (the master is showing
+    //                  off; phrases nearly continuous)
+    let curBeat = Math.ceil(beatStart / 4) * 4;   // start on next bar
+    while(curBeat < beatEnd){
+      const prox = proximity(curBeat);
+      const m = mastery(curBeat);
+      if(prox > 0.10){
+        // Phrase length grows with mastery — implied circular breathing.
+        // Quantize to integer bars (multiples of 4 beats).
+        const phraseLenBars = 1 + Math.round(m * 2.5);  // 1-4 bars
+        const phraseLen = phraseLenBars * 4;
+        // Active chord at phrase start (chord cycle = 64 beats / 16 chords)
+        const chordIdx = Math.floor((curBeat / 4) % ch.length);
+        const activeChord = ch[chordIdx];
+        E.push({beat: curBeat, type: 'flutePhrase',
+                gain: gainPeak * prox * (0.85 + Math.random() * 0.3),
+                durBeats: phraseLen,
+                density: prox,
+                mastery: m,
+                chord: activeChord});
+      }
+      // Phrase interval — bar-quantized, mastery-controlled
+      const nextGapBars = Math.max(1, Math.round(3 - m * 1.5));  // 3-1 bars between phrases
+      curBeat += nextGapBars * 4;
+    }
+
+    // §CADENZA — single dramatic moment at peak proximity. The master
+    // demonstrates every technique in a 9-beat extended phrase. This
+    // is the C·Ω = 1 moment of the entire passing arc — the place
+    // where the listener hears what the elderberry flute can really do
+    // when played by a master at the peak of their power. Bar-aligned.
+    const cadenzaBeat = Math.round((beatPeak - 4) / 4) * 4;
+    E.push({beat: cadenzaBeat, type: 'fluteCadenza',
+            gain: gainPeak * 1.15,
+            chord: ch[Math.floor((cadenzaBeat / 4) % ch.length)]});
+
+    // Hoof rattle — every 6-10 beats when within range
+    curBeat = beatStart + 4;
+    while(curBeat < beatEnd){
+      const prox = proximity(curBeat);
+      if(prox > 0.18){
+        const dur = 1.2 + Math.random() * 0.8;
+        const numShakes = Math.floor(3 + prox * 4);
+        E.push({beat: curBeat, type: 'hoofRattle',
+                gain: gainPeak * prox * 0.8,
+                dur, shakes: numShakes});
+      }
+      curBeat += 6 + Math.random() * 4;
+    }
+    // Basket drum — steady walking pulse, only at moderate-or-greater
+    // proximity. Strikes every 2 beats.
+    curBeat = beatStart;
+    while(curBeat < beatEnd){
+      const prox = proximity(curBeat);
+      if(prox > 0.35){
+        E.push({beat: curBeat, type: 'basketDrum',
+                gain: gainPeak * prox * 0.85});
+      }
+      curBeat += 2;
+    }
+    // Clapper stick — sparse rhythmic punctuation, only at peak
+    curBeat = beatStart + 8;
+    while(curBeat < beatEnd){
+      const prox = proximity(curBeat);
+      if(prox > 0.55){
+        E.push({beat: curBeat, type: 'clapperStick',
+                gain: gainPeak * prox * 0.7});
+      }
+      curBeat += 8 + Math.random() * 6;
+    }
+  }
 
   // I. PRE-DAWN (0-31) — pad only, deep redwood quiet
   thermCfg(0,{activity:.03,turbulence:.85,lift:.3});
@@ -3841,6 +4956,19 @@ function buildChorusSequence(){
 
   // IV. DAWN CHORUS (96-143) — grosbeak, song sparrow, bewick's wren cascade in
   thermCfg(96,{activity:.35,turbulence:.45,lift:.55});
+
+  // §TRIBES: Tolowa Dee-niʼ + Yurok presence walking through the
+  // forest. Far → near → far passing arc spanning DAWN CHORUS through
+  // late THERMAL RISING. They are gone before FULL FLOCK begins so
+  // their peaceful walking presence doesn't overlap with the bear
+  // approach (220-300) or the raptor rupture (256-275). Proximity
+  // peaks at beat 190 (deep into THERMAL RISING) — the morning is
+  // most fully alive there. The passing is registered as a single
+  // schedule event; the dispatcher generates all the individual
+  // notes/rattles/drum strikes procedurally at run-time using CRR-
+  // controlled density and gain shaped by the proximity envelope.
+  tribesPassing(100, 230, 190, 0.50);
+
   for(let b=96;b<144;b++){const l=b-96;
     const c2=ch[Math.floor(l/4)%16];
     if(l%8===0)pad(b,c2,.22,7);
@@ -4452,10 +5580,48 @@ function buildBatSequence(){
   E.sort((a,b)=>a.beat-b.beat);return E;
 }
 let sequence=[],seqIdx=0,playing=false,startTime=0,currentBeat=0;
+// §DAY 2+ φ-ROTATION ─────────────────────────────────────────────────
+// User insight: "Phi in the regeneration operator... regenerate the
+// future maximally different but somehow the same."
+//
+// MATHEMATICAL JUSTIFICATION:
+//   R = ∫ φ(x,τ) · exp(C/Ω) · Θ dτ
+// Setting φ = (1+√5)/2 = the golden ratio gives the regeneration
+// operator a constant golden-ratio weighting. Because 1/φ ≈ 0.618 is
+// the MOST IRRATIONAL number (in the continued-fraction sense — KAM
+// theorem), rotating the temporal grammar by 1/φ produces the
+// MAXIMALLY non-overlapping reconstruction. Each new day shuffles
+// when events fire while preserving WHAT each event is. The grammar
+// (timing) regenerates; the vocabulary (species, instruments, chords,
+// keys, characters) stays coherent.
+//
+//   τ_n(τ_1) = (τ_1 + (n-1)/φ) mod 1     — day n temporal mapping
+//
+// Day 2: events shifted by 0.618 of a day = 252 beats. The bear's
+// "here!" growl that fired at beat 258 on day 1 fires at
+// (258 + 252) mod 408 = 102 on day 2 — DAWN CHORUS time!
+// The peregrine alarm that fired at 256 fires at 100. The flute
+// cadenza at 188 fires at 32 (FIRST LIGHT). The dawn chorus is
+// shuffled WHOLE-CLOTH but every voice is preserved.
+//
+// Because 1/φ is irrational, the sequence never repeats — every day
+// is a unique rearrangement of the same vocabulary, KAM-stable,
+// ergodic over the [0, totalBeats] interval as days→∞.
+const PHI = (1 + Math.sqrt(5)) / 2;          // 1.6180339887...
+const PHI_INV = 1 / PHI;                      // 0.6180339887...
+let currentDay = 1;
+// Master schedule for day 1 (kept around to generate later days)
+let _day1Schedule = null;
 
 function startPlayback(){
   if(!ac)initAudio();if(ac.state==='suspended')ac.resume();
   sequence=MODE==='bat'?buildBatSequence():MODE==='flock'?buildFlockSequence():buildChorusSequence();
+  // Snapshot day 1's schedule so we can re-rotate it for day 2+
+  // (only meaningful for chorus mode — bat/flock modes don't use day rollover)
+  if(MODE === 'chorus'){
+    _day1Schedule = sequence.map(ev => Object.assign({}, ev));
+  }
+  currentDay = 1;
   seqIdx=0;currentBeat=0;startTime=ac.currentTime;playing=true;
   ALL_CRR.forEach(c=>c.reset());thermalEngine.reset();PREDATOR.active=false;
   if(MODE==='chorus')initChorus();else if(MODE==='flock')initFlock();else initBats();
@@ -4463,6 +5629,128 @@ function startPlayback(){
   flockCollective.turnDir={x:0,y:0};flockCollective.choreo=null;
   roosting=false;masterFade=1;
   document.getElementById('play-btn').textContent='■';scheduleLoop();
+}
+
+// §DAY ROLLOVER — append a φ-rotated copy of day 1's schedule for the
+// next day. Each event's beat is shifted by (day-1)/φ × totalBeats,
+// modulo totalBeats, then offset by (day-1) × totalBeats so it sits
+// in the right day-window of the master sequence.
+function rollOverToNextDay(){
+  if(MODE !== 'chorus' || !_day1Schedule) return;
+  const totalB = CHORUS_BEATS;
+  currentDay += 1;
+  // Cumulative rotation: each day adds 1/φ of a day's worth of time.
+  // Cumulative shift after n days = (currentDay - 1) × PHI_INV mod 1
+  const rotationFraction = ((currentDay - 1) * PHI_INV) % 1;
+  const shiftBeats = rotationFraction * totalB;
+  const dayOffsetBeats = (currentDay - 1) * totalB;
+  // Apply rotation to each day-1 event and append.
+  // (originalBeat + shiftBeats) mod totalB + dayOffsetBeats
+  const newDayEvents = [];
+  for(const ev of _day1Schedule){
+    const rotatedBeat = ((ev.beat + shiftBeats) % totalB + totalB) % totalB;
+    const newEv = Object.assign({}, ev);
+    newEv.beat = rotatedBeat + dayOffsetBeats;
+    newDayEvents.push(newEv);
+  }
+  // Sort just the new day's events by beat then merge into sequence
+  newDayEvents.sort((a, b) => a.beat - b.beat);
+  // Append (no need to re-sort the whole sequence since all new events
+  // come strictly after all existing events in beat-time)
+  for(const ev of newDayEvents) sequence.push(ev);
+
+  // §DREAM TEXTURE — across the day boundary, the regeneration kernel
+  // R = ∫ φ · exp(C/Ω) · Θ dτ samples yesterday's vocabulary and
+  // re-presents it as quiet auditory dream content. We add 5-6 dream
+  // events into the first 14 beats of the new day, sampled from
+  // yesterday's chord-tone events with the exp(C/Ω) memory kernel
+  // determining selection weight (recent events from yesterday weighted
+  // higher). Dream events fire at very low gain (5-12%) with their
+  // identities preserved — same species, same chord, same instrument —
+  // but heard as if remembered, not present.
+  //
+  // CRR rationale: this is the regeneration phase R operating ACROSS
+  // the day boundary. The dream is mathematically the past sampled
+  // through the φ-weighted exp(C/Ω) kernel — exactly the user's
+  // intuition that φ regenerates the future maximally different but
+  // somehow the same. Here it sounds like memory.
+  injectDreamTexture(dayOffsetBeats);
+}
+
+// §DREAM TEXTURE injection — sample chord-tone song events from
+// yesterday's schedule, weighted by exp(C/Ω) memory kernel toward
+// the end of yesterday. Quietly placed in the new day's first
+// 14 beats. Reverberant, low gain — auditory dream.
+function injectDreamTexture(dayOffsetBeats){
+  if(!_day1Schedule) return;
+  const totalB = CHORUS_BEATS;
+  // Eligible: song, note, humpUnit events from middle-to-late day 1
+  // (beats 96-407 — exclude the very-quiet PRE-DAWN). These are the
+  // "memorable" moments that the dream selects from.
+  const dreamCandidates = _day1Schedule.filter(ev => {
+    if(ev.beat < 96 || ev.beat > 380) return false;
+    return ev.type === 'song' || ev.type === 'humpUnit' ||
+           ev.type === 'gray' || ev.type === 'note' ||
+           ev.type === 'humpPhrase';
+  });
+  if(dreamCandidates.length === 0) return;
+  // Pick 5 events with exp(beat/Ω_mem) weighting — recent moments
+  // from yesterday weighted exponentially. Ω_mem chosen so the last
+  // 100 beats of yesterday dominate the dream.
+  // Weight: exp(beat / 80) — recent events ~5× more likely than mid-day
+  const totalWeight = dreamCandidates.reduce((sum, ev) =>
+    sum + Math.exp((ev.beat - 96) / 100), 0);
+  const numDreamEvents = 5;
+  for(let k = 0; k < numDreamEvents; k++){
+    let r = Math.random() * totalWeight;
+    for(const ev of dreamCandidates){
+      r -= Math.exp((ev.beat - 96) / 100);
+      if(r <= 0){
+        const dreamEv = Object.assign({}, ev);
+        // Place randomly in the first 14 beats of the new day
+        dreamEv.beat = dayOffsetBeats + 1 + Math.random() * 13;
+        // Mark as dream for the dispatcher (extra reverb, very low gain)
+        dreamEv.dream = true;
+        if(dreamEv.gain !== undefined) dreamEv.gain *= 0.10;
+        if(dreamEv.velocity !== undefined) dreamEv.velocity *= 0.10;
+        sequence.push(dreamEv);
+        break;
+      }
+    }
+  }
+  // Resort the affected window — dream events were just inserted
+  // out of order. Sort the tail (last day-and-a-bit's events).
+  const sortFromIdx = sequence.findIndex(ev => ev.beat >= dayOffsetBeats - 1);
+  if(sortFromIdx >= 0){
+    const tail = sequence.splice(sortFromIdx);
+    tail.sort((a, b) => a.beat - b.beat);
+    for(const ev of tail) sequence.push(ev);
+  }
+}
+
+// §DAWN GAIN ENVELOPE — the system's Ω expands from sleep value to
+// waking value across the first 48 beats of any day. Events fire
+// quietly during the dream window (0-16) and ramp to full intensity
+// by waking (beat 48). This is the regeneration kernel exp(C/Ω)
+// scaling toward 1 as Ω returns to its waking value.
+//
+//   beats 0-16:    0.05 → 0.30   (DREAM phase — barely audible)
+//   beats 16-48:   0.30 → 1.00   (WAKING phase — system rouses)
+//   beats 48+:     1.00          (full expression)
+//
+// Applied to every audio event in the dispatcher via gain multiply.
+// Day 1 is unaffected because PRE-DAWN/FIRST-LIGHT have very few
+// events at beats 0-48 anyway — the envelope is musically silent
+// for day 1 and dramatically present for day 2+.
+function dawnGainEnvelope(beatInDay){
+  if(beatInDay >= 48) return 1.0;
+  const smoothstep = (t) => { t = Math.max(0, Math.min(1, t)); return t*t*(3-2*t); };
+  if(beatInDay < 16){
+    // Dream phase — system is asleep, Ω is small
+    return 0.05 + 0.25 * smoothstep(beatInDay / 16);
+  }
+  // Waking phase — Ω expands back to waking value
+  return 0.30 + 0.70 * smoothstep((beatInDay - 16) / 32);
 }
 function stopPlayback(){playing=false;document.getElementById('play-btn').textContent='▶';}
 function togglePlayback(){playing?stopPlayback():startPlayback();}
@@ -4472,9 +5760,28 @@ let masterFade=1; // For end-of-song fadeout
 function scheduleLoop(){
   if(!playing)return;const now=ac.currentTime;currentBeat=(now-startTime)/BEAT_S;
   const totalB=getBeats();
-  if(currentBeat>=totalB){stopPlayback();return;}
+  // §DAY ROLLOVER — when we reach the end of the current day, generate
+  // the next day with φ-rotated temporal grammar. The chorus continues
+  // indefinitely, with each new day a maximally-different-yet-same
+  // arrangement of the same vocabulary. Only chorus mode supports this;
+  // flock/bat modes still stop at end.
+  if(MODE === 'chorus'){
+    const currentDayEnd = currentDay * totalB;
+    // When playback approaches the end of the current day's window,
+    // generate the next day's events 4 beats ahead so the dispatcher
+    // has them ready.
+    if(currentBeat >= currentDayEnd - 8 && sequence.length > 0 &&
+       sequence[sequence.length - 1].beat < (currentDay + 1) * totalB){
+      rollOverToNextDay();
+    }
+  } else {
+    if(currentBeat>=totalB){stopPlayback();return;}
+  }
 
-  const section=getSection(Math.floor(currentBeat));
+  // §DAY-AWARE SECTION — use beat-within-day for section lookup so the
+  // CRR-driving Lagrangian L scales by the right section even on day 2+
+  const _beatInDay = MODE === 'chorus' ? Math.floor(currentBeat) % totalB : Math.floor(currentBeat);
+  const section=getSection(_beatInDay);
   const secs=getSections();
   const sIdx=secs.indexOf(section);
   const L=.012+sIdx*.007;
@@ -4506,11 +5813,38 @@ function scheduleLoop(){
   const isRoost=section.name==='ROOST';
   if(isRoost&&!roosting){roosting=true;roostStartTime=currentBeat*BEAT_S;}
 
-  // Master fadeout
+  // §MASTER FADE — auditory-visual expression of Ω contracting through
+  // ROOST (system going to sleep) and re-expanding through the dream-
+  // waking phase of the new day. Uses beat-within-day so day 2+ runs
+  // through the same Ω-contraction at end-of-day, then RECOVERS during
+  // the new day's dream phase (beats 0-48). The masterFade value IS the
+  // multiplier on visual brightness AND audio level — it represents
+  // how "alive" the system is. CRR-coherent: Ω small ⇒ system asleep ⇒
+  // masterFade small. Ω growing ⇒ system waking ⇒ masterFade growing.
+  const _mfTotalB = getBeats();
+  const _mfBeatInDay = MODE === 'chorus' ? currentBeat % _mfTotalB : currentBeat;
   if(isRoost){
-    const roostProgress=(currentBeat-section.start)/(section.end-section.start);
-    if(roostProgress>.3)masterFade=Math.max(0,1-(roostProgress-.3)/.7);
-    if(masterGain)masterGain.gain.setTargetAtTime(masterFade*.7,ac.currentTime,.5);
+    // ROOST runs beats 376-407; fade begins at 30% through ROOST
+    const roostProgress = (_mfBeatInDay - section.start) / (section.end - section.start);
+    if(roostProgress > .3) masterFade = Math.max(0, 1 - (roostProgress - .3) / .7);
+    if(masterGain) masterGain.gain.setTargetAtTime(masterFade * .7, ac.currentTime, .5);
+  } else if(MODE === 'chorus' && _mfBeatInDay < 48){
+    // §DREAM → WAKING — masterFade rises from 0 back toward 1 across
+    // the new day's first 48 beats. This mirrors the dawnGainEnvelope
+    // for events but applied to the global fade, so visuals and audio
+    // bus levels follow the same Ω-expansion curve.
+    const wakeProgress = _mfBeatInDay / 48;
+    const smoothstep = Math.max(0, Math.min(1, wakeProgress));
+    masterFade = smoothstep * smoothstep * (3 - 2 * smoothstep);
+    if(masterGain) masterGain.gain.setTargetAtTime(masterFade * .7, ac.currentTime, .5);
+    // Reset roosting flag once we're past the dream phase
+    if(_mfBeatInDay > 16) roosting = false;
+  } else if(MODE === 'chorus'){
+    // Daytime — full activity, fade at 1
+    if(masterFade < 1){
+      masterFade = Math.min(1, masterFade + .003);  // slow safety climb
+      if(masterGain) masterGain.gain.setTargetAtTime(masterFade * .7, ac.currentTime, .5);
+    }
   }
 
   birdList.forEach(f=>{
@@ -4556,6 +5890,30 @@ function scheduleLoop(){
   while(seqIdx<sequence.length&&sequence[seqIdx].beat<=schedH){
     const ev=sequence[seqIdx],evTime=startTime+ev.beat*BEAT_S;
     const crrMod=Math.min(crrGlobal.expCO/5,3);
+
+    // §DAWN ENVELOPE — apply the new-day-warming envelope to every
+    // audio event firing in the first 48 beats of any day. This makes
+    // every day SOUND like it ramps up from quiet sleep through dream
+    // through waking, regardless of which day-1 events the φ-rotation
+    // has placed at this position. Day 1 is musically unaffected
+    // (PRE-DAWN is sparse anyway); day 2+ gets a beautiful ramp where
+    // the regenerated chorus emerges from silence.
+    //
+    // We mutate ev.gain/ev.velocity for this dispatch only — the
+    // sequence array isn't permanently modified because each event
+    // is only dispatched once. (For dream events we apply only the
+    // smaller dawn factor since they're already pre-attenuated to 10%.)
+    let dawnMult = 1.0;
+    if(MODE === 'chorus'){
+      const evBeatInDay = ((ev.beat % totalB) + totalB) % totalB;
+      dawnMult = dawnGainEnvelope(evBeatInDay);
+    }
+    // Apply the dawn envelope to whichever amplitude field this event
+    // type uses. We restore at end of dispatch (saved values).
+    const _origGain = ev.gain, _origVelocity = ev.velocity, _origPadGain = ev.padGain;
+    if(ev.gain !== undefined) ev.gain *= dawnMult;
+    if(ev.velocity !== undefined) ev.velocity *= dawnMult;
+    if(ev.padGain !== undefined) ev.padGain *= dawnMult;
     if(ev.type==='note')playNote(ev.midi,ev.velocity*crrMod,ev.duration*BEAT_S,evTime);
     else if(ev.type==='dawn')playDawnMelody(ev.gain*crrMod,evTime,crrMod);
     else if(ev.type==='song'){
@@ -4566,7 +5924,12 @@ function scheduleLoop(){
       // expression of CRR regeneration: a bird MUST complete its
       // R phase before its next coherence cycle. Without this gate,
       // sequence-level density triggers stack into cacophony.
-      if((songMonitor[ev.species]||0) > 0.06){ seqIdx++; continue; }
+      if((songMonitor[ev.species]||0) > 0.06){
+        if(_origGain !== undefined) ev.gain = _origGain;
+        if(_origVelocity !== undefined) ev.velocity = _origVelocity;
+        if(_origPadGain !== undefined) ev.padGain = _origPadGain;
+        seqIdx++; continue;
+      }
       if(ev.species==='variedThrush')playVariedThrushSong(g,evTime,crrMod);
       else if(ev.species==='blackHeadedGrosbeak')playBlackHeadedGrosbeakSong(g,evTime,crrMod);
       else if(ev.species==='americanRobin')playAmericanRobinSong(g,evTime,crrMod);
@@ -4607,6 +5970,15 @@ function scheduleLoop(){
       scheduleHeartbeats(evTime, ev.dur, ev.bpmStart, ev.bpmEnd, ev.gain);
     else if(ev.type==='breathSeq')
       scheduleBreaths(evTime, ev.dur, ev.brStart, ev.brEnd, ev.gain);
+    // §TRIBES: Tolowa Dee-niʼ + Yurok instruments passing through forest
+    else if(ev.type==='flute')playFluteNote(ev.midi, ev.dur, ev.gain, evTime);
+    else if(ev.type==='flutePhrase')
+      playFlutePhrase(evTime, ev.gain, ev.durBeats, ev.density, ev.mastery, ev.chord);
+    else if(ev.type==='fluteCadenza')playFluteCadenza(evTime, ev.gain, ev.chord);
+    else if(ev.type==='hoofRattle')
+      playHoofRattle(evTime, ev.gain, ev.dur, ev.shakes);
+    else if(ev.type==='clapperStick')playClapperStick(evTime, ev.gain);
+    else if(ev.type==='basketDrum')playBasketDrum(evTime, ev.gain);
     // Bat-specific events
     else if(ev.type==='echo')playEchoClick(ev.gain*crrMod,evTime,crrMod);
     else if(ev.type==='echoCluster')playEchoCluster(ev.gain*crrMod,evTime,crrMod,ev.n||3);
@@ -4625,6 +5997,15 @@ function scheduleLoop(){
     else if(ev.type==='thermal'){for(let s=0;s<(ev.steps||1);s++){const notes=thermalEngine.step(crrGlobal.expCO);notes.forEach((m,i)=>playThermalNote(m,ev.velocity,ev.duration*BEAT_S,evTime+i*.05));}}
     else if(ev.type==='thermalCollapse')thermalEngine.collapse();
     else if(ev.type==='thermalConfig'){if(ev.activity!==undefined)thermalEngine.activity=ev.activity;if(ev.turbulence!==undefined)thermalEngine.turbulence=ev.turbulence;if(ev.lift!==undefined)thermalEngine.lift=ev.lift;}
+
+    // Restore original amplitude fields so the sequence array is not
+    // permanently mutated by the dawn-envelope multiplication. Each
+    // event is dispatched only once but we keep the sequence pristine
+    // for safety (e.g. seeking back through the timeline).
+    if(_origGain !== undefined) ev.gain = _origGain;
+    if(_origVelocity !== undefined) ev.velocity = _origVelocity;
+    if(_origPadGain !== undefined) ev.padGain = _origPadGain;
+
     seqIdx++;
   }
   requestAnimationFrame(scheduleLoop);
@@ -4861,14 +6242,26 @@ function buildTimeline(){
 }
 function updateTimeline(){
   const total=getBeats();
-  document.getElementById('track-fill').style.width=Math.min(currentBeat/total*100,100)+'%';
+  // §DAY-AWARE — track shows progress within current day; time display
+  // shows total elapsed real-world time (always growing)
+  const beatInDay = MODE === 'chorus' ? currentBeat % total : currentBeat;
+  document.getElementById('track-fill').style.width=Math.min(beatInDay/total*100,100)+'%';
   const secs=currentBeat*BEAT_S;const m=Math.floor(secs/60),s=Math.floor(secs%60);
   document.getElementById('time-display').textContent=`${m}:${s.toString().padStart(2,'0')}`;
 }
 function updateMonitors(){
-  const sec=getSection(Math.floor(currentBeat));
-  document.getElementById('iSection').textContent=sec.name;
-  document.getElementById('iBeat').textContent=Math.floor(currentBeat);
+  // §DAY-AWARE SECTION DISPLAY — currentBeat grows past 408 across
+  // multiple days; for the section/beat readout we show beat-within-day
+  // and append a day indicator for day 2+
+  const totalB = getBeats();
+  const beatInDay = MODE === 'chorus' ? Math.floor(currentBeat) % totalB : Math.floor(currentBeat);
+  const sec = getSection(beatInDay);
+  let sectionLabel = sec.name;
+  if(MODE === 'chorus' && currentDay > 1){
+    sectionLabel = `${sec.name} · DAY ${currentDay}`;
+  }
+  document.getElementById('iSection').textContent = sectionLabel;
+  document.getElementById('iBeat').textContent = beatInDay;
   document.getElementById('iCRR').textContent=`C=${crrGlobal.C.toFixed(2)} Ω=${crrGlobal.omega.toFixed(3)}`;
   document.getElementById('iExpCO').textContent=`exp=${crrGlobal.expCO.toFixed(2)}`;
   const b0=(getBirdList())[0]||{syrinxTension:.5,inspiration:false,heartBPM:600,downstroke:false,coreTemp:41};
@@ -5250,7 +6643,14 @@ function resize(){
   setTimeout(initTelemCanvases,100);
 }
 function hexToRgb(hex){return`${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)}`}
-function getSkyPhase(){if(!playing)return MODE==='bat'?.9:0;return Math.min(currentBeat/(getBeats()),1);}
+function getSkyPhase(){
+  if(!playing)return MODE==='bat'?.9:0;
+  // §DAY-AWARE — sky phase is per-day (0..1 within a day) so day 2+
+  // visuals replay the camera arc from sunrise to night, just like day 1
+  const totalB = getBeats();
+  const beatInDay = MODE === 'chorus' ? currentBeat % totalB : currentBeat;
+  return Math.min(beatInDay / totalB, 1);
+}
 
 // ─── §CAMERA: pan-out reveal ────────────────────────────────────────
 // The camera starts in a close shot of the redwood grove and slowly
@@ -5649,7 +7049,11 @@ function drawLighthouse(w,h){
   // pan-out (beats 96-216), Camera.night still has residual values
   // (0.65 → 0.01) but the lighthouse should be UNLIT throughout —
   // matching real Battery Point operation (sunset-to-sunrise lamp).
-  const beamGateRaw = Math.max(0, Math.min(1, (currentBeat - 360) / 40));
+  // Day-aware: use beat-within-day so day 2+ also gets sunset-to-
+  // sunrise behaviour, not perpetually-on after day 1 ends.
+  const _lhTotalB = getBeats();
+  const _lhBeatInDay = MODE === 'chorus' ? currentBeat % _lhTotalB : currentBeat;
+  const beamGateRaw = Math.max(0, Math.min(1, (_lhBeatInDay - 360) / 40));
   const beamGate = beamGateRaw * beamGateRaw * (3 - 2 * beamGateRaw);
   const lightVis = structVis * beamGate;
 
@@ -6567,8 +7971,11 @@ function drawSpectrum(w,h,sx,sy,r){
 function render(){
   const w=W/devicePixelRatio,h=H/devicePixelRatio;cx.clearRect(0,0,w,h);
 
-  // §CAMERA: update zoom-out animation from chorus position
-  Camera.update(currentBeat);
+  // §CAMERA: update zoom-out animation from chorus position. Use
+  // beat-within-day so day 2+ replays the same dawn-to-night arc.
+  const _camTotalB = getBeats();
+  const _camBeatInDay = MODE === 'chorus' ? currentBeat % _camTotalB : currentBeat;
+  Camera.update(_camBeatInDay);
   // §WHALE: ramp whale and ocean rumble buses with the camera reveal —
   // whales become audible exactly as the ocean enters frame.
   if(ac && playing) setOceanLevel(Camera.ocean);
@@ -6602,7 +8009,8 @@ function render(){
     // see the lighthouse all day as a piece of geography, then watch
     // it light up as the sun goes down.
     const totalBeats = (typeof getBeats === 'function') ? getBeats() : 408;
-    const beamGateBeat = (currentBeat - 360) / 40;
+    const _shBeatInDay = MODE === 'chorus' ? currentBeat % totalBeats : currentBeat;
+    const beamGateBeat = (_shBeatInDay - 360) / 40;
     const bgT = Math.max(0, Math.min(1, beamGateBeat));
     const beamGate = bgT * bgT * (3 - 2 * bgT);   // smoothstep
     const lhVisO = Math.min(1, Camera.ocean / 0.3);
@@ -6713,7 +8121,12 @@ function boot(){
   document.getElementById('track-wrap').addEventListener('click',e=>{
     if(!playing)return;const rect=e.currentTarget.getBoundingClientRect();
     const pct=(e.clientX-rect.left)/rect.width;
-    const total=getBeats(),tb=pct*total;
+    const total=getBeats();
+    // §DAY-AWARE SCRUB — scrubbing within the current day's window;
+    // target beat is offset by (currentDay - 1) × total so we land in
+    // the right day's portion of the master sequence
+    const dayOffset = MODE === 'chorus' ? (currentDay - 1) * total : 0;
+    const tb = dayOffset + pct * total;
     startTime=ac.currentTime-tb*BEAT_S;seqIdx=sequence.findIndex(ev=>ev.beat>=tb);if(seqIdx<0)seqIdx=sequence.length;
   });
   document.getElementById('crr-toggle').addEventListener('click',()=>document.getElementById('crr-panel').classList.toggle('open'));
