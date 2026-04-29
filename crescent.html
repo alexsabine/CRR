@@ -72,6 +72,7 @@ border-color:rgba(232,168,56,.15)}
 #canvas-wrap{flex:1;min-height:0;position:relative;background:#020a0e}
 #ocean{position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none}
 #viz{position:relative;display:block;width:100%;height:100%;touch-action:none}
+#dream{position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none;z-index:5}
 #info-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
 align-items:flex-start;padding:8px 18px;pointer-events:none;z-index:5}
 .info-col{display:flex;flex-direction:column;gap:2px}
@@ -289,7 +290,7 @@ font-size:.3rem;opacity:.18;letter-spacing:.03em;white-space:nowrap}
 
 <h1>AVIANA</h1>
 <div class="sub">Crescent City — The Redwood Dawn Chorus
-<span class="small">ten Pacific-coast voices · four cetaceans · three black bears · Tolowa Dee-niʼ + Yurok instruments</span>
+<span class="small">ten Pacific-coast voices · four cetaceans · three black bears · two amphibian voices · two owls · Tolowa Dee-niʼ + Yurok instruments</span>
 <span class="small" style="margin-top:6px;font-size:.74em;opacity:.55">on the homeland of the Tolowa Dee-niʼ Nation and the Yurok</span></div>
 
 <div class="letter">
@@ -318,6 +319,7 @@ C(x,t) = ∫ L(x,τ) dτ&emsp;·&emsp;δ(now)&emsp;·&emsp;R = ∫ φ exp(C/Ω) 
 <div id="canvas-wrap">
 <canvas id="ocean"></canvas>
 <canvas id="viz"></canvas>
+<canvas id="dream"></canvas>
 <div id="info-bar">
 <div class="info-col">
 <div><span class="info-label">SECTION </span><span class="info-val" id="iSection">—</span></div>
@@ -343,6 +345,14 @@ C(x,t) = ∫ L(x,τ) dτ&emsp;·&emsp;δ(now)&emsp;·&emsp;R = ∫ φ exp(C/Ω) 
   <div id="strip-tribes-wrap" style="display:none">
     <div class="sp-divider"></div>
     <div id="strip-tribes"></div>
+  </div>
+  <div id="strip-frogs-wrap" style="display:none">
+    <div class="sp-divider"></div>
+    <div id="strip-frogs"></div>
+  </div>
+  <div id="strip-owls-wrap" style="display:none">
+    <div class="sp-divider"></div>
+    <div id="strip-owls"></div>
   </div>
 </div>
 
@@ -848,6 +858,18 @@ const SPECIES_STRIP = {
     { key:'clapper',     label:'clapper stick',    colour:'rgb(190,150,80)'  },
     { key:'basketDrum',  label:'basket drum',      colour:'rgb(150,110,75)'  },
   ],
+  // §FROGS — Pacific tree frog + Northern red-legged frog, the
+  // amphibian voices of the Crescent City redwood streams.
+  frogs: [
+    { key:'treeFrog',  label:'pacific tree frog',  colour:'rgb(120,180,100)' },
+    { key:'redLegged', label:'red-legged frog',    colour:'rgb(180,120,110)' },
+  ],
+  // §OWLS — Great Horned Owl + Northern Saw-whet Owl, the night
+  // voices of the redwood forest.
+  owls: [
+    { key:'greatHorned', label:'great horned owl',   colour:'rgb(170,140,100)' },
+    { key:'sawWhet',     label:'saw-whet owl',       colour:'rgb(200,180,120)' },
+  ],
 };
 const bearMonitor = { distantMoan: 0, closeGrowl: 0, veryNearGrowl: 0 };
 
@@ -875,7 +897,9 @@ function buildSpeciesStrip(){
   const whalesEl = document.getElementById('strip-whales');
   const bearsEl = document.getElementById('strip-bears');
   const tribesEl = document.getElementById('strip-tribes');
-  if(!birdsEl || !whalesEl || !bearsEl || !tribesEl) return;
+  const frogsEl = document.getElementById('strip-frogs');
+  const owlsEl = document.getElementById('strip-owls');
+  if(!birdsEl || !whalesEl || !bearsEl || !tribesEl || !frogsEl || !owlsEl) return;
   function rowHtml(sp){
     return `<div class="sp-row" id="sp-row-${sp.key}">
       <span class="sp-name">${sp.label}</span>
@@ -894,8 +918,14 @@ function buildSpeciesStrip(){
   tribesEl.innerHTML =
     `<div class="sp-section-label">tolowa · yurok</div>` +
     SPECIES_STRIP.tribes.map(rowHtml).join('');
+  frogsEl.innerHTML =
+    `<div class="sp-section-label">frogs</div>` +
+    SPECIES_STRIP.frogs.map(rowHtml).join('');
+  owlsEl.innerHTML =
+    `<div class="sp-section-label">owls</div>` +
+    SPECIES_STRIP.owls.map(rowHtml).join('');
   // Init ring buffers + cache canvas refs
-  for(const group of ['birds','whales','bears','tribes']){
+  for(const group of ['birds','whales','bears','tribes','frogs','owls']){
     for(const sp of SPECIES_STRIP[group]){
       _initSpHistoryFor(sp.key);
       const c = document.getElementById('sp-hist-'+sp.key);
@@ -1047,6 +1077,49 @@ function updateSpeciesStrip(){
   if(tribesVisible) window._tribesHaveAppeared = true;
   const tribesWrap = document.getElementById('strip-tribes-wrap');
   if(tribesWrap) tribesWrap.style.display = window._tribesHaveAppeared ? 'block' : 'none';
+
+  // §FROGS — Pacific tree frog + Northern red-legged frog visibility
+  // sticky once either has been heard. Same pattern as tribes/bears.
+  let frogsVisible = false;
+  for(const sp of SPECIES_STRIP.frogs){
+    const v = (typeof frogMonitor !== 'undefined' && frogMonitor[sp.key]) || 0;
+    const row = document.getElementById('sp-row-'+sp.key);
+    if(!row) continue;
+    const hist = _spHistory[sp.key];
+    if(hist){
+      for(let i=0;i<hist.length-1;i++) hist[i] = hist[i+1];
+      hist[hist.length-1] = v;
+    }
+    const active = v > 0.05;
+    if(active) frogsVisible = true;
+    row.classList.toggle('active', active);
+    const can = _spCanvases[sp.key];
+    if(can) _drawSpeciesHistogram(can, hist, sp.colour, active);
+  }
+  if(frogsVisible) window._frogsHaveAppeared = true;
+  const frogsWrap = document.getElementById('strip-frogs-wrap');
+  if(frogsWrap) frogsWrap.style.display = window._frogsHaveAppeared ? 'block' : 'none';
+
+  // §OWLS — sticky-visible after first hoot. Same pattern.
+  let owlsVisible = false;
+  for(const sp of SPECIES_STRIP.owls){
+    const v = (typeof owlMonitor !== 'undefined' && owlMonitor[sp.key]) || 0;
+    const row = document.getElementById('sp-row-'+sp.key);
+    if(!row) continue;
+    const hist = _spHistory[sp.key];
+    if(hist){
+      for(let i=0;i<hist.length-1;i++) hist[i] = hist[i+1];
+      hist[hist.length-1] = v;
+    }
+    const active = v > 0.05;
+    if(active) owlsVisible = true;
+    row.classList.toggle('active', active);
+    const can = _spCanvases[sp.key];
+    if(can) _drawSpeciesHistogram(can, hist, sp.colour, active);
+  }
+  if(owlsVisible) window._owlsHaveAppeared = true;
+  const owlsWrap = document.getElementById('strip-owls-wrap');
+  if(owlsWrap) owlsWrap.style.display = window._owlsHaveAppeared ? 'block' : 'none';
 }
 
 function midiToFreq(m){return 440*Math.pow(2,(m-69)/12)}
@@ -3231,6 +3304,479 @@ function playBasketDrum(time, gain){
   setTimeout(()=>{ tribesMonitor.basketDrum *= 0.25 }, dur * 1000);
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// §FROGS — Pacific Tree Frog + Northern Red-legged Frog
+// ═══════════════════════════════════════════════════════════════════
+//
+// Two amphibian voices documented for Crescent City / Del Norte
+// county redwood streams (Hodgson & Welsh 2007; Save the Redwoods
+// League Mill Creek + Rock Creek surveys):
+//
+//  1. PACIFIC TREE FROG (Pseudacris regilla) — the dominant choral
+//     voice. Loud two-pulse "kreck-ek" call. Most pronounced at
+//     night/dusk and PRE-DAWN. Up to 3 males call without overlapping
+//     (Snyder & Jameson 1965) — a Z_3 phase-anti-locked symmetry.
+//
+//  2. NORTHERN RED-LEGGED FROG (Rana aurora) — the contemplative
+//     voice. Quiet weak series of 5-7 notes "uh-uh-uh-uh-uh", lasting
+//     1-3s. Known to call underwater (Hayes & Krempels 1986), so the
+//     above-water sound is heavily lowpassed.
+//
+// CRR rationale: the two amphibian voices fill the temporal niche
+// COMPLEMENTARY to the birds. Birds peak at DAWN CHORUS through
+// EVENING; frogs peak at PRE-DAWN, FIRST LIGHT, and ROOST. Each
+// population's δ-cycle is the other's R-cycle — a beautiful
+// cross-class phase decomposition: Z₂ at the day-scale.
+//
+// Harmonic locking: tree-frog dominant freq ~1.5 kHz lands on the
+// 5th-harmonic of D mixolydian root (D2 = 73 Hz × 20 = 1460 Hz).
+// Red-legged "uh-uh" notes tune to chord root in D2-D3 register.
+
+let frogGain = null;
+
+function initFrogAudio(){
+  if(!ac || frogGain) return;
+  frogGain = ac.createGain();
+  frogGain.gain.value = 0.0;
+  frogGain.connect(compressor);
+  frogGain.gain.setTargetAtTime(0.55, ac.currentTime, 0.5);
+}
+
+const frogMonitor = { treeFrog: 0, redLegged: 0 };
+
+// §PACIFIC TREE FROG — diphasic "kreck-ek" call.
+//
+// CORRECTED SYNTHESIS based on real Pseudacris regilla acoustics:
+//
+//   - Each call has two SEPARATE pulse trains (the "kreck" and "ek")
+//   - Each pulse train consists of ~10-15 RAPID DISCRETE PULSES at
+//     ~80 Hz pulse rate. Pulses are NOT amplitude modulation of a
+//     sustained tone — they are individual vocal-cord-snap events
+//     each with sharp attack/decay.
+//   - Each pulse: ~6ms total, sharp attack (1ms), sharp decay (5ms)
+//   - Pulse content: bandpassed NOISE BURST + brief sawtooth at the
+//     dominant freq (~1500 Hz). The noise gives the raspy quality
+//     that distinguishes a frog from a bird.
+//   - Result: rapid CHOPPING/RATCHETING sound, not a tone.
+//
+// CRR equation tags:
+//   §Z₂  — diphasic "kreck"/"ek" bistable structure
+//   §δ   — each pulse is a discrete vocal-cord rupture event
+//   §C·Ω=1 — fires at each pulse boundary; Ω = 1/80Hz pulse period
+//   §B   — the silent inter-pulse moment is the beauty function peak
+function playPacificTreeFrog(time, gain, chordRoot){
+  if(!ac) return;
+  initFrogAudio();
+  if(!frogGain) return;
+  const t = time || ac.currentTime;
+  const v = (gain || 0.5) * 0.40;
+
+  // §HARMONIC LOCK — dominant frequency in the documented 1.4-2 kHz
+  // range, gently tuned to a high partial of the chord root so the
+  // frog sits on the harmonic series. Default ~1500 Hz.
+  const root = chordRoot || 38;
+  const rootFreq = midiToFreq(root);
+  // Find a partial near 1500 Hz (3rd or 4th octave + harmonic)
+  let targetFreq = rootFreq;
+  while(targetFreq < 1300) targetFreq *= 2;
+  // Slight individual variation
+  const callFreq = targetFreq * (0.96 + Math.random() * 0.08);
+
+  // §PULSE TRAIN — one note = sequence of ~12 discrete pulses
+  //
+  //   pulse rate: 75-95 Hz (documented Pseudacris regilla AM rate)
+  //   note 1 ("kreck"): 12 pulses, slightly accented attack
+  //   silence: ~80ms
+  //   note 2 ("ek"):   13 pulses, slightly drier
+  function playPulseTrain(t0, numPulses, accent){
+    const pulseRate = 78 + Math.random() * 12;   // 78-90 Hz
+    const pulsePeriod = 1.0 / pulseRate;          // ~12ms between pulses
+    for(let i = 0; i < numPulses; i++){
+      const pulseT = t0 + i * pulsePeriod;
+      const pulseDur = 0.007;        // 7ms total per pulse
+      // Subtle within-call envelope: slight crescendo in first half,
+      // decrescendo in second half (the natural "kreck" prosody)
+      const phaseFrac = i / numPulses;
+      const pulseAmp = v * accent * (0.6 + 0.4 * Math.sin(phaseFrac * Math.PI));
+
+      // Pulse source: short noise burst + brief sawtooth
+      const noise = ac.createBufferSource();
+      noise.buffer = noiseBuf;
+      const noiseG = ac.createGain();
+      noiseG.gain.value = pulseAmp * 0.7;
+
+      const saw = ac.createOscillator();
+      saw.type = 'sawtooth';
+      saw.frequency.value = callFreq * (0.97 + Math.random() * 0.06);
+      const sawG = ac.createGain();
+      sawG.gain.value = pulseAmp * 0.4;
+
+      // Bandpass: 1.2-2.4 kHz, moderate Q
+      const bp = ac.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = callFreq;
+      bp.Q.value = 2.5;
+
+      // Sharp attack/decay envelope on this single pulse
+      const env = ac.createGain();
+      env.gain.setValueAtTime(0, pulseT);
+      env.gain.linearRampToValueAtTime(1, pulseT + 0.0008);   // 0.8ms attack
+      env.gain.exponentialRampToValueAtTime(0.001, pulseT + pulseDur);
+
+      noise.connect(noiseG);
+      saw.connect(sawG);
+      noiseG.connect(bp);
+      sawG.connect(bp);
+      bp.connect(env);
+      env.connect(frogGain);
+      noise.start(pulseT);
+      saw.start(pulseT);
+      noise.stop(pulseT + pulseDur + 0.005);
+      saw.stop(pulseT + pulseDur + 0.005);
+    }
+  }
+
+  // Diphasic structure: kreck (12 pulses) + silence + ek (13 pulses)
+  playPulseTrain(t, 12, 1.0);              // "kreck"
+  // Silence ~80ms (12 pulses × 12.8ms = 153ms note duration)
+  const krackEndT = t + 12 * (1/82);        // ~146ms
+  playPulseTrain(krackEndT + 0.085, 13, 0.85);  // "ek"
+
+  frogMonitor.treeFrog = gain || 0.5;
+  setTimeout(()=>{ frogMonitor.treeFrog *= 0.4 }, 500);
+}
+
+// §FROG CHORUS — Z_3 phase-anti-locked. Schedules 3 tree-frog calls
+// at staggered phase slots {0, 1/3, 2/3} of a 1.5s chorus cycle, so
+// the calls don't overlap (Snyder & Jameson 1965 finding).
+function playFrogChorus(time, gain, chordRoot){
+  if(!ac) return;
+  const t = time || ac.currentTime;
+  const cycleS = 1.5;
+  for(let k = 0; k < 3; k++){
+    const phaseSlot = k / 3;
+    const slotJitter = (Math.random() - 0.5) * 0.05;
+    const callT = t + phaseSlot * cycleS + slotJitter;
+    // Each frog has slightly different chord-tuning offset for individual
+    // pitch variation while staying within the chord harmonic range
+    playPacificTreeFrog(callT,
+      gain * (0.85 + Math.random() * 0.3),
+      chordRoot ? chordRoot + (k - 1) : 38);
+  }
+}
+
+// §NORTHERN RED-LEGGED FROG — quiet 5-7 note "uh-uh-uh-uh-uh"
+//
+// CORRECTED SYNTHESIS based on real Rana aurora acoustics:
+//
+//   - Each "uh" note is a GLOTTAL PULSE — a brief, voiced burst with
+//     low fundamental (~150-200 Hz) and a soft "uh" formant peak
+//     around 350-450 Hz. Not a sustained tone.
+//   - Note duration: ~120ms with breathy attack and quick decay
+//   - Inter-note gap: ~200ms (5-7 notes over ~2 seconds total)
+//   - Underwater muffling: harmonics above 700 Hz heavily lowpassed
+//   - Quality: between a baby's "uh" and a soft chuckle; quiet
+//   - Middle note slightly emphasised (the δ rupture), tail notes fade
+//
+// CRR equation tags:
+//   §C — coherence accumulates note-to-note within the call
+//   §δ — middle note (4th of 6) is the rupture (slight emphasis)
+//   §R — final notes are the regeneration tail (fading)
+function playRedLeggedFrog(time, gain, chordRoot){
+  if(!ac) return;
+  initFrogAudio();
+  if(!frogGain) return;
+  const t = time || ac.currentTime;
+  const v = (gain || 0.4) * 0.20;
+
+  // Low fundamental in the dark vowel range — chord-aware via root
+  const root = chordRoot || 38;
+  const rootFreq = midiToFreq(root);
+  // Use the chord root scaled to ~150-200 Hz (drop 1-2 octaves if needed)
+  let funFreq = rootFreq;
+  while(funFreq > 220) funFreq /= 2;
+  while(funFreq < 130) funFreq *= 2;
+
+  const numNotes = 5 + Math.floor(Math.random() * 3);
+  const ruptureIdx = Math.floor(numNotes * 0.55);
+
+  for(let i = 0; i < numNotes; i++){
+    const noteT = t + i * 0.21 + (Math.random() - 0.5) * 0.025;
+    const noteDur = 0.13;
+    const isRupture = (i === ruptureIdx);
+    const accent = isRupture ? 1.0 : (i < ruptureIdx ? 0.7 + i * 0.08 : 0.85 - (i - ruptureIdx) * 0.10);
+
+    // Glottal pulse source: sawtooth fundamental + brief noise burst
+    // for the breathy onset
+    const saw = ac.createOscillator();
+    saw.type = 'sawtooth';
+    saw.frequency.setValueAtTime(funFreq * (0.98 + Math.random() * 0.04), noteT);
+    saw.frequency.linearRampToValueAtTime(funFreq * 0.92, noteT + noteDur);
+
+    // Brief noise breath at attack
+    const noise = ac.createBufferSource();
+    noise.buffer = noiseBuf;
+    const noiseG = ac.createGain();
+    noiseG.gain.value = v * accent * 0.15;
+
+    // §FORMANT — bandpass at "uh" vowel formant ~400 Hz
+    const formant = ac.createBiquadFilter();
+    formant.type = 'bandpass';
+    formant.frequency.value = 400;
+    formant.Q.value = 2.5;
+
+    // §UNDERWATER LOWPASS — cuts harmonics above 700 Hz steeply,
+    // matching documented underwater→air transmission losses
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 700;
+    lp.Q.value = 0.7;
+
+    // Glottal envelope: breathy attack (~25ms), brief sustain, soft decay
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, noteT);
+    g.gain.linearRampToValueAtTime(v * accent, noteT + 0.030);
+    g.gain.setValueAtTime(v * accent * 0.65, noteT + noteDur - 0.045);
+    g.gain.exponentialRampToValueAtTime(0.001, noteT + noteDur);
+
+    // Brief noise envelope: very short (only at attack)
+    const ng = ac.createGain();
+    ng.gain.setValueAtTime(v * accent * 0.18, noteT);
+    ng.gain.exponentialRampToValueAtTime(0.001, noteT + 0.040);
+
+    saw.connect(formant); formant.connect(lp); lp.connect(g); g.connect(frogGain);
+    noise.connect(noiseG); noiseG.connect(ng); ng.connect(frogGain);
+    saw.start(noteT);
+    noise.start(noteT);
+    saw.stop(noteT + noteDur + 0.05);
+    noise.stop(noteT + 0.06);
+  }
+
+  frogMonitor.redLegged = gain || 0.4;
+  setTimeout(()=>{ frogMonitor.redLegged *= 0.4 }, numNotes * 200);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §OWLS — Great Horned Owl + Northern Saw-whet Owl
+// ═══════════════════════════════════════════════════════════════════
+//
+// Two owls documented for Del Norte Coast Redwoods State Park
+// (iNaturalist records, Save the Redwoods League surveys, Western
+// Field Ornithologists 2019 northwest birding guide):
+//
+//  1. GREAT HORNED OWL (Bubo virginianus) — the iconic deep voice.
+//     Territorial Hoot at 300-400 Hz fundamental (Kinstler 2009),
+//     near-pure tone with very narrow frequency range. Call sequence
+//     of 4-5 hoots: "Whoo-hoo-HOO-hoo-hoo" with slight pitch drops.
+//     Each hoot ~0.5s, total call ~2.5s. Pairs duet with male/female
+//     pitch contrast.
+//
+//  2. NORTHERN SAW-WHET OWL (Aegolius acadicus) — the tiny intimate
+//     voice. Repeated single-pitch whistled "too-too-too-too-too" at
+//     ~2 notes/second, dominant frequency ~1100 Hz (sustained).
+//     Sounds like a saw being sharpened on a whetstone.
+//
+// CRR rationale: owls fill a NIGHT-DOMAIN voice band complementary
+// to the frogs. Frogs are high (1.5 kHz) raspy choral; owls are low
+// (300 Hz) tonal & solitary, plus the saw-whet's mid (1.1 kHz) tonal
+// punctuation. Together with whales (sub-bass) and birds (mid-day),
+// we get a 5-band stratification:
+//
+//   < 200 Hz:    whales (sub-bass)
+//   300-400 Hz:  great horned owl (low tonal)
+//   400-1500:    diurnal birds (varied)
+//   1100 Hz:     saw-whet owl (mid tonal)
+//   1500-2400:   tree frog chorus (high raspy)
+//
+// Day-scale Z₂: owls peak at PRE-DAWN and ROOST, like frogs, but
+// CONTRAST in spectral character. Where frogs are dense rapid pulses,
+// owls are slow pure tones — they alternate temporally too.
+
+let owlGain = null;
+
+function initOwlAudio(){
+  if(!ac || owlGain) return;
+  owlGain = ac.createGain();
+  owlGain.gain.value = 0.0;
+  owlGain.connect(compressor);
+  owlGain.gain.setTargetAtTime(0.55, ac.currentTime, 0.5);
+}
+
+const owlMonitor = { greatHorned: 0, sawWhet: 0 };
+
+// §GREAT HORNED OWL — territorial hoot sequence "Whoo-hoo-HOO-hoo-hoo"
+//
+// Documented (Kinstler 2009): 4-5 hoots, fundamental 300-400 Hz,
+// near-pure tone, narrow bandwidth. Each hoot ~0.5s with brief
+// inter-hoot gap. Total call ~2.5-3s. Slight pitch contour: usually
+// two introductory hoots, then a slightly muffled rapid cadence.
+//
+// Synthesis:
+//   - Sine fundamental at ~340 Hz
+//   - Subtle 2nd harmonic for body (-12 dB)
+//   - Sine vibrato 4 Hz, ±0.5 Hz (gentle owl breath)
+//   - Each hoot: 30ms attack, 320ms hold, 150ms decay (total ~500ms)
+//   - 5-hoot pattern with rhythm: long-short-LONG-short-short
+//   - δ rupture on the 3rd hoot (the emphatic HOO)
+//
+// CRR equation tags:
+//   §C — coherence accumulates from hoot 1 to hoot 3
+//   §δ — third hoot is the rupture (slight pitch + amplitude bump)
+//   §R — hoots 4-5 are the regeneration tail (fading)
+//   §SO(2) — slow vibrato cycle within each hoot
+function playGreatHornedOwl(time, gain, chordRoot){
+  if(!ac) return;
+  initOwlAudio();
+  if(!owlGain) return;
+  const t = time || ac.currentTime;
+  const v = (gain || 0.5) * 0.42;
+
+  // Pitch: documented 300-400 Hz. Optionally tune to a low chord
+  // tone — the chord root often falls in this exact range. A male
+  // owl at 320 Hz, female slightly higher at 380 Hz.
+  // We pick the female pitch for now (clearer in the redwood reverb).
+  const root = chordRoot || 38;
+  const rootFreq = midiToFreq(root);
+  // Find a chord-tone frequency in the 280-420 Hz range
+  let baseFreq = rootFreq;
+  while(baseFreq > 420) baseFreq /= 2;
+  while(baseFreq < 280) baseFreq *= 2;
+  // Light individual variation
+  const fundamental = baseFreq * (0.97 + Math.random() * 0.06);
+
+  // Five-hoot pattern: timings (sec), pitch multipliers, amplitudes
+  //   "Whoo - hoo - HOO - hoo - hoo"
+  //   long  short  LONG  short short
+  const hoots = [
+    { tOff: 0.00, dur: 0.50, pitch: 1.00, amp: 0.85 },  // intro
+    { tOff: 0.65, dur: 0.32, pitch: 0.95, amp: 0.70 },  // short
+    { tOff: 1.10, dur: 0.55, pitch: 1.04, amp: 1.00 },  // δ rupture HOO
+    { tOff: 1.78, dur: 0.30, pitch: 0.93, amp: 0.65 },
+    { tOff: 2.18, dur: 0.32, pitch: 0.90, amp: 0.55 },
+  ];
+
+  for(const h of hoots){
+    const t0 = t + h.tOff;
+    const f0 = fundamental * h.pitch;
+
+    // Sine fundamental
+    const o = ac.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t0);
+
+    // Gentle vibrato — 4 Hz, ±2 Hz freq deviation (the natural breath
+    // unsteadiness of an owl)
+    const vib = ac.createOscillator();
+    vib.type = 'sine';
+    vib.frequency.value = 4;
+    const vibG = ac.createGain();
+    vibG.gain.value = 1.5;
+    vib.connect(vibG); vibG.connect(o.frequency);
+
+    // Subtle 2nd harmonic for body (-14 dB)
+    const o2 = ac.createOscillator();
+    o2.type = 'sine';
+    o2.frequency.value = f0 * 2;
+    const o2g = ac.createGain();
+    o2g.gain.value = v * h.amp * 0.20;
+
+    // Master envelope: 30ms attack, hold to dur-150ms, 150ms decay
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(v * h.amp, t0 + 0.040);
+    g.gain.setValueAtTime(v * h.amp * 0.92, t0 + h.dur - 0.18);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + h.dur);
+
+    // Light bandpass for tonal purity (the owl hoot is nearly a sine wave)
+    const bp = ac.createBiquadFilter();
+    bp.type = 'lowpass';
+    bp.frequency.value = f0 * 4;
+    bp.Q.value = 0.7;
+
+    o.connect(bp);
+    o2.connect(o2g); o2g.connect(bp);
+    bp.connect(g);
+    g.connect(owlGain);
+    o.start(t0); vib.start(t0); o2.start(t0);
+    o.stop(t0 + h.dur + 0.05);
+    vib.stop(t0 + h.dur + 0.05);
+    o2.stop(t0 + h.dur + 0.05);
+  }
+
+  owlMonitor.greatHorned = gain || 0.5;
+  setTimeout(()=>{ owlMonitor.greatHorned *= 0.4 }, 2800);
+}
+
+// §NORTHERN SAW-WHET OWL — repeated tooting whistle "too-too-too..."
+//
+// Documented (Cornell Lab, Hawk Mountain): rate ~2 notes/second, mean
+// frequency ~1100 Hz (Otter 1996 — "the mean frequency of the sustained
+// component is highly distinctive"). Each toot is a clean whistle with
+// brief attack and decay. Sequence varies in length but typically
+// 6-12 notes per call session, can continue for many minutes in
+// breeding males.
+//
+// Synthesis:
+//   - Pure sine at ~1100 Hz (sustained tonal)
+//   - Each toot: ~120ms with 15ms attack, hold, 30ms decay
+//   - 2 notes/second = 500ms inter-toot interval
+//   - Slight individual variation in mean freq (Otter)
+//   - 7-9 toots per call, all at ~same pitch (no contour)
+//
+// CRR equation tags:
+//   §C — coherence very stable, near-monotonic call (low Ω)
+//   §SO(2) — pure tone carrier with slow envelope cycle
+//   §Z_n — n-toot bistable across a fixed sequence length
+function playSawWhetOwl(time, gain){
+  if(!ac) return;
+  initOwlAudio();
+  if(!owlGain) return;
+  const t = time || ac.currentTime;
+  const v = (gain || 0.4) * 0.35;
+
+  // Mean frequency 1050-1150 Hz (Otter 1996 individual variation)
+  const baseFreq = 1080 + (Math.random() - 0.5) * 80;
+  // Toot count: 7-10 toots per call session
+  const numToots = 7 + Math.floor(Math.random() * 4);
+  const tootInterval = 0.500;   // 2 toots/sec
+  const tootDur = 0.13;
+
+  for(let i = 0; i < numToots; i++){
+    const tootT = t + i * tootInterval;
+    // Saw-whets call at the SAME pitch every time — no contour. Slight
+    // intonation jitter only.
+    const f = baseFreq * (0.997 + Math.random() * 0.006);
+
+    const o = ac.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = f;
+
+    // Slight 2nd-harmonic shimmer for "whistle" quality
+    const o2 = ac.createOscillator();
+    o2.type = 'sine';
+    o2.frequency.value = f * 2;
+    const o2g = ac.createGain();
+    o2g.gain.value = v * 0.10;
+
+    // Whistle envelope: 15ms attack, sustain to 90ms, 30ms decay
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, tootT);
+    g.gain.linearRampToValueAtTime(v, tootT + 0.018);
+    g.gain.setValueAtTime(v * 0.92, tootT + tootDur - 0.040);
+    g.gain.exponentialRampToValueAtTime(0.001, tootT + tootDur);
+
+    o.connect(g);
+    o2.connect(o2g); o2g.connect(g);
+    g.connect(owlGain);
+    o.start(tootT); o2.start(tootT);
+    o.stop(tootT + tootDur + 0.05);
+    o2.stop(tootT + tootDur + 0.05);
+  }
+
+  owlMonitor.sawWhet = gain || 0.4;
+  setTimeout(()=>{ owlMonitor.sawWhet *= 0.4 }, numToots * 500);
+}
+
 // §SCHEDULE TRIBES PASSING — proximity-modulated walking presence
 // across a span of chorus beats. Generates a sequence of flute phrases,
 // hoof rattle bursts, clapper stick punctuation, and basket drum
@@ -3621,8 +4167,8 @@ function playFoxBark(gain,time){
   o.connect(g2);g2.connect(songGain);o.start(time);o.stop(time+.25);
 }
 
-function playFrogChorus(gain,time,crrMod){
-  // Distant frog chorus — low rhythmic croaking
+function playBatModeFrogChorus(gain,time,crrMod){
+  // Distant frog chorus — low rhythmic croaking (used by BAT mode only)
   // CRR: higher coherence = more synchronized frogs
   if(!ac||gain<.005)return;
   const nFrogs=2+Math.floor(crrMod*2);
@@ -4819,6 +5365,39 @@ function buildChorusSequence(){
             brStart, brEnd,
             gain: gainPeak});
   }
+  // §FROGS — schedule a 3-frog Z_3 phase-anti-locked chorus call at beat b.
+  // chordRoot is looked up from the active chord. The chorus calls the
+  // active chord's root note in MIDI form.
+  function frogChorus(b, g){
+    const chordIdx = Math.floor((b / 4) % ch.length);
+    const root = ch[chordIdx][0];   // bass note of active chord
+    E.push({beat: b, type: 'frogChorus', gain: g || 0.45, chordRoot: root});
+  }
+  // §FROGS — single contemplative red-legged call.
+  function redLeggedCall(b, g){
+    const chordIdx = Math.floor((b / 4) % ch.length);
+    const root = ch[chordIdx][0];
+    E.push({beat: b, type: 'redLegged', gain: g || 0.40, chordRoot: root});
+  }
+  // §FROGS — single tree-frog call (used for sparse fillers).
+  function treeFrog(b, g){
+    const chordIdx = Math.floor((b / 4) % ch.length);
+    const root = ch[chordIdx][0];
+    E.push({beat: b, type: 'treeFrog', gain: g || 0.35, chordRoot: root});
+  }
+  // §OWLS — Great Horned Owl territorial hoot sequence (5 hoots ~2.5s).
+  // Tunes to the chord root for harmonic consonance.
+  function greatHorned(b, g){
+    const chordIdx = Math.floor((b / 4) % ch.length);
+    const root = ch[chordIdx][0];
+    E.push({beat: b, type: 'greatHorned', gain: g || 0.45, chordRoot: root});
+  }
+  // §OWLS — Northern Saw-whet Owl tooting series. Pitch is fixed at
+  // ~1100 Hz so doesn't depend on chord (the saw-whet's "too" is
+  // species-specific, not chord-locked).
+  function sawWhet(b, g){
+    E.push({beat: b, type: 'sawWhet', gain: g || 0.35});
+  }
   // §TRIBES: schedule a passing event by enqueueing individual
   // instrument events at their actual beat positions. This means
   // scrubbing into the middle of the passing arc still triggers
@@ -4935,6 +5514,27 @@ function buildChorusSequence(){
   thermCfg(0,{activity:.03,turbulence:.85,lift:.3});
   pad(0,[38,45,50,57],.06,28);
   for(let b=4;b<32;b+=8)therm(b,1,.04,.8);
+  // §FROGS: PRE-DAWN is the frogs' natural domain. Pacific tree frogs
+  // call most at night and pre-dawn; the chorus is at peak density
+  // before the birds awaken. Z_3 phase-anti-locked clusters every
+  // 5-7 beats. Also occasional red-legged calls to ground the bass.
+  // Keep gains modest — these are background creature sounds, not
+  // featured voices. The pulse-train synthesis means even quiet
+  // chorus calls will be audible against the silent pad.
+  frogChorus(6, 0.30);
+  redLeggedCall(11, 0.22);
+  frogChorus(14, 0.32);
+  redLeggedCall(20, 0.22);
+  frogChorus(24, 0.32);
+  treeFrog(28, 0.22);
+  // §OWLS: PRE-DAWN. The deep voices of the night forest. Great Horned
+  // Owl's territorial hoot at ~340 Hz contrasts with the high frog
+  // chorus at 1500 Hz; saw-whet sits in between at 1100 Hz. The five
+  // species (whales sub-bass, owl low, saw-whet mid-low, frog high,
+  // saw-whet 2nd harmonic mid-high) form a five-band stratification.
+  greatHorned(2, 0.42);    // start with the iconic owl voice
+  sawWhet(18, 0.30);       // subtle counterpoint
+  greatHorned(28, 0.36);   // tail of pre-dawn — fading toward dawn
 
   // II. FIRST LIGHT (32-63) — varied thrush opens (largest eye, conifer canopy)
   // Cornell: 2s song, 3-20s pause; here ~every 8 beats (≈5s) is realistic
@@ -4943,6 +5543,17 @@ function buildChorusSequence(){
   dawn(34,.10);dawn(46,.13);dawn(56,.16);
   for(let b=34;b<64;b+=8)song(b,'variedThrush',.20+(b-34)*.002);
   for(let b=32;b<64;b+=6)therm(b,1,.08,.6);
+  // §FROGS: tapering as birds awaken. Frog gain decreases with beat.
+  // CRR-coherent: as bird Ω rises, frog Ω falls — they share an
+  // inverse Ω-coupling at the day-scale.
+  frogChorus(34, 0.26);
+  frogChorus(42, 0.22);
+  redLeggedCall(48, 0.18);
+  frogChorus(52, 0.18);
+  treeFrog(60, 0.14);  // last tree-frog call before silence
+  // §OWLS: a final distant great-horned hoot as full daylight comes.
+  // The night creatures retreat, the day creatures emerge.
+  greatHorned(40, 0.22);
 
   // III. FIRST ROBIN (64-95) — robin opens classic carolling, pacific wren joins
   thermCfg(64,{activity:.15,turbulence:.6,lift:.45});
@@ -5211,6 +5822,13 @@ function buildChorusSequence(){
     // regenerates with the bear's presence echoing only as memory.
     if(l===4) bearMoan(b, 0.40);
   }
+  // §FROGS: frogs return as the day winds down. Their Ω rises again
+  // (longer cycles, deeper coherence accumulation) inverse to the
+  // bird Ω falling. Sparse calls in late REFORMATION, building to
+  // peak chorus through ROOST.
+  redLeggedCall(322, 0.18);
+  treeFrog(330, 0.18);
+  redLeggedCall(338, 0.20);
 
   // XI. EVENING SONG (344-375) — fading robin and grosbeak
   thermCfg(344,{activity:.15,turbulence:.5,lift:.3});
@@ -5226,6 +5844,20 @@ function buildChorusSequence(){
     if(l===4) humpUnit(b, 'B', 0.32*f);
     if(l===26)humpUnit(b, 'A', 0.28*f);
     if(l===10)blue(b, 0.42*f);                          // fifth full B call!
+    // §FROGS — building back up as evening turns to night. The frog Ω
+    // increases (calls become more coordinated, denser chorus) inverse
+    // to the bird Ω falling. Z_3 phase-anti-locked clusters.
+    if(l===2)  frogChorus(b, 0.18 + l*0.005);
+    if(l===10) treeFrog(b, 0.20);
+    if(l===16) frogChorus(b, 0.24);
+    if(l===22) redLeggedCall(b, 0.20);
+    if(l===28) frogChorus(b, 0.30);
+    // §OWLS — the night voices return. First a saw-whet announcing
+    // dusk, then the great horned owl claiming territory as full
+    // night settles.
+    if(l===6)  sawWhet(b, 0.22 * f);
+    if(l===14) greatHorned(b, 0.30);
+    if(l===24) sawWhet(b, 0.30);
   }
 
   // XII. ROOST (376-407) — varied thrush whistle into silence
@@ -5245,6 +5877,26 @@ function buildChorusSequence(){
   E.push({beat:396, type:'gray', gain:0.32});
   E.push({beat:400, type:'humpUnit', unit:'C', gain:0.28});
   E.push({beat:404, type:'gray', gain:0.24});
+  // §FROGS — peak chorus as night fully settles. The frogs' Ω is at
+  // its highest, choral coordination at its tightest. This forms a
+  // beautiful symmetry with PRE-DAWN of the next day: frogs close
+  // and open the day boundaries while the birds are silent. A
+  // day-scale Z₂ alternation between the two animal voice classes.
+  frogChorus(378, 0.32);
+  redLeggedCall(381, 0.22);
+  frogChorus(384, 0.34);
+  treeFrog(388, 0.26);
+  frogChorus(392, 0.34);
+  redLeggedCall(395, 0.22);
+  frogChorus(399, 0.34);
+  treeFrog(404, 0.28);
+  // §OWLS — peak owl activity as night settles. Great horned owl's
+  // territorial hoot establishes the boundary; saw-whet's persistent
+  // tooting answers from another part of the forest. Together they
+  // form the night-watch over the chorus's regeneration phase.
+  greatHorned(380, 0.40);
+  sawWhet(390, 0.34);
+  greatHorned(401, 0.36);
 
   E.sort((a,b)=>a.beat-b.beat);return E;
 }
@@ -5339,7 +5991,7 @@ function buildBatSequence(){
   const mel=(b,g)=>E.push({beat:b,type:'batMelody',gain:g||.15});
   const drip=(b,g)=>E.push({beat:b,type:'waterDrip',gain:g||.1});
   const fox=(b,g)=>E.push({beat:b,type:'foxBark',gain:g||.12});
-  const frog=(b,g)=>E.push({beat:b,type:'frogChorus',gain:g||.08});
+  const frog=(b,g)=>E.push({beat:b,type:'batFrogChorus',gain:g||.08});
   const dopp=(b,g,s)=>E.push({beat:b,type:'dopplerClick',gain:g||.15,speed:s||.5});
   const pad=(b,notes,g,dur)=>E.push({beat:b,type:'nightPad',padNotes:notes,padGain:g,duration:dur});
   const nt=(b,m,v,d)=>E.push({beat:b,midi:m,velocity:v,duration:d,type:'note'});
@@ -5914,6 +6566,15 @@ function scheduleLoop(){
     if(ev.gain !== undefined) ev.gain *= dawnMult;
     if(ev.velocity !== undefined) ev.velocity *= dawnMult;
     if(ev.padGain !== undefined) ev.padGain *= dawnMult;
+    // §DREAM MEMORY — record this event with the current crrGlobal C
+    // so it can seed tonight's holographic dream. Only events from
+    // the daytime (beats 16-376) contribute; dawn/dream/roost events
+    // are filtered out by Dream.recordCEvent. The seed weight is
+    // exp(C/Ω) — high-coherence events dominate, recency is incidental.
+    if(MODE === 'chorus' && Dream.ok && !ev.dream){
+      const evBeatInDay = ((ev.beat % totalB) + totalB) % totalB;
+      Dream.recordCEvent(ev, crrGlobal.C, evBeatInDay);
+    }
     if(ev.type==='note')playNote(ev.midi,ev.velocity*crrMod,ev.duration*BEAT_S,evTime);
     else if(ev.type==='dawn')playDawnMelody(ev.gain*crrMod,evTime,crrMod);
     else if(ev.type==='song'){
@@ -5979,6 +6640,13 @@ function scheduleLoop(){
       playHoofRattle(evTime, ev.gain, ev.dur, ev.shakes);
     else if(ev.type==='clapperStick')playClapperStick(evTime, ev.gain);
     else if(ev.type==='basketDrum')playBasketDrum(evTime, ev.gain);
+    // §FROGS: Pacific tree frog + Northern red-legged frog
+    else if(ev.type==='treeFrog')playPacificTreeFrog(evTime, ev.gain, ev.chordRoot);
+    else if(ev.type==='frogChorus')playFrogChorus(evTime, ev.gain, ev.chordRoot);
+    else if(ev.type==='redLegged')playRedLeggedFrog(evTime, ev.gain, ev.chordRoot);
+    // §OWLS: Great horned owl + Northern saw-whet owl
+    else if(ev.type==='greatHorned')playGreatHornedOwl(evTime, ev.gain, ev.chordRoot);
+    else if(ev.type==='sawWhet')playSawWhetOwl(evTime, ev.gain);
     // Bat-specific events
     else if(ev.type==='echo')playEchoClick(ev.gain*crrMod,evTime,crrMod);
     else if(ev.type==='echoCluster')playEchoCluster(ev.gain*crrMod,evTime,crrMod,ev.n||3);
@@ -5988,7 +6656,7 @@ function scheduleLoop(){
     else if(ev.type==='nightAmbient')playNightAmbient(ev.gain*crrMod,evTime);
     else if(ev.type==='waterDrip')playWaterDrip(ev.gain*crrMod,evTime,crrMod);
     else if(ev.type==='foxBark')playFoxBark(ev.gain*crrMod,evTime);
-    else if(ev.type==='frogChorus')playFrogChorus(ev.gain*crrMod,evTime,crrMod);
+    else if(ev.type==='batFrogChorus')playBatModeFrogChorus(ev.gain*crrMod,evTime,crrMod);
     else if(ev.type==='dopplerClick')playDopplerClick(ev.gain*crrMod,evTime,crrMod,ev.speed||.5);
     else if(ev.type==='owl')playOwlHoot(ev.gain*crrMod,evTime,crrMod);
     else if(ev.type==='batSocial')playBatSocialCall(ev.gain*crrMod,evTime,crrMod);
@@ -6640,6 +7308,7 @@ function resize(){
   W=canvas.width=wrap.clientWidth*devicePixelRatio;H=canvas.height=wrap.clientHeight*devicePixelRatio;
   cx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
   if(window.Ocean&&Ocean.ok)Ocean.resize();
+  if(typeof Dream !== 'undefined' && Dream.ok && Dream.resize) Dream.resize();
   setTimeout(initTelemCanvases,100);
 }
 function hexToRgb(hex){return`${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)}`}
@@ -6715,6 +7384,647 @@ const Camera = {
     this.ocean = this.oceanMax * e;
   }
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// §DREAM — the animals' shared internal generative state during sleep
+// ═══════════════════════════════════════════════════════════════════
+//
+// During the dream phase (beats 0-16 of each new day, day 2+), the
+// scene partially dissolves into the animals' shared internal CRR
+// phase space. The visualisation renders:
+//
+//   §SO(2) — each animal's memory cycle as a luminous circle, with
+//            a bright "memory point" rotating at its own ω
+//   §C·Ω=1 — interference patterns where multiple SO(2) phases align
+//   §R     — the regeneration kernel as a glowing field of holographic
+//            interference, with each animal's wave-vector contributing
+//   §φ     — golden-ratio rotation of the entire pattern day-to-day
+//   §δ     — bright flashes at moments of phase convergence
+//   §B     — bright accents at C* − Ω (one Ω before rupture)
+//   §MARKOV blanket — the soft boundary between dream and waking,
+//            rendered as a luminous horizon that breathes
+//
+// Each animal class has a CRR-derived ω frequency for its memory
+// cycle (matching the actual call/breath/heart rates we synthesise):
+//
+//   bird syrinx       ω = 0.65 Hz   (Cornell varied thrush rate)
+//   pacific tree frog ω = 0.71 Hz   (1/1.4s chorus cycle)
+//   bear heart        ω = 1.25 Hz   (75 bpm peak proximity)
+//   flute breath      ω = 0.25 Hz   (4s phrase cycle)
+//   owl breath        ω = 0.40 Hz
+//   humpback breath   ω = 0.05 Hz   (long phrase)
+//   whale CRR cycle   ω = 0.017 Hz  (1-min period)
+//
+// None of these are simple ratios → naturally aperiodic interference.
+//
+// The dream IS holographic in the precise CRR sense: the regeneration
+// kernel exp(C/Ω) is sharply peaked in time, so its spatial Fourier
+// transform spreads across all of memory phase space — each part of
+// the visualisation contains information about the whole. That's what
+// holography means mathematically.
+
+const Dream = (() => {
+  // ═══════════════════════════════════════════════════════════════════
+  // §DREAM — the animals' shared internal generative state during sleep
+  // ═══════════════════════════════════════════════════════════════════
+  //
+  // CRR-correct memory: the regeneration kernel R = ∫ φ·exp(C/Ω)·Θ dτ
+  // weights past moments by their ACHIEVED COHERENCE C, not by recency.
+  // The dream is therefore composed of yesterday's high-C moments —
+  // the cadenza, the bear-near, the dawn-chorus peak, the raptor
+  // alarm — not yesterday's average background activity.
+  //
+  // IMPLEMENTATION:
+  //   1. Track every audio event with the crrGlobal.C value at the
+  //      moment it fired. Keep the top-N highest-C events from the
+  //      most recent day.
+  //   2. At dream-start, plant Gaussian seeds in a memory texture at
+  //      each high-C event's screen position. Seed amplitude is
+  //      exp(C / Ω_dream) — sharply peaked because Ω_dream is small
+  //      (deep sleep = low Ω = sharp memory kernel).
+  //   3. Run a Gray-Scott reaction-diffusion shader on the memory
+  //      texture, with memory-feedback term ∂m/∂t = λ(u-m). Patterns
+  //      grow organically from the seeded high-C points.
+  //   4. Render the memory field through a multi-layer holographic
+  //      interference shader: optical path differences δ = 2nd cos(θ)
+  //      from each layer's thickness/density yield iridescent RGB
+  //      colour shifts. The dream literally becomes a hologram of
+  //      yesterday's coherence.
+  //
+  // SPATIAL CONSTRAINT: seeds appear ONLY where high-C events fired.
+  // Most of the canvas remains dark dream-wash. A few sparse luminous
+  // forms grow from the day's true peaks. Sumi-e ink, not fireworks.
+  //
+  // VESICA PISCIS: when two seeds are within mandorla distance and
+  // both have high C, the overlap region momentarily intensifies —
+  // the geometric C·Ω = 1 made visible, two coherence fields touching
+  // and producing a third (Song of Creation).
+  //
+  // φ — the golden ratio is used (a) for daily temporal rotation as
+  // before, AND (b) for the spatial rotation of the holographic
+  // interference pattern day-to-day, so each day's dream rotates
+  // ergodically through the same vocabulary at a different angle.
+
+  const dc = document.getElementById('dream');
+  if(!dc) return { phase: 0, update:()=>{}, draw:()=>{}, recordCEvent:()=>{}, ok: false };
+  const gl = dc.getContext('webgl2', {antialias:false, alpha:true, premultipliedAlpha:false})
+          || dc.getContext('webgl',  {antialias:false, alpha:true, premultipliedAlpha:false});
+  if(!gl){ return { phase: 0, update:()=>{}, draw:()=>{}, recordCEvent:()=>{}, ok: false }; }
+  const isWebGL2 = (typeof WebGL2RenderingContext !== 'undefined')
+                && (gl instanceof WebGL2RenderingContext);
+
+  // ─── Vertex shader: full-screen quad
+  const VS = isWebGL2
+    ? `#version 300 es
+       in vec2 a; void main(){ gl_Position = vec4(a, 0.0, 1.0); }`
+    : `attribute vec2 a; void main(){ gl_Position = vec4(a, 0.0, 1.0); }`;
+
+  // ─── Memory update shader (Gray-Scott + memory feedback)
+  const MEM_FS = isWebGL2 ? `#version 300 es
+    precision highp float;
+    uniform sampler2D u_prev;     // previous memory state (RGBA = u, v, m, age)
+    uniform vec2 u_resolution;
+    uniform float u_dt;
+    uniform float u_Du, u_Dv, u_feed, u_kill, u_lambda;
+    uniform int u_seedCount;
+    uniform vec3 u_seeds[16];     // (x, y, weight) for up to 16 seeds
+    uniform float u_seedActive;   // 1 when seeds should be planted, 0 normally
+    out vec4 fragColor;
+    void main(){
+      vec2 coord = gl_FragCoord.xy / u_resolution;
+      vec2 px = 1.0 / u_resolution;
+      vec4 c = texture(u_prev, coord);
+      float u = c.r, v = c.g, m = c.b, age = c.a;
+      // 5-point Laplacian
+      vec4 N = texture(u_prev, coord + vec2(0.0, px.y));
+      vec4 S = texture(u_prev, coord - vec2(0.0, px.y));
+      vec4 E = texture(u_prev, coord + vec2(px.x, 0.0));
+      vec4 W = texture(u_prev, coord - vec2(px.x, 0.0));
+      float lapU = N.r + S.r + E.r + W.r - 4.0 * u;
+      float lapV = N.g + S.g + E.g + W.g - 4.0 * v;
+      float uvv = u * v * v;
+      // Memory feedback (CRR memory rate)
+      float dm = u_lambda * (u - m);
+      // Gray-Scott update — standard pattern formation
+      float du = u_Du * lapU - uvv + u_feed * (1.0 - u);
+      float dv = u_Dv * lapV + uvv - (u_feed + u_kill) * v;
+      u += u_dt * du;
+      v += u_dt * dv;
+      m += u_dt * dm;
+      // Seed injection: high-C events arrive as INHIBITOR pulses (v),
+      // perturbing the all-activator substrate. Gray-Scott then runs
+      // wave-spot patterns outward from each seed point. Memory channel
+      // (m) carries a slow low-pass of the inhibitor for the visible
+      // hologram field.
+      if(u_seedActive > 0.5){
+        for(int i = 0; i < 16; i++){
+          if(i >= u_seedCount) break;
+          vec3 seed = u_seeds[i];
+          float d = distance(coord, seed.xy);
+          float g = exp(-d*d / 0.00022) * seed.z;
+          v += g * 0.55;
+          u -= g * 0.30;
+          m = max(m, g * 0.7);
+        }
+      }
+      u = clamp(u, 0.0, 1.0);
+      v = clamp(v, 0.0, 1.0);
+      m = clamp(m, 0.0, 1.0);
+      age += u_dt * 0.05;
+      fragColor = vec4(u, v, m, age);
+    }`
+  : `precision highp float;
+    uniform sampler2D u_prev;
+    uniform vec2 u_resolution;
+    uniform float u_dt;
+    uniform float u_Du, u_Dv, u_feed, u_kill, u_lambda;
+    uniform float u_seedActive;
+    uniform vec3 u_seeds[16];
+    uniform int u_seedCount;
+    void main(){
+      vec2 coord = gl_FragCoord.xy / u_resolution;
+      vec2 px = 1.0 / u_resolution;
+      vec4 c = texture2D(u_prev, coord);
+      float u = c.r, v = c.g, m = c.b, age = c.a;
+      vec4 N = texture2D(u_prev, coord + vec2(0.0, px.y));
+      vec4 S = texture2D(u_prev, coord - vec2(0.0, px.y));
+      vec4 E = texture2D(u_prev, coord + vec2(px.x, 0.0));
+      vec4 W = texture2D(u_prev, coord - vec2(px.x, 0.0));
+      float lapU = N.r + S.r + E.r + W.r - 4.0 * u;
+      float lapV = N.g + S.g + E.g + W.g - 4.0 * v;
+      float uvv = u * v * v;
+      float dm = u_lambda * (u - m);
+      float du = u_Du * lapU - uvv + u_feed * (1.0 - u);
+      float dv = u_Dv * lapV + uvv - (u_feed + u_kill) * v;
+      u += u_dt * du;
+      v += u_dt * dv;
+      m += u_dt * dm;
+      if(u_seedActive > 0.5){
+        for(int i = 0; i < 16; i++){
+          if(i >= u_seedCount) break;
+          vec3 seed = u_seeds[i];
+          float d = distance(coord, seed.xy);
+          float g = exp(-d*d / 0.00022) * seed.z;
+          v += g * 0.55;
+          u -= g * 0.30;
+          m = max(m, g * 0.7);
+        }
+      }
+      u = clamp(u, 0.0, 1.0);
+      v = clamp(v, 0.0, 1.0);
+      m = clamp(m, 0.0, 1.0);
+      age += u_dt * 0.05;
+      gl_FragColor = vec4(u, v, m, age);
+    }`;
+
+  // ─── Hologram render shader (multi-layer optical interference)
+  const HOLO_FS = isWebGL2 ? `#version 300 es
+    precision highp float;
+    uniform sampler2D u_mem;
+    uniform vec2 u_resolution;
+    uniform float u_t;
+    uniform float u_phase;       // 0..1 dream envelope
+    uniform float u_rotation;    // φ-rotation for day-to-day
+    uniform vec2 u_focus;        // focal point for hologram parallax
+    out vec4 fragColor;
+
+    void main(){
+      vec2 coord = gl_FragCoord.xy / u_resolution;
+      vec4 mem = texture(u_mem, coord);
+      // Pattern lives in the v (inhibitor) and m (memory) channels.
+      // u (activator) saturates the rest of the field, so we ignore it
+      // and look only at where pattern formation produced inhibitor
+      // and where memory has accumulated.
+      float field = mem.g * 0.7 + mem.b * 0.9;
+      // Sharp cutoff: only pixels with significant field show iridescence.
+      // Below 0.12 → invisible; above 0.32 → full strength. Smoothstep
+      // gives a soft edge to avoid hard banding.
+      float fieldGate = smoothstep(0.12, 0.32, field);
+      if(fieldGate < 0.01){ fragColor = vec4(0.0); return; }
+
+      // §VIEW ANGLE — depends on distance from focal point. The hologram
+      // shimmers as the viewer's gaze moves; we approximate the focal
+      // point as the canvas centre for now.
+      vec2 v = coord - u_focus;
+      float dist = length(v);
+      float viewAngle = atan(dist * 1.4) + u_rotation * 0.2;
+
+      // §MULTI-LAYER OPTICAL INTERFERENCE — 4 thin-film layers, each
+      // contributing to the path difference at this view angle.
+      vec3 colour = vec3(0.0);
+      for(int layer = 0; layer < 4; layer++){
+        float lf = float(layer);
+        float thickness = 0.30 + lf * 0.18 + sin(u_t * 0.3 + lf) * 0.04;
+        float density   = 1.45 + lf * 0.05;
+        // Path difference δ = 2nd cos(θ); add memory-driven shift so
+        // intense regions of the field shift the colours
+        float pathDiff = 2.0 * thickness * density * cos(viewAngle)
+                       + field * 0.45 + mem.g * 0.10;
+        // RGB phase calculations at three wavelengths (μm)
+        float redPh   = 6.28318 * pathDiff / 0.65;
+        float greenPh = 6.28318 * pathDiff / 0.53;
+        float bluePh  = 6.28318 * pathDiff / 0.45;
+        vec3 layerColour = vec3(
+          0.5 + 0.5 * cos(redPh),
+          0.5 + 0.5 * cos(greenPh),
+          0.5 + 0.5 * cos(bluePh)
+        );
+        // Layer weight: deeper layers contribute more to highlights
+        float w = 0.18 + lf * 0.06;
+        colour += layerColour * w;
+      }
+
+      // §FIELD MODULATION — only luminous where memory field is present.
+      // Multiply by fieldGate (smoothstep) for sharp edges.
+      colour *= fieldGate;
+
+      // §IRIDESCENT SHIMMER — a very slow shimmer over the whole pattern
+      float shimmer = 0.85 + 0.15 * sin(u_t * 0.4 + coord.x * 8.0 + coord.y * 6.0);
+      colour *= shimmer;
+
+      // Dream envelope — fade with overall dream phase
+      colour *= u_phase * 0.85;
+
+      fragColor = vec4(colour, length(colour) * 0.75);
+    }`
+  : `precision highp float;
+    uniform sampler2D u_mem;
+    uniform vec2 u_resolution;
+    uniform float u_t;
+    uniform float u_phase;
+    uniform float u_rotation;
+    uniform vec2 u_focus;
+
+    void main(){
+      vec2 coord = gl_FragCoord.xy / u_resolution;
+      vec4 mem = texture2D(u_mem, coord);
+      float field = mem.g * 0.7 + mem.b * 0.9;
+      float fieldGate = smoothstep(0.12, 0.32, field);
+      if(fieldGate < 0.01){ gl_FragColor = vec4(0.0); return; }
+      vec2 v = coord - u_focus;
+      float dist = length(v);
+      float viewAngle = atan(dist * 1.4) + u_rotation * 0.2;
+      vec3 colour = vec3(0.0);
+      for(int layer = 0; layer < 4; layer++){
+        float lf = float(layer);
+        float thickness = 0.30 + lf * 0.18 + sin(u_t * 0.3 + lf) * 0.04;
+        float density   = 1.45 + lf * 0.05;
+        float pathDiff = 2.0 * thickness * density * cos(viewAngle)
+                       + field * 0.45 + mem.g * 0.10;
+        float redPh   = 6.28318 * pathDiff / 0.65;
+        float greenPh = 6.28318 * pathDiff / 0.53;
+        float bluePh  = 6.28318 * pathDiff / 0.45;
+        vec3 layerColour = vec3(
+          0.5 + 0.5 * cos(redPh),
+          0.5 + 0.5 * cos(greenPh),
+          0.5 + 0.5 * cos(bluePh)
+        );
+        float w = 0.18 + lf * 0.06;
+        colour += layerColour * w;
+      }
+      colour *= fieldGate;
+      float shimmer = 0.85 + 0.15 * sin(u_t * 0.4 + coord.x * 8.0 + coord.y * 6.0);
+      colour *= shimmer;
+      colour *= u_phase * 0.85;
+      gl_FragColor = vec4(colour, length(colour) * 0.75);
+    }`;
+
+  // ─── Compile shaders + link programs
+  function compile(type, src){
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+      console.error('Dream shader error:', gl.getShaderInfoLog(s));
+      gl.deleteShader(s);
+      return null;
+    }
+    return s;
+  }
+  function linkProg(vsSrc, fsSrc){
+    const vs = compile(gl.VERTEX_SHADER, vsSrc);
+    const fs = compile(gl.FRAGMENT_SHADER, fsSrc);
+    if(!vs || !fs) return null;
+    const p = gl.createProgram();
+    gl.attachShader(p, vs); gl.attachShader(p, fs);
+    gl.linkProgram(p);
+    if(!gl.getProgramParameter(p, gl.LINK_STATUS)){
+      console.error('Dream link error:', gl.getProgramInfoLog(p));
+      return null;
+    }
+    return p;
+  }
+  const memProg = linkProg(VS, MEM_FS);
+  const holoProg = linkProg(VS, HOLO_FS);
+  if(!memProg || !holoProg){
+    return { phase: 0, update:()=>{}, draw:()=>{}, recordCEvent:()=>{}, ok: false };
+  }
+
+  // ─── Quad geometry
+  const quad = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+  // ─── Memory textures (ping-pong) at fixed resolution
+  const MEM_W = 256, MEM_H = 256;
+  function makeTex(){
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, MEM_W, MEM_H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    return tex;
+  }
+  function makeFBO(tex){
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    return fb;
+  }
+  let texA = makeTex(), texB = makeTex();
+  let fboA = makeFBO(texA), fboB = makeFBO(texB);
+  let readTex = texA, writeTex = texB, readFBO = fboA, writeFBO = fboB;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  // Clear textures to substrate state (u=1, v=0, m=0). Gray-Scott
+  // pattern formation requires this initial condition: full activator,
+  // no inhibitor. Patterns only emerge where seeded events introduce
+  // inhibitor (v) into the field. Without seeds, the whole field
+  // remains in the "rest" state and produces no visible memory.
+  function clearMemory(){
+    // Fill A and B with u=1, v=0, m=0, age=0 by uploading a colour
+    // (255, 0, 0, 0) via texImage2D
+    const data = new Uint8Array(MEM_W * MEM_H * 4);
+    for(let i = 0; i < MEM_W * MEM_H; i++){
+      data[i*4 + 0] = 255;   // u
+      data[i*4 + 1] = 0;     // v
+      data[i*4 + 2] = 0;     // m
+      data[i*4 + 3] = 0;     // age
+    }
+    gl.bindTexture(gl.TEXTURE_2D, texA);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, MEM_W, MEM_H, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    gl.bindTexture(gl.TEXTURE_2D, texB);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, MEM_W, MEM_H, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+  }
+  clearMemory();
+
+  // ─── State
+  let phase = 0;
+  let prevPhase = 0;
+  let rotation = 0;
+  // C-event tracker — list of { x, y, hue, C } from yesterday's playback
+  let cEvents = [];
+  // Top-N seeds extracted at dream start
+  let activeSeeds = [];
+  let seedTimeout = 0;   // counts down: how many more frames to inject seeds
+  let lastT = 0;
+
+  // Region map: where each event type belongs on screen (normalised 0-1)
+  const REGIONS = {
+    song:        { y0: 0.18, y1: 0.42, hue: 35 },   // bird canopy
+    note:        { y0: 0.18, y1: 0.40, hue: 35 },
+    alarm:       { y0: 0.20, y1: 0.40, hue: 0 },
+    treeFrog:    { y0: 0.50, y1: 0.62, hue: 130 },
+    frogChorus:  { y0: 0.50, y1: 0.62, hue: 130 },
+    redLegged:   { y0: 0.55, y1: 0.65, hue: 90 },
+    greatHorned: { y0: 0.20, y1: 0.42, hue: 25 },
+    sawWhet:     { y0: 0.18, y1: 0.40, hue: 50 },
+    bearMoan:    { y0: 0.45, y1: 0.55, hue: 18 },
+    bearGrowl:   { y0: 0.45, y1: 0.55, hue: 12 },
+    veryNearGrowl:{y0: 0.45, y1: 0.55, hue: 8 },
+    gray:        { y0: 0.60, y1: 0.78, hue: 215 },
+    fin:         { y0: 0.65, y1: 0.85, hue: 220 },
+    blue:        { y0: 0.70, y1: 0.90, hue: 235 },
+    humpUnit:    { y0: 0.55, y1: 0.78, hue: 200 },
+    humpPhrase:  { y0: 0.55, y1: 0.78, hue: 200 },
+    flutePhrase: { y0: 0.40, y1: 0.55, hue: 48 },
+    fluteCadenza:{ y0: 0.38, y1: 0.55, hue: 55 },
+    flute:       { y0: 0.40, y1: 0.55, hue: 48 },
+  };
+
+  // Record an audio event — currently a no-op; the dream now seeds from
+  // the day-1 schedule directly at rollover time, which is more
+  // CRR-faithful (every scheduled high-coherence moment of the day
+  // contributes to the dream, not just events that happened to dispatch
+  // while the listener was watching). Kept as a stub for the dispatcher
+  // to call without errors.
+  function recordCEvent(ev, currentC, beatInDay){ /* no-op */ }
+  function clearEventBuffer(){ cEvents = []; }
+
+  // §SEED PLANTING — extract top N events from YESTERDAY's full
+  // schedule (not just from what was dispatched). This means every
+  // high-coherence moment of the day informs the dream, regardless
+  // of whether the listener was attending. We pull events directly
+  // from the day-1 schedule snapshot stored by the rollover system.
+  //
+  // Each event's seed weight is exp(C_event / Ω_dream) where C_event
+  // is computed from the event's intrinsic gain and type (a proxy
+  // for achieved coherence). Ω_dream is small (sharp kernel, deep
+  // sleep) so the very highest-C moments dominate.
+  //
+  // φ — golden-ratio rotation applied to seed positions day-to-day
+  // so each dream's spatial pattern rotates ergodically through the
+  // same vocabulary of yesterday's peaks.
+  function plantSeeds(day, schedule){
+    activeSeeds = [];
+    if(!schedule || schedule.length === 0) return;
+    // Compute event-mass from the schedule. We use the event's
+    // intrinsic gain × type-weight as a proxy for the coherence
+    // it would have achieved.
+    const TYPE_WEIGHT = {
+      song: 1.0, note: 0.7, alarm: 1.4, dawn: 0.9,
+      flutePhrase: 1.2, fluteCadenza: 2.5, flute: 0.8,
+      treeFrog: 0.6, frogChorus: 0.9, redLegged: 0.5,
+      greatHorned: 1.1, sawWhet: 0.7,
+      bearMoan: 1.0, bearGrowl: 1.3, veryNearGrowl: 1.8,
+      gray: 1.0, fin: 0.9, blue: 1.1, humpUnit: 1.0, humpPhrase: 1.4,
+    };
+    const candidates = [];
+    const totalB = 408;
+    for(const ev of schedule){
+      // Skip dawn/dream/roost time — only daytime events seed the dream
+      const beat = ev.beat;
+      if(beat < 16 || beat > 376) continue;
+      const r = REGIONS[ev.type];
+      if(!r) continue;
+      const w = TYPE_WEIGHT[ev.type] || 0.5;
+      const g = ev.gain || ev.velocity || ev.padGain || 0.3;
+      const C = w * g;
+      if(C < 0.05) continue;
+      // Spatial position: x = beat-time across the day, y = type region
+      // Add stable per-event jitter from beat number so each event has
+      // a consistent screen position across days
+      const jitter = Math.sin(beat * 7.13) * 0.12;
+      const x = (beat - 16) / 360;
+      const y = (r.y0 + r.y1) / 2 + jitter * (r.y1 - r.y0);
+      candidates.push({ x, y, hue: r.hue, C });
+    }
+    // Sort by achieved coherence and take top events
+    candidates.sort((a, b) => b.C - a.C);
+    const top = candidates.slice(0, 14);
+    if(top.length === 0) return;
+    const Omega_dream = 0.4;
+    const Cmax = top[0].C;
+    activeSeeds = top.map((ev) => {
+      // φ-rotation around canvas centre
+      const ang = (day - 1) * (1 / PHI) * 2 * Math.PI;
+      const cs = Math.cos(ang), sn = Math.sin(ang);
+      const x0 = ev.x - 0.5, y0 = ev.y - 0.5;
+      const x1 = x0 * cs - y0 * sn + 0.5;
+      const y1 = x0 * sn + y0 * cs + 0.5;
+      // exp(C/Ω) weighting — normalised against the max so highest = 1.0
+      const w = Math.exp(ev.C / Omega_dream) / Math.exp(Cmax / Omega_dream);
+      return { x: x1, y: y1, w: Math.max(0.25, w), hue: ev.hue, C: ev.C };
+    });
+    seedTimeout = 8;
+  }
+
+  function clearEventBuffer(){ cEvents = []; }
+
+  // Run a single Gray-Scott iteration to the writeFBO and swap textures
+  function memStep(injectSeeds){
+    gl.bindFramebuffer(gl.FRAMEBUFFER, writeFBO);
+    gl.viewport(0, 0, MEM_W, MEM_H);
+    gl.useProgram(memProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    const aLoc = gl.getAttribLocation(memProg, 'a');
+    gl.enableVertexAttribArray(aLoc);
+    gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, readTex);
+    gl.uniform1i(gl.getUniformLocation(memProg, 'u_prev'), 0);
+    gl.uniform2f(gl.getUniformLocation(memProg, 'u_resolution'), MEM_W, MEM_H);
+    gl.uniform1f(gl.getUniformLocation(memProg, 'u_dt'), 1.0);
+    gl.uniform1f(gl.getUniformLocation(memProg, 'u_Du'), 0.18);
+    gl.uniform1f(gl.getUniformLocation(memProg, 'u_Dv'), 0.09);
+    gl.uniform1f(gl.getUniformLocation(memProg, 'u_feed'), 0.042);
+    gl.uniform1f(gl.getUniformLocation(memProg, 'u_kill'), 0.062);
+    gl.uniform1f(gl.getUniformLocation(memProg, 'u_lambda'), 0.035);
+    gl.uniform1f(gl.getUniformLocation(memProg, 'u_seedActive'), injectSeeds ? 1.0 : 0.0);
+    const seedArr = new Float32Array(48);
+    const cnt = Math.min(activeSeeds.length, 16);
+    for(let i = 0; i < cnt; i++){
+      seedArr[i*3+0] = activeSeeds[i].x;
+      seedArr[i*3+1] = 1.0 - activeSeeds[i].y;
+      seedArr[i*3+2] = activeSeeds[i].w;
+    }
+    gl.uniform3fv(gl.getUniformLocation(memProg, 'u_seeds'), seedArr);
+    gl.uniform1i(gl.getUniformLocation(memProg, 'u_seedCount'), cnt);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    let tmpT = readTex, tmpF = readFBO;
+    readTex = writeTex; readFBO = writeFBO;
+    writeTex = tmpT; writeFBO = tmpF;
+  }
+
+  // §PRE-EVOLVE — run many Gray-Scott iterations rapidly so pattern
+  // is already visible when the dream becomes visible. Seeds inject
+  // for the first 8 iterations, then pure pattern-formation runs.
+  function preEvolve(N){
+    for(let i = 0; i < N; i++){
+      memStep(i < 8);
+    }
+  }
+
+  // Compute dream phase from beat-within-day
+  function computePhase(beatInDay, day){
+    if(day < 2) return 0;
+    if(beatInDay < 0 || beatInDay > 16) return 0;
+    const sm = (t) => { t = Math.max(0, Math.min(1, t)); return t*t*(3-2*t); };
+    if(beatInDay < 4) return sm(beatInDay / 4);
+    if(beatInDay < 12) return 1;
+    return 1 - sm((beatInDay - 12) / 4);
+  }
+
+  function update(beatInDay, day){
+    prevPhase = phase;
+    phase = computePhase(beatInDay, day);
+    rotation = ((day - 1) * (1 / PHI)) * Math.PI * 2;
+    // Detect dream-start: phase rises from 0
+    if(prevPhase < 0.01 && phase >= 0.01){
+      // Pass the day-1 snapshot schedule (contains every scheduled event,
+      // not just dispatched ones). Defined globally as _day1Schedule.
+      plantSeeds(day, typeof _day1Schedule !== 'undefined' ? _day1Schedule : null);
+      // Pre-evolve the reaction-diffusion field so pattern is already
+      // formed when the dream becomes visible. Without this, by the time
+      // the dream peaks at beat 4, the field has only run ~100 iterations
+      // of Gray-Scott which isn't enough to develop visible patterns.
+    preEvolve(50);
+    }
+    // Detect dream-end: phase falls to 0 — clear the memory texture so
+    // the next dream starts fresh
+    if(prevPhase > 0.01 && phase < 0.01){
+      clearMemory();
+      activeSeeds = [];
+    }
+  }
+
+  // ─── DRAW: run reaction-diffusion update, then hologram render
+  function draw(t){
+    if(phase < 0.01){
+      // Phase off — clear the canvas so no stale dream pixels remain
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, dc.width, dc.height);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      lastT = t;
+      return;
+    }
+    if(seedTimeout > 0) seedTimeout--;
+    const dt = Math.min(0.05, t - lastT);
+    lastT = t;
+
+    // 1. Reaction-diffusion update — fewer iterations per frame so
+    // the pattern evolves slowly through the dream rather than rushing
+    // to equilibrium. Seeds re-inject continuously (via a faint
+    // sustaining pulse) so each high-C event remains anchored to its
+    // location throughout the dream window.
+    const iterations = 2;
+    for(let it = 0; it < iterations; it++){
+      memStep(seedTimeout > 0 || (Math.random() < 0.15));
+    }
+
+    // 2. Hologram render to dream canvas
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, dc.width, dc.height);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);   // additive
+    gl.useProgram(holoProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+    const aLoc2 = gl.getAttribLocation(holoProg, 'a');
+    gl.enableVertexAttribArray(aLoc2);
+    gl.vertexAttribPointer(aLoc2, 2, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, readTex);
+    gl.uniform1i(gl.getUniformLocation(holoProg, 'u_mem'), 0);
+    gl.uniform2f(gl.getUniformLocation(holoProg, 'u_resolution'), dc.width, dc.height);
+    gl.uniform1f(gl.getUniformLocation(holoProg, 'u_t'), t);
+    gl.uniform1f(gl.getUniformLocation(holoProg, 'u_phase'), phase);
+    gl.uniform1f(gl.getUniformLocation(holoProg, 'u_rotation'), rotation);
+    gl.uniform2f(gl.getUniformLocation(holoProg, 'u_focus'), 0.5, 0.45);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  function resize(){
+    const scale = 0.6;
+    dc.width = Math.max(1, Math.floor(dc.clientWidth * scale));
+    dc.height = Math.max(1, Math.floor(dc.clientHeight * scale));
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  return {
+    get phase(){ return phase; },
+    get rotation(){ return rotation; },
+    get seedCount(){ return activeSeeds.length; },
+    get cEventCount(){ return cEvents.length; },
+    update, draw, recordCEvent, clearEventBuffer, plantSeeds, resize,
+    ok: true
+  };
+})();
 
 function drawSky(w,h){
   const p=getSkyPhase(),grad=cx.createLinearGradient(0,0,0,h);
@@ -7976,6 +9286,14 @@ function render(){
   const _camTotalB = getBeats();
   const _camBeatInDay = MODE === 'chorus' ? currentBeat % _camTotalB : currentBeat;
   Camera.update(_camBeatInDay);
+  // §DREAM: update dream-phase visualisation state. Dream is active
+  // during the first 16 beats of any day after day 1. Outside chorus
+  // mode we still call update with day=1 to ensure phase = 0.
+  if(MODE === 'chorus'){
+    Dream.update(_camBeatInDay, currentDay);
+  } else {
+    Dream.update(0, 1);
+  }
   // §WHALE: ramp whale and ocean rumble buses with the camera reveal —
   // whales become audible exactly as the ocean enters frame.
   if(ac && playing) setOceanLevel(Camera.ocean);
@@ -8099,6 +9417,13 @@ function render(){
     // §HORIZON TEXT: threshold quotation in golden shimmer
     drawHorizonText(w, h);
   }
+  // §DREAM: holographic visualisation rendered to its own WebGL canvas
+  // overlay. The reaction-diffusion memory field grows from yesterday's
+  // high-coherence event seeds; the multi-layer optical interference
+  // shader produces the iridescent shimmer of a real hologram.
+  // Always called — internally no-ops when phase == 0 — so the dream
+  // canvas can clear cleanly when the dream ends.
+  Dream.draw(performance.now() * 0.001);
 
   drawThermalBar(w,h);drawSpectrum(w,h,w-40,40,15);
   sampleTelemetry();renderTelemetry();
