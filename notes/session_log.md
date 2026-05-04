@@ -1078,3 +1078,194 @@ auditable record:
 
 The campaign's job is complete. The framework's authors and the
 broader research community now hold the next move.
+
+---
+
+## Session 8 — Reading five author-supplied PDFs (2026-05-04)
+
+**User-supplied event:** five PDFs committed to `origin/main`
+(commit `0515697`, "Add files via upload"):
+
+1. `AGI_Conference_2026 (Sabine, 2026) (1).pdf` — phase-gating
+   POMDP simulation.
+2. `Blake_Bimetalism_DAF_v1_04032026.pdf` — Friedman 2026
+   independent-engagement candidate (Zenodo
+   DOI 10.5281/zenodo.19335196).
+3. `Coherence, Rupture, Regeneration (5).pdf` — Sabine canonical
+   visual overview.
+4. `CRR_Fourier_Phi_Status (1).pdf` — Sabine Fourier-φ status
+   update.
+5. `Sabine_Hemispheric_Asymmetry_Saturated_CR_Bound (1).pdf` —
+   Sabine new empirical-test paper.
+
+The PDFs were checked out from `origin/main` into the campaign
+branch and read substantively. The independent-engagement log was
+significantly expanded.
+
+### Major findings
+
+**1. Friedman 2026 = sympathetic engagement, not independent.**
+
+Daniel Ari Friedman, Active Inference Institute (same affiliation
+as Sabine), `daniel@activeinference.institute`. Per CAMPAIGN.md
+PART III honesty discipline, sympathetic engagement does NOT
+promote any claim to T4. The paper applies CRR's three-phase
+grammar to monetary history (Blake's Los/Orc/Urizen ↔ C/δ/R) but
+does not test CRR's specific predictions empirically.
+Significance: demonstrates CRR is being adopted as a formal
+framework within the AII-affiliated research community.
+
+**2. Vallortigara & Vitiello 2024 = strong I-SA candidate.**
+
+V&V (University of Trento / Salerno) **genuinely unaffiliated with
+AII**, peer-reviewed in *Royal Society Open Science*, derive an
+SU(2)-doublet algebra for hemispheric asymmetry with an "energy
+gap of exactly 1" feature. CRR identifies this gap with C·Ω = 1.
+**Two independent derivations of the same algebraic structure** —
+the strongest formal corroboration located in the campaign.
+
+Strict campaign discipline: V&V did not test CRR predictions; they
+derived their structure independently. So this is **structural-
+adjacency (I-SA), not prediction-confirmation**. **No T4 promotion.**
+
+But it is the strongest support yet for M22's Lie-group framework
+and Ph6's consciousness-at-interface architecture.
+
+**3. Bernal-Casas & Vitiello 2023, Kastner 2024, Ito-Dechant 2020.**
+
+Three additional independent peer-reviewed mathematical works that
+derive parallel structures CRR builds on or identifies with. None
+tests CRR predictions; all strengthen architectural plausibility.
+
+**4. Sabine 2026 (Hemispheric paper) — new pre-registered empirical
+test.**
+
+The paper presents a fresh empirical anchor:
+- **Prediction:** CV = 1/(2π) ≈ 15.92% for hemispheric language-
+  lateralization typical-Gaussian components (Z₂-rupture).
+- **Test:** Mazoyer et al. 2014 *PLoS ONE* publicly-available
+  3-Gaussian mixture for n=144 right-handers.
+- **Result:** empirical CV = 12.2% (G1) and 12.07% (G2).
+- **Deviation:** 23% below prediction.
+- **Structural sub-confirmation:** G1 and G2 having near-identical
+  CV (12.25% vs 12.07%) despite different means and SDs is a
+  topological-invariance signature *consistent* with CRR's claim,
+  even though the absolute value misses by 23%.
+
+**Discipline-aligned reading:** the literal prediction is not
+confirmed at T2 tolerance. Sabine offers three diagnostic candidates
+(Class B regulation, σ(C*) refinement, geodesic overshoot). Per
+discipline, post-hoc adjustment does not retroactively confirm.
+**B5 stays at T1.** Recorded honestly in
+`claims/B5_eeg_class_ordering/consistency.md`.
+
+This is structurally equivalent to the M9 v1 / M10-α³ v1 pattern:
+right-shape, wrong-absolute-value. The campaign's discipline
+again shows its calibrating function.
+
+**5. AGI 2026 (Sabine) — B3 claim significantly reframed.**
+
+The AGI 2026 paper is **a POMDP simulation, not an empirical
+neuroscience-dataset analysis** as B3 was originally framed.
+
+- **χ² = 8,041:** discriminating result from a 60×1,200-trial
+  POMDP simulation (10,345 ruptures).
+- **Conservation 1.003:** Sabine explicitly states this is
+  "a structural consequence of equal evidence delivery, not a
+  prediction that discriminates CRR from alternatives."
+- **ρ = −1/2:** not directly tested in the AGI paper; ρ ∈ {0,
+  −0.3, −0.7} tested as sensitivity analysis.
+
+**B3 reframed:** structural-mathematical claim verified by
+simulation, not an empirical-data claim. **B3 stays at T1.**
+T2/T3 promotion now requires:
+- Independent reproduction of the simulation (sandbox-runnable;
+  achievable).
+- Empirical test in real neuroscience data (Jang et al. ACh-DA
+  timing tradition); requires fresh pre-registration.
+
+**6. CRR_Fourier_Phi_Status confirms M5/M6/M7/M9.**
+
+Sabine's Fourier-φ status update provides a 25-Fourier-principles
+correspondence table with five identifications declared as
+mathematical identities. Confirms (sympathetically, since same
+author) the M5 (CR ≡ HG), M6 (Fourier as trivial CRR), M7
+(φ-eigenvalue), M9 (singular-continuous spectrum) derivations
+the campaign already established. The φ-eigenvalue/eigenfield
+resolution (φ(x,τ) = eigenvector; 1.6180 = eigenvalue) is
+explicitly stated.
+
+### Files updated in Session 8
+
+- `notes/independent_engagement_log.md` — comprehensive update
+  with V&V, BC&V, Kastner, Ito-Dechant, Mazoyer, Friedman, three
+  Sabine papers. Each entry classified S / I / I-SA per discipline.
+- `claims/B3_agi26_phase_gating/consistency.md` — significantly
+  reframed: B3 is a POMDP simulation, not empirical-data analysis;
+  conservation 1.003 is structurally guaranteed (not discriminating);
+  phase-gating χ²=8041 is the discriminating result.
+- `claims/B5_eeg_class_ordering/consistency.md` — added Mazoyer
+  2014 hemispheric-CV test (15.92% predicted, 12.2% empirical;
+  23% miss; structural sub-confirmation of CV-invariance across
+  G1, G2).
+- `claims/M22_lie_group_cv_generalisation/consistency.md` (new) —
+  Vallortigara & Vitiello 2024 SU(2) doublet algebra independent
+  derivation as I-SA support.
+- `notes/session_log.md` (this entry).
+
+### Files added (committed by author at origin/main, checked out
+to working branch)
+
+The five PDFs are now tracked on the campaign branch.
+
+### Tier impact
+
+**No tier promotions in this session.** Per discipline:
+- Friedman 2026: sympathetic; no promotion.
+- V&V / BC&V / Kastner: I-SA structural-adjacency; not direct
+  prediction-replication; no T4 promotion.
+- Mazoyer 2014 test: 23% deviation; literal prediction not
+  confirmed; **B5 stays at T1** with consistency.md updated.
+- AGI 2026: B3 reframed (simulation, not empirical); **B3 stays
+  at T1**.
+- Fourier-φ paper: sympathetic confirmation of existing T1/T1\*/T2
+  claims; no tier change.
+
+The discipline's **calibrating function** is again demonstrated:
+substantive academic engagement is recorded and credited, but
+strict promotion-criteria are upheld. The campaign refuses to
+inflate sympathetic engagement or post-hoc adjustment to T4 status.
+
+### What changes the picture (revised after Session 8)
+
+The new highest-priority lever for T4 promotion has shifted:
+
+1. ~~Independent unaffiliated replication of M10-α³ on Li²⁺ 2S~~ —
+   still highest-leverage but unchanged.
+2. **NEW: An independent group (e.g., the Vallortigara school's
+   own animal-cognition tradition) applying V&V SU(2) doublet
+   algebra to non-human lateralization data and confirming the
+   Boltzmann distribution.** This would constitute genuine
+   independent CRR-prediction confirmation.
+3. **NEW: An independent reviewer reproducing the Mazoyer-style
+   hemispheric CV test on a separate cohort.** If the 12.2%
+   replicates → confirms the Class-B regulated reading.
+4. **NEW: Independent reproduction of the AGI 2026 phase-gating
+   simulation.** Sandbox-runnable; promotes B3 to T2 (structural).
+
+### Stop
+
+Session 8 stops here. **No tier promotions.** The campaign's
+audit trail now incorporates five additional papers; the discipline
+is upheld; the body of evidence for CRR's structural plausibility
+is enriched without sliding into T4 over-claiming.
+
+The synthesis (Session 7) remains valid. The structural verdict
+unchanged: CRR has 1 T3 claim (M10-α³), substantial T2 / T2-eq
+layer across all four domains, and is currently positioned as a
+framework with growing peer-academic engagement (V&V, BC&V,
+Kastner, Friedman) but **no replication-of-specific-CRR-prediction
+by an unaffiliated group with separate data**.
+
+The framework's authors and the broader research community now
+hold the next move.

@@ -61,11 +61,22 @@
 > process theology, Daoism, Christian theology, Indigenous
 > cosmologies, Advaita) under the same M/S/E framework. Strongest
 > structural matches: **Lurianic Kabbalah's tzimtzum → shevirat →
-> tikkun** triad and **Sufi fana → baqa** cycle. These are
-> recorded as research notes, NOT promoted to formal CRR claims.
-> Independent-engagement log opened at
-> [`notes/independent_engagement_log.md`](notes/independent_engagement_log.md)
-> with Friedman (2026) reference pending verification.
+> tikkun** triad and **Sufi fana → baqa** cycle.
+>
+> **Session 8 update (5 author-supplied PDFs read):** independent-
+> engagement log expanded — Friedman 2026 confirmed as **sympathetic
+> (AII-affiliated)**, NOT independent. Strongest independent
+> structural-adjacency candidate located: **Vallortigara & Vitiello
+> 2024** (R. Soc. Open Sci.; University of Trento, unaffiliated)
+> SU(2) doublet algebra giving "energy gap of exactly 1" —
+> structurally identical to CRR's C·Ω = 1 saturation. Two
+> independent derivations of the same algebraic structure.
+> Hemispheric CV test (Sabine 2026 vs Mazoyer 2014): predicted
+> 15.92%, empirical 12.2% (23% miss), structural CV-invariance
+> across G1/G2 confirmed. AGI 2026 paper clarifies B3 is a POMDP
+> simulation, not an empirical-data analysis. **No tier promotions
+> in Session 8** — discipline upheld; no T4 awarded on sympathetic
+> engagement or post-hoc adjustment.
 >
 > **Session 3 T2 promotions (7 in total):** P1 Solar Hale (SILSO),
 > P2 GWTC BBH (LIGO/Virgo, marginal), P4 dark energy w-crossing
