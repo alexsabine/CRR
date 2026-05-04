@@ -43,6 +43,18 @@
 > prediction yet) or T4-eq (no independent philosopher engagement).
 > **T0 count is now zero** across the entire 43-claim set.
 >
+> **Session 5 addendum:** [`notes/spiritual_resonance_assessment.md`](notes/spiritual_resonance_assessment.md)
+> surveys CRR resonance across 8 traditions (Lurianic Kabbalah,
+> Sufism, Tibetan Buddhism, Kashmir Shaivism, Yogācāra Buddhism,
+> process theology, Daoism, Christian theology, Indigenous
+> cosmologies, Advaita) under the same M/S/E framework. Strongest
+> structural matches: **Lurianic Kabbalah's tzimtzum → shevirat →
+> tikkun** triad and **Sufi fana → baqa** cycle. These are
+> recorded as research notes, NOT promoted to formal CRR claims.
+> Independent-engagement log opened at
+> [`notes/independent_engagement_log.md`](notes/independent_engagement_log.md)
+> with Friedman (2026) reference pending verification.
+>
 > **Session 3 T2 promotions (7 in total):** P1 Solar Hale (SILSO),
 > P2 GWTC BBH (LIGO/Virgo, marginal), P4 dark energy w-crossing
 > (DESI 2024, preliminary), P5 CSEP California (conditional),
