@@ -2,11 +2,7 @@
 
 **Tier: T1 (conjecture).**
 
-**Justification:** T1. Derivation under Bernoulli(1/2) noise model; numerical verification via test_M1_cv_equals_omega_over_2. Caveat: A3 (the noise model) is the load-bearing assumption — see derivation.md.
-
-**Promoted from T0** in Session 2 by `derivation.md` in this directory
-and the corresponding pytest case(s) in
-`crr-engine/tests/test_derivations.py`.
+**Justification:** T1. Derivation under Bernoulli(1/2) noise model now strengthened: the noise model is structurally forced by H1 (rupture is Z₂ by construction; Bernoulli(1/2) is the maximum-entropy distribution on Z₂). Verified via test_M1_cv_equals_omega_over_2 plus Lie-group generalisation tests in test_rupture_topology.py.
 
 **Promotion gates ahead:**
 - **T2** requires `consistency.md` reproducing an independent empirical

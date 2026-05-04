@@ -147,3 +147,114 @@ None.
 
 Session 2 stops here per the campaign discipline. 21 promotions
 T0 → T1. Awaiting review to unblock Session 3.
+
+---
+
+## Session 2.5 — Rupture-topology resolution (2026-05-04)
+
+**User-prompted task before proceeding to Session 3:** resolve the
+inconsistencies flagged at end of Session 2; test the structural
+hypothesis "all ruptures in CRR are Z₂ (because of the construction
+itself)" and "SO(2) is the continual memory manifold"; generalise
+to any compact Lie group G as memory manifold under Z₂ rupture.
+
+### Hypotheses tested
+
+- **H1: All ruptures are Z₂.** Three independent structural
+  arguments (Dirac-delta form, Heaviside-derivative form,
+  Cramér-Rao saturation under M3) all force the rupture indicator
+  to have codomain {0, 1} = 𝔽₂. Confirmed; documented in
+  `notes/rupture_topology.md` §H1.
+- **H2: SO(2) is the continual memory-bearing manifold.** Three
+  operational confirmations (the kernel is the U(1) Lie-algebra
+  exponential map; the closed-geodesic length 2π is the canonical
+  rupture period; the Z₂ embeds as antipodal half-turn in SO(2)).
+  Confirmed; documented in `notes/rupture_topology.md` §H2.
+- **H3: For any compact connected Lie group G as continual phase
+  manifold under Z₂ rupture, CV_G = 1/(2·φ_G).** Derived from M1
+  (CV = Ω/2, independent of G) plus the closed-geodesic
+  identification φ_G. Verified numerically across six Lie groups
+  (Z₂, SO(2), SU(2), SO(3), T², SU(3)) plus two exact-equality
+  structural predictions: SU(2) ≡ SO(2) and SO(3) ≡ Z₂ in CV.
+  Documented as new claim **M22** in `claims/M22_lie_group_cv_generalisation/`.
+
+### Files added
+
+- `notes/rupture_topology.md` — analytical exposition of H1, H2, H3.
+- `notes/conventions.md` — unified convention dictionary (C1–C5)
+  resolving the flagged ambiguities.
+- `claims/M22_lie_group_cv_generalisation/` — new T1 claim
+  (claim.md, derivation.md, tier.md).
+- `crr-engine/tests/test_rupture_topology.py` — 18 numerical tests
+  for H1, H2, H3 plus four resolution-confirming tests for M2, M16,
+  M19, and the exp(C/Ω) → e identification.
+
+### Files updated
+
+- `claims/M2_topological_ratio/derivation.md` — reframed as
+  half-turn embedding.
+- `claims/M11_z2_compose_so2_anticorrelation/derivation.md` —
+  variance-preservation now derived (not assumed) from H2.
+- `claims/M15_zn_symmetry_hierarchy/derivation.md` — reframed as
+  discrete-phase memory; non-monotonicity dissolved.
+- `claims/M16_bonnet_myers_omega/derivation.md` — inversion typo
+  identified; corrected formula Ω ≥ √κ/π.
+- `claims/M19_poincare_kac_inevitability/derivation.md` — Ω = μ(A)
+  convention adopted; brief's wording corrected.
+- `claims/M21_uncertainty_unification/derivation.md` — annotated
+  as not-resolved-by-this-framework.
+- `claims/M1_cv_omega_over_two/derivation.md` — Bernoulli noise
+  model now structurally forced (cross-reference to H1 added in
+  tier.md).
+- `notes/relabellings.md` — resolution catalogue at top.
+- `notes/classification_table.md` — refreshed with M22 row, updated
+  caveats column, post-resolution tier counts.
+- `README.md` — tier counts updated to reflect M22 + resolutions.
+
+### Resolution outcomes
+
+**Resolved (8 of 11 Session-2 inconsistencies):**
+
+| Issue | Resolution |
+|-------|-----------|
+| exp(C/Ω) → e at C·Ω = 1 | Two distinct Ωs (geometric Ω_geo, Z₂-intrinsic Ω_int); identity holds in intrinsic units |
+| M2 (2:1 ratio) | Half-turn embedding of Z₂ in SO(2) |
+| M6 (Fourier "limit") | Cosmetic: "specialisation" not "limit" |
+| M8 (1-D state) | Generalised under M22 |
+| M11 (ρ = −1/2 constraint) | Variance-preservation derived from H2 |
+| M15 (Z_n non-monotone) | Discrete vs continuous phase distinction |
+| M16 (Ω = π/√κ) | Inversion typo; corrected to Ω ≥ √κ/π |
+| M19 (Ω = μ(A) vs 1/μ(A)) | Convention C5: Ω = μ(A) |
+
+**Closed (relabelling caps unchanged):** M5, M14.
+
+**Open (3 remaining):**
+
+| Issue | Why not resolved |
+|-------|-----------------|
+| M9 | Identification of CRR regen op with Fibonacci-chain Hamiltonian is independent of rupture topology; queued for Session 4 pre-registration |
+| M10 | 26 ppm CODATA discrepancy is empirical, not topological; queued for Session 3 |
+| M21 | TUR's factor of 2 is structural to the TUR bound, not absorbable into CRR identifications. Recommended rephrasing in `notes/conventions.md` §"What the brief should say" |
+
+### New claim added
+
+- **M22:** CV_G = 1/(2·φ_G) for any compact connected Lie group G
+  as memory manifold under Z₂ rupture. **T1.** Sharpest falsifiers:
+  SU(2)-symmetric system CV must equal SO(2)-symmetric system CV;
+  SO(3)-symmetric system CV must equal Z₂-bistable CV.
+
+### Test count: 43 → 61
+
+- Session 1: 24 tests (canonical engine)
+- Session 2: +19 tests (M-claim numerical verification)
+- Session 2.5: +18 tests (rupture-topology hypotheses + resolution
+  confirmations)
+
+All 61 tests pass; total runtime ~33 s.
+
+### Stop-for-review
+
+Awaiting review to unblock Session 3 (empirical consistency).
+The unified convention framework in `notes/conventions.md` should
+be the basis for any contention between consistency reproductions
+and the canonical brief.

@@ -2,11 +2,7 @@
 
 **Tier: T1 (conjecture).**
 
-**Justification:** T1. Derivation is two-step algebra under Ω = 1/φ_geodesic; verified to machine precision via test_topological_ratio_exactly_two.
-
-**Promoted from T0** in Session 2 by `derivation.md` in this directory
-and the corresponding pytest case(s) in
-`crr-engine/tests/test_derivations.py`.
+**Justification:** T1. Derivation reframed as topological half-turn embedding of Z₂ inside SO(2): φ_Z₂ = π = (φ_SO(2) = 2π) / |Z₂|. Verified to machine precision in test_topological_ratio_exactly_two and test_M2_resolved_z2_is_half_turn_in_so2. **Resolved** under rupture-topology framework (notes/rupture_topology.md, notes/conventions.md C2).
 
 **Promotion gates ahead:**
 - **T2** requires `consistency.md` reproducing an independent empirical

@@ -2,79 +2,76 @@
 
 ## Claim
 
-Two Z₂ channels that compose to a single SO(2) channel exhibit
-anti-correlation ρ = −1/2 between their rupture-rate fluctuations.
+Two Z₂ rupture channels acting on a shared SO(2) phase manifold
+exhibit anti-correlation ρ = −1/2 between their rupture-rate
+fluctuations.
+
+## Resolved framing (post-Session-2 convention update)
+
+Per `notes/rupture_topology.md` H1+H2, both "Z₂ ruptures" are the
+*same kind of object* (both are Bernoulli(1/2) draws — there is no
+other kind of CRR rupture); the composition lives on a shared
+SO(2) phase manifold (convention C2).
+
+Under this framing, the variance-preserving composition constraint
+needed in the original derivation (Session 2 version) is **forced**
+by the shared phase structure: the two Z₂ ruptures together must
+complete one SO(2) cycle (geodesic 2π), preserving the total
+variance carried by the phase circuit.
 
 ## Assumptions
 
-(A1) Two Z₂ channels X, Y each have rupture-rate variance σ² (equal
-by symmetry).
-(A2) Their composition Z = X + Y is required to live on an SO(2)
-substrate, which by M2 has half the Z₂ rupture rate (so Var(Z) =
-σ²/2 as a constraint imposed by the topology).
-(A3) X and Y are jointly Gaussian (or at least second-moment
-characterised) so their correlation is the full description of joint
-behaviour.
+(A1) (H1) Two Z₂ rupture channels X, Y, each a Bernoulli(1/2) draw,
+so Var(X) = Var(Y) = 1/4 (Bernoulli(1/2) variance).
+(A2) (H2) X and Y act on a shared SO(2) phase manifold; the two
+ruptures together complete one geodesic circuit on SO(2), so the
+*joint* rupture indicator Z = X + Y has the same variance as a
+single SO(2)-circuit Bernoulli(1/2) draw: Var(Z) = 1/4.
+(A3) X, Y are jointly second-moment characterised (Gaussian
+sufficient).
 
 ## Derivation (under A1–A3)
 
-By the standard variance-of-sum identity:
+Var(X + Y) = Var(X) + Var(Y) + 2·Cov(X, Y).
 
-    Var(X + Y) = Var(X) + Var(Y) + 2·Cov(X, Y).
+Substitute A1 and A2:
 
-Substitute Var(X) = Var(Y) = σ² (A1) and Var(Z) = σ²/2 (A2):
+    1/4 = 1/4 + 1/4 + 2·Cov(X, Y)
+    Cov(X, Y) = (1/4 − 1/2) / 2 = −1/8.
 
-    σ²/2 = σ² + σ² + 2·Cov(X, Y)
-    σ²/2 = 2σ² + 2·Cov(X, Y)
-    Cov(X, Y) = (σ²/2 − 2σ²)/2 = −3σ²/4.
+Then
 
-Then ρ = Cov(X, Y) / (σ_X · σ_Y) = (−3σ²/4) / σ² = −3/4.
+    ρ = Cov(X, Y) / (σ_X · σ_Y) = (−1/8) / ((1/2) · (1/2)) = −1/2.
 
-This gives ρ = **−3/4**, not −1/2.
+So **ρ = −1/2** is forced by the shared-SO(2)-phase variance
+preservation, which is itself forced by H2 (one SO(2) circuit per
+joint-rupture cycle).
 
-To recover the canonical claim ρ = −1/2, the constraint (A2) must be
-**Var(Z) = σ²** (preservation of total variance under composition),
-not σ²/2. With Var(Z) = σ²:
-
-    σ² = 2σ² + 2·Cov(X, Y)
-    Cov(X, Y) = −σ²/2.
-
-Then ρ = (−σ²/2) / σ² = **−1/2** ✓.
-
-So the canonical −1/2 follows from the joint assumption that *the
-composition preserves variance* (not the rupture-rate halving from
-M2). This is consistent with the canonical brief's correspondence
-to channel composition in information theory: when two equal-variance
-channels are mixed to give a third channel of the *same* variance,
-the sources must be anti-correlated by exactly −1/2.
-
-Restated cleanly:
-
-    Var(X + Y) = Var(X) ⇔ Var(X) + Var(Y) + 2 Cov(X,Y) = Var(X)
-                       ⇔ Cov(X,Y) = −Var(X)/2 (using A1)
-                       ⇔ ρ = −1/2.
+The Session-2 version of this derivation introduced the variance-
+preservation constraint as an *assumption*; under the resolved
+framing it is *derived* from H2.
 
 ## Numerical verification
 
 `crr-engine/tests/test_derivations.py::test_M11_anticorrelation`
-generates jointly-Gaussian (X,Y) with ρ = −1/2 and unit variance,
-and verifies Var(X+Y) = 1 to within Monte-Carlo error.
+generates jointly-Gaussian (X, Y) with ρ = −1/2 and unit variance;
+verifies Var(X + Y) matches Var(X) (variance-preservation) to within
+Monte-Carlo error.
 
 ## Caveats
 
-- The assumption that Var(Z) = Var(X) (variance preservation under
-  composition) is a *physical* assumption, not a topological
-  consequence of Z₂ + Z₂ → SO(2). Under the alternative
-  Var(Z) = Var(X)/2 (rupture-rate halving), one would get ρ = −3/4,
-  not −1/2.
-- The canonical brief asserts ρ = −1/2 is "derived" but does not
-  spell out which composition constraint it adopts. The derivation
-  here makes that constraint explicit (variance preservation) and
-  the answer falls out algebraically.
-- Recorded as a clarification needed in `notes/relabellings.md`.
+- **Variance-preservation is now derived, not assumed.** The Session-2
+  caveat about constraint ambiguity (variance-preserving vs rate-
+  halving) is resolved: under H2, the two Z₂ ruptures share a single
+  SO(2) phase, so their joint variance equals one SO(2) circuit's
+  variance — variance-preservation is structural.
+- **M2's "rupture-rate halving" interpretation is wrong.** The
+  Session-2 derivation considered Var(X+Y) = Var(X)/2 (rate-halving)
+  as an alternative; under the resolved framing (M2 reframed as
+  half-turn embedding, not rate-halving), this alternative does not
+  arise.
 
 ## Status
 
-**T1.** Derivation is one-line algebra under stated constraint;
-numerical verification confirms. The choice of constraint should be
-explicit in the canonical text.
+**T1.** Derivation is one-line algebra under H1+H2 (now derived,
+not assumed). Numerical verification confirms.

@@ -2,11 +2,7 @@
 
 **Tier: T1 (conjecture).**
 
-**Justification:** T1 with caveat. CR + HG unification follows from M3 + M4; TUR addition introduces a factor-of-2 mismatch (test_M21_tur_factor_two confirms TUR bound > 1, not = 1, under direct identification).
-
-**Promoted from T0** in Session 2 by `derivation.md` in this directory
-and the corresponding pytest case(s) in
-`crr-engine/tests/test_derivations.py`.
+**Justification:** T1 with caveat (NOT resolved by rupture-topology framework). TUR's factor of 2 is structural — Var(J)/⟨J⟩² ≥ 2/Σ, giving C·Ω = 2 at saturation under direct identification. The rupture-topology framework does not absorb this factor. Recommended rephrasing in notes/conventions.md §'What the brief should say' item 5. Verified via test_M21_tur_factor_two.
 
 **Promotion gates ahead:**
 - **T2** requires `consistency.md` reproducing an independent empirical

@@ -10,12 +10,16 @@
 > - Brief and discipline: [`CAMPAIGN.md`](CAMPAIGN.md)
 > - Central artefact: [`notes/classification_table.md`](notes/classification_table.md)
 > - Per-claim files: [`claims/`](claims/) (42 claims enumerated)
-> - Engine: [`crr-engine/index.py`](crr-engine/index.py) (43 pytest cases passing)
+> - Engine: [`crr-engine/index.py`](crr-engine/index.py) (61 pytest cases passing)
 >
-> **Tier counts (after Session 2):** M 19×T1 + 2×T1\* (relabelling cap, M5/M14) ·
-> P 7×T0 · B 7×T0 · Ph 7×T0. All 21 mathematical claims now at T1
-> with derivation files; 11 carry caveats (convention/identification
-> issues recorded in [`notes/relabellings.md`](notes/relabellings.md)).
+> **Tier counts (after rupture-topology resolution):** M 20×T1 + 2×T1\*
+> (M5/M14) · P 7×T0 · B 7×T0 · Ph 7×T0.
+> Mathematical claims now total **22** (M22 added: Lie-group CV
+> generalisation). Eight Session-2 caveats resolved by the
+> rupture-topology framework formalised in
+> [`notes/rupture_topology.md`](notes/rupture_topology.md) and
+> [`notes/conventions.md`](notes/conventions.md); 3 outstanding
+> (M9 identification, M10 CODATA, M21 TUR factor).
 > Empirical and philosophical claims await Sessions 3–5.
 
 ---

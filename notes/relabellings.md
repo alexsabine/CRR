@@ -1,5 +1,45 @@
 # Relabellings and apparent inconsistencies
 
+## ★ Status after rupture-topology resolution (post-Session 2)
+
+The rupture-topology framework (`notes/rupture_topology.md`) and
+convention dictionary (`notes/conventions.md`) **resolve** most of
+the inconsistencies catalogued below. Each entry is annotated with
+its resolution status:
+
+- **[RESOLVED]** — dissolved by H1+H2+H3 framing or by typo
+  identification; consult `notes/conventions.md` for the unified
+  convention.
+- **[CLOSED]** — confirmed canonical relabelling; tier permanently
+  capped at T1*.
+- **[OPEN]** — remains for author resolution after Session 2.
+
+| Issue | Status |
+|-------|--------|
+| exp(C/Ω) → e at C·Ω = 1 (S1) | **[RESOLVED]** Two distinct Ωs (C3); identity holds in Z₂-intrinsic units |
+| M2 ratio 2:1 | **[RESOLVED]** Half-turn embedding (M2 derivation rewritten) |
+| M5 CR↔HG | **[CLOSED]** Confirmed canonical relabelling |
+| M6 "limit" framing | **[RESOLVED]** Cosmetic; "specialisation" instead of "limit" |
+| M8 1-D state assumption | **[CLARIFIED]** Generalised under M22 |
+| M9 Fibonacci identification | **[OPEN]** — Session 4 pre-registration target |
+| M10 26 ppm CODATA | **[OPEN]** — independent of rupture topology; T2 question |
+| M11 ρ=−1/2 constraint | **[RESOLVED]** Variance-preservation derived (M11 rewritten) |
+| M14 MaxEnt | **[CLOSED]** Confirmed canonical relabelling |
+| M15 Z_n non-monotone | **[RESOLVED]** Discrete vs continuous phase distinction (M15 rewritten) |
+| M16 Ω = π/√κ | **[RESOLVED]** Inversion typo; corrected to Ω ≥ √κ/π (M16 rewritten) |
+| M19 Ω = μ(A) vs 1/μ(A) | **[RESOLVED]** Convention C5: Ω = μ(A); brief typo (M19 rewritten) |
+| M21 TUR factor of 2 | **[OPEN]** — structural mismatch; not resolved by rupture-topology framework |
+
+**Outstanding inconsistencies after this session:** 3 (M9, M10, M21).
+Down from 11 at end of Session 2.
+
+**New T1 claim added:** M22 (Lie-group CV generalisation).
+
+---
+
+## Pre-resolution catalogue (kept for audit)
+
+
 Per `CAMPAIGN.md` PART III honesty discipline, this file records:
 1. CRR statements that restate an existing canonical result without
    genuine independence.

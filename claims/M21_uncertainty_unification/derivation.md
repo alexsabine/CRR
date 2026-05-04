@@ -77,6 +77,21 @@ Var(J)/⟨J⟩², and verifies Σ · Var(J)/⟨J⟩² is bounded below by 2 (not
 
 ## Status
 
-**T1 with caveat.** Derivation requires explicit factor-of-2 rescaling
-between M21 and TUR; recorded in `notes/relabellings.md`. Tier capped
-at T1 absent novel joint-saturation consequence.
+**T1 with caveat (post-resolution-session unchanged).** The
+rupture-topology / Lie-group-memory framework
+(`notes/rupture_topology.md`) **does not** resolve the TUR
+factor-of-2 mismatch. The TUR's factor of 2 is a property of the
+bound, not of the Z₂ rupture. Direct identification gives C·Ω = 2
+at TUR saturation, not C·Ω = 1.
+
+**Recommended resolution** (`notes/conventions.md` §"What the
+canonical brief should say" item 5): rephrase M21 as
+
+> "C·Ω = 1 saturates Cramér-Rao and Heisenberg-Gabor; the
+> thermodynamic uncertainty relation has the same Cauchy-Schwarz-
+> equality structure but saturates at C·Ω = 2 under canonical
+> identification (or at C·Ω = 1 with C ≡ Σ/2)."
+
+Tier remains T1; this is the only flagged inconsistency from
+Sessions 1–2 that does **not** dissolve under the resolved
+rupture-topology framing.

@@ -1,85 +1,80 @@
-# M19 — Derivation: Poincaré + Kac make rupture inevitable; Ω = 1/μ(coherent region)
+# M19 — Derivation: Poincaré + Kac make rupture inevitable; Ω = μ(coherent region)
 
-## Claim
+## Claim (corrected statement)
 
 For an ergodic measure-preserving system, Poincaré recurrence
 guarantees almost-sure return to any positive-measure region, and
-Kac's lemma identifies the canonical Ω with the inverse measure of
-the "coherent region": Ω = 1/μ(A_coherent).
+Kac's lemma identifies the canonical Ω with the **measure** of the
+coherent region:
+
+    Ω = μ(A_coherent).
+
+(The brief's wording is Ω = 1/μ(A); under convention C5 in
+`notes/conventions.md` this is corrected to Ω = μ(A) by the Kac
+identification.)
+
+## Resolved framing (post-Session-2 convention update)
+
+The Session-2 derivation flagged the Ω vs 1/Ω convention ambiguity.
+It is now resolved by convention C5: Ω is rate-like (μ(A)) under the
+Kac identification. The brief's "Ω = 1/μ(A)" wording is a typo.
 
 ## Assumptions
 
 (A1) (X, B, μ, T) is a measure-preserving dynamical system with
 μ(X) = 1 and T : X → X measure-preserving.
-(A2) The system is ergodic: the only T-invariant sets in B have
-measure 0 or 1.
-(A3) "Coherent region" A ⊂ X is a measurable subset of positive
-measure μ(A) > 0, identified with the set of states for which
-C·Ω < 1 (i.e., pre-rupture).
+(A2) The system is ergodic.
+(A3) "Coherent region" A ⊂ X has μ(A) > 0; it is the set of states
+with C·Ω < 1 (pre-rupture).
+(A4) Convention C5: Ω is rate-like — equals the rupture frequency,
+i.e., 1/(mean inter-rupture interval).
 
-## Derivation (under A1–A3)
+## Derivation (under A1–A4)
 
-**Poincaré recurrence theorem (1890).** For (X, B, μ, T) measure-
-preserving with μ(X) < ∞, almost every x ∈ A returns to A
-infinitely often: μ-a.s., {n : T^n x ∈ A} is infinite.
+**Poincaré recurrence theorem.** Almost every x ∈ A returns to A
+infinitely often.
 
-So under A3, for almost every initial state in A, the system
-re-enters A infinitely often. Equivalently: ruptures (exits from A)
-are followed almost surely by re-entries (regenerations) — the
-CRR cycle is recurrent.
+**Kac's lemma.** Under A1, A2: E_A[τ_A] = 1/μ(A), where
+τ_A(x) = inf{n ≥ 1 : T^n x ∈ A} is the first return time.
 
-**Kac's lemma (1947).** For an ergodic system (A1, A2), the expected
-return time to A under the induced map T_A is
+By A4: Ω = 1/(mean inter-rupture interval). The mean inter-rupture
+interval *equals* the mean return time to A (each rupture marks an
+exit-and-return cycle):
 
-    E_A[τ_A] = 1/μ(A),
+    1/Ω = E_A[τ_A] = 1/μ(A).
 
-where τ_A(x) = inf{n ≥ 1 : T^n x ∈ A}.
+Hence
 
-Under A3 with A = A_coherent: the expected time between ruptures
-(≡ expected return time to the coherent region) is 1/μ(A_coherent).
+    **Ω = μ(A_coherent).**
 
-Identification with Ω: in CRR, the canonical mean inter-rupture
-interval is 1/Ω (M1 derivation). Setting these equal:
-
-    1/Ω = 1/μ(A_coherent)    ⇒    Ω = μ(A_coherent).
-
-So *Ω is the measure of the coherent region* under this
-identification.
-
-(Note: this gives Ω = μ(A), not Ω = 1/μ(A) as the brief might
-suggest. The brief's wording in the canonical PART I asserts
-"Ω = 1/μ(coherent region)" but Kac's lemma gives expected return
-time = 1/μ(A); equating that to mean inter-rupture interval 1/Ω
-yields Ω = μ(A). This is another sign-of-Ω convention issue
-recorded in `notes/relabellings.md`.)
+So Ω is the *measure* of the coherent region — large coherent
+region ⇒ frequent rupture (large Ω); small coherent region ⇒ rare
+rupture (small Ω). This is consistent with Ω being a *precision-
+like rate* in the canonical brief.
 
 ## Numerical verification
 
-`crr-engine/tests/test_derivations.py::test_M19_kac_lemma_ergodic`
-simulates an ergodic interval map (e.g., the doubling map or an
-irrational rotation), measures the empirical mean return time to
-A = [0, μ(A)], and verifies it converges to 1/μ(A) per Kac's
-lemma. Identification with Ω is then immediate.
+`crr-engine/tests/test_derivations.py::test_M19_kac_lemma_irrational_rotation`
+simulates an irrational rotation T(x) = (x + 1/φ) mod 1 (uniquely
+ergodic), measures the mean return time to A = [0, 0.1], and
+verifies it converges to 1/μ(A) = 10. The corresponding Ω = μ(A) =
+0.1 is therefore the rupture rate.
+
+`crr-engine/tests/test_rupture_topology.py::test_M19_resolved_kac_omega_equals_mu`
+asserts Ω = μ(A) explicitly under convention C5.
 
 ## Caveats
 
-- **Ergodicity is essential.** Under non-ergodic (e.g., bistable)
-  dynamics, Kac's lemma fails: the expected return time depends on
-  the ergodic component of the initial state. CRR's "single Ω per
-  substrate" assumption requires ergodicity globally — a strong
-  condition.
-- **Continuous-time analogue.** Kac's lemma extends to ergodic flows
-  under standard regularity (Krengel, *Ergodic Theorems*, 1985).
-- **Convention issue: Ω = μ(A) vs 1/μ(A).** Recorded; resolution
-  needed by the framework's author. Either Kac gives the *expected
-  return time* (= 1/μ(A)) which equates to *expected inter-rupture
-  interval* (= 1/Ω), yielding Ω = μ(A); OR the canonical Ω is a
-  *rate*, in which case Ω = μ(A) (not 1/μ(A)) is consistent. The
-  brief's language is ambiguous.
+- **The brief's Ω = 1/μ(A) is a typo** under convention C5; the
+  corrected form is Ω = μ(A_coherent). Recorded in
+  `notes/conventions.md`.
+- **Ergodicity is essential.** Non-ergodic systems have multiple
+  ergodic components, each with its own Ω = μ(A | component); the
+  global Ω is not single-valued.
+- **Continuous-time analogue** holds for ergodic flows under
+  standard regularity (Krengel 1985).
 
 ## Status
 
-**T1 with caveat.** Poincaré + Kac are canonical theorems under
-ergodicity; the CRR identification gives Ω = μ(A_coherent) (or
-1/μ(A) under inverse convention). Tier capped at T1 pending
-convention resolution.
+**T1.** Convention resolved: Ω = μ(A_coherent). Derivation rests
+on Poincaré recurrence + Kac's lemma under ergodicity.

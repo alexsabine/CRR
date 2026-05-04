@@ -2,11 +2,7 @@
 
 **Tier: T1 (conjecture).**
 
-**Justification:** T1 with major caveat. Bonnet-Myers gives diameter ≤ π/√κ on positively-curved manifolds (test_M16_bonnet_myers_sphere); but the canonical Ω = 1/φ_geodesic convention is inconsistent with Ω = π/√κ. Convention resolution required.
-
-**Promoted from T0** in Session 2 by `derivation.md` in this directory
-and the corresponding pytest case(s) in
-`crr-engine/tests/test_derivations.py`.
+**Justification:** T1. The brief's 'Ω = π/√κ' is identified as an inversion typo; corrected form is Ω ≥ √κ/π (Bonnet-Myers diameter ≤ π/√κ; saturating round sphere). Verified via test_M16_bonnet_myers_sphere and test_M16_resolved_omega_inversion. **Resolved** (typo identified).
 
 **Promotion gates ahead:**
 - **T2** requires `consistency.md` reproducing an independent empirical

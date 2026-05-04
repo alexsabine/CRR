@@ -2,11 +2,7 @@
 
 **Tier: T1 (conjecture).**
 
-**Justification:** T1 with caveat. Derivation under Kac's lemma (test_M19_kac_lemma_irrational_rotation); convention issue Ω = μ(A) vs Ω = 1/μ(A) flagged.
-
-**Promoted from T0** in Session 2 by `derivation.md` in this directory
-and the corresponding pytest case(s) in
-`crr-engine/tests/test_derivations.py`.
+**Justification:** T1. Convention resolved: Ω = μ(A_coherent) (rate-like), not 1/μ(A). Brief's wording is a typo. Verified via test_M19_kac_lemma_irrational_rotation and test_M19_resolved_kac_omega_equals_mu. **Resolved** (convention C5 fixed).
 
 **Promotion gates ahead:**
 - **T2** requires `consistency.md` reproducing an independent empirical

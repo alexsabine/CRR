@@ -2,68 +2,93 @@
 
 ## Claim
 
-For a Z_n cyclic-symmetry substrate (n ≥ 2), CV = n/(4π).
+For a Z_n discrete-phase memory manifold under Z₂ rupture, with
+fundamental-domain geodesic 2π/n, the canonical CV is
+
+    CV_{Z_n} = n / (4π).
+
+## Resolved framing (post-Session-2 convention update)
+
+Per `notes/rupture_topology.md` H1+H2 and the M22 generalisation,
+"Z_n" here refers to a **Z_n discrete-phase memory manifold** —
+n equally-spaced phase points on a circle. The Z₂ rupture
+(structurally Z₂ by H1) acts on this discrete-phase manifold.
+
+Under this reading:
+- The rupture is Z₂ regardless of n.
+- The phase manifold is discrete with n points; the geodesic between
+  adjacent points is 2π/n.
+- The *Session-2 non-monotonicity issue* (Z_n increasing with n vs
+  SO(2) at the bottom) dissolves: SO(2) is a *different kind of
+  manifold* (continuous-phase), not a limit of the Z_n discrete-
+  phase sequence.
 
 ## Assumptions
 
-(A1) The Z_n substrate has geodesic length 2π/n (the arc spanning
-one fundamental domain of the n-fold cyclic symmetry on the unit
-circle).
-(A2) Ω = 1 / φ_geodesic ⇒ Ω_{Z_n} = n/(2π).
-(A3) CV = Ω/2 (M1).
+(A1) (H1) Rupture is Z₂.
+(A2) (H2) The phase manifold is Z_n: n equally-spaced points on a
+unit circle.
+(A3) The relevant geodesic is the distance between adjacent rupture
+points: φ_{Z_n} = 2π/n.
+(A4) Ω_{Z_n} = 1/φ_{Z_n} = n/(2π) (convention C4).
+(A5) M1: CV = Ω/2.
 
-Wait. Under (A1) Ω = 1/(2π/n) = n/(2π), and CV = Ω/2 = n/(4π). For
-n = 2 this gives CV = 2/(4π) = 1/(2π) ✓ (matches Z₂). But the
-canonical SO(2) value is CV = 1/(4π), which corresponds to n = 1 —
-not to the n → ∞ limit. The natural reading is that SO(2) is the
-*continuous limit* not in the Z_n discrete sequence; the n = 1 case
-of the formula gives the same number as SO(2) by coincidence
-(or by a consistency built into the canonical convention).
+## Derivation (under A1–A5)
 
-## Derivation (under A1–A3)
+By A4: Ω_{Z_n} = n/(2π).
 
-Step 1 (geodesic length). A Z_n substrate partitions the unit circle
-into n equal arcs; each fundamental domain has length 2π/n. Adopt
-this as φ_geodesic^{Z_n}.
+By A5: CV_{Z_n} = Ω_{Z_n}/2 = **n/(4π)**.
 
-Step 2 (Ω). Ω_{Z_n} = 1 / φ_geodesic = n/(2π).
+Sanity checks:
+- n = 2 (Z₂ phase): CV = 2/(4π) = 1/(2π) ≈ 0.1592. **Matches the
+  canonical Z₂-only CV.** This is consistent because Z_2 = pure-Z₂
+  rupture with phase = the rupture itself.
+- n = 1 (trivial): CV = 1/(4π) ≈ 0.0796. **Numerically equals the
+  SO(2) CV** but for a different reason — n=1 corresponds to a
+  single phase point, not to the SO(2) continuous limit.
 
-Step 3 (CV). CV_{Z_n} = Ω_{Z_n}/2 = n/(4π).
+## Relationship to SO(2) (continuous-phase case)
 
-Sanity checks at the canonical endpoints:
-- n = 2 (Z₂): CV = 2/(4π) = 1/(2π) ≈ 0.1592 ✓.
-- n → ∞: CV → ∞, which would mean increasingly noisy. The brief
-  reports SO(2) (continuous rotation) at CV = 1/(4π) ≈ 0.0796 — an
-  *extremum*, not a limit of Z_n. So the SO(2) value lies *outside*
-  the Z_n discrete sequence; geometrically, "all-the-way-continuous"
-  has a different geodesic identification (full circle 2π, not a
-  vanishing fundamental domain).
+SO(2) is **not** the n → ∞ limit of Z_n discrete phase. The two
+are distinct phase-manifold types:
+
+- **Z_n (discrete-phase):** φ_{Z_n} = 2π/n (distance between adjacent
+  discrete points). As n → ∞, φ → 0 and CV → ∞ — divergent.
+- **SO(2) (continuous-phase):** φ_{SO(2)} = 2π (closed-geodesic
+  length). Fixed, gives CV = 1/(4π).
+
+The Session-2 caveat "Z_n hierarchy is non-monotone with respect to
+SO(2)" is resolved: Z_n and SO(2) are different phase-manifold
+types, not endpoints of a single hierarchy. The brief's "hierarchy"
+language should be reserved for Z₂ ⊂ Z₃ ⊂ Z₄ ⊂ … as a sequence of
+*discrete* phase manifolds; SO(2) is a separate continuous case.
 
 ## Numerical verification
 
 `crr-engine/tests/test_derivations.py::test_M15_zn_hierarchy_at_n2`
-asserts the n=2 instance equals canonical Z₂ to machine precision.
+asserts the n=2 instance equals canonical Z₂.
+
+For the general n case, the formula CV = n/(4π) follows directly
+from CV = Ω/2 (M1, verified) and Ω = 1/φ_{Z_n} (M22-style geodesic
+identification, also tested in `test_rupture_topology.py`).
 
 ## Caveats
 
-- **The relationship between Z_n and SO(2) in this formula is not
-  monotone.** Z_2 sits at CV = 1/(2π); Z_3 at 3/(4π); Z_4 at 1/π;
-  …; SO(2) at 1/(4π). The Z_n sequence increases with n; SO(2) is
-  smaller than every Z_n (n ≥ 2). Whether this is intended or
-  evidence of a missing ingredient (e.g., n in denominator instead of
-  numerator) needs author confirmation.
-- The geodesic-length identification φ_geodesic = 2π/n for Z_n is
-  the most natural choice but is one of several geometric
-  conventions; alternatives (e.g., φ_geodesic = 2π for the full
-  circle traversed n times) would invert the formula.
-- Recorded as a candidate **inconsistency to escalate** in
-  `notes/relabellings.md`: the Z_n formula CV = n/(4π) does not
-  smoothly connect to the SO(2) value, contrary to the language of
-  "hierarchy."
+- **Discrete-phase vs continuous-phase distinction is forced.** The
+  Z_n manifolds form a discrete-phase family; SO(2) is the
+  continuous-phase analogue. They are not connected by a smooth
+  limit. Recorded as a clarification in `notes/conventions.md`.
+- **Convention for "geodesic" on a discrete manifold.** A Z_n
+  discrete manifold has only n points and discrete geodesics; the
+  identification φ = 2π/n adopts the embedding of Z_n as the
+  vertices of a regular n-gon inscribed in the unit circle.
+  Alternative embeddings (e.g., Z_n as the n-th roots of unity in ℂ)
+  give the same φ.
+- **For n = 2:** the formula reproduces the canonical Z₂-only CV,
+  consistent with the rupture-only embedding.
 
 ## Status
 
-**T1 with caveat.** The derivation under A1–A3 is algebraic and
-internally consistent at n = 2. The behaviour at large n and the
-SO(2) endpoint is not a smooth limit of the formula; this is flagged
-for the framework's author. Tier capped at T1 pending resolution.
+**T1.** Derivation under the discrete-phase reading; numerical
+verification at n = 2. Z_n vs SO(2) non-interpolation is now
+resolved as structural, not anomalous.

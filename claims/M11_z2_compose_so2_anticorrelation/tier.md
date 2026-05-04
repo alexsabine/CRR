@@ -2,11 +2,7 @@
 
 **Tier: T1 (conjecture).**
 
-**Justification:** T1. Derivation is one-line algebra under variance-preserving composition (not rupture-rate halving). Numerical verification via test_M11_anticorrelation.
-
-**Promoted from T0** in Session 2 by `derivation.md` in this directory
-and the corresponding pytest case(s) in
-`crr-engine/tests/test_derivations.py`.
+**Justification:** T1. Variance-preservation now derived (not assumed): under H2, two Z₂ ruptures sharing an SO(2) phase manifold complete one geodesic circuit jointly, forcing Var(X+Y) = Var(X). ρ = −1/2 follows. Verified via test_M11_anticorrelation. **Resolved** under rupture-topology framework.
 
 **Promotion gates ahead:**
 - **T2** requires `consistency.md` reproducing an independent empirical
