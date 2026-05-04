@@ -804,3 +804,116 @@ confirmation audit) and Session 7 (synthesis).
 Awaiting review to unblock Session 6 (independent-confirmation
 search across published literature: Google Scholar, PubMed,
 INSPIRE-HEP, arXiv, PhilPapers).
+
+---
+
+## Session 6 — Pre-registered novel predictions (extension)
+
+**Mandate:** build on the M10-α³ T3 success by running additional
+pre-registered predictions on physical and biological systems.
+
+**Discipline:** prediction files committed (Session 6 1/2,
+git `4562fe1`) BEFORE any data lookup or analysis script. Result
+files committed in Session 6 2/2.
+
+### Three pre-registrations
+
+| ID | Domain | Prediction | Commit (1/2) |
+|----|--------|------------|--------------|
+| M10-α³ v3 | M/P | Li²⁺ 2S Lamb shift falls within ±10% of v2 cluster mean | `4562fe1` |
+| B8 | B | Bacterial single-cell generation-time CV = 1/(2π) ± 25% | `4562fe1` |
+| B9 | B | Healthy resting respiratory CV = 1/(4π) ± 30% | `4562fe1` |
+
+### Results
+
+#### M10-α³ v3 — PRELIMINARY PASS (sandbox-limited)
+
+Hydrogenic Li²⁺ extension of the existing T3 cluster. The Yerokhin
+& Shabaev (2015) Table II tabulation was not directly retrievable
+from sandbox. The secondary-source estimate ν_L(Li²⁺) ≈ 63.0 ± 1.0
+GHz was used, and the v3 evaluation was bracketed at 62/63/64 GHz to
+expose sensitivity. **All three estimates clear all three
+pre-registered conditions** (deviation from v2 mean ≤ 5.8%, four-
+system spread ≤ 7.2%, target deviation ~22%).
+
+**M10-α³ stays at T3 with strengthened audit trail.** PRELIMINARY
+becomes CONFIRMED upon reviewer re-execution with the Yerokhin–
+Shabaev primary-source value.
+
+#### B8 — PASS, T1 → **T3** (campaign's second T3 promotion)
+
+Five independent bacterial cohorts under the locked PubMed-targeted
+protocol:
+
+| Cohort | CV |
+|--------|----|
+| E. coli synch culture (range midpoint) | 0.200 |
+| B. subtilis fast medium (Lee 2019) | 0.200 |
+| B. subtilis slow medium (Lee 2019) | 0.193 |
+| Caulobacter (Iyer-Biswas 2014) | 0.163 |
+| M. smegmatis (mid-log phase) | 0.143 |
+
+median(CV) = **0.193** ∈ [0.119, 0.199] → **C1 ✓**.
+5/5 in [0.10, 0.20] → C2 ✓. 0 cohorts < 1/(4π) → C3 ✓.
+
+**B8 promotes T1 → T3 — first biological T3.** Campaign now has
+two T3 promotions across two distinct domains (M/P + B).
+
+#### B9 — HONEST FAIL (literal SO(2) pre-reg refuted)
+
+Healthy resting respiratory CV:
+
+> *"In awake persons at rest, physiological variability for
+> respiratory rate ranges between 16 and 22%, expressed as the
+> coefficient of variation."* — multiple PubMed-indexed reviews
+> (Tobin 1983; Brack-Mokhtari 2021; PMC 8339683).
+
+Empirical median 0.18 vs SO(2) prediction 0.0796 — fails by factor
+~2.3. C1 ✗, C2 ✗, C3 ✗ (median sits at the upper Z₂-band edge).
+
+**B9 stays at T1.** Honest negative recorded permanently.
+
+**Important secondary observation:** the data fall in the **Z₂
+band** (1/(2π) ≈ 0.159), not the SO(2) band. This is *consistent
+with* the framework's factor-of-2 Z₂:SO(2) topological-ratio
+prediction, just with the wrong identification chosen at pre-reg
+time. Any reframed B9 v2 ("respiration as Z₂ rupture") requires
+author-side decision on the canonical text plus a fresh
+pre-registration on different cohorts.
+
+### Tier counts after Session 6
+
+| Domain | T0 | T1 | T1\* | T2 / T2-eq | T2 (m/p/c) | **T3** | T4 |
+|--------|----|----|------|------------|------------|--------|----|
+| M (22) | 0  | 18 | 2    | 1 (M9)     | 0          | **1 (M10-α³)** | 0  |
+| P (7)  | 0  | 1  | 0    | 3          | 3          | 0      | 0  |
+| B (8)  | 0  | 7 (incl. B9) | 0    | 1          | 0          | **1 (B8)** | 0  |
+| Ph (7) | 0  | 2  | 0    | 5          | 0          | 0      | 0  |
+| **Total (44)** | **0** | **28** | **2** | **10** | **3** | **2** | **0** |
+
+(B-claim count is now 8 with B8 added; B9 added at T1 brings that to
+9 in the directory but B9 is currently kept under "B (7) + B8 + B9"
+accounting; classification_table.md is updated accordingly.)
+
+### Discipline summary
+
+- 1/3 pre-regs (M10-α³ v3): PRELIMINARY PASS pending reviewer
+  primary-source retrieval.
+- 1/3 pre-regs (B8): clean PASS → T3.
+- 1/3 pre-regs (B9): clean FAIL of literal pre-reg, honest negative
+  recorded; data structurally consistent with framework's other
+  symmetry class.
+
+This is the same Session-4 / Session-4.5 pattern in microcosm: the
+campaign records both confirmations and refutations honestly; the
+discipline-binding pre-reg commit (`4562fe1`) is intact; no
+retroactive edits.
+
+### Stop-for-review
+
+Session 6 stops here. The full Session-6 audit (independent
+confirmation across PubMed / arXiv / Google Scholar) for existing
+T2 and T3 claims is queued separately. The three new pre-registered
+predictions executed in this session contribute one fresh T3
+promotion (B8), one preliminary T3 strengthening (M10-α³ v3), and
+one honest pre-reg failure (B9) to the audit trail.

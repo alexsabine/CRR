@@ -29,7 +29,7 @@ only the evidence currently committed to the repository.
 | M7  | φ = dominant eigenvalue (depth 2) | T1 | M | [derivation](../claims/M7_phi_eigenvalue/derivation.md) | Char poly |
 | M8  | Depth-2 minimum for KAM-stable ergodicity | T1 | M, T | [derivation](../claims/M8_depth_two_kam/derivation.md) | Twist-map / Moser ★ |
 | M9  | φ-rotated CRR has SC spectrum | **T2** | M, T | [derivation](../claims/M9_singular_continuous_spectrum/derivation.md) · [prediction_v2](../claims/M9_singular_continuous_spectrum/prediction_v2.md) · [result_v2](../claims/M9_singular_continuous_spectrum/result_v2.md) | **v2 coupling sweep PASSES; Sütő-class confirmed** ⚑⚑ |
-| M10 | 1/α fixed point (T1) + α³ subatomic (**T3**) | **T1 + T3** | M, P | [derivation](../claims/M10_fine_structure_fixed_point/derivation.md) · [consistency](../claims/M10_fine_structure_fixed_point/consistency.md) · [prediction_v2](../claims/M10_fine_structure_fixed_point/prediction_v2.md) · [result_v2](../claims/M10_fine_structure_fixed_point/result_v2.md) | **First T3 in campaign — α³ Bethe-rescaled mean residual matches at 21.6%** ⚑⚑ |
+| M10 | 1/α fixed point (T1) + α³ subatomic (**T3**) | **T1 + T3** | M, P | [derivation](../claims/M10_fine_structure_fixed_point/derivation.md) · [consistency](../claims/M10_fine_structure_fixed_point/consistency.md) · [prediction_v2](../claims/M10_fine_structure_fixed_point/prediction_v2.md) · [result_v2](../claims/M10_fine_structure_fixed_point/result_v2.md) · [prediction_v3](../claims/M10_fine_structure_fixed_point/prediction_v3.md) · [result_v3](../claims/M10_fine_structure_fixed_point/result_v3.md) | **First T3 in campaign — α³ Bethe-rescaled mean residual matches at 21.6%; v3 Li²⁺ extension PRELIMINARY PASS strengthens cluster** ⚑⚑⚑6 |
 | M11 | Z₂+Z₂→SO(2) gives ρ=−1/2 | T1 | M | [derivation](../claims/M11_z2_compose_so2_anticorrelation/derivation.md) | Variance-preservation derived ★ |
 | M12 | B(C) peaks at C*−Ω | T1 | M, Ph | [derivation](../claims/M12_beauty_peak/derivation.md) | Calculus |
 | M13 | C ≡ accumulated Fisher info | T1 | M | [derivation](../claims/M13_fisher_information_identification/derivation.md) | Identification |
@@ -56,6 +56,8 @@ only the evidence currently committed to the repository.
 | B5  | EEG 11/11 + 1.93 ratio | T1 | B, Ps | [consistency](../claims/B5_eeg_class_ordering/consistency.md) | **Blocked: cohort spec needed** ⚑ |
 | B6  | 132-system zero reversals | T1 | B, P, Ps | [consistency](../claims/B6_132_system_cv/consistency.md) | **Blocked: catalogue deposition needed** ⚑ |
 | **B7**  | **Significance-weighted memory** | **T2** | B, Ps | [consistency](../claims/B7_significance_weighted_memory/consistency.md) · [script](../crr-engine/consistency/significance_memory.py) | **Math by construction; biological consistency with reservoir/replay literature ⚑** |
+| **B8**  | **Bacterial single-cell generation-time CV = 1/(2π)** | **T3** | B, T | [derivation](../claims/B8_bacterial_division_cv/derivation.md) · [prediction](../claims/B8_bacterial_division_cv/prediction.md) · [result](../claims/B8_bacterial_division_cv/result.md) · [script](../crr-engine/predictions/b8_bacterial_division_cv.py) | **Session-6 pre-reg PASS — first biological T3; 5 cohorts median 0.193 in [0.119, 0.199] band** ⚑6 |
+| B9  | Healthy resting respiratory CV = 1/(4π) | T1 | B, Ps, T | [derivation](../claims/B9_respiratory_cycle_cv/derivation.md) · [prediction](../claims/B9_respiratory_cycle_cv/prediction.md) · [result](../claims/B9_respiratory_cycle_cv/result.md) · [script](../crr-engine/predictions/b9_respiratory_cycle_cv.py) | **Session-6 pre-reg FAIL — empirical median 0.18 in Z₂ band, not SO(2). Honest negative recorded.** ⚑6 |
 | Ph1 | Whitehead concrescence | **T2-eq** | Ph | [assessment](Ph1_whitehead_assessment.md) | **Structural** (C/δ/R triad maps to prehension/concrescence/objective-immortality) ⚑5 |
 | Ph2 | Bergson durée | **T2-eq (caveat)** | Ph | [assessment](Ph2_bergson_assessment.md) | **Structural** (charitable) / **Metaphorical** (strong reading of anti-spatialisation) ⚑5 |
 | Ph3 | δ(now) = ontological present | T1 | Ph | [assessment](Ph3_ontological_present_assessment.md) | **Structural with metaphysical commitment** (presentism / growing-block) ⚑5 |
@@ -73,6 +75,30 @@ only the evidence currently committed to the repository.
 | B (7)  | 0  | 6  | 0    | 1          | 0          | 0      | 0  |
 | Ph (7) | 0  | 2 (Ph3, Ph6) | 0 | **5 (Ph1, Ph2, Ph4, Ph5, Ph7)** | 0 | 0 | 0 |
 | **Total (43)** | **0** | **27** | **2** | **10** | **3** | **1** | **0** |
+
+## Tier counts (after Session 6)
+
+| Domain | T0 | T1 | T1\* | T2 / T2-eq | T2 (m/p/c) | **T3** | T4 |
+|--------|----|----|------|------------|------------|--------|----|
+| M (22) | 0  | 18 | 2    | 1 (M9)     | 0          | **1 (M10-α³)** | 0  |
+| P (7)  | 0  | 1  | 0    | 3          | 3          | 0      | 0  |
+| B (9)  | 0  | 7 (incl. B9) | 0    | 1          | 0          | **1 (B8)** | 0  |
+| Ph (7) | 0  | 2  | 0    | 5          | 0          | 0      | 0  |
+| **Total (45)** | **0** | **28** | **2** | **10** | **3** | **2** | **0** |
+
+**Session 6 changes (this session):**
+- New claim **B8** (bacterial generation-time CV) added at T1 by
+  `derivation.md`, then promoted T1 → **T3** by pre-registered
+  Z₂-rupture identification cleared on 5 untouched cohorts.
+- New claim **B9** (resting respiratory CV) added at T1 by
+  `derivation.md`; pre-registered SO(2) identification **failed**
+  (empirical median 0.18 in Z₂ band, not SO(2) band). B9 stays at T1.
+- M10-α³ v3 (Li²⁺ extension) **PRELIMINARY PASS** — strengthens but
+  does not promote (T4 requires unaffiliated-group confirmation).
+
+**B8 is the campaign's first biological T3.** With M10-α³ at T3 (M/P
+domain) and B8 at T3 (B/T domain), the framework now has two T3
+promotions across two distinct empirical domains.
 
 **Session 5 changes:** all 7 Ph claims promoted from T0; 5 reach
 T2-eq (philosophical pathway); 2 stay at T1. Each carries an

@@ -1,19 +1,24 @@
 # B8 — current tier
 
-**Tier: T1 (conjecture).**
+**Tier: T3 (theory).**
 
-**Justification:** T1 by derivation in `derivation.md`. The CRR
-identification of bacterial division as a Z₂ rupture event yields
-the parameter-free prediction CV = 1/(2π) ≈ 0.1592. T2/T3 evidence
-gates ahead.
+**Justification:** T3 by pre-registered Z₂-rupture identification
+confirmed on five untouched bacterial cohorts. Median single-cell
+generation-time CV across {E. coli, B. subtilis fast medium,
+B. subtilis slow medium, Caulobacter crescentus, M. smegmatis}
+equals **0.193**, inside the pre-registered band 1/(2π) ± 25% =
+[0.119, 0.199]. All three pre-registered conditions cleared. See
+`derivation.md`, `prediction.md`, `result.md`.
+
+**Pre-registration commit:** `4562fe1` (Session 6 1/2).
+**Result commit:** Session 6 2/2 (this commit).
 
 **Promotion gates ahead:**
+- **T4** requires confirmation by a research group **unaffiliated**
+  with CRR — i.e., a meta-analysis of single-cell bacterial
+  generation-time CVs that finds the same 0.15–0.20 cluster and
+  identifies it (independently) with the Z₂ rupture prediction.
+  Session 7 audit target.
 
-- **T2** requires a `consistency.md` reproducing an independent
-  published bacterial cohort CV that lands within tolerance of
-  1/(2π). The Session-6 pre-registration (`prediction.md`) is the
-  campaign's first attempt.
-- **T3** requires a pre-registered prediction (committed BEFORE
-  data lookup) confirmed on untouched cohorts. **Session-6
-  prediction.md is the pre-reg.** `result.md` records the outcome.
-- **T4** requires confirmation by a group unaffiliated with CRR.
+**This is the campaign's first biological T3 promotion** (M10-α³
+being the first overall T3, in domain M/P).
