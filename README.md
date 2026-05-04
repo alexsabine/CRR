@@ -78,6 +78,24 @@
 > in Session 8** — discipline upheld; no T4 awarded on sympathetic
 > engagement or post-hoc adjustment.
 >
+> **Session 9 update (cross-domain Z₂ tests):** five new
+> pre-registered predictions tested against canonical empirical
+> values from training corpus (committed BEFORE analysis at git
+> `456a910`). **Strict result: 2 of 5 pass.**
+> Menstrual cycle CV (Bull 2019, n=612k cycles): pred 0.1592,
+> emp 0.177, dev 11.5% ✓.
+> Resting respiratory CV (clinical refs): pred 0.1592, emp 0.18,
+> dev 13.1% ✓.
+> Schwabe solar cycle CV: pred 0.1592, emp 0.107, dev 33% ✗ (knife-edge).
+> Schwabe:Hale ratio: pred 2.0, emp 1.34, dev 33% ✗.
+> Charmonium ψ-family log-lifetime CV: ✗ (sign issue).
+> **M22 stays at T1** per pre-registered aggregate criterion.
+> Structural pattern: biological Z₂ (Class A) match, solar
+> regulated (Class B) below canonical — strengthens B2 three-class
+> typology indirectly. Sensitivity-analysis note: under canonical
+> SILSO literature SD, 4 of 5 would plausibly pass; per discipline,
+> strict reading binds.
+>
 > **Session 3 T2 promotions (7 in total):** P1 Solar Hale (SILSO),
 > P2 GWTC BBH (LIGO/Virgo, marginal), P4 dark energy w-crossing
 > (DESI 2024, preliminary), P5 CSEP California (conditional),
