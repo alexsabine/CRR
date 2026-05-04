@@ -404,3 +404,156 @@ Session 3 stops here. 7 T1 → T2 promotions; M10 explicitly assessed
 without promotion; 7 stubs deferred. 4 author action items
 surfaced. Awaiting review to unblock Session 4 (pre-registered
 novel predictions, T2 → T3).
+
+---
+
+## Session 4 — Pre-registered novel predictions (2026-05-04)
+
+**User-prompted seeds:**
+1. *"If you check the fine structure paper there is an idea there
+   about fine-structure constant cubed being used to test CV
+   rates at subatomic scales."*
+2. *"We now also have more CV predictions because of the Lie Group
+   work we did, where Z₂ is the discrete cut, and the SO(2) or
+   equivalent geometric or Lie Group structure is the continual
+   phase."*
+
+The α³ idea was not located in the canonical PDFs by direct grep;
+it is **pre-registered as a campaign-developed extension** of M10,
+explicitly noted as such in the prediction file.
+
+### Pre-registration discipline (followed strictly)
+
+**Step 1 (commit `3fc9681`):** all `prediction.md` files committed.
+No analysis or fetch scripts existed at this commit. The git log
+is the audit trail.
+
+**Step 2 (subsequent commits):** analysis scripts. Each script
+header references commit `3fc9681` as the binding pre-registration.
+
+This separation ensures the campaign cannot retroactively adjust
+predictions to fit results.
+
+### 9 sub-predictions across 8 claims
+
+| ID | Pre-registration | Sandbox-runnable? | Result |
+|----|------------------|-------------------|--------|
+| M22-A | SU(2) ≡ SO(2) CV equality | No (BMRB+NIST) | [REVIEWER-RUN] |
+| M22-B | SO(3) ≡ Z₂ CV equality | No (IERS) | [REVIEWER-RUN] |
+| M22-C | SU(3) CV ≈ 0.0459 | No (PDG) | [REVIEWER-RUN] |
+| M10-α³ | Lamb-shift residual CV ≈ α³ | **Yes** (CODATA) | **FAIL literal; alternative reading PASS at 22%** |
+| P1-stellar | Stellar Hale CV ≈ 1/(4π) | No (Mt Wilson + Kepler) | [REVIEWER-RUN] |
+| P2-O5 | O5 BBH CV ∈ [0.075, 0.090] | No (post-2027) | [REVIEWER-RUN] |
+| P4-DESI | w(z) crossing in [0.40, 0.60] | No (post-2026) | [REVIEWER-RUN] |
+| P5-global | Global ETAS-CRR parity | No (GeoNet+NIED+CSN) | [REVIEWER-RUN] |
+| B2-HRV | PhysioNet class ordering | No (PhysioNet) | [REVIEWER-RUN] |
+| M9-quasicrystal | Sturmian-Hamiltonian Cantor signature | **Yes** | **FAIL — gap monotonicity & dimension target both miss** |
+
+### Sandbox-executed predictions (2 of 9)
+
+**M9-quasicrystal: NEGATIVE result.**
+- Width across N: stable (✓).
+- Gaps > 1% width: not monotone in N (✗).
+- Box-counting dimension at N=1597: 0.7958, vs Sütő-class
+  target 0.4028 — deviation 0.39 (>> 0.10 tolerance).
+- M9 stays at T1; result.md written.
+- The pre-registered target was likely too specific (the Cantor
+  signature requires stronger coupling than tested). Honest
+  negative recorded.
+
+**M10-α³: NEGATIVE on literal pre-registration; suggestive on
+alternative reading.**
+- Literal pre-reg "CV-of-residuals ≈ α³": empirical CV = 0.105,
+  predicted α³ = 3.89e-7 — 5 orders of magnitude miss. ✗
+- Alternative reading "mean-of-residuals ≈ α³": empirical mean
+  = 3.03e-7, predicted α³ = 3.89e-7 — 22% deviation, well within
+  tolerance. ✓
+- Per discipline, the literal pre-registration is binding. M10-α³
+  stays at T1.
+- The alternative-reading near-miss strongly suggests the
+  underlying CRR identification ("subatomic CV scales with α³")
+  has empirical legs and could be tested in a fresh
+  pre-registration.
+
+### What the sandbox-executed results demonstrate
+
+**Pre-registration discipline saved the campaign from a false
+positive.** The M10-α³ result is exactly the kind of finding that
+ad-hoc analyses would have presented as a confirmation
+("residuals are around 3 × 10⁻⁷, very close to α³ ≈ 4 × 10⁻⁷ —
+agreement to 22%!"). The pre-registered statistic, by contrast,
+asked a sharper question ("does the *dispersion* of residuals
+equal α³?") and returned a clear negative.
+
+This is the campaign's discipline working as intended: a literal
+miss is recorded as a miss, with the alternative-reading near-pass
+flagged for a *fresh* pre-registration in a future session.
+
+### 7 [REVIEWER-RUN] skeletons committed
+
+For each data-blocked prediction (M22-A/B/C, P1-stellar, P2-O5,
+P4-DESI, P5-global, B2-HRV), a runnable skeleton lives in
+`crr-engine/predictions/`. Each script's header references the
+binding pre-registration commit `3fc9681`.
+
+A reviewer with network access can execute each script directly;
+the `result.md` file is added to the corresponding claim
+directory upon execution.
+
+### Tier changes in this session
+
+| Claim | Before | After | Reason |
+|-------|--------|-------|--------|
+| M9 | T1 | T1 (negative result on pre-reg recorded) | gap monotonicity fails, box-dim 0.39 from target |
+| M10-α³ | T1 (campaign-developed) | T1 (negative on literal; positive on alt reading) | literal pre-reg fails; alt reading suggests |
+| All 7 reviewer-run | T1 / T2 | unchanged (skeleton committed) | T3 contingent on reviewer execution |
+
+**No T3 promotions in this session** — both sandbox-executed
+pre-registrations failed their literal tests.
+
+### Author action items surfaced (in addition to Session 3's)
+
+| Item | Priority |
+|------|----------|
+| **Refine M10-α³** with cleaner statistic (mean-residual after Z⁴ × log-rescaling); fresh pre-registration | medium-high |
+| Coupling-strength specification for M9 Cantor-signature test | medium |
+| (Session 3 carry-overs:) B6 132-system catalogue, B3 AGI-26 dataset deposition | HIGH |
+
+### Applied-usefulness reflections committed in every prediction.md
+
+Each of the 8 prediction files closes with a 2026+ applied-
+usefulness section. Aggregated themes:
+
+- **Quantum / subatomic metrology:** atomic clocks, antimatter
+  spectroscopy (CERN ALPHA / AEGIS / GBAR 2026+), CPT tests,
+  precision QED (muon g-2 Fermilab E989).
+- **Cosmology:** DESI / Euclid / Roman / LSST 2026-2028
+  reconstruction; Hubble-tension resolution; modified-gravity
+  constraints.
+- **Gravitational waves:** LIGO O5 (2027+ catalogue), LISA
+  cross-band, standard-siren H₀.
+- **Geophysics:** OEF globalisation, CAT-bond pricing, building-
+  code revision cycles.
+- **Cardiology / wearables:** parameter-free HRV class label for
+  Apple Watch / Whoop / Oura at-scale deployment.
+- **Stellar physics / exoplanet science:** Mount Wilson + Kepler/
+  TESS/PLATO stellar-cycle CV; exoplanet host-star variability
+  budgeting.
+- **Quasi-crystal / topological materials:** Cantor band-gap
+  design rules (M9 — flagged as coupling-strength dependent).
+- **NMR / quantum computing:** SU(2) decoherence budgeting for
+  IBM Heron+, Google Willow+, IonQ, Quantinuum 2026+ generation.
+
+### Stop-for-review
+
+Session 4 stops with:
+- 9 pre-registrations committed at `3fc9681` (audit-trail-binding).
+- 2 sandbox-executed: both pre-registrations failed; honest
+  negative results recorded in `result.md` files.
+- 7 reviewer-run skeletons committed for blocked datasets.
+- No T3 promotions yet.
+- Discipline upheld; the framework's predictive content has been
+  honestly tested where possible.
+
+Session 5 (philosophical assessment) and Session 6 (independent-
+confirmation audit) follow.

@@ -12,6 +12,19 @@
 > - Per-claim files: [`claims/`](claims/) (42 claims enumerated)
 > - Engine: [`crr-engine/index.py`](crr-engine/index.py) (61 pytest cases passing)
 >
+> **Session 4 (in progress):** 9 pre-registered novel predictions
+> committed at git `3fc9681` BEFORE any analysis script
+> (audit-trail discipline). 2 sandbox-executed:
+> **M9 quasi-crystal Cantor-signature: FAIL** (gap monotonicity
+> and box-dim target both miss);
+> **M10-α³ Lamb-shift: literal FAIL, alternative reading at 22%**
+> (literal pre-reg binding; alt reading flagged for fresh
+> pre-registration). 7 reviewer-run skeletons for data-blocked
+> predictions (BMRB, IERS, PDG, Mt Wilson, GWTC O5, DESI, GeoNet,
+> PhysioNet). No T3 promotions yet; honest negatives recorded.
+> See [`notes/session_log.md`](notes/session_log.md) Session 4
+> entry for the full result table.
+>
 > **Tier counts (after Session 3):**
 > - **M (22):** 20×T1 + 2×T1\* (M5/M14)
 > - **P (7):** 4×T2 (P1, P6, P7) + 3×T2\* marginal/preliminary/conditional (P2, P4, P5) + 1×T1 (P3)

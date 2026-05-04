@@ -76,6 +76,29 @@ only the evidence currently committed to the repository.
 
 (M22 brings the M-claim count to 22; total is 43.)
 
+## Session 4 — pre-registered predictions and results
+
+**9 pre-registrations committed at git `3fc9681` BEFORE any
+analysis script.** The discipline-binding commit; the campaign's
+audit trail for T3 testing.
+
+| Claim | Pre-reg | Test status | Result |
+|-------|---------|-------------|--------|
+| M9 | Sturmian-Hamiltonian Cantor signature | Sandbox-executed | **FAIL** (gap monotonicity, box-dim) |
+| M10 | α³ Lamb-shift CV | Sandbox-executed | **FAIL literal**; alt reading at 22% |
+| M22-A | SU(2) ≡ SO(2) CV | [REVIEWER-RUN] | pending |
+| M22-B | SO(3) ≡ Z₂ CV | [REVIEWER-RUN] | pending |
+| M22-C | SU(3) CV ≈ 0.0459 | [REVIEWER-RUN] | pending |
+| P1 | Stellar Hale CV | [REVIEWER-RUN] | pending |
+| P2 | LIGO O5 BBH CV | [REVIEWER-RUN] | pending |
+| P4 | DESI w(z) crossing | [REVIEWER-RUN] | pending |
+| P5 | Global ETAS-CRR parity | [REVIEWER-RUN] | pending |
+| B2 | PhysioNet HRV ordering | [REVIEWER-RUN] | pending |
+
+**No T3 promotions in Session 4.** Both sandbox-executable tests
+failed their literal pre-registrations; reviewer-run tests await
+execution. Honest negatives recorded in `result.md` files.
+
 ## Session 3 promotions
 
 | Claim | T1 → T2 | Reason |
