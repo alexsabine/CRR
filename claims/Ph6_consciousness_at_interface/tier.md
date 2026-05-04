@@ -1,18 +1,14 @@
 # Ph6 — current tier
 
-**Tier: T0 (speculation)**
+**Tier: T1.**
 
-**Justification:** Not yet assessed. Initialised at Session 1 scaffolding.
-The tier rises only when corresponding evidence is committed to this
-directory:
+**Interpretation mode:** Metaphorical with structural ambitions
 
-- **T1** requires `derivation.md` (Session 2 work for M-claims; later
-  for non-mathematical claims).
-- **T2** requires `consistency.md` reproducing an independent empirical
-  regularity (Session 3).
-- **T3** requires `prediction.md` (committed before data fetch) and
-  `result.md` confirming on untouched data (Session 4).
-- **T4** requires `independent.md` citing replication by an
-  unaffiliated group (Session 6 audit).
+**Justification:** Currently metaphorical (labelling formal structure as phenomenal experience). Structural mapping to IIT / GWT / active inference theoretical pluralism is legible. T2-eq pathway: CV ≈ Ω/2 conscious-event prediction empirically established (B5 EEG). T3-eq pathway: C*−Ω timing prediction confirmed against M/EEG conscious-access latency. See notes/Ph6_consciousness_assessment.md.
 
-Downgrades are recorded with the same care as promotions.
+**Promotion gates ahead** (philosophical pathway, CAMPAIGN.md PART III):
+- **T3-equivalent** requires the formalism to predict a phenomenological
+  regularity not stated in the original philosophical source AND that
+  regularity's empirical confirmation.
+- **T4-equivalent** requires independent philosopher / phenomenologist
+  engagement with the CRR reconstruction in published work.

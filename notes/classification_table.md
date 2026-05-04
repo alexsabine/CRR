@@ -56,23 +56,36 @@ only the evidence currently committed to the repository.
 | B5  | EEG 11/11 + 1.93 ratio | T1 | B, Ps | [consistency](../claims/B5_eeg_class_ordering/consistency.md) | **Blocked: cohort spec needed** ⚑ |
 | B6  | 132-system zero reversals | T1 | B, P, Ps | [consistency](../claims/B6_132_system_cv/consistency.md) | **Blocked: catalogue deposition needed** ⚑ |
 | **B7**  | **Significance-weighted memory** | **T2** | B, Ps | [consistency](../claims/B7_significance_weighted_memory/consistency.md) · [script](../crr-engine/consistency/significance_memory.py) | **Math by construction; biological consistency with reservoir/replay literature ⚑** |
-| Ph1 | Whitehead concrescence | T0 | Ph | [claim](../claims/Ph1_whitehead_concrescence/claim.md) | Session 5 |
-| Ph2 | Bergson durée | T0 | Ph | [claim](../claims/Ph2_bergson_duree/claim.md) | Session 5 |
-| Ph3 | δ(now) = ontological present | T0 | Ph | [claim](../claims/Ph3_ontological_present/claim.md) | Session 5 |
-| Ph4 | Beauty/agency at C*−Ω | T0 | Ph | [claim](../claims/Ph4_beauty_at_edge/claim.md) | Session 5 |
-| Ph5 | Identity persists as change | T0 | Ph | [claim](../claims/Ph5_identity_as_change/claim.md) | Session 5 |
-| Ph6 | Consciousness at coherence-rupture interface | T0 | Ph, B | [claim](../claims/Ph6_consciousness_at_interface/claim.md) | Session 5 |
-| Ph7 | Ω-regime psychological typology | T0 | Ph, Ps | [claim](../claims/Ph7_psychological_phase_typology/claim.md) | Session 5 |
+| Ph1 | Whitehead concrescence | **T2-eq** | Ph | [assessment](Ph1_whitehead_assessment.md) | **Structural** (C/δ/R triad maps to prehension/concrescence/objective-immortality) ⚑5 |
+| Ph2 | Bergson durée | **T2-eq (caveat)** | Ph | [assessment](Ph2_bergson_assessment.md) | **Structural** (charitable) / **Metaphorical** (strong reading of anti-spatialisation) ⚑5 |
+| Ph3 | δ(now) = ontological present | T1 | Ph | [assessment](Ph3_ontological_present_assessment.md) | **Structural with metaphysical commitment** (presentism / growing-block) ⚑5 |
+| Ph4 | Beauty/agency at C*−Ω | **T2-eq** | Ph | [assessment](Ph4_beauty_at_edge_assessment.md) | **Mathematically Exact (M12); philosophically Structural** ⚑5 |
+| Ph5 | Identity persists as change | **T2-eq** | Ph | [assessment](Ph5_identity_as_change_assessment.md) | **Structural**; remainder = personal-identity puzzles, normativity ⚑5 |
+| Ph6 | Consciousness at coherence-rupture interface | T1 | Ph, B | [assessment](Ph6_consciousness_assessment.md) | **Metaphorical with structural ambitions** ⚑5 |
+| Ph7 | Ω-regime psychological typology | **T2-eq** | Ph, Ps | [assessment](Ph7_psychological_typology_assessment.md) | **Structural with empirical falsifiability**; co-promotes with B2 ⚑5 |
 
-## Tier counts (after Session 4.5)
+## Tier counts (after Session 5)
 
-| Domain | T0 | T1 | T1\* | T2 | T2 (m/p/c) | **T3** | T4 |
-|--------|----|----|------|----|------------|--------|----|
-| M (22) | 0  | 18 | 2    | **1 (M9)** | 0   | **1 (M10-α³)** | 0  |
-| P (7)  | 0  | 1  | 0    | 3  | 3          | 0      | 0  |
-| B (7)  | 0  | 6  | 0    | 1  | 0          | 0      | 0  |
-| Ph (7) | 7  | 0  | 0    | 0  | 0          | 0      | 0  |
-| **Total (43)** | **7** | **25** | **2** | **5** | **3** | **1** | **0** |
+| Domain | T0 | T1 | T1\* | T2 / T2-eq | T2 (m/p/c) | **T3** | T4 |
+|--------|----|----|------|------------|------------|--------|----|
+| M (22) | 0  | 18 | 2    | 1 (M9)     | 0          | **1 (M10-α³)** | 0  |
+| P (7)  | 0  | 1  | 0    | 3          | 3          | 0      | 0  |
+| B (7)  | 0  | 6  | 0    | 1          | 0          | 0      | 0  |
+| Ph (7) | 0  | 2 (Ph3, Ph6) | 0 | **5 (Ph1, Ph2, Ph4, Ph5, Ph7)** | 0 | 0 | 0 |
+| **Total (43)** | **0** | **27** | **2** | **10** | **3** | **1** | **0** |
+
+**Session 5 changes:** all 7 Ph claims promoted from T0; 5 reach
+T2-eq (philosophical pathway); 2 stay at T1. Each carries an
+explicit M/S/E (Metaphorical / Structural / Exact) interpretation
+label per `notes/philosophical_assessment_framework.md`.
+
+**No Ph claim reached T3-eq** — none has a confirmed novel
+phenomenological prediction yet. **No Ph claim reached T4-eq** —
+no independent philosophical engagement located.
+
+**T0 count is now zero across the entire claim set** — every CRR
+claim has been formally assessed with at least T1 evidence
+committed.
 
 **Session 4.5 promotions:**
 - **M9**: T1 → T2 (v2 coupling-sweep PASSES Sütő-class trend)
