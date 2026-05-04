@@ -1,18 +1,17 @@
 # M10 — current tier
 
-**Tier: T0 (speculation)**
+**Tier: T1 (conjecture).**
 
-**Justification:** Not yet assessed. Initialised at Session 1 scaffolding.
-The tier rises only when corresponding evidence is committed to this
-directory:
+**Justification:** T1. Numerical verification confirms unique stable fixed point at 1/α = 137.0324 (test_M10_fine_structure_fixed_point and test_M10_unique_stable_fixed_point). Caveat: 26 ppm discrepancy with CODATA 1/α = 137.0360 is six orders of magnitude beyond CODATA precision. Equation derivation from CRR first principles deferred to Session 3+.
 
-- **T1** requires `derivation.md` (Session 2 work for M-claims; later
-  for non-mathematical claims).
+**Promoted from T0** in Session 2 by `derivation.md` in this directory
+and the corresponding pytest case(s) in
+`crr-engine/tests/test_derivations.py`.
+
+**Promotion gates ahead:**
 - **T2** requires `consistency.md` reproducing an independent empirical
   regularity (Session 3).
 - **T3** requires `prediction.md` (committed before data fetch) and
   `result.md` confirming on untouched data (Session 4).
 - **T4** requires `independent.md` citing replication by an
   unaffiliated group (Session 6 audit).
-
-Downgrades are recorded with the same care as promotions.

@@ -10,10 +10,13 @@
 > - Brief and discipline: [`CAMPAIGN.md`](CAMPAIGN.md)
 > - Central artefact: [`notes/classification_table.md`](notes/classification_table.md)
 > - Per-claim files: [`claims/`](claims/) (42 claims enumerated)
-> - Engine: [`crr-engine/index.py`](crr-engine/index.py) (24 pytest cases passing)
+> - Engine: [`crr-engine/index.py`](crr-engine/index.py) (43 pytest cases passing)
 >
-> **Tier counts (Session 1 baseline):** M 21×T0 · P 7×T0 · B 7×T0 ·
-> Ph 7×T0. All claims at T0 pending evidence in subsequent sessions.
+> **Tier counts (after Session 2):** M 19×T1 + 2×T1\* (relabelling cap, M5/M14) ·
+> P 7×T0 · B 7×T0 · Ph 7×T0. All 21 mathematical claims now at T1
+> with derivation files; 11 carry caveats (convention/identification
+> issues recorded in [`notes/relabellings.md`](notes/relabellings.md)).
+> Empirical and philosophical claims await Sessions 3–5.
 
 ---
 
