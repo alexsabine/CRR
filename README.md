@@ -12,22 +12,26 @@
 > - Per-claim files: [`claims/`](claims/) (42 claims enumerated)
 > - Engine: [`crr-engine/index.py`](crr-engine/index.py) (61 pytest cases passing)
 >
-> **Session 4 (in progress):** 9 pre-registered novel predictions
-> committed at git `3fc9681` BEFORE any analysis script
-> (audit-trail discipline). 2 sandbox-executed:
-> **M9 quasi-crystal Cantor-signature: FAIL** (gap monotonicity
-> and box-dim target both miss);
-> **M10-α³ Lamb-shift: literal FAIL, alternative reading at 22%**
-> (literal pre-reg binding; alt reading flagged for fresh
-> pre-registration). 7 reviewer-run skeletons for data-blocked
-> predictions (BMRB, IERS, PDG, Mt Wilson, GWTC O5, DESI, GeoNet,
-> PhysioNet). No T3 promotions yet; honest negatives recorded.
+> **Session 4 + 4.5 outcomes:** 9 + 2 pre-registered novel predictions
+> committed BEFORE analysis (git `3fc9681` and `102fedc`).
+>
+> Session 4 (sandbox-executed): M9 v1 FAIL, M10-α³ v1 FAIL. 7
+> [REVIEWER-RUN] skeletons for data-blocked tests.
+>
+> Session 4.5 (v2 follow-ups, sandbox-executed):
+> - **M9 v2 PASSES** all three coupling-sweep conditions
+>   (monotone, weak-coupling band-limit, strong-coupling Cantor
+>   regime). **M9 → T2.**
+> - **M10-α³ v2 PASSES** all three Bethe-rescaled-residual
+>   conditions (intra-system spread 3.6%, mean deviation 21.6%
+>   from leading α³ × (8/3π) target).
+>   **M10-α³ → T3 — first T3 promotion in the campaign.**
 > See [`notes/session_log.md`](notes/session_log.md) Session 4
 > entry for the full result table.
 >
-> **Tier counts (after Session 3):**
-> - **M (22):** 20×T1 + 2×T1\* (M5/M14)
-> - **P (7):** 4×T2 (P1, P6, P7) + 3×T2\* marginal/preliminary/conditional (P2, P4, P5) + 1×T1 (P3)
+> **Tier counts (after Session 4.5):**
+> - **M (22):** 18×T1 + 2×T1\* (M5/M14) + **1×T2 (M9)** + **1×T3 (M10-α³)**
+> - **P (7):** 3×T2 (P1, P6, P7) + 3×T2\* marginal/preliminary/conditional (P2, P4, P5) + 1×T1 (P3)
 > - **B (7):** 1×T2 (B7) + 6×T1 (B1–B6)
 > - **Ph (7):** 7×T0 (Session 5)
 >

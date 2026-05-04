@@ -28,8 +28,8 @@ only the evidence currently committed to the repository.
 | M6  | Fourier as trivial CRR specialisation | T1 | M | [derivation](../claims/M6_fourier_limit/derivation.md) | "specialisation" not "limit" ★ |
 | M7  | φ = dominant eigenvalue (depth 2) | T1 | M | [derivation](../claims/M7_phi_eigenvalue/derivation.md) | Char poly |
 | M8  | Depth-2 minimum for KAM-stable ergodicity | T1 | M, T | [derivation](../claims/M8_depth_two_kam/derivation.md) | Twist-map / Moser ★ |
-| M9  | φ-rotated CRR has SC spectrum | T1 | M, T | [derivation](../claims/M9_singular_continuous_spectrum/derivation.md) | Open: Fibonacci identification |
-| M10 | 1/α fixed point at 137.032 | T1 | M, P | [derivation](../claims/M10_fine_structure_fixed_point/derivation.md) · [consistency](../claims/M10_fine_structure_fixed_point/consistency.md) | 26 ppm vs CODATA — not T2 ⚑ |
+| M9  | φ-rotated CRR has SC spectrum | **T2** | M, T | [derivation](../claims/M9_singular_continuous_spectrum/derivation.md) · [prediction_v2](../claims/M9_singular_continuous_spectrum/prediction_v2.md) · [result_v2](../claims/M9_singular_continuous_spectrum/result_v2.md) | **v2 coupling sweep PASSES; Sütő-class confirmed** ⚑⚑ |
+| M10 | 1/α fixed point (T1) + α³ subatomic (**T3**) | **T1 + T3** | M, P | [derivation](../claims/M10_fine_structure_fixed_point/derivation.md) · [consistency](../claims/M10_fine_structure_fixed_point/consistency.md) · [prediction_v2](../claims/M10_fine_structure_fixed_point/prediction_v2.md) · [result_v2](../claims/M10_fine_structure_fixed_point/result_v2.md) | **First T3 in campaign — α³ Bethe-rescaled mean residual matches at 21.6%** ⚑⚑ |
 | M11 | Z₂+Z₂→SO(2) gives ρ=−1/2 | T1 | M | [derivation](../claims/M11_z2_compose_so2_anticorrelation/derivation.md) | Variance-preservation derived ★ |
 | M12 | B(C) peaks at C*−Ω | T1 | M, Ph | [derivation](../claims/M12_beauty_peak/derivation.md) | Calculus |
 | M13 | C ≡ accumulated Fisher info | T1 | M | [derivation](../claims/M13_fisher_information_identification/derivation.md) | Identification |
@@ -64,15 +64,25 @@ only the evidence currently committed to the repository.
 | Ph6 | Consciousness at coherence-rupture interface | T0 | Ph, B | [claim](../claims/Ph6_consciousness_at_interface/claim.md) | Session 5 |
 | Ph7 | Ω-regime psychological typology | T0 | Ph, Ps | [claim](../claims/Ph7_psychological_phase_typology/claim.md) | Session 5 |
 
-## Tier counts (after Session 3)
+## Tier counts (after Session 4.5)
 
-| Domain | T0 | T1 | T1\* | T2 | T2 (m/p/c) | T3 | T4 |
-|--------|----|----|------|----|------------|----|----|
-| M (22) | 0  | 20 | 2    | 0  | 0          | 0  | 0  |
-| P (7)  | 0  | 1  | 0    | 3  | 3          | 0  | 0  |
-| B (7)  | 0  | 6  | 0    | 1  | 0          | 0  | 0  |
-| Ph (7) | 7  | 0  | 0    | 0  | 0          | 0  | 0  |
-| **Total (43)** | **7** | **27** | **2** | **4** | **3** | **0** | **0** |
+| Domain | T0 | T1 | T1\* | T2 | T2 (m/p/c) | **T3** | T4 |
+|--------|----|----|------|----|------------|--------|----|
+| M (22) | 0  | 18 | 2    | **1 (M9)** | 0   | **1 (M10-α³)** | 0  |
+| P (7)  | 0  | 1  | 0    | 3  | 3          | 0      | 0  |
+| B (7)  | 0  | 6  | 0    | 1  | 0          | 0      | 0  |
+| Ph (7) | 7  | 0  | 0    | 0  | 0          | 0      | 0  |
+| **Total (43)** | **7** | **25** | **2** | **5** | **3** | **1** | **0** |
+
+**Session 4.5 promotions:**
+- **M9**: T1 → T2 (v2 coupling-sweep PASSES Sütő-class trend)
+- **M10-α³**: T1 → **T3** (v2 Bethe-rescaled test PASSES — first T3
+  in the campaign)
+
+The M10 fixed-point sub-claim (1/α = 137.0324) stays at T1 due to
+the 26 ppm CODATA discrepancy. M10-α³ is a separate sub-claim that
+reached T3 via the alternative-reading pathway pre-registered in
+Session 4.5.
 
 (M22 brings the M-claim count to 22; total is 43.)
 

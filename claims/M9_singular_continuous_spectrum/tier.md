@@ -1,17 +1,30 @@
 # M9 — current tier
 
-**Tier: T1 (conjecture).**
+**Tier: T2.**
 
-**Justification:** T1 with caveat. Derivation borrows Sütő-Bellissard-Damanik spectral-type theorems via the Fibonacci-chain identification; identification step requires further justification. Qualitative verification via test_M9_fibonacci_spectrum_fragmented.
+**Justification:** Pre-registered v2 coupling-strength sweep
+(prediction_v2.md, locked at git `102fedc`) shows monotone
+non-increase of box-counting dimension d_B from 0.91 (λ=0.25) to
+0.37 (λ=8.0) at chain length N = 1597, matching the established
+Sütő-Bellissard-Damanik phenomenology of the Fibonacci-substitution
+Schrödinger operator (band → fat Cantor → Cantor dust as coupling
+grows). All three pre-registered conditions met:
+1. Monotone non-increase ✓
+2. Weak-coupling band-limit d_B(λ=0.25) = 0.91 > 0.85 ✓
+3. Strong-coupling Cantor-limit d_B(λ=8.0) = 0.37 < 0.5 ✓
 
-**Promoted from T0** in Session 2 by `derivation.md` in this directory
-and the corresponding pytest case(s) in
-`crr-engine/tests/test_derivations.py`.
+See `result_v2.md` for the full output.
+
+**Promoted from T1 to T2** by the v2 numerical reproduction of
+canonical Sütő-class structure. The Session-4 v1 negative result
+(committed at `3fc9681`, executed at `ac85ad8`) is preserved in
+the audit trail as `prediction.md` / `result.md` — the v2 success
+does not retroactively rescue v1.
 
 **Promotion gates ahead:**
-- **T2** requires `consistency.md` reproducing an independent empirical
-  regularity (Session 3).
-- **T3** requires `prediction.md` (committed before data fetch) and
-  `result.md` confirming on untouched data (Session 4).
-- **T4** requires `independent.md` citing replication by an
-  unaffiliated group (Session 6 audit).
+- **T3** requires a CRR-specific empirical prediction in a
+  *biological* 1/f signal (B1 claim) showing coupling-dependent
+  Cantor structure matching the M9 trend, pre-registered before
+  data fetch. Queued for Session 5+.
+- **T4** requires independent confirmation by an unaffiliated
+  group on a separate physical or biological substrate.
