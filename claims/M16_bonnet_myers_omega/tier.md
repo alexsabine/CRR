@@ -1,18 +1,13 @@
 # M16 — current tier
 
-**Tier: T0 (speculation)**
+**Tier: T1 (conjecture).**
 
-**Justification:** Not yet assessed. Initialised at Session 1 scaffolding.
-The tier rises only when corresponding evidence is committed to this
-directory:
+**Justification:** T1. The brief's 'Ω = π/√κ' is identified as an inversion typo; corrected form is Ω ≥ √κ/π (Bonnet-Myers diameter ≤ π/√κ; saturating round sphere). Verified via test_M16_bonnet_myers_sphere and test_M16_resolved_omega_inversion. **Resolved** (typo identified).
 
-- **T1** requires `derivation.md` (Session 2 work for M-claims; later
-  for non-mathematical claims).
+**Promotion gates ahead:**
 - **T2** requires `consistency.md` reproducing an independent empirical
   regularity (Session 3).
 - **T3** requires `prediction.md` (committed before data fetch) and
   `result.md` confirming on untouched data (Session 4).
 - **T4** requires `independent.md` citing replication by an
   unaffiliated group (Session 6 audit).
-
-Downgrades are recorded with the same care as promotions.

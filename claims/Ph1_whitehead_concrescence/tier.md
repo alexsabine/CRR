@@ -1,18 +1,14 @@
 # Ph1 — current tier
 
-**Tier: T0 (speculation)**
+**Tier: T2-eq.**
 
-**Justification:** Not yet assessed. Initialised at Session 1 scaffolding.
-The tier rises only when corresponding evidence is committed to this
-directory:
+**Interpretation mode:** Structural
 
-- **T1** requires `derivation.md` (Session 2 work for M-claims; later
-  for non-mathematical claims).
-- **T2** requires `consistency.md` reproducing an independent empirical
-  regularity (Session 3).
-- **T3** requires `prediction.md` (committed before data fetch) and
-  `result.md` confirming on untouched data (Session 4).
-- **T4** requires `independent.md` citing replication by an
-  unaffiliated group (Session 6 audit).
+**Justification:** C/δ/R triad has specifiable structural mapping to prehension/concrescence/objective-immortality with strong matches on sequencing, asymmetry, and significance-weighting; remainder includes eternal objects, categoreal scheme, and theological aspects of Whitehead's metaphysics. See notes/Ph1_whitehead_assessment.md for full M/S/E breakdown.
 
-Downgrades are recorded with the same care as promotions.
+**Promotion gates ahead** (philosophical pathway, CAMPAIGN.md PART III):
+- **T3-equivalent** requires the formalism to predict a phenomenological
+  regularity not stated in the original philosophical source AND that
+  regularity's empirical confirmation.
+- **T4-equivalent** requires independent philosopher / phenomenologist
+  engagement with the CRR reconstruction in published work.

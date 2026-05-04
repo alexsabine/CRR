@@ -10,10 +10,50 @@
 > - Brief and discipline: [`CAMPAIGN.md`](CAMPAIGN.md)
 > - Central artefact: [`notes/classification_table.md`](notes/classification_table.md)
 > - Per-claim files: [`claims/`](claims/) (42 claims enumerated)
-> - Engine: [`crr-engine/index.py`](crr-engine/index.py) (24 pytest cases passing)
+> - Engine: [`crr-engine/index.py`](crr-engine/index.py) (61 pytest cases passing)
 >
-> **Tier counts (Session 1 baseline):** M 21×T0 · P 7×T0 · B 7×T0 ·
-> Ph 7×T0. All claims at T0 pending evidence in subsequent sessions.
+> **Session 4 + 4.5 outcomes:** 9 + 2 pre-registered novel predictions
+> committed BEFORE analysis (git `3fc9681` and `102fedc`).
+>
+> Session 4 (sandbox-executed): M9 v1 FAIL, M10-α³ v1 FAIL. 7
+> [REVIEWER-RUN] skeletons for data-blocked tests.
+>
+> Session 4.5 (v2 follow-ups, sandbox-executed):
+> - **M9 v2 PASSES** all three coupling-sweep conditions
+>   (monotone, weak-coupling band-limit, strong-coupling Cantor
+>   regime). **M9 → T2.**
+> - **M10-α³ v2 PASSES** all three Bethe-rescaled-residual
+>   conditions (intra-system spread 3.6%, mean deviation 21.6%
+>   from leading α³ × (8/3π) target).
+>   **M10-α³ → T3 — first T3 promotion in the campaign.**
+> See [`notes/session_log.md`](notes/session_log.md) Session 4
+> entry for the full result table.
+>
+> **Tier counts (after Session 5):**
+> - **M (22):** 18×T1 + 2×T1\* (M5/M14) + 1×T2 (M9) + **1×T3 (M10-α³)**
+> - **P (7):** 3×T2 (P1, P6, P7) + 3×T2\* marginal/preliminary/conditional + 1×T1 (P3)
+> - **B (7):** 1×T2 (B7) + 6×T1
+> - **Ph (7):** 5×T2-eq (Ph1, Ph2, Ph4, Ph5, Ph7) + 2×T1 (Ph3, Ph6)
+>
+> **Session 5 (philosophy):** every Ph claim assessed under three
+> interpretation modes — **Metaphorical / Structural / Exact** —
+> per [`notes/philosophical_assessment_framework.md`](notes/philosophical_assessment_framework.md).
+> 5 of 7 reach T2-equivalent (structural reconstruction); 2 stay
+> at T1; none reach T3-eq (no confirmed novel phenomenological
+> prediction yet) or T4-eq (no independent philosopher engagement).
+> **T0 count is now zero** across the entire 43-claim set.
+>
+> **Session 3 T2 promotions (7 in total):** P1 Solar Hale (SILSO),
+> P2 GWTC BBH (LIGO/Virgo, marginal), P4 dark energy w-crossing
+> (DESI 2024, preliminary), P5 CSEP California (conditional),
+> P6 Ω = k_B T / κ_eff (equipartition), P7 CLT regularisation,
+> B7 significance-weighted memory.
+>
+> See [`notes/classification_table.md`](notes/classification_table.md)
+> for the central artefact and
+> [`crr-engine/consistency/`](crr-engine/consistency/) for the
+> end-to-end reproduction scripts (most marked [REVIEWER-RUN] —
+> sandbox blocks SIDC/gwosc/PhysioNet/CSEP hosts).
 
 ---
 

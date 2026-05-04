@@ -1,18 +1,14 @@
 # Ph3 — current tier
 
-**Tier: T0 (speculation)**
+**Tier: T1.**
 
-**Justification:** Not yet assessed. Initialised at Session 1 scaffolding.
-The tier rises only when corresponding evidence is committed to this
-directory:
+**Interpretation mode:** Structural with metaphysical commitment
 
-- **T1** requires `derivation.md` (Session 2 work for M-claims; later
-  for non-mathematical claims).
-- **T2** requires `consistency.md` reproducing an independent empirical
-  regularity (Session 3).
-- **T3** requires `prediction.md` (committed before data fetch) and
-  `result.md` confirming on untouched data (Session 4).
-- **T4** requires `independent.md` citing replication by an
-  unaffiliated group (Session 6 audit).
+**Justification:** δ(now) is structurally privileged in the formalism, but the *ontological* (vs structural) reading requires non-eternalist metaphysical commitment. Tier upgrade pathway: empirical match between subjective-now-event CV and CRR Ω/2. See notes/Ph3_ontological_present_assessment.md.
 
-Downgrades are recorded with the same care as promotions.
+**Promotion gates ahead** (philosophical pathway, CAMPAIGN.md PART III):
+- **T3-equivalent** requires the formalism to predict a phenomenological
+  regularity not stated in the original philosophical source AND that
+  regularity's empirical confirmation.
+- **T4-equivalent** requires independent philosopher / phenomenologist
+  engagement with the CRR reconstruction in published work.

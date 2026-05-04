@@ -1,18 +1,14 @@
 # Ph4 — current tier
 
-**Tier: T0 (speculation)**
+**Tier: T2-eq.**
 
-**Justification:** Not yet assessed. Initialised at Session 1 scaffolding.
-The tier rises only when corresponding evidence is committed to this
-directory:
+**Interpretation mode:** Mathematically Exact (M12); philosophically Structural
 
-- **T1** requires `derivation.md` (Session 2 work for M-claims; later
-  for non-mathematical claims).
-- **T2** requires `consistency.md` reproducing an independent empirical
-  regularity (Session 3).
-- **T3** requires `prediction.md` (committed before data fetch) and
-  `result.md` confirming on untouched data (Session 4).
-- **T4** requires `independent.md` citing replication by an
-  unaffiliated group (Session 6 audit).
+**Justification:** M12 derivation gives B(C) maximum at C* − Ω exactly. The structural match with edge-of-chaos / criticality / explore-exploit / aesthetic-tension theories is genuine and specifiable. T3-eq pathway: pre-registered C*−Ω prediction outperforming generic-criticality alternatives. See notes/Ph4_beauty_at_edge_assessment.md.
 
-Downgrades are recorded with the same care as promotions.
+**Promotion gates ahead** (philosophical pathway, CAMPAIGN.md PART III):
+- **T3-equivalent** requires the formalism to predict a phenomenological
+  regularity not stated in the original philosophical source AND that
+  regularity's empirical confirmation.
+- **T4-equivalent** requires independent philosopher / phenomenologist
+  engagement with the CRR reconstruction in published work.
