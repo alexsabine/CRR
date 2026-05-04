@@ -1,5 +1,22 @@
 # Coherence–Rupture–Regeneration (CRR)
 
+> **Campaign in progress** · Status-determination dashboard
+>
+> CRR is currently labelled "candidate framework, pre-peer-review." A
+> structured campaign is under way to classify each distinct CRR claim
+> on the spectrum T0 (speculation) → T4 (established principle), per
+> domain.
+>
+> - Brief and discipline: [`CAMPAIGN.md`](CAMPAIGN.md)
+> - Central artefact: [`notes/classification_table.md`](notes/classification_table.md)
+> - Per-claim files: [`claims/`](claims/) (42 claims enumerated)
+> - Engine: [`crr-engine/index.py`](crr-engine/index.py) (24 pytest cases passing)
+>
+> **Tier counts (Session 1 baseline):** M 21×T0 · P 7×T0 · B 7×T0 ·
+> Ph 7×T0. All claims at T0 pending evidence in subsequent sessions.
+
+---
+
 **A parameter-free temporal process theory grounded in information geometry.**
 
 Three equations describe how bounded systems accumulate coherence, rupture at geometrically determined thresholds, and regenerate from weighted memory.
