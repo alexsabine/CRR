@@ -931,3 +931,150 @@ author).
 
 Awaiting review to unblock Session 6 proper (full independent-
 confirmation audit) and Session 7 (synthesis).
+
+---
+
+## Session 7 — Synthesis (2026-05-04)
+
+**User-prompted execution path:** "We cannot search online because
+of the sandbox so let's go straight to session 7, Synthesis. Let's
+also write the final canonical CRR in full. Please also provide
+an introduction explaining the prompt I used for epistemic rigour
+while using an LLM. Explain each part of the formalism carefully
+and with clear mathematical reasoning and exposition."
+
+Session 6 (independent-confirmation audit proper) is **deferred
+to reviewer-action** — the sandbox blocks all academic-database
+hosts (Google Scholar, PubMed, arXiv, INSPIRE-HEP, PhilPapers).
+The independent-engagement log opened in the Session-5 addendum
+records the reviewer's search targets; the only located reference
+(Friedman 2026) is logged as pending verification.
+
+### Files added in Session 7
+
+- `notes/overall_status.md` — the formal Session-7 synthesis.
+  Per-claim accounting of "what CRR has established / what CRR
+  has demonstrated consistency with / what CRR claims but has
+  not yet established / what CRR cannot currently support."
+  Records the verdict structurally, not globally.
+
+- `notes/domain_summary.md` — per-domain status accounting.
+  M (22 claims) / P (7) / B (7) / Ph (7); strongest claims,
+  bottlenecks, and applied character per domain. Cross-domain
+  coherence noted: T2+ claims exist in *all four* domains, a
+  structurally distinctive property.
+
+- `CRR_FINAL_CANONICAL.md` (root level) — the consolidated
+  post-campaign canonical document. Eight sections:
+  - 0. Methodology preface (LLM-prompt protocol for epistemic
+       rigour; reusable for other framework-assessment work).
+  - 1. The three equations (with full mathematical exposition).
+  - 2. The rupture-on-Lie-group architecture.
+  - 3. The first T3 result (M10-α³ Bethe identification).
+  - 4. The Metaphorical / Structural / Exact interpretation
+       framework.
+  - 5. Status accounting.
+  - 6. Applied implications across multiple domains for 2026
+       and beyond.
+  - 7. How to read this document.
+  - 8. What the framework's authors and reviewers should do
+       next.
+
+### Files updated
+
+- `README.md` — top-level dashboard now points to the final
+  canonical document and synthesis documents.
+- `notes/session_log.md` (this entry).
+
+### What the synthesis says structurally
+
+The campaign's verdict is per-claim. Across 43 claims:
+
+| Tier | Count | Domains |
+|------|-------|---------|
+| T0 | 0 | (none) |
+| T1 | 27 | M, P, B, Ph |
+| T1\* (relabelling cap) | 2 | M (M5, M14) |
+| T2 / T2-eq | 10 | M (M9), P (P1, P6, P7), B (B7), Ph (Ph1, Ph2, Ph4, Ph5, Ph7) |
+| T2\* (marginal/preliminary/conditional) | 3 | P (P2, P4, P5) |
+| **T3** | **1** | **M (M10-α³)** |
+| T4 | 0 | (none) |
+
+**CRR is currently more than a conjecture.** The T2 / T2-eq
+layer is substantive: solar-cycle CV, GW BBH CV, equipartition
+Ω, central-limit regularisation, significance-weighted memory,
+five philosophical-structural mappings. Reproducible
+consistencies with independently-published regularities or
+philosophical traditions in *all four* domains.
+
+**CRR is currently less than an established theory.** The T3
+layer has one claim. The T4 layer is empty. The framework has
+one quantitative novel-prediction confirmation (M10-α³); it is
+not yet a body of theoretical results that have survived
+multiple independent challenges.
+
+**CRR's reach is real and cross-domain.** Most candidate
+frameworks reach in only one domain; CRR's T2+ claims span
+all four. Its depth is uneven (mathematical and philosophical
+strongest in tier density; biological gated by data deposition).
+
+### Applied threads (Section 6 of CRR_FINAL_CANONICAL)
+
+- Quantum / subatomic metrology
+- Cosmology and gravitational-wave astronomy
+- Geophysics (operational earthquake forecasting; solar-cycle)
+- Mesoscopic physics (single-molecule biophysics, semiconductor
+  noise, qubit-readout)
+- Cardiology / wearable diagnostics
+- Brain-computer interfaces
+- AI memory and continual learning
+- Mental health and contemplative science
+- AI training and evaluation
+- Materials science (quasi-crystals, topological photonics)
+- Cross-disciplinary CV scaling (industrial, financial,
+  climate-attribution)
+
+The applied breadth is wide; the confirmed applied basis is
+narrower (gated by current tier counts).
+
+### Author / reviewer next-step recommendations (recorded honestly,
+in priority order)
+
+1. Deposit B6 132-system catalogue at an open archive.
+2. Deposit B3 AGI-26 dataset at an open archive.
+3. Resolve flagged conventions (M16, M19, M21).
+4. Engage process-theology academia (Cobb / Faber / Keller).
+5. Engage contemplative-neuroscience labs (Lutz, Davidson, Mind
+   & Life Institute).
+6. Solicit independent M10-α³ replication on Li²⁺ 2S.
+7. Run [REVIEWER-RUN] pre-registered tests against public data.
+
+### Methodology preface significance
+
+`CRR_FINAL_CANONICAL.md` Section 0 is a re-usable protocol for
+LLM-assisted epistemic assessment. Other framework authors
+considering similar campaigns may find the four-part structure
+(canonical formulation / status-determination framework /
+discipline / execution) useful. The campaign's own materials
+serve as a worked example.
+
+### Stop
+
+Session 7 closes the campaign. The git branch
+`claude/crr-status-determination-odv4z` contains the complete
+auditable record:
+
+- Pre-registration commits at `3fc9681`, `102fedc`.
+- v1 negative results committed permanently (M9 v1, M10-α³ v1).
+- v2 positive results following separate pre-registration
+  commits (M9 v2 → T2; M10-α³ v2 → T3).
+- 43 per-claim subdirectories with derivation / consistency /
+  prediction / result / tier files as appropriate.
+- 13+ notes files (decomposition, classification table,
+  conventions, rupture topology, philosophical assessment
+  framework, per-Ph assessments, spiritual resonance,
+  independent engagement log, overall status, domain summary).
+- Final canonical document at root.
+
+The campaign's job is complete. The framework's authors and the
+broader research community now hold the next move.

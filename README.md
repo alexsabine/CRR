@@ -1,11 +1,23 @@
 # Coherence–Rupture–Regeneration (CRR)
 
-> **Campaign in progress** · Status-determination dashboard
+> **Campaign complete · Synthesis published** · Status-determination dashboard
 >
 > CRR is currently labelled "candidate framework, pre-peer-review." A
-> structured campaign is under way to classify each distinct CRR claim
-> on the spectrum T0 (speculation) → T4 (established principle), per
-> domain.
+> structured seven-session campaign has classified each of 43
+> distinct CRR claims on the spectrum T0 (speculation) → T4
+> (established principle), per domain.
+>
+> **Final canonical document:** [`CRR_FINAL_CANONICAL.md`](CRR_FINAL_CANONICAL.md)
+> — the consolidated post-campaign formulation including methodology
+> preface (LLM-prompt protocol for epistemic rigour), full
+> mathematical exposition of the three equations and the Lie-group
+> generalisation, the first T3 result (M10-α³ Bethe-rescaled subatomic
+> CV), the Metaphorical / Structural / Exact interpretation framework,
+> and the applied-implications synthesis.
+>
+> **Synthesis documents:**
+> - [`notes/overall_status.md`](notes/overall_status.md) — Session 7 verdict
+> - [`notes/domain_summary.md`](notes/domain_summary.md) — status by domain
 >
 > - Brief and discipline: [`CAMPAIGN.md`](CAMPAIGN.md)
 > - Central artefact: [`notes/classification_table.md`](notes/classification_table.md)
