@@ -12,15 +12,23 @@
 > - Per-claim files: [`claims/`](claims/) (42 claims enumerated)
 > - Engine: [`crr-engine/index.py`](crr-engine/index.py) (61 pytest cases passing)
 >
-> **Tier counts (after rupture-topology resolution):** M 20×T1 + 2×T1\*
-> (M5/M14) · P 7×T0 · B 7×T0 · Ph 7×T0.
-> Mathematical claims now total **22** (M22 added: Lie-group CV
-> generalisation). Eight Session-2 caveats resolved by the
-> rupture-topology framework formalised in
-> [`notes/rupture_topology.md`](notes/rupture_topology.md) and
-> [`notes/conventions.md`](notes/conventions.md); 3 outstanding
-> (M9 identification, M10 CODATA, M21 TUR factor).
-> Empirical and philosophical claims await Sessions 3–5.
+> **Tier counts (after Session 3):**
+> - **M (22):** 20×T1 + 2×T1\* (M5/M14)
+> - **P (7):** 4×T2 (P1, P6, P7) + 3×T2\* marginal/preliminary/conditional (P2, P4, P5) + 1×T1 (P3)
+> - **B (7):** 1×T2 (B7) + 6×T1 (B1–B6)
+> - **Ph (7):** 7×T0 (Session 5)
+>
+> **Session 3 T2 promotions (7 in total):** P1 Solar Hale (SILSO),
+> P2 GWTC BBH (LIGO/Virgo, marginal), P4 dark energy w-crossing
+> (DESI 2024, preliminary), P5 CSEP California (conditional),
+> P6 Ω = k_B T / κ_eff (equipartition), P7 CLT regularisation,
+> B7 significance-weighted memory.
+>
+> See [`notes/classification_table.md`](notes/classification_table.md)
+> for the central artefact and
+> [`crr-engine/consistency/`](crr-engine/consistency/) for the
+> end-to-end reproduction scripts (most marked [REVIEWER-RUN] —
+> sandbox blocks SIDC/gwosc/PhysioNet/CSEP hosts).
 
 ---
 

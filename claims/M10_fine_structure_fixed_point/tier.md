@@ -1,17 +1,16 @@
 # M10 — current tier
 
-**Tier: T1 (conjecture).**
+**Tier: T1 (consistency assessed).**
 
-**Justification:** T1. Numerical verification confirms unique stable fixed point at 1/α = 137.0324 (test_M10_fine_structure_fixed_point and test_M10_unique_stable_fixed_point). Caveat: 26 ppm discrepancy with CODATA 1/α = 137.0360 is six orders of magnitude beyond CODATA precision. Equation derivation from CRR first principles deferred to Session 3+.
+**Justification:** Predicted 1/α = 137.0324 vs CODATA 137.036 differs by 26 ppm — six orders of magnitude beyond CODATA experimental uncertainty (~10⁻¹⁰). Strict reading: not a T2-quality reproduction at experimental precision. Loose reading: 10⁻⁵ structural agreement is non-trivial. Tier remains T1; consistency.md records the assessment in detail.
 
-**Promoted from T0** in Session 2 by `derivation.md` in this directory
-and the corresponding pytest case(s) in
-`crr-engine/tests/test_derivations.py`.
+**Consistency file:** [`consistency.md`](consistency.md) records the
+prediction, the public empirical regularity, the reproduction script,
+the independence check, and the applied-usefulness reflection for
+2026 and beyond.
 
 **Promotion gates ahead:**
-- **T2** requires `consistency.md` reproducing an independent empirical
-  regularity (Session 3).
-- **T3** requires `prediction.md` (committed before data fetch) and
-  `result.md` confirming on untouched data (Session 4).
-- **T4** requires `independent.md` citing replication by an
-  unaffiliated group (Session 6 audit).
+- **T3** requires a pre-registered novel prediction confirmed on
+  untouched data (Session 4).
+- **T4** requires independent confirmation by an unaffiliated group
+  (Session 6 audit).

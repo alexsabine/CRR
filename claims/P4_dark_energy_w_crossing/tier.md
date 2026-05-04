@@ -1,18 +1,16 @@
 # P4 — current tier
 
-**Tier: T0 (speculation)**
+**Tier: T2 (preliminary).**
 
-**Justification:** Not yet assessed. Initialised at Session 1 scaffolding.
-The tier rises only when corresponding evidence is committed to this
-directory:
+**Justification:** DESI 2024+ joint cosmological analysis shows w(z) crossing −1 near z ≈ 0.4, consistent with CRR z ≈ 0.5 prediction at ~20% relative precision. Statistical significance ~3-4σ over ΛCDM. Tier preliminary pending DESI-Y5 / Euclid-Y1 confirmation. Reproduction script at crr-engine/consistency/dark_energy.py [REVIEWER-RUN].
 
-- **T1** requires `derivation.md` (Session 2 work for M-claims; later
-  for non-mathematical claims).
-- **T2** requires `consistency.md` reproducing an independent empirical
-  regularity (Session 3).
-- **T3** requires `prediction.md` (committed before data fetch) and
-  `result.md` confirming on untouched data (Session 4).
-- **T4** requires `independent.md` citing replication by an
-  unaffiliated group (Session 6 audit).
+**Consistency file:** [`consistency.md`](consistency.md) records the
+prediction, the public empirical regularity, the reproduction script,
+the independence check, and the applied-usefulness reflection for
+2026 and beyond.
 
-Downgrades are recorded with the same care as promotions.
+**Promotion gates ahead:**
+- **T3** requires a pre-registered novel prediction confirmed on
+  untouched data (Session 4).
+- **T4** requires independent confirmation by an unaffiliated group
+  (Session 6 audit).

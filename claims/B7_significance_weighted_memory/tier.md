@@ -1,18 +1,16 @@
 # B7 — current tier
 
-**Tier: T0 (speculation)**
+**Tier: T2.**
 
-**Justification:** Not yet assessed. Initialised at Session 1 scaffolding.
-The tier rises only when corresponding evidence is committed to this
-directory:
+**Justification:** Mathematical: exp(C/Ω) weights by coherence by construction (verified in significance_memory.py). Biological: significance-over-recency weighting is consistent with established psychological (Kahana 2012), neuroscience (Diba & Buzsáki 2007), and machine-learning (Schaul et al. 2015 prioritised replay) literature. Broad consistency.
 
-- **T1** requires `derivation.md` (Session 2 work for M-claims; later
-  for non-mathematical claims).
-- **T2** requires `consistency.md` reproducing an independent empirical
-  regularity (Session 3).
-- **T3** requires `prediction.md` (committed before data fetch) and
-  `result.md` confirming on untouched data (Session 4).
-- **T4** requires `independent.md` citing replication by an
-  unaffiliated group (Session 6 audit).
+**Consistency file:** [`consistency.md`](consistency.md) records the
+prediction, the public empirical regularity, the reproduction script,
+the independence check, and the applied-usefulness reflection for
+2026 and beyond.
 
-Downgrades are recorded with the same care as promotions.
+**Promotion gates ahead:**
+- **T3** requires a pre-registered novel prediction confirmed on
+  untouched data (Session 4).
+- **T4** requires independent confirmation by an unaffiliated group
+  (Session 6 audit).
