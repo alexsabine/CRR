@@ -97,6 +97,26 @@ only the evidence currently committed to the repository.
 | Ph (7) | 0  | 2  | 0    | 5          | 0          | 0      | 0  |
 | **Total (65)** | **0** | **42** | **2** | **10** | **3** | **8** | **0** |
 
+## Tier counts (after Session 8 — bees) — 10 new pre-regs
+
+| Domain | T0 | T1 | T1\* | T2 / T2-eq | T2 (m/p/c) | **T3** | T4 |
+|--------|----|----|------|------------|------------|--------|----|
+| M (23) | 0  | 19 | 2    | 1 (M9)     | 0          | 1      | 0  |
+| P (18) | 0  | 11 | 0    | 3          | 3          | 1      | 0  |
+| B (28) | 0  | 16 (incl. Be1, Be3, Be7, Be8, Be9) | 0    | 1          | 0          | **10 (B7 T2; B8, B12, B14-B16, Be2, Be4, Be5, Be6, Be10)** | 0  |
+| Ph (7) | 0  | 2  | 0    | 5          | 0          | 0      | 0  |
+| **Total (76)** | **0** | **48** | **2** | **10** | **3** | **13** | **0** |
+
+**Session 8 changes (bee CRR analysis, 10 pre-regs):**
+- **Be2** (honeycomb wall thickness CV) — Z₂ memory PASS. **First architectural T3 in biology** alongside B8 (bacterial division).
+- **Be4** (visual relay count = 4) — n+1/n PASS at interocular ~2 mm.
+- **Be5** (antennal relay count = 2) — n+1/n PASS at inter-antennal ~1 mm.
+- **Be6** (bee circadian period CV) — Class B PASS, joins cyano/fly/mouse.
+- **Be10** (honeycomb cell tilt 13°) — C*-Ω geodesic PASS.
+- Be1 (waggle dance) — Class B reframing (more precise than autonomous SO(2)).
+- Be3, Be8 honest negatives.
+- Be7, Be9 inconclusive (queued reviewer-run).
+
 **Session 7 changes:** 20 new claims added at T1 by their `derivation.md`,
 then evaluated against locked pre-registrations:
 

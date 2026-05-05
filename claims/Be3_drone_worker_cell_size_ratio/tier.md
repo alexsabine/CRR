@@ -1,6 +1,8 @@
-# Be3 — current tier
+# Be3 — current tier (after Session 8)
 
-**Tier: T1 (conjecture).**
+**Tier: T1.**
 
-T1 by `derivation.md`. T3 pre-registered in Session 8
-`prediction.md`; `result.md` to follow.
+**Result:** FAIL (10.8% deviation, outside ±5% band) (per `result.md`).
+
+Pre-registration commit: Session 8 (1/2).
+Result commit: Session 8 (2/2).
