@@ -1,82 +1,152 @@
-# B3 — AGI-26 phase-gating signature: χ² = 8,041; conservation 1.003; ρ = −1/2
+# B3 — Consistency reframing after AGI 2026 paper read (Session 8)
 
-## Prediction (canonical brief)
+**Significant reframing.** Until Session 8, the campaign treated B3
+("AGI-26 phase-gating: χ² = 8,041; conservation 1.003; ρ = −1/2")
+as a claim about an *empirical neuroscience dataset* awaiting
+deposition. With the AGI 2026 paper now in the repository
+(`AGI_Conference_2026 (Sabine, 2026) (1).pdf`), the underlying
+content is clarified: B3 is a **POMDP simulation result**, not an
+empirical-data analysis.
 
-The AGI-26 conference dataset (Sabine 2026, in this repository as
-`AGI_Conference_2026 (Sabine, 2026).pdf`) exhibits a phase-gating
-signature with:
+## What the AGI 2026 paper actually contains
 
-- χ² = **8,041** (test statistic, degrees of freedom unspecified
-  in brief — needs author clarification);
-- **conservation ratio = 1.003** (charge / probability / coherence
-  conservation residual);
-- **ρ = −1/2** (perception-action anti-correlation, M11 prediction).
+**Source:** Sabine, A. (2026). *Phase-Gating Across Precision
+Channels: Topological Constraints on Multi-Channel Belief Update
+Dynamics.* AGI 2026 conference submission.
 
-## Empirical regularity
+**Setup:** Active-inference POMDP with two precision channels —
+Z₂ (sensory) at threshold π and SO(2) (prior) at threshold 2π.
+Dirichlet learning. Multiple agents.
 
-Source: AGI-26 dataset (the underlying experimental data behind
-`AGI_Conference_2026 (Sabine, 2026).pdf`). The PDF is in this
-repository; the underlying data file is **not** committed and not
-linked in the canonical brief.
+**Results:**
 
-**Action item for author:** the underlying AGI-26 dataset must be
-deposited at a permanent archive (e.g., Zenodo, OSF, Figshare) with
-a DOI before B3 can be assessed independently.
+| Statistic | Value | Status |
+|-----------|-------|--------|
+| Phase-gating χ² | **8,041** (df=9, n=10,345 ruptures, 60 runs × 1,200 trials) | **Discriminating CRR result** |
+| Conservation ratio | **1.003** (CV 0.024) | **Structurally guaranteed** (NOT discriminating) |
+| ρ tested values | 0, −0.3 (conservation OK), −0.7 (breaks) | Sensitivity analysis |
+
+**Sabine's own honest disclosure (AGI 2026, Section 4.3):**
+
+> "Total precision-gain equality is therefore a structural
+> consequence of equal evidence delivery, not a prediction that
+> discriminates CRR from alternatives."
+
+i.e., **the conservation = 1.003 finding is not a CRR-specific
+empirical signature.** It is a structural feature of any
+two-channel system with equal evidence delivery.
+
+**The phase-gating result IS discriminating** (Sabine, AGI 2026
+Section 4.3):
+
+> "The phase relationship depends on the specific threshold ratio
+> and does not emerge from continuous updating or from arbitrary
+> thresholds."
+
+The χ² = 8041 quantifies the non-uniformity of Z₂ phases at SO(2)
+ruptures in a system with the canonical CRR thresholds π and 2π.
+
+## Reframing of B3's status
+
+### What B3 IS (after Session 8 reading)
+
+A claim that **CRR's threshold architecture (π and 2π) produces
+non-trivial phase-gating dynamics in a POMDP simulation that would
+not emerge from arbitrary thresholds or continuous updating.**
+
+This is a structural-mathematical claim verified by simulation,
+not an empirical-data finding.
+
+### What B3 IS NOT
+
+- An empirical neuroscience-dataset analysis. The "AGI-26 dataset"
+  is the simulation output, not behavioural / neural recording.
+- A discriminating empirical confirmation of CRR (the conservation
+  ratio of 1.003 is structurally guaranteed, not a discriminating
+  test).
+- A demonstration of ρ = −1/2 in real perception-action data.
+  The AGI paper tests ρ ∈ {0, −0.3, −0.7} as sensitivity analysis;
+  ρ = −1/2 (M11's prediction) is not directly tested in this
+  paper.
+
+## Discipline-aligned tier decision
+
+**B3 stays at T1** — with the consistency reframing now explicit.
+
+Reasoning:
+1. B3 was a T1 claim before; the AGI paper provides the underlying
+   simulation derivation but doesn't change empirical status.
+2. T2 promotion would require **empirical** reproduction of
+   phase-gating in real neuroscience data. The AGI paper *cites*
+   compatibility with Jang et al. (ACh-DA timing) but does not
+   quantitatively test it.
+3. The χ² = 8,041 statistic remains as the original brief stated,
+   but its interpretation is now more precisely "a discriminating
+   structural property of the CRR threshold architecture in a
+   POMDP simulation."
 
 ## Reproduction script
 
-`crr-engine/consistency/agi26_phase_gating.py` (skeleton):
-1. Fetch AGI-26 dataset from canonical archive (DOI to be supplied).
-2. Apply phase-gating analysis pipeline as described in the
-   AGI-26 paper.
-3. Verify χ² = 8041 (against author-supplied analysis).
-4. Verify conservation ratio = 1.003.
-5. Verify ρ = −1/2 in perception-action channels.
+The AGI 2026 paper's simulation should be reproducible. The
+campaign's `crr-engine/consistency/agi26_phase_gating.py` skeleton
+should be updated to:
 
-**[REVIEWER-RUN, BLOCKED]** — dataset link not yet public.
+1. Implement the two-channel POMDP with Z₂ threshold π and SO(2)
+   threshold 2π.
+2. Run 60 simulations × 1,200 trials.
+3. Track Z₂ phase at each SO(2) rupture (~10,000 ruptures expected).
+4. Compute χ² of the resulting phase distribution against uniform.
+5. Verify conservation ratio in [0.99, 1.01].
 
-## Tier decision
+Comparison values (per AGI 2026):
+- χ² ≈ 8,041 ± expected statistical noise
+- Conservation ratio 1.003
+- Z₂ mean inter-rupture interval 3.0 trials (CV 0.26)
+- SO(2) mean inter-rupture interval 10.4 trials (CV 0.50)
 
-**Remains T1.** Cannot reach T2 until:
-1. The AGI-26 dataset is deposited at an open archive.
-2. The χ², conservation, and ρ metrics are computed by an
-   independent reviewer from raw data.
-3. Independence-of-construction is verifiable (i.e., the dataset
-   was *not* fitted to give χ² = 8041).
+This is sandbox-runnable in principle. Reframed as a structural-
+verification test, not a [REVIEWER-RUN] empirical-data fetch.
 
-The B3 claim is the most empirically specific in the entire CRR
-canon — three concrete numbers — making it potentially the
-sharpest empirical anchor. Its T2 promotion is contingent on data
-deposition, which is solely an author-side action.
+## Path to T2 / T3 (revised)
 
-## Applied usefulness for 2026 and beyond
+For B3 to reach T2 with empirical content:
+1. **Independent reproduction of the simulation** by an unaffiliated
+   reviewer (sandbox-runnable). Promotes B3 to T2 (structural).
+2. **Empirical test in real neuroscience data:** test phase-gating
+   in dopaminergic / ACh-mediated learning paradigms (Jang et al.
+   tradition); requires fresh pre-registration in a future session.
+   Promotes B3 to T3 if confirmed.
 
-If the AGI-26 phase-gating signature is empirically established, it
-provides:
+## Applied usefulness for 2026 and beyond (updated)
 
-- **Behavioural-AI benchmarking:** a parameter-free phase-gating
-  signature is a candidate "intelligence signature" distinguishing
-  agents with internal models (which exhibit ρ = −1/2 perception-
-  action anti-correlation under M11) from purely reactive agents
-  (which do not). Useful for AGI-progress evaluation suites.
-- **Brain-computer-interface decoding:** phase-gating in motor-
-  imagery BCI signals (Neuralink, Synchron, BrainGate 2026+)
-  could be exploited as a decoder feature; ρ = −1/2 is a
-  parameter-free expectation.
-- **Robotics control architectures:** Z₂-ruptured perception-action
-  loops with predicted ρ = −1/2 give a falsifiable design pattern
-  for embodied-AI control stacks.
-- **Cognitive-load metrics:** phase-gating signature breakdown
-  under cognitive load tracks attention failure; consumer EEG
-  headsets (Muse, Neurable, Emotiv) could expose this as a
-  cognitive-load gauge.
-- **Anaesthesia / consciousness monitoring:** Φ-style measures
-  (integrated information theory) are computationally expensive;
-  CRR's phase-gating signature is comparatively cheap to compute
-  online and could supplement clinical depth-of-anaesthesia
-  monitoring.
+The AGI 2026 paper's primary applied claims:
 
-The applied usefulness here depends critically on **independent
-empirical reproducibility**. Without the AGI-26 dataset open, B3's
-applied potential is bottlenecked by the author's data-deposition
-schedule.
+- **Distributed multi-agent AGI architectures:** the phase-gating
+  result implies that Markov-blanketed agent networks with Z₂/SO(2)
+  pairwise coordination self-balance without central control. A
+  network of 150 agents has 11,175 edges, each constituting an
+  independent self-balancing two-channel system.
+- **AI alignment temporal-misalignment metric:** "what matters is
+  not only what a system believes, but when it reorganises its
+  beliefs relative to its partner. The phase-gating results show
+  that the functional character of an update depends on where in
+  the partner channel's cycle it occurs, so a phase mismatch
+  between human and AGI would constitute a detectable, measurable
+  form of misalignment."
+- **Continual learning:** weight-function independence "frees
+  designers to optimise update rules without disrupting
+  inter-channel coordination."
+- **Hierarchical generative-model design:** Sabine notes the
+  current test environment is a "toy POMDP, not an AGI system; the
+  logical next step is to test phase-gating in a hierarchical
+  generative model with non-stationary dynamics."
+
+**Honest scope (per Sabine's own disclosure):**
+
+> "The current test environment is a toy POMDP, not an AGI system;
+> the restriction to one-dimensional manifolds does substantial
+> work, and the 2:1 ratio's survival in higher dimensions is
+> untested."
+
+The AGI paper recommends further empirical testing rather than
+declaring the result complete.

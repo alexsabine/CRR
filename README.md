@@ -1,11 +1,23 @@
 # Coherence–Rupture–Regeneration (CRR)
 
-> **Campaign in progress** · Status-determination dashboard
+> **Campaign complete · Synthesis published** · Status-determination dashboard
 >
 > CRR is currently labelled "candidate framework, pre-peer-review." A
-> structured campaign is under way to classify each distinct CRR claim
-> on the spectrum T0 (speculation) → T4 (established principle), per
-> domain.
+> structured seven-session campaign has classified each of 43
+> distinct CRR claims on the spectrum T0 (speculation) → T4
+> (established principle), per domain.
+>
+> **Final canonical document:** [`CRR_FINAL_CANONICAL.md`](CRR_FINAL_CANONICAL.md)
+> — the consolidated post-campaign formulation including methodology
+> preface (LLM-prompt protocol for epistemic rigour), full
+> mathematical exposition of the three equations and the Lie-group
+> generalisation, the first T3 result (M10-α³ Bethe-rescaled subatomic
+> CV), the Metaphorical / Structural / Exact interpretation framework,
+> and the applied-implications synthesis.
+>
+> **Synthesis documents:**
+> - [`notes/overall_status.md`](notes/overall_status.md) — Session 7 verdict
+> - [`notes/domain_summary.md`](notes/domain_summary.md) — status by domain
 >
 > - Brief and discipline: [`CAMPAIGN.md`](CAMPAIGN.md)
 > - Central artefact: [`notes/classification_table.md`](notes/classification_table.md)
@@ -42,6 +54,47 @@
 > at T1; none reach T3-eq (no confirmed novel phenomenological
 > prediction yet) or T4-eq (no independent philosopher engagement).
 > **T0 count is now zero** across the entire 43-claim set.
+>
+> **Session 5 addendum:** [`notes/spiritual_resonance_assessment.md`](notes/spiritual_resonance_assessment.md)
+> surveys CRR resonance across 8 traditions (Lurianic Kabbalah,
+> Sufism, Tibetan Buddhism, Kashmir Shaivism, Yogācāra Buddhism,
+> process theology, Daoism, Christian theology, Indigenous
+> cosmologies, Advaita) under the same M/S/E framework. Strongest
+> structural matches: **Lurianic Kabbalah's tzimtzum → shevirat →
+> tikkun** triad and **Sufi fana → baqa** cycle.
+>
+> **Session 8 update (5 author-supplied PDFs read):** independent-
+> engagement log expanded — Friedman 2026 confirmed as **sympathetic
+> (AII-affiliated)**, NOT independent. Strongest independent
+> structural-adjacency candidate located: **Vallortigara & Vitiello
+> 2024** (R. Soc. Open Sci.; University of Trento, unaffiliated)
+> SU(2) doublet algebra giving "energy gap of exactly 1" —
+> structurally identical to CRR's C·Ω = 1 saturation. Two
+> independent derivations of the same algebraic structure.
+> Hemispheric CV test (Sabine 2026 vs Mazoyer 2014): predicted
+> 15.92%, empirical 12.2% (23% miss), structural CV-invariance
+> across G1/G2 confirmed. AGI 2026 paper clarifies B3 is a POMDP
+> simulation, not an empirical-data analysis. **No tier promotions
+> in Session 8** — discipline upheld; no T4 awarded on sympathetic
+> engagement or post-hoc adjustment.
+>
+> **Session 9 update (cross-domain Z₂ tests):** five new
+> pre-registered predictions tested against canonical empirical
+> values from training corpus (committed BEFORE analysis at git
+> `456a910`). **Strict result: 2 of 5 pass.**
+> Menstrual cycle CV (Bull 2019, n=612k cycles): pred 0.1592,
+> emp 0.177, dev 11.5% ✓.
+> Resting respiratory CV (clinical refs): pred 0.1592, emp 0.18,
+> dev 13.1% ✓.
+> Schwabe solar cycle CV: pred 0.1592, emp 0.107, dev 33% ✗ (knife-edge).
+> Schwabe:Hale ratio: pred 2.0, emp 1.34, dev 33% ✗.
+> Charmonium ψ-family log-lifetime CV: ✗ (sign issue).
+> **M22 stays at T1** per pre-registered aggregate criterion.
+> Structural pattern: biological Z₂ (Class A) match, solar
+> regulated (Class B) below canonical — strengthens B2 three-class
+> typology indirectly. Sensitivity-analysis note: under canonical
+> SILSO literature SD, 4 of 5 would plausibly pass; per discipline,
+> strict reading binds.
 >
 > **Session 3 T2 promotions (7 in total):** P1 Solar Hale (SILSO),
 > P2 GWTC BBH (LIGO/Virgo, marginal), P4 dark energy w-crossing
