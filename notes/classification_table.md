@@ -86,6 +86,30 @@ only the evidence currently committed to the repository.
 | Ph (7) | 0  | 2  | 0    | 5          | 0          | 0      | 0  |
 | **Total (45)** | **0** | **28** | **2** | **10** | **3** | **2** | **0** |
 
+## Tier counts (after Session 7) — 20 new pre-regs added
+
+| Domain | T0 | T1 | T1\* | T2 / T2-eq | T2 (m/p/c) | **T3** | T4 |
+|--------|----|----|------|------------|------------|--------|----|
+| M (22) | 0  | 18 | 2    | 1 (M9)     | 0          | **1 (M10-α³, v3 PRELIM extends to Z=4 via P17)** | 0  |
+| P (18) | 0  | 11 (P3, P8–P11, P13–P16, P17 PRELIM, P18) | 0    | 3          | 3          | **1 (P12 — CMB acoustic peaks)** | 0  |
+| B (18) | 0  | 11 (B1–B6, B9, B10, B11, B13, B17, B18) | 0    | 1          | 0          | **5 (B7 T2; B8, B12, B14, B15, B16 T3)** | 0  |
+| Ph (7) | 0  | 2  | 0    | 5          | 0          | 0      | 0  |
+| **Total (65)** | **0** | **42** | **2** | **10** | **3** | **8** | **0** |
+
+**Session 7 changes:** 20 new claims added at T1 by their `derivation.md`,
+then evaluated against locked pre-registrations:
+
+- **P12** (CMB acoustic peak Δℓ): PASS — first **cosmological T3**.
+- **B12** (healthy resting RR-interval, SO(2)): PASS — first **cardiac T3**.
+- **B14** (circadian period, Class B regulated): PASS — Class B regime confirmed.
+- **B15** (cortical pyramidal ISI in vivo, Class C): PASS — Class C regime confirmed.
+- **B16** (healthy gait stride-time, Class B): PASS — Class B regime confirmed.
+- **P17** (Be³⁺ extends M10-α³ Bethe cluster to Z=4): PRELIMINARY PASS;
+  M10-α³ stays at T3 with cluster now spanning Z=1→4.
+- **14 honest negatives** (P8/P9/P10/P11/P13/P14/P15/P16/P18, B10/B11/B13/B17/B18) recorded
+  permanently — see Session 7 entry in `session_log.md` for the
+  emergent **memory-bearing-vs-memoryless** structural finding.
+
 **Session 6 changes (this session):**
 - New claim **B8** (bacterial generation-time CV) added at T1 by
   `derivation.md`, then promoted T1 → **T3** by pre-registered

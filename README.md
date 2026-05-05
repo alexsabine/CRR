@@ -9,7 +9,7 @@
 >
 > - Brief and discipline: [`CAMPAIGN.md`](CAMPAIGN.md)
 > - Central artefact: [`notes/classification_table.md`](notes/classification_table.md)
-> - Per-claim files: [`claims/`](claims/) (45 claims enumerated; B8, B9 added in Session 6)
+> - Per-claim files: [`claims/`](claims/) (65 claims; +20 added in Session 7)
 > - Engine: [`crr-engine/index.py`](crr-engine/index.py) (61 pytest cases passing)
 >
 > **Session 4 + 4.5 outcomes:** 9 + 2 pre-registered novel predictions
@@ -29,16 +29,18 @@
 > See [`notes/session_log.md`](notes/session_log.md) Session 4
 > entry for the full result table.
 >
-> **Tier counts (after Session 6):**
-> - **M (22):** 18×T1 + 2×T1\* (M5/M14) + 1×T2 (M9) + **1×T3 (M10-α³)** — v3 Li²⁺ extension PRELIMINARY PASS
-> - **P (7):** 3×T2 (P1, P6, P7) + 3×T2\* marginal/preliminary/conditional + 1×T1 (P3)
-> - **B (9):** 1×T2 (B7) + **1×T3 (B8)** + 7×T1 (incl. B9) — first biological T3
-> - **Ph (7):** 5×T2-eq (Ph1, Ph2, Ph4, Ph5, Ph7) + 2×T1 (Ph3, Ph6)
+> **Tier counts (after Session 7):**
+> - **M (22):** 18×T1 + 2×T1\* + 1×T2 (M9) + **1×T3 (M10-α³, Z=1→4 cluster)**
+> - **P (18):** 3×T2 + 3×T2\* + 11×T1 + **1×T3 (P12 — CMB acoustic peaks)**
+> - **B (18):** 1×T2 (B7) + 11×T1 + **5×T3** (B8 bacterial division; B12 cardiac; B14 circadian Class B; B15 cortical ISI Class C; B16 gait Class B)
+> - **Ph (7):** 5×T2-eq + 2×T1
 >
-> **Session 6 outcomes (3 pre-registrations committed at `4562fe1`):**
-> - **B8** (bacterial generation-time CV): pre-reg PASS — first biological T3.
-> - **M10-α³ v3** (Li²⁺ Lamb shift extension): PRELIMINARY PASS, sandbox-limited; strengthens existing T3 cluster.
-> - **B9** (resting respiratory CV → SO(2)): honest FAIL of literal pre-reg; data sit in Z₂ band rather than SO(2); B9 stays at T1.
+> **Total: 8 T3 promotions across M/P + P + B domains. Zero T0; zero T4.**
+>
+> **Session 7 outcomes (20 pre-registrations committed at `cc21772`):**
+> - **5 fresh T3 promotions:** P12, B12, B14, B15, B16.
+> - **1 PRELIMINARY** (P17 — Be³⁺ extends M10-α³ to Z=4).
+> - **14 honest negatives** — the pattern reveals a structural finding: CRR's Z₂-rupture prediction discriminates *memory-bearing* (B8) from *memoryless avalanche* (P8/P9/P10/P14/P15/P16/B17/B18) rupture systems.
 >
 > **Session 5 (philosophy):** every Ph claim assessed under three
 > interpretation modes — **Metaphorical / Structural / Exact** —

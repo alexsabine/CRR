@@ -1,6 +1,9 @@
-# B14 — current tier
+# B14 — current tier (after Session 7)
 
-**Tier: T1 (conjecture).**
+**Tier: T3 (theory).**
 
-T1 by `derivation.md`. T3 pre-registered in Session 7
-`prediction.md`; `result.md` to follow.
+**Result:** PASS; T1 → T3 (ClassB) (per `result.md`).
+**Median(CV) observed:** 0.0130.
+
+Pre-registration commit: `cc21772` (Session 7 1/2).
+Result commit: Session 7 (2/2).

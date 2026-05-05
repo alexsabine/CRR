@@ -1,6 +1,9 @@
-# P16 — current tier
+# P16 — current tier (after Session 7)
 
 **Tier: T1 (conjecture).**
 
-T1 by `derivation.md`. T3 pre-registered in Session 7
-`prediction.md`; `result.md` to follow.
+**Result:** FAIL; stays T1 (per `result.md`).
+**Median(CV) observed:** 0.8500.
+
+Pre-registration commit: `cc21772` (Session 7 1/2).
+Result commit: Session 7 (2/2).
