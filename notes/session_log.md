@@ -1046,3 +1046,74 @@ The structural finding from the 14 negatives — that CRR's Z₂
 prediction discriminates memory-bearing from memoryless rupture
 systems — is queued for canonical-text consideration by the
 framework's author per `CAMPAIGN.md` non-goals.
+
+---
+
+## Session 7.5 — Radiation paper reframing (no new pre-regs)
+
+**Direction:** the canonical paper `radioactive_crr_finding.pdf`
+(Sabine, April 2026) was identified as already containing the CRR
+prediction for Z₂-rupture systems lacking SO(2) regulation:
+
+    CV_exp = CV_{Z₂} × C*_{SO(2)} = (1/(2π)) × 2π = 1.
+
+This canonical identity was committed before Session 7 but was
+not incorporated into the 20 pre-registrations.
+
+### Action
+
+- **New claim M23 added at T1** (analytic identity from radiation
+  paper): `claims/M23_exp_cv_unity_from_missing_so2/`.
+- **New convention C6 added** to `notes/conventions.md`: every Z₂
+  pre-reg must specify whether the system has an SO(2) regulator;
+  CV target is 1/(2π) with regulator, 1 without.
+- **Session 7 negatives reread** in `notes/session7_addendum_radiation_paper.md`:
+  - **8 of 14** become *M23-coherent* (Crab pulsar glitches,
+    solar X-class flares, moderate Dst storms, declustered M≥6
+    quakes, volcanic recurrence, lightning inter-stroke,
+    E. coli run-tumble, mitochondrial fission — all CV ≈ 1, hit
+    the canonical M23 prediction within ~5%).
+  - 3 negatives (B10, B11, B13) are within factor 1.5× of the
+    Z₂ band — modest sub-class deviations.
+  - 3 (P11, P13, P18) remain genuine framework-mis-targets
+    (population statistics or wrong observable class).
+
+### Discipline note
+
+**No retroactive promotions.** The original Session-7 result.md
+files remain unedited; literal pre-reg verdicts (FAIL on
+CV = 1/(2π)) stand. The reframing is a framework-internal
+interpretive overlay, not a tier change. Per CAMPAIGN.md non-goals,
+the framework author's canonical paper is honoured; the campaign
+adds M23 as a separate T1 claim and queues fresh pre-regs against
+M23 for Session 8.
+
+### Why this matters
+
+The 14 Session-7 "negatives" had pointed at an emergent pattern
+(memory-bearing vs memoryless rupture) — and the canonical
+radiation paper had already named, derived, and verified that
+distinction analytically and via Monte Carlo. The pre-reg
+discipline produced a clean negative outcome on a too-narrow
+identification (CV = 1/(2π)); the canonical broader prediction
+(both CV = 1/(2π) for Z₂-with-SO(2) and CV = 1 for Z₂-without)
+is empirically supported across 8+ memoryless rupture systems
+at the cohort-statistic level.
+
+### Updated tier counts (post-7.5)
+
+| Domain | T0 | T1 | T1\* | T2 / T2-eq | T2 (m/p/c) | **T3** | T4 |
+|--------|----|----|------|------------|------------|--------|----|
+| M (23) | 0  | 19 (incl. M23) | 2 | 1 | 0 | 1 | 0 |
+| P (18) | 0  | 11 | 0    | 3          | 3          | 1      | 0  |
+| B (18) | 0  | 11 | 0    | 1          | 0          | 5      | 0  |
+| Ph (7) | 0  | 2  | 0    | 5          | 0          | 0      | 0  |
+| **Total (66)** | **0** | **43** | **2** | **10** | **3** | **8** | **0** |
+
+### Stop-for-review
+
+Session 7.5 stops here. Session 8 (queued) would freshly
+pre-register M23 directly — e.g., radioactive-decay half-life CV
+across isotope cohorts, or chemoattractant-controlled E. coli
+tumble CV — to promote M23 from T1 (analytic) to T3 (empirical
+on untouched data).

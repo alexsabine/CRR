@@ -42,6 +42,17 @@
 > - **1 PRELIMINARY** (P17 — Be³⁺ extends M10-α³ to Z=4).
 > - **14 honest negatives** — the pattern reveals a structural finding: CRR's Z₂-rupture prediction discriminates *memory-bearing* (B8) from *memoryless avalanche* (P8/P9/P10/P14/P15/P16/B17/B18) rupture systems.
 >
+> **Session 7.5 (radiation-paper reframing, no new pre-regs):**
+> The canonical paper `radioactive_crr_finding.pdf` (Sabine, April 2026)
+> derives **CV_exp = CV_{Z₂} × C\*_{SO(2)} = (1/(2π)) × 2π = 1** for Z₂-rupture
+> systems *lacking* SO(2) regulation. **M23 added at T1** (Convention C6
+> codified). **8 of 14 Session-7 negatives are M23-coherent** at CV ≈ 1
+> (Crab glitches, X-class flares, moderate Dst storms, declustered
+> M≥6 quakes, volcanic recurrence, lightning inter-stroke, E. coli
+> run-tumble, mitochondrial fission). No retroactive promotions; the
+> reframing is a framework-internal overlay queued for Session-8 fresh
+> pre-reg of M23.
+>
 > **Session 5 (philosophy):** every Ph claim assessed under three
 > interpretation modes — **Metaphorical / Structural / Exact** —
 > per [`notes/philosophical_assessment_framework.md`](notes/philosophical_assessment_framework.md).

@@ -42,6 +42,7 @@ only the evidence currently committed to the repository.
 | M20 | R[χ] = right Kan extension | T1 | M | [derivation](../claims/M20_kan_extension_regeneration/derivation.md) | Universal property |
 | M21 | C·Ω=1 unifies CR+HG+TUR | T1 | M, P | [derivation](../claims/M21_uncertainty_unification/derivation.md) | Open: TUR factor of 2 |
 | M22 | CV_G = 1/(2·φ_G) for compact Lie G | T1 | M, T | [derivation](../claims/M22_lie_group_cv_generalisation/derivation.md) | Lie-group generalisation ★ |
+| **M23** | **CV_exp = 1 = CV_{Z₂} × C\*_{SO(2)} for Z₂-without-SO(2)** | **T1** | **M, P** | [claim](../claims/M23_exp_cv_unity_from_missing_so2/claim.md) · [derivation](../claims/M23_exp_cv_unity_from_missing_so2/derivation.md) | **Sabine 2026 radioactive paper; reframes 8 of Session-7's 14 negatives as M23-coherent** ⚑7.5 |
 | **P1**  | **Solar Hale CV** | **T2** | P, T | [consistency](../claims/P1_solar_hale_cv/consistency.md) · [script](../crr-engine/consistency/solar_hale.py) | **Predicted 0.0796 ∈ SILSO band ⚑** |
 | **P2**  | **GWTC BBH CV** | **T2 (m)** | P | [consistency](../claims/P2_gwtc_binary_bh_cv/consistency.md) · [script](../crr-engine/consistency/gwtc.py) | **0.0796 in CI lower tail ⚑** |
 | P3  | Atomic spectral CV (49 elements) | T1 | P | [consistency](../claims/P3_atomic_spectra_cv/consistency.md) | Stub: needs metric specification ⚑ |

@@ -87,6 +87,47 @@ inter-rupture interval 1/Ω gives Ω = μ(A_coherent).
 **Convention:** Ω = μ(A) (rate interpretation), not Ω = 1/μ(A).
 The brief's M19 wording is corrected.
 
+### C6. CV = 1 for Z₂-rupture systems lacking SO(2) regulation.
+
+Per Sabine (April 2026), `radioactive_crr_finding.pdf`: a Z₂-rupture
+system with **no SO(2) substrate** (memoryless, no closed continuous
+geodesic upstream of rupture) has inter-event coefficient of
+variation equal to unity:
+
+    CV_exp = CV_{Z₂} × C*_{SO(2)} = (1/(2π)) × 2π = 1.
+
+This is the CRR canonical prediction for the **exponential
+distribution** (the unique continuous memoryless distribution).
+The 2π factor is the geodesic extent of the *absent* SO(2)
+regulator; Z₂ variance inflates by exactly that absent extent.
+
+**Implication for empirical pre-registrations:** every Z₂-rupture
+target requires explicit specification of *whether the system has
+an SO(2) regulatory substrate*:
+
+| System has… | CV prediction |
+|--------------|---------------|
+| SO(2) regulatory substrate | 1/(2π) ≈ 0.159 |
+| No SO(2) substrate (memoryless) | 1 (exact) |
+
+Examples of Z₂-with-SO(2): bacterial division (intracellular
+size/protein/DNA accumulation between divisions); cardiac
+depolarisation (electrical cycle); breath onset (diaphragm arc).
+
+Examples of Z₂-without-SO(2): radioactive decay; declustered
+earthquake catalogues; X-class solar flares (memoryless waiting
+times); lightning inter-stroke; E. coli run-tumble (Berg-Brown
+exponential).
+
+**Asymmetry:** the reverse product
+`CV_{SO(2)} × C*_{Z₂} = (1/(4π)) × π = 1/4 ≠ 1`. Only the Z₂
+inflates by the missing SO(2) extent, never the reverse.
+
+**Geometric (discrete memoryless) distribution check:** the
+geometric distribution has CV = √(1−p)/p with no clean 2π factor —
+the inflation is structurally specific to continuous manifolds
+where SO(2) could have existed.
+
 ---
 
 ## Resolution of flagged inconsistencies
