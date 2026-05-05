@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRR Bees — Coherence-Rupture-Regeneration in Apis mellifera</title>
+<style>
+  :root{
+    --bg:           #FAF6EC;
+    --panel:        #F4EFE2;
+    --ink:          #2A2620;
+    --muted:        #6B6557;
+    --accent:       #B8860B;
+    --accent2:      #8B6914;
+    --rule:         #D9CFB5;
+    --good:         #4A7B3F;
+    --warn:         #B7600C;
+    --rupture:      #B83232;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+  header{padding:14px 22px;border-bottom:1px solid var(--rule);
+    background:linear-gradient(180deg,#FBF8EE,#F4EFE2)}
+  header h1{margin:0;font-size:20px;letter-spacing:.2px;font-weight:600}
+  header .sub{color:var(--muted);font-size:12px;margin-top:2px}
+  .layout{display:grid;grid-template-columns:1fr 380px;gap:0;height:calc(100vh - 64px)}
+  .stage{position:relative;padding:14px;overflow:hidden;background:var(--bg)}
+  canvas{display:block;background:#FBF8EE;border:1px solid var(--rule);
+    border-radius:6px;box-shadow:0 1px 0 #fff inset, 0 2px 8px rgba(0,0,0,.04)}
+  .controls{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .controls button,.controls label{font-size:12px}
+  .controls button{
+    background:var(--panel);border:1px solid var(--rule);color:var(--ink);
+    padding:5px 11px;border-radius:4px;cursor:pointer;font-family:inherit}
+  .controls button:hover{background:#EBE3CF}
+  .controls button.primary{background:var(--accent);color:#fff;border-color:var(--accent2)}
+  .controls button.primary:hover{background:var(--accent2)}
+  .controls .sep{width:1px;height:20px;background:var(--rule);margin:0 6px}
+  .controls label{display:flex;align-items:center;gap:4px;color:var(--muted)}
+  .controls input[type=range]{width:90px}
+  .metrics{margin-top:10px;display:grid;
+    grid-template-columns:repeat(6,minmax(120px,1fr));gap:8px;font-size:12px}
+  .metric{background:var(--panel);padding:6px 10px;border-radius:4px;
+    border:1px solid var(--rule)}
+  .metric .v{font-weight:600;color:var(--ink);font-size:14px}
+  .metric .k{color:var(--muted);font-size:11px;letter-spacing:.3px;text-transform:uppercase}
+  aside{background:var(--panel);border-left:1px solid var(--rule);
+    overflow-y:auto;padding:14px 16px}
+  aside h2{margin:0 0 6px 0;font-size:14px;font-weight:600;
+    border-bottom:1px solid var(--rule);padding-bottom:4px;color:var(--accent2)}
+  aside h3{margin:14px 0 4px 0;font-size:12.5px;font-weight:600;color:var(--ink)}
+  aside p,aside li{font-size:12px;color:#3A352D;margin:4px 0}
+  aside ul{margin:4px 0;padding-left:18px}
+  aside .eqn{background:#FBF8EE;border:1px solid var(--rule);padding:8px 10px;
+    border-radius:4px;font:12.5px/1.55 "Times New Roman",serif;margin:6px 0}
+  aside .pill{display:inline-block;padding:1px 6px;border-radius:3px;
+    background:#EBE3CF;font-size:11px;color:var(--ink);margin-right:4px}
+  aside .pill.z2{background:#E6CFCF;color:#7A2B2B}
+  aside .pill.so2{background:#CFD9E6;color:#1F3F6B}
+  aside .pill.classB{background:#D2E2C7;color:#2D5016}
+  aside .pill.classC{background:#E6D5BC;color:#7A4B0F}
+  aside details{margin:6px 0;border:1px solid var(--rule);border-radius:4px;
+    background:#FBF8EE;padding:6px 10px}
+  aside details summary{cursor:pointer;font-weight:600;font-size:12.5px;color:var(--accent2)}
+  aside details[open] summary{margin-bottom:6px}
+  aside .row{display:flex;justify-content:space-between;font-size:12px;
+    padding:2px 0;border-bottom:1px dashed var(--rule)}
+  aside .row:last-child{border-bottom:0}
+  aside .row .v{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+  aside footer{font-size:11px;color:var(--muted);margin-top:18px;
+    border-top:1px solid var(--rule);padding-top:8px}
+  .legend{position:absolute;top:24px;right:24px;background:rgba(251,248,238,.95);
+    border:1px solid var(--rule);border-radius:4px;padding:7px 10px;font-size:11px;
+    color:var(--muted);line-height:1.6;z-index:5}
+  .legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;
+    margin-right:5px;vertical-align:middle}
+</style>
+</head>
+<body>
+<header>
+  <h1>CRR Bees · <span style="color:var(--muted);font-weight:400">Apis mellifera under canonical Coherence-Rupture-Regeneration</span></h1>
+  <div class="sub">Honeycomb construction, queen + drone + worker, mating flight, waggle dance — all CRR-driven, with explainer at right.</div>
+</header>
+<div class="layout">
+  <div class="stage">
+    <canvas id="cv" width="900" height="640"></canvas>
+    <div class="legend">
+      <div><span class="dot" style="background:#E5B947"></span>Worker · SO(2) flight, Z₂ wax-rupture builder</div>
+      <div><span class="dot" style="background:#7C5F3D"></span>Drone · SO(2) flight, Z₂ mating-rupture (terminal)</div>
+      <div><span class="dot" style="background:#C53030"></span>Queen · SO(2) cycle, Z₂ egg-rupture, mates 12–20×</div>
+      <div><span class="dot" style="background:#B83232"></span>Rupture event (δ) — flash at C·Ω = 1</div>
+    </div>
+    <div class="controls">
+      <button id="btnPlay" class="primary">▶ Play</button>
+      <button id="btnReset">↻ Reset</button>
+      <span class="sep"></span>
+      <button id="btnInside">Hive interior</button>
+      <button id="btnMating">Trigger mating flight</button>
+      <button id="btnWaggle">Show waggle dance</button>
+      <span class="sep"></span>
+      <label>Speed <input id="spd" type="range" min="0.25" max="4" step="0.25" value="1"></label>
+      <label><input type="checkbox" id="showCRR" checked> CRR overlays</label>
+      <label><input type="checkbox" id="showRupt" checked> Rupture flashes</label>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="k">Workers</div><div class="v" id="mWork">0</div></div>
+      <div class="metric"><div class="k">Drones</div><div class="v" id="mDrone">0</div></div>
+      <div class="metric"><div class="k">Queens</div><div class="v" id="mQueen">0</div></div>
+      <div class="metric"><div class="k">Cells built</div><div class="v" id="mCells">0</div></div>
+      <div class="metric"><div class="k">Honey (g)</div><div class="v" id="mHoney">0.0</div></div>
+      <div class="metric"><div class="k">Wax-rupture CV</div><div class="v" id="mCV">—</div></div>
+    </div>
+  </div>
+  <aside>
+    <h2>The CRR engine</h2>
+    <p>Three structural equations + one parameter Ω. Every behavior in this simulation reduces to these.</p>
+    <div class="eqn"><strong>Coherence:</strong> C(x,t) = ∫₀ᵗ L(x,τ)&nbsp;dτ</div>
+    <div class="eqn"><strong>Rupture:</strong> δ(now) when C·Ω = 1</div>
+    <div class="eqn"><strong>Regeneration:</strong> R = ∫ φ&nbsp;exp(C/Ω)&nbsp;Θ&nbsp;dτ</div>
+    <p>Two canonical Ω values from manifold topology:</p>
+    <div class="row"><span><span class="pill z2">Z₂</span>open arc</span><span class="v">Ω = 1/π ≈ 0.318</span></div>
+    <div class="row"><span><span class="pill so2">SO(2)</span>ring</span><span class="v">Ω = 1/(2π) ≈ 0.159</span></div>
+    <div class="row"><span>CV = Ω/2 (Z₂)</span><span class="v">1/(2π) ≈ 0.1592</span></div>
+    <div class="row"><span>CV = Ω/2 (SO(2))</span><span class="v">1/(4π) ≈ 0.0796</span></div>
+
+    <h2>How this simulation is solved</h2>
+
+    <details open>
+      <summary>Honeycomb wall = Z₂ rupture (Be2, T3)</summary>
+      <p>Each hexagonal cell wall is a CRR agent. Workers visit; each visit deposits L wax-units of coherence onto the wall. When C·Ω = 1 (Ω = 1/π), the wall <em>closes</em> — a Z₂ rupture event. The 6-fold local angular constraint is the SO(2) regulator. Predicted CV across cells: <strong>1/(2π) ≈ 0.159</strong>. Measured live in the metric strip.</p>
+      <p style="font-size:11px;color:var(--muted)">Empirical anchor: Hepburn et al. PNAS 2010, fresh comb 88 ± 10 μm → CV 0.114; Session-8 result: <strong>Be2 → T3</strong>.</p>
+    </details>
+
+    <details open>
+      <summary>Cell tilt 13° = C* − Ω geodesic</summary>
+      <p>Brood cells tilt upward by ~13°. CRR identifies this as the beauty-function peak C* − Ω of the wax/honey-mass surface-tension geodesic — the optimum on the comb-mass / wall-strength tradeoff (Bauer & Bienefeld 2020).</p>
+    </details>
+
+    <details>
+      <summary>Worker flight = SO(2) phase observable</summary>
+      <p>Worker bees trace SO(2) loops (forage → return). Heading uses the sun-azimuth / polarisation-pattern compass. Predicted angular CV under Class A autonomous: 1/(4π); waggle dance is empirically <span class="pill classB">Class B regulated</span> — bees are <em>more</em> precise than the autonomous baseline (selection for accurate communication; Be1).</p>
+    </details>
+
+    <details>
+      <summary>Drone = Z₂ rupture without SO(2) regulator (M23)</summary>
+      <p>Drone life is mating-or-die. After successful mating, the drone's CRR coherence ruptures <em>terminally</em>. This is the canonical M23 picture (radiation paper): a Z₂ rupture system with <em>no</em> closed SO(2) cycle to return to. Drone inter-mating-attempt CV → 1.</p>
+    </details>
+
+    <details>
+      <summary>Queen = Z₂ × SO(2) compound</summary>
+      <p>Queen mating flight: SO(2) high-altitude orbit through drone-congregation airspace; each mating with a drone is a Z₂ rupture event (12–20× per nuptial flight). Egg-laying back in the hive: SO(2) cycle through cells × Z₂ egg-rupture per cell. Haplodiploid switch: fertilised egg → diploid worker/queen (32 chromosomes); unfertilised → haploid drone (16). The <strong>×2 chromosome doubling</strong> at fertilisation is the canonical Z₂:SO(2) topological ratio made cellular.</p>
+    </details>
+
+    <details>
+      <summary>Sensory hierarchy (geometry of the senses)</summary>
+      <p>Compound eye: 4 SO(2) relays at ~2 mm interocular separation. Antennae: 2 SO(2) relays at ~1 mm. Per <em>geometry_of_the_senses.pdf</em>: paired-Z₂-aperture separation predicts SO(2) integration depth via <span style="white-space:nowrap">n + 1/n</span>. Confirmed in bees (Be4, Be5; Session 8).</p>
+    </details>
+
+    <details>
+      <summary>Circadian = Class B regulated</summary>
+      <p>Honeybee free-run period CV ≈ 0.022 in DD (well below 1/(4π) = 0.080). <span class="pill classB">Class B</span>. The bee circadian clock is tightly entrained, joining cyanobacteria, Drosophila, and mouse SCN as Session-7 / Be6 confirmed Class B exemplars.</p>
+    </details>
+
+    <h2>Live CRR metrics</h2>
+    <div class="row"><span>Mean wax-rupture CV (across cells)</span><span class="v" id="mCV2">—</span></div>
+    <div class="row"><span>Canonical Z₂ target</span><span class="v">0.1592</span></div>
+    <div class="row"><span>Total ruptures observed (δ)</span><span class="v" id="mRupt">0</span></div>
+    <div class="row"><span>Cell tilt (rendered)</span><span class="v">13°</span></div>
+    <div class="row"><span>Worker:Drone:Queen ratio</span><span class="v" id="mRatio">—</span></div>
+    <div class="row"><span>Honey produced (cells × 0.1 g)</span><span class="v" id="mHoneyR">0.0 g</span></div>
+
+    <footer>
+      Pre-registrations + tier evidence: <code>claims/Be1…Be10/</code>.
+      Background note: <code>notes/crr_bees_analysis.md</code>.
+      Methodology: <code>geometry_of_the_senses.pdf</code> + canonical
+      CRR campaign Sessions 1–8.
+    </footer>
+  </aside>
+</div>
+
+<script>
+'use strict';
+// ============================================================
+// CRR canonical engine
+// ============================================================
+const CRR = {
+  PI: Math.PI,
+  TAU: 2*Math.PI,
+  PHI: (1+Math.sqrt(5))/2,
+  Omega_Z2:  1/Math.PI,
+  Omega_SO2: 1/(2*Math.PI),
+  CV_Z2:  1/(2*Math.PI),
+  CV_SO2: 1/(4*Math.PI),
+};
+
+class CRRAgent {
+  constructor(symmetry='Z2', omegaScale=1, memDepth=64){
+    this.symmetry = symmetry;
+    this.omega = (symmetry==='Z2'?CRR.Omega_Z2:CRR.Omega_SO2)*omegaScale;
+    this.C = 0;
+    this.lastC = 0;
+    this.ruptures = 0;
+    this.intervals = [];     // inter-rupture intervals
+    this.lastTime = 0;
+    this.memory = [];
+    this.memDepth = memDepth;
+  }
+  // C·Ω accumulates; on rupture, push interval, reset C.
+  step(L, dt, t){
+    this.C += L*dt;
+    if (this.C * this.omega >= 1){
+      const interval = t - this.lastTime;
+      if (interval > 0) this.intervals.push(interval);
+      if (this.intervals.length > this.memDepth) this.intervals.shift();
+      const w = Math.exp(Math.min(10, this.C/this.omega));
+      this.memory.push({C:this.C, w});
+      if (this.memory.length > this.memDepth) this.memory.shift();
+      this.lastTime = t;
+      this.lastC = this.C;
+      this.C = 0;
+      this.ruptures++;
+      return true;
+    }
+    return false;
+  }
+  cv(){
+    const xs = this.intervals;
+    if (xs.length<3) return null;
+    const m = xs.reduce((a,b)=>a+b,0)/xs.length;
+    const v = xs.reduce((a,b)=>a+(b-m)*(b-m),0)/xs.length;
+    return Math.sqrt(v)/m;
+  }
+}
+
+// ============================================================
+// World constants
+// ============================================================
+const W=900, H=640;
+const HIVE = {x: 280, y: 360, r: 110};
+const SUN  = {x: 760, y: 80, r: 22};
+const FLOWER_COUNT = 14;
+
+// Cell sizes scaled: worker 5.2 mm canonical, drone 6.3 mm.
+// In px we use 14 px (worker) and 17.7 px (drone) — preserving 6.3/5.2 = 1.21.
+const CELL_R_WORKER = 14;
+const CELL_R_DRONE  = 18;
+const CELL_TILT_RAD = 13 * CRR.PI/180;     // canonical 13° upward tilt
+
+// ============================================================
+// Hex grid for honeycomb (interior view)
+// ============================================================
+function hexCorners(cx, cy, r, tilt=0){
+  const pts = [];
+  for (let i=0;i<6;i++){
+    const a = i*CRR.PI/3 + CRR.PI/6 + tilt;
+    pts.push([cx + r*Math.cos(a), cy + r*Math.sin(a)*Math.cos(CELL_TILT_RAD)]);
+  }
+  return pts;
+}
+
+class HoneycombCell {
+  constructor(cx, cy, r, kind='worker', tier=0){
+    this.cx=cx; this.cy=cy; this.r=r;
+    this.kind=kind;          // 'worker' | 'drone' | 'queen'
+    this.tier=tier;          // ring-0 = brood, ring-1 = honey
+    // CRR agent: wall-build is a Z₂ rupture process
+    this.agent = new CRRAgent('Z2', 1.0);
+    // Build state (0..1). Wall closes (rupture) when this hits 1.
+    this.built = 0;
+    this.capped = false;
+    this.thickness = 0;        // grows during build, fluctuates with worker visits
+    this.thicknessHistory = [];
+    this.contents = null;      // 'larva' | 'honey' | 'pollen' | null
+    this.honeyAmount = 0;      // grams (cell holds up to 0.4 g for worker, 0.55 for drone)
+    this.eggAt = null;         // timestamp of egg
+    this.larvaAge = 0;
+    this.lastBuildTime = 0;
+    this.recentRupture = 0;    // 0..1 fade for visual flash
+  }
+  get capacity(){ return this.kind==='drone'? 0.55 : 0.4; }
+  visitWorker(amount, t){
+    if (this.capped) return false;
+    // accumulate coherence as wax mass deposited
+    this.thickness += amount * (0.1 + 0.05*Math.random());
+    this.thicknessHistory.push(this.thickness);
+    if (this.thicknessHistory.length>32) this.thicknessHistory.shift();
+    const ruptured = this.agent.step(amount, 1, t);
+    this.built = Math.min(1, this.agent.C * this.agent.omega + this.built*0.95);
+    if (ruptured){
+      // Wall completes
+      this.capped = false;        // wall closes; capping is a separate step for honey cells
+      this.built = 1;
+      this.recentRupture = 1;
+      return true;
+    }
+    return false;
+  }
+  depositNectar(amount, t){
+    if (this.tier !== 1 || this.capped) return false;
+    if (!this.contents) this.contents = 'honey';
+    this.honeyAmount += amount;
+    // honey-cap rupture: when full → cap (Z₂ event)
+    if (this.honeyAmount >= this.capacity){
+      this.honeyAmount = this.capacity;
+      this.agent.step(2, 1, t); // force rupture
+      this.capped = true;
+      this.recentRupture = 1;
+      return true;
+    }
+    return false;
+  }
+  layEgg(t){
+    if (this.tier!==0 || this.contents) return false;
+    this.contents = 'larva';
+    this.eggAt = t;
+    this.larvaAge = 0;
+    return true;
+  }
+  step(t, dt){
+    if (this.contents === 'larva'){
+      this.larvaAge += dt;
+      // After ~1500 ticks (proxy), capping happens (Z₂ rupture in dev)
+      if (this.larvaAge > 1500 && !this.capped){
+        this.agent.step(2, 1, t);
+        this.capped = true;
+        this.recentRupture = 1;
+      }
+      // After ~3000 ticks emergence (rupture again — adult emerges)
+      if (this.larvaAge > 3000){
+        this.contents = null; this.capped = false; this.larvaAge = 0;
+        this.agent.step(2, 1, t);
+        this.recentRupture = 1;
+        return 'emerged';
+      }
+    }
+    this.recentRupture *= 0.92;
+    return null;
+  }
+  draw(ctx, opts){
+    const tilt = 0;
+    const corners = hexCorners(this.cx, this.cy, this.r, tilt);
+    ctx.save();
+    // wall fill
+    ctx.beginPath();
+    corners.forEach((p,i)=>i? ctx.lineTo(p[0],p[1]): ctx.moveTo(p[0],p[1]));
+    ctx.closePath();
+    if (this.contents === 'honey'){
+      const fill = this.honeyAmount/this.capacity;
+      const grad = ctx.createRadialGradient(this.cx,this.cy,2,this.cx,this.cy,this.r);
+      grad.addColorStop(0, `rgba(214,156,30,${0.55+0.4*fill})`);
+      grad.addColorStop(1, `rgba(190,130,20,${0.35+0.4*fill})`);
+      ctx.fillStyle = grad;
+    } else if (this.contents === 'larva'){
+      ctx.fillStyle = this.capped? '#ECDDA5' : 'rgba(255,240,200,.7)';
+    } else {
+      ctx.fillStyle = 'rgba(255,251,235,.6)';
+    }
+    ctx.fill();
+    // wall stroke — thickness grows with build progress
+    ctx.lineWidth = 0.6 + 1.6*this.built;
+    const wallColor = this.capped ? '#7d5611' :
+      this.built>=1 ? '#a87616' :
+      this.built>0.4 ? '#c89a3c' : '#d6c08a';
+    ctx.strokeStyle = wallColor;
+    ctx.stroke();
+    // larva
+    if (this.contents === 'larva' && !this.capped){
+      ctx.beginPath();
+      ctx.arc(this.cx,this.cy, this.r*0.4*Math.min(1,this.larvaAge/1500),0,CRR.TAU);
+      ctx.fillStyle = '#FAE9C4';
+      ctx.fill();
+      ctx.strokeStyle = '#C99B5A';
+      ctx.stroke();
+    }
+    // capping pattern
+    if (this.capped && this.contents){
+      ctx.beginPath();
+      ctx.arc(this.cx,this.cy, this.r*0.7, 0, CRR.TAU);
+      ctx.strokeStyle = 'rgba(125,86,17,.5)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    // rupture flash
+    if (this.recentRupture > 0.05 && opts.showRupt){
+      ctx.beginPath();
+      ctx.arc(this.cx,this.cy, this.r*(1+this.recentRupture*0.4), 0, CRR.TAU);
+      ctx.strokeStyle = `rgba(184,50,50,${this.recentRupture})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    // CRR overlay: build progress bar
+    if (opts.showCRR && this.built>0 && this.built<1 && !this.capped){
+      ctx.fillStyle = 'rgba(0,0,0,0.04)';
+      ctx.fillRect(this.cx-this.r*0.6, this.cy+this.r*0.7, this.r*1.2, 2);
+      ctx.fillStyle = '#B8860B';
+      ctx.fillRect(this.cx-this.r*0.6, this.cy+this.r*0.7, this.r*1.2*this.built, 2);
+    }
+    ctx.restore();
+  }
+}
+
+// ============================================================
+// Honeycomb construction grid: 19 × 13 lattice, brood centre, honey ring outside
+// ============================================================
+class Honeycomb {
+  constructor(){
+    this.cells = [];
+    this.broodCells = [];
+    this.honeyCells = [];
+    const cx = HIVE.x, cy = HIVE.y, R = CELL_R_WORKER;
+    const dx = R * Math.sqrt(3), dy = R*1.5;
+    for (let row=-7; row<=7; row++){
+      for (let col=-9; col<=9; col++){
+        const x = cx + col*dx + (row%2? dx/2:0);
+        const y = cy + row*dy;
+        const distance = Math.hypot(x-cx, y-cy);
+        if (distance > 138) continue;
+        const tier = distance < 78 ? 0 : 1;   // brood inside, honey outside ring
+        const kind = (Math.abs(row)>=5 && Math.abs(col)<=2) ? 'drone' : 'worker';
+        const r = (kind==='drone' && tier===0)? CELL_R_DRONE*0.78 : R;
+        const cell = new HoneycombCell(x,y,r,kind,tier);
+        this.cells.push(cell);
+        if (tier===0) this.broodCells.push(cell); else this.honeyCells.push(cell);
+      }
+    }
+  }
+  step(t, dt){
+    let emerged = 0;
+    for (const c of this.cells) if (c.step(t,dt)==='emerged') emerged++;
+    return emerged;
+  }
+  draw(ctx, opts){
+    for (const c of this.cells) c.draw(ctx, opts);
+  }
+  // Stats
+  ruptureIntervalCV(){
+    const xs = [];
+    for (const c of this.cells){
+      const cv = c.agent.cv();
+      if (cv != null) xs.push(cv);
+    }
+    if (xs.length===0) return null;
+    return xs.reduce((a,b)=>a+b,0)/xs.length;
+  }
+  totalRuptures(){
+    return this.cells.reduce((s,c)=>s+c.agent.ruptures,0);
+  }
+  cellsBuilt(){
+    return this.cells.filter(c=>c.built>=1).length;
+  }
+  honeyTotal(){
+    return this.cells.reduce((s,c)=>s+c.honeyAmount,0);
+  }
+}
+
+// ============================================================
+// Bees
+// ============================================================
+class Worker {
+  constructor(id){
+    this.id = id;
+    this.role = 'worker';
+    // Start outside hive
+    this.x = HIVE.x + (Math.random()-0.5)*40;
+    this.y = HIVE.y + (Math.random()-0.5)*40;
+    this.heading = Math.random()*CRR.TAU;
+    this.task = Math.random()<0.5 ? 'forage' : 'build';
+    this.state = 'leaving';   // leaving | seeking | returning | working | dancing
+    this.targetFlower = null;
+    this.targetCell = null;
+    this.nectar = 0;
+    this.wax = 0.5;
+    this.energy = 1.0;
+    // CRR agents:
+    //   flightAgent: SO(2) phase oscillator (locomotion)
+    //   waggleAgent: SO(2) Class B for the dance
+    //   visitAgent:  Z₂ rupture per round-trip
+    this.flightAgent = new CRRAgent('SO2', 1);
+    this.waggleAgent = new CRRAgent('SO2', 1);
+    this.visitAgent  = new CRRAgent('Z2', 1.5);
+    this.tripCount = 0;
+    this.lastWaggle = 0;
+    this.waggleAngle = 0;
+    this.waggleDuration = 0;
+    this.size = 4 + Math.random()*0.6;
+    this.color = '#E5B947';
+    this.rememberedTarget = null;
+    this.waggling = false;
+  }
+  step(world, t, dt){
+    // SO(2) flight phase
+    this.flightAgent.step(0.04, dt, t);
+    this.energy = Math.max(0.1, this.energy - 0.0005*dt);
+    if (this.energy < 0.3) this.task = 'rest';
+
+    // pose wing-buzz heading slightly randomised (Class B regulated)
+    const noise = (Math.random()-0.5)*0.06;
+    if (this.state === 'leaving'){
+      // exit hive
+      const dx = this.x - HIVE.x, dy = this.y - HIVE.y;
+      const dist = Math.hypot(dx,dy);
+      if (dist > HIVE.r + 6){
+        this.state = (this.task==='forage'?'seeking': 'working');
+      } else {
+        this.heading = Math.atan2(dy,dx) + noise;
+        this._move(1.4*dt);
+      }
+    } else if (this.state === 'seeking'){
+      const f = this._nearestFlower(world);
+      if (f){
+        this.targetFlower = f;
+        const dx = f.x-this.x, dy = f.y-this.y;
+        const d = Math.hypot(dx,dy);
+        if (d < 8){
+          // collect nectar — Z₂ rupture per visit (small)
+          this.nectar = Math.min(1.0, this.nectar + 0.4);
+          f.nectar = Math.max(0, f.nectar - 0.2);
+          this.rememberedTarget = {x:f.x,y:f.y, time:t};
+          this.state = 'returning';
+        } else {
+          this.heading = Math.atan2(dy,dx) + noise;
+          this._move(1.6*dt);
+        }
+      } else {
+        // wander on SO(2)
+        this.heading += 0.03*(Math.random()-0.5);
+        this._move(1.2*dt);
+      }
+    } else if (this.state === 'returning'){
+      const dx = HIVE.x - this.x, dy = HIVE.y - this.y;
+      const d = Math.hypot(dx,dy);
+      if (d < HIVE.r){
+        this.state = 'dancing';
+        this.waggling = true;
+        this.waggleDuration = 0;
+        this.waggleAngle = this.rememberedTarget? Math.atan2(this.rememberedTarget.y-HIVE.y, this.rememberedTarget.x-HIVE.x) : 0;
+        this._depositNectar(world, t);
+        this.tripCount++;
+        this.visitAgent.step(2, 1, t); // force inter-trip rupture event
+        this.lastWaggle = t;
+      } else {
+        this.heading = Math.atan2(dy,dx) + noise;
+        this._move(1.5*dt);
+      }
+    } else if (this.state === 'dancing'){
+      this.waggleDuration += dt;
+      // A waggle every ~SO(2) phase pass — Class B regulated
+      const r = 14;
+      const base = this.waggleAngle;
+      const offset = Math.sin(t*0.18) * 0.10; // tight sine-shaped figure-8
+      this.x = HIVE.x + Math.cos(base+offset) * (8 + 4*Math.sin(t*0.36));
+      this.y = HIVE.y + Math.sin(base+offset) * (8 + 4*Math.sin(t*0.36));
+      // accumulate the waggle SO(2) coherence
+      this.waggleAgent.step(0.05, dt, t);
+      if (this.waggleDuration > 80){
+        this.waggling = false;
+        this.state = 'working';
+        this.task = (Math.random()<0.6 ? 'forage' : 'build');
+      }
+    } else if (this.state === 'working'){
+      // build a wall on a partially-built cell
+      const cell = this._chooseCell(world);
+      if (!cell){
+        this.state = 'leaving'; this.task = 'forage';
+      } else {
+        const dx = cell.cx-this.x, dy = cell.cy-this.y;
+        const d = Math.hypot(dx,dy);
+        if (d < 4){
+          // deposit wax — Z₂ rupture event when wall completes
+          const ruptured = cell.visitWorker(0.06+0.04*Math.random(), t);
+          this.wax = Math.max(0, this.wax - 0.05);
+          if (this.wax < 0.1){
+            this.state = 'leaving'; this.task = 'forage';
+          }
+          if (ruptured){
+            // brief stay then move
+          }
+        } else {
+          this.heading = Math.atan2(dy,dx) + noise;
+          this._move(1.0*dt);
+        }
+      }
+    }
+  }
+  _move(speed){
+    this.x += Math.cos(this.heading)*speed*1.6;
+    this.y += Math.sin(this.heading)*speed*1.6;
+    this.x = Math.max(20, Math.min(W-20, this.x));
+    this.y = Math.max(20, Math.min(H-20, this.y));
+  }
+  _nearestFlower(world){
+    let best=null, bd=1e9;
+    for (const f of world.flowers){
+      if (f.nectar < 0.05) continue;
+      const d = Math.hypot(f.x-this.x, f.y-this.y);
+      if (d<bd){ bd=d; best=f; }
+    }
+    return best;
+  }
+  _chooseCell(world){
+    // Prefer underbuilt, non-capped cell near worker
+    const candidates = world.honeycomb.cells.filter(c=>!c.capped && c.built<1);
+    if (candidates.length===0) return null;
+    let best=null, bd=1e9;
+    for (const c of candidates){
+      const d = Math.hypot(c.cx-this.x, c.cy-this.y);
+      if (d<bd){ bd=d; best=c; }
+    }
+    return best;
+  }
+  _depositNectar(world, t){
+    if (this.nectar<=0) return;
+    // find an open honey cell
+    const open = world.honeycomb.honeyCells.filter(c=>!c.capped && c.built>=0.5);
+    if (open.length===0) { this.nectar=0; return; }
+    const target = open[Math.floor(Math.random()*open.length)];
+    target.depositNectar(this.nectar*0.4, t);
+    this.nectar = 0;
+  }
+  draw(ctx, opts){
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.heading);
+    // body
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, this.size*1.5, this.size*0.9, 0, 0, CRR.TAU);
+    ctx.fill();
+    // stripes
+    ctx.fillStyle = '#3a2a08';
+    for (let i=-1;i<=1;i++){
+      ctx.fillRect(i*1.8 - 0.7, -this.size*0.9, 1.4, this.size*1.8);
+    }
+    // wings (animated)
+    const wb = Math.sin(0.7 * Date.now()/30 + this.id);
+    ctx.fillStyle = 'rgba(220,220,250,0.55)';
+    ctx.beginPath();
+    ctx.ellipse(0, -this.size*0.7, this.size*1.3, this.size*0.5*(0.8+0.4*wb), -0.2, 0, CRR.TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0,  this.size*0.7, this.size*1.3, this.size*0.5*(0.8+0.4*wb), 0.2, 0, CRR.TAU);
+    ctx.fill();
+    ctx.restore();
+    // CRR overlay: small phase ring
+    if (opts.showCRR){
+      const phase = (this.flightAgent.C * this.flightAgent.omega) % 1;
+      ctx.strokeStyle = 'rgba(184,134,11,0.35)';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 9, 0, CRR.TAU*phase);
+      ctx.stroke();
+    }
+  }
+}
+
+class Drone {
+  constructor(id){
+    this.id = id;
+    this.role = 'drone';
+    this.x = HIVE.x + (Math.random()-0.5)*30;
+    this.y = HIVE.y - 50 - Math.random()*20;
+    this.heading = -CRR.PI/2 + (Math.random()-0.5)*0.3;
+    this.size = 6.0;
+    this.color = '#7C5F3D';
+    // Drone is Z₂-rupture without SO(2) regulator (M23): inter-attempt CV→1
+    this.matingAttempts = new CRRAgent('Z2', 0.6);   // memoryless mating attempts
+    this.flightAgent = new CRRAgent('SO2', 1);
+    this.alive = true;
+    this.state = 'idle';     // idle | seeking | mated (terminal)
+    this.mated = false;
+    this.deathFade = 0;
+  }
+  step(world, t, dt){
+    if (!this.alive){
+      this.deathFade += 0.02*dt;
+      return;
+    }
+    if (world.matingFlight && world.matingQueen){
+      this.state = 'seeking';
+      const q = world.matingQueen;
+      const dx = q.x - this.x, dy = q.y - this.y;
+      const d = Math.hypot(dx,dy);
+      if (d < 18){
+        // Z₂ rupture: mating event. This is also terminal (drone dies).
+        this.matingAttempts.step(2, 1, t);
+        q.mateWith(this, t);
+        this.alive = false; this.mated = true; this.state = 'mated';
+      } else {
+        this.heading = Math.atan2(dy,dx);
+        this.x += Math.cos(this.heading)*1.7*dt;
+        this.y += Math.sin(this.heading)*1.7*dt;
+      }
+    } else {
+      // Drone congregation area orbit (when no queen present)
+      const cx = SUN.x - 80, cy = 200;
+      const angle = Math.atan2(this.y-cy, this.x-cx) + 0.04;
+      const radius = 70 + Math.sin(t*0.02 + this.id)*8;
+      this.x = cx + Math.cos(angle)*radius;
+      this.y = cy + Math.sin(angle)*radius;
+      this.heading = angle + CRR.PI/2;
+    }
+    this.flightAgent.step(0.04, dt, t);
+  }
+  draw(ctx, opts){
+    if (!this.alive){
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1-this.deathFade);
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.heading);
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.ellipse(0,0,this.size*1.5,this.size*1.0,0,0,CRR.TAU);
+      ctx.fill();
+      // X-cross marking death
+      ctx.strokeStyle = '#B83232';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(-3,-3); ctx.lineTo(3,3);
+      ctx.moveTo(3,-3); ctx.lineTo(-3,3);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.heading);
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.ellipse(0,0,this.size*1.6,this.size*1.0,0,0,CRR.TAU);
+    ctx.fill();
+    // big drone eyes
+    ctx.fillStyle = '#1A1207';
+    ctx.beginPath();
+    ctx.ellipse(this.size*0.9,-this.size*0.35,this.size*0.45,this.size*0.55,0,0,CRR.TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(this.size*0.9, this.size*0.35,this.size*0.45,this.size*0.55,0,0,CRR.TAU);
+    ctx.fill();
+    // wings
+    const wb = Math.sin(0.7*Date.now()/30 + this.id);
+    ctx.fillStyle = 'rgba(220,220,250,0.5)';
+    ctx.beginPath();
+    ctx.ellipse(0,-this.size*0.7,this.size*1.4,this.size*0.55*(0.8+0.4*wb),-0.2,0,CRR.TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, this.size*0.7,this.size*1.4,this.size*0.55*(0.8+0.4*wb), 0.2,0,CRR.TAU);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+class Queen {
+  constructor(id){
+    this.id = id;
+    this.role = 'queen';
+    this.x = HIVE.x;
+    this.y = HIVE.y;
+    this.heading = 0;
+    this.size = 9.0;
+    this.color = '#C53030';
+    this.eggs = 200;
+    this.spermReserve = 0;       // increases with each mating
+    this.maxMatings = 16;
+    this.matingsCount = 0;
+    this.state = 'in_hive';      // in_hive | mating_flight | mated_returning | laying
+    // Z₂ rupture per egg-laid; SO(2) rotation through cells
+    this.layAgent = new CRRAgent('Z2', 1.0);
+    this.flightAgent = new CRRAgent('SO2', 1.0);
+    this.matingTimer = 0;
+    this.layingTimer = 0;
+    this.lastEggCell = null;
+    this.alpha = 1;
+  }
+  beginMatingFlight(world){
+    if (this.state==='in_hive'){
+      this.state = 'mating_flight';
+      world.matingFlight = true;
+      world.matingQueen = this;
+      this.matingsCount = 0;
+      this.matingTimer = 0;
+      this.targetX = SUN.x - 80;
+      this.targetY = 200;
+    }
+  }
+  mateWith(drone, t){
+    this.spermReserve += 1;
+    this.matingsCount += 1;
+    this.layAgent.step(0.5, 1, t); // partial coherence per mating event (sperm load)
+  }
+  step(world, t, dt){
+    if (this.state === 'mating_flight'){
+      this.matingTimer += dt;
+      const dx = this.targetX-this.x, dy = this.targetY-this.y;
+      const d = Math.hypot(dx,dy);
+      if (d > 6){
+        this.heading = Math.atan2(dy,dx);
+        this.x += Math.cos(this.heading)*1.4*dt;
+        this.y += Math.sin(this.heading)*1.4*dt;
+      } else {
+        // orbit DCA
+        const cx = SUN.x-80, cy = 200;
+        const angle = Math.atan2(this.y-cy, this.x-cx) + 0.025;
+        const radius = 50 + Math.sin(t*0.012)*6;
+        this.x = cx + Math.cos(angle)*radius;
+        this.y = cy + Math.sin(angle)*radius;
+        this.heading = angle + CRR.PI/2;
+      }
+      // After enough matings or timeout, return
+      if (this.matingsCount >= 12 + Math.floor(Math.random()*5) || this.matingTimer > 800){
+        this.state = 'mated_returning';
+        world.matingFlight = false;
+        world.matingQueen = null;
+      }
+    } else if (this.state === 'mated_returning'){
+      const dx = HIVE.x-this.x, dy = HIVE.y-this.y;
+      const d = Math.hypot(dx,dy);
+      if (d > 6){
+        this.heading = Math.atan2(dy,dx);
+        this.x += Math.cos(this.heading)*1.6*dt;
+        this.y += Math.sin(this.heading)*1.6*dt;
+      } else {
+        this.state = 'in_hive';
+      }
+    } else if (this.state === 'in_hive'){
+      // egg-laying SO(2) walk through brood cells
+      this.layingTimer += dt;
+      if (this.spermReserve > 0 && this.layingTimer > 5){
+        this.layingTimer = 0;
+        // pick an empty brood cell
+        const empties = world.honeycomb.broodCells.filter(c=>!c.capped && c.built>=1 && !c.contents);
+        if (empties.length){
+          // Class B SO(2) pattern: walk toward nearest empty
+          let best=null, bd=1e9;
+          for (const c of empties){
+            const d = Math.hypot(c.cx-this.x, c.cy-this.y);
+            if (d<bd){ bd=d; best=c; }
+          }
+          if (best){
+            const dx = best.cx-this.x, dy = best.cy-this.y;
+            const d = Math.hypot(dx,dy);
+            if (d > 2){
+              this.heading = Math.atan2(dy,dx);
+              this.x += Math.cos(this.heading)*0.8*dt;
+              this.y += Math.sin(this.heading)*0.8*dt;
+            } else {
+              // Z₂ rupture: lay an egg.
+              if (best.layEgg(t)){
+                this.layAgent.step(2,1,t);
+                this.spermReserve -= (best.kind==='drone'? 0 : 0.04);
+                if (this.spermReserve<0) this.spermReserve = 0;
+                // haplodiploidy: drone cells (larger) → unfertilised → haploid
+                // worker cells (smaller) → fertilised → diploid
+                best._diploidy = (best.kind==='drone')? 1 : 2;
+              }
+            }
+          }
+        }
+      }
+      this.flightAgent.step(0.02, dt, t);
+    }
+  }
+  draw(ctx, opts){
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.heading);
+    // big elongated body
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.ellipse(0,0,this.size*1.9, this.size*0.95, 0, 0, CRR.TAU);
+    ctx.fill();
+    // gold band
+    ctx.fillStyle = '#E5B947';
+    ctx.fillRect(-this.size*0.3, -this.size*0.95, this.size*0.6, this.size*1.9);
+    // crown dot
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.arc(this.size*1.4, 0, 3, 0, CRR.TAU);
+    ctx.fill();
+    // wings
+    const wb = Math.sin(0.7*Date.now()/40 + this.id);
+    ctx.fillStyle = 'rgba(220,220,250,0.6)';
+    ctx.beginPath();
+    ctx.ellipse(0,-this.size*0.85, this.size*1.6, this.size*0.55*(0.8+0.4*wb), -0.2, 0, CRR.TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, this.size*0.85, this.size*1.6, this.size*0.55*(0.8+0.4*wb), 0.2, 0, CRR.TAU);
+    ctx.fill();
+    ctx.restore();
+    // CRR overlay: queen state ring
+    if (opts.showCRR){
+      ctx.strokeStyle = 'rgba(197,48,48,0.35)';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size*2.2, 0, CRR.TAU);
+      ctx.stroke();
+    }
+  }
+}
+
+// ============================================================
+// Flowers
+// ============================================================
+class Flower {
+  constructor(){
+    this.x = 380 + Math.random()*(W-420);
+    this.y = 180 + Math.random()*(H-220);
+    this.nectar = 0.6 + Math.random()*0.4;
+    this.size = 5 + Math.random()*4;
+    const palette = ['#E37FBE','#E9A0E9','#F7C08A','#C9D77B','#E8E07A','#B8D8F2'];
+    this.color = palette[Math.floor(Math.random()*palette.length)];
+    this.phase = Math.random()*CRR.TAU;
+  }
+  step(t, dt){
+    // SO(2) regrowth — slow nectar refill
+    this.nectar = Math.min(1, this.nectar + 0.0007*dt);
+  }
+  draw(ctx){
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.phase + Math.sin(Date.now()/2000)*0.05);
+    ctx.fillStyle = this.color;
+    for (let i=0;i<6;i++){
+      ctx.beginPath();
+      const a = i*CRR.PI/3;
+      ctx.ellipse(Math.cos(a)*this.size*0.8, Math.sin(a)*this.size*0.8,
+        this.size*0.7, this.size*0.5, a, 0, CRR.TAU);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#E5B947';
+    ctx.beginPath();
+    ctx.arc(0,0,this.size*0.4,0,CRR.TAU);
+    ctx.fill();
+    // nectar level
+    ctx.strokeStyle = `rgba(184,134,11,${this.nectar})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// ============================================================
+// World
+// ============================================================
+class World {
+  constructor(){
+    this.t = 0;
+    this.honeycomb = new Honeycomb();
+    this.flowers = [];
+    for (let i=0;i<FLOWER_COUNT;i++) this.flowers.push(new Flower());
+    this.workers = []; this.drones = []; this.queens = [];
+    for (let i=0;i<22;i++) this.workers.push(new Worker(i));
+    for (let i=0;i<6;i++)  this.drones.push(new Drone(i));
+    this.queens.push(new Queen(0));
+    this.matingFlight = false;
+    this.matingQueen = null;
+    this.viewMode = 'outside'; // outside | inside
+    this.totalRuptures = 0;
+    this.honeyHistory = [];
+  }
+  step(dt){
+    this.t += dt;
+    for (const f of this.flowers) f.step(this.t, dt);
+    const emerged = this.honeycomb.step(this.t, dt);
+    for (let k=0;k<emerged;k++) this.workers.push(new Worker(this.workers.length+100));
+    for (const w of this.workers) w.step(this, this.t, dt);
+    for (const d of this.drones)  d.step(this, this.t, dt);
+    for (const q of this.queens)  q.step(this, this.t, dt);
+    // remove drones that have fully faded
+    this.drones = this.drones.filter(d=>d.alive || d.deathFade<1);
+    if (this.drones.length<6 && Math.random()<0.005){
+      this.drones.push(new Drone(this.drones.length + 100));
+    }
+  }
+  draw(ctx, opts){
+    // background
+    const grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#FBF8EE');
+    grad.addColorStop(0.55,'#F4ECCC');
+    grad.addColorStop(1,'#E8DAA0');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+    // sun
+    const sg = ctx.createRadialGradient(SUN.x,SUN.y,2,SUN.x,SUN.y,SUN.r*3);
+    sg.addColorStop(0,'rgba(255,220,140,0.9)');
+    sg.addColorStop(1,'rgba(255,220,140,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(SUN.x,SUN.y,SUN.r*3,0,CRR.TAU); ctx.fill();
+    ctx.fillStyle = '#FFD86B';
+    ctx.beginPath(); ctx.arc(SUN.x,SUN.y,SUN.r,0,CRR.TAU); ctx.fill();
+
+    // hive exterior or interior
+    if (this.viewMode === 'outside'){
+      // hive shape
+      ctx.save();
+      const hg = ctx.createRadialGradient(HIVE.x,HIVE.y-20,8,HIVE.x,HIVE.y,HIVE.r*1.4);
+      hg.addColorStop(0,'#D5A055');
+      hg.addColorStop(1,'#7A4F23');
+      ctx.fillStyle = hg;
+      ctx.beginPath();
+      ctx.ellipse(HIVE.x,HIVE.y,HIVE.r,HIVE.r*0.95,0,0,CRR.TAU);
+      ctx.fill();
+      // hive entrance
+      ctx.fillStyle = '#3A2510';
+      ctx.beginPath();
+      ctx.ellipse(HIVE.x,HIVE.y+HIVE.r*0.78, 22, 6, 0, 0, CRR.TAU);
+      ctx.fill();
+      // hive band ridges
+      ctx.strokeStyle = 'rgba(0,0,0,0.13)';
+      ctx.lineWidth = 1;
+      for (let i=-3;i<=3;i++){
+        ctx.beginPath();
+        ctx.ellipse(HIVE.x,HIVE.y+i*22,HIVE.r-2,HIVE.r*0.95-2,0,0,CRR.PI);
+        ctx.stroke();
+      }
+      ctx.restore();
+      // flowers + bees outside
+      for (const f of this.flowers) f.draw(ctx);
+    } else {
+      // interior view: full honeycomb
+      this.honeycomb.draw(ctx, opts);
+      // queen always visible inside when in_hive
+    }
+
+    // queen, drones, workers always drawn (drones outside; queen depending on state)
+    for (const q of this.queens){
+      const isInHive = q.state==='in_hive';
+      if (this.viewMode==='outside' && !isInHive) q.draw(ctx, opts);
+      else if (this.viewMode==='inside' && isInHive) q.draw(ctx, opts);
+      else if (q.state==='mating_flight' || q.state==='mated_returning'){
+        if (this.viewMode==='outside') q.draw(ctx, opts);
+      }
+    }
+    for (const d of this.drones) d.draw(ctx, opts);
+
+    // workers outside hive (when in outside view) or inside (when in inside view, only if doing build)
+    for (const w of this.workers){
+      const dx = w.x - HIVE.x, dy = w.y - HIVE.y;
+      const inside = Math.hypot(dx,dy) < HIVE.r - 4;
+      if (this.viewMode === 'outside'){
+        if (!inside) w.draw(ctx, opts);
+        else if (w.state==='dancing'){
+          // show silhouette dance even from outside on hive surface
+          ctx.save();
+          ctx.globalAlpha = 0.6;
+          w.draw(ctx, opts);
+          ctx.restore();
+        }
+      } else {
+        if (inside) w.draw(ctx, opts);
+      }
+    }
+
+    // mating flight DCA box
+    if (this.matingFlight && this.viewMode==='outside'){
+      ctx.save();
+      ctx.strokeStyle = 'rgba(197,48,48,0.5)';
+      ctx.setLineDash([6,4]);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(SUN.x-80, 200, 75, 0, CRR.TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#7A2B2B';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('drone congregation area', SUN.x-148, 116);
+      ctx.restore();
+    }
+
+    // CRR overlay header on canvas
+    if (opts.showCRR){
+      ctx.fillStyle = 'rgba(184,134,11,0.7)';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('CRR live: each rupture δ = honeycomb-cell wall completion (Z₂ at C·Ω=1)', 14, 18);
+    }
+  }
+}
+
+// ============================================================
+// Setup + main loop
+// ============================================================
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let world = new World();
+let running = false;
+let speed = 1;
+let opts = { showCRR: true, showRupt: true };
+
+function frame(){
+  if (running){
+    for (let i=0;i<speed;i++) world.step(1);
+  }
+  world.draw(ctx, opts);
+  // metrics
+  document.getElementById('mWork').textContent = world.workers.length;
+  document.getElementById('mDrone').textContent = world.drones.filter(d=>d.alive).length;
+  document.getElementById('mQueen').textContent = world.queens.length;
+  document.getElementById('mCells').textContent = world.honeycomb.cellsBuilt();
+  document.getElementById('mHoney').textContent = world.honeycomb.honeyTotal().toFixed(2);
+  const cv_avg = world.honeycomb.ruptureIntervalCV();
+  const cvText = cv_avg!=null ? cv_avg.toFixed(4) : '—';
+  document.getElementById('mCV').textContent = cvText;
+  document.getElementById('mCV2').textContent = cvText;
+  document.getElementById('mRupt').textContent = world.honeycomb.totalRuptures();
+  document.getElementById('mHoneyR').textContent = world.honeycomb.honeyTotal().toFixed(2)+' g';
+  const r = `${world.workers.length}:${world.drones.filter(d=>d.alive).length}:${world.queens.length}`;
+  document.getElementById('mRatio').textContent = r;
+  requestAnimationFrame(frame);
+}
+
+document.getElementById('btnPlay').onclick = (e)=>{
+  running = !running;
+  e.target.textContent = running? '❚❚ Pause' : '▶ Play';
+};
+document.getElementById('btnReset').onclick = ()=>{
+  world = new World();
+};
+document.getElementById('btnInside').onclick = (e)=>{
+  world.viewMode = world.viewMode==='outside'? 'inside' : 'outside';
+  e.target.textContent = world.viewMode==='inside' ? 'Show outside' : 'Hive interior';
+};
+document.getElementById('btnMating').onclick = ()=>{
+  if (world.queens[0]) world.queens[0].beginMatingFlight(world);
+};
+document.getElementById('btnWaggle').onclick = ()=>{
+  // pick a random returning worker, force into dance state
+  for (const w of world.workers){
+    if (w.state==='returning' || w.state==='seeking'){
+      w.state='dancing'; w.waggling=true; w.waggleDuration=0;
+      w.waggleAngle = Math.atan2((world.flowers[0].y-HIVE.y),(world.flowers[0].x-HIVE.x));
+      break;
+    }
+  }
+};
+document.getElementById('spd').oninput = (e)=>{ speed = parseFloat(e.target.value); };
+document.getElementById('showCRR').oninput = (e)=>{ opts.showCRR = e.target.checked; };
+document.getElementById('showRupt').oninput = (e)=>{ opts.showRupt = e.target.checked; };
+
+running = true;
+document.getElementById('btnPlay').textContent = '❚❚ Pause';
+frame();
+</script>
+</body>
+</html>
