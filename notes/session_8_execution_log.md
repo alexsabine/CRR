@@ -148,6 +148,77 @@ sunspot-counting SO(3) prediction does not.
   + applied scoping.
 - P10 execution + result commit: `b77a55c` — fetch.py / analyse.py
   / result.md / tier.md.
-- This log: subsequent commit, branch `claude/verify-folder-access-CInY3`.
+- Session 8 execution log v1: `3d2d927`.
+- **P15 pre-registration commit: `14c1c84`** — alkali D2-line
+  f-convergence test including Francium, derived from
+  F_Structure.pdf §11.2.
+- **P15 execution + T3 result commit: `d5337b1`** — three nested
+  pre-registered conditions all PASS; campaign's second T3
+  promotion.
 - All references to PubMed-indexed literature above include
   attribution and DOI links per the PubMed terms of use.
+
+---
+
+## Session 8 addendum — Subatomic-scale CRR checks (P15)
+
+Following user request to run new CRR checks at subatomic scales
+using the F_Structure.pdf framework (Sabine 2025), the alkali
+D2-line f-convergence test was added as **P15** and executed
+live.
+
+**Result: P15 → T3.** All three nested pre-registered conditions
+met:
+
+| Element | f_meas | error vs f_pred=2 |
+|---------|:------:|:----:|
+| Li | 2.354 | 17.7% |
+| Na | 1.612 | 19.4% |
+| K  | 2.001 | 0.06% |
+| Rb | 1.959 | 2.05% |
+| Cs | 2.082 | 4.13% |
+| **Fr** | **1.705** | **14.8%** |
+
+- median(f) over convergent core {K, Rb, Cs, Fr} = 1.980,
+  inside pre-registered band [1.85, 2.15]. ✓
+- Francium-specific F_Structure §11.2 prediction
+  (CV = α³/(8π) ≈ 1.55 × 10⁻⁸): empirical CV = 1.81 × 10⁻⁸,
+  17.3% error, inside 20% band. ✓
+- Li, Na (light-s deviants per §11.1) outside [1.85, 2.15] but
+  inside [1.0, 3.0] — predicted "deviant-but-bounded" pattern
+  confirmed. ✓
+
+**Genuinely-new tests (3 of 6):** Francium, Lithium, Sodium —
+none of which had been inserted into the α³/(4π·f) formula in
+any prior CRR work. All three clear their pre-registered
+conditions.
+
+**Cross-claim implication.** The CRR campaign now has **two T3
+promotions, both anchored on α³** (M10-α³ on Bethe-rescaled
+hydrogenic Lamb shifts; P15 on cross-element alkali D-line
+convergence). The F-Structure §6.2 identification of α³ as
+"the embedding cost of an SO(2) coherence cycle in 3D EM
+vacuum" now has independent quantitative support in two
+empirical regimes.
+
+**Updated tier distribution after P15:**
+
+| Domain | T3 count |
+|--------|:--------:|
+| M (was 1: M10-α³) | 1 |
+| **P (was 0)** | **1 (P15)** |
+| B | 0 |
+| Ph | 0 |
+| **Total T3** | **2** |
+
+The P-domain now has its first T3, joining M as a domain with
+quantitative theory-tier results.
+
+**Remaining open subatomic tests (queued, not yet executed):**
+
+- Alkaline earths extended to Ba, Ra (predicted f = 2/π).
+- Halogens extended to I, At (predicted f ≈ 1.3).
+- Noble gases extended to Xe, Rn (predicted f ≈ 1.3).
+- Group 13 extended to In, Tl (predicted f = 3).
+- Hydrogenic Z² scaling: He⁺, Li²⁺ Lyman-α — partial overlap
+  with M10-α³ Bethe-rescaled test already at T3.
