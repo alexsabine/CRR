@@ -347,6 +347,8 @@
             the entrance with visual perception and fast Z₂ rupture; ~30% soldiers wait inside, ruptured
             chemically by the alarm-pheromone field via the <strong>beauty function</strong>
             B(C) = exp(C/Ω)·(C*−C) — peaking at C*−Ω, the canonical CRR sweet spot.
+            <em>Swarm view:</em> click anywhere on the canvas to inject a δ(now) — a forced rupture event —
+            and watch the cascade propagate through precision-weighted alignment.
             <strong>Webcam:</strong> festoons and triple junctions inside.
         </p>
     </div>
@@ -722,6 +724,19 @@
         //    Spatial hashing brings neighbour lookup to O(N), enabling 1500+
         //    particles at interactive frame rates.
         //
+        //    Defensive engagement (predator response): when a predator is
+        //    present, each particle accumulates a separate alarm-coherence
+        //    alarm-C from visual perception. Rupture probability per frame
+        //    follows the SAME beauty function as Layer D in close-up:
+        //      P_rupture(alarm-C) ∝ exp(alarm-C/Ω)·(C* − alarm-C)
+        //    peaking at alarm-C = C* − Ω. Ruptured defenders pursue + sting
+        //    for ~180 frames, then revert. The fraction of bees engaged at
+        //    any moment is *emergent* from the dose-response curve, not
+        //    pre-set. Defenders pause alignment-C accumulation while engaged
+        //    (they're not following the swarm consensus). The same Layer D
+        //    rupture mechanism unifies close-up soldier activation and
+        //    swarm-scale defensive engagement.
+        //
         //  Layer A baseline:  CV(switch intervals) = Ω/2 = 1/(2π) ≈ 0.159
         //  Layer B target:    junction angles → 120° as wax cools/equilibrates
         //  Layer D prediction: stinging probability vs IPA peaks at C* − Ω,
@@ -932,6 +947,39 @@
                 } catch (e) { /* silent */ }
             }
 
+            // §CRR Swarm-mode ambience — denser, deeper drone for ~1500 bees
+            // in flight. Distinct from hive ambience: slightly higher centre
+            // frequency (active flight ~245 Hz vs hive ~234 Hz), wider Q for
+            // more harmonic content, louder. Disturbance level (a measure of
+            // how much the swarm is being perturbed by predators) raises the
+            // spectral spread further — a stressed swarm sounds harsher.
+            updateSwarmAmbience(particleCount, meanCFraction = 0, disturbance = 0) {
+                if (!this.enabled || !this.audioSettings.enableHiveSound) return;
+                if (!this.humGain) return;
+                try {
+                    const t = this.audioContext.currentTime;
+                    // Volume scales with particle density; cap at 0.30 so it
+                    // doesn't dominate.
+                    const target = Math.min(0.30, 0.06 + particleCount * 0.00015);
+                    this.humGain.gain.linearRampToValueAtTime(target, t + 0.4);
+
+                    // Centre frequency: 245 Hz baseline (active flight),
+                    // shifts ±15 Hz with mean coherence — a coherent swarm is
+                    // narrower and slightly higher; a chaotic swarm broader
+                    // and lower.
+                    const cf = 245 + Math.max(-1, Math.min(1, meanCFraction * 2 - 1)) * 15;
+                    this._humBp1.frequency.linearRampToValueAtTime(cf, t + 0.4);
+                    this._humBp2.frequency.linearRampToValueAtTime(cf * 2.572, t + 0.4);
+
+                    // Disturbance widens the Q of the bandpass filters
+                    // (lower Q = wider band = harsher). Q goes from 8 (calm)
+                    // down to 2.5 (heavily disturbed).
+                    const Q = Math.max(2.5, 8 - disturbance * 5.5);
+                    this._humBp1.Q.linearRampToValueAtTime(Q, t + 0.4);
+                    this._humBp2.Q.linearRampToValueAtTime(Q, t + 0.4);
+                } catch (e) { /* silent */ }
+            }
+
             // §CRR Z₂ wall-merge tick — diegetic sound of a wax cell wall
             // settling against a neighbour. Brief, soft, high-passed click.
             playWaxFlakeTick() {
@@ -953,6 +1001,32 @@
                     g.connect(this.masterGain);
                     osc.start(t);
                     osc.stop(t + 0.1);
+                } catch (e) { /* silent */ }
+            }
+
+            // §CRR Sting-contact pulse — a sharp brief chirp for committed
+            // bees making contact with a predator. Higher pitched than the
+            // wax tick so it's distinct in the mix; throttled to avoid
+            // creating a continuous tone when many bees contact at once.
+            playStingPulse() {
+                if (!this.enabled || !this.audioSettings.enableHiveSound) return;
+                const ctx = this.audioContext;
+                const t = ctx.currentTime;
+                if (t - (this._lastStingTime || 0) < 0.025) return;
+                this._lastStingTime = t;
+                try {
+                    const osc = ctx.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1450, t);
+                    osc.frequency.exponentialRampToValueAtTime(900, t + 0.035);
+                    const g = ctx.createGain();
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(0.025, t + 0.003);
+                    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+                    osc.connect(g);
+                    g.connect(this.masterGain);
+                    osc.start(t);
+                    osc.stop(t + 0.06);
                 } catch (e) { /* silent */ }
             }
 
@@ -3469,6 +3543,12 @@
                 this.tickCounter = 0;
                 this._lastRupturesByParticle = null;
 
+                // §CRR User-induced rupture events — click coordinates and a
+                // visible expanding ring. Each entry: {x, y, age, radius}.
+                // Rendered as a fading shockwave over ~30 frames so the user
+                // sees their input register.
+                this.userRuptures = [];
+
                 // Foraging targets (a few attractors; analogue to flower clusters)
                 this.attractors = [];
                 this._initAttractors();
@@ -3495,19 +3575,117 @@
                     const r = Math.random() * 80;
                     const a = Math.random() * 2 * Math.PI;
                     const ang = Math.random() * 2 * Math.PI;
+                    // §CRR No pre-set committed flag — defensive engagement is
+                    // emergent from beauty-function rupture (Layer D), the same
+                    // mechanism that governs soldier activation in close-up
+                    // mode. All particles start identical; defenders emerge
+                    // when their alarm-C accumulator reaches the beauty peak.
                     this.particles.push({
                         x: cx + Math.cos(a) * r,
                         y: cy + Math.sin(a) * r,
                         vx: Math.cos(ang) * 1.2,
                         vy: Math.sin(ang) * 1.2,
-                        C: 0,                              // §CRR coherence accumulator
-                        lastRupture: 0,                    // tick of last rupture
+                        C: 0,                              // §CRR alignment coherence
+                        alarmC: 0,                         // §CRR alarm coherence (Layer D)
+                        defenderCooldown: 0,               // §CRR frames remaining as defender
+                        contactCount: 0,
+                        lastRupture: 0,
                         ruptureCount: 0
                     });
                 }
                 this._lastRupturesByParticle = new Int32Array(this.numParticles);
                 this.swarmRuptureIntervals = [];
                 this.tickCounter = 0;
+            }
+
+            // §CRR Spawn a fresh cluster of particles at the hive centre.
+            // Used by Add Bees in swarm mode to launch a second swarm — the
+            // new cluster will mingle with the existing flock and consensus
+            // forms over a few hundred frames (visible Class B regulation).
+            // Capped at 3000 total particles to keep frame rate reasonable.
+            spawnCluster(n) {
+                const cap = 3000;
+                const room = Math.max(0, cap - this.particles.length);
+                const actual = Math.min(n, room);
+                if (actual <= 0) return;
+                const cx = this.W / 2;
+                const cy = this.H / 2;
+                // Pick a random outbound direction so the cluster has motion
+                const launchAngle = Math.random() * 2 * Math.PI;
+                const launchVx = Math.cos(launchAngle) * 1.4;
+                const launchVy = Math.sin(launchAngle) * 1.4;
+                for (let i = 0; i < actual; i++) {
+                    const r = Math.random() * 30;
+                    const a = Math.random() * 2 * Math.PI;
+                    // Add small per-bee variation around the launch direction
+                    const jitter = (Math.random() - 0.5) * 0.6;
+                    const sa = Math.sin(jitter), ca = Math.cos(jitter);
+                    const vx = launchVx * ca - launchVy * sa;
+                    const vy = launchVx * sa + launchVy * ca;
+                    this.particles.push({
+                        x: cx + Math.cos(a) * r,
+                        y: cy + Math.sin(a) * r,
+                        vx: vx,
+                        vy: vy,
+                        C: 0,
+                        alarmC: 0,
+                        defenderCooldown: 0,
+                        contactCount: 0,
+                        lastRupture: 0,
+                        ruptureCount: 0
+                    });
+                }
+                this.numParticles = this.particles.length;
+            }
+
+            // §CRR User-triggered rupture — the click is δ(now), a forced
+            // saturation event injected at (x, y). Particles within radius R
+            // are pushed to C = C* (rupturing on this tick) and given a brief
+            // outward impulse so the split is visible. The rupture cascade
+            // then propagates naturally through the precision-weighted
+            // alignment: ruptured particles have C = 0 immediately after, so
+            // their exp(C/Ω) weight drops to 1, weakening their influence on
+            // neighbours. The disturbance ripples outward as the alignment
+            // relaxes and re-forms — visible as the C/C* tinting cascade.
+            //
+            // This is more pedagogical than predator repulsion: it lets the
+            // user inject a δ(now) at a chosen location and watch the rupture
+            // cycle unfold. The CRR rupture is the load-bearing event; the
+            // outward impulse just makes the split visible.
+            triggerUserRupture(x, y, radius = 100) {
+                const r2 = radius * radius;
+                let count = 0;
+                for (let i = 0; i < this.particles.length; i++) {
+                    const p = this.particles[i];
+                    const dx = p.x - x;
+                    const dy = p.y - y;
+                    const d2 = dx*dx + dy*dy;
+                    if (d2 > r2) continue;
+                    const d = Math.sqrt(d2) + 0.001;
+                    const proximity = 1 - d / radius;
+                    // §CRR Force the rupture: push C to saturation
+                    p.C = CRR.C_STAR;
+                    // Outward impulse, strongest at click centre
+                    const impulse = proximity * 3.0;
+                    p.vx += (dx / d) * impulse;
+                    p.vy += (dy / d) * impulse;
+                    // Log for swarm CV (this counts as a rupture interval)
+                    if (p.lastRupture > 0) {
+                        const interval = this.tickCounter - p.lastRupture;
+                        if (interval > 0) {
+                            this.swarmRuptureIntervals.push(interval);
+                            if (this.swarmRuptureIntervals.length > this.swarmIntervalCap) {
+                                this.swarmRuptureIntervals.shift();
+                            }
+                        }
+                    }
+                    p.lastRupture = this.tickCounter;
+                    p.ruptureCount++;
+                    count++;
+                }
+                // Visible expanding ring — fades over 30 frames
+                this.userRuptures.push({ x, y, age: 0, radius });
+                return count;
             }
 
             _rebuildGrid() {
@@ -3535,6 +3713,13 @@
             // so the same Add-Predator button works in swarm mode.
             update(predators) {
                 this.tickCounter++;
+                // §CRR Age user-rupture rings so they expand and fade
+                if (this.userRuptures.length > 0) {
+                    for (let i = 0; i < this.userRuptures.length; i++) {
+                        this.userRuptures[i].age++;
+                    }
+                    this.userRuptures = this.userRuptures.filter(r => r.age < 30);
+                }
                 this._rebuildGrid();
                 const cols = this.gridCols;
                 const rows = this.gridRows;
@@ -3612,18 +3797,90 @@
                         nvy += (ady/ad) * nearestA.strength * 0.15;
                     }
 
-                    // §CRR Predator repulsion — each predator pushes nearby
-                    // particles outward. The flock visibly splits and reforms
-                    // around the threat. Repulsion strength rises non-linearly
-                    // with proximity so close encounters dominate.
+                    // §CRR Predator response: emergent defensive engagement
+                    // via beauty-function rupture (Layer D, unified with the
+                    // close-up soldier-rupture mechanism).
+                    //
+                    //   1. Each predator within visual range raises alarm-C.
+                    //   2. Probability of rupture per frame ∝ B(alarmC),
+                    //      peaking at alarmC = C* − Ω. Stochastic.
+                    //   3. Ruptured defenders pursue + sting for ~180 frames,
+                    //      then exhaust and revert to civilian behaviour.
+                    //   4. Non-defender (calm or recovered) particles evade.
+                    //
+                    // Biology: most flying bees evade ("mass flight suspends
+                    // defensiveness", Kastberger 2024); a small fraction
+                    // commits to attack — the fraction is *emergent*, not
+                    // pre-set. Same dose-response curve as Nouvian 2018.
+                    let alarmL = 0;
+                    let nearestPred = null, nearestPredD = Infinity;
                     for (let pk = 0; pk < preds.length; pk++) {
                         const pred = preds[pk];
                         const rdx = p.x - pred.x;
                         const rdy = p.y - pred.y;
                         const rd2 = rdx*rdx + rdy*rdy;
-                        const range = 140;
-                        if (rd2 < range * range) {
+                        // Visual perception range — alarm grows non-linearly with proximity
+                        const visRange = 220;
+                        if (rd2 < visRange * visRange) {
                             const rd = Math.sqrt(rd2) + 0.001;
+                            alarmL += (1 - rd / visRange) ** 2 * 0.10;
+                            if (rd < nearestPredD) { nearestPredD = rd; nearestPred = pred; }
+                        }
+                    }
+
+                    // §CRR Accumulate alarm-C with mild decay so it fades
+                    // when no predator present. Cap at C* so beauty function
+                    // doesn't go negative.
+                    p.alarmC += alarmL;
+                    p.alarmC *= 0.985;
+                    if (p.alarmC < 0) p.alarmC = 0;
+                    if (p.alarmC > CRR.C_STAR) p.alarmC = CRR.C_STAR;
+
+                    // Cooldown countdown — defenders revert after exhaustion
+                    if (p.defenderCooldown > 0) {
+                        p.defenderCooldown--;
+                    }
+
+                    // §CRR Beauty-function rupture — only if not already a
+                    // defender and alarm has accumulated meaningfully.
+                    if (p.defenderCooldown === 0 && p.alarmC > 0.1 && nearestPred) {
+                        const C = p.alarmC;
+                        // B(C) = exp(C/Ω)·(C* − C); peaks at C = C* − Ω
+                        const B = Math.exp(C / CRR.OMEGA) * Math.max(0, CRR.C_STAR - C);
+                        // Normalise by peak value so p_rupture ∈ [0, k]
+                        const B_peak = Math.exp((CRR.C_STAR - CRR.OMEGA) / CRR.OMEGA) * CRR.OMEGA;
+                        const k = 0.025;        // calibration: ~7% rupture rate at peak
+                        const p_rupture = k * B / B_peak;
+                        if (Math.random() < p_rupture) {
+                            p.defenderCooldown = 180;       // ~3 sec at 60fps
+                            p.alarmC = 0;                    // §CRR reset accumulator
+                        }
+                    }
+
+                    // Apply defender or evader behaviour
+                    if (p.defenderCooldown > 0 && nearestPred) {
+                        // Defender: pursue + sting
+                        const huntRange = 280;
+                        if (nearestPredD < huntRange) {
+                            const rdx = p.x - nearestPred.x;
+                            const rdy = p.y - nearestPred.y;
+                            const rd = nearestPredD + 0.001;
+                            // Pull toward predator
+                            nvx -= (rdx/rd) * 0.45;
+                            nvy -= (rdy/rd) * 0.45;
+                            if (nearestPredD < 10) {
+                                nearestPred.health -= 0.005;
+                                p.contactCount++;
+                                this.recentContacts = (this.recentContacts || 0) + 1;
+                            }
+                        }
+                    } else if (nearestPred) {
+                        // Evader: non-linear repulsion within evade range
+                        const range = 140;
+                        if (nearestPredD < range) {
+                            const rdx = p.x - nearestPred.x;
+                            const rdy = p.y - nearestPred.y;
+                            const rd = nearestPredD + 0.001;
                             const proximity = 1 - rd / range;
                             const push = proximity * proximity * 2.5;
                             nvx += (rdx/rd) * push;
@@ -3645,7 +3902,11 @@
                     // dot product of the particle's old velocity with the
                     // weighted neighbourhood mean. High dot = good alignment
                     // = strong evidence the consensus matches my current direction.
-                    if (neighbourCount > 0 && sumW > 0) {
+                    //
+                    // Defenders pause alignment-C accumulation while engaged —
+                    // they're following the predator, not the swarm consensus,
+                    // so it would be wrong to credit them with alignment.
+                    if (neighbourCount > 0 && sumW > 0 && p.defenderCooldown === 0) {
                         const dot = (p.vx * sumWvx + p.vy * sumWvy) / (sumW * targetSpeed);
                         const L = Math.max(0, dot) * 0.04 * UCF.PHI;
                         p.C += L;
@@ -3746,13 +4007,44 @@
                 const C_STAR = CRR.C_STAR;
                 for (let i = 0; i < N; i++) {
                     const p = ps[i];
-                    const f = Math.min(1, p.C / C_STAR);
-                    // Cool to warm: low C = pale, near-rupture = warm gold
-                    const r = Math.round(180 + 75 * f);
-                    const g = Math.round(160 + 50 * f);
-                    const b = Math.round(110 - 40 * f);
-                    ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-                    ctx.fillRect(p.x | 0, p.y | 0, 2, 2);
+                    if (p.defenderCooldown > 0) {
+                        // §CRR Active defender — emerged via beauty-function
+                        // rupture, currently engaged. Red, slightly larger.
+                        // Fades back to civilian colour as cooldown decays.
+                        const fade = p.defenderCooldown / 180;
+                        const r = Math.round(230 * fade + 200 * (1 - fade));
+                        const g = Math.round(57 * fade + 175 * (1 - fade));
+                        const b = Math.round(70 * fade + 90 * (1 - fade));
+                        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                        ctx.fillRect((p.x | 0) - 1, (p.y | 0) - 1, 3, 3);
+                    } else {
+                        const f = Math.min(1, p.C / C_STAR);
+                        // Cool to warm: low C = pale, near-rupture = warm gold
+                        const r = Math.round(180 + 75 * f);
+                        const g = Math.round(160 + 50 * f);
+                        const b = Math.round(110 - 40 * f);
+                        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                        ctx.fillRect(p.x | 0, p.y | 0, 2, 2);
+                    }
+                }
+
+                // §CRR User-rupture rings — expanding shockwaves at click sites.
+                // Ring radius grows from initial → 1.6× over 30 frames; alpha
+                // fades from 0.6 → 0. Visual feedback that a δ(now) was injected.
+                if (this.userRuptures.length > 0) {
+                    ctx.save();
+                    ctx.lineWidth = 2;
+                    for (let i = 0; i < this.userRuptures.length; i++) {
+                        const ev = this.userRuptures[i];
+                        const t = ev.age / 30;
+                        const r = ev.radius * (1 + t * 0.6);
+                        const alpha = 0.6 * (1 - t);
+                        ctx.strokeStyle = `rgba(255, 220, 160, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(ev.x, ev.y, r, 0, 2 * Math.PI);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
                 }
 
                 // §CRR Predators — visible threat marker + repulsion zone outline
@@ -4190,6 +4482,24 @@
                     this.toggleSwarmMode();
                 });
 
+                // §CRR Canvas click — in swarm mode, triggers a δ(now) at
+                // the click point. Outside swarm mode, no-op (existing
+                // close-up sim has no click semantics).
+                this.canvas.addEventListener('click', (e) => {
+                    if (!this.swarmActive) return;
+                    const rect = this.canvas.getBoundingClientRect();
+                    // Map click coords from CSS pixels to canvas pixels
+                    const sx = this.canvas.width / rect.width;
+                    const sy = this.canvas.height / rect.height;
+                    const x = (e.clientX - rect.left) * sx;
+                    const y = (e.clientY - rect.top)  * sy;
+                    const ruptured = this.swarmMode.triggerUserRupture(x, y, 100);
+                    // Audio cue: a soft burst when the click registers
+                    if (this.soundEnabled && this.audioSystem.enabled && ruptured > 0) {
+                        this.audioSystem.playWaxFlakeTick();
+                    }
+                });
+
                 document.getElementById('weather').addEventListener('click', () => {
                     this.environment.updateWeather();
                 });
@@ -4377,6 +4687,15 @@
             }
 
             addBees(count) {
+                // §CRR In swarm mode: spawn a new cluster of particles from
+                // the hive centre. Visually this looks like a fresh swarm
+                // launching — useful for showing consensus formation when
+                // the new cluster mingles with the existing flock.
+                if (this.swarmActive) {
+                    this.swarmMode.spawnCluster(count * 30);
+                    return;
+                }
+
                 for (let i = 0; i < count; i++) {
                     const angle = Math.random() * 2 * Math.PI;
                     // Ensure new bees spawn clearly outside the hive
@@ -6273,6 +6592,34 @@
                     const swarmBees = this.swarmMode.particles;
                     this.predatorDynamics.update(swarmBees, this.environment);
                     this.swarmMode.update(this.predatorDynamics.predators);
+
+                    // §CRR Swarm-scale audio. Three drivers:
+                    //   particleCount: louder with more bees (gain target)
+                    //   meanCFraction: coherence shifts centre frequency
+                    //   disturbance:   predator pressure widens spectral spread
+                    if (this.soundEnabled && this.audioSystem.enabled) {
+                        const ps = this.swarmMode.particles;
+                        let sumC = 0;
+                        for (let i = 0; i < ps.length; i++) sumC += ps[i].C;
+                        const meanCFrac = ps.length > 0
+                            ? sumC / (ps.length * CRR.C_STAR) : 0;
+                        // Disturbance: 0..1 based on predator presence
+                        const disturbance = Math.min(1,
+                            this.predatorDynamics.predators.length * 0.5);
+                        this.audioSystem.updateSwarmAmbience(
+                            ps.length, meanCFrac, disturbance
+                        );
+                        // §CRR Sting pulses — fire one chirp per recorded
+                        // contact this frame (throttled internally to avoid
+                        // continuous tone).
+                        if (this.swarmMode.recentContacts) {
+                            const c = Math.min(4, this.swarmMode.recentContacts);
+                            for (let i = 0; i < c; i++) {
+                                this.audioSystem.playStingPulse();
+                            }
+                            this.swarmMode.recentContacts = 0;
+                        }
+                    }
                     return;
                 }
 
@@ -6490,10 +6837,29 @@
             }
 
             animate() {
-                for (let i = 0; i < this.simulationSpeed; i++) {
+                // §CRR Swarm mode runs at fixed 1× tick rate regardless of
+                // the speed slider. Each swarm tick is O(N) over 1500+
+                // particles; multi-ticking would tank framerate, sub-1×
+                // would freeze the swarm. Lock to one update per frame.
+                if (this.swarmActive) {
                     this.update();
+                } else {
+                    // Close-up mode honours the slider properly:
+                    //   speed < 1 → run update every (1/speed)th frame
+                    //   speed ≥ 1 → run update floor(speed) times per frame
+                    if (this.simulationSpeed < 1) {
+                        this._slowFrameCounter = (this._slowFrameCounter || 0) + 1;
+                        const everyN = Math.round(1 / this.simulationSpeed);
+                        if (this._slowFrameCounter >= everyN) {
+                            this._slowFrameCounter = 0;
+                            this.update();
+                        }
+                    } else {
+                        const ticks = Math.max(1, Math.floor(this.simulationSpeed));
+                        for (let i = 0; i < ticks; i++) this.update();
+                    }
                 }
-                
+
                 this.render();
                 requestAnimationFrame(() => this.animate());
             }
