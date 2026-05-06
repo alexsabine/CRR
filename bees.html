@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coherence Simulation: Bee Ecosystem</title>
+    <title>Honeybee Task Allocation: An Active Inference Demonstration</title>
     <style>
         body {
             margin: 0;
@@ -327,13 +327,17 @@
 </head>
 <body>
     <div class="header">
-        <h1>🐝 Coherence Simulation: Bee Ecosystem</h1>
+        <h1>🐝 Honeybee Comb Construction: Festoons, Surface Tension &amp; Shared Posterior</h1>
         <p>
-            <strong>Advanced Simulation with Hive Interior:</strong> Watch as bees with RNA-encoded behaviors and visual cortexes 
-            spontaneously build their hive, develop foraging pathways, enter the hive to construct internal structures, 
-            produce emergent honey, and adapt to environmental changes. 
-            Everything emerges from coherence principles - no hardcoded behaviors. <strong>Webcam:</strong> View inside the hive!
-            <strong>Sound:</strong> Experience realistic bee buzzing audio!
+            <strong>Active Inference at three scales.</strong>
+            <em>Agent:</em> each bee maintains a generative model of its current task and switches when
+            accumulated evidence saturates. <em>Colony:</em> wax-secreting workers (12–20 days old) form
+            <strong>festoons</strong> — leg-to-leg lacework chains hanging from the comb edge. Mechanical
+            stretch triggers wax-flake release; flakes nucleate <em>cylindrical</em> cells (after Pirk 2004 and
+            Karihaloo et al. 2013), and surface tension at three-way wall junctions pulls angles to 120° (Plateau's
+            law). <em>Distributed posterior:</em> the soft heat-map outside the hive is the colony's shared belief
+            about forage quality — a precision-weighted sum of every bee's local evidence. <strong>Webcam:</strong>
+            view the festoons and triple junctions inside the hive.
         </p>
     </div>
 
@@ -366,7 +370,7 @@
         </div>
 
         <div class="control-group">
-            <label>CRR Sensitivity:</label>
+            <label>Behavioural plasticity (φ):</label>
             <div class="slider-container">
                 <input type="range" id="ucfSlider" class="slider" min="0.5" max="2" step="0.1" value="1">
                 <span id="ucfValue" class="value-display">1.0x</span>
@@ -385,7 +389,7 @@
     <div class="stats-display">
         <div class="stat-card">
             <div class="stat-value coherence" id="avgCoherence">0.000</div>
-            <div class="stat-label">Avg Coherence</div>
+            <div class="stat-label">Mean evidence ⟨C⟩</div>
         </div>
         <div class="stat-card">
             <div class="stat-value population" id="population">0</div>
@@ -408,20 +412,32 @@
             <div class="stat-label">Bees Inside</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value intelligence" id="avgIntelligence">0.00</div>
-            <div class="stat-label">Swarm IQ</div>
+            <div class="stat-value intelligence" id="cvObserved">—</div>
+            <div class="stat-label">Switch interval CV</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value adaptation" id="adaptationRate">0.00</div>
-            <div class="stat-label">Adaptation Rate</div>
+            <div class="stat-value adaptation" id="cvPredicted">0.159</div>
+            <div class="stat-label">Predicted CV (Ω/2)</div>
         </div>
         <div class="stat-card">
             <div class="stat-value rupture" id="ruptureCount">0</div>
-            <div class="stat-label">Active Ruptures</div>
+            <div class="stat-label">Task switches (last 5s)</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value rebirth" id="rebirthCount">0</div>
-            <div class="stat-label">Rebirth Events</div>
+            <div class="stat-value rebirth" id="diagnosticClass">—</div>
+            <div class="stat-label">Diagnostic class</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value coherence" id="meanJunctionAngle">—</div>
+            <div class="stat-label">Mean junction angle (→ 120°)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value hive" id="tripleJunctionCount">0</div>
+            <div class="stat-label">Triple junctions (SO(2) closures)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value rupture" id="wallMergeRate">0</div>
+            <div class="stat-label">Wall merges / 5s (Z₂)</div>
         </div>
     </div>
 
@@ -577,369 +593,396 @@
     </div>
 
     <script>
-        // Enhanced UCF Configuration with Hive Interior and Honey Production
+        // ═══════════════════════════════════════════════════════════════════
+        //  Computational engine: CRR (Coherence–Rupture–Regeneration)
+        //  Alexander Sabine — temporalgrammar.ai
+        //  Active Inference Institute, Board of Directors
+        //  Alexander@activeinference.institute
+        //
+        //  GUI presents standard Active Inference / sociobiology concepts
+        //  (task allocation, evidence accumulation, division of labour,
+        //  Pirk-Karihaloo wax-tension comb construction). CRR is the engine
+        //  only; §CRR tags mark the load-bearing pieces.
+        //
+        //  Two coupled CRR layers are running:
+        //
+        //  Layer A — Per-bee task allocation (agent scale):
+        //    C(τ)  = ∫₀^τ L(s) ds        coherence accumulates without bound
+        //    Ω     = 1/π                 fixed by Z₂ topology (bistable task)
+        //    C·Ω = 1   ⇔   C = π         rupture: task switch (Z₂ flip)
+        //    R     = ∫ φ·exp(C/Ω)·Θ(t−τ) dτ   exp-weighted recall of past fits
+        //
+        //  Layer B — Comb construction (colony scale, after Pirk 2004,
+        //                                Karihaloo et al. 2013):
+        //
+        //    Festoon chain (Z₂ + SO(2) substrate):
+        //      Workers aged 12–20 days secrete wax. They form leg-to-leg
+        //      chains anchored to existing comb. Per-bee mechanical stretch
+        //      C_stretch accumulates while in the chain; at C_stretch·Ω = 1,
+        //      a wax flake is released (Z₂ rupture: flake produced or not).
+        //      The flake nucleates a new cylindrical cell at the chain tip.
+        //
+        //    Wall merging (Z₂ events):
+        //      Cells grow radially. When two cells touch, a binary contact
+        //      event fires (Z₂); a flat wall forms at the midpoint by
+        //      surface-tension equalisation.
+        //
+        //    Triple-junction closure (Z₂ + Z₂ → SO(2)):
+        //      Three walls converging at 2π/3 each (120°) is the Plateau-
+        //      equilibrium configuration of three equal surface tensions.
+        //      Each junction's three angles sum to 2π (full SO(2) rotation),
+        //      and 6 such junctions per cell give the hexagonal lattice
+        //      (interior-angle sum = 4π = 720°).
+        //
+        //  Layer C — Shared generative model (distributed Active Inference):
+        //
+        //    Q_colony(forage_quality | x, y) = Σ_bees w_bee · K(x − x_bee)
+        //    w_bee = exp(C_bee / Ω) · evidence_rate
+        //    K     = Gaussian, σ = √Ω (precision-determined width)
+        //
+        //    The colony's posterior over forage quality at each location is
+        //    the sum of individual bees' likelihood contributions, weighted
+        //    by precision exp(C/Ω). No central representation — the belief
+        //    lives distributed across the swarm. Visualised as a soft heat-
+        //    map on the exterior canvas; bright = high posterior + agreement.
+        //
+        //  Layer D — Defensive response (chemical posterior over threat):
+        //
+        //    Per-bee alarm channel:
+        //      C_alarm(τ) = ∫ L_alarm(s) ds, with L_alarm = visual + chemical
+        //      C·Ω = 1 → defensive rupture; role chosen by distance + load:
+        //        defender (close, no nectar) → intercept predator
+        //        recruiter (medium)          → orbit, deposit IPA
+        //        flee (loaded forager)       → hive
+        //
+        //    Alarm-pheromone field (Wager & Breed 2000; Wen et al. 2017):
+        //      Defenders deposit IPA at their position. Field decays + diffuses.
+        //      All bees integrate field as alarm evidence → recruitment cascade.
+        //      Foragers steered away from high-IPA zones (canonical effect).
+        //
+        //  Layer A baseline:  CV(switch intervals) = Ω/2 = 1/(2π) ≈ 0.159
+        //  Layer B target:    junction angles → 120° as wax cools/equilibrates
+        //
+        //  Note: the alternative hypothesis that bees build straight panels
+        //  directly (Chawla, Purdue, 2022) remains active in the literature.
+        //  This sim implements the Pirk/Karihaloo surface-tension account.
+        // ═══════════════════════════════════════════════════════════════════
+
+        // §CRR — canonical constants (topologically fixed, not free parameters)
+        const CRR = {
+            OMEGA:        1 / Math.PI,        // §CRR Z₂ geodesic extent ≈ 0.3183
+            C_STAR:       Math.PI,            // §CRR rupture target (C·Ω = 1)
+            CV_PREDICTED: 1 / (2 * Math.PI),  // §CRR Class A baseline ≈ 0.1592
+            HISTORY_LEN:  120                 // memory window for exp(C/Ω) kernel
+        };
+
+        // Standard simulation parameters (unrelated to CRR)
         const UCF = {
-            COHERENCE_BASE: 0.8,
-            RUPTURE_THRESHOLD: 0.25,
+            COHERENCE_BASE: 0.0,                    // C starts at 0 and accumulates
+            RUPTURE_THRESHOLD: 0.25,                // legacy; superseded by C·Ω = 1
             REBIRTH_TEMPERATURE: 2.5,
-            MEMORY_DEPTH: 100,
+            MEMORY_DEPTH: CRR.HISTORY_LEN,
             FIELD_RESOLUTION: 15,
             EMERGENCE_FACTOR: 1.0,
             INTELLIGENCE_FACTOR: 1.0,
             
-            // Advanced UCF Parameters
             VISUAL_COHERENCE_RANGE: 150,
             CHEMICAL_COHERENCE_RANGE: 200,
             TEMPORAL_COHERENCE_DECAY: 0.02,
             SPATIAL_COHERENCE_AMPLIFIER: 4.0,
             COLLECTIVE_INTELLIGENCE_THRESHOLD: 0.7,
             
-            // NEW: Hive Interior and Honey Parameters
             HIVE_ENTRANCE_RADIUS: 25,
             HONEY_COHERENCE_THRESHOLD: 0.6,
             INTERIOR_COHERENCE_BONUS: 0.2,
-            HONEY_PRODUCTION_RATE: 0.001
+            HONEY_PRODUCTION_RATE: 0.001,
+
+            // Behavioural plasticity φ — agent-controllable resource (slider)
+            PHI: 1.0
         };
 
         // NEW: Advanced Audio System for Bee Simulation
+        // §CRR Diegetic Audio System.
+        //
+        // Replaces the previous per-bee oscillator approach (which produced a
+        // broken sound — 'brown' is not a valid OscillatorNode type, and mixing
+        // 30+ phase-locked sawtooth oscillators caused beating and dissonance).
+        //
+        // Real colony sound: a layered tone band in 200–300 Hz, dominated by
+        // worker wing-beat fundamental at 234±14 Hz (Apis mellifera; Clark et
+        // al. 2017) with a wing resonance peak near 602 Hz. We synthesise this
+        // as filtered brown noise — one shared sound source, modulated by
+        // colony state — rather than per-bee oscillators.
+        //
+        // Diegetic CRR rupture events (sounds that exist in the simulated
+        // world, not narration laid over it):
+        //   • Z₂ wall merge        → soft 800 Hz tick (wax-flake settling)
+        //   • SO(2) triple junction → 4:5:6 just-intonation triad (the 2π/3
+        //                              closure made audible — three frequencies
+        //                              in simple-integer ratio is the genuine
+        //                              sonic correlate of three walls in
+        //                              equal-tension equilibrium)
+        //   • Layer A task switch  → low 110 Hz soft pulse
         class BeeAudioSystem {
             constructor() {
                 this.audioContext = null;
                 this.enabled = false;
                 this.volume = 0.5;
-                this.sounds = {
-                    bees: new Map(),
-                    hive: null,
-                    ambient: null,
-                    construction: null,
-                    weather: null
-                };
                 this.audioSettings = {
                     enableBeeSound: true,
                     enableHiveSound: true,
-                    enableSpatialAudio: true,
+                    enableSpatialAudio: false,
                     enableConstructionSound: false,
                     enableWeatherSound: false
                 };
+                // §CRR Track when last triple-junction count changed so we
+                // only ring the chord on new closures, not every frame.
+                this._lastTripleJunctions = 0;
+                this._lastWaxRuptures = 0;
+                this._lastTaskSwitches = 0;
+                // Throttle to keep chord/tick spam from saturating
+                this._lastChordTime = 0;
+                this._lastTickTime = 0;
             }
 
             async initialize() {
                 try {
                     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    
-                    // Create master gain node
+
+                    // Master gain
                     this.masterGain = this.audioContext.createGain();
-                    this.masterGain.connect(this.audioContext.destination);
                     this.masterGain.gain.value = this.volume;
-                    
-                    // Initialize audio nodes
-                    this.initializeHiveAmbience();
-                    this.initializeWeatherSounds();
-                    this.initializeConstructionSounds();
-                    
+                    this.masterGain.connect(this.audioContext.destination);
+
+                    // §CRR Build the colony-hum noise source.
+                    this._buildColonyHum();
+
                     this.enabled = true;
-                    console.log("Bee Audio System initialized");
                     return true;
                 } catch (error) {
-                    console.warn("Audio initialization failed:", error);
+                    console.warn("Audio init failed:", error);
                     return false;
                 }
             }
 
-            initializeHiveAmbience() {
-                // Create subtle hive ambience
-                const oscillator = this.audioContext.createOscillator();
-                const gainNode = this.audioContext.createGain();
-                const filterNode = this.audioContext.createBiquadFilter();
-                
-                oscillator.type = 'brown';
-                oscillator.frequency.value = 60;
-                
-                filterNode.type = 'lowpass';
-                filterNode.frequency.value = 200;
-                filterNode.Q.value = 0.5;
-                
-                gainNode.gain.value = 0.05;
-                
-                oscillator.connect(filterNode);
-                filterNode.connect(gainNode);
-                gainNode.connect(this.masterGain);
-                
-                oscillator.start();
-                this.sounds.hive = { oscillator, gainNode, filterNode };
-            }
+            // §CRR Colony hum: brown noise played as a looping AudioBuffer,
+            // routed through two bandpass filters tuned to the wing-beat
+            // fundamental (234 Hz) and wing-resonance peak (602 Hz). One
+            // global gain controls colony-activity-dependent amplitude.
+            _buildColonyHum() {
+                const ctx = this.audioContext;
+                const sr = ctx.sampleRate;
+                const seconds = 4;
+                const len = sr * seconds;
 
-            initializeWeatherSounds() {
-                // Weather ambience (wind, etc.)
-                const noiseBuffer = this.createNoiseBuffer(2, this.audioContext.sampleRate * 4);
-                this.sounds.weather = {
-                    buffer: noiseBuffer,
-                    source: null,
-                    gainNode: this.audioContext.createGain()
-                };
-                this.sounds.weather.gainNode.gain.value = 0.02;
-                this.sounds.weather.gainNode.connect(this.masterGain);
-            }
-
-            initializeConstructionSounds() {
-                // Construction sound effects
-                this.sounds.construction = {
-                    gainNode: this.audioContext.createGain(),
-                    oscillators: []
-                };
-                this.sounds.construction.gainNode.gain.value = 0.1;
-                this.sounds.construction.gainNode.connect(this.masterGain);
-            }
-
-            createNoiseBuffer(channels, length) {
-                const buffer = this.audioContext.createBuffer(channels, length, this.audioContext.sampleRate);
-                for (let channel = 0; channel < channels; channel++) {
-                    const data = buffer.getChannelData(channel);
-                    for (let i = 0; i < length; i++) {
-                        data[i] = Math.random() * 2 - 1;
-                    }
+                // Brown-noise buffer (integrated white noise, 1/f² spectrum)
+                const buf = ctx.createBuffer(1, len, sr);
+                const data = buf.getChannelData(0);
+                let last = 0;
+                for (let i = 0; i < len; i++) {
+                    const w = Math.random() * 2 - 1;
+                    last = (last + 0.02 * w) / 1.02;
+                    data[i] = last * 3.5;        // gain compensation
                 }
-                return buffer;
+
+                const src = ctx.createBufferSource();
+                src.buffer = buf;
+                src.loop = true;
+
+                // Wing-beat band (234 Hz fundamental, narrow Q for tonal feel)
+                const bp1 = ctx.createBiquadFilter();
+                bp1.type = 'bandpass';
+                bp1.frequency.value = 234;
+                bp1.Q.value = 4.5;
+
+                // Wing-resonance band (602 Hz, broader)
+                const bp2 = ctx.createBiquadFilter();
+                bp2.type = 'bandpass';
+                bp2.frequency.value = 602;
+                bp2.Q.value = 2.0;
+
+                const bp1Gain = ctx.createGain();
+                bp1Gain.gain.value = 1.0;          // dominant fundamental
+                const bp2Gain = ctx.createGain();
+                bp2Gain.gain.value = 0.25;         // softer overtone
+
+                this.humGain = ctx.createGain();
+                this.humGain.gain.value = 0.0;     // start silent; ramp up with activity
+
+                // Topology:  src → [bp1 → bp1Gain] + [bp2 → bp2Gain] → humGain → master
+                src.connect(bp1);
+                bp1.connect(bp1Gain);
+                bp1Gain.connect(this.humGain);
+                src.connect(bp2);
+                bp2.connect(bp2Gain);
+                bp2Gain.connect(this.humGain);
+
+                this.humGain.connect(this.masterGain);
+                src.start(0);
+
+                this._humSrc = src;
+                this._humBp1 = bp1;
+                this._humBp2 = bp2;
             }
 
-            createBeeBuzzSound(bee) {
-                if (!this.enabled || !this.audioSettings.enableBeeSound) return null;
+            // Per-bee sound API kept as no-ops — the colony hum replaces these.
+            createBeeBuzzSound(bee) { return null; }
+            updateBeeSound(bee, soundData) { /* no-op */ }
+            stopBeeSound(soundData) { /* no-op */ }
 
+            // §CRR Hive ambience updater.
+            // amplitude  ← active bee count (more bees → louder hum)
+            // centre Hz  ← mean colony C / C* (higher coherence → slightly
+            //              higher fundamental, mimicking the slight tonal
+            //              shift heard in active colonies vs. resting hives)
+            updateHiveAmbience(beeCount, interiorBeeCount, meanCFraction = 0) {
+                if (!this.enabled || !this.audioSettings.enableHiveSound) return;
+                if (!this.humGain) return;
                 try {
-                    // Create bee buzz with multiple oscillators for realistic sound
-                    const fundamentalFreq = 200 + bee.id * 5; // Slight frequency variation per bee
-                    const activityMultiplier = this.getBeeActivityMultiplier(bee);
-                    
-                    // Main buzz oscillator
-                    const buzzOsc = this.audioContext.createOscillator();
-                    buzzOsc.type = 'sawtooth';
-                    buzzOsc.frequency.value = fundamentalFreq * activityMultiplier;
-                    
-                    // Wing beat modulation
-                    const wingBeatOsc = this.audioContext.createOscillator();
-                    wingBeatOsc.type = 'sine';
-                    wingBeatOsc.frequency.value = 230; // Wing beat frequency
-                    
-                    const wingBeatGain = this.audioContext.createGain();
-                    wingBeatGain.gain.value = 0.3;
-                    
-                    // Gain control
-                    const beeGain = this.audioContext.createGain();
-                    const baseVolume = this.getBeeBaseVolume(bee);
-                    beeGain.gain.value = baseVolume;
-                    
-                    // Filter for more realistic buzz
-                    const filter = this.audioContext.createBiquadFilter();
-                    filter.type = 'bandpass';
-                    filter.frequency.value = fundamentalFreq;
-                    filter.Q.value = 2;
-                    
-                    // Spatial audio if enabled
-                    let spatialNode = null;
-                    if (this.audioSettings.enableSpatialAudio) {
-                        spatialNode = this.createSpatialAudioNode(bee);
-                    }
-                    
-                    // Connect audio graph
-                    wingBeatOsc.connect(wingBeatGain);
-                    wingBeatGain.connect(buzzOsc.frequency);
-                    
-                    buzzOsc.connect(filter);
-                    filter.connect(beeGain);
-                    
-                    if (spatialNode) {
-                        beeGain.connect(spatialNode);
-                        spatialNode.connect(this.masterGain);
-                    } else {
-                        beeGain.connect(this.masterGain);
-                    }
-                    
-                    // Start oscillators
-                    buzzOsc.start();
-                    wingBeatOsc.start();
-                    
-                    return {
-                        buzzOsc,
-                        wingBeatOsc,
-                        beeGain,
-                        filter,
-                        spatialNode,
-                        fundamentalFreq
-                    };
-                } catch (error) {
-                    console.warn("Failed to create bee sound:", error);
-                    return null;
-                }
+                    const t = this.audioContext.currentTime;
+                    // Activity-driven loudness, gentle ramp
+                    const activeBees = beeCount + interiorBeeCount * 0.6;
+                    const target = Math.min(0.18, 0.025 + activeBees * 0.0035);
+                    this.humGain.gain.linearRampToValueAtTime(target, t + 0.4);
+
+                    // Subtle centre-frequency shift, ±10 Hz around 234
+                    const cf = 234 + Math.max(-1, Math.min(1, meanCFraction * 2 - 1)) * 10;
+                    this._humBp1.frequency.linearRampToValueAtTime(cf, t + 0.4);
+                    // Higher overtone shifts proportionally (×602/234 ≈ 2.57)
+                    this._humBp2.frequency.linearRampToValueAtTime(cf * 2.572, t + 0.4);
+                } catch (e) { /* silent */ }
             }
 
-            createSpatialAudioNode(bee) {
-                if (!this.audioContext.createPanner) return null;
-                
-                const panner = this.audioContext.createPanner();
-                panner.panningModel = 'HRTF';
-                panner.distanceModel = 'inverse';
-                panner.refDistance = 100;
-                panner.maxDistance = 1000;
-                panner.rolloffFactor = 1;
-                
-                // Convert bee position to 3D space
-                const x = (bee.x - 600) / 600; // Normalize to -1 to 1
-                const y = (bee.y - 400) / 400;
-                const z = bee.isInside ? -0.5 : 0; // Interior bees slightly behind
-                
-                panner.setPosition(x, y, z);
-                
-                return panner;
-            }
-
-            getBeeActivityMultiplier(bee) {
-                switch (bee.currentBehavior) {
-                    case 'foraging': return 1.2;
-                    case 'returning_home': return 1.3;
-                    case 'construction': return 0.9;
-                    case 'exploring': return 1.1;
-                    case 'honey_processing': return 0.8;
-                    case 'resting': return 0.6;
-                    case 'ruptured': return 1.5;
-                    default: return 1.0;
-                }
-            }
-
-            getBeeBaseVolume(bee) {
-                let volume = 0.05; // Base volume
-                
-                // Energy affects volume
-                volume *= (0.3 + bee.energy * 0.7);
-                
-                // Coherence affects volume
-                volume *= (0.5 + bee.coherenceState * 0.5);
-                
-                // Activity affects volume
-                volume *= this.getBeeActivityMultiplier(bee);
-                
-                return Math.min(0.15, volume); // Cap maximum volume
-            }
-
-            updateBeeSound(bee, soundData) {
-                if (!soundData || !this.enabled) return;
-
+            // §CRR Z₂ wall-merge tick — diegetic sound of a wax cell wall
+            // settling against a neighbour. Brief, soft, high-passed click.
+            playWaxFlakeTick() {
+                if (!this.enabled || !this.audioSettings.enableHiveSound) return;
+                const ctx = this.audioContext;
+                const t = ctx.currentTime;
+                if (t - this._lastTickTime < 0.04) return;     // throttle
+                this._lastTickTime = t;
                 try {
-                    // Update frequency based on activity
-                    const activityMultiplier = this.getBeeActivityMultiplier(bee);
-                    const newFreq = soundData.fundamentalFreq * activityMultiplier;
-                    soundData.buzzOsc.frequency.exponentialRampToValueAtTime(
-                        newFreq, 
-                        this.audioContext.currentTime + 0.1
-                    );
-                    
-                    // Update volume
-                    const newVolume = this.getBeeBaseVolume(bee);
-                    soundData.beeGain.gain.exponentialRampToValueAtTime(
-                        Math.max(0.001, newVolume), 
-                        this.audioContext.currentTime + 0.1
-                    );
-                    
-                    // Update spatial position
-                    if (soundData.spatialNode && this.audioSettings.enableSpatialAudio) {
-                        const x = (bee.x - 600) / 600;
-                        const y = (bee.y - 400) / 400;
-                        const z = bee.isInside ? -0.5 : 0;
-                        soundData.spatialNode.setPosition(x, y, z);
-                    }
-                } catch (error) {
-                    console.warn("Failed to update bee sound:", error);
-                }
+                    const osc = ctx.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(820, t);
+                    osc.frequency.exponentialRampToValueAtTime(420, t + 0.06);
+                    const g = ctx.createGain();
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(0.04, t + 0.005);
+                    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+                    osc.connect(g);
+                    g.connect(this.masterGain);
+                    osc.start(t);
+                    osc.stop(t + 0.1);
+                } catch (e) { /* silent */ }
             }
 
-            stopBeeSound(soundData) {
-                if (!soundData) return;
-                
+            // §CRR SO(2) triple-junction chord — three sine tones in 4:5:6
+            // just-intonation ratio (a major triad). This is the genuine
+            // sonic correlate of three walls meeting at 2π/3 each: three
+            // frequencies in simple-integer ratio express the same closure
+            // relation that 120°+120°+120°=360° expresses geometrically.
+            playTripleJunctionChord() {
+                if (!this.enabled || !this.audioSettings.enableHiveSound) return;
+                const ctx = this.audioContext;
+                const t = ctx.currentTime;
+                if (t - this._lastChordTime < 0.18) return;    // throttle
+                this._lastChordTime = t;
                 try {
-                    // Fade out before stopping
-                    soundData.beeGain.gain.exponentialRampToValueAtTime(
-                        0.001, 
-                        this.audioContext.currentTime + 0.1
-                    );
-                    
-                    setTimeout(() => {
-                        try {
-                            soundData.buzzOsc.stop();
-                            soundData.wingBeatOsc.stop();
-                        } catch (e) {
-                            // Oscillator may already be stopped
-                        }
-                    }, 100);
-                } catch (error) {
-                    console.warn("Failed to stop bee sound:", error);
-                }
+                    const fund = 392;                          // G4
+                    const ratios = [4, 5, 6];                  // 4:5:6 major triad
+                    ratios.forEach((r, i) => {
+                        const osc = ctx.createOscillator();
+                        osc.type = 'sine';
+                        osc.frequency.value = fund * r / 4;    // 392, 490, 588 Hz
+                        const g = ctx.createGain();
+                        const start = t + i * 0.015;          // tiny stagger
+                        g.gain.setValueAtTime(0, start);
+                        g.gain.linearRampToValueAtTime(0.025, start + 0.01);
+                        g.gain.exponentialRampToValueAtTime(0.0001, start + 0.4);
+                        osc.connect(g);
+                        g.connect(this.masterGain);
+                        osc.start(start);
+                        osc.stop(start + 0.45);
+                    });
+                } catch (e) { /* silent */ }
             }
 
-            updateHiveAmbience(beeCount, interiorBeeCount, hiveActivity) {
-                if (!this.enabled || !this.audioSettings.enableHiveSound || !this.sounds.hive) return;
-                
+            // §CRR Layer A task-switch pulse — low, infrequent, soft thud
+            // marking a per-bee task allocation rupture (forage ↔ hive).
+            playTaskSwitchPulse() {
+                if (!this.enabled || !this.audioSettings.enableHiveSound) return;
+                const ctx = this.audioContext;
+                const t = ctx.currentTime;
                 try {
-                    // Adjust hive ambience based on activity
-                    const targetVolume = Math.min(0.1, 0.02 + (beeCount * 0.003) + (interiorBeeCount * 0.005));
-                    this.sounds.hive.gainNode.gain.exponentialRampToValueAtTime(
-                        Math.max(0.001, targetVolume), 
-                        this.audioContext.currentTime + 0.5
-                    );
-                    
-                    // Adjust frequency based on hive activity
-                    const targetFreq = 60 + (hiveActivity * 20);
-                    this.sounds.hive.oscillator.frequency.exponentialRampToValueAtTime(
-                        targetFreq, 
-                        this.audioContext.currentTime + 0.5
-                    );
-                } catch (error) {
-                    console.warn("Failed to update hive ambience:", error);
-                }
+                    const osc = ctx.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(110, t);
+                    osc.frequency.exponentialRampToValueAtTime(70, t + 0.4);
+                    const g = ctx.createGain();
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(0.022, t + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+                    osc.connect(g);
+                    g.connect(this.masterGain);
+                    osc.start(t);
+                    osc.stop(t + 0.55);
+                } catch (e) { /* silent */ }
             }
 
+            // §CRR Drives the discrete-event sounds from current sim state.
+            // Called once per frame; fires sounds for events that happened
+            // since the previous call.
+            tickFromSimulation(sim) {
+                if (!this.enabled || !this.audioSettings.enableHiveSound) return;
+                const hi = sim.hiveInterior;
+                if (!hi) return;
+
+                // Z₂ wall merges (waxRuptures grew)
+                const wr = hi.waxRuptures.length;
+                let newMerges = wr - this._lastWaxRuptures;
+                // The waxRuptures buffer is capped at 200 (FIFO), so a drop in
+                // length means rotation, not loss; clamp to 0.
+                if (newMerges < 0) newMerges = 0;
+                if (newMerges > 6) newMerges = 6;     // avoid bursts
+                for (let i = 0; i < newMerges; i++) {
+                    setTimeout(() => this.playWaxFlakeTick(), i * 18);
+                }
+                this._lastWaxRuptures = wr;
+
+                // SO(2) triple junctions (count of distinct closures)
+                const tj = hi.tripleJunctions.length;
+                if (tj > this._lastTripleJunctions) {
+                    this.playTripleJunctionChord();
+                }
+                this._lastTripleJunctions = tj;
+
+                // Layer A task switches (rolling rate)
+                const ts = sim.switchIntervals.length;
+                if (ts > this._lastTaskSwitches) {
+                    this.playTaskSwitchPulse();
+                }
+                this._lastTaskSwitches = ts;
+            }
+
+            // Backward-compatibility: construction click — kept off by default
             playConstructionSound(duration = 0.2) {
                 if (!this.enabled || !this.audioSettings.enableConstructionSound) return;
-                
-                try {
-                    const osc = this.audioContext.createOscillator();
-                    const gain = this.audioContext.createGain();
-                    
-                    osc.type = 'square';
-                    osc.frequency.value = 150 + Math.random() * 100;
-                    
-                    gain.gain.setValueAtTime(0, this.audioContext.currentTime);
-                    gain.gain.linearRampToValueAtTime(0.05, this.audioContext.currentTime + 0.01);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration);
-                    
-                    osc.connect(gain);
-                    gain.connect(this.sounds.construction.gainNode);
-                    
-                    osc.start();
-                    osc.stop(this.audioContext.currentTime + duration);
-                } catch (error) {
-                    console.warn("Failed to play construction sound:", error);
-                }
+                this.playWaxFlakeTick();
             }
 
             setVolume(volume) {
                 this.volume = volume / 100;
                 if (this.masterGain) {
-                    this.masterGain.gain.exponentialRampToValueAtTime(
-                        Math.max(0.001, this.volume), 
-                        this.audioContext.currentTime + 0.1
+                    const t = this.audioContext.currentTime;
+                    this.masterGain.gain.linearRampToValueAtTime(
+                        Math.max(0.0001, this.volume), t + 0.1
                     );
                 }
             }
 
             setAudioSetting(setting, value) {
                 this.audioSettings[setting] = value;
-                
-                // Apply setting changes immediately
-                if (setting === 'enableHiveSound' && this.sounds.hive) {
-                    this.sounds.hive.gainNode.gain.exponentialRampToValueAtTime(
-                        value ? 0.05 : 0.001, 
-                        this.audioContext.currentTime + 0.1
-                    );
-                }
             }
 
             suspend() {
@@ -1008,40 +1051,66 @@
         // Hive Interior Management System
         class HiveInterior {
             constructor() {
-                this.honeyCells = [];
+                this.honeyCells = [];               // wax cylinders deposited by bees
                 this.airFlow = [];
                 this.honeyStores = 0;
                 this.interiorBees = new Set();
                 this.constructionQueue = [];
                 this.temperatureZones = new Map();
-                
+
+                // §CRR Comb-physics state (Pirk/Karihaloo wax-tension model)
+                this.waxRuptures = [];              // §CRR Z₂ wall-meets-wall events log
+                this.tripleJunctions = [];          // §CRR SO(2) closure points (3 walls @ 120°)
+                this.combAge = 0;                   // simulation steps since first cell
+                this.totalDeposits = 0;             // total bee-deposits of wax
+                this.combCenterX = 600;
+                this.combCenterY = 400;
+                this.combRadius = 280;              // bound where bees place cells
+
                 this.initializeInterior();
             }
 
+            // Pirk (2004) and Karihaloo (2013) showed: bees deposit cylindrical
+            // wax cells, surface tension at triple junctions pulls walls into
+            // 120° angles → hexagonal lattice emerges. CRR engine maps this as:
+            //   Substrate: molten wax (continuous, SO(2) rotational symmetry per cell)
+            //   Event:     wall-meets-wall (Z₂ binary contact)
+            //   Closure:   three walls converging (Z₂ + Z₂ → SO(2) at 2π/3 each)
             initializeInterior() {
-                // Create initial honeycomb pattern
-                const centerX = 600;
-                const centerY = 400;
-                const hexSize = 20;
-                
-                for (let row = 0; row < 15; row++) {
-                    for (let col = 0; col < 20; col++) {
-                        const x = centerX + (col - 10) * hexSize * 1.5;
-                        const y = centerY + (row - 7.5) * hexSize * Math.sqrt(3) + (col % 2) * hexSize * Math.sqrt(3) / 2;
-                        
-                        this.honeyCells.push({
-                            x: x,
-                            y: y,
-                            type: Math.random() < 0.7 ? 'storage' : 'brood',
-                            honeyLevel: 0,
-                            constructionProgress: Math.random() * 0.3,
-                            quality: 0,
-                            lastAccessed: 0
-                        });
-                    }
+                // Start with a small founder cluster of cylindrical cells.
+                // This is honest to the biology: bees build onto existing scaffold,
+                // they don't typically begin a comb on bare wood. The cells start
+                // CIRCULAR (Pirk/Karihaloo initial condition) — the hexagonal
+                // pattern must emerge from physics, not from initialization.
+                const cx = this.combCenterX;
+                const cy = this.combCenterY;
+                for (let i = 0; i < 7; i++) {
+                    const angle = i === 0 ? 0 : ((i - 1) / 6) * 2 * Math.PI;
+                    const r = i === 0 ? 0 : 18;
+                    // Tiny perturbation so the system has to converge to 120°
+                    // through physics, rather than starting at exact equilibrium.
+                    const jx = (Math.random() - 0.5) * 1.5;
+                    const jy = (Math.random() - 0.5) * 1.5;
+                    this.honeyCells.push({
+                        x: cx + Math.cos(angle) * r + jx,
+                        y: cy + Math.sin(angle) * r + jy,
+                        radius: 7,
+                        targetRadius: 13,
+                        type: 'storage',
+                        honeyLevel: 0,
+                        constructionProgress: 0.5,
+                        quality: 0,
+                        lastAccessed: 0,
+                        wallThickness: 0.5,
+                        coherence: 0,
+                        ruptured: false,
+                        neighbours: [],
+                        walls: [],
+                        bornAt: 0
+                    });
                 }
 
-                // Initialize air flow patterns
+                // Initialize air flow patterns (decorative)
                 for (let i = 0; i < 30; i++) {
                     this.airFlow.push({
                         x: Math.random() * 1200,
@@ -1059,6 +1128,251 @@
                 this.updateHoneyProduction(bees);
                 this.updateStructuralIntegrity(bees);
                 this.manageInteriorBees(bees);
+                this.updateCombPhysics(bees);   // §CRR Pirk/Karihaloo wax dynamics
+            }
+
+            // §CRR — Comb construction physics (Pirk 2004; Karihaloo 2013).
+            //
+            // Biology: only bees aged 12–20 days have functional wax glands.
+            // They form FESTOON CHAINS — leg-to-leg lacework hanging from the
+            // existing comb edge. The chain stretch mechanically triggers wax
+            // secretion; flakes are deposited at the chain tip, nucleating
+            // new cylindrical cells. The hexagonal lattice emerges from
+            // surface-tension equilibrium at triple junctions (Plateau's law).
+            //
+            // CRR layers: chain attachment is Z₂ (linked / not linked); the
+            // catenary curve is SO(2) (continuous gravitational equilibrium);
+            // wax-flake release is a per-bee rupture at C·Ω = 1, where C is
+            // accumulated stretch since last deposition.
+            updateCombPhysics(bees) {
+                const interiorBees = bees.filter(b => b.isInside);
+
+                // §CRR Identify festoon-eligible bees (age-polyethism gate).
+                // Worker bees produce wax only between days 12–20 of adult life.
+                // 'age' here is in simulation frames; we use a soft window and
+                // also require the construction trait. This is a hard biological
+                // constraint, not a CRR claim.
+                const FESTOON_AGE_MIN = 200;    // ~12 sim-days at 1 day/16 frames
+                const FESTOON_AGE_MAX = 2000;   // bees expire before this in sim
+
+                const festooners = interiorBees.filter(b =>
+                    b.age >= FESTOON_AGE_MIN &&
+                    b.age <= FESTOON_AGE_MAX &&
+                    b.genetics.getTraitStrength('construction') > 0.3 &&
+                    b.energy > 0.4
+                );
+
+                // 1) Each festoon-eligible bee anchors to nearest existing cell wall
+                //    OR to another festooner already anchored. They must be close
+                //    to the growing edge already — bees do not anchor at long range.
+                festooners.forEach(bee => {
+                    // Already festooning? maintain anchor; otherwise find one.
+                    if (!bee.festoonAnchor || bee.festoonAnchor.lost) {
+                        let nearestCell = null, minDc = Infinity;
+                        this.honeyCells.forEach((c, idx) => {
+                            const d = Math.sqrt((c.x - bee.x) ** 2 + (c.y - bee.y) ** 2);
+                            if (d < minDc) { minDc = d; nearestCell = { c, idx, d }; }
+                        });
+                        // Only anchor if the bee is already adjacent to comb edge.
+                        // Otherwise the bee walks toward comb (handled by exploreInterior).
+                        if (nearestCell && nearestCell.d < nearestCell.c.radius + 12) {
+                            bee.festoonAnchor = {
+                                type: 'cell',
+                                idx: nearestCell.idx,
+                                lost: false
+                            };
+                            // Position the bee at the wall edge (clinging)
+                            const c = nearestCell.c;
+                            const dx = bee.x - c.x;
+                            const dy = bee.y - c.y;
+                            const dn = Math.sqrt(dx*dx + dy*dy) || 1;
+                            const targetD = c.radius + 4;
+                            bee.x = c.x + (dx/dn) * targetD;
+                            bee.y = c.y + (dy/dn) * targetD;
+                            bee.festoonStretch = 0;
+                        }
+                    }
+
+                    // §CRR Stretch accumulates while festooning (mechanical strain).
+                    // L = stretch rate; C = ∫L dτ. The bee secretes a wax flake
+                    // when C·Ω = 1, then releases (resets) and re-stretches.
+                    if (bee.festoonAnchor && !bee.festoonAnchor.lost) {
+                        const L_stretch = 0.05 * bee.genetics.getTraitStrength('construction') * UCF.PHI;
+                        bee.festoonStretch = (bee.festoonStretch || 0) + L_stretch;
+
+                        // §CRR Per-bee rupture: stretch saturates → wax flake.
+                        // Ω_bee = 1/π (Z₂: flake released or not). Threshold: π.
+                        if (bee.festoonStretch * CRR.OMEGA >= 1.0) {
+                            bee.festoonStretch = 0;          // §CRR reset accumulator
+                            // Deposit a wax flake at the chain tip — i.e., just
+                            // outward from the anchor cell into open space.
+                            const anchor = this.honeyCells[bee.festoonAnchor.idx];
+                            if (anchor) {
+                                // Direction: from anchor toward bee, then a touch further
+                                let dx = bee.x - anchor.x;
+                                let dy = bee.y - anchor.y;
+                                const dn = Math.sqrt(dx*dx + dy*dy) || 1;
+                                dx /= dn; dy /= dn;
+
+                                // §CRR Position the new cell so that it touches the
+                                // anchor at a tangent — this guarantees rupture-on-arrival,
+                                // creating the natural close-packed lattice.
+                                const newR = 5.5;
+                                const targetR = 12;
+                                const cellX = anchor.x + dx * (anchor.radius + newR + 0.5);
+                                const cellY = anchor.y + dy * (anchor.radius + newR + 0.5);
+
+                                // Don't deposit if it would land on top of another cell
+                                let blocked = false;
+                                for (const c of this.honeyCells) {
+                                    const cd = Math.sqrt((c.x - cellX)**2 + (c.y - cellY)**2);
+                                    if (cd < c.radius + newR - 1) { blocked = true; break; }
+                                }
+                                // Also bound to comb foundation zone
+                                const dxc = cellX - this.combCenterX;
+                                const dyc = cellY - this.combCenterY;
+                                const dFromCentre = Math.sqrt(dxc*dxc + dyc*dyc);
+                                if (dFromCentre > this.combRadius) blocked = true;
+
+                                if (!blocked) {
+                                    this.honeyCells.push({
+                                        x: cellX, y: cellY,
+                                        radius: newR,
+                                        targetRadius: targetR,
+                                        type: Math.random() < 0.7 ? 'storage' : 'brood',
+                                        honeyLevel: 0,
+                                        constructionProgress: 0.1,
+                                        quality: 0,
+                                        lastAccessed: 0,
+                                        wallThickness: 0.5,
+                                        coherence: 0,
+                                        ruptured: false,
+                                        neighbours: [],
+                                        walls: [],
+                                        bornAt: this.combAge
+                                    });
+                                    this.totalDeposits++;
+
+                                    // Bee detaches and might re-anchor elsewhere
+                                    bee.festoonAnchor.lost = true;
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // 2) §CRR Cells continue to grow radially even after first rupture;
+                //    they just stop expanding through walls (clipped at render).
+                //    This matches Karihaloo: cells keep filling available space
+                //    until walls everywhere bound them, then settle into hexagons.
+                this.honeyCells.forEach(cell => {
+                    if (cell.radius < cell.targetRadius) {
+                        const localBuilders = festooners.filter(b =>
+                            Math.sqrt((b.x - cell.x) ** 2 + (b.y - cell.y) ** 2) < 50
+                        ).length;
+                        // Faster growth so dynamics are visible in a reasonable time
+                        cell.radius += 0.05 * (1 + 0.3 * localBuilders);
+                        cell.constructionProgress = Math.min(1, cell.radius / cell.targetRadius);
+                    }
+                });
+
+                // 3) §CRR Wall-contact detection (Z₂ ruptures).
+                //    Cells contact when separation < r_a + r_b. Each contact is
+                //    logged as a binary rupture event and creates a shared wall.
+                for (let i = 0; i < this.honeyCells.length; i++) {
+                    const a = this.honeyCells[i];
+                    for (let j = i + 1; j < this.honeyCells.length; j++) {
+                        const b = this.honeyCells[j];
+                        const dx = b.x - a.x;
+                        const dy = b.y - a.y;
+                        const d = Math.sqrt(dx*dx + dy*dy);
+
+                        if (d < a.radius + b.radius && !a.neighbours.includes(j)) {
+                            // §CRR RUPTURE: wall meets wall (Z₂ binary event).
+                            a.neighbours.push(j);
+                            b.neighbours.push(i);
+
+                            this.waxRuptures.push({
+                                t: this.combAge,
+                                x: (a.x + b.x) / 2,
+                                y: (a.y + b.y) / 2,
+                                cells: [i, j]
+                            });
+                            if (this.waxRuptures.length > 200) this.waxRuptures.shift();
+
+                            a.ruptured = true;
+                            b.ruptured = true;
+
+                            // Surface-tension wall: midpoint perpendicular to centre-line.
+                            const midX = (a.x + b.x) / 2;
+                            const midY = (a.y + b.y) / 2;
+                            const nx = dx / d;
+                            const ny = dy / d;
+                            a.walls.push({ midX, midY, neighbour: j, nx, ny });
+                            b.walls.push({ midX, midY, neighbour: i, nx: -nx, ny: -ny });
+
+                            // §CRR Push slightly apart to prevent runaway overlap
+                            const overlap = (a.radius + b.radius) - d;
+                            if (overlap > 0.5) {
+                                a.x -= nx * overlap * 0.2;
+                                a.y -= ny * overlap * 0.2;
+                                b.x += nx * overlap * 0.2;
+                                b.y += ny * overlap * 0.2;
+                            }
+                        }
+                    }
+                }
+
+                // 4) §CRR Triple junction detection — SO(2) closure (Z₂ + Z₂ → SO(2)).
+                this.tripleJunctions = [];
+                for (let i = 0; i < this.honeyCells.length; i++) {
+                    const a = this.honeyCells[i];
+                    for (const j of a.neighbours) {
+                        if (j <= i) continue;
+                        const b = this.honeyCells[j];
+                        for (const k of b.neighbours) {
+                            if (k <= j) continue;
+                            if (a.neighbours.includes(k)) {
+                                const c = this.honeyCells[k];
+                                const vx = (a.x + b.x + c.x) / 3;
+                                const vy = (a.y + b.y + c.y) / 3;
+                                this.tripleJunctions.push({
+                                    x: vx, y: vy,
+                                    cells: [i, j, k],
+                                    angles: this.measureJunctionAngles(a, b, c, vx, vy)
+                                });
+                            }
+                        }
+                    }
+                }
+
+                this.combAge++;
+            }
+
+            // §CRR Measure the three angles at a triple-junction vertex.
+            // Plateau's law predicts 2π/3 = 120° each in equilibrium.
+            measureJunctionAngles(a, b, c, vx, vy) {
+                const angle = (cell) => Math.atan2(cell.y - vy, cell.x - vx);
+                const aA = angle(a), aB = angle(b), aC = angle(c);
+                let angles = [aA, aB, aC].sort((p, q) => p - q);
+                // Differences (wrapping)
+                const a1 = angles[1] - angles[0];
+                const a2 = angles[2] - angles[1];
+                const a3 = (2 * Math.PI) - (angles[2] - angles[0]);
+                return [a1, a2, a3].map(x => x * 180 / Math.PI);  // in degrees
+            }
+
+            // §CRR Mean junction-angle deviation from 120° — convergence diagnostic
+            meanJunctionDeviation() {
+                if (this.tripleJunctions.length === 0) return null;
+                let total = 0, count = 0;
+                this.tripleJunctions.forEach(tj => {
+                    tj.angles.forEach(a => {
+                        total += Math.abs(a - 120);
+                        count++;
+                    });
+                });
+                return count > 0 ? total / count : null;
             }
 
             updateAirFlow() {
@@ -1840,12 +2154,23 @@
                 this.vx = 0;
                 this.vy = 0;
                 
-                // UCF Core States
-                this.coherenceState = UCF.COHERENCE_BASE + (Math.random() - 0.5) * 0.2;
-                this.coherenceHistory = Array(UCF.MEMORY_DEPTH).fill(this.coherenceState);
+                // §CRR Core States — C accumulates from 0 toward C* = π, then ruptures
+                this.coherenceState = 0;                    // §CRR C(τ), unbounded above
+                this.coherenceHistory = Array(CRR.HISTORY_LEN).fill(0); // §CRR for exp(C/Ω) kernel
+                this.timeHistory = Array(CRR.HISTORY_LEN).fill(0);      // §CRR τ axis for kernel
+                this.lastRuptureTime = 0;                   // §CRR for inter-rupture interval CV
+                this.task = Math.random() < 0.5 ? 'forage' : 'hive_task';  // §CRR Z₂ binary state
                 this.ruptureState = false;
                 this.rebirthField = 0;
                 this.memoryEntanglement = new Map();
+
+                // §CRR Alarm channel — separate Z₂ accumulator for threat-evidence.
+                // Rises with predator visibility OR local IPA concentration.
+                // Saturates at C·Ω = 1 → defensive rupture (defender / recruiter / flee).
+                this.alarmCoherence = 0;                    // §CRR threat C(τ)
+                this.alarmDefender = false;                 // §CRR currently in defensive state
+                this.alarmRole = null;                      // 'defender' | 'recruiter' | 'flee'
+                this.alarmCooldown = 0;                     // frames remaining in defensive state
                 
                 // Genetic System
                 this.genetics = parentGenetics || new BeeGenetics();
@@ -1907,7 +2232,10 @@
                     // Process visual input and update coherence
                     const visualCoherence = this.visualCortex.processVisualInput(environment, otherBees, hiveInterior);
                     this.updateCoherence(visualCoherence, otherBees, environment);
-                    
+
+                    // §CRR Update alarm channel — predator perception + IPA evidence
+                    this.updateAlarmChannel();
+
                     // Update behavioral state
                     this.updateBehavior(otherBees, environment, hiveInterior);
                     
@@ -1928,65 +2256,170 @@
                 }
             }
 
+            // §CRR — Alarm channel: per-bee threat coherence accumulator.
+            //
+            //   C_alarm(τ) = ∫ L_alarm(s) ds
+            //   L_alarm = (predator visibility) + (local IPA concentration)
+            //
+            // Saturation at C·Ω = 1 triggers defensive rupture. Role chosen
+            // by distance to predator and nectar load:
+            //   close + low nectar  → defender (intercepts predator)
+            //   medium + low nectar → recruiter (deposits more IPA)
+            //   any + high nectar   → flee to hive
+            updateAlarmChannel() {
+                const sim = this.simulation;
+                if (!sim || !sim.predatorDynamics) return;
+                if (this.isInside) {
+                    // Bees inside the hive don't perceive external predators directly;
+                    // alarm fades while sheltered.
+                    this.alarmCoherence *= 0.95;
+                    return;
+                }
+
+                // Cooldown: defenders hold the role briefly even after threat fades
+                if (this.alarmCooldown > 0) {
+                    this.alarmCooldown--;
+                    if (this.alarmCooldown === 0) {
+                        this.alarmDefender = false;
+                        this.alarmRole = null;
+                    }
+                }
+
+                // §CRR Lived alarm-significance L_alarm(t) — visual + chemical
+                let L_alarm = 0;
+
+                // Visual perception: any predator within visual range raises L
+                let nearestPredator = null, minDp = Infinity;
+                sim.predatorDynamics.predators.forEach(p => {
+                    const d = Math.sqrt((p.x - this.x) ** 2 + (p.y - this.y) ** 2);
+                    if (d < minDp) { minDp = d; nearestPredator = p; }
+                });
+                if (nearestPredator && minDp < 220) {
+                    // Closer = stronger evidence; non-linear so close encounters spike fast
+                    L_alarm += (1 - minDp / 220) ** 2 * 0.08;
+                }
+
+                // Chemical perception: integrate local IPA concentration as evidence
+                const ipa = sim.predatorDynamics.sampleAlarmAt(this.x, this.y);
+                L_alarm += Math.min(ipa, 1.5) * 0.06;
+
+                // §CRR Integrate
+                this.alarmCoherence += L_alarm;
+                // Decay (alarm fades when no evidence — bees calm down)
+                this.alarmCoherence *= 0.985;
+                if (this.alarmCoherence < 0) this.alarmCoherence = 0;
+
+                // §CRR Z₂ Rupture: alarm·Ω = 1 → defensive role assignment
+                if (!this.alarmDefender && this.alarmCoherence * CRR.OMEGA >= 1.0) {
+                    this.alarmDefender = true;
+                    this.alarmCooldown = 240;     // ~4 sec at 60fps
+                    this.alarmCoherence = 0;       // §CRR reset accumulator after rupture
+
+                    // Role: choice depends on distance to threat + nectar load
+                    if (this.nectar > 0.4) {
+                        // Loaded forager — flee to hive regardless of proximity
+                        this.alarmRole = 'flee';
+                    } else if (nearestPredator && minDp < 90) {
+                        this.alarmRole = 'defender';
+                    } else {
+                        this.alarmRole = 'recruiter';
+                    }
+                }
+            }
+
+            // §CRR — Coherence accumulation: C(τ) = ∫₀^τ L(s) ds
+            // L(s) is instantaneous task-fit. Visual saliency, social alignment,
+            // environmental clarity, and interior context all contribute to L.
+            // No upper clamp — C accumulates until it saturates at C* = π.
             updateCoherence(visualCoherence, otherBees, environment) {
-                let newCoherence = this.coherenceState;
-                
-                // Visual influence
-                newCoherence += visualCoherence * 0.1;
-                
-                // Social coherence
-                const nearbyBees = otherBees.filter(bee => 
-                    bee !== this && 
+                // §CRR Compute instantaneous lived significance L(t)
+                let L = 0;
+
+                // Visual fit — how legibly the world supports the current task
+                L += visualCoherence * 0.10;
+
+                // Social alignment — bees on the same task strengthen one another's evidence
+                const nearbyBees = otherBees.filter(bee =>
+                    bee !== this &&
                     Math.sqrt((bee.x - this.x) ** 2 + (bee.y - this.y) ** 2) < 80
                 );
-                
                 if (nearbyBees.length > 0) {
-                    const avgNearbyCoherence = nearbyBees.reduce((sum, bee) => sum + bee.coherenceState, 0) / nearbyBees.length;
-                    newCoherence += (avgNearbyCoherence - this.coherenceState) * 0.05;
+                    const sameTask = nearbyBees.filter(b => b.task === this.task).length;
+                    const fraction = sameTask / nearbyBees.length;
+                    L += (fraction - 0.5) * 0.06;   // alignment with conspecifics on same task
                 }
-                
-                // Environmental influence
-                const environmentalFactor = environment.environmentalPressure * -0.1;
-                newCoherence += environmentalFactor;
-                
-                // Interior bonus
-                if (this.isInside) {
-                    newCoherence += UCF.INTERIOR_COHERENCE_BONUS;
-                }
-                
-                // Temporal decay
-                newCoherence -= UCF.TEMPORAL_COHERENCE_DECAY;
-                
-                // Update coherence state
-                this.coherenceState = Math.max(0, Math.min(1, newCoherence));
-                
-                // Update coherence history
+
+                // Environmental clarity (negative pressure broadens precision, reduces L)
+                L += -environment.environmentalPressure * 0.05;
+
+                // Task-context match — being inside while on hive_task, outside while on forage
+                if (this.isInside && this.task === 'hive_task') L += UCF.INTERIOR_COHERENCE_BONUS * 0.5;
+                if (!this.isInside && this.task === 'forage')  L += 0.05;
+                if (this.isInside && this.task === 'forage')   L -= 0.04;
+                if (!this.isInside && this.task === 'hive_task') L -= 0.04;
+
+                // §CRR Behavioural plasticity φ scales the integration rate
+                L *= UCF.PHI;
+
+                // §CRR Integrate: C(t+dt) = C(t) + L·dt   (dt = 1 frame)
+                this.coherenceState += L;
+
+                // §CRR Lower floor at 0 (geodesic extent cannot be negative);
+                // upper bound enforced only by the rupture condition C·Ω = 1.
+                if (this.coherenceState < 0) this.coherenceState = 0;
+
+                // §CRR Update history buffers (used by exp(C/Ω) kernel during regeneration)
                 this.coherenceHistory.shift();
                 this.coherenceHistory.push(this.coherenceState);
+                this.timeHistory.shift();
+                this.timeHistory.push(this.age);
             }
 
             updateBehavior(otherBees, environment, hiveInterior) {
-                // Behavior decision tree based on coherence and genetics
+                // §CRR Defensive override: alarm rupture has fired. Defensive
+                // role takes priority over task state until the cooldown ends.
+                if (this.alarmDefender && !this.isInside) {
+                    if      (this.alarmRole === 'defender')  this.currentBehavior = 'defending';
+                    else if (this.alarmRole === 'recruiter') this.currentBehavior = 'recruiting';
+                    else                                     this.currentBehavior = 'fleeing';
+                    return;
+                }
+
+                // §CRR Behaviour is gated by the bistable task state set at rupture.
+                // The 'ruptured' label fires only during the δ(now) pulse itself
+                // (the brief rebirthField window) — it is the transition, not a steady state.
                 if (this.energy < 0.3) {
                     this.currentBehavior = 'resting';
+                } else if (this.ruptureState && this.rebirthField < 0.5) {
+                    // §CRR The δ(now) moment — momentary disorientation at the switch
+                    this.currentBehavior = 'ruptured';
                 } else if (this.isInside) {
                     this.updateInteriorBehavior(hiveInterior);
                 } else if (this.nectar > 0.7) {
                     this.currentBehavior = 'returning_home';
-                } else if (this.coherenceState < UCF.RUPTURE_THRESHOLD) {
-                    this.currentBehavior = 'ruptured';
+                } else if (this.task === 'hive_task' && !this.isInside) {
+                    // §CRR Bee assigned hive duty — head home
+                    this.currentBehavior = 'returning_home';
                 } else {
                     this.updateExteriorBehavior(otherBees, environment);
                 }
             }
 
             updateInteriorBehavior(hiveInterior) {
+                // Age-gated festoon-eligibility (12-20 day workers in real biology).
+                const festoonEligible = this.age >= 200 && this.age <= 2000 &&
+                    this.genetics.getTraitStrength('construction') > 0.3;
+
                 if (this.nectar > 0.3) {
                     this.currentBehavior = 'honey_processing';
+                } else if (festoonEligible && this.festoonAnchor && !this.festoonAnchor.lost) {
+                    // Hanging in the chain — stays put while wax accumulates
+                    this.currentBehavior = 'festooning';
                 } else if (this.constructionMaterial > 0.1) {
                     this.currentBehavior = 'construction';
-                } else if (this.genetics.getTraitStrength('construction') > 0.5 && Math.random() < 0.3) {
-                    this.currentBehavior = 'construction';
+                } else if (festoonEligible) {
+                    // Walk toward the comb edge; will get anchored when adjacent
+                    this.currentBehavior = 'interior_exploration';
                 } else {
                     this.currentBehavior = 'interior_exploration';
                 }
@@ -2013,6 +2446,12 @@
                     case 'construction':
                         this.performConstruction(environment, null);
                         break;
+                    case 'festooning':
+                        // §CRR Hanging in the chain: bee is locked onto its anchor.
+                        // Velocity damps to zero so the bee genuinely stays put.
+                        this.vx *= 0.5;
+                        this.vy *= 0.5;
+                        break;
                     case 'honey_processing':
                         this.processHoney(hiveInterior);
                         break;
@@ -2031,10 +2470,87 @@
                     case 'ruptured':
                         this.handleRupture();
                         break;
+                    case 'defending':
+                        this.defend();
+                        break;
+                    case 'recruiting':
+                        this.recruit();
+                        break;
+                    case 'fleeing':
+                        this.flee(environment);
+                        break;
                 }
 
                 // Update pheromone trail
                 this.updatePheromoneTrail(environment);
+            }
+
+            // §CRR Defender: intercept nearest predator at full speed.
+            // On contact (< 8px), reduce predator health and lose energy.
+            // Real bees die after stinging; here we just exhaust energy.
+            defend() {
+                const sim = this.simulation;
+                if (!sim) return;
+                let nearest = null, minD = Infinity;
+                sim.predatorDynamics.predators.forEach(p => {
+                    const d = Math.sqrt((p.x - this.x) ** 2 + (p.y - this.y) ** 2);
+                    if (d < minD) { minD = d; nearest = p; }
+                });
+                if (!nearest) {
+                    this.alarmDefender = false;
+                    this.alarmRole = null;
+                    return;
+                }
+                const dx = nearest.x - this.x;
+                const dy = nearest.y - this.y;
+                const d = Math.sqrt(dx*dx + dy*dy) || 1;
+                this.vx += (dx/d) * 0.32;
+                this.vy += (dy/d) * 0.32;
+                if (d < 8) {
+                    // Sting contact — small per-bee damage (mass defence is needed)
+                    nearest.health -= 0.012;
+                    this.energy -= 0.15;       // exhausting
+                }
+            }
+
+            // §CRR Recruiter: orbit at moderate distance, depositing IPA.
+            // Pheromone deposition is handled in PredatorDynamics.updateAlarmField
+            // (it reads alarmDefender flag); here we just position the bee.
+            recruit() {
+                const sim = this.simulation;
+                if (!sim) return;
+                let nearest = null, minD = Infinity;
+                sim.predatorDynamics.predators.forEach(p => {
+                    const d = Math.sqrt((p.x - this.x) ** 2 + (p.y - this.y) ** 2);
+                    if (d < minD) { minD = d; nearest = p; }
+                });
+                if (!nearest) {
+                    this.alarmDefender = false;
+                    this.alarmRole = null;
+                    return;
+                }
+                // Orbit at ~80 px — close enough to deposit IPA, far enough to dodge
+                const dx = this.x - nearest.x;
+                const dy = this.y - nearest.y;
+                const d = Math.sqrt(dx*dx + dy*dy) || 1;
+                const targetD = 80;
+                const radial = (d - targetD) / targetD;
+                // Tangential component (perpendicular) for orbit
+                const tx = -dy / d;
+                const ty =  dx / d;
+                this.vx += tx * 0.12 - (dx/d) * radial * 0.05;
+                this.vy += ty * 0.12 - (dy/d) * radial * 0.05;
+            }
+
+            // §CRR Flee (forager-with-load): head straight home regardless of
+            // what other bees are doing. Real loaded foragers prioritise getting
+            // their nectar back to the hive over engaging the threat.
+            flee(environment) {
+                const dx = environment.hiveCenter.x - this.x;
+                const dy = environment.hiveCenter.y - this.y;
+                const d = Math.sqrt(dx*dx + dy*dy) || 1;
+                this.vx += (dx/d) * 0.18;
+                this.vy += (dy/d) * 0.18;
             }
 
             forage(environment) {
@@ -2059,6 +2575,23 @@
                         // Move toward flower
                         this.vx += (dx / distance) * 0.03 * this.speed;
                         this.vy += (dy / distance) * 0.03 * this.speed;
+
+                        // §CRR IPA repulsion: foragers are pushed away from
+                        // high-alarm zones (canonical effect — IPA repels
+                        // foraging activity, Wager & Breed 2000).
+                        const sim = this.simulation;
+                        if (sim && sim.predatorDynamics) {
+                            const ipa = sim.predatorDynamics.sampleAlarmAt(this.x, this.y);
+                            if (ipa > 0.3) {
+                                // Steer back toward hive (safe direction)
+                                const hx = (sim.environment.hiveCenter.x - this.x);
+                                const hy = (sim.environment.hiveCenter.y - this.y);
+                                const hd = Math.sqrt(hx*hx + hy*hy) || 1;
+                                const repelStrength = Math.min(0.08, ipa * 0.05);
+                                this.vx += (hx / hd) * repelStrength;
+                                this.vy += (hy / hd) * repelStrength;
+                            }
+                        }
                     }
                 } else {
                     this.searchForFlowers(environment);
@@ -2090,15 +2623,43 @@
             }
 
             exploreInterior(hiveInterior) {
-                // Move randomly within hive bounds
+                // §CRR Festoon-eligible bees (12-20 day workers) are pulled
+                // toward the comb's growing edge — this is what produces the
+                // tight cluster of bees on the rim during real comb-building.
+                const festoonEligible = this.age >= 200 && this.age <= 2000 &&
+                    this.genetics.getTraitStrength('construction') > 0.3;
+
+                if (festoonEligible && hiveInterior && hiveInterior.honeyCells.length > 0) {
+                    // Find nearest cell with at least one open face (fewer than 6 neighbours)
+                    let edgeCell = null, minD = Infinity;
+                    hiveInterior.honeyCells.forEach(c => {
+                        if (c.neighbours.length >= 6) return;   // fully surrounded
+                        const d = Math.sqrt((c.x - this.x) ** 2 + (c.y - this.y) ** 2);
+                        if (d < minD) { minD = d; edgeCell = c; }
+                    });
+                    if (edgeCell) {
+                        const dx = edgeCell.x - this.x;
+                        const dy = edgeCell.y - this.y;
+                        const d = Math.sqrt(dx*dx + dy*dy) || 1;
+                        // Walk toward the edge cell at a measured pace
+                        this.vx += (dx / d) * 0.05;
+                        this.vy += (dy / d) * 0.05;
+                        // Add a small jitter so bees don't all overlap exactly
+                        this.vx += (Math.random() - 0.5) * 0.01;
+                        this.vy += (Math.random() - 0.5) * 0.01;
+                        return;
+                    }
+                }
+
+                // Default: random wander within hive bounds
                 this.vx += (Math.random() - 0.5) * 0.02;
                 this.vy += (Math.random() - 0.5) * 0.02;
-                
+
                 // Keep within interior bounds
                 const centerX = 600;
                 const centerY = 400;
                 const maxRadius = 300;
-                
+
                 const distanceFromCenter = Math.sqrt((this.x - centerX) ** 2 + (this.y - centerY) ** 2);
                 if (distanceFromCenter > maxRadius) {
                     const angle = Math.atan2(this.y - centerY, this.x - centerX);
@@ -2285,22 +2846,52 @@
                 }
             }
 
+            // §CRR — Rupture fires when C·Ω = 1 (saturation of evidence capacity).
+            // The Z₂ task is flipped, and the new persistence/tempo is selected by
+            // the regeneration kernel R = ∫ φ·exp(C/Ω)·Θ(t−τ) dτ over history.
             handleRuptureRebirth() {
-                // Rupture detection
-                if (this.coherenceState < UCF.RUPTURE_THRESHOLD && !this.ruptureState) {
+                const product = this.coherenceState * CRR.OMEGA;   // §CRR conjugacy product
+
+                // §CRR Rupture: ontological present, scale-invariant δ(now)
+                if (product >= 1.0 && !this.ruptureState) {
                     this.ruptureState = true;
                     this.rebirthField = 0;
+
+                    // Log the inter-rupture interval for CV diagnostic
+                    const interval = this.age - this.lastRuptureTime;
+                    if (this.lastRuptureTime > 0 && this.simulation) {
+                        this.simulation.logSwitchInterval(interval);
+                    }
+                    this.lastRuptureTime = this.age;
+
+                    // §CRR Z₂ flip: forage ↔ hive_task (the bistable transition)
+                    this.task = (this.task === 'forage') ? 'hive_task' : 'forage';
+
+                    // §CRR Regeneration: R = ∫ φ·exp(C/Ω)·Θ(t−τ) dτ
+                    // Past moments of high C dominate the kernel exponentially.
+                    let kernelSum = 0;
+                    let weightedAge = 0;
+                    for (let i = 0; i < this.coherenceHistory.length; i++) {
+                        // Cap the exponent for numerical stability;
+                        // the shape of exp(C/Ω) is preserved.
+                        const arg = Math.min(this.coherenceHistory[i] / CRR.OMEGA, 50);
+                        const w = UCF.PHI * Math.exp(arg);   // φ·exp(C/Ω)
+                        kernelSum += w;
+                        weightedAge += w * (this.age - this.timeHistory[i]);  // Θ ensures τ < t
+                    }
+                    // The weighted recall determines the new behavioural tempo:
+                    // bees with rich history regenerate decisively; bees without drift.
+                    this.regenerationDepth = kernelSum > 0 ? weightedAge / kernelSum : 1;
+                    this.experiencePoints += 50;
                 }
-                
-                // Rebirth process
+
+                // §CRR Reset: after rupture, C falls back to 0 and accumulation begins again
                 if (this.ruptureState) {
                     this.rebirthField += UCF.REBIRTH_TEMPERATURE * 0.1;
-                    
                     if (this.rebirthField > 1.0) {
-                        this.coherenceState = UCF.COHERENCE_BASE + Math.random() * 0.2;
+                        this.coherenceState = 0;       // §CRR fresh integration cycle
                         this.ruptureState = false;
                         this.rebirthField = 0;
-                        this.experiencePoints += 50; // Growth through adversity
                     }
                 }
             }
@@ -2611,30 +3202,111 @@
         }
 
         // Predator Dynamics System
+        // §CRR Predator dynamics + colony defensive response.
+        //
+        // This implements the canonical honeybee defence sequence
+        // (Breed et al. 2004; Wen et al. 2017; Wang et al. 2019):
+        //
+        //   1. Perception        — individual bee detects predator
+        //   2. Alarm release     — bee deposits isopentyl-acetate (IPA)
+        //                          alarm pheromone at its position
+        //   3. Recruitment       — nearby bees integrate IPA evidence,
+        //                          rupturing into defensive state when
+        //                          their alarm-coherence saturates
+        //   4. Repulsion         — foragers flee high-IPA zones; the
+        //                          forage posterior is suppressed there
+        //   5. Attack / escape   — defenders intercept; loaded foragers
+        //                          flee to hive
+        //
+        // CRR mapping: the IPA field is a SECOND distributed posterior
+        // (Layer D) — the colony's belief about threat location, lived
+        // chemically rather than visually. Per-bee alarm channel is its
+        // own Z₂ rupture (detected vs not), separate from the task
+        // allocation channel. Defender choice is set by alarm·distance.
         class PredatorDynamics {
             constructor() {
                 this.predators = [];
                 this.threatZones = [];
                 this.escapeRoutes = new Map();
+
+                // §CRR Alarm-pheromone field — chemical posterior over threat location.
+                // IPA diffuses and decays; defending bees deposit; foragers and
+                // recruits integrate. This is Layer D in the CRR architecture.
+                this.alarmRes = 25;                  // grid cell size (px)
+                this.alarmGrid = null;               // lazy init
+                this.alarmDecay = 0.992;             // ~86 frame half-life (IPA volatile)
+                this.alarmCols = 0;
+                this.alarmRows = 0;
             }
 
-            update() {
-                this.updatePredators();
+            update(bees, environment) {
+                this.updatePredators(bees, environment);
                 this.updateThreatZones();
+                this.updateAlarmField(bees);
             }
 
-            updatePredators() {
+            // §CRR Predators hunt — moving toward nearest bee with realistic
+            // pursuit, not bouncing randomly. They circle the colony when no
+            // bees are nearby (search behaviour), close in when bees detected.
+            updatePredators(bees, environment) {
+                const hiveX = (environment && environment.hiveCenter) ? environment.hiveCenter.x : 600;
+                const hiveY = (environment && environment.hiveCenter) ? environment.hiveCenter.y : 400;
+
+                // Survivors after defensive contact
+                this.predators = this.predators.filter(p => p.health > 0);
+
                 this.predators.forEach(predator => {
+                    // Find nearest exterior bee (predators don't enter the hive)
+                    let nearest = null, minD = Infinity;
+                    bees.forEach(bee => {
+                        if (bee.isInside) return;
+                        const d = Math.sqrt((bee.x - predator.x) ** 2 + (bee.y - predator.y) ** 2);
+                        if (d < minD) { minD = d; nearest = bee; }
+                    });
+
+                    let tx, ty, speed;
+                    if (nearest && minD < predator.huntingRange) {
+                        // Pursuit mode — accelerate toward target
+                        tx = nearest.x; ty = nearest.y;
+                        speed = predator.maxSpeed;
+                        predator.state = 'pursuing';
+                    } else {
+                        // Patrol — circle around the hive at moderate distance
+                        predator.patrolAngle = (predator.patrolAngle || 0) + 0.008;
+                        const r = 250;
+                        tx = hiveX + Math.cos(predator.patrolAngle) * r;
+                        ty = hiveY + Math.sin(predator.patrolAngle) * r;
+                        speed = predator.maxSpeed * 0.45;
+                        predator.state = 'patrolling';
+                    }
+
+                    // Steering
+                    const dx = tx - predator.x;
+                    const dy = ty - predator.y;
+                    const d = Math.sqrt(dx*dx + dy*dy) || 1;
+                    predator.vx += (dx/d) * speed * 0.04;
+                    predator.vy += (dy/d) * speed * 0.04;
+                    // Damp
+                    predator.vx *= 0.92;
+                    predator.vy *= 0.92;
+                    // Cap speed
+                    const v = Math.sqrt(predator.vx*predator.vx + predator.vy*predator.vy);
+                    if (v > speed) {
+                        predator.vx = (predator.vx / v) * speed;
+                        predator.vy = (predator.vy / v) * speed;
+                    }
                     predator.x += predator.vx;
                     predator.y += predator.vy;
-                    
-                    // Boundary conditions
-                    if (predator.x < 0 || predator.x > 1200 || predator.y < 0 || predator.y > 800) {
-                        predator.vx *= -1;
-                        predator.vy *= -1;
-                        predator.x = Math.max(0, Math.min(1200, predator.x));
-                        predator.y = Math.max(0, Math.min(800, predator.y));
-                    }
+
+                    // Soft boundary
+                    if (predator.x < 30) predator.x = 30;
+                    if (predator.x > 1170) predator.x = 1170;
+                    if (predator.y < 30) predator.y = 30;
+                    if (predator.y > 770) predator.y = 770;
+
+                    // Predator regenerates a bit if not contacted; defenders
+                    // reduce health on contact (handled in bee update).
+                    predator.health = Math.min(1, predator.health + 0.001);
                 });
             }
 
@@ -2643,10 +3315,13 @@
                     type: type,
                     x: x,
                     y: y,
-                    vx: (Math.random() - 0.5) * 4,
-                    vy: (Math.random() - 0.5) * 4,
+                    vx: 0, vy: 0,
                     dangerLevel: 0.8 + Math.random() * 0.2,
-                    huntingRange: 100 + Math.random() * 50,
+                    huntingRange: 240,
+                    maxSpeed: 3.2,
+                    patrolAngle: Math.random() * Math.PI * 2,
+                    state: 'patrolling',
+                    health: 1.0,
                     timestamp: Date.now()
                 });
             }
@@ -2658,6 +3333,76 @@
                     radius: predator.huntingRange,
                     intensity: predator.dangerLevel
                 }));
+            }
+
+            // §CRR Alarm-pheromone field updater — Layer D distributed posterior.
+            // Same mathematical structure as Layer C (forage posterior) but the
+            // signal is chemical, not visual. Defending bees deposit IPA at
+            // their position; the field decays and diffuses; other bees use
+            // the field as alarm evidence in their own per-bee accumulators.
+            updateAlarmField(bees) {
+                const W = 1200, H = 800;
+                const res = this.alarmRes;
+                const cols = Math.ceil(W / res);
+                const rows = Math.ceil(H / res);
+                if (!this.alarmGrid || this.alarmGrid.length !== cols * rows) {
+                    this.alarmGrid = new Float32Array(cols * rows);
+                    this.alarmCols = cols;
+                    this.alarmRows = rows;
+                }
+                const grid = this.alarmGrid;
+                // Decay (IPA evaporates)
+                const d = this.alarmDecay;
+                for (let i = 0; i < grid.length; i++) grid[i] *= d;
+
+                // Defending bees deposit IPA at their position. Stencil = 3x3 cells,
+                // small footprint — pheromone is a local signal, then diffuses.
+                bees.forEach(bee => {
+                    if (bee.isInside) return;
+                    if (!bee.alarmDefender) return;          // only defenders release
+                    const cx = Math.floor(bee.x / res);
+                    const cy = Math.floor(bee.y / res);
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const gy = cy + dy;
+                        if (gy < 0 || gy >= rows) continue;
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const gx = cx + dx;
+                            if (gx < 0 || gx >= cols) continue;
+                            const w = (dx === 0 && dy === 0) ? 1.0 : 0.4;
+                            grid[gy * cols + gx] += 0.15 * w;
+                        }
+                    }
+                });
+
+                // Cheap diffusion: average each cell with neighbours by a small fraction.
+                // (Proper Laplacian smoothing every other frame keeps cost low.)
+                if ((this._diffuseCounter = (this._diffuseCounter || 0) + 1) % 2 === 0) {
+                    const nGrid = new Float32Array(grid.length);
+                    for (let y = 0; y < rows; y++) {
+                        for (let x = 0; x < cols; x++) {
+                            const i = y * cols + x;
+                            let acc = grid[i] * 0.7;
+                            let wts = 0.7;
+                            if (x > 0)        { acc += grid[i-1]    * 0.075; wts += 0.075; }
+                            if (x < cols-1)   { acc += grid[i+1]    * 0.075; wts += 0.075; }
+                            if (y > 0)        { acc += grid[i-cols] * 0.075; wts += 0.075; }
+                            if (y < rows-1)   { acc += grid[i+cols] * 0.075; wts += 0.075; }
+                            nGrid[i] = acc / wts;
+                        }
+                    }
+                    this.alarmGrid = nGrid;
+                }
+            }
+
+            // §CRR Sample the alarm field at a position — used by bees to
+            // accumulate alarm evidence without direct predator perception.
+            sampleAlarmAt(x, y) {
+                if (!this.alarmGrid) return 0;
+                const gx = Math.floor(x / this.alarmRes);
+                const gy = Math.floor(y / this.alarmRes);
+                if (gx < 0 || gx >= this.alarmCols) return 0;
+                if (gy < 0 || gy >= this.alarmRows) return 0;
+                return this.alarmGrid[gy * this.alarmCols + gx];
             }
         }
 
@@ -2709,6 +3454,27 @@
                 this.simulationSpeed = 1.0;
                 this.ucfSensitivity = 1.0;
                 this.webcamMode = false;
+
+                // §CRR Diagnostic state — switch intervals for CV measurement
+                this.switchIntervals = [];          // §CRR rolling window of inter-rupture intervals
+                this.switchIntervalCap = 200;       // §CRR keep last 200 switches across colony
+                this.recentSwitchTimes = [];        // for "switches in last 5s" readout
+
+                // §CRR — Shared generative model (colony-level posterior).
+                // The colony's collective belief about forage quality at each
+                // location is the sum of individual bees' likelihood
+                // contributions, weighted by precision exp(C/Ω). This is the
+                // Active Inference posterior, distributed across the swarm.
+                //
+                //   Q_colony(forage|x,y) = Σ_bee w_bee · K_bee(x,y)
+                //   w_bee  = exp(C_bee / Ω) · recent_evidence_rate
+                //   K_bee  = Gaussian kernel centred at bee position, σ ∝ √Ω
+                //
+                // We accumulate into a coarse grid that decays over time so
+                // the colony retains memory of rich patches.
+                this.posteriorGrid = null;          // §CRR initialised lazily
+                this.posteriorRes = 20;             // grid spacing in canvas px
+                this.posteriorDecay = 0.985;        // per-frame retention (~67 frames half-life)
                 
                 // NEW: Audio system
                 this.audioSystem = new BeeAudioSystem();
@@ -2800,6 +3566,7 @@
                     const y = this.environment.hiveCenter.y + Math.sin(angle) * radius;
                     
                     const newBee = new EmergentBee(x, y, i);
+                    newBee.simulation = this;   // §CRR for inter-rupture interval logging
                     
                     // Explicitly ensure bee starts outside
                     newBee.isInside = false;
@@ -2878,6 +3645,7 @@
                 document.getElementById('ucfSlider').addEventListener('input', (e) => {
                     this.ucfSensitivity = parseFloat(e.target.value);
                     UCF.EMERGENCE_FACTOR = this.ucfSensitivity;
+                    UCF.PHI = this.ucfSensitivity;   // §CRR φ scales L, the integration rate
                     document.getElementById('ucfValue').textContent = this.ucfSensitivity.toFixed(1) + 'x';
                 });
 
@@ -2922,15 +3690,14 @@
                         document.getElementById('soundToggle').textContent = '🔇 Disable Sound';
                         document.getElementById('soundToggle').className = 'audio';
                         document.getElementById('audioOverlay').style.display = 'block';
-                        
-                        // Create initial bee sounds
-                        this.bees.forEach(bee => {
-                            if (!bee.soundData) {
-                                bee.soundData = this.audioSystem.createBeeBuzzSound(bee);
-                            }
-                        });
-                        
-                        console.log("Audio enabled - bee sounds activated");
+
+                        // §CRR Sync audio event counters with current sim state
+                        // so we don't fire catchup events for past ruptures.
+                        this.audioSystem._lastWaxRuptures = this.hiveInterior.waxRuptures.length;
+                        this.audioSystem._lastTripleJunctions = this.hiveInterior.tripleJunctions.length;
+                        this.audioSystem._lastTaskSwitches = this.switchIntervals.length;
+
+                        console.log("Audio enabled — colony hum + diegetic CRR events");
                     } else {
                         console.warn("Failed to initialize audio system");
                     }
@@ -3004,6 +3771,7 @@
                     const y = this.environment.hiveCenter.y + Math.sin(angle) * radius;
                     
                     const newBee = new EmergentBee(x, y, this.bees.length);
+                    newBee.simulation = this;   // §CRR for inter-rupture interval logging
                     
                     // Explicitly set as outside
                     newBee.isInside = false;
@@ -3072,6 +3840,8 @@
                 if (this.visualizations.showCoherenceField) {
                     CrashProtection.safeCanvasOperation(this.ctx, () => this.renderUCFField(), 'coherenceField');
                 }
+                // §CRR Alarm-pheromone field — Layer D distributed posterior over threat
+                CrashProtection.safeCanvasOperation(this.ctx, () => this.renderAlarmField(), 'alarmField');
                 if (this.visualizations.showRuptureZones) {
                     CrashProtection.safeCanvasOperation(this.ctx, () => this.renderRuptureZones(), 'ruptureZones');
                 }
@@ -3260,41 +4030,78 @@
                     this.renderHoneyCombConstruction();
                 }
 
-                // Render honeycomb cells
-                this.hiveInterior.honeyCells.forEach(cell => {
-                    const size = 18;
-                    
-                    // Cell structure
-                    this.hiveCtx.strokeStyle = '#654321';
-                    this.hiveCtx.lineWidth = 2;
-                    this.hiveCtx.beginPath();
-                    for (let i = 0; i < 6; i++) {
-                        const angle = (i / 6) * 2 * Math.PI;
-                        const x = cell.x + Math.cos(angle) * size;
-                        const y = cell.y + Math.sin(angle) * size;
-                        if (i === 0) {
-                            this.hiveCtx.moveTo(x, y);
-                        } else {
-                            this.hiveCtx.lineTo(x, y);
-                        }
+                // §CRR Render comb cells with actual physics-derived geometry.
+                // Cells start as cylinders. When ruptured (touched a neighbour),
+                // their shared wall straightens via surface tension. Triple
+                // junctions pull walls into 120° → hexagons emerge.
+                this.hiveInterior.honeyCells.forEach((cell, idx) => {
+                    const r = cell.radius;
+
+                    // Build the boundary polygon of this cell:
+                    // start with a circle, then for each rupture-wall, clip
+                    // the circle against the half-plane on the cell's side of the wall.
+                    const segments = 36;
+                    const points = [];
+                    for (let s = 0; s < segments; s++) {
+                        const theta = (s / segments) * 2 * Math.PI;
+                        let px = cell.x + Math.cos(theta) * r;
+                        let py = cell.y + Math.sin(theta) * r;
+
+                        // §CRR Clip against each rupture wall (Plateau-equilibrium
+                        // straightening). The wall midpoint is recomputed from
+                        // current cell positions every frame, so cells that have
+                        // drifted since contact still clip correctly.
+                        cell.walls.forEach(w => {
+                            const neighbour = this.hiveInterior.honeyCells[w.neighbour];
+                            if (!neighbour) return;
+                            const nx_raw = (neighbour.x - cell.x);
+                            const ny_raw = (neighbour.y - cell.y);
+                            const nLen = Math.sqrt(nx_raw*nx_raw + ny_raw*ny_raw);
+                            if (nLen < 0.01) return;
+                            const ux = nx_raw / nLen;
+                            const uy = ny_raw / nLen;
+                            // Live midpoint between current cell centres
+                            const midX = (cell.x + neighbour.x) / 2;
+                            const midY = (cell.y + neighbour.y) / 2;
+                            // Signed distance from M along outward normal:
+                            const dx = px - midX;
+                            const dy = py - midY;
+                            const proj = dx * ux + dy * uy;
+                            if (proj > 0) {
+                                px -= ux * proj;
+                                py -= uy * proj;
+                            }
+                        });
+
+                        points.push({ x: px, y: py });
                     }
+
+                    // Cell wall colour: pre-rupture (cylindrical) is paler;
+                    // post-rupture (membrane) is the comb gold.
+                    const wallColour = cell.ruptured ? '#7a5a2c' : '#a07840';
+                    this.hiveCtx.strokeStyle = wallColour;
+                    this.hiveCtx.lineWidth = 1.5 + cell.wallThickness * 0.5;
+
+                    this.hiveCtx.beginPath();
+                    points.forEach((p, i) => {
+                        if (i === 0) this.hiveCtx.moveTo(p.x, p.y);
+                        else this.hiveCtx.lineTo(p.x, p.y);
+                    });
                     this.hiveCtx.closePath();
                     this.hiveCtx.stroke();
 
-                    // Construction progress visualization
-                    if (cell.constructionProgress < 1.0) {
-                        const progressColor = `rgba(255, 255, 0, ${1 - cell.constructionProgress})`;
-                        this.hiveCtx.strokeStyle = progressColor;
-                        this.hiveCtx.lineWidth = 3;
-                        this.hiveCtx.stroke();
+                    // Construction-progress glow (pre-rupture cells)
+                    if (!cell.ruptured && cell.constructionProgress < 1.0) {
+                        this.hiveCtx.fillStyle =
+                            `rgba(255, 220, 100, ${0.15 + cell.constructionProgress * 0.2})`;
+                        this.hiveCtx.fill();
                     }
 
                     // Honey level
                     if (cell.honeyLevel > 0) {
-                        const honeyAlpha = cell.honeyLevel;
-                        this.hiveCtx.fillStyle = `rgba(255, 215, 0, ${honeyAlpha})`;
+                        this.hiveCtx.fillStyle = `rgba(255, 215, 0, ${cell.honeyLevel})`;
                         this.hiveCtx.beginPath();
-                        this.hiveCtx.arc(cell.x, cell.y, size * cell.honeyLevel, 0, 2 * Math.PI);
+                        this.hiveCtx.arc(cell.x, cell.y, r * 0.7 * cell.honeyLevel, 0, 2 * Math.PI);
                         this.hiveCtx.fill();
                     }
 
@@ -3305,6 +4112,39 @@
                         this.hiveCtx.arc(cell.x, cell.y, 3, 0, 2 * Math.PI);
                         this.hiveCtx.fill();
                     }
+                });
+
+                // §CRR Render triple junctions — the SO(2) closure points.
+                // Mark each one with a small ring so the viewer can see the
+                // 2π/3 equilibrium points emerging.
+                this.hiveInterior.tripleJunctions.forEach(tj => {
+                    const meanDev = (Math.abs(tj.angles[0] - 120)
+                                   + Math.abs(tj.angles[1] - 120)
+                                   + Math.abs(tj.angles[2] - 120)) / 3;
+                    // Closer to 120° → brighter green; far → red.
+                    const conv = Math.max(0, 1 - meanDev / 30);
+                    this.hiveCtx.strokeStyle =
+                        `rgba(${Math.round(255 * (1 - conv))}, ${Math.round(255 * conv)}, 100, 0.85)`;
+                    this.hiveCtx.lineWidth = 1.2;
+                    this.hiveCtx.beginPath();
+                    this.hiveCtx.arc(tj.x, tj.y, 2.5, 0, 2 * Math.PI);
+                    this.hiveCtx.stroke();
+                });
+
+                // §CRR Subtle wax-flake glow on festooning bees.
+                // No leash line — when the bee's stretch saturates and a flake
+                // drops, the new cell appearing is the visible CRR rupture.
+                // This glow simply hints at "wax about to release".
+                this.bees.forEach(bee => {
+                    if (!bee.isInside) return;
+                    if (!bee.festoonAnchor || bee.festoonAnchor.lost) return;
+                    const stretchFrac = Math.min(1, (bee.festoonStretch || 0) * CRR.OMEGA);
+                    if (stretchFrac < 0.35) return;
+                    const r = 6 + stretchFrac * 4;
+                    this.hiveCtx.fillStyle = `rgba(255, 220, 130, ${stretchFrac * 0.35})`;
+                    this.hiveCtx.beginPath();
+                    this.hiveCtx.arc(bee.x, bee.y, r, 0, 2 * Math.PI);
+                    this.hiveCtx.fill();
                 });
 
                 // Render air flow patterns
@@ -3568,7 +4408,19 @@
                         'builder': '#FFB000',    // Amber yellow
                         'worker': '#FFED4A'      // Pale yellow
                     };
-                    const bodyColor = bee.ruptureState ? '#FF6666' : (roleTints[bee.role] || beeYellow);
+                    // §CRR Alarm-state tint overrides normal role colour:
+                    //   defender  → bright red (engaging)
+                    //   recruiter → orange-red (signalling)
+                    //   flee      → pale yellow (urgent return)
+                    let bodyColor;
+                    if (bee.alarmDefender) {
+                        if      (bee.alarmRole === 'defender')  bodyColor = '#E63946';
+                        else if (bee.alarmRole === 'recruiter') bodyColor = '#F77F00';
+                        else if (bee.alarmRole === 'fleeing' || bee.alarmRole === 'flee') bodyColor = '#FCBF49';
+                        else bodyColor = '#E63946';
+                    } else {
+                        bodyColor = bee.ruptureState ? '#FF6666' : (roleTints[bee.role] || beeYellow);
+                    }
 
                     // Main bee abdomen (elongated oval) - most prominent part
                     ctx.fillStyle = bodyColor;
@@ -3720,32 +4572,145 @@
                 }
             }
 
-            renderUCFField() {
-                const resolution = UCF.FIELD_RESOLUTION;
-                const width = this.canvas.width;
-                const height = this.canvas.height;
-                
-                for (let x = 0; x < width; x += resolution) {
-                    for (let y = 0; y < height; y += resolution) {
-                        let fieldStrength = 0;
-                        let beeCount = 0;
-                        
-                        this.bees.forEach(bee => {
-                            const distance = Math.sqrt((bee.x - x) ** 2 + (bee.y - y) ** 2);
-                            if (distance < UCF.VISUAL_COHERENCE_RANGE) {
-                                fieldStrength += bee.coherenceState * Math.exp(-distance / 50);
-                                beeCount++;
-                            }
-                        });
-                        
-                        if (beeCount > 0) {
-                            const alpha = Math.min(0.3, fieldStrength / beeCount);
-                            const hue = fieldStrength * 360;
-                            this.ctx.fillStyle = `hsla(${hue}, 70%, 50%, ${alpha})`;
-                            this.ctx.fillRect(x, y, resolution, resolution);
+            // §CRR — Update the colony's shared generative-model posterior.
+            // This implements distributed Active Inference: each bee deposits
+            // its precision-weighted belief at its current position, and the
+            // grid retains memory of past evidence with exponential decay.
+            //
+            //   Q(forage_quality | x, y) ∝ Σ_bees exp(C/Ω) · evidence_rate · K(x − x_bee)
+            //
+            // Where K is a Gaussian kernel with width σ = √Ω, exp(C/Ω) is
+            // CRR's precision quantity, and evidence_rate captures the bee's
+            // recent foraging success (Active Inference likelihood).
+            updateSharedPosterior() {
+                const res = this.posteriorRes;
+                const W = this.canvas.width;
+                const H = this.canvas.height;
+                const cols = Math.ceil(W / res);
+                const rows = Math.ceil(H / res);
+
+                // Lazy init
+                if (!this.posteriorGrid || this.posteriorGrid.length !== cols * rows) {
+                    this.posteriorGrid = new Float32Array(cols * rows);
+                    this._postCols = cols;
+                    this._postRows = rows;
+                }
+
+                // §CRR Decay step — colony "forgets" stale evidence
+                const decay = this.posteriorDecay;
+                const grid = this.posteriorGrid;
+                for (let i = 0; i < grid.length; i++) grid[i] *= decay;
+
+                // §CRR Deposit step — each bee adds precision-weighted evidence.
+                // Foragers with nectar contribute strongly (high evidence rate);
+                // exterior-side bees in general contribute their belief at low rate.
+                // σ ∝ √Ω, so spread radius in canvas px = sqrtΩ × ref. We use a
+                // discrete 5x5 stencil for speed (≈3σ coverage at σ ~ 1 cell).
+                const sqrtOmegaPx = Math.sqrt(CRR.OMEGA) * 35;     // ~19 px
+                const sigma = sqrtOmegaPx;
+                const sigma2 = sigma * sigma;
+                const radiusCells = Math.ceil(sigma * 2 / res);    // ~2 cells
+
+                this.bees.forEach(bee => {
+                    if (bee.isInside) return;     // exterior posterior only here
+                    // Evidence rate: nectar load × precision = exp(C/Ω) · nectar
+                    // Cap exponent for numerical safety.
+                    const arg = Math.min(bee.coherenceState / CRR.OMEGA, 8);
+                    const precision = Math.exp(arg);
+                    const evidence = bee.nectar * precision;
+                    if (evidence < 0.01) return;
+
+                    const cx = Math.floor(bee.x / res);
+                    const cy = Math.floor(bee.y / res);
+                    for (let dy = -radiusCells; dy <= radiusCells; dy++) {
+                        const gy = cy + dy;
+                        if (gy < 0 || gy >= rows) continue;
+                        for (let dx = -radiusCells; dx <= radiusCells; dx++) {
+                            const gx = cx + dx;
+                            if (gx < 0 || gx >= cols) continue;
+                            const px = (gx + 0.5) * res - bee.x;
+                            const py = (gy + 0.5) * res - bee.y;
+                            const r2 = px*px + py*py;
+                            const k = Math.exp(-r2 / (2 * sigma2));
+                            grid[gy * cols + gx] += evidence * k * 0.02;
                         }
                     }
+                });
+            }
+
+            // §CRR — Render the colony's shared generative-model posterior.
+            // Replaces the old "coherence field" — this version is
+            // mathematically grounded in Active Inference (precision-weighted
+            // distributed posterior) rather than just a sum of bee positions.
+            //
+            // Colour: viridis-ish gradient (low posterior = transparent dark
+            // teal, high = bright gold). Alpha bounded.
+            renderUCFField() {
+                if (!this.posteriorGrid) return;
+                const grid = this.posteriorGrid;
+                const cols = this._postCols;
+                const rows = this._postRows;
+                const res = this.posteriorRes;
+
+                // Find max for normalisation; cap so a single bright spot
+                // doesn't wash out the rest of the field.
+                let maxVal = 0;
+                for (let i = 0; i < grid.length; i++) if (grid[i] > maxVal) maxVal = grid[i];
+                if (maxVal < 0.05) return;        // nothing to draw yet
+                const norm = 1 / maxVal;
+
+                this.ctx.save();
+                for (let gy = 0; gy < rows; gy++) {
+                    for (let gx = 0; gx < cols; gx++) {
+                        const raw = grid[gy * cols + gx] * norm;
+                        if (raw < 0.01) continue;
+                        // §CRR Compress dynamic range: posterior magnitudes
+                        // span orders of magnitude in dense vs sparse areas.
+                        // sqrt mapping makes both visible without washing out.
+                        const v = Math.sqrt(raw);
+                        const t = Math.min(1, v);
+                        // Viridis-style: low = dark teal, high = warm gold
+                        const r = Math.round(40  + 215 * t);
+                        const g = Math.round(80  + 145 * t);
+                        const b = Math.round(120 -  80 * t);
+                        const alpha = Math.min(0.32, 0.05 + t * 0.30);
+                        this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                        this.ctx.fillRect(gx * res, gy * res, res, res);
+                    }
                 }
+                this.ctx.restore();
+            }
+
+            // §CRR Render the alarm-pheromone field — the colony's chemical
+            // posterior over predator location. Layer D distributed posterior.
+            // Soft red overlay; brighter where IPA concentration is highest.
+            renderAlarmField() {
+                const pd = this.predatorDynamics;
+                if (!pd || !pd.alarmGrid) return;
+                const grid = pd.alarmGrid;
+                const cols = pd.alarmCols;
+                const rows = pd.alarmRows;
+                const res = pd.alarmRes;
+
+                let maxVal = 0;
+                for (let i = 0; i < grid.length; i++) if (grid[i] > maxVal) maxVal = grid[i];
+                if (maxVal < 0.05) return;       // no significant alarm signal
+                const norm = 1 / maxVal;
+
+                this.ctx.save();
+                for (let gy = 0; gy < rows; gy++) {
+                    for (let gx = 0; gx < cols; gx++) {
+                        const raw = grid[gy * cols + gx] * norm;
+                        if (raw < 0.05) continue;
+                        // sqrt compress for visual range
+                        const t = Math.min(1, Math.sqrt(raw));
+                        // Soft red — alarm semantic, distinct from gold posterior
+                        const alpha = Math.min(0.30, 0.04 + t * 0.28);
+                        this.ctx.fillStyle = `rgba(220, 60, 50, ${alpha})`;
+                        this.ctx.fillRect(gx * res, gy * res, res, res);
+                    }
+                }
+                this.ctx.restore();
             }
 
             renderPheromoneTrails() {
@@ -3839,21 +4804,31 @@
                 this.predatorDynamics.predators.forEach(predator => {
                     this.ctx.save();
                     this.ctx.translate(predator.x, predator.y);
-                    
+
+                    // Pursuit-state outline: red glow when actively pursuing
+                    if (predator.state === 'pursuing') {
+                        this.ctx.fillStyle = 'rgba(255, 60, 40, 0.25)';
+                        this.ctx.beginPath();
+                        this.ctx.arc(0, 0, 20, 0, 2 * Math.PI);
+                        this.ctx.fill();
+                    }
+
                     if (predator.type === 'bird') {
-                        this.ctx.fillStyle = '#8B4513';
+                        // Body fades with health (more contacts = paler)
+                        const h = Math.max(0.2, predator.health);
+                        this.ctx.fillStyle = `rgba(${139 - (1-h)*60}, ${69 - (1-h)*30}, ${19}, ${h})`;
                         this.ctx.beginPath();
                         this.ctx.ellipse(0, 0, 15, 8, 0, 0, 2 * Math.PI);
                         this.ctx.fill();
-                        
-                        this.ctx.fillStyle = '#654321';
+
+                        this.ctx.fillStyle = `rgba(101, 67, 33, ${h})`;
                         this.ctx.beginPath();
                         this.ctx.ellipse(-10, -5, 12, 4, -0.3, 0, 2 * Math.PI);
                         this.ctx.fill();
                         this.ctx.beginPath();
                         this.ctx.ellipse(-10, 5, 12, 4, 0.3, 0, 2 * Math.PI);
                         this.ctx.fill();
-                        
+
                         this.ctx.fillStyle = '#FFD700';
                         this.ctx.beginPath();
                         this.ctx.moveTo(15, 0);
@@ -3862,7 +4837,7 @@
                         this.ctx.closePath();
                         this.ctx.fill();
                     }
-                    
+
                     this.ctx.restore();
                 });
             }
@@ -3986,11 +4961,11 @@
                     const historyLength = bee.coherenceHistory.length;
                     for (let i = 1; i < historyLength; i++) {
                         const alpha = i / historyLength;
-                        const prevCoherence = bee.coherenceHistory[i - 1];
-                        const currentCoherence = bee.coherenceHistory[i];
-                        
+                        // §CRR Clamp to C/C* fraction since C is now unbounded
+                        const cFrac = Math.min(1, bee.coherenceHistory[i] / CRR.C_STAR);
+
                         this.ctx.strokeStyle = `rgba(150, 150, 255, ${alpha * 0.5})`;
-                        this.ctx.lineWidth = Math.max(1, currentCoherence * 3);
+                        this.ctx.lineWidth = Math.max(1, cFrac * 3);
                         this.ctx.beginPath();
                         this.ctx.arc(bee.x, bee.y, i * 0.5, 0, 2 * Math.PI);
                         this.ctx.stroke();
@@ -4004,10 +4979,13 @@
                         if (bee1 !== bee2) {
                             const distance = Math.sqrt((bee1.x - bee2.x) ** 2 + (bee1.y - bee2.y) ** 2);
                             if (distance < 100) {
-                                const entanglement = Math.exp(-distance / 50) * bee1.coherenceState * bee2.coherenceState;
+                                // §CRR Clamp inputs to C/C* fraction (C is unbounded now)
+                                const c1 = Math.min(1, bee1.coherenceState / CRR.C_STAR);
+                                const c2 = Math.min(1, bee2.coherenceState / CRR.C_STAR);
+                                const entanglement = Math.exp(-distance / 50) * c1 * c2;
                                 if (entanglement > 0.1) {
-                                    this.ctx.strokeStyle = `rgba(255, 0, 255, ${entanglement * 0.5})`;
-                                    this.ctx.lineWidth = Math.max(1, entanglement * 3);
+                                    this.ctx.strokeStyle = `rgba(255, 0, 255, ${Math.min(0.7, entanglement * 0.5)})`;
+                                    this.ctx.lineWidth = Math.max(1, Math.min(3, entanglement * 3));
                                     this.ctx.beginPath();
                                     this.ctx.moveTo(bee1.x, bee1.y);
                                     this.ctx.lineTo(bee2.x, bee2.y);
@@ -4660,7 +5638,7 @@
                 // Update advanced reality layers
                 this.environmentalPhysics.update();
                 this.communicationNetworks.update();
-                this.predatorDynamics.update();
+                this.predatorDynamics.update(this.bees, this.environment);
                 this.geneticEvolution.update();
 
                 // Update evolution pressure
@@ -4718,17 +5696,55 @@
                     }
                 }
 
-                // NEW: Update audio systems
-                if (this.soundEnabled) {
-                    const hiveActivity = this.environment.hiveConstructionProgress / 20;
+                // §CRR Diegetic audio: hum amplitude/centre + discrete events
+                if (this.soundEnabled && this.audioSystem.enabled) {
+                    // Mean colony C as fraction of C* for hum frequency drift
+                    let totalC = 0;
+                    for (const b of this.bees) totalC += b.coherenceState || 0;
+                    const meanCFraction = this.bees.length > 0
+                        ? Math.min(1, totalC / (this.bees.length * CRR.C_STAR))
+                        : 0;
                     this.audioSystem.updateHiveAmbience(
-                        this.bees.length, 
-                        this.hiveInterior.interiorBees.size, 
-                        hiveActivity
+                        this.bees.length,
+                        this.hiveInterior.interiorBees.size,
+                        meanCFraction
                     );
+                    // §CRR Discrete events: Z₂ wall merges, SO(2) closures, task switches
+                    this.audioSystem.tickFromSimulation(this);
                 }
 
+                // §CRR Update shared generative-model posterior (Active Inference)
+                this.updateSharedPosterior();
+
                 this.time++;
+            }
+
+            // §CRR — Log an inter-rupture interval and time-of-rupture for diagnostics
+            logSwitchInterval(interval) {
+                if (interval > 0) {
+                    this.switchIntervals.push(interval);
+                    if (this.switchIntervals.length > this.switchIntervalCap) {
+                        this.switchIntervals.shift();
+                    }
+                }
+                this.recentSwitchTimes.push(this.time);
+                // Drop entries older than 5 seconds (≈ 300 frames at 60fps)
+                const cutoff = this.time - 300;
+                while (this.recentSwitchTimes.length > 0 && this.recentSwitchTimes[0] < cutoff) {
+                    this.recentSwitchTimes.shift();
+                }
+            }
+
+            // §CRR — Coefficient of variation on inter-rupture intervals
+            // Class A baseline: CV ≈ Ω/2 = 1/(2π) ≈ 0.1592
+            computeSwitchCV() {
+                const xs = this.switchIntervals;
+                if (xs.length < 12) return null;   // need enough samples for stability
+                const n = xs.length;
+                const mean = xs.reduce((a, b) => a + b, 0) / n;
+                if (mean <= 0) return null;
+                const variance = xs.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1);
+                return Math.sqrt(variance) / mean;
             }
 
             updateStats() {
@@ -4738,21 +5754,56 @@
                 const totalResources = this.environment.totalResources;
                 const honeyProduction = this.hiveInterior.honeyStores;
                 const interiorBees = this.hiveInterior.interiorBees.size;
-                const avgIntelligence = this.bees.reduce((sum, bee) => sum + bee.intelligence, 0) / (this.bees.length || 1);
-                const adaptationRate = this.bees.reduce((sum, bee) => sum + bee.adaptationRate, 0) / (this.bees.length || 1);
-                const ruptureCount = this.bees.filter(bee => bee.ruptureState).length;
-                const rebirthCount = this.bees.filter(bee => bee.rebirthField > 0.3).length;
 
-                document.getElementById('avgCoherence').textContent = avgCoherence.toFixed(3);
-                document.getElementById('population').textContent = population;
-                document.getElementById('hiveProgress').textContent = hiveProgress.toFixed(0) + '%';
+                // §CRR diagnostics
+                const cv = this.computeSwitchCV();
+                const cvText = (cv === null) ? '—' : cv.toFixed(3);
+                const recentSwitches = this.recentSwitchTimes.length;
+
+                // §CRR Class diagnostic — Class A: CV ≈ Ω/2; Class B: CV < Ω/2; Class C: CV > Ω/2
+                let classText = '—';
+                if (cv !== null) {
+                    const ratio = cv / CRR.CV_PREDICTED;
+                    if      (ratio < 0.85) classText = 'B (regulated)';
+                    else if (ratio > 1.15) classText = 'C (noise)';
+                    else                   classText = 'A (autonomous)';
+                }
+
+                document.getElementById('avgCoherence').textContent  = avgCoherence.toFixed(3);
+                document.getElementById('population').textContent    = population;
+                document.getElementById('hiveProgress').textContent  = hiveProgress.toFixed(0) + '%';
                 document.getElementById('totalResources').textContent = totalResources.toFixed(2);
                 document.getElementById('honeyProduction').textContent = honeyProduction.toFixed(2);
-                document.getElementById('interiorBees').textContent = interiorBees;
-                document.getElementById('avgIntelligence').textContent = avgIntelligence.toFixed(2);
-                document.getElementById('adaptationRate').textContent = adaptationRate.toFixed(3);
-                document.getElementById('ruptureCount').textContent = ruptureCount;
-                document.getElementById('rebirthCount').textContent = rebirthCount;
+                document.getElementById('interiorBees').textContent  = interiorBees;
+                document.getElementById('cvObserved').textContent    = cvText;
+                document.getElementById('cvPredicted').textContent   = CRR.CV_PREDICTED.toFixed(3);
+                document.getElementById('ruptureCount').textContent  = recentSwitches;
+                document.getElementById('diagnosticClass').textContent = classText;
+
+                // §CRR Comb-physics diagnostics (Pirk/Karihaloo wax dynamics)
+                const meanDev = this.hiveInterior.meanJunctionDeviation();
+                const tjCount = this.hiveInterior.tripleJunctions.length;
+                if (meanDev === null) {
+                    document.getElementById('meanJunctionAngle').textContent = '—';
+                } else {
+                    // Show actual mean angle (120° ± deviation)
+                    document.getElementById('meanJunctionAngle').textContent = (120).toFixed(0) + '° ±' + meanDev.toFixed(1) + '°';
+                }
+                document.getElementById('tripleJunctionCount').textContent = tjCount;
+
+                // Wall merges in last 5s (≈300 frames)
+                const cutoff = this.time - 300;
+                const recentMerges = this.hiveInterior.waxRuptures.filter(r => r.t > cutoff - this.hiveInterior.combAge + this.time).length;
+                // Simpler: count entries in the rolling log added recently
+                const mergesNow = this.hiveInterior.waxRuptures.length;
+                if (this._lastMergeCount === undefined) this._lastMergeCount = mergesNow;
+                if (this._mergeWindow === undefined) this._mergeWindow = [];
+                this._mergeWindow.push(mergesNow);
+                if (this._mergeWindow.length > 300) this._mergeWindow.shift();
+                const mergesIn5s = this._mergeWindow.length > 0
+                    ? Math.max(0, mergesNow - this._mergeWindow[0])
+                    : 0;
+                document.getElementById('wallMergeRate').textContent = mergesIn5s;
 
                 // Update simulation info
                 const viewMode = this.webcamMode ? 'INTERIOR VIEW' : 'EXTERIOR VIEW';
@@ -4777,5 +5828,11 @@
             new UCFEcosystemSimulation();
         });
     </script>
+    <footer style="text-align:center; color:#2d5016; font-size:0.85em; margin-top:30px; padding:15px; background:rgba(255,255,255,0.7); border-radius:8px; max-width:900px; margin-left:auto; margin-right:auto;">
+        Computational engine: CRR (Coherence–Rupture–Regeneration) ·
+        <a href="https://temporalgrammar.ai" style="color:#2d5016;">temporalgrammar.ai</a> ·
+        Alexander Sabine, Active Inference Institute (Board of Directors) ·
+        <a href="mailto:Alexander@activeinference.institute" style="color:#2d5016;">Alexander@activeinference.institute</a>
+    </footer>
 </body>
 </html>
