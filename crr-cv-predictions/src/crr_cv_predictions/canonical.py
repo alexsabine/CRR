@@ -27,9 +27,29 @@ PHI_GOLDEN = (1.0 + SQRT5) / 2.0
 
 # Closed-geodesic length phi_G for canonical compact connected Lie
 # groups in bi-invariant metric, normalised by smallest-orbit length.
+#
+# Three distinct Z2 readings — see docs/memoryless_pure_z2.md.
+#
+#   "Z2"          — Z2 rupture WITH an implicit SO(2) regulator in the
+#                   causal chain. This is what every "Z2" entry in the
+#                   132-system table actually is (heart valve on cardiac
+#                   electrical cycle; neuron spike on membrane potential
+#                   oscillation; light switch on rocker arc; …).
+#                   φ_G = π. CV = 1/(2π) ≈ 0.1592.
+#   "Z2_only"     — Pure Z2 rupture with NO SO(2) regulator anywhere in
+#                   the causal chain. The truly memoryless case. CV = 1
+#                   (the exponential distribution). Derived from
+#                   CV_Z2 × C*_absent_SO(2) = (1/2π) × 2π = 1.
+#                   See Sabine 2026 "The Geometric Origin of Memoryless
+#                   Variability" (radioactive_crr_finding_2.pdf).
+#                   φ_G = 1/2 by convention so that CV = 1.
+#   "Z2_on_SO2"   — Explicit alias for "Z2"; introduced so callers can
+#                   make the implicit substrate visible when they want.
 PHI_G: dict[str, float] = {
     # discrete rupture topology (no continuous-phase content)
     "Z2": PI,
+    "Z2_on_SO2": PI,           # explicit alias — same as "Z2"
+    "Z2_only": 0.5,            # pure memoryless: CV = 1/(2 * 0.5) = 1.0
     # continuous phase manifolds — canonical CRR brief
     "SO(2)": TAU,
     "U(1)": TAU,
@@ -105,6 +125,40 @@ def cv_zn_discrete_phase(n: int) -> float:
 def acceptance_band(cv_pred: float, lo: float = 0.6, hi: float = 1.3) -> tuple[float, float]:
     """Paper's acceptance band [0.6×, 1.3×] of cv_pred."""
     return (lo * cv_pred, hi * cv_pred)
+
+
+def cv_pure_z2_memoryless() -> float:
+    """CV for a Z₂ rupture with NO SO(2) regulator anywhere in the causal chain.
+
+    Derivation (Sabine 2026, "The Geometric Origin of Memoryless Variability"):
+
+        CV_pure_Z₂ = CV_Z₂_on_SO(2) × C*_absent_SO(2)
+                  = (1 / (2π)) × (2π)
+                  = 1
+
+    The Z₂ rupture's baseline variability gets multiplied by the geodesic
+    extent of the absent SO(2) substrate (its missing circumference).
+    The result is the exponential distribution's CV — the unique
+    continuous memoryless distribution's signature.
+
+    The reverse product is asymmetric: CV_SO(2) × C*_Z₂ = 1/(4π) × π =
+    1/4 ≠ 1. Only Z₂ × SO(2) returns unity. This is physically correct:
+    a Z₂ requires an SO(2) for regulation, not the reverse.
+    """
+    return 1.0
+
+
+def cv_inflation_factor(present: str, absent: str) -> float:
+    """Inflation of CV(present) when the regulator (absent) is removed.
+
+    Returns C*_absent (the geodesic extent of the missing substrate).
+
+    Examples:
+        cv_inflation_factor("Z2", "SO(2)") = 2π    → CV(Z₂) × 2π = 1
+        cv_inflation_factor("SO(2)", "Z2") = π     → CV(SO(2)) × π = 1/4
+    """
+    # C* = 1/Ω = phi_G in the canonical normalisation
+    return phi_g(absent)
 
 
 def verdict_from_ratio(ratio: float, lo: float = 0.6, hi: float = 1.3) -> str:

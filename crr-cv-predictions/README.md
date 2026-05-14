@@ -7,7 +7,7 @@ candidate system → empirical reference.
 
 The package is a structured restatement of the predictions in Sabine,
 *CRR: A Temporal Grammar — Three-Class Validation Across 132 Systems
-in 20 Domains* (March 2026), extended with two pre-registered
+in 20 Domains* (March 2026), extended with three pre-registered
 prediction families that were implicit in the paper's framework but
 not enumerated:
 
@@ -24,6 +24,14 @@ not enumerated:
    G₂, and the higher tori, each with a candidate empirical system and
    a data source for testing.
 
+3. **Pure-Z₂ memoryless predictions (CV = 1).** From Sabine 2026
+   *The Geometric Origin of Memoryless Variability*: a Z₂ rupture
+   with **no** SO(2) regulator anywhere in the causal chain has
+   CV = (1/2π) × 2π = 1 (the exponential distribution). This is the
+   third Z₂ reading — distinct from the 132-table's "Z₂" entries,
+   which all have an implicit SO(2) regulator. Radioactive decay,
+   Poisson minis, M/M/1 inter-arrivals, etc.
+
 ## Layout
 
 ```
@@ -34,7 +42,8 @@ crr-cv-predictions/
 │   ├── framework_summary.md          # 1-page CRR framework recap
 │   ├── derivation_chain.md           # Ω, φ_G, CV = Ω/2 derivation chain
 │   ├── z2_on_so2_compositional.md    # rationale for the Z₂-on-SO(2) extensions
-│   └── lie_group_extensions.md       # rationale for the beyond-M22 extensions
+│   ├── lie_group_extensions.md       # rationale for the beyond-M22 extensions
+│   └── memoryless_pure_z2.md         # the radioactive-decay finding (CV = 1)
 ├── data/
 │   ├── schema.json                   # JSON-Schema for prediction rows
 │   ├── cv_predictions_132.csv        # paper's 132-system table (Appendix A)
@@ -42,7 +51,9 @@ crr-cv-predictions/
 │   ├── cv_predictions_z2_on_so2.csv  # new compositional predictions
 │   ├── cv_predictions_z2_on_so2.json
 │   ├── cv_predictions_lie_groups.csv # new Lie-group extensions
-│   └── cv_predictions_lie_groups.json
+│   ├── cv_predictions_lie_groups.json
+│   ├── cv_predictions_memoryless.csv # new pure-Z₂ memoryless (CV = 1)
+│   └── cv_predictions_memoryless.json
 ├── src/crr_cv_predictions/
 │   ├── __init__.py
 │   ├── canonical.py                  # CV = 1/(2·φ_G), φ_G table

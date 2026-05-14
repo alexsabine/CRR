@@ -16,6 +16,7 @@ was used, and how it was utilised. Here's the map.
 | **How that data was utilised** | Same CSV/JSON, columns `cv_obs`, `ratio`, `verdict` | Empirical CV from the source, the recomputed ratio against the canonical prediction, and the rubric's verdict. |
 | **Other CV values predicted by Z₂-on-SO(2)** | `docs/z2_on_so2_compositional.md` + `data/cv_predictions_z2_on_so2.csv` | 14 pre-registered new predictions: ρ = −1/2 cardio-resp anti-correlation, nested sub-rupture jitter, k-channel ρ = −1/(k−1), Z₂-on-larger-G corollaries. |
 | **Predictions from Z₂ ruptures on any Lie group** | `docs/lie_group_extensions.md` + `data/cv_predictions_lie_groups.csv` | M22 generalisation extended to SO(4), U(2), SU(4), Sp(2), G₂, Spin(7), T³, T⁴, golden-ratio PHI; each with a candidate empirical system and source. |
+| **Why "Z₂ only" is CV = 1 (memoryless)** | `docs/memoryless_pure_z2.md` + `data/cv_predictions_memoryless.csv` | Sabine 2026 *Geometric Origin of Memoryless Variability*: pure Z₂ with no SO(2) regulator gives CV = (1/2π) × 2π = 1 (exponential distribution). 12 candidate memoryless systems (radioactive decay, Poisson minis, M/M/1, etc.). |
 | **Specific systems each prediction suits** | Same CSV/JSON files, `system` and `domain` columns | NV-centre Rabi, NMR T₂ jitter, Earth LOD jitter, hydrogen orbital lifetime, transmon-cavity, charmonium, pentaquark, double pendulum, cardio-resp-circadian, etc. |
 
 ## The five files you'll most often reach for

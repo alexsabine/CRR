@@ -5,6 +5,8 @@ from .canonical import (
     OMEGA_GEO,
     CV_PRED,
     cv_canonical,
+    cv_pure_z2_memoryless,
+    cv_inflation_factor,
     omega_canonical,
     phi_g,
     acceptance_band,
@@ -18,6 +20,7 @@ from .loader import (
     load_paper_table,
     load_z2_on_so2,
     load_lie_group_extensions,
+    load_memoryless,
     load_all_predictions,
 )
 
@@ -26,6 +29,8 @@ __all__ = [
     "OMEGA_GEO",
     "CV_PRED",
     "cv_canonical",
+    "cv_pure_z2_memoryless",
+    "cv_inflation_factor",
     "omega_canonical",
     "phi_g",
     "acceptance_band",
@@ -35,5 +40,6 @@ __all__ = [
     "load_paper_table",
     "load_z2_on_so2",
     "load_lie_group_extensions",
+    "load_memoryless",
     "load_all_predictions",
 ]

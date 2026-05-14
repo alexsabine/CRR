@@ -77,15 +77,24 @@ def classify(
     state_space: str,
     n_phases: Optional[int] = None,
     regulation: Literal["autonomous", "regulated", "noise-dominated"] = "autonomous",
+    has_so2_regulator: Optional[bool] = None,
 ) -> RubricResult:
     """Apply the 6-step pre-registration algorithm.
 
     state_space accepts:
-      - "two states"            -> Z2
+      - "two states"            -> Z2 (has implicit SO(2) regulator by default)
       - "continuous cycle"      -> SO(2)
       - "n discrete phases"     -> Z_n (must supply n_phases)
       - "ambiguous"             -> Z2 default
+      - "memoryless"            -> Z2_only (no SO(2) regulator anywhere)
       - any compact-Lie-group label registered in canonical.PHI_G
+
+    has_so2_regulator (Step 2.5, new from Sabine 2026 radioactive paper):
+      - None (default): inferred from state_space — 'two states' assumes
+        regulator is present (matches the 132-table default), 'memoryless'
+        assumes absent.
+      - True: forces Z2 → Z2 (with regulator). CV = 1/(2π).
+      - False: forces Z2 → Z2_only (no regulator). CV = 1.
     """
     trace: list[str] = []
 
@@ -96,10 +105,29 @@ def classify(
 
     # Step 2
     ss = state_space.strip().lower()
-    if ss == "two states":
-        sym = "Z2"
+    if ss == "memoryless":
+        sym = "Z2_only"
         n = 2
-        trace.append("Step 2 / Q1 → Z₂, n=2 (two distinguishable states).")
+        trace.append(
+            "Step 2 / memoryless → Z₂_only, n=2 (no SO(2) regulator anywhere). "
+            "CV = CV_Z₂ × C*_absent_SO(2) = 1."
+        )
+    elif ss == "two states":
+        # Step 2.5: SO(2) regulator present?
+        if has_so2_regulator is False:
+            sym = "Z2_only"
+            n = 2
+            trace.append(
+                "Step 2 / Q1 → two states; Step 2.5 → has_so2_regulator=False "
+                "→ Z₂_only (memoryless), CV = 1."
+            )
+        else:
+            sym = "Z2"
+            n = 2
+            trace.append(
+                "Step 2 / Q1 → Z₂, n=2 (two distinguishable states with implicit "
+                "SO(2) regulator; this is the 132-table default)."
+            )
     elif ss == "continuous cycle":
         sym = "SO(2)"
         n = 4
@@ -180,10 +208,14 @@ def predict_cv_for(
     state_space: str,
     n_phases: Optional[int] = None,
     regulation: Literal["autonomous", "regulated", "noise-dominated"] = "autonomous",
+    has_so2_regulator: Optional[bool] = None,
     cv_obs: Optional[float] = None,
 ) -> RubricResult:
     """One-shot rubric application: classify and (optionally) evaluate."""
-    r = classify(system, is_oscillatory, state_space, n_phases, regulation)
+    r = classify(
+        system, is_oscillatory, state_space, n_phases, regulation,
+        has_so2_regulator=has_so2_regulator,
+    )
     if cv_obs is not None:
         evaluate(r, cv_obs)
     return r

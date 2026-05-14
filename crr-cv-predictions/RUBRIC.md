@@ -24,13 +24,36 @@ Ask in order; stop at the first **yes**.
 | Q3 | Does the system have n > 2 discrete phases per cycle? (4-stroke engine, cell cycle G1/S/G2/M, segmentation clock) | **Z_n** | counted n | Less certain than Z₂/SO(2): Z_n predictions for n > 2 are extrapolations. |
 | Q4 | None of the above? | **Z₂** (default) | 2 | Conservative fallback: any cycle crosses at least one boundary. |
 
+### Step 2.5 — SO(2) regulator present in the causal chain?
+
+(Added from Sabine 2026 *Geometric Origin of Memoryless Variability*.)
+
+If Step 2 returned **Z₂**, you must now ask whether there is an SO(2)
+regulator anywhere in the system's causal chain (cardiac electrical
+cycle behind the valve, membrane potential behind the spike,
+escapement wheel behind the tick, …).
+
+| Has SO(2) regulator? | Refined symmetry | CV prediction |
+|----------------------|------------------|---------------|
+| **Yes** (default for any physical system) | `Z2` (= `Z2_on_SO2`) | 1/(2π) ≈ 0.1592 |
+| **No** (truly memoryless: radioactive decay, Poisson minis, etc.) | `Z2_only` | **1 (exponential distribution)** |
+
+Default is **Yes** — physical Z₂ events almost always have an SO(2)
+regulator (paper Appendix A: door/hinge, switch/rocker, neuron/
+membrane, heart/cardiac-cycle). Only assert **No** when memorylessness
+is established as a property of the source process, not a fitting
+choice. The Z₂_only assignment is the strongest possible classification
+because it predicts CV = 1 *exactly* (a theorem about the exponential
+distribution, not an empirical claim).
+
 ### Step 3 — Register the prediction
 
 Compute the canonical CV under the M22 generalisation (CV = 1/(2·φ_G)):
 
 | Symmetry | φ_G | CV_pred | Acceptance band [0.6×, 1.3×] |
 |----------|-----|---------|-------------------------------|
-| Z₂ | π | 1/(2π) ≈ **0.1592** | [0.0955, 0.2070] |
+| Z₂_only (pure memoryless) | 1/2 | **1.0** | [0.6, 1.3] |
+| Z₂ (= Z₂-on-SO(2)) | π | 1/(2π) ≈ **0.1592** | [0.0955, 0.2070] |
 | SO(2) | 2π | 1/(4π) ≈ **0.0796** | [0.0478, 0.1035] |
 | SU(2) | 2π | 1/(4π) ≈ **0.0796** | [0.0478, 0.1035] |
 | SO(3) | π | 1/(2π) ≈ **0.1592** | [0.0955, 0.2070] |
@@ -103,7 +126,8 @@ note this as a limitation, do not silently reassign.
 
 | If physics says… | Assign | n | CV prediction | Example |
 |------------------|--------|---|---------------|---------|
-| Two states | Z₂ | 2 | 1/(2π) ≈ 0.1592 | Heart (systole/diastole) |
+| Two states **with SO(2) regulator** (default) | Z₂ | 2 | 1/(2π) ≈ 0.1592 | Heart (systole/diastole) on cardiac cycle |
+| Two states **without any SO(2) regulator** (truly memoryless) | Z₂_only | 2 | **1.0** (exponential) | Radioactive decay |
 | Continuous cycle | SO(2) | 4 | 1/(4π) ≈ 0.0796 | Respiration (NREM) |
 | n discrete phases | Z_n | n | 1/(nπ) (paper) **or** n/(4π) (discrete-phase) | Cell cycle (n = 4) |
 | Compact Lie group G | M22 | — | 1/(2·φ_G) | Spin-1/2 (SU(2), φ = 2π) |

@@ -95,12 +95,18 @@ def load_lie_group_extensions() -> list[dict[str, Any]]:
     return _load_csv(DATA_DIR / "cv_predictions_lie_groups.csv")
 
 
+def load_memoryless() -> list[dict[str, Any]]:
+    """Load the pure-Z₂ memoryless predictions (CV = 1)."""
+    return _load_csv(DATA_DIR / "cv_predictions_memoryless.csv")
+
+
 def load_all_predictions() -> list[dict[str, Any]]:
-    """Merge all three prediction files into a single list."""
+    """Merge all four prediction files into a single list."""
     out: list[dict[str, Any]] = []
     out.extend(load_paper_table())
     out.extend(load_z2_on_so2())
     out.extend(load_lie_group_extensions())
+    out.extend(load_memoryless())
     return out
 
 

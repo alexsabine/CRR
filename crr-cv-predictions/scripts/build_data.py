@@ -20,6 +20,7 @@ from crr_cv_predictions._extensions import (  # noqa: E402
     get_lie_group_rows,
     get_z2_on_so2_rows,
 )
+from crr_cv_predictions._memoryless import get_memoryless_rows  # noqa: E402
 from crr_cv_predictions.loader import (  # noqa: E402
     DATA_DIR,
     load_paper_table,
@@ -41,9 +42,14 @@ def main() -> None:
     write_csv(lie, DATA_DIR / "cv_predictions_lie_groups.csv")
     write_json(lie, DATA_DIR / "cv_predictions_lie_groups.json")
 
+    memoryless = get_memoryless_rows()
+    write_csv(memoryless, DATA_DIR / "cv_predictions_memoryless.csv")
+    write_json(memoryless, DATA_DIR / "cv_predictions_memoryless.json")
+
     print(f"wrote {len(paper)} paper rows")
     print(f"wrote {len(z2so2)} Z₂-on-SO(2) extension rows")
     print(f"wrote {len(lie)} Lie-group extension rows")
+    print(f"wrote {len(memoryless)} memoryless (pure-Z₂) extension rows")
 
 
 if __name__ == "__main__":
