@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRR CV Predictions — explorer</title>
+<meta name="description" content="A plain-language explorer for the CRR (Coherence-Rupture-Regeneration) coefficient-of-variation prediction framework: 132 systems from the paper plus 40 pre-registered extensions.">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --surface-2: #f0eee8;
+    --ink: #1a1a1a;
+    --ink-soft: #4a4a4a;
+    --ink-faint: #8a8a8a;
+    --accent: #4a3aaf;          /* Z2 indigo */
+    --accent-2: #2e7d6b;        /* SO(2) teal */
+    --accent-3: #b85c1f;        /* Z2_only orange */
+    --accent-4: #7a5fb0;        /* Lie-group violet */
+    --match: #2e7d6b;
+    --suppressed: #2c5e8f;
+    --elevated: #b85c1f;
+    --pending: #8a8a8a;
+    --rule: #d8d4ca;
+    --code-bg: #f4f1ea;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.06);
+    --max-w: 1180px;
+    --pad: clamp(16px, 4vw, 40px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a;
+      --surface: #1f1f24;
+      --surface-2: #26262d;
+      --ink: #e8e6e0;
+      --ink-soft: #b8b6b0;
+      --ink-faint: #7a7872;
+      --accent: #9c8df0;
+      --accent-2: #5dcdb8;
+      --accent-3: #d68a4e;
+      --accent-4: #b89cf0;
+      --rule: #2e2e36;
+      --code-bg: #1a1a20;
+      --shadow: 0 1px 2px rgba(0,0,0,.2), 0 4px 16px rgba(0,0,0,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 16px/1.6 ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    color: var(--ink); background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .wrap { max-width: var(--max-w); margin: 0 auto; padding: 0 var(--pad); }
+  h1, h2, h3, h4 {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.2; margin: 0; letter-spacing: -.01em;
+  }
+  h1 { font-size: clamp(1.7rem, 3.6vw, 2.8rem); font-weight: 700; }
+  h2 { font-size: clamp(1.3rem, 2.4vw, 1.9rem); font-weight: 600; margin-top: 0; }
+  h3 { font-size: 1.15rem; font-weight: 600; }
+  h4 { font-size: 1rem; font-weight: 600; color: var(--ink-soft); }
+  p { margin: 0 0 .8em 0; }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid currentColor; }
+  a:hover { color: var(--ink); }
+  code, .mono { font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+                font-size: .92em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  .formula { font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+             font-size: 1.05em; background: var(--code-bg); padding: 12px 16px;
+             border-radius: 6px; border-left: 3px solid var(--accent); display: block; }
+  .small { font-size: .9em; color: var(--ink-soft); }
+  .faint { color: var(--ink-faint); }
+
+  /* Header */
+  header.hero {
+    background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+    border-bottom: 1px solid var(--rule);
+    padding: clamp(40px, 8vw, 80px) 0 clamp(32px, 6vw, 56px);
+  }
+  header.hero .eyebrow { font-family: ui-sans-serif, system-ui, sans-serif;
+    text-transform: uppercase; letter-spacing: .12em; font-size: .78rem;
+    color: var(--ink-faint); margin-bottom: 14px; }
+  header.hero h1 { margin-bottom: 18px; max-width: 22ch; }
+  header.hero .lede { font-size: clamp(1rem, 1.5vw, 1.18rem);
+    color: var(--ink-soft); max-width: 65ch; }
+  header.hero .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .pill { display: inline-block; padding: 4px 11px; border-radius: 999px;
+    font-family: ui-sans-serif, system-ui, sans-serif; font-size: .82rem;
+    background: var(--surface); border: 1px solid var(--rule); color: var(--ink-soft); }
+
+  /* Nav */
+  nav.toc { position: sticky; top: 0; z-index: 10; background: var(--bg);
+    border-bottom: 1px solid var(--rule); padding: 8px 0; }
+  nav.toc .toc-inner { display: flex; flex-wrap: wrap; gap: 4px 16px;
+    font-family: ui-sans-serif, system-ui, sans-serif; font-size: .88rem; }
+  nav.toc a { color: var(--ink-soft); border: none; padding: 4px 0; }
+  nav.toc a:hover { color: var(--accent); }
+
+  /* Sections */
+  section { padding: clamp(36px, 6vw, 72px) 0; border-bottom: 1px solid var(--rule); }
+  section.tight { padding: clamp(28px, 4vw, 48px) 0; }
+  section .lede { font-size: 1.08rem; color: var(--ink-soft); max-width: 65ch; margin: 8px 0 28px; }
+
+  /* Cards */
+  .grid { display: grid; gap: 18px; }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .grid-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .card { background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 8px; padding: 22px; box-shadow: var(--shadow); }
+  .card h3 { margin: 0 0 8px; }
+  .card .label { font-family: ui-sans-serif, system-ui, sans-serif;
+    text-transform: uppercase; letter-spacing: .08em; font-size: .72rem;
+    color: var(--ink-faint); margin-bottom: 6px; }
+  .card .big { font-size: 1.6rem; font-family: ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600; margin: 4px 0 8px; letter-spacing: -.02em; }
+
+  /* The three Z2 readings */
+  .three-cards { display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    margin-top: 18px; }
+  .reading-card { padding: 22px; border-radius: 8px; border: 1px solid var(--rule);
+    background: var(--surface); }
+  .reading-card.r1 { border-top: 4px solid var(--accent-3); }
+  .reading-card.r2 { border-top: 4px solid var(--accent); }
+  .reading-card.r3 { border-top: 4px solid var(--accent-2); }
+  .reading-card h3 { margin-bottom: 4px; }
+  .reading-card .cv { font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 1.5rem; font-weight: 600; margin: 6px 0 12px; }
+  .reading-card.r1 .cv { color: var(--accent-3); }
+  .reading-card.r2 .cv { color: var(--accent); }
+  .reading-card.r3 .cv { color: var(--accent-2); }
+  .reading-card .examples { font-size: .9em; color: var(--ink-soft); margin-top: 10px; }
+
+  /* Rubric steps */
+  ol.rubric { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+  ol.rubric > li { counter-increment: step; position: relative;
+    padding: 18px 18px 18px 64px; margin-bottom: 12px;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+  ol.rubric > li::before {
+    content: counter(step);
+    position: absolute; left: 16px; top: 18px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--accent); color: white; font-family: ui-sans-serif, sans-serif;
+    font-weight: 600; font-size: 1.05rem; display: grid; place-items: center;
+  }
+  ol.rubric > li.step-25::before { content: "2.5"; font-size: .82rem; }
+  ol.rubric h3 { margin: 0 0 6px; }
+  ol.rubric .question { font-style: italic; color: var(--ink-soft); margin: 6px 0 10px; }
+
+  /* Decision table */
+  table.decision { width: 100%; border-collapse: collapse;
+    font-family: ui-sans-serif, system-ui, sans-serif; font-size: .92rem;
+    margin: 16px 0; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+  table.decision th, table.decision td { padding: 10px 14px; text-align: left;
+    border-bottom: 1px solid var(--rule); vertical-align: top; }
+  table.decision th { background: var(--surface-2); font-weight: 600; color: var(--ink-soft);
+    font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  table.decision tr:last-child td { border-bottom: none; }
+
+  /* Predictor */
+  .predictor { background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 10px; padding: 24px; box-shadow: var(--shadow); }
+  .predictor .row { display: grid; gap: 8px; margin-bottom: 14px; }
+  @media(min-width: 700px) { .predictor .row.split { grid-template-columns: 1fr 1fr; gap: 16px; } }
+  .predictor label { font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: .82rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ink-faint); display: block; margin-bottom: 4px; }
+  .predictor input[type="text"], .predictor input[type="number"], .predictor select {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 6px;
+    background: var(--bg); color: var(--ink); font: inherit; font-size: 1rem; }
+  .predictor button { background: var(--accent); color: white; border: none;
+    font-family: ui-sans-serif, system-ui, sans-serif; font-weight: 600;
+    padding: 11px 20px; border-radius: 6px; cursor: pointer; font-size: 1rem; }
+  .predictor button:hover { background: var(--ink); }
+  .predictor .result { margin-top: 18px; padding: 18px; background: var(--surface-2);
+    border-radius: 6px; border-left: 3px solid var(--accent); }
+  .predictor .result.hidden { display: none; }
+  .predictor .result h4 { margin: 0 0 8px; color: var(--ink); }
+  .predictor .result .out-cv { font-size: 1.6rem; font-weight: 700; color: var(--accent);
+    font-family: ui-sans-serif, system-ui, sans-serif; }
+  .predictor .trace { margin-top: 10px; font-size: .9em; color: var(--ink-soft); }
+  .predictor .trace ol { padding-left: 22px; margin: 6px 0 0; }
+
+  /* Data table */
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    margin-bottom: 16px; font-family: ui-sans-serif, system-ui, sans-serif; font-size: .92rem; }
+  .controls input, .controls select { padding: 7px 11px; border: 1px solid var(--rule);
+    border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: .92rem; }
+  .controls input.search { flex: 1 1 220px; min-width: 200px; }
+  .row-count { color: var(--ink-faint); margin-left: auto; }
+  .table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px;
+    background: var(--surface); }
+  table.data { width: 100%; border-collapse: collapse;
+    font-family: ui-sans-serif, system-ui, sans-serif; font-size: .88rem; min-width: 920px; }
+  table.data th, table.data td { padding: 9px 12px; text-align: left;
+    border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  table.data th { background: var(--surface-2); font-weight: 600; color: var(--ink-soft);
+    font-size: .76rem; text-transform: uppercase; letter-spacing: .04em;
+    position: sticky; top: 0; cursor: pointer; }
+  table.data th.sortable::after { content: " ↕"; opacity: .35; font-size: .75em; }
+  table.data th.sort-asc::after { content: " ↑"; opacity: 1; }
+  table.data th.sort-desc::after { content: " ↓"; opacity: 1; }
+  table.data tbody tr:hover { background: var(--surface-2); }
+  table.data td.system { white-space: normal; min-width: 220px; }
+  table.data td.numeric { font-variant-numeric: tabular-nums; text-align: right; }
+
+  /* Verdict badges */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: .76rem; font-weight: 600; letter-spacing: .03em; }
+  .badge.MATCH      { background: rgba(46,125,107,.14); color: var(--match); }
+  .badge.SUPPRESSED { background: rgba(44,94,143,.14); color: var(--suppressed); }
+  .badge.ELEVATED   { background: rgba(184,92,31,.14); color: var(--elevated); }
+  .badge.PENDING    { background: rgba(138,138,138,.14); color: var(--pending); }
+  .badge.A { background: rgba(46,125,107,.14); color: var(--match); }
+  .badge.B { background: rgba(44,94,143,.14); color: var(--suppressed); }
+  .badge.C { background: rgba(184,92,31,.14); color: var(--elevated); }
+
+  /* Asymmetry visualisation */
+  .asymmetry { display: grid; gap: 16px; margin: 22px 0;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .asym-card { padding: 20px; background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 8px; }
+  .asym-card.yes { border-left: 4px solid var(--match); }
+  .asym-card.no  { border-left: 4px solid var(--elevated); }
+  .asym-card .equation { font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 1.15rem; margin: 8px 0; font-weight: 500; }
+  .asym-card .verdict { font-weight: 600; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .asym-card.yes .verdict { color: var(--match); }
+  .asym-card.no .verdict  { color: var(--elevated); }
+
+  /* Worked-example callout */
+  .worked-example { background: var(--surface-2); border-left: 3px solid var(--accent);
+    padding: 16px 18px; border-radius: 4px; margin: 12px 0;
+    font-family: ui-sans-serif, system-ui, sans-serif; font-size: .92rem; }
+  .worked-example h4 { color: var(--accent); margin-bottom: 6px; font-family: inherit; }
+  .worked-example .step { margin: 4px 0; color: var(--ink-soft); }
+
+  /* Two-col text+visual */
+  .two-col { display: grid; gap: 22px; margin: 18px 0;
+    grid-template-columns: 1fr; }
+  @media(min-width: 760px) { .two-col { grid-template-columns: 1.2fr 1fr; align-items: start; } }
+
+  /* Stats numbers */
+  .stat-grid { display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin: 18px 0; }
+  .stat { background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 8px; padding: 14px 16px; text-align: center; }
+  .stat .n { font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 1.7rem; font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums; }
+  .stat .lbl { font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: .8rem; color: var(--ink-faint); margin-top: 2px;
+    text-transform: uppercase; letter-spacing: .04em; }
+
+  /* Footer */
+  footer { padding: 32px 0 80px; color: var(--ink-faint); font-size: .88rem; }
+  footer a { color: var(--ink-soft); }
+
+  /* Print */
+  @media print {
+    nav.toc { display: none; }
+    section { break-inside: avoid; padding: 24px 0; border: none; }
+    .table-scroll { overflow: visible; }
+    table.data { min-width: 0; font-size: 9pt; }
+  }
+</style>
+</head>
+
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">CRR · Coherence — Rupture — Regeneration</div>
+    <h1>What CRR predicts about how regularly things repeat</h1>
+    <p class="lede">
+      CRR is a framework that predicts the <strong>coefficient of variation (CV)</strong>
+      — the ratio of standard deviation to mean — of cycle times across very different
+      systems, with no fitted parameters. A heart, a star, a switch, an atom: each gets
+      a single predicted number from a single formula. This page explains exactly how,
+      step by step, and lets you browse all 172 predictions in the package.
+    </p>
+    <div class="pill-row">
+      <span class="pill">132 systems from the paper</span>
+      <span class="pill">14 Z₂-on-SO(2) compositional</span>
+      <span class="pill">14 Lie-group extensions</span>
+      <span class="pill">12 pure-Z₂ memoryless (CV = 1)</span>
+      <span class="pill">No fitted parameters</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc"><div class="wrap toc-inner">
+  <a href="#why">Why CRR predicts CV</a>
+  <a href="#formula">The single formula</a>
+  <a href="#three-z2">Three Z₂ readings</a>
+  <a href="#rubric">The 6-step rubric</a>
+  <a href="#predictor">Try it yourself</a>
+  <a href="#asymmetry">The asymmetry</a>
+  <a href="#data">Browse all 172</a>
+  <a href="#discipline">Pre-registration</a>
+</div></nav>
+
+<!-- ============================================================== -->
+<!-- WHY CRR PREDICTS CV -->
+<!-- ============================================================== -->
+<section id="why">
+  <div class="wrap">
+    <h2>Why does CRR predict a CV at all?</h2>
+    <p class="lede">
+      CRR claims that every oscillating system — whatever it is — passes through the
+      same three phases, in the same order, governed by the same equation. The
+      coefficient of variation drops out of that structure as a number you can compute
+      from the system's symmetry alone.
+    </p>
+
+    <div class="grid grid-3">
+      <div class="card">
+        <div class="label">Phase 1</div>
+        <h3>Coherence accumulates</h3>
+        <p>The system gathers evidence about its own state.
+        Anything that persists adds up. The integral
+        <code>C = ∫ L dτ</code> measures how much has accumulated.</p>
+      </div>
+      <div class="card">
+        <div class="label">Phase 2</div>
+        <h3>Rupture happens</h3>
+        <p>When <code>C·Ω = 1</code>, the system reaches its information-theoretic
+        limit (the Cramér–Rao bound) and reorganises. The transition is sharp:
+        a heart valve snaps, a neuron spikes, an atom decays.</p>
+      </div>
+      <div class="card">
+        <div class="label">Phase 3</div>
+        <h3>Regeneration rebuilds</h3>
+        <p>What comes next is reconstructed from weighted memory: the higher
+        the past coherence, the more accessible that memory is during
+        rebuilding.</p>
+      </div>
+    </div>
+
+    <p style="margin-top: 22px;">
+      The single parameter <strong>Ω</strong> sets everything else: how much
+      coherence the system can hold before rupture, how broadly it remembers,
+      and — crucially for this page — <strong>how variable its cycle times are</strong>.
+      Specifically, the CV of the time between ruptures is just <strong>Ω/2</strong>.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- THE SINGLE FORMULA -->
+<!-- ============================================================== -->
+<section id="formula">
+  <div class="wrap">
+    <h2>The single formula</h2>
+    <p class="lede">
+      Every prediction in this package comes from one formula. The only thing that
+      changes from system to system is one number, <code>φ_G</code> — the geodesic
+      length of the system's phase manifold.
+    </p>
+
+    <code class="formula">CV = 1 / (2 · φ_G)</code>
+
+    <div class="two-col">
+      <div>
+        <h3>What is φ_G?</h3>
+        <p>It's the length of the shortest closed loop on the system's
+        phase manifold (the abstract space the system's state lives in),
+        measured in the natural geometric units (the Fisher–Rao metric).</p>
+        <ul>
+          <li><strong>For a binary switch</strong> (Z₂ — two states like
+          on/off, systole/diastole, fire/rest): the phase manifold is the
+          <em>Bernoulli manifold</em>, with diameter <code>π</code>.
+          So <code>φ_G = π</code>, and <code>CV = 1/(2π) ≈ 0.159</code>.</li>
+          <li><strong>For a continuous cycle</strong> (SO(2) — anything
+          that keeps rotating like a circle): the phase manifold is
+          a circle of circumference <code>2π</code>.
+          So <code>φ_G = 2π</code>, and <code>CV = 1/(4π) ≈ 0.080</code>.</li>
+          <li><strong>For a quantum spin-½ system</strong> (SU(2) — Bloch
+          sphere): the geodesic is also <code>2π</code>, so <code>CV ≈ 0.080</code>
+          (CRR predicts spin-½ has the same CV as a continuous cycle).</li>
+        </ul>
+        <p>The formula is parameter-free: nothing has been fit to data.</p>
+      </div>
+      <div>
+        <h3>Why divide by 2?</h3>
+        <p>Because the rupture event is a Bernoulli draw — at the
+        Cramér–Rao bound, the variance of an unbiased estimator equals
+        <code>1/4</code> of the cycle. The CV picks up a factor of 1/2 from the
+        conjugacy structure that links CRR to the Heisenberg uncertainty
+        principle (where the same factor appears as the minimum
+        uncertainty product).</p>
+        <h3>Where does the 2 in the ratio come from?</h3>
+        <p>For any binary system regulated by a continuous cycle:
+        <code>CV(Z₂) / CV(SO(2)) = (1/2π) / (1/4π) = 2</code>, exactly.
+        That's a topological invariant — it's the ratio of two manifold
+        circumferences, not a fit. Any system where the observed ratio
+        is 1.7 or 2.4 falsifies the framework.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- THREE Z2 READINGS -->
+<!-- ============================================================== -->
+<section id="three-z2">
+  <div class="wrap">
+    <h2>The three readings of "Z₂"</h2>
+    <p class="lede">
+      The most subtle thing about CRR is that the symbol "Z₂" can mean three
+      different things, and the predicted CV is different in each case. This
+      is the single most important thing to understand about applying the rubric.
+    </p>
+
+    <div class="three-cards">
+      <div class="reading-card r1">
+        <div class="small faint">Reading 1 — pure</div>
+        <h3>Z₂ only (memoryless)</h3>
+        <div class="cv">CV = 1</div>
+        <p>A binary event with <strong>no continuous regulator anywhere
+        in the causal chain</strong>. The exponential distribution.
+        The atom's nucleus has no closed geometry to ride on, so the
+        Z₂ baseline gets multiplied by the geodesic of the absent SO(2):
+        <code>(1/2π) × 2π = 1</code>.</p>
+        <div class="examples">
+          Examples: radioactive decay, single-photon arrivals from
+          incoherent sources, M/M/1 queue inter-arrivals,
+          spontaneous synaptic minis at low Ca²⁺.
+        </div>
+      </div>
+
+      <div class="reading-card r2">
+        <div class="small faint">Reading 2 — compositional (the default)</div>
+        <h3>Z₂ on SO(2)</h3>
+        <div class="cv">CV ≈ 0.159</div>
+        <p>A binary event <strong>with</strong> a continuous regulator
+        somewhere underneath it. This is what almost every "Z₂" entry
+        in the 132-system table actually is. The hinge is the SO(2);
+        the door's open/closed is the Z₂ that rides on it.</p>
+        <div class="examples">
+          Examples: heart valve (cardiac cycle behind it), neuron spike
+          (membrane potential), light switch (rocker arc), volcanic
+          eruption (chamber recharge cycle).
+        </div>
+      </div>
+
+      <div class="reading-card r3">
+        <div class="small faint">Reading 3 — observed directly</div>
+        <h3>SO(2)</h3>
+        <div class="cv">CV ≈ 0.080</div>
+        <p>A continuous cycle observed as a continuous cycle, not
+        projected through a Z₂ event. The phase wraps from 0 to 2π
+        with no preferred stopping point.</p>
+        <div class="examples">
+          Examples: respiration during NREM sleep, segmentation clock,
+          cardiac RR interval (in supine 5-min recording),
+          ocean swell period.
+        </div>
+      </div>
+    </div>
+
+    <div class="worked-example">
+      <h4>Why it matters: the "every Z₂ has an SO(2) underneath" principle</h4>
+      <p class="step">
+        On physical inspection, almost every Z₂ event humans encounter has a
+        rotation somewhere in its causal chain. Every switch you have ever used
+        travels an arc. The clock escapement is the principle made mechanical
+        — a rotating wheel gates a binary tick.
+      </p>
+      <p class="step">
+        The radioactive nucleus is the rare exception: the strong and EM forces
+        cannot find a closed configuration, so there is no SO(2) substrate. The
+        absence is quantified by the geometry of what is absent — a factor of
+        <code>2π</code>. The resulting CV is exactly 1.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- THE 6-STEP RUBRIC -->
+<!-- ============================================================== -->
+<section id="rubric">
+  <div class="wrap">
+    <h2>The pre-registered classification protocol</h2>
+    <p class="lede">
+      This is the algorithm that was applied to every system in the 132-system
+      table <em>before</em> any empirical CV was consulted. If you can answer
+      the questions for a new system — using only its physics, never its
+      observed CV — then the prediction is fixed.
+    </p>
+
+    <ol class="rubric">
+
+      <li>
+        <h3>Is the system oscillatory?</h3>
+        <p class="question">Does it have repeated temporal events with a measurable
+        period or inter-event interval?</p>
+        <p>If no, CRR does not apply — exclude. CRR is about cycle times; a
+        once-off event has no CV.</p>
+      </li>
+
+      <li>
+        <h3>Identify the state space</h3>
+        <p class="question">Ask in order; stop at the first "yes".</p>
+        <table class="decision">
+          <thead>
+            <tr><th>Q</th><th>Question</th><th>Assign</th><th>n</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Q1</td>
+              <td>Two distinguishable states alternating? (on/off, fire/rest,
+                  inhale/exhale, contracted/relaxed)</td>
+              <td><strong>Z₂</strong></td>
+              <td>2</td>
+            </tr>
+            <tr>
+              <td>Q2</td>
+              <td>Continuous cycle with no preferred stopping point?
+                  (a phase that wraps 0 → 2π without identifiable states)</td>
+              <td><strong>SO(2)</strong></td>
+              <td>4</td>
+            </tr>
+            <tr>
+              <td>Q3</td>
+              <td>n &gt; 2 discrete phases per cycle? (4-stroke engine,
+                  cell cycle G1/S/G2/M, repressilator)</td>
+              <td><strong>Z_n</strong></td>
+              <td>n</td>
+            </tr>
+            <tr>
+              <td>Q4</td>
+              <td>None of the above? (ambiguous structure)</td>
+              <td><strong>Z₂</strong> (default)</td>
+              <td>2</td>
+            </tr>
+          </tbody>
+        </table>
+      </li>
+
+      <li class="step-25">
+        <h3>If you said Z₂, is there an SO(2) regulator in the causal chain?</h3>
+        <p class="question">This step was added after Sabine's 2026
+        radioactive-decay finding. It refines the Z₂ classification.</p>
+        <table class="decision">
+          <thead>
+            <tr><th>Has SO(2) regulator?</th><th>Refined symmetry</th><th>CV</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Yes</strong> (default for any physical Z₂ system)</td>
+              <td>Z₂ (= Z₂-on-SO(2))</td>
+              <td>1/(2π) ≈ 0.159</td>
+              <td>What the 132-table assumes by default</td>
+            </tr>
+            <tr>
+              <td><strong>No</strong> — truly memoryless source</td>
+              <td>Z₂_only</td>
+              <td><strong>1</strong></td>
+              <td>Radioactive decay, Poisson minis, M/M/1, etc.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small faint">
+          The default is <strong>Yes</strong>. Almost every physical Z₂ system
+          has a continuous regulator underneath (the heart cycle behind the valve,
+          the membrane potential behind the spike, the rocker arc behind the
+          switch). Assert "No" only when memorylessness is established as a
+          property of the source process.
+        </p>
+      </li>
+
+      <li>
+        <h3>Compute the prediction</h3>
+        <p>Look up <code>CV = 1/(2·φ_G)</code> in the table:</p>
+        <table class="decision">
+          <thead>
+            <tr><th>Symmetry</th><th>φ_G</th><th>CV prediction</th><th>Acceptance band [0.6×, 1.3×]</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Z₂_only (memoryless)</td><td>1/2</td><td><strong>1.0</strong></td><td>[0.60, 1.30]</td></tr>
+            <tr><td>Z₂ (with SO(2) regulator)</td><td>π</td><td><strong>1/(2π) ≈ 0.1592</strong></td><td>[0.0955, 0.2070]</td></tr>
+            <tr><td>SO(2)</td><td>2π</td><td><strong>1/(4π) ≈ 0.0796</strong></td><td>[0.0478, 0.1035]</td></tr>
+            <tr><td>SU(2)</td><td>2π</td><td>1/(4π) ≈ 0.0796 (same as SO(2))</td><td>[0.0478, 0.1035]</td></tr>
+            <tr><td>SO(3)</td><td>π</td><td>1/(2π) ≈ 0.1592 (same as Z₂)</td><td>[0.0955, 0.2070]</td></tr>
+            <tr><td>SU(3)</td><td>2π√3</td><td>1/(4π√3) ≈ 0.0459</td><td>[0.0276, 0.0597]</td></tr>
+            <tr><td>Z_n (paper)</td><td>nπ/2</td><td>1/(nπ)</td><td>[0.6/(nπ), 1.3/(nπ)]</td></tr>
+          </tbody>
+        </table>
+      </li>
+
+      <li>
+        <h3>Three-class assignment (still no peeking at empirical CV)</h3>
+        <p class="question">Classify on physics alone.</p>
+        <ul>
+          <li><strong>Class A — autonomous stochastic.</strong> No strong external
+            regulation, no major noise injection. Intrinsic stochasticity dominates
+            timing. CRR predicts the canonical CV within [0.6×, 1.3×].</li>
+          <li><strong>Class B — deterministic / actively regulated.</strong> Feedback
+            control, entrainment, engineering precision, or evolutionary
+            synchronisation crushes Ω below the thermodynamic value. CRR predicts
+            CV ≪ canonical (suppressed).</li>
+          <li><strong>Class C — noise-dominated / volitional.</strong> External
+            stochastic forcing, volitional/cortical modulation, low copy numbers,
+            or point-process statistics inflate Ω above the thermodynamic value.
+            CRR predicts CV ≫ canonical (elevated).</li>
+        </ul>
+      </li>
+
+      <li>
+        <h3>Look up empirical CV. Compare. Document honestly.</h3>
+        <p>Find the observed CV in peer-reviewed literature. Compute
+        <code>ratio = cv_obs / cv_pred</code>. Assign:</p>
+        <table class="decision">
+          <thead><tr><th>Ratio</th><th>Verdict</th><th>What it tells you</th></tr></thead>
+          <tbody>
+            <tr><td>0.60 — 1.30</td><td><span class="badge MATCH">MATCH</span></td>
+              <td>Timing variability consistent with the predicted symmetry class.</td></tr>
+            <tr><td>&lt; 0.60</td><td><span class="badge SUPPRESSED">SUPPRESSED</span></td>
+              <td>System is more precise than the prediction. Diagnostic: active regulation, feedback, engineering.</td></tr>
+            <tr><td>&gt; 1.30</td><td><span class="badge ELEVATED">ELEVATED</span></td>
+              <td>System is more variable than the prediction. Diagnostic: stochastic forcing, volitional modulation, asymmetric sub-cycles, or nested oscillation.</td></tr>
+          </tbody>
+        </table>
+        <p>A <strong>directional reversal</strong> — Class B predicted suppressed
+        but actually elevated, or Class C predicted elevated but actually suppressed
+        — is the strongest form of misprediction. The 132-system paper reports
+        <strong>zero</strong> directional reversals.</p>
+      </li>
+
+    </ol>
+
+    <div class="worked-example">
+      <h4>Worked example: cardiac RR interval (paper row 1)</h4>
+      <p class="step"><strong>Step 1.</strong> Heart beats — yes, oscillatory.</p>
+      <p class="step"><strong>Step 2.</strong> Q1 — is it two states? You could say
+      systole/diastole, but in a 5-min supine recording the cardiac cycle is best
+      treated as continuous phase progression. Q2 — continuous cycle? Yes. Assign
+      <strong>SO(2)</strong>, n = 4.</p>
+      <p class="step"><strong>Step 2.5.</strong> Skipped — only applies to Z₂.</p>
+      <p class="step"><strong>Step 3.</strong> CV_pred = 1/(4π) ≈ <strong>0.0796</strong>.
+      Acceptance band [0.0478, 0.1035].</p>
+      <p class="step"><strong>Step 4.</strong> Resting supine, no entrainment — autonomous.
+      <strong>Class A</strong>.</p>
+      <p class="step"><strong>Step 5.</strong> Empirical (Nunan 2010 BJSM 44:202): CV = 0.054.
+      Ratio 0.68× → <span class="badge MATCH">MATCH</span>. Class A predicted MATCH —
+      no directional reversal.</p>
+    </div>
+
+    <div class="worked-example">
+      <h4>Worked example: radioactive decay of Carbon-14</h4>
+      <p class="step"><strong>Step 1.</strong> Decay events — yes, oscillatory in the loose
+      sense (repeated inter-event intervals).</p>
+      <p class="step"><strong>Step 2.</strong> Q1 — two states? Atom intact / decayed.
+      <strong>Z₂</strong>, n = 2.</p>
+      <p class="step"><strong>Step 2.5.</strong> Is there an SO(2) regulator? <strong>No.</strong>
+      The unstable nucleus has no closed geometry — strong and EM forces cannot
+      find a balanced configuration. Reassign as <strong>Z₂_only</strong>.</p>
+      <p class="step"><strong>Step 3.</strong> CV_pred = <strong>1.0</strong> (the
+      exponential distribution).</p>
+      <p class="step"><strong>Step 4.</strong> Pure point process — <strong>Class C</strong>.</p>
+      <p class="step"><strong>Step 5.</strong> Empirical CV of inter-decay times = 1.0
+      exactly (theorem about the exponential distribution). <span class="badge MATCH">MATCH</span>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- INTERACTIVE PREDICTOR -->
+<!-- ============================================================== -->
+<section id="predictor">
+  <div class="wrap">
+    <h2>Try it yourself</h2>
+    <p class="lede">
+      Apply the rubric to a system you're curious about. Answer in physical
+      terms, not in observed-CV terms. The output gives you the prediction
+      and the trace of the rubric's reasoning.
+    </p>
+
+    <div class="predictor">
+      <div class="row">
+        <label for="p-system">Name of the system</label>
+        <input id="p-system" type="text" placeholder="e.g. amoeba feeding cycle">
+      </div>
+      <div class="row split">
+        <div>
+          <label for="p-state">State space (Step 2)</label>
+          <select id="p-state">
+            <option value="two states">Two distinguishable states alternating</option>
+            <option value="continuous cycle">Continuous cycle (SO(2))</option>
+            <option value="n discrete phases">n &gt; 2 discrete phases</option>
+            <option value="memoryless">Memoryless (no SO(2) regulator)</option>
+            <option value="ambiguous">Ambiguous → Z₂ default</option>
+          </select>
+        </div>
+        <div>
+          <label for="p-regulation">Regulation (Step 4)</label>
+          <select id="p-regulation">
+            <option value="autonomous">Autonomous stochastic — Class A</option>
+            <option value="regulated">Actively regulated — Class B</option>
+            <option value="noise-dominated">Noise-dominated / volitional — Class C</option>
+          </select>
+        </div>
+      </div>
+      <div class="row split">
+        <div>
+          <label for="p-n">If "n discrete phases", set n</label>
+          <input id="p-n" type="number" min="2" max="20" value="3">
+        </div>
+        <div>
+          <label for="p-so2">If "two states": is there an SO(2) regulator?</label>
+          <select id="p-so2">
+            <option value="default">Default (yes — physical Z₂ has regulator)</option>
+            <option value="yes">Yes — explicit (Z₂-on-SO(2))</option>
+            <option value="no">No — memoryless (Z₂_only, CV = 1)</option>
+          </select>
+        </div>
+      </div>
+      <div class="row split">
+        <div>
+          <label for="p-cv">Optional: observed CV (for verdict)</label>
+          <input id="p-cv" type="number" step="0.001" min="0" placeholder="leave blank for prediction only">
+        </div>
+        <div style="display: flex; align-items: end;">
+          <button id="p-go">Apply rubric →</button>
+        </div>
+      </div>
+
+      <div id="p-result" class="result hidden">
+        <h4>Prediction</h4>
+        <div>Symmetry: <span id="r-sym" class="mono"></span></div>
+        <div>Predicted CV: <span id="r-cv" class="out-cv"></span></div>
+        <div class="small faint" id="r-band"></div>
+        <div id="r-verdict-row" class="hidden" style="margin-top:8px;">
+          <div>Observed CV: <span id="r-obs" class="mono"></span> &nbsp;
+          Ratio: <span id="r-ratio" class="mono"></span> &nbsp;
+          Verdict: <span id="r-verdict"></span></div>
+          <div id="r-reversal" class="hidden small" style="color: var(--elevated); font-weight: 600; margin-top: 4px;">
+            ⚠ Directional reversal — class and verdict disagree
+          </div>
+        </div>
+        <div class="trace">
+          <strong>Rubric trace</strong>
+          <ol id="r-trace"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- THE ASYMMETRY -->
+<!-- ============================================================== -->
+<section id="asymmetry">
+  <div class="wrap">
+    <h2>The asymmetry that proves it isn't numerology</h2>
+    <p class="lede">
+      The most surprising prediction of the recent radioactive paper is that
+      the exponential distribution's <code>CV = 1</code> can be derived as
+      <code>CV(Z₂) × C*(SO(2)) = (1/2π) × 2π = 1</code> — the Z₂ baseline
+      inflated by the geodesic of the absent SO(2) substrate. Two independent
+      checks make this more than a coincidence.
+    </p>
+
+    <div class="asymmetry">
+      <div class="asym-card yes">
+        <h3>Z₂ × SO(2)</h3>
+        <div class="equation">(1/2π) × 2π = <strong>1</strong></div>
+        <div class="verdict">Equals unity ✓</div>
+        <p class="small">Removing the SO(2) regulator from a Z₂ event gives the
+        memoryless Poisson statistics (CV = 1). Physically correct: the Z₂
+        requires an SO(2) for regulation.</p>
+      </div>
+      <div class="asym-card no">
+        <h3>SO(2) × Z₂</h3>
+        <div class="equation">(1/4π) × π = <strong>1/4</strong></div>
+        <div class="verdict">Not unity ✗</div>
+        <p class="small">Removing a Z₂ projection from an SO(2) cycle does
+        <em>not</em> produce memorylessness. Physically correct: a continuous
+        rotation can exist without producing binary events.</p>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <h3>Discrete memoryless: no 2π factor</h3>
+        <p>The geometric distribution (the discrete analogue of the
+        exponential) has CV = √(1−p)/p, which varies continuously
+        with p. There is no clean <code>2π</code> factor at any value
+        of p. The <code>2π</code> appears only on continuous manifolds —
+        precisely where SO(2) <em>could</em> have existed but doesn't.
+        On a discrete lattice there is no SO(2) to be missing.</p>
+      </div>
+      <div>
+        <h3>Class C systems approach the limit</h3>
+        <p>Several "elevated" Class C systems in the 132-table sit
+        at high ratios that approach the theoretical maximum
+        <code>2π = 6.28</code>:</p>
+        <ul class="small">
+          <li>Spontaneous blink interval: 5.03×</li>
+          <li>Head direction cell ISI: 4.27×</li>
+          <li>Mast seeding interval: 3.77×</li>
+          <li>Inter-sigh interval: 3.77×</li>
+          <li>Earthquake recurrence: 3.14×</li>
+        </ul>
+        <p class="small">These are systems whose SO(2) regulator
+        is weak, intermittent, or absent over the observation
+        timescale.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- DATA TABLE -->
+<!-- ============================================================== -->
+<section id="data">
+  <div class="wrap">
+    <h2>All 172 predictions</h2>
+    <p class="lede">
+      The full catalogue: 132 systems from the paper plus 40 pre-registered
+      extensions. Filter by provenance, class, verdict, or search the system
+      name. Click a column header to sort.
+    </p>
+
+    <div class="stat-grid">
+      <div class="stat"><div class="n" id="stat-total">172</div><div class="lbl">predictions</div></div>
+      <div class="stat"><div class="n" id="stat-match">53</div><div class="lbl">match</div></div>
+      <div class="stat"><div class="n" id="stat-suppressed">34</div><div class="lbl">suppressed</div></div>
+      <div class="stat"><div class="n" id="stat-elevated">45</div><div class="lbl">elevated</div></div>
+      <div class="stat"><div class="n" id="stat-pending">40</div><div class="lbl">pending</div></div>
+      <div class="stat"><div class="n">0</div><div class="lbl">reversals</div></div>
+    </div>
+
+    <div class="controls">
+      <input id="search" type="search" class="search" placeholder="Search system name, domain, reference…">
+      <select id="f-provenance">
+        <option value="">All provenances</option>
+        <option value="paper-appendix-A">Paper (132)</option>
+        <option value="z2-on-so2-extension">Z₂-on-SO(2) (14)</option>
+        <option value="lie-group-extension">Lie-group (14)</option>
+        <option value="memoryless-pure-z2">Memoryless (12)</option>
+      </select>
+      <select id="f-class">
+        <option value="">All classes</option>
+        <option value="A">A — autonomous</option>
+        <option value="B">B — regulated</option>
+        <option value="C">C — noise-dominated</option>
+      </select>
+      <select id="f-verdict">
+        <option value="">All verdicts</option>
+        <option value="MATCH">MATCH</option>
+        <option value="SUPPRESSED">SUPPRESSED</option>
+        <option value="ELEVATED">ELEVATED</option>
+        <option value="PENDING">PENDING</option>
+      </select>
+      <select id="f-symmetry">
+        <option value="">All symmetries</option>
+      </select>
+      <span class="row-count" id="row-count"></span>
+    </div>
+
+    <div class="table-scroll">
+      <table class="data" id="datatable">
+        <thead>
+          <tr>
+            <th class="sortable" data-sort="system">System</th>
+            <th class="sortable" data-sort="domain">Domain</th>
+            <th class="sortable" data-sort="class">Class</th>
+            <th class="sortable" data-sort="symmetry">Symmetry</th>
+            <th class="sortable numeric" data-sort="cv_pred">CV pred</th>
+            <th class="sortable numeric" data-sort="cv_obs">CV obs</th>
+            <th class="sortable numeric" data-sort="ratio">Ratio</th>
+            <th class="sortable" data-sort="verdict">Verdict</th>
+            <th>Reference</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <p class="small faint" style="margin-top: 14px;">
+      Click a row to see the full physical justification, class justification,
+      and notes for that prediction.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================== -->
+<!-- PRE-REGISTRATION DISCIPLINE -->
+<!-- ============================================================== -->
+<section id="discipline">
+  <div class="wrap">
+    <h2>Pre-registration discipline & falsification</h2>
+    <p class="lede">
+      The credibility of CRR's predictions depends on never letting empirical CV
+      values back-feed into the classification. The protocol is designed to make
+      that discipline auditable.
+    </p>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>What's pinned in tests</h3>
+        <p>The package's test suite (<code>pytest tests/</code>) pins:</p>
+        <ul class="small">
+          <li>132 paper rows; 53 MATCH / 34 SUPPRESSED / 45 ELEVATED.</li>
+          <li>Class totals A 45, B 40, C 47 → 114/132 = 86% three-class correct.</li>
+          <li><strong>Zero directional reversals.</strong></li>
+          <li>CV(Z₂) × C*(SO(2)) = 1 exactly; reverse = 1/4 (asymmetry).</li>
+          <li>Topological CV-equivalences hold across symmetry families.</li>
+          <li>Monte Carlo: exponential distribution CV → 1 (as a theorem).</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>What would falsify the framework</h3>
+        <ul class="small">
+          <li>A system whose Z₂/SO(2) ratio is 1.7 or 2.4 (not 2).</li>
+          <li>A directional reversal in a clean Class B or Class C system.</li>
+          <li>Two CV-equivalent groups (e.g. SU(2) vs SO(2)) showing
+            different observed CVs in well-prepared experiments.</li>
+          <li>A demonstrably memoryless physical system with CV ≠ 1.</li>
+          <li>A demonstrably regulated Z₂ system with CV ≈ 1.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="margin-top:28px;">What this package does <em>not</em> claim</h3>
+    <ul class="small faint">
+      <li>It does not fit any parameter — every CV prediction is computed
+        from the canonical formula <code>CV = 1/(2·φ_G)</code>.</li>
+      <li>It does not adjudicate the open theoretical questions in the paper's
+        Section 8 (constant-speed geodesic traversal, circular Landauer barrier,
+        mean-interval-as-closed-geodesic identification). It records them.</li>
+      <li>It does not replace the 24+ independent claim notebooks in
+        <code>claims/</code>. It is a predictions catalogue that points at them.</li>
+      <li>It does not include re-runs of the paper's Monte Carlo null-model
+        significance — those live in <code>crr-engine/consistency/</code>.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Source: Sabine, <em>CRR: A Temporal Grammar — Three-Class Validation
+      Across 132 Systems in 20 Domains</em> (March 2026), and Sabine,
+      <em>The Geometric Origin of Memoryless Variability</em> (April 2026).
+      Package documentation in
+      <code>crr-cv-predictions/PACKAGE_OVERVIEW.md</code>;
+      raw data in <code>data/cv_predictions_*.csv|json</code>;
+      tests in <code>tests/</code>.
+    </p>
+    <p>This page is self-contained — open it from <code>file://</code>,
+       deploy it anywhere, no external dependencies.</p>
+  </div>
+</footer>
+
+<script>
+/* ==================================================================
+   DATA — embedded so the page works offline / from file://
+   ================================================================== */
+
+// 132: 132 rows
+const DATA_132 = [{"id":"paper-001","system":"Human cardiac RR (supine 5-min)","domain":"cardiac","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.054,"ratio":0.6785840131753953,"verdict":"MATCH","physical_justification":"Continuous cardiac limit cycle; phase wraps continuously through systole/diastole/recovery \u2014 SO(2) substrate.","class_justification":"Autonomous oscillator under intrinsic vagal/sympathetic stochasticity; no strong external entrainment in supine rest.","data_extraction":"as cited","reference":"Nunan 2010 BJSM 44:202","notes":"","provenance":"paper-appendix-A"},{"id":"paper-002","system":"Human cardiac RR (24-hr Holter)","domain":"cardiac","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.166,"ratio":1.0430087609918113,"verdict":"MATCH","physical_justification":"On 24-hr scale the cycle reduces to active/rest binary regimes \u2014 Z\u2082 envelope dominates.","class_justification":"Volitional and circadian drivers inflate effective \u03a9; Class C noise-dominated.","data_extraction":"as cited","reference":"Task Force 1996 Eur Heart J 17:354","notes":"","provenance":"paper-appendix-A"},{"id":"paper-003","system":"Human cardiac RR (paced breathing)","domain":"cardiac","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.06,"ratio":0.7539822368615503,"verdict":"MATCH","physical_justification":"Continuous cardiac limit cycle entrained by paced respiration but still SO(2)-structured.","class_justification":"Light entrainment leaves \u03a9 near intrinsic value; Class A.","data_extraction":"as cited","reference":"Nunan 2010 BJSM 44:202","notes":"","provenance":"paper-appendix-A"},{"id":"paper-004","system":"Human respiratory rate (awake)","domain":"respiratory","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.208,"ratio":1.306902543893354,"verdict":"ELEVATED","physical_justification":"Inspiration / expiration are two qualitatively distinguishable states \u2014 Z\u2082.","class_justification":"Awake cortical modulation inflates \u03a9 above thermodynamic baseline.","data_extraction":"as cited","reference":"Tobin 1988 J Appl Physiol 65:309","notes":"","provenance":"paper-appendix-A"},{"id":"paper-005","system":"Human respiratory rate (NREM sleep)","domain":"respiratory","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.055,"ratio":0.6911503837897545,"verdict":"MATCH","physical_justification":"In NREM the respiration is a smooth limit cycle without volitional modulation \u2014 SO(2).","class_justification":"Cortical modulation removed; \u03a9 at intrinsic value; Class A.","data_extraction":"as cited","reference":"Stone 2021 npj Digit Med","notes":"","provenance":"paper-appendix-A"},{"id":"paper-006","system":"Human tidal volume variability","domain":"respiratory","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.33,"ratio":2.0734511513692637,"verdict":"ELEVATED","physical_justification":"Tidal volume sets inspiration/expiration amplitude \u2014 Z\u2082 binary boundary in volume space.","class_justification":"Awake volitional control + sigh injection inflate \u03a9.","data_extraction":"as cited","reference":"Tobin 1988 J Appl Physiol 65:309","notes":"","provenance":"paper-appendix-A"},{"id":"paper-007","system":"Inspiratory time variability","domain":"respiratory","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.16,"ratio":1.0053096491487339,"verdict":"MATCH","physical_justification":"Inspiration is one of the two Z\u2082 states.","class_justification":"Volitional class but happens to land at thermodynamic baseline.","data_extraction":"as cited","reference":"Tobin 1988 J Appl Physiol 65:309","notes":"","provenance":"paper-appendix-A"},{"id":"paper-008","system":"Expiratory time variability","domain":"respiratory","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.2,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Expiration is the other Z\u2082 state.","class_justification":"Volitional class but lands at thermodynamic baseline.","data_extraction":"as cited","reference":"Tobin 1988 J Appl Physiol 65:309","notes":"","provenance":"paper-appendix-A"},{"id":"paper-009","system":"Purkinje cell simple spike ISI","domain":"neural","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.1,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Pacemaker-like cerebellar limit cycle \u2014 continuous SO(2) phase.","class_justification":"Autonomous under intrinsic ion-channel noise; Class A.","data_extraction":"as cited","reference":"Shin 2007 J Neurophysiol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-010","system":"Motor unit firing ISI","domain":"neural","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.1,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Motoneuron firing in a tonic regime is a smooth limit cycle.","class_justification":"Tonic-firing autonomous oscillator; Class A.","data_extraction":"as cited","reference":"Clamann 1969 J Neurophysiol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-011","system":"Hippocampal theta cycle (rat)","domain":"neural","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.09,"ratio":1.1309733552923253,"verdict":"MATCH","physical_justification":"Theta is a continuous network limit cycle (4-12 Hz phase progression).","class_justification":"Autonomous network oscillation; Class A.","data_extraction":"as cited","reference":"Buzsaki 2002 Hippocampus 12:100","notes":"","provenance":"paper-appendix-A"},{"id":"paper-012","system":"Sleep spindle interval","domain":"neural","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.2,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Spindles are bursts (active) separated by quiescence (inactive) \u2014 Z\u2082.","class_justification":"Autonomous thalamocortical oscillator under stochastic recruitment; Class A.","data_extraction":"as cited","reference":"Andrillon 2011 J Neurosci","notes":"","provenance":"paper-appendix-A"},{"id":"paper-013","system":"Simple reaction time","domain":"behavioural","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.175,"ratio":1.0995574287564276,"verdict":"MATCH","physical_justification":"RT is a stop/go binary decision crossing \u2014 Z\u2082.","class_justification":"Autonomous accumulator-to-threshold; Class A.","data_extraction":"as cited","reference":"Dykiert 2012 PLoS ONE meta","notes":"","provenance":"paper-appendix-A"},{"id":"paper-014","system":"Choice reaction time","domain":"behavioural","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.2,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Two-alternative decision crossing \u2014 Z\u2082.","class_justification":"Autonomous diffusion-to-bound; Class A.","data_extraction":"as cited","reference":"Dykiert 2012 PLoS ONE meta","notes":"","provenance":"paper-appendix-A"},{"id":"paper-015","system":"Saccade latency (prosaccade)","domain":"behavioural","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.2,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Latency to a binary fixate/saccade decision \u2014 Z\u2082.","class_justification":"Autonomous LATER-style accumulator; Class A.","data_extraction":"as cited","reference":"Carpenter 2004 Curr Biol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-016","system":"Spontaneous blink interval","domain":"behavioural","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.8,"ratio":5.026548245743669,"verdict":"ELEVATED","physical_justification":"Eye open / eye shut binary \u2014 Z\u2082.","class_justification":"Near-Poisson point process; effective \u03a9 strongly inflated; Class C.","data_extraction":"as cited","reference":"Doughty 2016 Clin Exp Optom","notes":"","provenance":"paper-appendix-A"},{"id":"paper-017","system":"Alpha rhythm burst duration","domain":"neural","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.35,"ratio":2.199114857512855,"verdict":"ELEVATED","physical_justification":"Burst on / off binary \u2014 Z\u2082.","class_justification":"Cortical state-dependent driver; Class C.","data_extraction":"as cited","reference":"Klimesch 1999 Brain Res Rev","notes":"","provenance":"paper-appendix-A"},{"id":"paper-018","system":"Cortical UP/DOWN state duration","domain":"neural","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.3,"ratio":1.8849555921538756,"verdict":"ELEVATED","physical_justification":"UP / DOWN bistable membrane potentials \u2014 Z\u2082.","class_justification":"Nested sub-cycles within UP states inflate variance; Class C.","data_extraction":"as cited","reference":"Steriade 1993 J Neurosci","notes":"","provenance":"paper-appendix-A"},{"id":"paper-019","system":"Reaction time (ADHD)","domain":"behavioural","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.325,"ratio":2.0420352248333655,"verdict":"ELEVATED","physical_justification":"Stop/go decision \u2014 Z\u2082.","class_justification":"Pathological lapse-of-attention noise inflates \u03a9; Class C.","data_extraction":"as cited","reference":"Kofler 2013 Clin Psychol Rev meta","notes":"","provenance":"paper-appendix-A"},{"id":"paper-020","system":"Regular-spiking neuron ISI","domain":"neural","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.4,"ratio":2.5132741228718345,"verdict":"ELEVATED","physical_justification":"Spike fires/rests \u2014 Z\u2082.","class_justification":"Synaptic input noise drives near-Poisson statistics; Class C.","data_extraction":"as cited","reference":"Softky 1993 J Neurosci","notes":"","provenance":"paper-appendix-A"},{"id":"paper-021","system":"Head direction cell ISI","domain":"neural","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.68,"ratio":4.2725660088821185,"verdict":"ELEVATED","physical_justification":"Spike fires/rests \u2014 Z\u2082.","class_justification":"Encodes a continuous variable via Poisson-like point process; Class C.","data_extraction":"as cited","reference":"Taube 1990 J Neurosci","notes":"","provenance":"paper-appendix-A"},{"id":"paper-022","system":"Microsaccade interval","domain":"behavioural","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.5,"ratio":3.141592653589793,"verdict":"ELEVATED","physical_justification":"Microsaccade event / no event \u2014 Z\u2082.","class_justification":"Point-process inter-event intervals; Class C.","data_extraction":"as cited","reference":"Martinez-Conde 2004 Neuron","notes":"","provenance":"paper-appendix-A"},{"id":"paper-023","system":"P300 ERP latency","domain":"behavioural","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.14,"ratio":0.8796459430051421,"verdict":"MATCH","physical_justification":"Stimulus / decision threshold crossing \u2014 Z\u2082.","class_justification":"Autonomous accumulator; Class A.","data_extraction":"as cited","reference":"Polich 2007 Clin Neurophysiol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-024","system":"Finger tapping (self-paced)","domain":"locomotion","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.045,"ratio":0.5654866776461627,"verdict":"SUPPRESSED","physical_justification":"Continuous motor limit cycle \u2014 SO(2).","class_justification":"Trained motor control reduces \u03a9 below baseline; Class B.","data_extraction":"as cited","reference":"Wing 1973 J Acoust Soc Am","notes":"","provenance":"paper-appendix-A"},{"id":"paper-025","system":"Pupil hippus oscillation","domain":"neural","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.2,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Pupil constrict/dilate \u2014 Z\u2082.","class_justification":"Autonomous Edinger-Westphal nucleus oscillator; Class A.","data_extraction":"as cited","reference":"McLaren 1992 Psychophysiology","notes":"","provenance":"paper-appendix-A"},{"id":"paper-026","system":"Ca2+ oscillation (0.1uM Nor)","domain":"cellular","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.13,"ratio":0.8168140899333463,"verdict":"MATCH","physical_justification":"Spike / inter-spike binary \u2014 Z\u2082 in Ca\u00b2\u207a transient phase space.","class_justification":"Autonomous IP\u2083R-driven oscillator; Class A.","data_extraction":"as cited","reference":"Dupont 2008 Biophys J 95:2193","notes":"","provenance":"paper-appendix-A"},{"id":"paper-027","system":"Ca2+ oscillation (1uM Nor)","domain":"cellular","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.11,"ratio":0.6911503837897545,"verdict":"MATCH","physical_justification":"Spike / inter-spike binary \u2014 Z\u2082.","class_justification":"Autonomous IP\u2083R oscillator; Class A.","data_extraction":"as cited","reference":"Dupont 2008 Biophys J 95:2193","notes":"","provenance":"paper-appendix-A"},{"id":"paper-028","system":"p53 oscillation period","domain":"cellular","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.125,"ratio":0.7853981633974483,"verdict":"MATCH","physical_justification":"Pulse / inter-pulse \u2014 Z\u2082 in nuclear-localisation amplitude.","class_justification":"Autonomous Mdm2-feedback oscillator; Class A.","data_extraction":"as cited","reference":"Geva-Zatorsky 2006 Mol Syst Biol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-029","system":"NF-kB oscillation period","domain":"cellular","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.15,"ratio":0.9424777960769378,"verdict":"MATCH","physical_justification":"Nuclear / cytoplasmic shuttling binary \u2014 Z\u2082.","class_justification":"Autonomous I\u03baB-feedback oscillator; Class A.","data_extraction":"as cited","reference":"Nelson 2004 Science 306:704","notes":"","provenance":"paper-appendix-A"},{"id":"paper-030","system":"Yeast glycolytic oscillation","domain":"cellular","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.075,"ratio":0.9424777960769378,"verdict":"MATCH","physical_justification":"Continuous limit cycle in NADH/ATP phase plane \u2014 SO(2).","class_justification":"Autonomous metabolic oscillator; Class A.","data_extraction":"as cited","reference":"Richard 1996 FEBS Lett","notes":"","provenance":"paper-appendix-A"},{"id":"paper-031","system":"Synthetic gene oscillator","domain":"synthetic-biology","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.11,"ratio":0.6911503837897545,"verdict":"MATCH","physical_justification":"Activator-repressor toggle \u2014 Z\u2082.","class_justification":"Autonomous within engineered chassis; Class A.","data_extraction":"as cited","reference":"Stricker 2008 Nature 456:516","notes":"","provenance":"paper-appendix-A"},{"id":"paper-032","system":"Dictyostelium cAMP oscillation","domain":"cellular","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.125,"ratio":0.7853981633974483,"verdict":"MATCH","physical_justification":"Pulse / inter-pulse cAMP signalling \u2014 Z\u2082.","class_justification":"Autonomous quorum-coupled relay oscillator; Class A.","data_extraction":"as cited","reference":"Gregor 2010 Science 328:1021","notes":"","provenance":"paper-appendix-A"},{"id":"paper-033","system":"ERK oscillation period","domain":"cellular","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.16,"ratio":2.0106192982974678,"verdict":"ELEVATED","physical_justification":"Continuous Ras-Raf-MEK-ERK phase progression \u2014 SO(2).","class_justification":"Autonomous in principle but single-cell gene-expression noise inflates \u03a9; Class A miss.","data_extraction":"as cited","reference":"Albeck 2013 Mol Cell 49:249","notes":"","provenance":"paper-appendix-A"},{"id":"paper-034","system":"Segmentation clock (zebrafish)","domain":"developmental","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.065,"ratio":0.8168140899333463,"verdict":"MATCH","physical_justification":"Notch-Wnt-FGF continuous limit cycle \u2014 SO(2).","class_justification":"Autonomous within Class A baseline; Class A.","data_extraction":"as cited","reference":"Schroter 2012 PLoS Biol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-035","system":"Mitotic oscillator (Xenopus)","domain":"developmental","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.075,"ratio":0.9424777960769378,"verdict":"MATCH","physical_justification":"Cyclin\u2013Cdk1 continuous limit cycle \u2014 SO(2).","class_justification":"Autonomous in extract system; Class A.","data_extraction":"as cited","reference":"Murray 2004 Science","notes":"","provenance":"paper-appendix-A"},{"id":"paper-036","system":"KaiC phosphorylation cycle","domain":"circadian","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.012,"ratio":0.15079644737231007,"verdict":"SUPPRESSED","physical_justification":"Continuous phosphorylation phase progression \u2014 SO(2).","class_justification":"Evolutionarily-tuned circadian precision drives \u03a9 well below baseline; Class B.","data_extraction":"as cited","reference":"Nakajima 2005 Science 308:414","notes":"","provenance":"paper-appendix-A"},{"id":"paper-037","system":"MinDE oscillation (E. coli)","domain":"microbial","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.115,"ratio":1.4451326206513049,"verdict":"ELEVATED","physical_justification":"Continuous pole-to-pole phase progression \u2014 SO(2).","class_justification":"Autonomous reaction-diffusion; molecular noise lifts \u03a9; Class A miss.","data_extraction":"as cited","reference":"Loose 2008 Science 320:789","notes":"","provenance":"paper-appendix-A"},{"id":"paper-038","system":"Hes1 oscillation period","domain":"cellular","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.1,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Continuous Hes1-Hes1 negative-feedback limit cycle \u2014 SO(2).","class_justification":"Autonomous; Class A.","data_extraction":"as cited","reference":"Hirata 2002 Science 298:840","notes":"","provenance":"paper-appendix-A"},{"id":"paper-039","system":"Repressilator (Elowitz original)","domain":"synthetic-biology","class":"C","symmetry":"Z3","n":3,"phi_G":4.71238898038469,"omega_geo":0.2122065907891938,"cv_pred":0.1061032953945969,"cv_obs":0.25,"ratio":2.356194490192345,"verdict":"ELEVATED","physical_justification":"Three-gene cyclic inhibition (A\u2192B\u2192C\u2192A) \u2014 Z\u2083 on the circle, three barriers per cycle.","class_justification":"Single-cell gene-expression noise + asymmetric sub-cycles inflate \u03a9; Class C.","data_extraction":"as cited","reference":"Elowitz 2000 Nature 403:335","notes":"Asymmetric sub-cycles: RtoY phase 27% of period but 44% of variance.","provenance":"paper-appendix-A"},{"id":"paper-040","system":"Repressilator (no sponge)","domain":"synthetic-biology","class":"C","symmetry":"Z3","n":3,"phi_G":4.71238898038469,"omega_geo":0.2122065907891938,"cv_pred":0.1061032953945969,"cv_obs":0.32,"ratio":3.015928947446201,"verdict":"ELEVATED","physical_justification":"Three-gene cyclic inhibition \u2014 Z\u2083.","class_justification":"Single-cell expression noise without DNA-titration sponge; Class C.","data_extraction":"as cited","reference":"Potvin-Trottier 2016 Nat Comms","notes":"","provenance":"paper-appendix-A"},{"id":"paper-041","system":"Repressilator (with sponge)","domain":"synthetic-biology","class":"C","symmetry":"Z3","n":3,"phi_G":4.71238898038469,"omega_geo":0.2122065907891938,"cv_pred":0.1061032953945969,"cv_obs":0.14,"ratio":1.3194689145077132,"verdict":"ELEVATED","physical_justification":"Three-gene cyclic inhibition \u2014 Z\u2083.","class_justification":"DNA sponge buffers de-repression; CV moves toward symmetric Z\u2083 baseline; Class C, marginal.","data_extraction":"as cited","reference":"Potvin-Trottier 2016 Nat Comms","notes":"Confirms diagnostic: regulation moves CV toward symmetric prediction.","provenance":"paper-appendix-A"},{"id":"paper-042","system":"E. coli generation time","domain":"microbial","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.27,"ratio":1.6964600329384885,"verdict":"ELEVATED","physical_justification":"Division event \u2014 Z\u2082 binary boundary.","class_justification":"Single-cell gene-expression noise inflates \u03a9; Class A miss flagged in paper.","data_extraction":"as cited","reference":"Taheri-Araghi 2015 Curr Biol 25:385","notes":"","provenance":"paper-appendix-A"},{"id":"paper-043","system":"E. coli division size CV","domain":"microbial","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.125,"ratio":0.7853981633974483,"verdict":"MATCH","physical_justification":"Division-size adder \u2014 Z\u2082 at the size threshold.","class_justification":"Autonomous adder dynamics; Class A.","data_extraction":"as cited","reference":"Campos 2014 Cell 159:1433","notes":"","provenance":"paper-appendix-A"},{"id":"paper-044","system":"E. coli growth rate CV","domain":"microbial","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.11,"ratio":1.382300767579509,"verdict":"ELEVATED","physical_justification":"Continuous mass accumulation phase \u2014 SO(2).","class_justification":"Single-cell biosynthesis noise inflates \u03a9; Class A miss.","data_extraction":"as cited","reference":"Wallden 2016 Proc Natl Acad Sci","notes":"","provenance":"paper-appendix-A"},{"id":"paper-045","system":"B. subtilis generation time","domain":"microbial","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.2,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Division event \u2014 Z\u2082.","class_justification":"Autonomous; Class A.","data_extraction":"as cited","reference":"Taheri-Araghi 2015 Curr Biol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-046","system":"Caulobacter cell cycle","domain":"microbial","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.14,"ratio":0.8796459430051421,"verdict":"MATCH","physical_justification":"Division event \u2014 Z\u2082.","class_justification":"Asymmetric stalked/swarmer fate noise; lands near Z\u2082 baseline; Class C unexpected match.","data_extraction":"as cited","reference":"Iyer-Biswas 2014 Phys Rev Lett","notes":"","provenance":"paper-appendix-A"},{"id":"paper-047","system":"E. coli daughter/mother ratio","domain":"microbial","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.07,"ratio":0.8796459430051421,"verdict":"MATCH","physical_justification":"Continuous size-ratio distribution \u2014 SO(2).","class_justification":"Adder mechanism actively regulates; Class B.","data_extraction":"as cited","reference":"Taheri-Araghi 2015 Curr Biol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-048","system":"E. coli cell width CV","domain":"microbial","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.05,"ratio":0.6283185307179586,"verdict":"MATCH","physical_justification":"Continuous cell-width distribution \u2014 SO(2).","class_justification":"Cell-wall regulation; Class B.","data_extraction":"as cited","reference":"Zheng 2016 PNAS 113:15000","notes":"","provenance":"paper-appendix-A"},{"id":"paper-049","system":"Human circadian (dim light)","domain":"circadian","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.005,"ratio":0.06283185307179587,"verdict":"SUPPRESSED","physical_justification":"Continuous circadian limit cycle \u2014 SO(2).","class_justification":"Evolutionarily-tuned + entrained; Class B.","data_extraction":"as cited","reference":"Czeisler 1999 Science 284:2177","notes":"","provenance":"paper-appendix-A"},{"id":"paper-050","system":"Drosophila circadian period","domain":"circadian","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.015,"ratio":0.18849555921538758,"verdict":"SUPPRESSED","physical_justification":"Continuous per/tim feedback limit cycle \u2014 SO(2).","class_justification":"Genetically-tuned precision; Class B.","data_extraction":"as cited","reference":"Konopka 1971 PNAS 68:2112","notes":"","provenance":"paper-appendix-A"},{"id":"paper-051","system":"Mouse circadian (constant dark)","domain":"circadian","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.01,"ratio":0.12566370614359174,"verdict":"SUPPRESSED","physical_justification":"Continuous SCN limit cycle \u2014 SO(2).","class_justification":"Evolutionarily-tuned; Class B.","data_extraction":"as cited","reference":"Pittendrigh 1976 Science","notes":"","provenance":"paper-appendix-A"},{"id":"paper-052","system":"Neurospora circadian period","domain":"circadian","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.02,"ratio":0.25132741228718347,"verdict":"SUPPRESSED","physical_justification":"Continuous frq/wc limit cycle \u2014 SO(2).","class_justification":"Genetically-tuned circadian precision; Class B.","data_extraction":"as cited","reference":"Merrow 2005 Chronobiol Int","notes":"","provenance":"paper-appendix-A"},{"id":"paper-053","system":"Circadian (uncontrolled light)","domain":"circadian","class":"C","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.3,"ratio":3.7699111843077513,"verdict":"ELEVATED","physical_justification":"Same SO(2) limit cycle.","class_justification":"Volitional + environmental light noise inflates \u03a9; Class C.","data_extraction":"as cited","reference":"Roenneberg 2003 Curr Biol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-054","system":"GnRH pulse interval","domain":"endocrine","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.15,"ratio":0.9424777960769378,"verdict":"MATCH","physical_justification":"Pulse / inter-pulse binary \u2014 Z\u2082.","class_justification":"Hypothalamic point-process; lands at Z\u2082 baseline; Class C unexpected match.","data_extraction":"as cited","reference":"Knobil 1980 Recent Prog Horm Res","notes":"","provenance":"paper-appendix-A"},{"id":"paper-055","system":"Menstrual cycle length","domain":"endocrine","class":"C","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.115,"ratio":1.4451326206513049,"verdict":"ELEVATED","physical_justification":"Continuous HPG-axis limit cycle \u2014 SO(2).","class_justification":"Behavioural and stress noise; Class C.","data_extraction":"as cited","reference":"Treloar 1967 Int J Fertil","notes":"","provenance":"paper-appendix-A"},{"id":"paper-056","system":"Human stride (young healthy)","domain":"locomotion","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.03,"ratio":0.37699111843077515,"verdict":"SUPPRESSED","physical_justification":"Continuous gait cycle \u2014 SO(2).","class_justification":"Trained spinal-cortical control; Class B.","data_extraction":"as cited","reference":"Hausdorff 1995 J Appl Physiol 78:34","notes":"","provenance":"paper-appendix-A"},{"id":"paper-057","system":"Human stride (elderly)","domain":"locomotion","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.04,"ratio":0.5026548245743669,"verdict":"SUPPRESSED","physical_justification":"Continuous gait cycle \u2014 SO(2).","class_justification":"Still actively regulated despite age; Class B.","data_extraction":"as cited","reference":"Hausdorff 1997 J Appl Physiol 82:26","notes":"","provenance":"paper-appendix-A"},{"id":"paper-058","system":"Human stride (Huntington's)","domain":"locomotion","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.08,"ratio":1.0053096491487339,"verdict":"MATCH","physical_justification":"Continuous gait cycle \u2014 SO(2).","class_justification":"Pathology removes regulation; \u03a9 returns to thermodynamic baseline; Class A.","data_extraction":"as cited","reference":"Hausdorff 1997 J Appl Physiol 82:26","notes":"","provenance":"paper-appendix-A"},{"id":"paper-059","system":"Human stride (Parkinson's)","domain":"locomotion","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.06,"ratio":0.7539822368615503,"verdict":"MATCH","physical_justification":"Continuous gait cycle \u2014 SO(2).","class_justification":"Pathology partially removes regulation; Class A.","data_extraction":"as cited","reference":"Hausdorff 1998 Mov Disord 13:428","notes":"","provenance":"paper-appendix-A"},{"id":"paper-060","system":"Swimming stroke (elite)","domain":"locomotion","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.035,"ratio":0.43982297150257105,"verdict":"SUPPRESSED","physical_justification":"Continuous stroke cycle \u2014 SO(2).","class_justification":"Trained motor control; Class B.","data_extraction":"as cited","reference":"Psycharakis 2008 J Sports Sci","notes":"","provenance":"paper-appendix-A"},{"id":"paper-061","system":"Finger tapping (metronome)","domain":"locomotion","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.035,"ratio":0.43982297150257105,"verdict":"SUPPRESSED","physical_justification":"Continuous tap cycle \u2014 SO(2).","class_justification":"Externally entrained; Class B.","data_extraction":"as cited","reference":"Repp 2005 Music Perception","notes":"","provenance":"paper-appendix-A"},{"id":"paper-062","system":"Vocal fold vibration (F0 jitter)","domain":"vocal","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.005,"ratio":0.06283185307179587,"verdict":"SUPPRESSED","physical_justification":"Continuous fold limit cycle \u2014 SO(2).","class_justification":"Active feedback control of F0; Class B.","data_extraction":"as cited","reference":"Titze 1994 Principles Voice Prod","notes":"","provenance":"paper-appendix-A"},{"id":"paper-063","system":"Gastric slow wave period","domain":"gastrointestinal","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.045,"ratio":0.5654866776461627,"verdict":"SUPPRESSED","physical_justification":"Continuous interstitial-cell-of-Cajal limit cycle \u2014 SO(2).","class_justification":"ICC pacemaker network actively regulates; Class B.","data_extraction":"as cited","reference":"Koch 1999 Neurogastro Motil","notes":"","provenance":"paper-appendix-A"},{"id":"paper-064","system":"Predator-prey (lynx-hare)","domain":"ecology","class":"C","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.125,"ratio":1.5707963267948966,"verdict":"ELEVATED","physical_justification":"Continuous predator-prey limit cycle \u2014 SO(2).","class_justification":"Environmental stochasticity; Class C.","data_extraction":"as cited","reference":"Stenseth 1997 Science 277:1296","notes":"","provenance":"paper-appendix-A"},{"id":"paper-065","system":"Lemming population cycle","domain":"ecology","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.225,"ratio":1.413716694115407,"verdict":"ELEVATED","physical_justification":"Boom/bust cycle \u2014 Z\u2082.","class_justification":"Environmental + dispersal noise; Class C.","data_extraction":"as cited","reference":"Stenseth 1999 Nature 400:63","notes":"","provenance":"paper-appendix-A"},{"id":"paper-066","system":"Cicada emergence (17-yr)","domain":"ecology","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.01,"ratio":0.12566370614359174,"verdict":"SUPPRESSED","physical_justification":"Continuous developmental clock \u2014 SO(2).","class_justification":"Evolutionarily-tuned synchronisation; Class B.","data_extraction":"as cited","reference":"Williams 1995 Ecology","notes":"","provenance":"paper-appendix-A"},{"id":"paper-067","system":"Locust swarm cycle","domain":"ecology","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.3,"ratio":1.8849555921538756,"verdict":"ELEVATED","physical_justification":"Solitary/gregarious phase change \u2014 Z\u2082.","class_justification":"Environmental + density-dependent noise; Class C.","data_extraction":"as cited","reference":"Uvarov 1977 Grasshoppers vol 2","notes":"","provenance":"paper-appendix-A"},{"id":"paper-068","system":"Mast seeding interval (beech)","domain":"ecology","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.6,"ratio":3.7699111843077513,"verdict":"ELEVATED","physical_justification":"Mast / non-mast year \u2014 Z\u2082.","class_justification":"Climate-driven point process; Class C.","data_extraction":"as cited","reference":"Kelly 1994 J Ecol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-069","system":"Forest fire recurrence","domain":"geology","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.4,"ratio":2.5132741228718345,"verdict":"ELEVATED","physical_justification":"Burned / unburned \u2014 Z\u2082.","class_justification":"Self-organised criticality; Class C.","data_extraction":"as cited","reference":"Agee 1993 Fire Ecology","notes":"","provenance":"paper-appendix-A"},{"id":"paper-070","system":"Solar cycle period","domain":"astronomy","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.176,"ratio":1.105840614063607,"verdict":"MATCH","physical_justification":"Magnetic polarity reversal each Schwabe cycle \u2014 Z\u2082.","class_justification":"Solar dynamo noise; lands at Z\u2082 baseline; Class C unexpected match.","data_extraction":"as cited","reference":"Usoskin 2021 A&A 649:A141","notes":"","provenance":"paper-appendix-A"},{"id":"paper-071","system":"ENSO recurrence interval","domain":"climate","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.336,"ratio":2.111150263212341,"verdict":"ELEVATED","physical_justification":"El Ni\u00f1o / La Ni\u00f1a \u2014 Z\u2082.","class_justification":"Stochastic ocean-atmosphere; Class C.","data_extraction":"as cited","reference":"Computed from ONI event list","notes":"","provenance":"paper-appendix-A"},{"id":"paper-072","system":"Quasi-Biennial Oscillation","domain":"climate","class":"B","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.06,"ratio":0.37699111843077515,"verdict":"SUPPRESSED","physical_justification":"Equatorial wind reversal \u2014 Z\u2082.","class_justification":"Wave-driven feedback regulates; Class B.","data_extraction":"as cited","reference":"Baldwin 2001 Rev Geophys","notes":"","provenance":"paper-appendix-A"},{"id":"paper-073","system":"Cepheid variable pulsation","domain":"astronomy","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":1e-06,"ratio":1.2566370614359172e-05,"verdict":"SUPPRESSED","physical_justification":"Continuous radial pulsation \u2014 SO(2).","class_justification":"Thermal regulation by \u03ba-mechanism; Class B.","data_extraction":"as cited","reference":"Turner 2010 ApJ","notes":"","provenance":"paper-appendix-A"},{"id":"paper-074","system":"Old Faithful eruption interval","domain":"geology","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.25,"ratio":1.5707963267948966,"verdict":"ELEVATED","physical_justification":"Erupt / refill \u2014 Z\u2082.","class_justification":"Stochastic recharge; Class C.","data_extraction":"as cited","reference":"Rinehart 1980 / textbook data","notes":"","provenance":"paper-appendix-A"},{"id":"paper-075","system":"Earthquake recurrence interval","domain":"geology","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.5,"ratio":3.141592653589793,"verdict":"ELEVATED","physical_justification":"Slip / no slip \u2014 Z\u2082.","class_justification":"Self-organised criticality; Class C.","data_extraction":"as cited","reference":"Ellsworth 1999 USGS OFR 99-522","notes":"","provenance":"paper-appendix-A"},{"id":"paper-076","system":"Tidal period (semi-diurnal)","domain":"astronomy","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":1e-05,"ratio":0.00012566370614359174,"verdict":"SUPPRESSED","physical_justification":"Continuous orbital phase \u2014 SO(2).","class_justification":"Astronomical clock \u2014 deterministic; Class B.","data_extraction":"as cited","reference":"Pugh 2004 Tides, Surges, Sea Level","notes":"","provenance":"paper-appendix-A"},{"id":"paper-077","system":"Ocean swell wave period","domain":"fluids","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.085,"ratio":1.0681415022205296,"verdict":"MATCH","physical_justification":"Continuous wave phase \u2014 SO(2).","class_justification":"Stochastic wind forcing; lands at SO(2) baseline; Class A.","data_extraction":"as cited","reference":"Holthuijsen 2007 Waves in Fluids","notes":"","provenance":"paper-appendix-A"},{"id":"paper-078","system":"Strombolian eruption interval","domain":"geology","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.275,"ratio":1.7278759594743862,"verdict":"ELEVATED","physical_justification":"Erupt / refill \u2014 Z\u2082.","class_justification":"Stochastic gas accumulation; Class C.","data_extraction":"as cited","reference":"Ripepe 2002 J Volc Geotherm Res","notes":"","provenance":"paper-appendix-A"},{"id":"paper-079","system":"Pulsar rotation stability","domain":"astronomy","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":1e-10,"ratio":1.2566370614359174e-09,"verdict":"SUPPRESSED","physical_justification":"Continuous rigid-body rotation \u2014 SO(2).","class_justification":"Massive moment of inertia + thermal regulation; Class B.","data_extraction":"as cited","reference":"Lorimer 2012 Handbook Pulsar Astr","notes":"","provenance":"paper-appendix-A"},{"id":"paper-080","system":"RR Lyrae pulsation period","domain":"astronomy","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":5e-05,"ratio":0.0006283185307179586,"verdict":"SUPPRESSED","physical_justification":"Continuous radial pulsation \u2014 SO(2).","class_justification":"Stellar pulsation tightly regulated; Class B.","data_extraction":"as cited","reference":"Smith 1995 RR Lyrae Stars","notes":"","provenance":"paper-appendix-A"},{"id":"paper-081","system":"Candle flame flicker period","domain":"fluids","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.15,"ratio":0.9424777960769378,"verdict":"MATCH","physical_justification":"Bright/dim flicker \u2014 Z\u2082.","class_justification":"Autonomous buoyancy-instability oscillator; Class A.","data_extraction":"as cited","reference":"Cetegen 1993 Combust Flame","notes":"","provenance":"paper-appendix-A"},{"id":"paper-082","system":"Dripping faucet (periodic)","domain":"fluids","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.03,"ratio":0.37699111843077515,"verdict":"SUPPRESSED","physical_justification":"Continuous neck-elongation cycle \u2014 SO(2).","class_justification":"Tightly-controlled flow regulator; Class B.","data_extraction":"as cited","reference":"Shaw 1984 Dripping Faucet","notes":"","provenance":"paper-appendix-A"},{"id":"paper-083","system":"Relaxation oscillator (neon)","domain":"engineering","class":"B","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.03,"ratio":0.18849555921538758,"verdict":"SUPPRESSED","physical_justification":"Charge / discharge \u2014 Z\u2082.","class_justification":"Engineered RC precision; Class B.","data_extraction":"as cited","reference":"Van der Pol 1926 Phil Mag","notes":"","provenance":"paper-appendix-A"},{"id":"paper-084","system":"Pendulum clock period","domain":"engineering","class":"B","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":1e-05,"ratio":6.283185307179587e-05,"verdict":"SUPPRESSED","physical_justification":"Tick / tock \u2014 Z\u2082 via escapement.","class_justification":"Engineering precision; Class B.","data_extraction":"as cited","reference":"Sobel 1995 Longitude","notes":"","provenance":"paper-appendix-A"},{"id":"paper-085","system":"Crystal oscillator (quartz)","domain":"engineering","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":1e-07,"ratio":1.256637061435917e-06,"verdict":"SUPPRESSED","physical_justification":"Continuous mechanical phase \u2014 SO(2).","class_justification":"Engineered Q-factor; Class B.","data_extraction":"as cited","reference":"IEEE Std 1139-2008","notes":"","provenance":"paper-appendix-A"},{"id":"paper-086","system":"Laser mode-locked pulse","domain":"engineering","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.0001,"ratio":0.0012566370614359172,"verdict":"SUPPRESSED","physical_justification":"Continuous cavity round-trip \u2014 SO(2).","class_justification":"Engineered cavity stabilisation; Class B.","data_extraction":"as cited","reference":"Haus 2000 IEEE J Sel Top QE","notes":"","provenance":"paper-appendix-A"},{"id":"paper-087","system":"Chua circuit oscillation","domain":"engineering","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.15,"ratio":0.9424777960769378,"verdict":"MATCH","physical_justification":"Two-attractor switching \u2014 Z\u2082.","class_justification":"Autonomous chaotic oscillator; Class A.","data_extraction":"as cited","reference":"Chua 1992 J Circ Syst Comput","notes":"","provenance":"paper-appendix-A"},{"id":"paper-088","system":"Chick somite formation","domain":"developmental","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.08,"ratio":1.0053096491487339,"verdict":"MATCH","physical_justification":"Continuous segmentation clock \u2014 SO(2).","class_justification":"Autonomous within Class A baseline; Class A.","data_extraction":"as cited","reference":"Palmeirim 1997 Cell 91:639","notes":"","provenance":"paper-appendix-A"},{"id":"paper-089","system":"Drosophila syncytial division","domain":"developmental","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.05,"ratio":0.6283185307179586,"verdict":"MATCH","physical_justification":"Continuous cyclin oscillation \u2014 SO(2).","class_justification":"Autonomous; Class A (lower edge of band).","data_extraction":"as cited","reference":"Foe 1983 J Cell Sci","notes":"","provenance":"paper-appendix-A"},{"id":"paper-090","system":"Lampl saltatory growth","domain":"developmental","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.08,"ratio":1.0053096491487339,"verdict":"MATCH","physical_justification":"Continuous growth-pulse cycle \u2014 SO(2).","class_justification":"Autonomous endocrine pulses; Class A.","data_extraction":"as cited","reference":"Lampl 1993 Am J Hum Biol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-091","system":"Neonatal inter-cry interval","domain":"behavioural","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.225,"ratio":1.413716694115407,"verdict":"ELEVATED","physical_justification":"Cry / no cry \u2014 Z\u2082.","class_justification":"External-state-driven; Class C.","data_extraction":"as cited","reference":"Barr 1988 Dev Med Child Neurol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-092","system":"Infant suckling burst","domain":"behavioural","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.15,"ratio":0.9424777960769378,"verdict":"MATCH","physical_justification":"Burst / pause \u2014 Z\u2082.","class_justification":"Autonomous brainstem CPG; Class A.","data_extraction":"as cited","reference":"Wolff 1968 Psychol Issues","notes":"","provenance":"paper-appendix-A"},{"id":"paper-093","system":"Zebrafish somite period","domain":"developmental","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.065,"ratio":0.8168140899333463,"verdict":"MATCH","physical_justification":"Continuous segmentation clock \u2014 SO(2).","class_justification":"Morphogenetic regulation; Class B unexpected match (lands at baseline).","data_extraction":"as cited","reference":"Schroter 2012 PLoS Biol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-094","system":"Xenopus cell division (extract)","domain":"developmental","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.075,"ratio":0.9424777960769378,"verdict":"MATCH","physical_justification":"Continuous CDK cycle \u2014 SO(2).","class_justification":"Autonomous in extract; Class A.","data_extraction":"as cited","reference":"Murray 2004 Science","notes":"","provenance":"paper-appendix-A"},{"id":"paper-095","system":"Neonatal cry phonation duration","domain":"vocal","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.4,"ratio":2.5132741228718345,"verdict":"ELEVATED","physical_justification":"Phonation / pause \u2014 Z\u2082.","class_justification":"Volitional and state-driven; Class C.","data_extraction":"as cited","reference":"Wermke 2007 J Voice","notes":"","provenance":"paper-appendix-A"},{"id":"paper-096","system":"REM-NREM sleep cycle","domain":"neural","class":"C","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.2,"ratio":2.5132741228718345,"verdict":"ELEVATED","physical_justification":"Continuous sleep-stage progression \u2014 SO(2).","class_justification":"Nested ultradian sub-cycles; Class C.","data_extraction":"as cited","reference":"Feinberg 1979 EEG Clin Neurophysiol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-097","system":"Conversation turn-taking gap","domain":"behavioural","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.2,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Speak / pause \u2014 Z\u2082.","class_justification":"Volitional class but lands at Z\u2082 baseline; Class C.","data_extraction":"as cited","reference":"Stivers 2009 PNAS 106:10587","notes":"","provenance":"paper-appendix-A"},{"id":"paper-098","system":"TGF oscillation period","domain":"cellular","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.1,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Continuous tubuloglomerular feedback limit cycle \u2014 SO(2).","class_justification":"Autonomous; Class A.","data_extraction":"as cited","reference":"Holstein-Rathlou 1987 Am J Physiol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-099","system":"Glacial-interglacial cycle (~100kyr)","domain":"climate","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.15,"ratio":0.9424777960769378,"verdict":"MATCH","physical_justification":"Glacial / interglacial \u2014 Z\u2082.","class_justification":"Autonomous Milankovitch-coupled bistability; Class A.","data_extraction":"as cited","reference":"Imbrie 1993 Paleoceanography / Hays","notes":"","provenance":"paper-appendix-A"},{"id":"paper-100","system":"Chandler wobble period","domain":"astronomy","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.007,"ratio":0.0879645943005142,"verdict":"SUPPRESSED","physical_justification":"Continuous Earth-spin axis precession \u2014 SO(2).","class_justification":"Conservative damping regulates; Class B.","data_extraction":"as cited","reference":"IERS / Gross 2000 Geophys J Int","notes":"","provenance":"paper-appendix-A"},{"id":"paper-101","system":"Madden-Julian Oscillation period","domain":"climate","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.222,"ratio":1.3948671381938682,"verdict":"ELEVATED","physical_justification":"Active/inactive convective phase \u2014 Z\u2082.","class_justification":"Stochastic atmospheric forcing; Class C.","data_extraction":"as cited","reference":"Wheeler 2004 Mon Wea Rev","notes":"","provenance":"paper-appendix-A"},{"id":"paper-102","system":"Dansgaard-Oeschger event spacing","domain":"climate","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.362,"ratio":2.27451308119901,"verdict":"ELEVATED","physical_justification":"Cold / warm switch \u2014 Z\u2082.","class_justification":"Stochastic AMOC switching; Class C.","data_extraction":"as cited","reference":"Rahmstorf 2003 Geophys Res Lett","notes":"","provenance":"paper-appendix-A"},{"id":"paper-103","system":"PDO phase duration","domain":"climate","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.312,"ratio":1.9603538158400309,"verdict":"ELEVATED","physical_justification":"Warm / cold phase \u2014 Z\u2082.","class_justification":"Stochastic ocean teleconnection; Class C.","data_extraction":"as cited","reference":"Mantua 1997 Bull Am Meteorol Soc","notes":"","provenance":"paper-appendix-A"},{"id":"paper-104","system":"LH pulse interval (follicular)","domain":"endocrine","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.3,"ratio":1.8849555921538756,"verdict":"ELEVATED","physical_justification":"Pulse / inter-pulse \u2014 Z\u2082.","class_justification":"Hypothalamic point-process; Class C.","data_extraction":"as cited","reference":"Filicori 1986 J Clin Endocrinol Met","notes":"","provenance":"paper-appendix-A"},{"id":"paper-105","system":"Insulin secretion oscillation period","domain":"endocrine","class":"C","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.15,"ratio":1.8849555921538756,"verdict":"ELEVATED","physical_justification":"Continuous \u03b2-cell limit cycle \u2014 SO(2).","class_justification":"Glucose-driven external forcing; Class C.","data_extraction":"as cited","reference":"Song 2000 J Clin Endocrinol Metab","notes":"","provenance":"paper-appendix-A"},{"id":"paper-106","system":"BZ reaction oscillation period","domain":"chemistry","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.013,"ratio":0.16336281798666924,"verdict":"SUPPRESSED","physical_justification":"Continuous chemical limit cycle \u2014 SO(2).","class_justification":"Stoichiometric closed system; Class B.","data_extraction":"35.33 \u00b1 0 (paper text)","reference":"Marchettini 2022 Front Chem","notes":"","provenance":"paper-appendix-A"},{"id":"paper-107","system":"HeLa mitotic duration","domain":"cellular","class":"C","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.25,"ratio":3.141592653589793,"verdict":"ELEVATED","physical_justification":"Continuous mitotic progression \u2014 SO(2).","class_justification":"Single-cell expression noise; Class C.","data_extraction":"as cited","reference":"Hahn 2009 PLoS ONE","notes":"","provenance":"paper-appendix-A"},{"id":"paper-108","system":"Gamma oscillation cycle period","domain":"neural","class":"C","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.12,"ratio":1.5079644737231006,"verdict":"ELEVATED","physical_justification":"Continuous fast-oscillation phase \u2014 SO(2).","class_justification":"Stochastic synaptic input dominates; Class C.","data_extraction":"as cited","reference":"Burns 2011 J Neurosci","notes":"","provenance":"paper-appendix-A"},{"id":"paper-109","system":"Auditory brainstem wave V latency","domain":"neural","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.037,"ratio":0.46495571273128933,"verdict":"SUPPRESSED","physical_justification":"Continuous brainstem timing \u2014 SO(2).","class_justification":"Hard-wired axonal precision; Class B.","data_extraction":"5.67 \u00b1 0.21 ms","reference":"Rowe 1978 Audiology","notes":"","provenance":"paper-appendix-A"},{"id":"paper-110","system":"Hippocampal ripple event duration","domain":"neural","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.3,"ratio":1.8849555921538756,"verdict":"ELEVATED","physical_justification":"Ripple / no-ripple \u2014 Z\u2082.","class_justification":"Stochastic recruitment; Class C.","data_extraction":"as cited","reference":"Sullivan 2011 J Neurosci","notes":"","provenance":"paper-appendix-A"},{"id":"paper-111","system":"Inter-sigh interval","domain":"respiratory","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.6,"ratio":3.7699111843077513,"verdict":"ELEVATED","physical_justification":"Sigh / no-sigh \u2014 Z\u2082.","class_justification":"Quasi-Poisson point process; Class C.","data_extraction":"as cited","reference":"Vlemincx 2013 Psychophysiology","notes":"","provenance":"paper-appendix-A"},{"id":"paper-112","system":"Strokkur geyser eruption interval","domain":"geology","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.3,"ratio":1.8849555921538756,"verdict":"ELEVATED","physical_justification":"Erupt / refill \u2014 Z\u2082.","class_justification":"Stochastic recharge; Class C.","data_extraction":"as cited","reference":"Hurwitz 2014 J Volcanol Geotherm Res","notes":"","provenance":"paper-appendix-A"},{"id":"paper-113","system":"Delta Cephei pulsation period","domain":"astronomy","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.0001,"ratio":0.0012566370614359172,"verdict":"SUPPRESSED","physical_justification":"Continuous radial pulsation \u2014 SO(2).","class_justification":"Thermal regulation; Class B.","data_extraction":"as cited","reference":"Turner 1998 ApJ","notes":"","provenance":"paper-appendix-A"},{"id":"paper-114","system":"Crab pulsar period jitter","domain":"astronomy","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":3e-06,"ratio":3.7699111843077517e-05,"verdict":"SUPPRESSED","physical_justification":"Continuous neutron-star spin \u2014 SO(2).","class_justification":"Massive moment of inertia; Class B.","data_extraction":"timing residuals","reference":"Lyne 1993 MNRAS","notes":"","provenance":"paper-appendix-A"},{"id":"paper-115","system":"Snowshoe hare population cycle","domain":"ecology","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.15,"ratio":0.9424777960769378,"verdict":"MATCH","physical_justification":"Boom / bust \u2014 Z\u2082.","class_justification":"Autonomous predator-prey; Class A.","data_extraction":"as cited","reference":"Keith 1963 Wildlife Monographs","notes":"","provenance":"paper-appendix-A"},{"id":"paper-116","system":"Power grid frequency (UK 50Hz)","domain":"engineering","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.001,"ratio":0.012566370614359173,"verdict":"SUPPRESSED","physical_justification":"Continuous grid phase \u2014 SO(2).","class_justification":"Engineered AGC feedback; Class B.","data_extraction":"as cited","reference":"National Grid frequency data","notes":"","provenance":"paper-appendix-A"},{"id":"paper-117","system":"Mouse circadian free-running period","domain":"circadian","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.008,"ratio":0.10053096491487339,"verdict":"SUPPRESSED","physical_justification":"Continuous SCN limit cycle \u2014 SO(2).","class_justification":"Evolutionarily-tuned; Class B.","data_extraction":"23.7 \u00b1 0.2 hr","reference":"Pittendrigh 1976","notes":"","provenance":"paper-appendix-A"},{"id":"paper-118","system":"QT interval variability","domain":"cardiac","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.05,"ratio":0.6283185307179586,"verdict":"MATCH","physical_justification":"Continuous repolarisation phase \u2014 SO(2).","class_justification":"Autonomous; Class A (lower edge of band).","data_extraction":"as cited","reference":"Malik 2008 Heart Rhythm","notes":"","provenance":"paper-appendix-A"},{"id":"paper-119","system":"Mouse somitogenesis period","domain":"developmental","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.04,"ratio":0.5026548245743669,"verdict":"SUPPRESSED","physical_justification":"Continuous segmentation clock \u2014 SO(2).","class_justification":"Morphogenetic regulation; Class B.","data_extraction":"~120 \u00b1 5 min","reference":"Schroter 2008 Curr Biol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-120","system":"Hes1 oscillation period (C2C12)","domain":"cellular","class":"C","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.25,"ratio":3.141592653589793,"verdict":"ELEVATED","physical_justification":"Continuous Hes1 feedback cycle \u2014 SO(2).","class_justification":"Single-cell expression noise; Class C.","data_extraction":"single-cell tracking","reference":"Masamizu 2006 PNAS","notes":"","provenance":"paper-appendix-A"},{"id":"paper-121","system":"ERK oscillation period (MCF10A)","domain":"cellular","class":"C","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.3,"ratio":3.7699111843077513,"verdict":"ELEVATED","physical_justification":"Continuous Ras-Raf-MEK-ERK phase \u2014 SO(2).","class_justification":"Single-cell expression noise; Class C.","data_extraction":"as cited","reference":"Albeck 2013 Mol Cell","notes":"","provenance":"paper-appendix-A"},{"id":"paper-122","system":"Sinoatrial node cycle length (rabbit)","domain":"cardiac","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.05,"ratio":0.6283185307179586,"verdict":"MATCH","physical_justification":"Continuous SA-node limit cycle \u2014 SO(2).","class_justification":"Pacemaker precision regulates; Class B (lands inside band).","data_extraction":"as cited","reference":"Verheijck 1998 J Gen Physiol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-123","system":"Cardiac myocyte beating (neonatal rat)","domain":"cardiac","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.04,"ratio":0.5026548245743669,"verdict":"SUPPRESSED","physical_justification":"Continuous myocyte limit cycle \u2014 SO(2).","class_justification":"Network coupling regulates; Class B.","data_extraction":"as cited","reference":"Clay 1988 Biophys J","notes":"","provenance":"paper-appendix-A"},{"id":"paper-124","system":"Chlamydomonas flagellar beat period","domain":"cellular","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.064,"ratio":0.8042477193189871,"verdict":"MATCH","physical_justification":"Continuous flagellar phase \u2014 SO(2).","class_justification":"Autonomous axoneme oscillator; Class A.","data_extraction":"47 \u00b1 3 Hz","reference":"Polin 2009 Science","notes":"","provenance":"paper-appendix-A"},{"id":"paper-125","system":"Inferior olive subthreshold oscillation","domain":"neural","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.05,"ratio":0.6283185307179586,"verdict":"MATCH","physical_justification":"Continuous subthreshold limit cycle \u2014 SO(2).","class_justification":"Gap-junction coupled regulation; Class B.","data_extraction":"as cited","reference":"Llinas 1986 / Devor 2002 J Physiol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-126","system":"Pre-Botzinger CPG cycle (rat slice)","domain":"neural","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.1,"ratio":1.2566370614359172,"verdict":"MATCH","physical_justification":"Continuous CPG limit cycle \u2014 SO(2).","class_justification":"Autonomous brainstem CPG; Class A.","data_extraction":"as cited","reference":"Del Negro 2002 J Neurophysiol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-127","system":"Eupneic breathing (anaesthetised rat)","domain":"respiratory","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.05,"ratio":0.6283185307179586,"verdict":"MATCH","physical_justification":"Continuous brainstem rhythm \u2014 SO(2).","class_justification":"Anaesthesia removes cortical drive; brainstem regulation tightens; Class B.","data_extraction":"as cited","reference":"Paton 1991 J Physiol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-128","system":"B. subtilis sporulation decision time","domain":"microbial","class":"C","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":0.3,"ratio":1.8849555921538756,"verdict":"ELEVATED","physical_justification":"Sporulate / vegetative \u2014 Z\u2082.","class_justification":"Cell-fate decision noise; Class C.","data_extraction":"as cited","reference":"Veening 2005 Mol Microbiol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-129","system":"Mitotic spindle rocking period","domain":"cellular","class":"C","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.3,"ratio":3.7699111843077513,"verdict":"ELEVATED","physical_justification":"Continuous spindle oscillation \u2014 SO(2).","class_justification":"Cortical pulling-force noise; Class C.","data_extraction":"as cited","reference":"Pecreaux 2006 Curr Biol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-130","system":"Purkinje fibre spontaneous period","domain":"cardiac","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.02,"ratio":0.25132741228718347,"verdict":"SUPPRESSED","physical_justification":"Continuous pacemaker limit cycle \u2014 SO(2).","class_justification":"Pacemaker precision; Class B.","data_extraction":"as cited","reference":"Jalife 1979 Circ Res","notes":"","provenance":"paper-appendix-A"},{"id":"paper-131","system":"Paramecium ciliary beat period","domain":"cellular","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.125,"ratio":1.5707963267948966,"verdict":"ELEVATED","physical_justification":"Continuous cilia limit cycle \u2014 SO(2).","class_justification":"Mechanosensory feedback inflates \u03a9; Class A miss flagged in paper.","data_extraction":"12 \u00b1 1.5 Hz","reference":"Machemer 1972 J Exp Biol","notes":"","provenance":"paper-appendix-A"},{"id":"paper-132","system":"Firefly flash interval (Pteroptyx)","domain":"ecology","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":0.03,"ratio":0.37699111843077515,"verdict":"SUPPRESSED","physical_justification":"Continuous flash limit cycle \u2014 SO(2).","class_justification":"Mass synchronisation regulates; Class B.","data_extraction":"as cited","reference":"Buck 1968 Science","notes":"","provenance":"paper-appendix-A"}];
+// Z2_ON_SO2: 14 rows
+const DATA_Z2_ON_SO2 = [{"id":"z2so2-cardio-resp-channel-heart","system":"Cardio-respiratory coupled \u2014 heart Z\u2082 channel","domain":"cardiac","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"On the shared cardio-respiratory SO(2) substrate the heart contributes a Z\u2082 rupture (systole/diastole).","class_justification":"Autonomous in resting healthy adult; Class A.","data_extraction":"","reference":"Heitmann 2020 Front Physiol 11:494","notes":"Companion prediction: \u03c1(heart_rate, breath_rate) = -1/2 (M11).","provenance":"z2-on-so2-extension"},{"id":"z2so2-cardio-resp-channel-resp","system":"Cardio-respiratory coupled \u2014 respiratory Z\u2082 channel","domain":"respiratory","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"On the same shared SO(2) substrate the breath contributes the second Z\u2082 rupture.","class_justification":"Autonomous in NREM / quiet rest; Class A.","data_extraction":"","reference":"Heitmann 2020 Front Physiol 11:494","notes":"Companion prediction: \u03c1(heart_rate, breath_rate) = -1/2 (M11).","provenance":"z2-on-so2-extension"},{"id":"z2so2-eeg-theta-gamma-burst","system":"EEG theta-gamma \u2014 gamma Z\u2082 burst on theta SO(2)","domain":"neural","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Gamma burst on/off (Z\u2082) phase-locked to a continuous theta substrate (SO(2)).","class_justification":"Autonomous network oscillator; Class A.","data_extraction":"","reference":"Canolty 2010 Trends Cogn Sci 14:506","notes":"Two simultaneous gamma channels on one theta cycle should anti-correlate at \u03c1 = -1/2.","provenance":"z2-on-so2-extension"},{"id":"z2so2-cardiac-pq-subinterval","system":"Cardiac PQ sub-interval CV (sub-rupture jitter on RR cycle)","domain":"cardiac","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"PQ sub-interval is one Z\u2082 rupture (atrial-ventricular conduction) on the cardiac SO(2) limit cycle.","class_justification":"Autonomous within healthy adult; Class A.","data_extraction":"","reference":"Malik 2008 Heart Rhythm","notes":"Predicted CV \u2248 0.1592 (Z\u2082 sub-rupture); compare to RR cycle CV \u2248 0.0796 (SO(2)) for ratio = 2.","provenance":"z2-on-so2-extension"},{"id":"z2so2-respiratory-inspiration-subcv","system":"Respiratory inspiration sub-interval CV (Z\u2082 on SO(2))","domain":"respiratory","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Inspiration is one Z\u2082 phase of the SO(2) breath limit cycle.","class_justification":"Autonomous in NREM; Class A.","data_extraction":"","reference":"Stone 2021 npj Digit Med","notes":"Predicted CV \u2248 0.1592 vs full-breath CV \u2248 0.0796.","provenance":"z2-on-so2-extension"},{"id":"z2so2-neural-burst-intra-isi","system":"Intra-burst inter-spike interval CV (Z\u2082 jitter on burst SO(2))","domain":"neural","class":"A","symmetry":"Z2","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Each spike within a burst is a Z\u2082 rupture on the burst's continuous depolarisation phase (SO(2)).","class_justification":"Autonomous burst pacemaker; Class A.","data_extraction":"","reference":"Krahe 2004 Nat Rev Neurosci 5:13","notes":"Predicted intra-burst ISI CV \u2248 0.1592 vs burst-period CV \u2248 0.0796.","provenance":"z2-on-so2-extension"},{"id":"z2so2-kaic-site-occupancy","system":"KaiC site-occupancy correlation (k=24 Z\u2082 on SO(2))","domain":"circadian","class":"B","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"24 phosphorylation sites each acting as Z\u2082 events on a single SO(2) circadian cycle.","class_justification":"Evolutionarily-tuned; Class B (cycle-period CV from KaiC was paper row 36, suppressed).","data_extraction":"","reference":"Rust 2007 Science 318:809; Nakajima 2005 Science 308:414","notes":"Predicted pairwise site-occupancy correlation \u03c1_ij = -1/23 \u2248 -0.043.","provenance":"z2-on-so2-extension"},{"id":"z2so2-drosophila-syncytial-divs","system":"Drosophila syncytial division correlation (k=13 Z\u2082 on SO(2))","domain":"developmental","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"13 rapid nuclear divisions on a maternally-loaded SO(2) developmental clock.","class_justification":"Autonomous; Class A.","data_extraction":"","reference":"Foe 1983 J Cell Sci","notes":"Predicted pairwise division-time correlation \u03c1_ij = -1/12 \u2248 -0.083.","provenance":"z2-on-so2-extension"},{"id":"z2so2-theta-gamma-burst-correlation","system":"Theta-locked gamma burst correlation (k\u22487 Z\u2082 on SO(2))","domain":"neural","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"6-8 gamma bursts per theta cycle on the hippocampal theta SO(2).","class_justification":"Autonomous; Class A.","data_extraction":"","reference":"Canolty 2010 Trends Cogn Sci 14:506","notes":"Predicted pairwise gamma-burst correlation \u03c1_ij \u2248 -1/6 \u2248 -0.167.","provenance":"z2-on-so2-extension"},{"id":"z2so2-spin12-nmr-t2-jitter","system":"Spin-1/2 NMR T\u2082 jitter (Z\u2082 on SU(2))","domain":"quantum","class":"A","symmetry":"SU(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"T\u2082 relaxation is a Z\u2082 flip on the SU(2) Bloch-sphere substrate (\u03c6_SU(2) = 2\u03c0).","class_justification":"Autonomous in clean sample; Class A.","data_extraction":"","reference":"Levitt 2008 Spin Dynamics; Slichter 1990 Principles of Magnetic Resonance","notes":"Should be CV-indistinguishable from SO(2) systems (paper row 5 NREM respiration).","provenance":"z2-on-so2-extension"},{"id":"z2so2-rigid-rotor-precession-flip","system":"Rigid-body precession reversal (Z\u2082 on SO(3))","domain":"engineering","class":"A","symmetry":"SO(3)","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Precession reversal is a Z\u2082 flip on the SO(3) rigid-body substrate (\u03c6_SO(3) = \u03c0).","class_justification":"Autonomous gyroscope; Class A.","data_extraction":"","reference":"Goldstein 1980 Classical Mechanics \u00a75; Fitzpatrick 2012 Newtonian Dynamics","notes":"Should be CV-indistinguishable from Z\u2082-only systems (paper row 70 solar cycle).","provenance":"z2-on-so2-extension"},{"id":"z2so2-bicommensurate-clock-cardiac-resp","system":"Cardio-respiratory bicommensurate clock (Z\u2082 on T\u00b2)","domain":"cardiac","class":"A","symmetry":"T2","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Cardiac and respiratory rotations on a 2-torus substrate; each generator carries one Z\u2082 rupture.","class_justification":"Autonomous in NREM rest; Class A.","data_extraction":"","reference":"Sch\u00e4fer 1998 Nature 392:239","notes":"Predicted per-generator CV = 1/(4\u03c0) \u2248 0.0796.","provenance":"z2-on-so2-extension"},{"id":"z2so2-cardiac-resp-circadian-t3","system":"Cardio-respiratory-circadian coupled clock (Z\u2082 on T\u00b3)","domain":"cardiac","class":"B","symmetry":"T3","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Three coupled rotational substrates (heart, breath, day) \u2192 T\u00b3 substrate.","class_justification":"Circadian regulation tightens; Class B.","data_extraction":"","reference":"Glass 2001 Nature 410:277","notes":"Predicted per-generator CV = 1/(4\u03c0) \u2248 0.0796.","provenance":"z2-on-so2-extension"},{"id":"z2so2-m11-anticorr-prediction","system":"M11: \u03c1 = -1/2 between any two Z\u2082 ruptures sharing one SO(2) circuit","domain":"neural","class":"A","symmetry":"SO(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Any two Z\u2082 rupture channels constrained to complete one shared SO(2) revolution must satisfy variance-preservation, forcing Cov = -1/8 \u2192 \u03c1 = -1/2.","class_justification":"Structural; class is irrelevant (correlation prediction, not CV).","data_extraction":"","reference":"claims/M11_z2_compose_so2_anticorrelation/derivation.md","notes":"The cv_pred field here is for reference (per-channel SO(2) cycle CV); the actual prediction is \u03c1 = -1/2.","provenance":"z2-on-so2-extension"}];
+// LIE_GROUPS: 14 rows
+const DATA_LIE_GROUPS = [{"id":"lie-su2-nv-rabi","system":"NV-centre electron-spin Rabi cycle CV","domain":"quantum","class":"A","symmetry":"SU(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Rabi cycle is rotation in SU(2) Bloch sphere; \u03c6_SU(2) = 2\u03c0.","class_justification":"Autonomous in clean sample; Class A.","data_extraction":"","reference":"Doherty 2013 Phys Rep 528:1","notes":"Should equal CV(SO(2)) = 0.0796 (M22-A topological equivalence).","provenance":"lie-group-extension"},{"id":"lie-so3-iers-lod-jitter","system":"Earth length-of-day jitter (SO(3) rigid-rotor return CV)","domain":"astronomy","class":"B","symmetry":"SO(3)","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Earth's rotation phase return time on the SO(3) substrate; \u03c6_SO(3) = \u03c0.","class_justification":"Tidally regulated; Class B.","data_extraction":"","reference":"IERS Bulletin A; Gross 2000 Geophys J Int","notes":"Should equal CV(Z\u2082) = 0.1592 if autonomous, but is suppressed by tidal regulation (Class B).","provenance":"lie-group-extension"},{"id":"lie-so4-hydrogen-orbital-degeneracy","system":"Hydrogen orbital degeneracy lifetime CV","domain":"atomic","class":"B","symmetry":"SO(4)","n":2,"phi_G":3.141592653589793,"omega_geo":0.3183098861837907,"cv_pred":0.15915494309189535,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Hydrogen has SO(4) accidental degeneracy (Pauli 1926); \u03c6_SO(4) = \u03c0 in canonical normalisation.","class_justification":"QED-regulated; Class B.","data_extraction":"","reference":"Pauli 1926 Z Phys 36:336; Dickson 1989","notes":"Should equal CV(Z\u2082) = CV(SO(3)) = 0.1592 (topological prediction).","provenance":"lie-group-extension"},{"id":"lie-u2-transmon-cavity","system":"Transmon + cavity coherence cycle CV","domain":"quantum","class":"A","symmetry":"U(2)","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Transmon qubit + cavity = SU(2)\u00d7U(1)/Z\u2082 = U(2); \u03c6_U(2) = 2\u03c0.","class_justification":"Autonomous in dilution refrigerator; Class A.","data_extraction":"","reference":"Krantz 2019 Appl Phys Rev 6:021318","notes":"Should equal CV(SO(2)) = CV(SU(2)) = 0.0796.","provenance":"lie-group-extension"},{"id":"lie-su3-charmonium-psi-family","system":"Charmonium \u03c8-family log-lifetime CV (SU(3))","domain":"particle","class":"A","symmetry":"SU(3)","n":4,"phi_G":10.882796185405306,"omega_geo":0.09188814923696535,"cv_pred":0.045944074618482676,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Charmonium states under SU(3) flavour; \u03c6_SU(3) = 2\u03c0\u221a3.","class_justification":"Strong-interaction autonomous; Class A.","data_extraction":"","reference":"PDG; M22 v2 result_v2.md","notes":"Predicted 0.0459; M22 v2 reports 0.060 (within \u00b150% exploratory band).","provenance":"lie-group-extension"},{"id":"lie-su4-atomic-clock-4level","system":"4-level atomic clock transition CV","domain":"atomic","class":"B","symmetry":"SU(4)","n":4,"phi_G":12.566370614359172,"omega_geo":0.07957747154594767,"cv_pred":0.039788735772973836,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"4-level system has SU(4) coherence substrate; \u03c6_SU(4) = 4\u03c0.","class_justification":"Engineered precision; Class B.","data_extraction":"","reference":"Marciniak 2022 Nature 603:69","notes":"Predicted CV = 0.0398 = CV(Sp(2)) (topological equivalence).","provenance":"lie-group-extension"},{"id":"lie-sp2-pentaquark-lifetime","system":"Pentaquark Pc(4380)/Pc(4450) lifetime CV","domain":"particle","class":"A","symmetry":"Sp(2)","n":2,"phi_G":12.566370614359172,"omega_geo":0.07957747154594767,"cv_pred":0.039788735772973836,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Pentaquark spin substrate is Spin(5) \u2245 Sp(2); \u03c6_Sp(2) = 4\u03c0.","class_justification":"Strong-interaction autonomous; Class A.","data_extraction":"","reference":"LHCb 2015 Phys Rev Lett 115:072001","notes":"Predicted CV = 0.0398 = CV(SU(4)) (topological equivalence).","provenance":"lie-group-extension"},{"id":"lie-g2-colour-confinement-timescale","system":"G\u2082 colour-confinement timescale CV (speculative)","domain":"particle","class":"A","symmetry":"G2","n":4,"phi_G":7.2551974569368705,"omega_geo":0.13783222385544802,"cv_pred":0.06891611192772401,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"G\u2082 holonomy compactification or G\u2082-symmetric lattice gauge theory; \u03c6_G2 normalisation here uses Killing-form (4\u03c0/3).","class_justification":"Strong-interaction autonomous; Class A.","data_extraction":"","reference":"Greiner & Sch\u00e4fer 1994 QCD; lattice G\u2082 Yang-Mills literature","notes":"Highly speculative; G\u2082 normalisation ambiguity gives CV in [0.069, 0.097].","provenance":"lie-group-extension"},{"id":"lie-spin7-octonionic-quasicrystal","system":"Octonionic quasicrystal cycle CV (Spin(7))","domain":"condensed-matter","class":"A","symmetry":"Spin(7)","n":4,"phi_G":10.882796185405306,"omega_geo":0.09188814923696535,"cv_pred":0.045944074618482676,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Spin(7) holonomy quasicrystal substrate; \u03c6_Spin(7) = 2\u03c0\u221a3.","class_justification":"Autonomous; Class A.","data_extraction":"","reference":"Joyce 1996 Inv Math 123:507; quasicrystal literature","notes":"Should equal CV(SU(3)) = 0.0459 (topological equivalence).","provenance":"lie-group-extension"},{"id":"lie-t2-double-pendulum","system":"Double-pendulum period CV per generator (T\u00b2)","domain":"engineering","class":"A","symmetry":"T2","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Two coupled rotational degrees of freedom in the planar regular regime trace T\u00b2 substrate; \u03c6_T\u00b2 = 2\u03c0 per generator.","class_justification":"Autonomous; Class A.","data_extraction":"","reference":"Strogatz 2014 Nonlinear Dynamics \u00a76","notes":"Predicted per-generator CV = 0.0796 = CV(SO(2)).","provenance":"lie-group-extension"},{"id":"lie-t3-cardio-resp-circadian","system":"Cardio-respiratory-circadian coupled clock per generator (T\u00b3)","domain":"circadian","class":"B","symmetry":"T3","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Three commensurate rotational rhythms on T\u00b3; each generator has \u03c6_T\u00b3 = 2\u03c0.","class_justification":"Circadian regulation; Class B.","data_extraction":"","reference":"Glass 2001 Nature 410:277","notes":"Per-generator CV = 0.0796; circadian generator should suppress.","provenance":"lie-group-extension"},{"id":"lie-t4-ultradian-stack","system":"Cardiac \u00d7 respiratory \u00d7 ultradian \u00d7 circadian per generator (T\u2074)","domain":"circadian","class":"B","symmetry":"T4","n":4,"phi_G":6.283185307179586,"omega_geo":0.15915494309189535,"cv_pred":0.07957747154594767,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Four commensurate rotational rhythms on T\u2074; each generator has \u03c6_T\u2074 = 2\u03c0.","class_justification":"Multiple regulatory layers; Class B per generator.","data_extraction":"","reference":"Refinetti 2016 Circadian Physiology","notes":"Per-generator CV = 0.0796.","provenance":"lie-group-extension"},{"id":"lie-z3-trefoil-repressilator-paper","system":"Repressilator-style Z\u2083 system (paper convention 1/(3\u03c0))","domain":"synthetic-biology","class":"A","symmetry":"Z3","n":3,"phi_G":2.0943951023931953,"omega_geo":0.47746482927568606,"cv_pred":0.23873241463784303,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Three discrete inhibitory phases on the circle; paper extrapolation uses CV = 1/(n\u03c0).","class_justification":"Autonomous in symmetric design; Class A.","data_extraction":"","reference":"Elowitz 2000 Nature 403:335; M15 derivation.md","notes":"DISCREPANCY: M15 derives CV = n/(4\u03c0) = 0.2387; paper uses 1/(n\u03c0) = 0.1061. Repressilator empirical: 0.14-0.32.","provenance":"lie-group-extension"},{"id":"lie-phi-quasicrystal-icosahedral","system":"Icosahedral / golden-ratio rotation cycle CV","domain":"condensed-matter","class":"A","symmetry":"PHI","n":4,"phi_G":5.0832036923152595,"omega_geo":0.1967263286166932,"cv_pred":0.0983631643083466,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Golden-ratio rotation \u03c6 = 1.618; \u03c6_PHI = \u03c0\u00b7\u03c6 \u2248 5.083 in this package's convention.","class_justification":"Autonomous in pure system; Class A.","data_extraction":"","reference":"Penrose 1974; Levitov 1988","notes":"Predicted CV = 1/(2\u00b7\u03c0\u00b7\u03c6) \u2248 0.0984.","provenance":"lie-group-extension"}];
+// MEMORYLESS: 12 rows
+const DATA_MEMORYLESS = [{"id":"ml-radioactive-decay-c14","system":"Carbon-14 inter-decay-time CV","domain":"particle","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Strong-EM force imbalance prevents geometric closure; no SO(2) substrate available to regulate Z\u2082 decay events.","class_justification":"Pure noise-dominated point process; Class C in the limit.","data_extraction":"","reference":"Sabine 2026 radioactive_crr_finding_2.pdf \u00a73.4","notes":"The headline case. Theoretically exact CV = 1; Monte Carlo verifies 1.000099 \u00b1 0.000953.","provenance":"memoryless-pure-z2"},{"id":"ml-radioactive-decay-u238","system":"Uranium-238 inter-decay-time CV","domain":"particle","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Same geometric-closure failure as C-14 but at much longer half-life; SO(2) substrate still absent.","class_justification":"Pure point process; Class C.","data_extraction":"","reference":"Sabine 2026 radioactive_crr_finding_2.pdf","notes":"Predicted CV = 1 independent of half-life (memoryless property is rate-independent).","provenance":"memoryless-pure-z2"},{"id":"ml-radioactive-decay-cs137","system":"Caesium-137 inter-decay-time CV","domain":"particle","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Beta-decay isotope with no closed nuclear geometry; SO(2) substrate absent.","class_justification":"Pure point process; Class C.","data_extraction":"","reference":"Sabine 2026 radioactive_crr_finding_2.pdf","notes":"Strong empirical candidate \u2014 Cs-137 is widely used in calibration sources.","provenance":"memoryless-pure-z2"},{"id":"ml-photon-arrival-incoherent","system":"Single-photon arrival times in steady incoherent light","domain":"quantum","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Thermal-source photons arrive without phase coherence; no SO(2) substrate to regulate Z\u2082 arrival/no-arrival event.","class_justification":"Pure Poisson point process; Class C.","data_extraction":"","reference":"Mandel & Wolf 1995 Optical Coherence and Quantum Optics \u00a711","notes":"Coherent (laser) light has SO(2) substrate from the cavity mode \u2192 expect CV deviation away from 1.","provenance":"memoryless-pure-z2"},{"id":"ml-cosmic-ray-arrival","system":"Cosmic-ray inter-arrival times at a detector","domain":"particle","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Cosmic-ray sources are isotropic and acausal at the detector; no SO(2) substrate locally.","class_justification":"Pure Poisson; Class C.","data_extraction":"","reference":"Grieder 2001 Cosmic Rays at Earth","notes":"","provenance":"memoryless-pure-z2"},{"id":"ml-mm1-queue-arrival","system":"M/M/1 queue inter-arrival times","domain":"engineering","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Memoryless arrival assumption is the defining hypothesis of M/M/1; no SO(2) substrate by construction.","class_justification":"Class C by construction.","data_extraction":"","reference":"Kleinrock 1975 Queueing Systems Vol I","notes":"Definitional CV = 1; falsifies trivially if M/M/1 queue ever has CV \u2260 1.","provenance":"memoryless-pure-z2"},{"id":"ml-single-molecule-unbinding","system":"Single-molecule unbinding event times (rate-limited)","domain":"cellular","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"In the rate-limited (Kramers) regime far from any oscillatory binding/unbinding feedback, the unbinding event has no SO(2) substrate.","class_justification":"Pure Poisson point process; Class C.","data_extraction":"","reference":"Bell 1978 Science 200:618; Schwesinger 2000 PNAS 97:9972","notes":"Empirical CV \u2248 1 for force-free single-molecule unbinding in optical tweezers.","provenance":"memoryless-pure-z2"},{"id":"ml-mini-EPSC-NMJ","system":"Spontaneous miniature EPSC inter-event times at low-Ca\u00b2\u207a NMJ","domain":"neural","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Low-Ca\u00b2\u207a minis are independent vesicular fusion events with no presynaptic oscillation; no SO(2) substrate.","class_justification":"Pure Poisson; Class C.","data_extraction":"","reference":"Fatt & Katz 1952 J Physiol 117:109","notes":"Classic test case \u2014 Fatt & Katz's original demonstration of Poisson minis.","provenance":"memoryless-pure-z2"},{"id":"ml-quantum-tunneling-escape","system":"Single-particle quantum-tunneling escape times","domain":"quantum","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Wavefunction in a metastable well tunnels stochastically; no oscillatory regulator below the barrier.","class_justification":"Pure Poisson; Class C.","data_extraction":"","reference":"Caldeira & Leggett 1981 Phys Rev Lett 46:211","notes":"Tunneling out of a quasi-stable well \u2014 the canonical quantum memoryless process.","provenance":"memoryless-pure-z2"},{"id":"ml-thermal-bit-flip","system":"Thermal bit-flip times in a no-feedback magnetic memory cell","domain":"engineering","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Without write-back feedback the cell sits in either of two minima; thermal escape is Z\u2082 with no SO(2) regulator.","class_justification":"Pure Poisson; Class C.","data_extraction":"","reference":"N\u00e9el 1949 Ann G\u00e9ophys 5:99","notes":"N\u00e9el-Brown relaxation in single-domain magnets.","provenance":"memoryless-pure-z2"},{"id":"ml-bacterial-flagellar-motor-switch","system":"Flagellar motor CW/CCW switch times in absence of CheY signalling","domain":"microbial","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"With CheY signalling deactivated the motor switches stochastically with no chemotactic SO(2) substrate.","class_justification":"Pure Poisson; Class C.","data_extraction":"","reference":"Korobkova 2004 Nature 428:574","notes":"With chemotaxis intact, switching is Z\u2082-on-SO(2) and CV \u226a 1; ablation moves CV \u2192 1.","provenance":"memoryless-pure-z2"},{"id":"ml-dna-tunneling-mismatch","system":"DNA spontaneous tautomerisation event times","domain":"cellular","class":"C","symmetry":"Z2_only","n":2,"phi_G":0.5,"omega_geo":2.0,"cv_pred":1.0,"cv_obs":null,"ratio":null,"verdict":"PENDING","physical_justification":"Quantum tunneling between Watson-Crick tautomers is spontaneous with no biochemical feedback substrate.","class_justification":"Pure Poisson; Class C.","data_extraction":"","reference":"Slocombe 2022 Commun Phys 5:109","notes":"Highly speculative; included as edge-case test.","provenance":"memoryless-pure-z2"}];
+
+const ALL_ROWS = [].concat(DATA_132, DATA_Z2_ON_SO2, DATA_LIE_GROUPS, DATA_MEMORYLESS);
+
+/* ==================================================================
+   STATS (recomputed from data so they stay accurate)
+   ================================================================== */
+function recomputeStats() {
+  const total = ALL_ROWS.length;
+  const tally = (k) => ALL_ROWS.filter(r => r.verdict === k).length;
+  document.getElementById("stat-total").textContent      = total;
+  document.getElementById("stat-match").textContent      = tally("MATCH");
+  document.getElementById("stat-suppressed").textContent = tally("SUPPRESSED");
+  document.getElementById("stat-elevated").textContent   = tally("ELEVATED");
+  document.getElementById("stat-pending").textContent    = tally("PENDING");
+}
+
+/* ==================================================================
+   DATA TABLE
+   ================================================================== */
+const fmt = (v, dp = 4) => {
+  if (v === null || v === undefined || v === "") return "—";
+  if (typeof v === "number") {
+    if (Math.abs(v) < 0.0001 && v !== 0) return v.toExponential(2);
+    return v.toFixed(dp);
+  }
+  return String(v);
+};
+
+let sortKey = null;
+let sortDir = 1; // 1 asc, -1 desc
+
+function getFilteredRows() {
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  const fp = document.getElementById("f-provenance").value;
+  const fc = document.getElementById("f-class").value;
+  const fv = document.getElementById("f-verdict").value;
+  const fs = document.getElementById("f-symmetry").value;
+
+  let rows = ALL_ROWS.filter(r => {
+    if (fp && r.provenance !== fp) return false;
+    if (fc && r.class !== fc) return false;
+    if (fv && r.verdict !== fv) return false;
+    if (fs && r.symmetry !== fs) return false;
+    if (q) {
+      const hay = (
+        (r.system || "") + " " + (r.domain || "") + " " +
+        (r.reference || "") + " " + (r.notes || "") + " " +
+        (r.physical_justification || "") + " " + (r.class_justification || "")
+      ).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (sortKey) {
+    rows = [...rows].sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (av === null || av === undefined || av === "") return 1;
+      if (bv === null || bv === undefined || bv === "") return -1;
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * sortDir;
+      return String(av).localeCompare(String(bv)) * sortDir;
+    });
+  }
+  return rows;
+}
+
+function renderTable() {
+  const rows = getFilteredRows();
+  const tb = document.getElementById("tbody");
+  tb.innerHTML = "";
+  for (const r of rows) {
+    const tr = document.createElement("tr");
+    tr.dataset.id = r.id;
+    tr.innerHTML = `
+      <td class="system">${escapeHtml(r.system)}</td>
+      <td>${escapeHtml(r.domain || "")}</td>
+      <td><span class="badge ${r.class}">${r.class}</span></td>
+      <td><code>${escapeHtml(r.symmetry)}</code></td>
+      <td class="numeric">${fmt(r.cv_pred)}</td>
+      <td class="numeric">${fmt(r.cv_obs)}</td>
+      <td class="numeric">${fmt(r.ratio, 2)}</td>
+      <td><span class="badge ${r.verdict}">${r.verdict}</span></td>
+      <td class="small faint">${escapeHtml(r.reference || "—")}</td>
+    `;
+    tr.addEventListener("click", () => showDetails(r));
+    tb.appendChild(tr);
+  }
+  document.getElementById("row-count").textContent =
+    `${rows.length} of ${ALL_ROWS.length} shown`;
+}
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[c]));
+}
+
+function showDetails(r) {
+  const win = document.getElementById("details-modal");
+  if (!win) return;
+  document.getElementById("d-title").textContent = r.system;
+  document.getElementById("d-body").innerHTML = `
+    <div class="d-row"><span class="d-label">ID</span> <code>${escapeHtml(r.id)}</code></div>
+    <div class="d-row"><span class="d-label">Provenance</span> ${escapeHtml(r.provenance)}</div>
+    <div class="d-row"><span class="d-label">Domain</span> ${escapeHtml(r.domain || "—")}</div>
+    <div class="d-row"><span class="d-label">Class</span> <span class="badge ${r.class}">${r.class}</span>
+      <span class="d-label" style="margin-left:14px;">Symmetry</span> <code>${escapeHtml(r.symmetry)}</code>
+      <span class="d-label" style="margin-left:14px;">n</span> ${r.n ?? "—"}</div>
+    <div class="d-row"><span class="d-label">φ_G</span> ${fmt(r.phi_G, 4)}
+      <span class="d-label" style="margin-left:14px;">Ω_geo</span> ${fmt(r.omega_geo, 4)}</div>
+    <div class="d-row"><span class="d-label">CV pred</span> ${fmt(r.cv_pred)}
+      <span class="d-label" style="margin-left:14px;">CV obs</span> ${fmt(r.cv_obs)}
+      <span class="d-label" style="margin-left:14px;">Ratio</span> ${fmt(r.ratio, 2)}
+      <span class="d-label" style="margin-left:14px;">Verdict</span> <span class="badge ${r.verdict}">${r.verdict}</span></div>
+    <h4>Physical justification (Step 3)</h4>
+    <p>${escapeHtml(r.physical_justification || "—")}</p>
+    <h4>Class justification (Step 4)</h4>
+    <p>${escapeHtml(r.class_justification || "—")}</p>
+    ${r.notes ? `<h4>Notes</h4><p>${escapeHtml(r.notes)}</p>` : ""}
+    <h4>Reference</h4>
+    <p>${escapeHtml(r.reference || "—")}</p>
+    ${r.data_extraction ? `<h4>Data extraction</h4><p>${escapeHtml(r.data_extraction)}</p>` : ""}
+  `;
+  win.classList.add("open");
+}
+
+/* ==================================================================
+   PREDICTOR — JS port of src/crr_cv_predictions/rubric.py
+   ================================================================== */
+const PI = Math.PI;
+const TAU = 2 * PI;
+const PHI_G_MAP = {
+  "Z2_only": 0.5, "Z2": PI, "Z2_on_SO2": PI,
+  "SO(2)": TAU, "SU(2)": TAU, "SO(3)": PI,
+  "T2": TAU, "SU(3)": TAU * Math.sqrt(3),
+};
+
+function classify({system, state_space, n_phases, regulation, has_so2_regulator}) {
+  const trace = [];
+  trace.push("Step 1: system is oscillatory.");
+  let sym, n;
+  const ss = state_space.toLowerCase();
+  if (ss === "memoryless") {
+    sym = "Z2_only"; n = 2;
+    trace.push("Step 2 / memoryless → Z₂_only, n=2 (no SO(2) regulator anywhere). " +
+      "CV = CV_Z₂ × C*_absent_SO(2) = 1.");
+  } else if (ss === "two states") {
+    if (has_so2_regulator === false) {
+      sym = "Z2_only"; n = 2;
+      trace.push("Step 2 / Q1 → two states; Step 2.5 → has_so2_regulator=False → Z₂_only (memoryless), CV = 1.");
+    } else {
+      sym = "Z2"; n = 2;
+      trace.push("Step 2 / Q1 → Z₂, n=2 (two distinguishable states with implicit SO(2) regulator).");
+    }
+  } else if (ss === "continuous cycle") {
+    sym = "SO(2)"; n = 4;
+    trace.push("Step 2 / Q2 → SO(2), n=4 (continuous-phase limit cycle).");
+  } else if (ss === "n discrete phases") {
+    n = n_phases || 3;
+    sym = "Z" + n;
+    PHI_G_MAP[sym] = TAU / n; // M15 discrete-phase reading
+    trace.push(`Step 2 / Q3 → Z_${n}, n=${n} (counted discrete phases).`);
+  } else {
+    sym = "Z2"; n = 2;
+    trace.push("Step 2 / Q4 → Z₂ default (conservative fallback).");
+  }
+  const phi = PHI_G_MAP[sym];
+  const cv_pred = 1 / (2 * phi);
+  const band = [0.6 * cv_pred, 1.3 * cv_pred];
+  trace.push(`Step 3: cv_pred = 1/(2·φ_G) = ${cv_pred.toFixed(4)}; band [${band[0].toFixed(4)}, ${band[1].toFixed(4)}].`);
+  const cls = regulation === "regulated" ? "B" : regulation === "noise-dominated" ? "C" : "A";
+  trace.push(`Step 4 → Class ${cls} (${regulation}).`);
+  return {sym, n, cv_pred, band, cls, trace};
+}
+
+function evaluate(r, cv_obs) {
+  const ratio = cv_obs / r.cv_pred;
+  const verdict = ratio < 0.6 ? "SUPPRESSED" : ratio > 1.3 ? "ELEVATED" : "MATCH";
+  const reversal = (r.cls === "B" && verdict === "ELEVATED") ||
+                   (r.cls === "C" && verdict === "SUPPRESSED");
+  r.cv_obs = cv_obs;
+  r.ratio = ratio;
+  r.verdict = verdict;
+  r.reversal = reversal;
+  r.trace.push(`Step 5: cv_obs=${cv_obs.toFixed(4)}; ratio=${ratio.toFixed(3)}; verdict=${verdict}.`);
+  if (reversal) r.trace.push("Step 6: ⚠ DIRECTIONAL REVERSAL — class and verdict disagree.");
+  return r;
+}
+
+function runPredictor() {
+  const system = document.getElementById("p-system").value || "(unnamed system)";
+  const state_space = document.getElementById("p-state").value;
+  const n_phases = parseInt(document.getElementById("p-n").value, 10) || 3;
+  const regulation = document.getElementById("p-regulation").value;
+  const so2 = document.getElementById("p-so2").value;
+  const cvObsRaw = document.getElementById("p-cv").value;
+  const cv_obs = cvObsRaw === "" ? null : parseFloat(cvObsRaw);
+  const has_so2_regulator =
+    so2 === "yes" ? true : so2 === "no" ? false : null;
+
+  const r = classify({system, state_space, n_phases, regulation, has_so2_regulator});
+  if (cv_obs !== null && !isNaN(cv_obs)) evaluate(r, cv_obs);
+
+  document.getElementById("p-result").classList.remove("hidden");
+  document.getElementById("r-sym").textContent = r.sym;
+  document.getElementById("r-cv").textContent = r.cv_pred.toFixed(4);
+  document.getElementById("r-band").textContent =
+    `acceptance band [${r.band[0].toFixed(4)}, ${r.band[1].toFixed(4)}]; class ${r.cls}`;
+  const traceOl = document.getElementById("r-trace");
+  traceOl.innerHTML = "";
+  for (const line of r.trace) {
+    const li = document.createElement("li");
+    li.textContent = line;
+    traceOl.appendChild(li);
+  }
+  const vrow = document.getElementById("r-verdict-row");
+  if (cv_obs !== null && !isNaN(cv_obs)) {
+    vrow.classList.remove("hidden");
+    document.getElementById("r-obs").textContent = cv_obs.toFixed(4);
+    document.getElementById("r-ratio").textContent = r.ratio.toFixed(3);
+    const vBadge = `<span class="badge ${r.verdict}">${r.verdict}</span>`;
+    document.getElementById("r-verdict").innerHTML = vBadge;
+    document.getElementById("r-reversal").classList.toggle("hidden", !r.reversal);
+  } else {
+    vrow.classList.add("hidden");
+  }
+}
+
+/* ==================================================================
+   WIRING
+   ================================================================== */
+function init() {
+  recomputeStats();
+  // Populate symmetry filter
+  const syms = [...new Set(ALL_ROWS.map(r => r.symmetry))].sort();
+  const sel = document.getElementById("f-symmetry");
+  for (const s of syms) {
+    const opt = document.createElement("option");
+    opt.value = s; opt.textContent = s;
+    sel.appendChild(opt);
+  }
+  // Sort handlers
+  document.querySelectorAll("th.sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      const k = th.dataset.sort;
+      if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; }
+      document.querySelectorAll("th.sortable").forEach(t => {
+        t.classList.remove("sort-asc", "sort-desc");
+      });
+      th.classList.add(sortDir === 1 ? "sort-asc" : "sort-desc");
+      renderTable();
+    });
+  });
+  ["search", "f-provenance", "f-class", "f-verdict", "f-symmetry"].forEach(id => {
+    document.getElementById(id).addEventListener("input", renderTable);
+  });
+  document.getElementById("p-go").addEventListener("click", runPredictor);
+  renderTable();
+}
+
+document.addEventListener("DOMContentLoaded", init);
+</script>
+
+<!-- Details modal -->
+<style>
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+    padding: var(--pad); }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--surface); color: var(--ink); border-radius: 10px;
+    max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto;
+    padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+  .modal h3 { margin-bottom: 14px; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .modal h4 { margin: 14px 0 4px; color: var(--ink-soft); font-size: .82rem;
+    text-transform: uppercase; letter-spacing: .06em; }
+  .modal .d-row { font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: .92rem; margin: 4px 0; }
+  .modal .d-label { color: var(--ink-faint); font-size: .8rem;
+    text-transform: uppercase; letter-spacing: .04em; margin-right: 4px; }
+  .modal-close { float: right; background: none; border: none;
+    color: var(--ink-faint); cursor: pointer; font-size: 1.4rem; line-height: 1; }
+</style>
+<div class="modal-bg" id="details-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('details-modal').classList.remove('open')">×</button>
+    <h3 id="d-title"></h3>
+    <div id="d-body"></div>
+  </div>
+</div>
+
+</body>
+</html>
