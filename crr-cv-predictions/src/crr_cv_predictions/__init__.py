@@ -21,6 +21,7 @@ from .loader import (
     load_z2_on_so2,
     load_lie_group_extensions,
     load_memoryless,
+    load_cardiac_10,
     load_all_predictions,
 )
 
@@ -41,5 +42,6 @@ __all__ = [
     "load_z2_on_so2",
     "load_lie_group_extensions",
     "load_memoryless",
+    "load_cardiac_10",
     "load_all_predictions",
 ]

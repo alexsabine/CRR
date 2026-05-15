@@ -100,13 +100,19 @@ def load_memoryless() -> list[dict[str, Any]]:
     return _load_csv(DATA_DIR / "cv_predictions_memoryless.csv")
 
 
+def load_cardiac_10() -> list[dict[str, Any]]:
+    """Load the focused 10-prediction cardiac batch."""
+    return _load_csv(DATA_DIR / "cv_predictions_cardiac_10.csv")
+
+
 def load_all_predictions() -> list[dict[str, Any]]:
-    """Merge all four prediction files into a single list."""
+    """Merge all five prediction files into a single list."""
     out: list[dict[str, Any]] = []
     out.extend(load_paper_table())
     out.extend(load_z2_on_so2())
     out.extend(load_lie_group_extensions())
     out.extend(load_memoryless())
+    out.extend(load_cardiac_10())
     return out
 
 

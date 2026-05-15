@@ -21,6 +21,7 @@ from crr_cv_predictions._extensions import (  # noqa: E402
     get_z2_on_so2_rows,
 )
 from crr_cv_predictions._memoryless import get_memoryless_rows  # noqa: E402
+from crr_cv_predictions._cardiac_10 import get_cardiac_10_rows  # noqa: E402
 from crr_cv_predictions.loader import (  # noqa: E402
     DATA_DIR,
     load_paper_table,
@@ -46,10 +47,15 @@ def main() -> None:
     write_csv(memoryless, DATA_DIR / "cv_predictions_memoryless.csv")
     write_json(memoryless, DATA_DIR / "cv_predictions_memoryless.json")
 
+    cardiac10 = get_cardiac_10_rows()
+    write_csv(cardiac10, DATA_DIR / "cv_predictions_cardiac_10.csv")
+    write_json(cardiac10, DATA_DIR / "cv_predictions_cardiac_10.json")
+
     print(f"wrote {len(paper)} paper rows")
     print(f"wrote {len(z2so2)} Z₂-on-SO(2) extension rows")
     print(f"wrote {len(lie)} Lie-group extension rows")
     print(f"wrote {len(memoryless)} memoryless (pure-Z₂) extension rows")
+    print(f"wrote {len(cardiac10)} cardiac-10-batch rows")
 
 
 if __name__ == "__main__":
