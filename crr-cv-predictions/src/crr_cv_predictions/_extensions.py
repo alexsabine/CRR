@@ -7,7 +7,7 @@ done by an independent process. verdict = "PENDING" by convention.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from .canonical import (
     PI,
@@ -20,7 +20,7 @@ from .canonical import (
 
 
 def _ext(
-    rid: str, system: str, domain: str, sym: str, n: int, cls: str,
+    rid: str, system: str, domain: str, sym: str, n: Optional[int], cls: str,
     physical: str, klsjust: str, reference: str = "",
     notes: str = "", provenance: str = "z2-on-so2-extension",
 ) -> dict[str, Any]:
@@ -96,19 +96,19 @@ Z2_ON_SO2_ROWS: list[dict[str, Any]] = [
 
     # P3 — k-channel ρ = -1/(k-1) anti-correlation
     _ext("z2so2-kaic-site-occupancy", "KaiC site-occupancy correlation (k=24 Z₂ on SO(2))",
-         "circadian", "SO(2)", 4, "B",
+         "circadian", "SO(2)", None, "B",
          "24 phosphorylation sites each acting as Z₂ events on a single SO(2) circadian cycle.",
          "Evolutionarily-tuned; Class B (cycle-period CV from KaiC was paper row 36, suppressed).",
          reference="Rust 2007 Science 318:809; Nakajima 2005 Science 308:414",
          notes="Predicted pairwise site-occupancy correlation ρ_ij = -1/23 ≈ -0.043."),
     _ext("z2so2-drosophila-syncytial-divs", "Drosophila syncytial division correlation (k=13 Z₂ on SO(2))",
-         "developmental", "SO(2)", 4, "A",
+         "developmental", "SO(2)", None, "A",
          "13 rapid nuclear divisions on a maternally-loaded SO(2) developmental clock.",
          "Autonomous; Class A.",
          reference="Foe 1983 J Cell Sci",
          notes="Predicted pairwise division-time correlation ρ_ij = -1/12 ≈ -0.083."),
     _ext("z2so2-theta-gamma-burst-correlation", "Theta-locked gamma burst correlation (k≈7 Z₂ on SO(2))",
-         "neural", "SO(2)", 4, "A",
+         "neural", "SO(2)", None, "A",
          "6-8 gamma bursts per theta cycle on the hippocampal theta SO(2).",
          "Autonomous; Class A.",
          reference="Canolty 2010 Trends Cogn Sci 14:506",
@@ -116,25 +116,25 @@ Z2_ON_SO2_ROWS: list[dict[str, Any]] = [
 
     # P4 — Z₂ rupture on larger Lie group: substrate sets CV
     _ext("z2so2-spin12-nmr-t2-jitter", "Spin-1/2 NMR T₂ jitter (Z₂ on SU(2))",
-         "quantum", "SU(2)", 4, "A",
+         "quantum", "SU(2)", None, "A",
          "T₂ relaxation is a Z₂ flip on the SU(2) Bloch-sphere substrate (φ_SU(2) = 2π).",
          "Autonomous in clean sample; Class A.",
          reference="Levitt 2008 Spin Dynamics; Slichter 1990 Principles of Magnetic Resonance",
          notes="Should be CV-indistinguishable from SO(2) systems (paper row 5 NREM respiration)."),
     _ext("z2so2-rigid-rotor-precession-flip", "Rigid-body precession reversal (Z₂ on SO(3))",
-         "engineering", "SO(3)", 2, "A",
+         "engineering", "SO(3)", None, "A",
          "Precession reversal is a Z₂ flip on the SO(3) rigid-body substrate (φ_SO(3) = π).",
          "Autonomous gyroscope; Class A.",
          reference="Goldstein 1980 Classical Mechanics §5; Fitzpatrick 2012 Newtonian Dynamics",
          notes="Should be CV-indistinguishable from Z₂-only systems (paper row 70 solar cycle)."),
     _ext("z2so2-bicommensurate-clock-cardiac-resp", "Cardio-respiratory bicommensurate clock (Z₂ on T²)",
-         "cardiac", "T2", 4, "A",
+         "cardiac", "T2", None, "A",
          "Cardiac and respiratory rotations on a 2-torus substrate; each generator carries one Z₂ rupture.",
          "Autonomous in NREM rest; Class A.",
          reference="Schäfer 1998 Nature 392:239",
          notes="Predicted per-generator CV = 1/(4π) ≈ 0.0796."),
     _ext("z2so2-cardiac-resp-circadian-t3", "Cardio-respiratory-circadian coupled clock (Z₂ on T³)",
-         "cardiac", "T3", 4, "B",
+         "cardiac", "T3", None, "B",
          "Three coupled rotational substrates (heart, breath, day) → T³ substrate.",
          "Circadian regulation tightens; Class B.",
          reference="Glass 2001 Nature 410:277",
@@ -142,7 +142,7 @@ Z2_ON_SO2_ROWS: list[dict[str, Any]] = [
 
     # P-anticorr — direct correlation predictions (the M11 prediction)
     _ext("z2so2-m11-anticorr-prediction", "M11: ρ = -1/2 between any two Z₂ ruptures sharing one SO(2) circuit",
-         "neural", "SO(2)", 4, "A",
+         "neural", "SO(2)", None, "A",
          "Any two Z₂ rupture channels constrained to complete one shared SO(2) revolution must satisfy variance-preservation, forcing Cov = -1/8 → ρ = -1/2.",
          "Structural; class is irrelevant (correlation prediction, not CV).",
          reference="claims/M11_z2_compose_so2_anticorrelation/derivation.md",
@@ -157,7 +157,7 @@ Z2_ON_SO2_ROWS: list[dict[str, Any]] = [
 LIE_GROUP_ROWS: list[dict[str, Any]] = [
     # SU(2) — already in M22 but extended with concrete candidates
     _ext("lie-su2-nv-rabi", "NV-centre electron-spin Rabi cycle CV",
-         "quantum", "SU(2)", 4, "A",
+         "quantum", "SU(2)", None, "A",
          "Rabi cycle is rotation in SU(2) Bloch sphere; φ_SU(2) = 2π.",
          "Autonomous in clean sample; Class A.",
          reference="Doherty 2013 Phys Rep 528:1",
@@ -166,7 +166,7 @@ LIE_GROUP_ROWS: list[dict[str, Any]] = [
 
     # SO(3) — already in M22, candidate test
     _ext("lie-so3-iers-lod-jitter", "Earth length-of-day jitter (SO(3) rigid-rotor return CV)",
-         "astronomy", "SO(3)", 2, "B",
+         "astronomy", "SO(3)", None, "B",
          "Earth's rotation phase return time on the SO(3) substrate; φ_SO(3) = π.",
          "Tidally regulated; Class B.",
          reference="IERS Bulletin A; Gross 2000 Geophys J Int",
@@ -175,7 +175,7 @@ LIE_GROUP_ROWS: list[dict[str, Any]] = [
 
     # SO(4) — new
     _ext("lie-so4-hydrogen-orbital-degeneracy", "Hydrogen orbital degeneracy lifetime CV",
-         "atomic", "SO(4)", 2, "B",
+         "atomic", "SO(4)", None, "B",
          "Hydrogen has SO(4) accidental degeneracy (Pauli 1926); φ_SO(4) = π in canonical normalisation.",
          "QED-regulated; Class B.",
          reference="Pauli 1926 Z Phys 36:336; Dickson 1989",
@@ -184,7 +184,7 @@ LIE_GROUP_ROWS: list[dict[str, Any]] = [
 
     # U(2) — new
     _ext("lie-u2-transmon-cavity", "Transmon + cavity coherence cycle CV",
-         "quantum", "U(2)", 4, "A",
+         "quantum", "U(2)", None, "A",
          "Transmon qubit + cavity = SU(2)×U(1)/Z₂ = U(2); φ_U(2) = 2π.",
          "Autonomous in dilution refrigerator; Class A.",
          reference="Krantz 2019 Appl Phys Rev 6:021318",
@@ -193,7 +193,7 @@ LIE_GROUP_ROWS: list[dict[str, Any]] = [
 
     # SU(3) — already in M22 v2
     _ext("lie-su3-charmonium-psi-family", "Charmonium ψ-family log-lifetime CV (SU(3))",
-         "particle", "SU(3)", 4, "A",
+         "particle", "SU(3)", None, "A",
          "Charmonium states under SU(3) flavour; φ_SU(3) = 2π√3.",
          "Strong-interaction autonomous; Class A.",
          reference="PDG; M22 v2 result_v2.md",
@@ -202,7 +202,7 @@ LIE_GROUP_ROWS: list[dict[str, Any]] = [
 
     # SU(4) — new
     _ext("lie-su4-atomic-clock-4level", "4-level atomic clock transition CV",
-         "atomic", "SU(4)", 4, "B",
+         "atomic", "SU(4)", None, "B",
          "4-level system has SU(4) coherence substrate; φ_SU(4) = 4π.",
          "Engineered precision; Class B.",
          reference="Marciniak 2022 Nature 603:69",
@@ -211,7 +211,7 @@ LIE_GROUP_ROWS: list[dict[str, Any]] = [
 
     # Sp(2) ≅ Spin(5) — new
     _ext("lie-sp2-pentaquark-lifetime", "Pentaquark Pc(4380)/Pc(4450) lifetime CV",
-         "particle", "Sp(2)", 2, "A",
+         "particle", "Sp(2)", None, "A",
          "Pentaquark spin substrate is Spin(5) ≅ Sp(2); φ_Sp(2) = 4π.",
          "Strong-interaction autonomous; Class A.",
          reference="LHCb 2015 Phys Rev Lett 115:072001",
@@ -220,7 +220,7 @@ LIE_GROUP_ROWS: list[dict[str, Any]] = [
 
     # G2 — exceptional, speculative
     _ext("lie-g2-colour-confinement-timescale", "G₂ colour-confinement timescale CV (speculative)",
-         "particle", "G2", 4, "A",
+         "particle", "G2", None, "A",
          "G₂ holonomy compactification or G₂-symmetric lattice gauge theory; φ_G2 normalisation here uses Killing-form (4π/3).",
          "Strong-interaction autonomous; Class A.",
          reference="Greiner & Schäfer 1994 QCD; lattice G₂ Yang-Mills literature",
@@ -229,7 +229,7 @@ LIE_GROUP_ROWS: list[dict[str, Any]] = [
 
     # Spin(7) — speculative
     _ext("lie-spin7-octonionic-quasicrystal", "Octonionic quasicrystal cycle CV (Spin(7))",
-         "condensed-matter", "Spin(7)", 4, "A",
+         "condensed-matter", "Spin(7)", None, "A",
          "Spin(7) holonomy quasicrystal substrate; φ_Spin(7) = 2π√3.",
          "Autonomous; Class A.",
          reference="Joyce 1996 Inv Math 123:507; quasicrystal literature",
@@ -238,7 +238,7 @@ LIE_GROUP_ROWS: list[dict[str, Any]] = [
 
     # T² — already in M22, concrete candidate
     _ext("lie-t2-double-pendulum", "Double-pendulum period CV per generator (T²)",
-         "engineering", "T2", 4, "A",
+         "engineering", "T2", None, "A",
          "Two coupled rotational degrees of freedom in the planar regular regime trace T² substrate; φ_T² = 2π per generator.",
          "Autonomous; Class A.",
          reference="Strogatz 2014 Nonlinear Dynamics §6",
@@ -247,7 +247,7 @@ LIE_GROUP_ROWS: list[dict[str, Any]] = [
 
     # T³ — new (cardio-resp-circadian)
     _ext("lie-t3-cardio-resp-circadian", "Cardio-respiratory-circadian coupled clock per generator (T³)",
-         "circadian", "T3", 4, "B",
+         "circadian", "T3", None, "B",
          "Three commensurate rotational rhythms on T³; each generator has φ_T³ = 2π.",
          "Circadian regulation; Class B.",
          reference="Glass 2001 Nature 410:277",
@@ -256,7 +256,7 @@ LIE_GROUP_ROWS: list[dict[str, Any]] = [
 
     # T⁴ — new (full ultradian stack)
     _ext("lie-t4-ultradian-stack", "Cardiac × respiratory × ultradian × circadian per generator (T⁴)",
-         "circadian", "T4", 4, "B",
+         "circadian", "T4", None, "B",
          "Four commensurate rotational rhythms on T⁴; each generator has φ_T⁴ = 2π.",
          "Multiple regulatory layers; Class B per generator.",
          reference="Refinetti 2016 Circadian Physiology",

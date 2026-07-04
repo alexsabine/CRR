@@ -36,25 +36,68 @@ occasionally cohere into things, not things that change.
    — causal exponential-kernel reconstruction. Exponential family
    with natural parameter η = 1/Ω, sufficient statistic C. The FUTURE.
 
-### The key parameter Ω
+### The key parameter Ω (revised per `notes/rupture_topology.md`, `notes/conventions.md`)
 
-Ω = 1/φ_geodesic = σ². Precision Π = 1/Ω.
+**Rupture is Z₂ by construction (H1), not a substrate choice.** Three
+independent arguments force this: the Dirac delta's codomain {0,∞}
+under unit normalisation is {0,1}; the Heaviside rupture-indicator
+Θ(C·Ω−1) has codomain exactly {0,1}; and at saturation the sufficient
+statistic is a Bernoulli(1/2) draw. "Z₂" in CRR names the rupture
+event itself, never a phase manifold alongside SO(2) as a rival
+alternative.
 
-| Substrate | Geodesic | Ω canonical | CV = Ω/2 |
-|-----------|---------|-------------|----------|
-| Z₂ open arc | π | 1/π ≈ 0.3183 | 1/(2π) ≈ 0.1592 |
-| SO(2) ring | 2π | 1/(2π) ≈ 0.1592 | 1/(4π) ≈ 0.0796 |
+**The continual memory-bearing manifold is a compact connected Lie
+group G** (H2), with bi-invariant metric and closed-geodesic length
+φ_G. The canonical Z₂ rupture acts on G via the antipodal quotient
+θ ~ θ+φ_G/2 — a genuine index-2 subgroup, so the rupture-only geodesic
+is *always* exactly half of G's closed geodesic, for any G and in any
+consistent normalisation of φ_G:
 
-Topological ratio Z₂:SO(2) = 2 (exact).
+Ω_G = 1/φ_G · CV_G = Ω_G/2 = 1/(2·φ_G) (M22 generalisation)
+
+| G | φ_G | Ω_G | CV_G |
+|---|-----|-----|------|
+| Z₂ (rupture only, no continuous phase) | π | 1/π ≈ 0.3183 | 1/(2π) ≈ 0.1592 |
+| SO(2) ≅ U(1) | 2π | 1/(2π) ≈ 0.1592 | 1/(4π) ≈ 0.0796 |
+| SU(2) ≅ S³ | 2π | 1/(2π) | 1/(4π) — same CV as SO(2) |
+| SO(3) = SU(2)/Z₂ | π | 1/π | 1/(2π) — same CV as Z₂-only |
+
+Topological ratio Z₂:SO(2) = 2 is **forced** — it is the group-index
+fact that an index-2 subgroup has exactly half the parent's geodesic
+length, true in any units. This is the strong, scale-independent part
+of the claim. The **absolute** values (0.1592, 0.0796) additionally
+require the bi-invariant-metric normalisation of φ_G to coincide with
+the Čencov/Fisher-Rao normalisation independently derived for the Z₂
+(Bernoulli) case — that coincidence is a stated convention (C2), not a
+theorem; see the open M21 item below for a case where an analogous
+cross-formalism identification does *not* hold without rescaling.
+
+**Two distinct Ωs (C3) — do not conflate.** Ω_geo = 1/φ_G (the
+geometric quantity above) and Ω_int = 1 (Z₂-intrinsic, rupture
+measured in its own Bernoulli-draw units) are different quantities.
+"exp(C/Ω) → e at C·Ω = 1" holds only in Z₂-intrinsic units; in
+geometric units, C·Ω_geo = 1 at rupture forces C/Ω_geo = φ_G², so
+exp(C/Ω_geo) = e^{φ_G²} (≈ e^{π²} ≈ 19334 for Z₂, ≈ e^{4π²} for SO(2)),
+not e. Any statement invoking "exp(C/Ω) → e" must specify which Ω.
 
 Ω regimes: <0.5 rigid; 0.5–1.2 refinement; 1.2–2.5 balanced; 2.5–4.0
-creative; >4.0 chaotic.
+creative; >4.0 chaotic. (These regimes are stated in Ω_int units per
+`notes/conventions.md`; not yet re-derived per-G in Ω_geo units.)
 
 ### Universal rupture condition
 
-C·Ω = 1 — equality case of the Cramér-Rao bound and Heisenberg-Gabor
-saturation. δ(now) is the centre of a minimum-uncertainty Gabor
-wavelet.
+C·Ω = 1 (geometric units) — the equality case of the Cramér-Rao bound
+under the identification of C with accumulated Fisher information.
+The kinship with Heisenberg-Gabor saturation holds only as an
+algebraic form (same dimensionless product structure), not a literal
+identification of C, Ω with the conjugate physical variables — see
+`Alexander/boundary_is_a_rate` §4. The kinship with the thermodynamic
+uncertainty relation (TUR) does **not** hold at C·Ω = 1 under direct
+identification — the TUR's own factor of 2 forces C·Ω = 2 at TUR
+saturation instead (M21, open; `notes/conventions.md`). CRR should not
+claim three-way saturation (CR + HG + TUR) at the same C·Ω = 1 without
+either rescaling one identification or restricting the claim to CR
+alone.
 
 ### Beauty function
 

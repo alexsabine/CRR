@@ -42,21 +42,37 @@ with the Wijsman / Jaynes argument. No fitted parameter.
 
 **Source:** canonical brief; `CRR_CV_Derivation.pdf`; `CRR_Complete_Proof_Sketch.md` §19.
 
-### M2. Z₂:SO(2) CV ratio is exactly 2 from arc-to-ring topology
-Geodesic length doubles from open arc (π) to closed ring (2π); Ω halves;
-CV halves. Ratio is topological, not parametric.
+### M2. Z₂ rupture is a half-turn (index-2 subgroup) embedding inside SO(2)
+**[RESOLVED — reworded per `notes/conventions.md` recommendation]**
+Not "Z₂ vs SO(2) substrates" (a false parallel). SO(2) = ℝ/2πℤ carries
+a natural Z₂ action by antipodal identification θ ~ θ+π; the Z₂
+rupture-only geodesic (π) is exactly the SO(2) closed-geodesic (2π)
+divided by the order of this subgroup (2). The ratio is the *order of
+the Z₂ subgroup*, forced in any consistent normalisation — not two
+independently-measured lengths compared post hoc. Generalises to any
+compact G containing Z₂ as a discrete subgroup: rupture-only geodesic
+= φ_G / 2 (M22).
 
-**Source:** canonical brief; `CRR_COMPREHENSIVE_SUMMARY.md`.
+**Source:** canonical brief; `CRR_COMPREHENSIVE_SUMMARY.md`; derivation in `notes/rupture_topology.md` H2.
 
-### M3. C·Ω = 1 saturates the Cramér-Rao bound
+### M3. C·Ω = 1 saturates the Cramér-Rao bound (in geometric units; see C3)
 At rupture, the CRR equality is the equality case of the Cramér-Rao
-inequality with C identified as accumulated Fisher information.
+inequality with C identified as accumulated Fisher information. Holds
+in Ω_geo units. Do not additionally invoke "exp(C/Ω)→e at C·Ω=1" —
+that identity holds only in the separate Ω_int (Z₂-intrinsic) units
+(`notes/conventions.md` C3); conflating the two units is the source
+of the apparent inconsistency flagged below ("Notes on apparent
+inconsistency in the canonical brief").
 
 **Source:** `canonical_crr_rigorous_proof_sketch.md`; `crr_full_proofs.md` Part I.
 
-### M4. C·Ω = 1 saturates the Heisenberg-Gabor uncertainty
+### M4. C·Ω = 1 saturates the Heisenberg-Gabor uncertainty (algebraic form only)
 Equivalent statement in time-frequency: the rupture point is the centre
-of a minimum-uncertainty Gabor wavelet.
+of a minimum-uncertainty Gabor wavelet. Per `Alexander/boundary_is_a_rate`
+§4, this kinship holds only as an algebraic form (same dimensionless
+saturated-uncertainty structure), not a literal identification of C, Ω
+with the conjugate physical variables Δt, ΔE — state it that way rather
+than as a stronger physical identity.
 
 **Source:** canonical brief; `CRR_Complete_Proof_Sketch.md`.
 
@@ -121,17 +137,27 @@ mean coherence.
 
 **Source:** `CRR_Complete_Proof_Sketch.md` §13; `crr_full_proofs.md` Part I.5.
 
-### M15. Z_n hierarchy: CV = n/(4π) for Z_n symmetry classes
-Generalisation of M2 to arbitrary cyclic symmetry. Z_2 and SO(2) are the
-n=1 and n→∞ endpoints.
+### M15. Z_n hierarchy: CV = n/(4π) for Z_n discrete-phase symmetry classes
+Generalisation of M2 to arbitrary cyclic *discrete*-phase symmetry
+(n equally-spaced points on a circle, geodesic 2π/n between adjacent
+points). **[RESOLVED, corrected per `notes/conventions.md` C2]** SO(2)
+is *not* the n=1 or n→∞ endpoint of this sequence — it is a
+structurally distinct continuous-phase manifold (φ_SO(2) = 2π, fixed,
+not a limit of φ_{Z_n} = 2π/n). CV = n/(4π) is monotonically
+*increasing* in n and diverges as n→∞, while SO(2)'s CV = 1/(4π) is
+smaller than every Z_n≥2 value — the two families do not interpolate.
+See `claims/M15_zn_symmetry_hierarchy/derivation.md`.
 
-**Source:** `CRR_COMPREHENSIVE_SUMMARY.md`.
+**Source:** `CRR_COMPREHENSIVE_SUMMARY.md`; corrected in `claims/M15_zn_symmetry_hierarchy/derivation.md`.
 
-### M16. Bonnet-Myers gives Ω = π/√κ on positively-curved statistical manifolds
-The injectivity radius bound on a positively curved manifold sets a
-geometric upper limit on Ω.
+### M16. Bonnet-Myers gives Ω ≥ √κ/π on positively-curved statistical manifolds
+**[RESOLVED — inversion typo corrected per `notes/conventions.md` C4]**
+Bonnet-Myers bounds the diameter, not Ω, directly: D ≤ π/√κ. Under
+Ω = 1/D (C4: Ω is *inverse* geodesic length), this gives Ω ≥ √κ/π, with
+equality (Ω = √κ/π) on the saturating round sphere — not Ω = π/√κ as
+originally stated, which inverts the bound.
 
-**Source:** `crr_full_proofs.md` Part I.3.
+**Source:** `crr_full_proofs.md` Part I.3; correction in `notes/conventions.md` C4.
 
 ### M17. C is quadratic variation [μ,μ]_t in the martingale formulation
 Coherence is the quadratic-variation process of the underlying
@@ -146,10 +172,13 @@ sequential probability ratio test.
 **Source:** `crr_full_proofs.md` Part II.6.
 
 ### M19. Poincaré recurrence + Kac's lemma make rupture inevitable for ergodic systems
-Kac's lemma E[return time to A] = 1/μ(A) identifies Ω with the inverse
-measure of the coherent region.
+**[RESOLVED — convention corrected per `notes/conventions.md` C5]**
+Kac's lemma gives E[return time to A] = 1/μ(A). Identifying this with
+the mean inter-rupture interval 1/Ω gives **Ω = μ(A_coherent)**, not
+Ω = 1/μ(A_coherent) as originally stated — the brief's inverse reading
+was a sign error in the identification, now corrected.
 
-**Source:** `crr_full_proofs.md` Parts III.2–III.3.
+**Source:** `crr_full_proofs.md` Parts III.2–III.3; correction in `notes/conventions.md` C5.
 
 ### M20. Regeneration is a right Kan extension in the categorical formulation
 R[χ] is the right Kan extension of the coherence-history functor along
@@ -157,11 +186,21 @@ the rupture inclusion.
 
 **Source:** `crr_first_principles_proofs.md` §1.2; `CRR_Bounded_Kan_Extension_QED_v2.pdf`.
 
-### M21. C·Ω = 1 simultaneously saturates Cramér-Rao, Heisenberg-Gabor, and the thermodynamic uncertainty relation
-Three-way unification claim. M3 + M4 + a third saturation across
-information, time-frequency, and dissipation.
+### M21. C·Ω = 1 does NOT simultaneously saturate Cramér-Rao, Heisenberg-Gabor, and the thermodynamic uncertainty relation
+**[OPEN — genuine, unresolved mismatch, not dissolved by the H1/H2/H3
+rupture-topology reframing.]** The three-way unification claim fails
+for TUR specifically: the thermodynamic uncertainty relation reads
+Var(J)/⟨J⟩² ≥ 2/Σ, i.e. Σ·Var(J)/⟨J⟩² ≥ 2. Direct identification
+C ↔ Σ, Ω ↔ Var(J)/⟨J⟩² gives C·Ω ≥ 2 at TUR saturation, not the
+canonical C·Ω = 1. `crr-engine/tests/test_derivations.py::test_M21_tur_factor_two`
+demonstrates the mismatch numerically. Either (a) restrict the
+saturation claim to Cramér-Rao alone (drop TUR from M21), or (b)
+state TUR saturation as C·Ω = 2 explicitly and stop describing it as
+the same C·Ω = 1 condition. This decision is left to the framework's
+author; until made, M21 should not be cited as a confirmed three-way
+identity.
 
-**Source:** `CRR_COMPREHENSIVE_SUMMARY.md` Part IV.
+**Source:** `CRR_COMPREHENSIVE_SUMMARY.md` Part IV; mismatch documented in `notes/conventions.md` (M21 row) and `notes/relabellings.md`.
 
 ---
 
@@ -290,8 +329,18 @@ claims rather than counted independently:
 
 ## Notes on apparent inconsistency in the canonical brief
 
-The brief states "At C·Ω = 1, exp(C/Ω) → e." Under the canonical
-Z₂ Ω = 1/π, the rupture condition C·Ω = 1 forces C/Ω = π², so
-exp(C/Ω) = e^{π²} ≈ 19333.7, not e. The two conditions C·Ω = 1 and
-C/Ω = 1 coincide only at Ω = 1. Recorded for resolution in
-`relabellings.md`; tier assignments for M3/M4/M21 must address this.
+**[RESOLVED per `notes/conventions.md` C3.]** The brief states "At
+C·Ω = 1, exp(C/Ω) → e." Under the canonical Z₂ Ω = 1/π, the rupture
+condition C·Ω = 1 forces C/Ω = π², so exp(C/Ω) = e^{π²} ≈ 19333.7,
+not e. The two conditions C·Ω = 1 and C/Ω = 1 coincide only at Ω = 1.
+
+Resolution: the brief was conflating two distinct quantities both
+called Ω — Ω_geo = 1/φ_G (the geometric quantity used throughout the
+Ω table, M2, M22) and Ω_int = 1 (a separate Z₂-intrinsic normalisation
+in which C is measured directly in Bernoulli-draw units). "exp(C/Ω)→e
+at C·Ω=1" is correct *only* in Ω_int units; the rupture-as-geometric-
+event reading (M3, the Ω table, M22) is correct in Ω_geo units. Any
+formula using Ω must now specify which. This has been applied to
+`CAMPAIGN.md` PART I and to M3/M4 above; tier assignments for M3/M4
+should cite the disambiguated (Ω_geo) reading. M21 remains open for a
+different reason (the TUR factor-of-2 mismatch, not this conflation).

@@ -873,3 +873,59 @@ subdirectories. All process records sit in `notes/`. The git log
 (branch `claude/crr-status-determination-odv4z`) is the audit
 trail. No retroactive edits are permitted; future modifications
 appear as additional commits only.*
+
+---
+
+## Section 9 — Session update: code-level repair (2026-07-04)
+
+A mathematics audit of the `crr-cv-predictions` package (the code
+that actually generates the 132-system prediction table) found a
+concrete inconsistency this document's conventions had already
+ruled out but which had not propagated into the code: `rubric.py`'s
+classifier tagged every SO(2) system with a discrete-phase index
+`n=4` under a comment "SO(2)≅Z₄ paper convention," and the same
+literal pattern appeared 76 more times across the Lie-group
+extension tables for SU(2), SO(3), SO(4), U(2), SU(3), SU(4), Sp(2),
+G2, Spin(7), T², T³, T⁴. This directly contradicts §1.4/§2 above and
+`notes/conventions.md` C2: continuous-phase manifolds are
+structurally distinct from, and do not carry, a Z_n discrete-phase
+index.
+
+**Verified before fixing:** `cv_pred` for every affected row is
+computed from `phi_g(symmetry)` directly and never reads `n` for
+these symmetries, so no previously-reported CV_pred number in the
+paper or its tables was affected by this — it was inert metadata,
+not a computational error. Confirmed by diffing the regenerated
+CSV/JSON outputs (byte-identical `cv_pred` columns) against the
+pre-fix files.
+
+**Repaired:** `n` is now `None`/null for every continuous-phase
+(non-Z_n) symmetry across `_paper_data.py`, `_extensions.py`,
+`rubric.py`, and `data/schema.json`; a regression test
+(`test_no_zn_index_on_continuous_phase_rows`) and a new
+`test_rubric.py` (previously absent) guard against reintroduction.
+All 88 tests across `crr-engine` and `crr-cv-predictions` pass.
+
+**Also applied to `CAMPAIGN.md` and `notes/decomposition.md`:** the
+canonical-brief text and the M-claim ledger still stated the
+*pre-resolution* readings for M2, M15, M16, M19, and M21 even though
+`notes/conventions.md` had already resolved (or, for M21, clearly
+bounded) them in a prior session. Both files now state the corrected
+versions directly, cross-referenced to this document and to
+`notes/conventions.md`, rather than requiring a reader to reconstruct
+the resolution from `relabellings.md`.
+
+**M21 (TUR) status is unchanged and remains open** — this session
+confirmed the existing bound (C·Ω ≥ 2 at TUR saturation under direct
+identification, not C·Ω = 1) is correct and did not attempt to force
+a resolution; that remains an author decision between restricting the
+saturation claim to Cramér-Rao alone or rephrasing TUR's role
+explicitly with its own factor of 2.
+
+**Not in scope for this pass:** the historical standalone documents
+(`CRR_COMPREHENSIVE_SUMMARY.md`, `crr_full_proofs.md`,
+`canonical_crr_rigorous_proof_sketch.md`, and the other sources
+listed in `notes/decomposition.md`'s header) still carry the
+pre-resolution text in places and were not individually patched —
+they are provenance, not the operative canonical brief, per this
+document's own framing above.

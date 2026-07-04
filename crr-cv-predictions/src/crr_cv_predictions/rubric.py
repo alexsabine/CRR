@@ -32,7 +32,7 @@ class RubricResult:
     system: str
     is_oscillatory: bool
     symmetry: str
-    n: int
+    n: Optional[int]
     cv_pred: float
     acceptance_band: tuple[float, float]
     cls: Optional[ClassLabel] = None
@@ -102,8 +102,11 @@ def classify(
         trace.append("Step 2 / Q1 → Z₂, n=2 (two distinguishable states).")
     elif ss == "continuous cycle":
         sym = "SO(2)"
-        n = 4
-        trace.append("Step 2 / Q2 → SO(2), n=4 (SO(2)≅Z₄ paper convention).")
+        n = None
+        trace.append(
+            "Step 2 / Q2 → SO(2), n=None (continuous-phase manifold; "
+            "not a Z_n discrete-phase case — see notes/conventions.md C2)."
+        )
     elif ss == "n discrete phases":
         if n_phases is None or n_phases < 2:
             raise ValueError("n discrete phases requires n_phases >= 2")
@@ -118,7 +121,10 @@ def classify(
         # try Lie-group label
         sym = state_space  # canonical.phi_g will raise if unknown
         _ = phi_g(sym)
-        n = 2 if sym == "Z2" else (4 if sym in {"SO(2)", "U(1)"} else 0)
+        # Only genuine discrete Z_n cases carry a phase index; every
+        # continuous compact-Lie-group manifold (SO(2), SU(2), SO(3), ...)
+        # is a structurally different, non-Z_n case (notes/conventions.md C2).
+        n = 2 if sym == "Z2" else None
         trace.append(f"Step 2 / Lie-group route → {sym}, φ_G={phi_g(sym):.4f}.")
 
     # Step 3 — predicted CV

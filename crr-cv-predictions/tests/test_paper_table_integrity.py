@@ -171,3 +171,21 @@ def test_su4_sp2_cv_equality():
 def test_su3_spin7_cv_equality():
     """Package extension: CV(SU(3)) = CV(Spin(7)) (φ_G = 2π√3)."""
     assert math.isclose(cv_canonical("SU(3)"), cv_canonical("Spin(7)"), rel_tol=1e-12)
+
+
+def test_no_zn_index_on_continuous_phase_rows():
+    """SO(2)/SU(2)/SO(3)-type rows must never carry a Z_n discrete-phase
+    index. notes/conventions.md C2 and notes/rupture_topology.md H2
+    establish that continuous-phase manifolds are structurally distinct
+    from, and do not interpolate with, the Z_n discrete-phase family — an
+    earlier revision incorrectly recorded n=4 for SO(2) under a retracted
+    "SO(2)≅Z4" convention. This guards against reintroducing it."""
+    continuous_phase_symmetries = {"SO(2)", "U(1)", "SU(2)", "SO(3)", "SO(4)",
+                                    "U(2)", "SU(3)", "SU(4)", "Sp(2)", "G2",
+                                    "Spin(7)", "T2", "T3", "T4"}
+    for r in load_all_predictions():
+        if r["symmetry"] in continuous_phase_symmetries:
+            assert r["n"] in (None, "", "None"), (
+                f"{r['id']}: continuous-phase symmetry {r['symmetry']!r} "
+                f"must not carry a Z_n index, got n={r['n']!r}"
+            )
