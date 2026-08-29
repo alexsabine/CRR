@@ -47,7 +47,16 @@ numerical check of the same identity passes to 10⁻⁸.
 
 Data: 132 oscillatory systems across 20 domains (`132.pdf` Table 8; our independent parse
 agrees with the repo CSV on 87/87 name-matched rows at 100% for CV, class and symmetry),
-plus PhysioNet EEGBCI (N = 109) and MPI-LEMON (N = 189). **Blinding status is disclosed in
+plus PhysioNet EEGBCI (N = 109) and MPI-LEMON (N = 189).
+
+**Provenance caveat, added after the analysis (`DATA_PROVENANCE.md`).** The 132-system CV
+column is a hand-curated lattice of round-number estimates whose per-row citations live only
+in an unpublished CSV, 88 of whose 121 references have a first author absent from the paper.
+Quantisation does not change PR-1's direction — the lattice step is 1.2–1.9 steps against
+Route A's error and 5–10 steps against Route A′'s, and rounding inflates the residual scale,
+making the AIC gaps conservative. It does change the **tier**: PR-1 is recorded at **T2,
+empirical consistency, not T3**. The EEG datasets, which report means, SDs and effect sizes,
+are the stronger evidence here and point the same way. **Blinding status is disclosed in
 `PREREGISTRATION.md` §0: the analyst had read the outcome columns. Every prediction is
 parameter-free, so the point predictions have no freedom to be moved; the choice of test was
 fixed in advance and not revised.**
@@ -106,20 +115,21 @@ Eyes-closed → eyes-open: CV falls in 4/4 Z₂ bands (d = 0.39–0.65), invaria
 (d = 0.005). This is the pattern v01.2 requires. It was, however, already predicted and
 reported in `132.pdf` §4.2.1, so it is scored as consistency, not new confirmation.
 
-### PR-5 — holding raises effective Ω: **exploratory, 2/3 favour the correction**
+### PR-5 — holding raises effective Ω: **WITHDRAWN** (see `DATA_PROVENANCE.md`)
 
 Predicted for a balanced dyad (f = ½): CV = (1/π)/2 × √2 = 0.2251, against the solitary Z₂
-baseline 0.1592.
+baseline 0.1592. Observed: neonatal inter-cry 0.225, conversation turn-taking gap 0.200,
+infant suckling burst 0.150 — two of three closer to the held prediction.
 
-| system | CV | closer to | implied f |
-|---|---|---|---|
-| Neonatal inter-cry interval | 0.225 | **held** (|log ratio| 0.000) | +0.50 |
-| Conversation turn-taking gap | 0.200 | **held** (0.118 vs 0.228) | +0.37 |
-| Infant suckling burst | 0.150 | solitary | −0.13 |
-
-The neonatal cry interval lands on the f = ½ prediction to three decimals. **This is the only
-place in the analysis where v01.2 beats its predecessor on data.** It is exploratory — the
-analyst had seen these rows — and is re-registered as F1/F2 for confirmatory test.
+**This is withdrawn.** A provenance check found that 90% of the dataset's observed CVs are
+exact multiples of 0.005 and 53% are exact multiples of 0.025: the column is a lattice of
+round-number estimates, not computed statistics. 0.225 is a lattice point, and the nearest
+lattice point to 0.22508 *is* 0.225, so the reported "agreement to three decimals" carries no
+information finer than ±0.0125 — and 3 of 118 values sit that close to the held prediction
+anyway. The neonatal row's citation (`Barr 1988 Dev Med Child Neurol`) appears only in the
+CSV; `132.pdf`'s Table 8 has no reference column and the paper's bibliography does not contain
+it. PR-5 is untested. F1 and F2 in the pre-registration — with turn-share f measured
+independently — remain the route to testing it.
 
 ### A qualitative test of the edge kernel (Prop 4(iii))
 

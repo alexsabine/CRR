@@ -139,10 +139,21 @@ falls through development as precision accrues, and rises again as regulatory pr
 lost. That is a better hypothesis than the one the paper states, it follows from the paper's
 own mechanism, and it is what the data show.
 
-**The interval law is the biological backbone and it survives.** [tested] CV = Ω/2 holds across
-45 autonomous oscillators spanning calcium signalling, cell cycles, segmentation clocks,
-cardiac and neural rhythms, and glacial cycles: median obs/pred 0.94 (Z₂) and 1.01 (SO(2)),
-σ_log 0.27, log-bias −0.001, class ratio 1.88 [1.50, 2.34] containing 2.
+**The interval law is the biological backbone and it survives, at T2.** [tested] CV = Ω/2
+holds across 45 autonomous oscillators spanning calcium signalling, cell cycles, segmentation
+clocks, cardiac and neural rhythms, and glacial cycles: median obs/pred 0.94 (Z₂) and 1.01
+(SO(2)), σ_log 0.27, log-bias −0.001, class ratio 1.88 [1.50, 2.34] containing 2. A provenance
+check (`DATA_PROVENANCE.md`) found that dataset's CV column to be a lattice of round-number
+estimates with unverifiable per-row sourcing, which does not change the direction of the result
+— the quantisation is small against the model separation and makes the AIC gaps conservative —
+but caps it at empirical consistency rather than confirmed prediction. The EEG replications,
+which report real dispersions, carry more weight than the survey.
+
+**The holding law is untested, not confirmed.** [open] I reported that the neonatal inter-cry
+interval lands on the f = ½ prediction to three decimals. It does not: 0.225 is a point on the
+estimate lattice and the prediction 0.22508 rounds to it, so the agreement means only "within
+±0.0125", and the row's citation cannot be traced from the paper. Withdrawn. Ω_eff = Ω/√(1−f)
+remains the most valuable new thing in v01.2 and remains **unmeasured**.
 
 **One prima facie problem worth naming.** [derived] P ∝ 1/Ω says that low-Ω operation —
 habit, expertise, automaticity — costs *more* per unit time than exploration at the same
