@@ -960,6 +960,28 @@
             margin: 18px auto 0;
         }
 
+        .phoenix-live {
+            display: block;
+            width: 100%;
+            max-width: 280px;
+            height: auto;
+            margin: 18px auto 0;
+            cursor: pointer;
+        }
+
+        @media (max-width: 480px) {
+            .framework-item { padding: 22px; }
+            .framework-equation { padding: 14px 8px; }
+        }
+
+        .phoenix-live-caption {
+            font-family: Georgia, serif;
+            font-size: 11px;
+            font-style: italic;
+            color: #888;
+            margin-top: 4px;
+        }
+
         .equation-explanation {
             font-family: Georgia, serif;
             font-size: 13px;
@@ -2593,6 +2615,162 @@
                                         <text x="130" y="206" text-anchor="middle">surplus S = 2 × (distance backtracked)</text>
                                     </g>
                                 </svg>
+                                <canvas class="phoenix-live" id="phoenixLive" width="280" height="330" role="img" aria-label="Live simulation of CRR on a circle: coherence accumulates, rupture fires at the opposite point, and memory is rebuilt by recency and salience." hidden></canvas>
+                                <div class="phoenix-live-caption" id="phoenixLiveCaption" hidden>Live: the CRR equations solved in real time. Tap to pause.</div>
+                                <script>
+                                (function () {
+                                    var canvas = document.getElementById('phoenixLive');
+                                    if (!canvas || !canvas.getContext) return;
+                                    var still = canvas.parentNode.querySelector('.phoenix-circle');
+                                    var caption = document.getElementById('phoenixLiveCaption');
+                                    if (still) still.style.display = 'none';
+                                    canvas.hidden = false;
+                                    caption.hidden = false;
+
+                                    var W = 280, H = 330, ctx = canvas.getContext('2d');
+                                    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+                                    canvas.width = W * dpr; canvas.height = H * dpr;
+                                    ctx.scale(dpr, dpr);
+
+                                    // Carrier: unit Gaussian on a circle, circumference 2pi; cut at the half-turn a = pi.
+                                    var PI = Math.PI, a = PI, Omega = 1 / a;
+                                    // Overdamped rotor (Phoenix R4): ds/dt = tau + A(m) sin s + eta, eta an OU drive.
+                                    var tau = 1.3, A0 = 0.45, kappa = 0.4, lam = 1.5, nu = 1.5;
+                                    // Regeneration: recency q, salience exp(S/Omega), inherited seed m0.
+                                    var q = 0.6, m0 = 0, m = m0;
+
+                                    var s = 0, eta = 0, s0 = 0, C = 0, maxC = 0, n = 0;
+                                    var trail = [], occasions = [], flash = 0, flashAngle = 0;
+                                    var running = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+                                    var visible = true, last = null;
+
+                                    function gauss() {
+                                        var u = 1 - Math.random(), v = Math.random();
+                                        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * PI * v);
+                                    }
+                                    function A() { return A0 + kappa * Math.tanh(m); }
+
+                                    function regenerate() {
+                                        // w_j = q^(n-j) e^(S_j/Omega); the seed is occasion -1 with S = 0.
+                                        var items = [{ phi: m0, S: 0 }].concat(occasions), k = items.length - 1;
+                                        var logs = items.map(function (o, i) { return (k - i) * Math.log(q) + o.S / Omega; });
+                                        var mx = Math.max.apply(null, logs), sum = 0, acc = 0;
+                                        var w = logs.map(function (l) { var e = Math.exp(l - mx); sum += e; return e; });
+                                        items.forEach(function (o, i) { o.w = w[i] / sum; acc += o.w * o.phi; });
+                                        m = acc;
+                                        return items;
+                                    }
+                                    var memory = regenerate();
+
+                                    function step(dt) {
+                                        eta += -lam * eta * dt + nu * Math.sqrt(dt) * gauss();
+                                        var ds = (tau + A() * Math.sin(s) + eta) * dt;
+                                        s += ds; C += Math.abs(ds);
+                                        trail.push({ s: s, C: C, back: ds < 0 });
+                                        if (s - s0 >= a) {                       // first passage to the antipode
+                                            var Sn = Math.max(0, C - a);
+                                            occasions.push({ phi: Sn, S: Sn });
+                                            if (occasions.length > 40) occasions.shift();
+                                            n += 1;
+                                            memory = regenerate();
+                                            flash = 1; flashAngle = s;
+                                            s0 = s; C = 0; trail = [];
+                                        }
+                                    }
+
+                                    var cx = 140, cy = 116, R = 62;
+                                    function P(x, r) {                     // phase s on the circle, start of time at the left
+                                        var t = PI - x;
+                                        return [cx + r * Math.cos(t), cy - r * Math.sin(t)];
+                                    }
+                                    function lane(c) { return R + 8 + Math.min(48, 7 * c); }
+
+                                    function draw() {
+                                        ctx.clearRect(0, 0, W, H);
+                                        // manifold
+                                        ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(108,117,125,0.35)';
+                                        ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.stroke();
+                                        // diameter through the centre: start and its opposite
+                                        var st = P(s0, R), op = P(s0 + a, R);
+                                        ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(108,117,125,0.6)';
+                                        ctx.beginPath(); ctx.moveTo(st[0], st[1]); ctx.lineTo(op[0], op[1]); ctx.stroke();
+                                        ctx.setLineDash([]);
+                                        ctx.fillStyle = '#6c757d'; ctx.beginPath(); ctx.arc(cx, cy, 2, 0, 2 * PI); ctx.fill();
+                                        // C*: geodesic distance from the start, drawn on the manifold
+                                        var u = Math.max(-a, Math.min(a, s - s0)), steps = 48;
+                                        ctx.strokeStyle = '#B8860B'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+                                        ctx.beginPath();
+                                        for (var i = 0; i <= steps; i++) {
+                                            var p = P(s0 + u * i / steps, R);
+                                            if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
+                                        }
+                                        ctx.stroke();
+                                        // the lived path: radius grows with C, so steps back show as their own lane
+                                        ctx.lineWidth = 1.6;
+                                        for (var j = 1; j < trail.length; j++) {
+                                            var p0 = P(trail[j - 1].s, lane(trail[j - 1].C)), p1 = P(trail[j].s, lane(trail[j].C));
+                                            ctx.strokeStyle = trail[j].back ? '#c0392b' : '#8B4513';
+                                            ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
+                                        }
+                                        // markers
+                                        ctx.fillStyle = '#1a1a1a'; ctx.beginPath(); ctx.arc(st[0], st[1], 4, 0, 2 * PI); ctx.fill();
+                                        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 2;
+                                        ctx.beginPath(); ctx.arc(op[0], op[1], 4.5, 0, 2 * PI); ctx.fill(); ctx.stroke();
+                                        var here = P(s, R);
+                                        ctx.fillStyle = '#B8860B'; ctx.beginPath(); ctx.arc(here[0], here[1], 4, 0, 2 * PI); ctx.fill();
+                                        // rupture: delta flash at the cut
+                                        if (flash > 0) {
+                                            var f = P(s0, R);
+                                            ctx.strokeStyle = 'rgba(192,57,43,' + flash + ')'; ctx.lineWidth = 2;
+                                            ctx.beginPath(); ctx.arc(f[0], f[1], 6 + 22 * (1 - flash), 0, 2 * PI); ctx.stroke();
+                                            ctx.fillStyle = 'rgba(192,57,43,' + flash + ')';
+                                            ctx.font = 'italic 16px Georgia, serif'; ctx.textAlign = 'center';
+                                            ctx.fillText('δ', f[0], f[1] - 14);
+                                        }
+                                        // readout
+                                        ctx.textAlign = 'center'; ctx.fillStyle = '#1a1a1a'; ctx.font = '13px Georgia, serif';
+                                        var r = (((s - s0) % (2 * PI)) + 2 * PI) % (2 * PI), Cs = Math.min(r, 2 * PI - r), S = Math.max(0, C - Cs);
+                                        ctx.fillText('C ' + C.toFixed(2) + '   C* ' + Cs.toFixed(2) + '   S ' + S.toFixed(2), cx, 230);
+                                        ctx.fillStyle = '#6c757d'; ctx.font = '11.5px Georgia, serif';
+                                        ctx.fillText('occasion ' + (n + 1) + ' · memory m = ' + m.toFixed(2), cx, 246);
+                                        // memory weights: recency x salience
+                                        var shown = memory.slice(-12), bw = 16, gap = 4, x0 = cx - (shown.length * (bw + gap) - gap) / 2, by = 306;
+                                        shown.forEach(function (o, i) {
+                                            var h = 4 + 44 * o.w, x = x0 + i * (bw + gap);
+                                            var isSeed = memory.length <= 12 && i === 0;
+                                            ctx.fillStyle = isSeed ? 'rgba(108,117,125,0.55)' : 'rgba(184,134,11,' + (0.35 + 0.65 * Math.min(1, o.S / 2)) + ')';
+                                            ctx.fillRect(x, by - h, bw, h);
+                                        });
+                                        ctx.fillStyle = '#6c757d'; ctx.font = 'italic 11px Georgia, serif';
+                                        ctx.fillText('memory: recency × salience, newest right', cx, 323);
+                                    }
+
+                                    function frame(t) {
+                                        if (last === null) last = t;
+                                        var dtReal = Math.min(0.05, (t - last) / 1000); last = t;
+                                        if (running && visible) {
+                                            var sim = dtReal, h = 0.004;
+                                            for (var k = 0; k < Math.ceil(sim / h); k++) step(sim / Math.ceil(sim / h));
+                                            flash = Math.max(0, flash - dtReal * 1.6);
+                                            draw();
+                                        }
+                                        requestAnimationFrame(frame);
+                                    }
+                                    canvas.addEventListener('click', function () {
+                                        running = !running;
+                                        caption.textContent = running ? 'Live: the CRR equations solved in real time. Tap to pause.' : 'Paused. Tap to continue.';
+                                    });
+                                    if ('IntersectionObserver' in window) {
+                                        new IntersectionObserver(function (es) { visible = es[0].isIntersecting; }).observe(canvas);
+                                    }
+                                    if (!running) {
+                                        for (var w = 0; w < 1200; w++) step(0.004);   // reduced motion: one still frame
+                                        caption.textContent = 'Tap to run the CRR equations live.';
+                                    }
+                                    draw();
+                                    requestAnimationFrame(frame);
+                                })();
+                                </script>
                             </div>
                         </div>
                         <div class="framework-item">
