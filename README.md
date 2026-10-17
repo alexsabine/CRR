@@ -116,6 +116,12 @@ CRR has been through a preregistered, adversarial programme: frozen predictions,
 
 ## Process Philosophy
 
+*Source, experience, source.* Each of us arrives, innocent, into a past already under way. We live through it, and at every now we return to the centre, carrying what was lived: not the first innocence, but the kind that has been through experience. Process becomes through substance, and substance through process; the present is the past, transformed.
+
+Why these forms: a hat, a galaxy, a can of lemonade, a grain of sand, a sunflower? Look again, and the question turns into wonder. Each is where countless decisions, at every scale and through all of time, have arrived, and so is whoever is looking. Not anyone's doing, and everyone's inheritance. I cannot say why these forms, and the record agrees that no one yet can. But it is a gift to be here at all, to see them, and to take part in what comes next. 🌻
+
+We hold each other through time, together. Ω = 1 = equanimity = peace.
+
 *The score is not the music.* CRR is a candidate formalisation of a process view of time: reality is not made of things that change, but of changes that, now and then, cohere into things. In Whitehead's words, *"the many become one, and are increased by one."*
 
 **C** is the past, settled and carried as constraint. **δ** is the present: no duration, no content. It separates; it does not fill. **m** is what comes next, rebuilt from what each occasion earned. On this reading, what can happen is built from the settled past of finite processes, still becoming through us, rather than waiting in a realm of forms outside time.
