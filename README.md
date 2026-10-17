@@ -116,9 +116,17 @@ CRR has been through a preregistered, adversarial programme: frozen predictions,
 
 ## Process Philosophy
 
-CRR is a candidate formalisation of Whitehead's temporal ontology: reality is not made of things that change but of changes that occasionally cohere into things. **C** is the past accumulated as constraint. **δ** is the dimensionless present. **R** is the future weighted by what mattered. These are metaphysical commitments, held openly as such: no simulation or engineering result is offered as proof of them, and none of the failures above has touched them.
+*The score is not the music.* CRR is a candidate formalisation of a process view of time: reality is not made of things that change, but of changes that, now and then, cohere into things. In Whitehead's words, *"the many become one, and are increased by one."*
+
+**C** is the past, settled and carried as constraint. **δ** is the present: no duration, no content. It separates; it does not fill. **m** is what comes next, rebuilt from what each occasion earned. On this reading, what can happen is built from the settled past of finite processes, still becoming through us, rather than waiting in a realm of forms outside time.
+
+Between being everywhere at once and nowhere at all, there is somewhere: a place to stand, and an other to meet. Equanimity is holding the past at its earned weight, so the other can come through in their fullness. A good-enough holding environment does not require the other to become what we expected. It allows the other to arrive.
+
+These are metaphysical commitments, held openly as such. No simulation or engineering result is offered as proof of them, and none of the failures above has touched them. Models are held, not mistaken for the world.
 
 *"The past is not behind you; you are standing on it, now."*
+
+These ideas are developed in [*Thinking in Extremes*](https://www.cohere.org.uk/Thinking_in_Extremes.pdf) (slides, Thriving in the Extremes, CCS 2026).
 
 ---
 
