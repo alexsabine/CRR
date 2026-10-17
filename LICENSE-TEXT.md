@@ -12,5 +12,5 @@ Source code is licensed under the MIT licence: see `LICENSE`.
 
 **Exceptions.** Files by other authors keep their own terms and are not
 covered by either licence. These include third-party papers (for example
-`aha.pdf`), third-party drafts shared with the author, and vendored
+`aha.pdf`, now in `archive/2026_archive.zip`), third-party drafts shared with the author, and vendored
 third-party code, which carries its own licence file in its folder.
