@@ -1,92 +1,84 @@
 # Coherence–Rupture–Regeneration (CRR)
 
+> *"Eternity is in love with the productions of time."*
+> — William Blake, *The Marriage of Heaven and Hell*
 
 ---
 
-**A parameter-free temporal process theory grounded in information geometry.**
+**A mathematical grammar of finite becoming, grounded in information geometry.**
 
-Three equations describe how bounded systems accumulate coherence, rupture at geometrically determined thresholds, and regenerate from weighted memory.
+Three equations describe how bounded systems accumulate coherence, rupture at thresholds, and regenerate from their own history. This repository is the experiential side of CRR: an early years educator's playground of simulations, songs and pictures for *feeling* the mathematics of change. The equations have since been put through preregistered, adversarial testing; what survived, and what did not, is summarised below.
 
 ---
 
 ## The Equations
 
-**Coherence** — the past accumulates:
+**Coherence**: the past accumulates, since the last cut:
 
-$$C(x,t) = \int_0^t L(x,\tau)\, d\tau$$
+$$C(t) = \frac{1}{\sigma}\int_{t_n}^{t} L(\tau)\, d\tau, \qquad L(\tau) = \sqrt{g(\theta_\tau)}\,\lvert\dot\theta_\tau\rvert$$
 
-**Rupture** — the present is instantaneous:
+**Rupture**: the present is instantaneous; it comes at the first arrival at the opposite state:
 
-$$\delta(now) \quad \text{when} \quad C \cdot \Omega = 1$$
+$$\delta(t - t_{n+1}), \qquad t_{n+1} = \inf\{\, t > t_n : C^*\,\Omega = 1 \,\}$$
 
-**Regeneration** — the future is built from weighted memory:
+**Regeneration**: the future is built from weighted memory, each occasion weighted by recency × salience:
 
-$$R = \int \varphi(x,\tau) \cdot \exp\!\left(\frac{C(x,\tau)}{\Omega}\right) \cdot \Theta(t-\tau)\, d\tau$$
+$$m_{n+1} = \frac{\sum_{j=-1}^{n} w_j\,\Phi_j}{\sum_{j=-1}^{n} w_j}, \qquad w_j = q^{\,n-j}\cdot e^{S_j/\Omega}$$
+
+$\theta$ is the system's state on a circle of probability distributions, $g$ is the Fisher information (how distinguishable neighbouring states are), and $L$ is the Fisher–Rao speed. $\sigma$ is a resolution, calibrated separately: the smallest change the system can tell apart. So $C$ is accumulated arc length since the last rupture $t_n$, in units of $\sigma$: every step taken, including steps back. $C^*$ is the geodesic distance from where the occasion began, and $\Omega = 1/(\text{the manifold's diameter})$ in the same units, so the cut comes the first time the system reaches the state opposite to where it began. Any wandering on the way is surplus, $S = C - C^* \ge 0$.
+
+Regeneration rebuilds from what the system has inherited: what each completed occasion settled ($\Phi_j$), and the wider past it stands on ($\Phi_{-1} = m_0$, from before the system began). Only completed occasions count. Memory is weighted by **recency** ($q$ near 0 rebuilds from the latest occasion; $q$ near 1 draws on the long past) and by **salience**: occasions that took more wandering weigh more. Every occasion ends at the same chord, so $e^{S/\Omega}$ is the original $\exp(C/\Omega)$ kernel applied to completed occasions. Salience is a proposal still to be tested.
 
 ---
 
 ## Five Commitments
 
-Any persistent, finite, adaptive system must satisfy these:
+**1. Persistence implies accumulation.** A system that persists accumulates the patterns that work. The integral over its past makes CRR non-Markovian: the present depends on the accumulated history of the current regime.
 
-**1. Persistence implies accumulation.** A system that persists must accumulate patterns that work, reducing surprise in its eco-niche. $L(x,\tau) \geq 0$ is the Fisher–Rao speed on the statistical manifold — the rate of coherence accumulation. The integral over the system's past makes CRR distinctively non-Markovian: the present state depends on the accumulated history of the current regime.
+**2. Finite capacity implies rupture.** No finite system can accumulate without limit. The Dirac delta has zero temporal extension: an empty boundary between past and future.
 
-**2. Finite capacity implies rupture.** No finite system can accumulate coherence without bound. At $C \cdot \Omega = 1$, accumulated arc length spans the manifold's full geodesic extent. The system has traversed all distinguishable states available to its current regime and must reorganise. The Dirac delta has zero temporal extension and carries exactly one unit of mass on the boundary between past and future.
+**3. Reconstruction is weighted by history.** After rupture, the system rebuilds from what it has inherited, weighted by recency and salience. The age weighting is a maximum-entropy choice, the same family as the averages used throughout statistics. How fast a system forgets is a property of that system, not a universal constant.
 
-**3. Reconstruction is weighted by historical coherence.** After rupture, the system rebuilds from its own history. The exponential kernel $\exp(C/\Omega)$ is the maximum-entropy weighting consistent with a constraint on the expected value of $C$ — given only accumulated coherence and capacity, the distribution that maximises entropy takes the Boltzmann form, with $C$ as energy and $\Omega$ as temperature. The Heaviside $\Theta$ enforces causality. Because $d\Theta/dt = \delta$, the three CRR equations form a single dynamical system: the regeneration integral is the Green's function of the rupture operator.
+**4. The system has a characteristic scale.** $\Omega$ sets coherence capacity, rupture frequency and memory breadth together. Small $\Omega$: the kernel peaks sharply (habit, rigidity). Large $\Omega$: the kernel is flat (flexibility, exploration).
 
-**4. The system has a characteristic variance.** $\Omega$ is fixed by the topology of the state space, not fitted. It simultaneously governs coherence capacity (how much can accumulate before rupture), rupture frequency (how often the system must reorganise), and memory breadth (which past moments dominate reconstruction). These are not three independent properties but a single geometric fact about the system's attractor topology. Small $\Omega$: the memory kernel peaks sharply and the system reconstitutes the same patterns (habit, rigidity). Large $\Omega$: the kernel is flat and the system can reconstruct broadly (flexibility, exploration).
-
-**5. Rupture is a maximum-entropy event.** At rupture, the system occupies the maximum-entropy state consistent with its symmetry class. A bistable system at rupture is maximally uncertain about which state comes next; a rotational system at rupture has no preferred phase. This converts geometric structure into specific numerical predictions.
+**5. Rupture is a commitment.** At the cut, a bistable system is maximally uncertain about which state comes next; the act of "this regime / next regime" is a binary commitment.
 
 ---
 
-## Fixing Ω from Geometry
+## Geometry: Z₂ and SO(2)
 
-The five commitments leave one degree of freedom — the value of Ω — which must be fixed by the system's structure alone. For systems whose internal states parametrise probability distributions (which, under the FEP, includes any system with a Markov blanket), the arena of coherence accumulation is a statistical manifold. Čencov's uniqueness theorem constrains the metric to the Fisher information metric, and the geodesic structure fixes the maximum arc length.
+- **Z₂ (bistable).** The Bernoulli manifold has Fisher–Rao diameter exactly $\pi$, so a single crossing from one basin to the other has $C^* = \pi$ and $\Omega_{Z_2} = 1/\pi$. This case is exact.
+- **SO(2) (rotational).** A circle of states. Its Fisher circumference depends on which statistical model carries the circle: $2\pi$ for a unit Gaussian, other values for others. The natural cut is the half-turn, the point of maximal distinguishability. On the standard carrier that threshold is also $\pi$, so both classes rupture at the same arc length.
 
-Two fundamental manifold topologies:
-
-- **Z₂ (bistable).** The Bernoulli manifold, parametrised by $p \in [0,1]$, has Fisher–Rao geodesic diameter $\pi$. The manifold is an interval, not a loop — the system cannot return without retracing the same geodesic. $\ell_{Z_2} = \pi$, hence $\Omega_{Z_2} = 1/\pi \approx 0.318$ and $C^* = \pi$. Predicted CV $= 1/2\pi \approx 0.159$.
-
-- **SO(2) (rotational).** The circular manifold $S^1$ has circumference $2\pi$. The system exhausts its configuration by completing one full cycle. $\ell_{SO(2)} = 2\pi$, hence $\Omega_{SO(2)} = 1/2\pi \approx 0.159$ and $C^* = 2\pi$. Predicted CV $= 1/4\pi \approx 0.080$.
-
-The ratio between classes is exactly **2** — a topological invariant independent of any physical parameters.
+The value of $\Omega$ is set by the carrier, which must be declared. Earlier versions of this README said it was fixed by topology alone; that was too strong.
 
 ---
 
 ## Precision Architecture: Z₂ Sensory, SO(2) Prior
 
-The symmetry assignment to Active Inference's precision channels was not imposed by analogy — it was found in the graph topology of a network simulation.
+A modelling proposal from the network simulations. In a graph of Markov-blanketed agents, an **edge** alternates between two regimes of influence (Z₂) and a **node** cycles through belief updating (SO(2)). This suggests assigning Z₂ to sensory (likelihood) precision and SO(2) to prior (transition) precision.
 
-In any graph of Markov-blanketed agents, an **edge** is a statistical boundary that alternates between two regimes of influence: inside-dominant or outside-dominant. Two states, one boundary — Z₂ dynamics. A **node** is an internal model that traverses a continuous cycle of belief updating: perceive, predict, act, update. A closed loop with no endpoint — SO(2) dynamics.
-
-The assignment follows:
-
-- **Z₂ → sensory (likelihood) precision.** Edges are blanket states. $\Omega_{Z_2} = 1/\pi$ — higher variance, more permeable boundary. The system stays responsive to incoming evidence. Fast ruptures, frequent updates, shallow precision gain per event.
-
-- **SO(2) → prior (transition) precision.** Nodes are generative models. $\Omega_{SO(2)} = 1/2\pi$ — lower variance, more stable internal model. The system maintains coherent beliefs across time. Slow ruptures, rare updates, deep precision gain per event.
-
-Three independent lines of evidence converge on this assignment:
-
-1. **Graph structure.** Edges alternate (Z₂); nodes cycle (SO(2)). The symmetry classes are inherited from the roles the channels play in the network.
-
-2. **Permeability.** The regeneration kernel $\exp(C/\Omega)$ entails that higher Ω produces a flatter memory kernel (broad, flexible, permeable). Under the FEP, the Markov blanket must be receptive to sensory states; the internal model must maintain stability. Since $\Omega_{Z_2} > \Omega_{SO(2)}$, graph-structural and functional arguments converge.
-
-3. **Falsifiability.** Reversing the assignment (SO(2) → sensory, Z₂ → prior) produces measurably different dynamics: sensory ruptures become rare (modal 1 per prior cycle, versus 3), and the prior channel becomes irregular ($B = -0.16$ vs $-0.33$). The reversed assignment predicts that sensory updates are rarer than prior updates — contradicting the FEP's requirement that the blanket be responsive to evidence.
-
-The primary empirical finding is **phase-gating**: the π/2π partition produces a strongly non-uniform phase relationship between channels ($\chi^2 = 8{,}041$, $p < 10^{-100}$) that determines whether each update drives learning or action. Both channels process equal total precision gain per unit time (ratio = 1.003, 95% CI [1.000, 1.005]) — a conservation law that holds across environment topologies, weight functions, and noise levels. The Z₂ channel makes many small updates; the SO(2) channel makes few large ones. The factor of 2 sets the exchange rate between frequency and grain size.
-
-This is structurally compatible with Jang et al. (2026), who showed that relative timing, not magnitude, determines whether dopamine promotes reinforcement learning or movement vigour. CRR recovers the partition from geometry alone.
+In simulation, the two channels show a strongly non-uniform phase relationship ($\chi^2 = 8{,}041$) and process equal total precision gain per unit time (ratio 1.003, 95% CI [1.000, 1.005]). The Z₂ channel makes many small updates; the SO(2) channel makes few large ones. This is structurally compatible with Jang et al. (2026), where the relative timing of dopamine signals, not their magnitude, decides between learning and movement. These are simulation results, not yet tested on data.
 
 ---
 
-## Empirical Status
+## What Has Survived Testing
 
-Validated across **132 systems in 20+ domains** at ~10.6σ significance with zero directional reversals. Systems span neural oscillations, cardiac rhythms, bacterial division, stellar pulsation, flame plasma, tree rings, sleep spindles, laser dynamics, population ecology, and more.
+CRR has been through a preregistered, adversarial programme: frozen predictions, held-out data, must-fail controls, rivals allowed to win, and every failure kept on record. In summary:
 
-- [Empirical paper (132 systems)](https://www.cohere.org.uk/132.pdf)
-- [AGI Conference paper (phase-gating)](https://www.cohere.org.uk/AGI_Conference_2026.pdf)
+**The mathematics holds, and others are arriving at it too.** The core is stated precisely as a conditional system: Fisher–Rao arc, a first-passage cut, a past-only regeneration, with every assumption written down. Its identities (path surplus $S = C - C^*$, a thermodynamic-length energy bound) check exactly. In 2026, at least nine independent groups arrived at the same objects in their own fields, among them the surplus–chord pair as hidden regenerative memory in planarians (Blattner), time as accumulated Fisher distinguishability (Sumaya-Martinez; Martellini), and Fisher-path length against chord between language-model checkpoints (Picozzi). That is evidence the abstraction is natural, not that CRR got there first.
+
+**Retrodiction: broad compatibility.** Across 164 domain readings, a CRR ingredient changed a number and landed on the known result in 59 to 62 cases, against 28 where it did not. These were formed with the answer known, so they show CRR is a consistent language across fields, not that it predicts. The 132-system survey linked below belongs to this retrospective layer.
+
+**Continual learning: CRR-inspired engineering that works.** SEC, a regulariser that came out of CRR, was tested on held-out language-model data. Its schedule beat a tuned grid search by 0.014 nats [0.006, 0.022] and a transferred constant by 0.023. Its one CRR-specific ingredient, however, was not shown to add anything over a constant of matched size; the working parts are established methods (an EWC-style anchor plus gradient projection). Good engineering, honestly credited.
+
+**AI safety: design rules from the Empty Centre.** CRR's picture of the present as an empty boundary has produced useful constructions. A pause that leaves an agent's own clock untouched removes the incentive to resist shutdown in perfect-restart worlds. It converges with established results on safe interruptibility and utility indifference (Armstrong 2010; Orseau & Armstrong 2016), and the test put numbers on where that breaks: 59% of imperfect-restart worlds, 100% of deadline worlds. An empty-evidence rule beat its comparator in 600 of 600 synthetic worlds. Its working part is the textbook missing-observation Kalman filter. A pilot provenance test, in a world built to favour CRR, returned NO-GO. Nothing here yet bears on deployed systems.
+
+**Levin and the origin of forms.** CRR holds that forms are productions of realised history, not ingressions from a Platonic space. This is what Blake's line means here: eternity is not a long time but the completed finitudes the present stands on. That is a genuine disagreement with Michael Levin's latent-space proposal. A discriminating test is declared on planarian regeneration: does a settled two-headed history change the outcome of a different morphological switch? It awaits a laboratory partner. A positive result would show history dependence; the ontology itself is recorded as not decidable by any experiment yet devised.
+
+**What failed.** The strong forms failed on held-out data, and the record keeps them. "Change has its own clock" failed on measles (0 of 17 cities) and cardiac data (1 of 29, 5 of 29, 0 of 19). A universal Regeneration Law failed in every counted test. Fixing $\Omega$ from topology alone, and the CV predictions that followed from it ($1/2\pi$, $1/4\pi$), are not supported: geometry alone cannot set physical timescales.
+
+**The fairest single sentence on record:** *"CRR is a correct abstraction of what many sciences independently had to discover; it has not yet told any of them something they did not know."* The next step tests exactly that: a blinded, prospective comparison of CRR-guided enquiry against conventional enquiry at equal resources.
 
 ---
 
@@ -94,45 +86,49 @@ Validated across **132 systems in 20+ domains** at ~10.6σ significance with zer
 
 ### Framework & Tools
 
-- [LLM Starter Guide](https://www.cohere.org.uk/132_LLM_Starter.MD) — compact introduction for language models
-- [LLM Exploration Prompt](https://www.cohere.org.uk/LLM_PROMPT_EXPLORE.MD) — structured prompt for testing CRR
+- [LLM Starter Guide](https://www.cohere.org.uk/132_LLM_Starter.MD): compact introduction for language models
+- [LLM Exploration Prompt](https://www.cohere.org.uk/LLM_PROMPT_EXPLORE.MD): structured prompt for exploring CRR
+- [132-system retrospective survey](https://www.cohere.org.uk/132.pdf) (2025)
+- [AGI Conference paper (phase-gating)](https://www.cohere.org.uk/AGI_Conference_2026.pdf)
 
 ### Interactive Demonstrations
 
-- [**The Depth Illusion**](https://www.cohere.org.uk/CRR_Human-AI_Dynamics.html) — An Active Inference network where SO(2) human agents are coupled through Z₂ Markov blankets, with optional Z₂ LLM substrates attached to any node. Scale from 1 agent (a self) to 150 (Dunbar's number). Watch how LLMs drag SO(2) agents toward Z₂ frequency — faster, shallower cycles — and track the cumulative "depth illusion" as agents misattribute LLM-driven updates to their own generative models.
+- [**The Depth Illusion**](https://www.cohere.org.uk/CRR_Human-AI_Dynamics.html): an Active Inference network where SO(2) human agents are coupled through Z₂ Markov blankets, with optional Z₂ LLM substrates attached to any node. Scale from 1 agent (a self) to 150 (Dunbar's number). Watch how LLMs drag SO(2) agents toward Z₂ frequency (faster, shallower cycles) and track the cumulative "depth illusion" as agents misattribute LLM-driven updates to their own generative models.
 
-- [**CRR Network**](https://www.cohere.org.uk/human_networks.html) — The pedagogical simulation from which the phase-gating finding emerged. A complete graph K_n where nodes run SO(2) cycles and edges run Z₂ switches. The two temporal characters are visible before any measurement: nodes glow slowly toward deep belief updates while edges flicker rapidly between regimes. Autonomy, integration (Φ), and the beauty function are tracked in real time.
+- [**CRR Network**](https://www.cohere.org.uk/human_networks.html): the pedagogical simulation in which phase-gating first appeared. A complete graph K_n where nodes run SO(2) cycles and edges run Z₂ switches. Nodes glow slowly toward deep belief updates while edges flicker rapidly between regimes. Autonomy, integration (Φ) and the beauty function are tracked in real time.
 
-- [**CRR Tree**](https://www.cohere.org.uk/crr_tree_branch.html) — A tree grown entirely from CRR first principles. Every branch point is a rupture; every growth segment is coherence accumulation. An emergent property: the tree remembers where you looked first, because coherence only accumulates on-screen (your gaze = L(x,τ)) and rupture is irreversible. Wherever you attend becomes the region of deepest growth — attention constraining morphogenesis, live.
+- [**CRR Tree**](https://www.cohere.org.uk/crr_tree_branch.html): a tree grown from CRR rules. Every branch point is a rupture; every growth segment is coherence accumulation. The tree remembers where you looked first, because coherence only accumulates on-screen (your gaze = L(x,τ)) and rupture is irreversible. Attention constraining morphogenesis, live.
 
-- [**Song of Time (Clocks)**](https://www.cohere.org.uk/song_of_time(clocks).html) — A clock shop at midnight. A real quartz crystal (your sound card's 48kHz oscillator) keeps the time. Eight Kuramoto-coupled pendulum clocks solved at sample rate. CRR derives the coupling constants from frequency ratios: octave (2:1) → K = 1/3, fifth (3:2) → K = 1/5. Synchronisation emerges. Nobody forces it.
+- [**Song of Time (Clocks)**](https://www.cohere.org.uk/song_of_time(clocks).html): a clock shop at midnight. A real quartz crystal (your sound card's 48 kHz oscillator) keeps the time. Eight Kuramoto-coupled pendulum clocks solved at sample rate, with coupling constants chosen from frequency ratios: octave (2:1) → K = 1/3, fifth (3:2) → K = 1/5. Synchronisation emerges. Nobody forces it.
 
 ### Aesthetic (CRR Songs)
 
-- [**Song of the Wave**](https://www.cohere.org.uk/CRR_Waves.html) — Ocean physics: Fresnel reflectance, Beer–Lambert absorption, and Stokes drift, driven by CRR coherence cycles. Ω controls the glass-to-storm continuum.
-- [**Song of the Bowl**](https://www.cohere.org.uk/CRR_Singing_Bowl.html) — A Tibetan singing bowl. Strike the water (rupture) or drag the rim (sustained coherence). Time-lens slows the physics to reveal wavefront propagation.
-- [**Soma**](https://www.cohere.org.uk/soma_enhanced.html) — The body as CRR system.
-- [**Song of Creation**](https://www.cohere.org.uk/songofcreation.html) — Cosmological structure formation driven by CRR dynamics.
-- [**Aviana**](https://www.cohere.org.uk/aviana.html) — Birdsong and flock dynamics.
-- [**Song of the Cosmos**](https://www.cohere.org.uk/song_of_the_cosmos.html) — Stellar evolution, galactic rotation, and the CMB rendered as sound and light.
+- [**Song of the Wave**](https://www.cohere.org.uk/CRR_Waves.html): ocean physics (Fresnel reflectance, Beer–Lambert absorption, Stokes drift) driven by CRR coherence cycles. Ω controls the glass-to-storm continuum.
+- [**Song of the Bowl**](https://www.cohere.org.uk/CRR_Singing_Bowl.html): a Tibetan singing bowl. Strike the water (rupture) or drag the rim (sustained coherence). A time-lens slows the physics to reveal wavefront propagation.
+- [**Soma**](https://www.cohere.org.uk/soma_enhanced.html): the body as a CRR system.
+- [**Song of Creation**](https://www.cohere.org.uk/songofcreation.html): cosmological structure formation driven by CRR dynamics.
+- [**Aviana**](https://www.cohere.org.uk/aviana.html): birdsong and flock dynamics.
+- [**Song of the Cosmos**](https://www.cohere.org.uk/song_of_the_cosmos.html): stellar evolution, galactic rotation and the CMB rendered as sound and light.
 
 ---
 
 ## Process Philosophy
 
-CRR formalises Whitehead's temporal ontology: reality is not made of things that change but of changes that occasionally cohere into things. **C** is the past accumulated as constraint. **δ** is the dimensionless present. **R** is the future weighted by what mattered.
+CRR is a candidate formalisation of Whitehead's temporal ontology: reality is not made of things that change but of changes that occasionally cohere into things. **C** is the past accumulated as constraint. **δ** is the dimensionless present. **R** is the future weighted by what mattered. These are metaphysical commitments, held openly as such: no simulation or engineering result is offered as proof of them, and none of the failures above has touched them.
+
+*"The past is not behind you; you are standing on it, now."*
 
 ---
 
 ## Contact
 
-**Alexander Sabine** — [cohere.org.uk](https://www.cohere.org.uk) · [temporalgrammar.ai](https://temporalgrammar.ai)
+**Alexander Sabine**, early years educator and researcher · [cohere.org.uk](https://www.cohere.org.uk) · [temporalgrammar.ai](https://temporalgrammar.ai) · [honami.co.uk](https://www.honami.co.uk)
 
 ```bibtex
 @misc{sabine2025crr,
   author = {Sabine, Alexander},
-  title = {Coherence–Rupture–Regeneration: A Parameter-Free Temporal 
-           Process Theory},
+  title = {Coherence–Rupture–Regeneration: A Temporal Grammar of
+           Finite Becoming},
   year = {2025},
   url = {https://www.cohere.org.uk}
 }
