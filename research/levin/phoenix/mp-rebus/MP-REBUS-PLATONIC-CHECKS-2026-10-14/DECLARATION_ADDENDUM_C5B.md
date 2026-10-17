@@ -1,0 +1,14 @@
+# Declaration addendum: C5b, the self-sorting arrays with the paper's own rules and carrier (2026-10-14, after the Levin sweep; before any run of `checks/c5b_sorting_surplus_run2.py`)
+
+**Why a second run.** C5's first run closed its gate: on the inversion-count carrier, adjacent-swap bubble sort never increases the error, and a frozen cell that neither initiates nor accepts a swap partitions the array. The sweep of today read Zhang, Goldstein & Levin (arXiv:2401.05375; Adaptive Behavior 33:25–54, 2025; code `github.com/Zhangtaining/cell_research`, not fetched) and reports their definitions: cell-view Bubble is "swap with left/right neighbour if out of order", each cell a thread; frozen cells are "movable" (will not initiate, can be moved) or "immovable"; **Sortedness = percentage of cells strictly in order** (an adjacent-pair measure); **Monotonicity Error = number of adjacent pairs violating order**; **Delayed Gratification (DG) = "improvement in Sortedness made by a temporarily error-increasing action"**; 100-element arrays; 100 replicates. Their numbers: cell-view Bubble DG 0.24 / 0.29 / 0.32 / 0.37 for 0 / 1 / 2 / 3 movable frozen cells; DG present in the classical versions too.
+
+**The point under test.** The surplus `S = C − C*` depends on the declared carrier (CORE I: the carrier is chosen). On the inversion carrier, `S = 0` for bubble sort by a theorem (each swap of an out-of-order adjacent pair removes exactly one inversion). On the adjacent-pair carrier (the paper's), a swap at `(i, i+1)` also changes the pairs `(i−1, i)` and `(i+1, i+2)`, so the error can rise by one, and `S` can be positive. DG is therefore a property of the measure chosen to read the system, not of the system.
+
+**Predictions, fixed before the run** (n = 100 cells, 100 replicates, seed 0; cell-view bubble with movable frozen cells; classical bubble as the second arm):
+1. Inversion carrier: `S = 0` in every replicate, every arm, every frozen count.
+2. Adjacent-pair carrier: `S > 0` (hence DG > 0) in the majority of replicates for both classical and cell-view bubble with 0 frozen cells.
+3. Adjacent-pair carrier, cell-view: mean `B = S/2` (the total temporary error increase) rises with the number of movable frozen cells (0 → 3), in the direction of the paper's 0.24 → 0.37.
+4. All cell-view arrays with movable frozen cells finish fully sorted.
+Must-fail arm: the random-swap null has `S` far larger on both carriers and never sorts.
+
+**Meaning.** 1–2 hold: DESCR, with the carrier-relativity made explicit (the paper's "competency not in the algorithm" is, on the inversion carrier, absent). 3 holds: the paper's context-sensitivity reproduces as backward travel on their carrier, nothing more. A failure of 2 means the reimplementation still differs from theirs and the run says nothing about the paper.

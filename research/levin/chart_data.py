@@ -1,48 +1,54 @@
 #!/usr/bin/env python3
-"""Regenerates the numbers drawn in the three charts on levin.html.
+"""Collects the numbers drawn in the four charts on levin.html from the committed study results.
 
-Written for the web page (not part of the original record). It calls the verbatim record scripts and reads
-their values; it computes nothing new:
-  (a) sorting surplus vs away-moves: calls cell_view_sort() from ashes/ontology/checks/turing_safety_ingression.py
-      with exactly the arguments row_sorting_surplus() uses (array rng seed 3, 40 cells, p in {0, 0.1, 0.3}).
-  (b) form selection (F1a, F1b) and (c) the precedence entropy curve (F4): executes phoenix/forms/forms_checks.py
-      unchanged and reads its variables (acc_early, forms, Hp, Hi). The per-occasion entropy series is not in the
-      committed output, which holds only the two endpoints; the endpoints are checked against it below.
+Written for the web page (not part of the original record). It reads the verbatim result files in
+phoenix/p23/ and computes nothing new beyond picking values out:
+  (a) repair arms in the ageing NCA: P23-AGING-CRR results/test_n015.json (late fitness, share of time with all
+      organs intact, cell writes), frozen test seeds 1000-1049, noise 0.15;
+  (b) critical lesion: P23-AGING-COMPETENCY results/test_q2b_q5.json (Q2b, eye lost within 300 steps for 1-4 lost
+      eye cells, with the study's 95% intervals);
+  (c) injury recovery, same present / different past: P23-ALGOTYPES results/crr_history/crr_BS_w20.json and
+      crr_SI_w20.json (simulator, 50 seeds x 3 continuations) and official_injury_BS.json / _SI.json (authors'
+      classes, 20 runs each);
+  (d) delayed gratification: P23-ALGOTYPES results/dg_analysis.json (official statistic, corrected statistic,
+      strategy-free null, paper's values) for bubble and insertion cells, 0-5 frozen cells.
 Run from this folder:  python chart_data.py > out/chart_data.json
 """
-import contextlib, io, json, os, sys
+import json, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "ashes", "src"))
-sys.path.insert(0, os.path.join(HERE, "ashes", "ontology", "checks"))
-import numpy as np
-from turing_safety_ingression import cell_view_sort
+P23 = os.path.join(HERE, "phoenix", "p23")
+load = lambda *p: json.load(open(os.path.join(P23, *p)))
 
-# (a) sorting
-vals = np.random.default_rng(3).permutation(40)
-sort_rows = []
-for p in (0.0, 0.1, 0.3):
-    swaps, away, inv0 = cell_view_sort(vals, p, seed=int(p * 10))
-    sort_rows.append({"p_defect": p, "swaps_C": swaps, "inversions_Cstar": inv0, "surplus_S": swaps - inv0,
-                      "away_moves": away, "two_x_away": 2 * away})
+crr = load("P23-AGING-CRR-2026-10-16", "results", "test_n015.json")["arms"]
+arms = ["NONE", "C_PRIM", "C_CRR", "C_TARGET", "S_CRR", "S_CLOCK", "S_ANY", "S_IMMEDIATE", "S_CRR_TARGET",
+        "S_CLOCK_TARGET", "C_CKPT", "C_EMACLOCK", "S_CRRFULL"]
+repair = {a: {"late_fitness": round(crr[a]["late"], 2), "all_intact_share": round(crr[a]["t_all_intact"], 3),
+              "cell_writes": round(crr[a]["writes"], 1), "n": crr[a]["n"]} for a in arms}
 
-# (b), (c) forms
-path = os.path.join(HERE, "phoenix", "forms", "forms_checks.py")
-g = {"__name__": "__forms__"}
-with contextlib.redirect_stdout(io.StringIO()):
-    try:
-        exec(compile(open(path).read(), path, "exec"), g)
-    except SystemExit:
-        pass
-Hp, Hi = [float(x) for x in g["Hp"]], [float(x) for x in g["Hi"]]
-committed = json.load(open(os.path.join(HERE, "expected", "forms_output.json")))
-f4 = [c for c in committed["checks"] if c["id"] == "F4-precedence-signature"][0]["values"]
-out = {
-    "sorting": sort_rows,
-    "form_selection": {"accuracy_from_early_path": float(g["acc_early"]), "P_form_plus_law": float(g["forms"].mean()),
-                       "n_histories": int(len(g["forms"]))},
-    "precedence": {"H_bits_production": [round(x, 6) for x in Hp], "H_bits_ingression": [round(x, 6) for x in Hi],
-                   "endpoints_match_committed_output": [Hp[0], Hp[-1]] == f4["H_bits_production_n0_n59"]
-                                                        and [Hi[0], Hi[-1]] == f4["H_bits_ingression_n0_n59"]},
-}
-print(json.dumps(out, indent=1))
+q2b = load("P23-AGING-COMPETENCY-2026-10-16", "results", "test_q2b_q5.json")["Q2b"]
+lesion = [{"lost_cells": k, "eye_lost": q2b[f"dose_k{k}"]["eye_lost_at_300_injured"],
+           "eligible": q2b[f"dose_k{k}"]["eligible"], "ci95": q2b[f"dose_k{k}"]["lost_ci95"],
+           "uninjured_lost": q2b[f"dose_k{k}"]["eye_lost_at_300_uninjured"]} for k in (1, 2, 3, 4)]
+
+injury = {}
+for mix in ("BS", "SI"):
+    s = load("P23-ALGOTYPES-2026-10-16", "results", "crr_history", f"crr_{mix}_w20.json")["summary"]
+    o = load("P23-ALGOTYPES-2026-10-16", "results", f"official_injury_{mix}.json")["summary"]
+    injury[mix] = {"simulator": {"seeds": s["seeds"], "history": s["repair_completed_history"],
+                                 "fresh": s["repair_completed_fresh"], "local": s["repair_completed_local"]},
+                   "authors_code": {"runs": o["exps"], "history": o["history_resorted"], "fresh": o["fresh_resorted"]}}
+
+dg = load("P23-ALGOTYPES-2026-10-16", "results", "dg_analysis.json")
+dgout = {}
+for alg in ("bubble", "insertion"):
+    rows = []
+    for F, c in sorted(dg[alg]["conditions"].items(), key=lambda kv: int(kv[0])):
+        rows.append({"frozen": int(F), "n": c["n"], "paper": c.get("paper_dg"),
+                     "official": round(c["official_stat"]["dg_mean"], 3),
+                     "corrected": round(c["corrected_stat"]["dg_mean"], 3),
+                     "null": round(c["corrected_stat"]["null_mean"], 3)})
+    dgout[alg] = rows
+
+print(json.dumps({"repair_arms": repair, "critical_lesion": lesion, "injury_recovery": injury,
+                  "delayed_gratification": dgout}, indent=1))
