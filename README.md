@@ -11,6 +11,15 @@ Three equations describe how bounded systems accumulate coherence, rupture at th
 
 ---
 
+## Find your way around
+
+- **Research** ([cohere.org.uk/research](https://www.cohere.org.uk/research/)): the tested work, written up, with the code to re-run it.
+  - [`research/reproduce/`](research/reproduce/): AI-safety and continual-learning studies. Each folder holds the question, the pre-registration where one exists, the code (copied verbatim from the research record), expected outputs, pinned requirements and `run.sh`. Nothing needs a GPU.
+  - [`research/levin/`](research/levin/): the Levin-adjacent checks (sorting, ingression, form selection, precedence).
+  - Results pages: [AI Safety](https://www.cohere.org.uk/ai-safety.html) and [CRR, Levin and the origin of forms](https://www.cohere.org.uk/levin.html).
+- **Playground** ([cohere.org.uk/playground](https://www.cohere.org.uk/playground/)): every simulation and song. These are illustrations, not tests.
+- **Archive** ([cohere.org.uk/archive](https://www.cohere.org.uk/archive/)): earlier working notes, papers, prompts and claim registers (`claims/`, `crr-engine/`, `crr-cv-predictions/`, `notes/`), kept for the record. Many use superseded notation.
+
 ## The Equations
 
 **Coherence**: the past accumulates, since the last cut:
@@ -135,6 +144,10 @@ These are metaphysical commitments, held openly as such. No simulation or engine
 These ideas are developed in [*Thinking in Extremes*](https://www.cohere.org.uk/Thinking_in_Extremes.pdf) (slides, Thriving in the Extremes, CCS 2026).
 
 ---
+
+## Licence
+
+Code is MIT-licensed (`LICENSE`); written material is CC BY 4.0 (`LICENSE-TEXT.md`). Third-party files keep their own terms.
 
 ## Contact
 

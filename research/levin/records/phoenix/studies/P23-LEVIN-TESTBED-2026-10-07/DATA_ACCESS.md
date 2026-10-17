@@ -1,0 +1,49 @@
+# P23: what access Phoenix has to Levin-lab data, and what a CRR test on it would need (2026-10-07)
+
+**Protocol followed.** P23 says: retrieve current primary sources; formalise each source in its own terms; seek observable differences with expert input (`ENQUIRIES/P23.md`). R10 (sources read, versioned and linked before novelty language) and R11/R3 (everything opened becomes SEEN for the inquiry) apply. Every source opened today is listed in `sweeps/levin_sources.json` with its fetch status, and the summary statistics read from them are registered in `DATA/SEEN.md` (four rows, `levin-lab/…`). No raw record was opened; no computation was run.
+
+## 1. What exists and what is open
+
+| source | what it holds | access from this session | status for Phoenix |
+|---|---|---|---|
+| Durant et al. 2017, *Biophys J* 112:2231 (PMC5443973) and its supplement | the two-headed (DH) / cryptic experiment: fractions per outcome and per round, Fisher tests, the bistable-circuit model (Fig. S6) | full text and supplement read; the model's code is public at chrisfieldsresearch.com/GJ-memory-model.htm; "original images are available on request" (authors); no deposited per-animal dataset | summary statistics SEEN |
+| Oviedo et al. 2010, *Dev Biol* 339:188 (PMC2823934) | octanol and innexin-RNAi induction of bipolar heads; ">200 amputations" of multi-headed worms regenerated the new state; rounds 2 and 3 "not shown" | full text read | SEEN |
+| Emmons-Bell et al. 2015, *IJMS* 16:27865 (PMC4661923) | octanol induces discrete species-like head shapes in *G. dorotocephala* (four outcomes, no intermediates; frequencies in Fig. 3B only as a graph); remodelling back toward wild type by day 30 | full text read; frequencies not in the text | SEEN |
+| Nogi & Levin 2005, *Dev Biol* 287:314 | first bipolar-head induction by gap-junction block | PDF opened; text extraction partial | SEEN |
+| Durant et al. 2019, *Biophys J* 116:948; Grodstein & Levin 2022, *Bioelectricity* 4:18; Pezzulo et al. 2021, *Phil Trans B* 376:20190765 ("Bistability of somatic pattern memories") | later data and the quantitative bistability models; a review states "approximately 30 % chance in each recutting and regeneration round" | publisher pages returned HTTP 403 through this session's proxy; only search snippets read | not yet read in full (R10 incomplete for these) |
+| Levin 2026, *Philosophies* 11(5):161, "Ingressing Minds" | the Platonic-space position: patterns "ingress"; a "phylogeny of Platonic forms" in which some inhabitants can learn | MDPI returned 403 twice; abstract and section titles from search only | **not read in full**; P23's "no claim about latest papers without new retrieval" applies: nothing below attributes a specific claim to this paper beyond its abstract |
+| Levin-lab publication pages (Tufts; drmichaellevin.org) | 22 planaria papers from 2017; software (BETSE, BioElectricNetwork) | read | no dataset, repository or data-sharing policy is linked |
+
+**Conclusion on access.** There is no public raw dataset of per-animal regeneration histories. What is open is (a) the published fractions, with N, per condition and per round, in figures and supplements; (b) the lab's simulation code; (c) images on request. A CRR test on *existing* data is therefore a test on summary statistics already read, which is rung R5 (seen data) at most and retrodictive in character. A test that could reach R6 needs either the per-animal records from the Levin lab under a data-sharing agreement (the collaboration licence drafted today is the template for the Phoenix side), or a new experiment run to a Phoenix preregistration, which only his group or an equivalent can do.
+
+## 2. What the published numbers already say about the CRR readings
+
+These are retrodictive checks on SEEN statistics; they bear on which reading is *compatible*, not on whether any is confirmed.
+
+| fact (Durant 2017 unless noted) | exponential-fading memory (M4 as A6/P3) | precedence that accumulates (Pólya-urn "rhyme") | bistable attractor with hysteresis (Levin's model; also `FORMS-AND-EASEMENT` F2) |
+|---|---|---|---|
+| DH worms recut in water or DMSO: 100 % DH over three generations (N = 100; N = 102); "in perpetuity" over months | predicts decay toward single-headed: **wrong** | predicts persistence: compatible | predicts persistence: compatible |
+| cryptic worms recut: 23 % DH (N = 155), unchanged at eight weeks; 27 % after two rounds (n = 30); the supplement shows the fraction does not increase with rounds, which it would if the single-headed population were partly wild type | predicts decay of the DH fraction: **wrong** | predicts an increasing fraction with each DH outcome: **wrong** (stationary) | predicts a stationary stochastic readout of a stored state: compatible |
+| hyperpolarisation (SCH-28080) resets 34 % of DH worms to stable single-headed for ≥ 4 generations | a reset that then persists: compatible only with a second attractor | compatible | predicted: a second basin |
+| head shapes (Emmons-Bell 2015): discrete species-like outcomes, no intermediates, frequencies "correlate roughly with evolutionary distance"; remodelling back to wild type by day 30 | a *decaying* memory here: compatible | compatible | a transient off-attractor excursion: compatible |
+
+Reading: the planarian record is a bistable (multistable) memory with a stationary stochastic readout, and the Levin lab's own model says so with numbers. Neither of the kernels CRR's commitments have been read as (fading A6/P3; accumulating precedence) survives the DH persistence and the stationary cryptic ratio. The hysteresis reading does survive, and it is dynamical-systems theory, not CRR's (`CONSTITUTION/EPISTEMIC_TYPES.md`: specificity S1). Two different kernels appear in the same organism (axial polarity repeats; head shape rhymes back to default), and no CRR rule says which applies where, which is the P06 finding again. The sentence "history rhymes and does not repeat" is false for axial polarity in these worms and true for head shape; that is a fact about the systems, and a constraint on the reading.
+
+## 3. The one prospective discriminator, written to declaration grade
+
+**Claim (M7, the owner's reading).** "The realised forms constrain the set of possible forms": a settlement changes not only what the system is but what it can next become.
+**Levin's reading (as far as his abstract and the 2017 model go).** The possibility set is the attractor landscape of the bioelectric circuit; distinct circuits (axial polarity; head shape) are distinct switches; a settlement of one is a basin change in that circuit.
+**Where they differ observably.** Take worms with a DH history (settled, stable, 100 % on recut) and worms with no such history. Apply the *other* intervention (octanol head-shape induction in a species where both are available, or the same species if the head-shape effect transfers). The modular reading predicts the head-shape outcome distribution is **independent** of DH history: P(shape | DH history) = P(shape | none). The owner's reading predicts **dependence**: the DH settlement has altered the set of forms available, so the distribution shifts (fewer or more of some species-like shapes, or a new outcome class).
+**Registered statistic.** Distribution over the four discrete shapes (plus "other") in each group, ≥ 60 animals per group, G-test or exact test of homogeneity at α = 0.05 with the direction left free (the claim is dependence); must-fail control: the same test between two no-history cohorts (must not differ); must-pass instrument control: the head-shape induction reproduces the published frequencies within their 95 % intervals.
+**Blame.** No difference: the "constrains the set of possible forms" reading fails for this pair of switches (it may survive for coupled switches, a new ID); a difference: a history-dependence law for this pair, specificity S2 at most, because a coupled-circuit model would also predict it; the ontology (produced vs ingressed-from-an-updating-space) stays NOT DECIDABLE either way.
+**Rung ceiling.** R6 PASS-0 if preregistered and run on animals never used before; R5 if any published cohort is reused.
+**What it needs.** A wet laboratory. Phoenix supplies the preregistration, the scorer and the ledger; Levin's group (or Daniel's, if Humlab has planarian capacity) supplies the animals and the counts, under the collaboration licence and a mirrored data-sharing agreement.
+
+## 4. Two cheaper things that do not need a laboratory
+
+1. **Re-derive the stationarity argument** from the published counts with the lab's own model code (public): a declared-synthetic check (R4) of whether the bistable model's branching ratio stays stationary across rounds, which the supplement argues verbally. This is a check of Levin's model, not of CRR, and it would be labelled so.
+2. **Model-family comparison on the published series:** fit the fading kernel, the Pólya precedence kernel and the bistable readout to the round-by-round fractions (DH recut, cryptic recut, SCH reset) and report which is excluded by the counts and N. The table in §2 is the qualitative version; the quantitative one is a two-hour task and is retrodictive (SEEN data, R5), useful to fix the reading before any preregistration.
+
+## 5. Stage
+
+P23 stays at **SPARK**. The formalisation of both positions exists; the discriminator in §3 is a bridge with a differing prediction, so FLAME is reachable, but G2's independent endpoint (counts scored blind to history) and instrument resolution require the experiment, and the "current primary sources" item of P23 is incomplete until Levin 2026 is read in full (403 here). Outstanding actions: the owner's two M7 decisions (the §3 claim assumes the reading that choices shape the possibility set); a retrieval of Levin 2026 from a network that allows it; an approach to the Levin lab, which the owner or Daniel makes.
