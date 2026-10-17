@@ -475,7 +475,6 @@ Wootters, W.K. (1981). Statistical distance and Hilbert space. *Phys. Rev. D* 23
 
 ### Responses to Published Work
 
-- [Response to Mounier, Parr & Friston (2026)](https://www.cohere.org.uk/CRR_Flatness_Commentary.pdf)
 - [Response to Tucker & Luu (2025)](https://www.cohere.org.uk/CRR_Response_Tucker+Luu.pdf)
 - [Response to Tolchinsky et al. (2025)](https://www.cohere.org.uk/Tolchinksy.pdf)
 - [Response to Tolchinsky & Levin (2026)](https://www.temporalgrammar.ai/FAO_Tolchinksy_&_Levin.pdf)
