@@ -2617,10 +2617,10 @@
                                         <text x="130" y="206" text-anchor="middle">surplus S = 2 × (distance backtracked)</text>
                                     </g>
                                 </svg>
-                                <canvas class="phoenix-live" id="phoenixLive" width="280" height="300" role="img" aria-label="Live simulation of CRR on a circle. A point travels the rim; each occasion fills one half of the disc and ends at the cut, the point opposite where it began. Past occasions appear as rings, weighted by recency and salience." hidden></canvas>
+                                <canvas class="phoenix-live" id="phoenixLive" width="280" height="290" role="img" aria-label="Live simulation of CRR on a circle. A straight line through the empty centre joins the present to the state the occasion completes in. The walker travels the circle; steps back are marked as cost; on arrival the walked arc settles into the past, and rings of memory keep what each passage cost." hidden></canvas>
                                 <div class="phoenix-live-caption" id="phoenixLiveCaption" hidden>
                                     <span id="phoenixLiveState">Live: the equations above, solved in real time. Tap to pause.</span><br>
-                                    The circle is the cycle (SO(2)); the line through the centre is the cut (Z₂). Each half of the disc is one occasion, and each half carries a seed of the other. Red marks on the rim are steps back: the surplus. Rings are memory, weighted by recency × salience. In the drawing, the S-curve through the centre is exactly as long as the half-turn around the rim.
+                                    The line through the empty centre joins now (P<sub>0</sub>) to the state the occasion completes in (P<sub>1</sub>): the projection, which costs nothing. The walk around the circle is what it costs. Each step back is marked on the rim and adds to the surplus S. On arrival, the walked arc settles into the past, and the rings of memory keep what each passage cost, weighted by recency × salience.
                                 </div>
                                 <script>
                                 (function () {
@@ -2633,7 +2633,7 @@
                                     canvas.hidden = false;
                                     caption.hidden = false;
 
-                                    var W = 280, H = 300, ctx = canvas.getContext('2d');
+                                    var W = 280, H = 290, ctx = canvas.getContext('2d');
                                     var dpr = Math.min(window.devicePixelRatio || 1, 2);
                                     canvas.width = W * dpr; canvas.height = H * dpr;
                                     ctx.scale(dpr, dpr);
@@ -2671,7 +2671,7 @@
                                         var ds = (tau + (A0 + kappa * Math.tanh(m)) * Math.sin(s) + eta) * dt;
                                         s += ds; C += Math.abs(ds);
                                         if (ds < 0) backs.push(s - s0);
-                                        if (s - s0 >= a) {                           // first passage to the antipode: the cut
+                                        if (s - s0 >= a) {                           // first passage to P1: the cut
                                             var Sn = Math.max(0, C - a);
                                             occasions.push({ phi: Sn, S: Sn });
                                             if (occasions.length > 40) occasions.shift();
@@ -2680,24 +2680,8 @@
                                         }
                                     }
 
-                                    var cx = 140, cy = 131, R = 74;
-                                    var INK = '#2b2620', PAPER = '#fbf7ef', GOLD = '#B8860B', RED = '#c0392b';
-
-                                    // One half of the taijitu in the occasion's own frame: start at (-R, 0), travel over the top.
-                                    function half(upper) {
-                                        var r = R / 2;
-                                        ctx.beginPath();
-                                        if (upper) {
-                                            ctx.arc(0, 0, R, PI, TAU, false);
-                                            ctx.arc(r, 0, r, 0, PI, false);
-                                            ctx.arc(-r, 0, r, 0, PI, true);
-                                        } else {
-                                            ctx.arc(0, 0, R, 0, PI, false);
-                                            ctx.arc(-r, 0, r, PI, TAU, false);
-                                            ctx.arc(r, 0, r, PI, TAU, true);
-                                        }
-                                        ctx.closePath();
-                                    }
+                                    var cx = 140, cy = 126, R = 74;
+                                    var INK = '#3a3128', GOLD = '#B8860B', COST = 'rgba(160,72,48,0.8)';
                                     function mix(c1, c2, t) {
                                         var p = function (c, i) { return parseInt(c.substr(1 + 2 * i, 2), 16); };
                                         var o = '#';
@@ -2707,78 +2691,82 @@
                                         }
                                         return o;
                                     }
+                                    function toPage(x, y) {                          // from the occasion's frame to the canvas
+                                        var c = Math.cos(s0), sn = Math.sin(s0);
+                                        return [cx + x * c - y * sn, cy + x * sn + y * c];
+                                    }
 
                                     function draw() {
                                         ctx.clearRect(0, 0, W, H);
-                                        // memory rings: newest innermost; opacity and weight from recency x salience
-                                        var ring = memory.slice(-8).reverse(), wmax = 0;
+                                        // memory: the holding, shaped by what was lived (newest innermost)
+                                        var ring = memory.slice(-7).reverse(), wmax = 0;
                                         ring.forEach(function (o) { wmax = Math.max(wmax, o.w); });
                                         ring.forEach(function (o, k) {
                                             var t = wmax > 0 ? o.w / wmax : 0;
-                                            ctx.strokeStyle = o.seed ? 'rgba(108,117,125,' + (0.15 + 0.6 * t) + ')' : 'rgba(184,134,11,' + (0.12 + 0.88 * t) + ')';
-                                            ctx.lineWidth = 0.6 + 2.6 * t;
-                                            ctx.beginPath(); ctx.arc(cx, cy, R + 13 + 5.5 * k, 0, TAU); ctx.stroke();
+                                            ctx.strokeStyle = o.seed ? 'rgba(108,117,125,' + (0.12 + 0.45 * t) + ')' : 'rgba(184,134,11,' + (0.08 + 0.5 * t) + ')';
+                                            ctx.lineWidth = 0.5 + 1.6 * t;
+                                            ctx.beginPath(); ctx.arc(cx, cy, R + 14 + 6 * k, 0, TAU); ctx.stroke();
                                         });
 
                                         ctx.save();
                                         ctx.translate(cx, cy);
-                                        ctx.rotate(s0);                               // the occasion's own frame
+                                        ctx.rotate(s0);                               // P0 at (-R, 0); the walk goes over the top
                                         var u = Math.max(-a, Math.min(a, s - s0));
 
-                                        // the settled half: the occasion just completed, cooling from gold to ink
-                                        half(false); ctx.fillStyle = mix(INK, GOLD, flash * 0.9); ctx.fill();
-                                        // the becoming half
-                                        half(true); ctx.fillStyle = PAPER; ctx.fill();
-                                        // coherence sweeping through it, from the start toward the cut
-                                        ctx.save(); half(true); ctx.clip();
-                                        var g = ctx.createRadialGradient(0, 0, 4, 0, 0, R);
-                                        g.addColorStop(0, 'rgba(184,134,11,0.25)'); g.addColorStop(1, 'rgba(184,134,11,0.85)');
-                                        ctx.fillStyle = g;
-                                        ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, R + 1, PI, PI + u, u < 0); ctx.closePath(); ctx.fill();
-                                        ctx.restore();
-
-                                        // the two eyes: each half carries a seed of the other; size follows memory
-                                        var e = R * (0.075 + 0.06 * Math.tanh(m));
-                                        ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(R / 2, 0, e, 0, TAU); ctx.fill();
-                                        ctx.fillStyle = mix(GOLD, '#e3c77a', 1 - flash); ctx.beginPath(); ctx.arc(-R / 2, 0, e, 0, TAU); ctx.fill();
-
-                                        // the S-curve and the cut line through the centre
-                                        ctx.lineWidth = 0.8; ctx.strokeStyle = 'rgba(43,38,32,0.35)';
-                                        ctx.beginPath(); ctx.arc(R / 2, 0, R / 2, 0, PI, false); ctx.arc(-R / 2, 0, R / 2, 0, PI, true); ctx.stroke();
-                                        ctx.setLineDash([3, 4]);
-                                        ctx.strokeStyle = flash > 0 ? 'rgba(192,57,43,' + (0.35 + 0.65 * flash) + ')' : 'rgba(108,117,125,0.55)';
-                                        ctx.lineWidth = 1 + 1.5 * flash;
-                                        ctx.beginPath(); ctx.moveTo(-R - 6, 0); ctx.lineTo(R + 6, 0); ctx.stroke();
-                                        ctx.setLineDash([]);
-
-                                        // the rim, and the steps back taken this occasion
-                                        ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(43,38,32,0.5)';
-                                        ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.stroke();
-                                        ctx.strokeStyle = RED; ctx.lineWidth = 2.2;
+                                        // the holding circle, faintly filled
+                                        ctx.fillStyle = 'rgba(251,247,239,0.75)';
+                                        ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
+                                        ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(58,49,40,0.25)';
+                                        ctx.stroke();
+                                        // the previous passage, now past: it settles from gold into ink
+                                        ctx.lineWidth = 3; ctx.lineCap = 'round';
+                                        ctx.strokeStyle = mix(INK, GOLD, flash);
+                                        ctx.globalAlpha = 0.55 + 0.45 * flash;
+                                        if (n > 0) { ctx.beginPath(); ctx.arc(0, 0, R, 0, PI, false); ctx.stroke(); }
+                                        ctx.globalAlpha = 1;
+                                        // the walk so far
+                                        ctx.strokeStyle = GOLD;
+                                        ctx.beginPath(); ctx.arc(0, 0, R, PI, PI + u, u < 0); ctx.stroke();
+                                        // what it cost: each step back, marked just outside the rim
+                                        ctx.strokeStyle = COST; ctx.lineWidth = 1.6; ctx.lineCap = 'butt';
                                         backs.forEach(function (b) {
-                                            ctx.beginPath(); ctx.arc(0, 0, R + 5, PI + b - 0.01, PI + b + 0.01); ctx.stroke();
+                                            ctx.beginPath(); ctx.arc(0, 0, R + 5, PI + b - 0.008, PI + b + 0.008); ctx.stroke();
                                         });
 
-                                        // start, cut and the travelling point
+                                        // the projection: a straight line through the empty centre, from now to P1
+                                        ctx.setLineDash([2, 5]); ctx.lineCap = 'round';
+                                        ctx.strokeStyle = 'rgba(58,49,40,' + (0.35 + 0.5 * flash) + ')';
+                                        ctx.lineWidth = 1 + flash;
+                                        ctx.beginPath(); ctx.moveTo(-R, 0); ctx.lineTo(R, 0); ctx.stroke();
+                                        ctx.setLineDash([]);
+                                        ctx.strokeStyle = 'rgba(58,49,40,0.45)'; ctx.lineWidth = 1;
+                                        ctx.fillStyle = '#fbf7ef';
+                                        ctx.beginPath(); ctx.arc(0, 0, 3, 0, TAU); ctx.fill(); ctx.stroke();
+
+                                        // now, P1 and the walker
                                         ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(-R, 0, 3.5, 0, TAU); ctx.fill();
-                                        ctx.fillStyle = '#fff'; ctx.strokeStyle = RED; ctx.lineWidth = 1.8;
+                                        ctx.fillStyle = '#fbf7ef'; ctx.strokeStyle = INK; ctx.lineWidth = 1.4;
                                         ctx.beginPath(); ctx.arc(R, 0, 4, 0, TAU); ctx.fill(); ctx.stroke();
-                                        var px = -R * Math.cos(u), py = -R * Math.sin(u);
-                                        ctx.fillStyle = GOLD; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
-                                        ctx.beginPath(); ctx.arc(px, py, 5, 0, TAU); ctx.fill(); ctx.stroke();
                                         if (flash > 0) {
-                                            ctx.strokeStyle = 'rgba(192,57,43,' + flash + ')'; ctx.lineWidth = 1.5;
-                                            ctx.beginPath(); ctx.arc(-R, 0, 6 + 20 * (1 - flash), 0, TAU); ctx.stroke();
+                                            ctx.strokeStyle = 'rgba(184,134,11,' + flash + ')'; ctx.lineWidth = 1.2;
+                                            ctx.beginPath(); ctx.arc(-R, 0, 5 + 18 * (1 - flash), 0, TAU); ctx.stroke();
                                         }
+                                        ctx.fillStyle = GOLD; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+                                        ctx.beginPath(); ctx.arc(-R * Math.cos(u), -R * Math.sin(u), 5, 0, TAU); ctx.fill(); ctx.stroke();
                                         ctx.restore();
+
+                                        // labels stay upright
+                                        ctx.font = 'italic 11px Georgia, serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#6c757d';
+                                        var p0 = toPage(-R + 16, 12), p1 = toPage(R - 16, 12);
+                                        ctx.fillText('now', p0[0], p0[1] + 4);
+                                        ctx.fillText('P₁', p1[0], p1[1] + 4);
 
                                         // readout
                                         var r = (((s - s0) % TAU) + TAU) % TAU, Cs = Math.min(r, TAU - r), S = Math.max(0, C - Cs);
-                                        ctx.textAlign = 'center';
                                         ctx.fillStyle = INK; ctx.font = '13px Georgia, serif';
-                                        ctx.fillText('C ' + C.toFixed(2) + '  ·  C* ' + Cs.toFixed(2) + '  ·  S ' + S.toFixed(2), cx, 272);
+                                        ctx.fillText('C ' + C.toFixed(2) + '  ·  C* ' + Cs.toFixed(2) + '  ·  S ' + S.toFixed(2), cx, 262);
                                         ctx.fillStyle = '#6c757d'; ctx.font = 'italic 11.5px Georgia, serif';
-                                        ctx.fillText(flash > 0.4 ? 'δ  rupture' : 'occasion ' + (n + 1), cx, 291);
+                                        ctx.fillText(flash > 0.4 ? 'δ  arrival: the path becomes the past' : 'occasion ' + (n + 1), cx, 281);
                                     }
 
                                     function frame(t) {
@@ -2787,7 +2775,7 @@
                                         if (running && visible) {
                                             var k = Math.max(1, Math.ceil(dtReal / 0.004));
                                             for (var i = 0; i < k; i++) step(dtReal / k);
-                                            flash = Math.max(0, flash - dtReal * 1.4);
+                                            flash = Math.max(0, flash - dtReal * 1.2);
                                             draw();
                                         }
                                         requestAnimationFrame(frame);
@@ -2899,16 +2887,16 @@
                 <div class="section-background"></div>
                 <h2 class="section-title">Philosophical Grounding</h2>
                 <div class="section-content">
-                    <p>CRR attempts to formalise intuitions that process philosophers have articulated for over a century. The framework proposes mathematical structure for positions that have historically resisted formalisation.</p>
+                    <p>CRR attempts to formalise intuitions that process philosophers and psychoanalysts have articulated for over a century. The framework proposes mathematical structure for positions that have historically resisted formalisation.</p>
 
                     <h3>Whitehead: Actual Occasions</h3>
                     <p>Alfred North Whitehead rejected substance metaphysics in favour of process: reality consists not of enduring things but of momentary "actual occasions" that prehend their past and perish into objective immortality. The CRR structure maps naturally onto this ontology. Coherence is the prehensive accumulation of the past. The Dirac delta at rupture is the moment of concrescence where many become one. Regeneration is the transition to "objective immortality" where the occasion's achieved value becomes available to future prehensions through exp(C/Ω) weighting. If this mapping holds, CRR formalises what Whitehead described philosophically: each moment metabolises its entire history, transforms it, and bequeaths novel pattern to the future.</p>
 
-                    <h3>Bergson: Duration and Memory</h3>
-                    <p>Henri Bergson distinguished lived duration (<em>durée</em>) from spatialized clock-time. For Bergson, the past is not gone but preserved whole in the present; memory is not retrieval from storage but the continuous presence of history in current experience. The regeneration integral embodies this directly: exp(C/Ω) ensures that high-coherence moments from the entire past remain actively present in reconstruction. Low Ω creates what Bergson might recognise as habit (only recent, most coherent patterns accessible). High Ω enables what he called creative evolution (the whole of memory available for genuine novelty). CRR offers a candidate mathematical operator for Bergsonian duration.</p>
+                    <h3>Winnicott: Holding and Survival</h3>
+                    <p>Donald Winnicott described how a person comes to know a world that is not their own creation. Held by an environment that is good enough, the infant discovers that the world is real when it survives what is done to it in fantasy: the object outlasts the projection and is still there. CRR's geometry offers a way to picture this. An intention projects a straight line from the present to a future state, and the projection costs nothing. The lived path has to travel the circle, through constraints outside the system, and every step back adds to the surplus S = C − C*. Surplus appears only when something outside pushes back; in a model where nothing resists, every path runs straight. Surplus is the trace of a reality that survived the projection. The circle is the holding: it contains every detour without breaking. Memory, weighted by recency and salience, keeps what each passage cost, so the holding itself is shaped by what was lived. Fantasy is free; reality costs; and what reality costs is what is remembered.</p>
 
                     <h3>The Central Proposal</h3>
-                    <p>Memory accumulates, ruptures, and transforms. This punctuated dynamic, not smooth continuity, may be how identity persists through change. Both Whitehead and Bergson grasped this philosophically. CRR offers it mathematically: a candidate grammar of temporal becoming that can be simulated, tested, and applied across scales from neural dynamics to ecosystem succession.</p>
+                    <p>Memory accumulates, ruptures, and transforms. This punctuated dynamic, not smooth continuity, may be how identity persists through change. Whitehead grasped this philosophically, and Winnicott clinically. CRR offers it mathematically: a candidate grammar of temporal becoming that can be simulated, tested, and applied across scales from neural dynamics to ecosystem succession.</p>
                 </div>
             </section>
         </main>
