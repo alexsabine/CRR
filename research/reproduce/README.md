@@ -1,7 +1,7 @@
 # Inspect and re-run the code
 
 This folder holds the code, the preregistrations and the recorded outputs behind the AI-safety and continual-learning
-results of the CRR programme, arranged so that a machine-learning specialist can read them, re-run them, and check the
+results of the CRR programme, and one thermodynamics check, arranged so that a machine-learning specialist can read them, re-run them, and check the
 outputs against what was recorded.
 
 **What the record shows, in one paragraph.** Where these studies pass, they **match established methods**: utility
@@ -36,6 +36,7 @@ Verdicts are quoted as the record states them, with the source file and line in 
 | EQ2 (Ashes) | continual learning | Does the equanimity rule (Ω = 1) replace a tuned EWC λ? 3 PMLB sets | **PASS, FRAGILE** → relabelled **PASS-0 (provisional)**; replication failed (EQ3) | EWC with a tuned λ | Easy rescore; Easy–moderate full | [continual-learning/EQ2](continual-learning/EQ2) |
 | EQ3 (Ashes) | continual learning | Replication of EQ2 on 6 unseen PMLB sets | **FAIL** (fars behind by 3.74) | — | Easy rescore; Easy–moderate full | [continual-learning/EQ3](continual-learning/EQ3) |
 | EQ4 (Ashes) | continual learning | Bounded equanimity rule on 6 PMLB sets | **FAIL** (4/6); EQ4-1r **FAIL** | — | Easy rescore; Easy–moderate full | [continual-learning/EQ4](continual-learning/EQ4) |
+| LANDAUER-CRR | thermodynamics | Does each cut release one bit as heat, and what does settling a choice cost? | literal hypothesis **WRONG**; one prediction **FAIL** (P4b); corrected reading holds and **REDUCES** to Landauer + Sivak–Crooks (declared-synthetic, no PASS possible) | Landauer bound; thermodynamic length (Sivak & Crooks 2012) | Easy (~2 min) | [thermodynamics/LANDAUER-CRR](thermodynamics/LANDAUER-CRR) |
 
 Verdict words (from the programme's own scale): **PASS-0** a preregistered pass on unseen data with a weak ceiling;
 **PASS-1** additionally robust to its sensitivity cells, controls hold and the anchor is strong; **REDUCES** the method is
@@ -58,6 +59,7 @@ Each study README has a "Verified re-run" line. In short:
 | SCL1, SCL2, SCL3, SEC3, SEC4, SEC5, SEC6R, EQ2, EQ3, EQ4 | rescore from committed results | `score.txt` **byte-identical** for all ten |
 | SEC4 | quick: fetched OpenML 377 through the network, re-ran every arm | `results_377.jsonl` **byte-identical** (271 lines) |
 | SCL3 | quick: fetched OpenML 1497, re-ran every arm | `results_1497.jsonl` **byte-identical** |
+| LANDAUER-CRR | full: frozen script + labelled post hoc diagnostic | `landauer_crr.json`, `posthoc_p4b_excess_work.json` **byte-identical** |
 | EQ2, EQ3, EQ4 | quick: fetched one PMLB set each, re-ran the registered single-unit rerun | **byte-identical** to `rerun_a.json` / `rerun_*_a.json` |
 | RW1, SEC-PG-LLM-H full, SOTA1 full, SEC-OBS1-H full, the other full Ashes runs | **not run here** (hours of CPU, large downloads) | commands given; not verified |
 
