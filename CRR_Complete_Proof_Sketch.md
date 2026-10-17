@@ -1,5 +1,7 @@
 # Coherence–Rupture–Regeneration (CRR): A Complete Proof Sketch
 
+> **Status (October 2026):** This is an archived working note (2025) using superseded notation (rupture at C = Ω, exp(C/Ω) kernels). Its "theorems" are standard identities (Bayes' rule, Gaussian likelihood, maximum entropy) relabelled in CRR vocabulary, so they establish internal consistency only, not empirical support. Current definitions: https://www.cohere.org.uk/crr-explained.html and the README (https://github.com/alexsabine/crr#readme).
+
 **A Rigorous Mathematical Foundation for Temporal Identity Through Discontinuous Change**
 
 ---

@@ -1,5 +1,7 @@
 # Coherence-Rupture-Regeneration (CRR)
 
+> **Status (October 2026):** This is an archived synthesis (v2.0, March 2026), kept for the record; it uses superseded notation (C·Ω = 1 for the cut, Ω = 1/2π for SO(2), a "ratio of 2", exp(C/Ω) kernels). Its "Central Theorem" CV = Ω/2, its parameter-free framing and its "Confirmed" table were not upheld by later pre-registered testing: of 197 readings of known results none was a sharp CRR prediction, and the 16 pre-registered passes (all in machine learning) matched established methods without beating them. Current definitions: https://www.cohere.org.uk/crr-explained.html and the README (https://github.com/alexsabine/crr#readme).
+
 ## A Mathematical Process Theory for Identity Through Discontinuous Change
 
 **Alexander Sabine** · [Active Inference Institute](https://activeinference.org/) (Board of Directors)  

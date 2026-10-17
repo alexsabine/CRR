@@ -1,5 +1,7 @@
 # CRR Empirical Validation: Three Novel Systems
 
+> **Status (October 2026):** This is an archived exercise (2025) using superseded notation (exp(C/Ω) weighting). Its "a priori predictions" were written with the relevant literature already known, so they were not blind, and its "validated" labels are withdrawn; later pre-registered testing did not uphold these claims. Current definitions: https://www.cohere.org.uk/crr-explained.html and the README (https://github.com/alexsabine/crr#readme).
+
 ## Methodology
 
 This document presents an epistemologically rigorous test of CRR (Coherence-Rupture-Regeneration) as a "coarse-grain temporal grammar" across three diverse systems. The methodology follows strict protocols to avoid data leakage and circularity:

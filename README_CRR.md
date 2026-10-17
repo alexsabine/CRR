@@ -1,5 +1,7 @@
 # Coherence–Rupture–Regeneration (CRR)
 
+> **Status (October 2026):** This is a superseded README (early 2026), kept for the record; it uses superseded notation (C·Ω = 1 for the cut, a π/2π partition between classes, exp(C/Ω) kernels). Its "132 systems validated" and parameter-free claims were not upheld by later pre-registered testing; the current README is README.md. Current definitions: https://www.cohere.org.uk/crr-explained.html and the README (https://github.com/alexsabine/crr#readme).
+
 **A parameter-free temporal process theory grounded in information geometry.**
 
 Three equations describe how bounded systems accumulate coherence, rupture at geometrically determined thresholds, and regenerate from weighted memory.

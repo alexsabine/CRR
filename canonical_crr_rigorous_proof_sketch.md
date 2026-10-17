@@ -1,5 +1,7 @@
 # Canonical CRR: a rigorous proof sketch (Coherence–Rupture–Regeneration)
 
+> **Status (October 2026):** This is an archived working note (2025) using superseded notation (rupture at C = Ω, an exp(C/Ω)-type kernel, Ω read as a porosity dial). It establishes only that the operators as then defined are mathematically well-posed; it makes no established claim about physical or biological systems. Current definitions: https://www.cohere.org.uk/crr-explained.html and the README (https://github.com/alexsabine/crr#readme).
+
 This note formalises the **canonical CRR operators** while keeping the *meaning* of your parameters unchanged:
 
 - **Coherence** is a non‑Markovian accumulator of a **mnemonic entanglement density**.

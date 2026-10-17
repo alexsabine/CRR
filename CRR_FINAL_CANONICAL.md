@@ -1,5 +1,7 @@
 # CRR — Final Canonical Formulation
 
+> **Status (October 2026):** This is a campaign output (2026), drafted with LLM assistance and superseded by the later record; it uses superseded notation (C·Ω = 1 for the cut, Ω = 1/2π for SO(2), CV = Ω/2 tables, exp(C/Ω) kernels). The (8/3π)·α³ coefficient is Bethe's 1947 QED result for the Lamb shift, so it is not a novel CRR prediction, and "verified"/"novel" labels are withdrawn; the applications list is speculative. Current definitions: https://www.cohere.org.uk/crr-explained.html and the README (https://github.com/alexsabine/crr#readme).
+
 **Coherence-Rupture-Regeneration as a temporal grammar of process,
 formalised post-campaign.**
 

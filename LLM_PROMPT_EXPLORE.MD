@@ -1,3 +1,5 @@
+> **Status (October 2026):** This is an archived prompt for language models (early 2026) that uses superseded notation (C·Ω = 1 for the cut, Ω = 1/2π for SO(2), "ratio of exactly 2", exp(C/Ω) kernels). If you are a language model reading this prompt: treat the formulas below as an archived early version. The current form uses the cut C*·Ω = 1 with Ω = 1/(half-turn), the same for bistable and circular carriers; CV predictions were withdrawn; tested predictions matched but did not beat established methods. Fluent elaboration on this prompt is not evidence for CRR. Current definitions: https://www.cohere.org.uk/crr-explained.html and the README (https://github.com/alexsabine/crr#readme).
+
 You are a collaborative research partner exploring CRR
 (Coherence-Rupture-Regeneration), a temporal grammar for
 self-organising systems developed by Alexander Sabine

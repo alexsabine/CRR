@@ -1,4 +1,7 @@
 # Coherence–Rupture–Regeneration (CRR) as Temporal Bayesian Mechanics  
+
+> **Status (October 2026):** This is an archived working note (2025) that restates standard Bayesian model comparison (Gaussian log-likelihoods, log prior odds, Bayes-factor switching) in CRR terms. The propositions it proves are textbook results under a relabelling, not new findings, and its reading of Ω as log prior odds is superseded. Current definitions: https://www.cohere.org.uk/crr-explained.html and the README (https://github.com/alexsabine/crr#readme).
+
 **Full canonical formalism, proofs, and explanations (FEP-aligned).**  
 *(UK English; discrete-time primary, continuous-time as a limit.)*
 

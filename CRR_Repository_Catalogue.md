@@ -1,5 +1,7 @@
 # CRR Repository Catalogue
 
+> **Status (October 2026):** This is a file inventory (v1.0, January 2026), kept for provenance; many listed files use superseded notation (C·Ω = 1, Ω = 1/2π for SO(2), exp(C/Ω) kernels, CV = Ω/2). Words such as "proof", "validation", "evidence" and "publication-ready" in the entries describe what the files set out to do, not their status; their claims were not upheld by later pre-registered testing. Current definitions: https://www.cohere.org.uk/crr-explained.html and the README (https://github.com/alexsabine/crr#readme).
+
 ## A Complete Guide to the Coherence-Rupture-Regeneration Framework
 
 **Version 1.0 | January 2026**
@@ -337,7 +339,7 @@ This document provides a complete inventory of all files in the CRR repository, 
 | **AI/ML Researcher** | README.md | crr_solomonoff_analysis.pdf, multiscale_crr_proof_sketch.md | fep-agent-shapes.html, perceiving-agent.html |
 | **Cognitive Scientist** | fep_crr_integration.md | crr_active_reasoning.md, aha.pdf | fep-crr-5stages.html, child_dev.html |
 | **Physicist** | crr_full_proofs.md | crr_advanced_proof_sketches.md | black_hole_enhanced.html, crr-thermo-rupture-rate.html |
-| **Biologist** | crr_empirical_validation_test.md | crr_16_nats_hypothesis.md | butterfly.html, ecosystem.html |
+| **Biologist** | [crr-explained.html](https://www.cohere.org.uk/crr-explained.html) | README.md | butterfly.html, ecosystem.html |
 | **Mathematician** | crr_meta_theorem.md | crr_first_principles_proofs.md | dirac-delta-crr.html |
 | **Therapist/Psychologist** | README.md (contemplative section) | aha.pdf, nostalgia_trap.html | inner_screen.html |
 | **Educator** | crr-explained.html | guide.html | fep-crr-game.html, CRR_Art.html |

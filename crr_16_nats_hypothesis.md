@@ -1,5 +1,7 @@
 # The 16 Nats Hypothesis: Testing Information Thresholds at Rupture
 
+> **Status (October 2026):** This is a retracted exploration (2025), kept for the record: a search for quantities near 16 nats carried out with the target already known, using superseded notation (C = Ω, exp(C/Ω)). Its "supported" labels reflect curve-fitting, not blind tests, and 16 nats is not an established result. Current definitions: https://www.cohere.org.uk/crr-explained.html and the README (https://github.com/alexsabine/crr#readme).
+
 ## Hypothesis
 
 The CRR framework predicts that at rupture (when C = Ω):

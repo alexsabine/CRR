@@ -1,5 +1,7 @@
 # CRR: Proof Sketches from First Principles
 
+> **Status (October 2026):** This is an archived set of exploratory analogies (2025), drafted with LLM assistance, that maps CRR vocabulary onto other fields (category theory, information geometry and others); the sections are analogies, not derivations, and do not show that CRR follows from those fields. It uses superseded notation (C = Ω thresholds, exp(C/Ω) kernels). Current definitions: https://www.cohere.org.uk/crr-explained.html and the README (https://github.com/alexsabine/crr#readme).
+
 **A Collection of Independent Derivations Across Mathematical Domains**
 
 This document presents proof sketches for the Coherence-Rupture-Regeneration (CRR) framework from diverse foundational domains. Each section derives CRR structure from the axioms of a distinct mathematical field, demonstrating that CRR is not an arbitrary construction but emerges naturally from deep structural principles.
