@@ -91,7 +91,7 @@ CRR has been through a preregistered, adversarial programme: frozen predictions,
 - [LLM Starter Guide](https://www.cohere.org.uk/132_LLM_Starter.MD): compact introduction for language models
 - [LLM Exploration Prompt](https://www.cohere.org.uk/LLM_PROMPT_EXPLORE.MD): structured prompt for exploring CRR
 - [132-system retrospective survey](https://www.cohere.org.uk/132.pdf) (2025)
-- [AGI Conference paper (phase-gating)](https://www.cohere.org.uk/AGI_Conference_2026.pdf)
+- [AGI Conference paper (phase-gating)](https://www.cohere.org.uk/AGI_2026.pdf)
 
 ### Interactive Demonstrations
 

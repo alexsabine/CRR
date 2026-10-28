@@ -85,7 +85,7 @@ This is structurally compatible with Jang et al. (2026), who showed that relativ
 Validated across **132 systems in 20+ domains** at ~10.6σ significance with zero directional reversals. Systems span neural oscillations, cardiac rhythms, bacterial division, stellar pulsation, flame plasma, tree rings, sleep spindles, laser dynamics, population ecology, and more.
 
 - [Empirical paper (132 systems)](https://www.cohere.org.uk/132.pdf)
-- [AGI Conference paper (phase-gating)](https://www.cohere.org.uk/AGI_Conference_2026.pdf)
+- [AGI Conference paper (phase-gating)](https://www.cohere.org.uk/AGI_2026.pdf)
 
 ---
 

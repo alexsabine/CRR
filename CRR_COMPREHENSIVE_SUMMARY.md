@@ -469,7 +469,6 @@ Wootters, W.K. (1981). Statistical distance and Hilbert space. *Phys. Rev. D* 23
 - [Canonical Proof Sketch](https://github.com/alexsabine/CRR/blob/main/canonical_crr_rigorous_proof_sketch.md)
 - [Martingale Derivation](https://github.com/alexsabine/CRR/blob/main/crr_martingale_derivation.pdf)
 - Bounded Kan Extension (withdrawn October 2026; superseded by the current CRR form)
-- [16 Nats Exploration](https://www.cohere.org.uk/16_nats_identity.pdf)
 - Euler Identity at Rupture (withdrawn October 2026)
 - Fine Structure Constant (an attempt; withdrawn October 2026)
 

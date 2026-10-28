@@ -80,9 +80,6 @@ This document provides a complete inventory of all files in the CRR repository, 
 
 | File | Description | Key Content | Audience | 2026 Relevance |
 |------|-------------|-------------|----------|----------------|
-| [crr_unified_theory.pdf](https://github.com/alexsabine/CRR/blob/main/crr_unified_theory.pdf) | Unified mathematical theory | Complete formal treatment of all operators and relationships | Theorists; archivists | Comprehensive reference for theoretical development |
-| [crr_comprehensive_treatise.pdf](https://github.com/alexsabine/CRR/blob/main/crr_comprehensive_treatise.pdf) | Full academic treatment | Extended derivations with mathematical rigour | Academic publishers; reviewers | Publication-ready theoretical treatment |
-| [crr_complete_unified.pdf](https://github.com/alexsabine/CRR/blob/main/crr_complete_unified.pdf) | Complete unified formulation | Synthesis of all proof approaches | Graduate students; researchers | Single-document complete theory |
 
 ## 2.2 Specialised Proofs
 
@@ -90,25 +87,18 @@ This document provides a complete inventory of all files in the CRR repository, 
 |------|-------------|-------------|----------|----------------|
 | [crr_full_proofs.pdf](https://github.com/alexsabine/CRR/blob/main/crr_full_proofs.pdf) | Rigorous formal proofs (PDF) | Information geometry, martingale, ergodic theory proofs | Mathematicians; archivists | Archival-quality formal mathematics |
 | [crr_martingale_derivation.pdf](https://github.com/alexsabine/CRR/blob/main/crr_martingale_derivation.pdf) | Martingale theory derivation | Quadratic variation; stopping times; Optional Stopping Theorem | Stochastic process researchers; quants | Financial/risk applications; algorithmic trading |
-| [crr_solomonoff_analysis.pdf](https://github.com/alexsabine/CRR/blob/main/crr_solomonoff_analysis.pdf) | Solomonoff induction integration | Kolmogorov complexity; algorithmic probability; MDL | AI theorists; compression researchers | Theoretical foundations for learning algorithms |
 | [crr_coherence-FE.pdf](https://github.com/alexsabine/CRR/blob/main/crr_coherence-FE.pdf) | Coherence-Free Energy analysis | C=F₀-F(t) derivation; implications for precision | FEP researchers; neuroscientists | Core theoretical bridge document |
 
 ## 2.3 Validation & Reference
 
 | File | Description | Key Content | Audience | 2026 Relevance |
 |------|-------------|-------------|----------|----------------|
-| [crr_validation_report.pdf](https://github.com/alexsabine/CRR/blob/main/crr_validation_report.pdf) | Comprehensive validation report | Statistical analysis across systems | Peer reviewers; sceptics | Evidence quality documentation |
-| [crr_validation_report_extended.pdf](https://github.com/alexsabine/CRR/blob/main/crr_validation_report_extended.pdf) | Extended validation | Additional systems tested | Researchers seeking breadth | Broader evidence base |
-| [fep_crr_cheatsheet.pdf](https://github.com/alexsabine/CRR/blob/main/fep_crr_cheatsheet.pdf) | Quick reference card | Key equations; correspondences | Practitioners; implementers | Practical implementation guide |
-| [fep_crr_driving_analysis.pdf](https://github.com/alexsabine/CRR/blob/main/fep_crr_driving_analysis.pdf) | Driving dynamics analysis | Active inference with CRR transitions | Roboticists; autonomous systems engineers | Vehicle/robot control applications |
 
 ## 2.4 Extended Topics
 
 | File | Description | Key Content | Audience | 2026 Relevance |
 |------|-------------|-------------|----------|----------------|
-| [aha.pdf](https://github.com/alexsabine/CRR/blob/main/aha.pdf) | Insight/"aha moments" as rupture | Phenomenology of insight; cognitive rupture mechanics | Creativity researchers; therapists; educators | Understanding breakthroughs; therapeutic applications |
 | [Inner_screen(Fields).pdf](https://github.com/alexsabine/CRR/blob/main/Inner_screen(Fields).pdf) | Field theory of inner experience | Field-theoretic consciousness formulation | Consciousness researchers; phenomenologists | Formalising subjective experience |
-| [elements_CRR_frequency_Omega.pdf](https://github.com/alexsabine/CRR/blob/main/elements_CRR_frequency_Omega.pdf) | Frequency-domain Ω analysis | Oscillatory dynamics; frequency-dependent rupture | Signal processing researchers; neuroscientists | Neural oscillation research; EEG analysis |
 
 ## 2.5 Diagrams (PDF)
 
@@ -336,12 +326,12 @@ This document provides a complete inventory of all files in the CRR repository, 
 
 | Role | Start Here | Then Read | Key Simulations |
 |------|-----------|-----------|-----------------|
-| **AI/ML Researcher** | README.md | crr_solomonoff_analysis.pdf, multiscale_crr_proof_sketch.md | fep-agent-shapes.html, perceiving-agent.html |
-| **Cognitive Scientist** | fep_crr_integration.md | crr_active_reasoning.md, aha.pdf | fep-crr-5stages.html, child_dev.html |
+| **AI/ML Researcher** | README.md | multiscale_crr_proof_sketch.md | fep-agent-shapes.html, perceiving-agent.html |
+| **Cognitive Scientist** | fep_crr_integration.md | crr_active_reasoning.md | fep-crr-5stages.html, child_dev.html |
 | **Physicist** | crr_full_proofs.md | crr_advanced_proof_sketches.md | black_hole_enhanced.html, crr-thermo-rupture-rate.html |
 | **Biologist** | [crr-explained.html](https://www.cohere.org.uk/crr-explained.html) | README.md | butterfly.html, ecosystem.html |
 | **Mathematician** | crr_meta_theorem.md | crr_first_principles_proofs.md | dirac-delta-crr.html |
-| **Therapist/Psychologist** | README.md (contemplative section) | aha.pdf, nostalgia_trap.html | inner_screen.html |
+| **Therapist/Psychologist** | README.md (contemplative section) | nostalgia_trap.html | inner_screen.html |
 | **Educator** | crr-explained.html | guide.html | fep-crr-game.html, CRR_Art.html |
 | **General Public** | index.html | crr-explained.html | CRR_Art.html, fep-crr-game.html |
 
