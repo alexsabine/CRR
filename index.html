@@ -22,6 +22,14 @@ h1 { font-weight: 400; font-size: 34px; letter-spacing: 0.32em; margin: 0; paddi
 .strap { font-style: italic; color: var(--ink2); margin: 4px 0 0; font-size: 19px; }
 .sim { margin: 36px auto 8px; max-width: 460px; }
 .sim canvas { display: block; width: 100%; height: auto; cursor: pointer; touch-action: manipulation; }
+.tally { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px auto 0; max-width: 520px; text-align: center; font-family: 'JetBrains Mono', monospace; }
+.tally .cell { padding: 6px 4px; }
+.tally .lab { display: block; font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: 15px; color: var(--muted); }
+.tally b { display: block; font-weight: 400; font-size: 20px; color: var(--ink); }
+.tally .sub { display: block; font-size: 12px; color: var(--muted); }
+.tally .sub b { display: inline; font-size: 12px; color: var(--ink2); }
+@media (max-width: 480px) { .tally b { font-size: 17px; } .tally .lab { font-size: 13px; } }
+.arrive { text-align: center; font-style: italic; font-size: 22px; color: var(--ink); margin: 6px 0 0; opacity: 0; transition: opacity 0.3s; min-height: 1.4em; }
 .readout { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 18px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); margin-top: 6px; }
 .readout b { font-weight: 400; color: var(--ink2); }
 .caption { font-size: 16px; color: var(--ink2); text-align: center; margin: 14px auto 0; max-width: 520px; }
@@ -90,10 +98,15 @@ footer a { color: var(--muted); }
 <p class="strap">Coherence · Rupture · Regeneration</p>
 </header>
 
-<section class="sim" aria-label="A small active-inference agent, drawn as CRR">
-<canvas id="agent" width="920" height="920" role="img" aria-label="Animation. A faint grey point, the world, moves around a circle and sometimes jumps. A gold point, the agent's belief, follows it from noisy glimpses. A dashed line through the empty centre joins where the current episode began to the point opposite. When belief first reaches that opposite point the episode completes, and a faint ring of memory is added."></canvas>
-<div class="readout" aria-live="off"><span>free energy <b id="rF">–</b></span><span>path C <b id="rC">–</b></span><span>chord C* <b id="rCs">–</b></span><span>surplus S <b id="rS">–</b></span><span>episodes <b id="rN">0</b></span></div>
-<p class="caption"><span class="key"><span class="dot" style="background:#a9a49a"></span>the world</span> &nbsp; <span class="key"><span class="dot" style="background:#b8860b"></span>the agent's belief</span><br>A small agent infers a world it only glimpses through noise. Its free energy falls as it learns the world's rhythm. Every step of belief is counted. The dashed line is the model's projection, from where the episode began to its opposite; whatever belief travels beyond the direct way there, turning back, is surplus. When belief first arrives opposite where it began, the episode completes and becomes memory, and the next begins from it. The centre holds nothing: it is always now. <span style="color:var(--muted)">Tap to pause.</span></p>
+<section class="sim" aria-label="Two journeys from A to B">
+<canvas id="agent" width="920" height="920" role="img" aria-label="Animation. Two walkers start together at point A on a circle and travel to the opposite point B. The blue walker goes directly. The gold walker wanders, turning back many times; its trail spirals outward so every detour stays visible. A dashed line through the empty centre joins A and B. Both arrive at B. Counters show the same distance from A to B for both, but very different paths walked. Then B becomes the new A and the next journey begins."></canvas>
+<div class="tally" aria-live="off">
+  <div class="cell"><span class="lab">A to B, for both</span><b id="tAB">3.14</b></div>
+  <div class="cell"><span class="lab"><span class="dot" style="background:#4f6d8a"></span>direct · walked</span><b id="tD">0.00</b><span class="sub">surplus <b id="tDS">0.00</b></span></div>
+  <div class="cell"><span class="lab"><span class="dot" style="background:#b8860b"></span>wandering · walked</span><b id="tW">0.00</b><span class="sub">surplus <b id="tWS">0.00</b></span></div>
+</div>
+<p class="arrive" id="arrive" aria-hidden="true">Same place. Different journeys.</p>
+<p class="caption">Two journeys from A to B. They start together and end in the same place, so judged by where they arrive, they know the same thing. One went straight there. The other wandered, turned back, met resistance and took longer. The dashed line is the direct way from A to B: a model can project it for free. The walk is what it costs, and the difference between them, the surplus, is the journey that the destination alone does not show. Then B becomes the new A, and the next journey begins from what this one settled. <span style="color:var(--muted)">Tap to pause.</span></p>
 </section>
 
 <hr>
@@ -125,109 +138,100 @@ footer a { color: var(--muted); }
 <script>
 (function () {
   var cv = document.getElementById('agent'), ctx = cv.getContext('2d');
-  var W = cv.width, H = cv.height, cx = W / 2, cy = H / 2, R = W * 0.36, TAU = Math.PI * 2;
+  var W = cv.width, cx = W / 2, cy = W / 2, R = W * 0.29, PI = Math.PI, TAU = PI * 2;
+  var BLUE = '#4f6d8a', GOLD = '#b8860b';
   var css = getComputedStyle(document.documentElement);
-  function col(n) { return css.getPropertyValue(n).trim() || '#000'; }
-  function wrap(a) { a = (a + Math.PI) % TAU; if (a < 0) a += TAU; return a - Math.PI; }
+  function col(n) { return css.getPropertyValue(n).trim() || '#888'; }
   function randn() { var u = 1 - Math.random(), v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * v); }
-  // world: a hidden phase with its own rhythm, occasional jumps
-  var phi = 0, wSpeed = 0.42, nextJump = 9 + Math.random() * 8, tWorld = 0;
-  var obsSD = 0.42, Q = 0.02;
-  // agent: belief (unwrapped) and its variance, learned drift
-  var u = 0, P = 1.0, vhat = 0, F = 1, Fs = 1.5, obsT = 0, lastObs = 0;
-  // CRR bookkeeping for the current episode
-  var u0 = 0, C = 0, back = [], tEp = 0, Omega = 1 / Math.PI, q = 0.8;
-  var mem = []; // completed episodes: {start, speed, S}
-  var paused = false, last = null, reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function pt(a, r) { return [cx + r * Math.cos(a - PI / 2), cy + r * Math.sin(a - PI / 2)]; }
+  var A, dir, d, w, phase, hold, mem = [], paused = false, last = null;
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function newJourney(start) {
+    A = start; dir = 1;
+    d = { net: 0, C: 0, done: false, trail: [[0, 0]] };
+    w = { net: 0, C: 0, done: false, trail: [[0, 0]], n: 0, t: 0, amp: 1.0 + 0.3 * Math.random(), om: 1.1 + 0.3 * Math.random(), ph: 3.4 + 0.7 * Math.random() };
+    phase = 'walk'; hold = 0;
+  }
+  newJourney(0);
   cv.addEventListener('click', function () { paused = !paused; if (!paused) { last = null; requestAnimationFrame(loop); } });
-  function regenerate() {
-    // the next prior for the world's rhythm: weighted mean of completed episodes' speeds
-    var n = mem.length, sw = 0, sv = 0;
-    for (var j = 0; j < n; j++) { var w = Math.pow(q, n - 1 - j) * Math.exp(Math.min(mem[j].S * Omega, 6)); sw += w; sv += w * mem[j].speed; }
-    if (sw > 0) vhat = sv / sw;
-  }
   function step(dt) {
-    // world
-    tWorld += dt; phi += wSpeed * dt + 0.03 * Math.sqrt(dt) * randn();
-    if (tWorld > nextJump) { phi += (Math.random() < 0.5 ? -1 : 1) * (0.7 + Math.random() * 0.8); tWorld = 0; nextJump = 10 + Math.random() * 10; }
-    // agent predicts with its learned rhythm
-    var du = vhat * dt; P += Q * dt;
-    // a glimpse every ~0.12 s
-    obsT += dt; var prevU = u; u += du;
-    if (obsT > 0.12) {
-      obsT = 0; var o = phi + obsSD * randn(); lastObs = o;
-      var Rn = obsSD * obsSD, e = wrap(o - u), K = P / (P + Rn);
-      F = 0.5 * (e * e / (P + Rn) + Math.log(TAU * (P + Rn)));
-      u += K * e; P = (1 - K) * P;
-      // learn the rhythm online a little as well
-      vhat += 0.06 * e;
-    }
-    Fs += (F - Fs) * Math.min(1, dt * 1.5);
-    // CRR: count every step of belief; chord is net travel since the episode began
-    var d = u - prevU; C += Math.abs(d); tEp += dt;
-    var net = u - u0, dir = Math.sign(net) || 1;
-    if (d * dir < -1e-4) back.push(u);
-    if (back.length > 400) back.shift();
-    if (Math.abs(net) >= Math.PI) {
-      var S = Math.max(0, C - Math.abs(net));
-      mem.push({ start: u0, speed: net / Math.max(tEp, 0.5), S: S, dir: dir });
-      if (mem.length > 7) mem.shift();
-      regenerate();
-      u0 = u; C = 0; back = []; tEp = 0; flash = 1; countEp++;
+    if (phase === 'walk') {
+      if (!d.done) { var dd = Math.min(PI - d.net, (PI / 5.5) * dt); d.net += dd; d.C += dd; d.trail.push([d.net, d.C]); if (d.net >= PI - 1e-9) d.done = true; }
+      if (!w.done) {
+        // a walker drawn towards B, but swaying: forward, back, forward, with a little noise
+        w.t += dt; w.n += (-2 * w.n) * dt + 0.6 * Math.sqrt(dt) * randn();
+        var dw = (0.3 + (w.t > 15 ? 0.3 : 0) + w.amp * Math.sin(w.om * w.t + w.ph) + w.n) * dt;
+        if (w.net + dw < -0.6) dw = -0.6 - w.net;          // it never strays too far behind A
+        w.net += dw; w.C += Math.abs(dw); w.trail.push([w.net, w.C]);
+        if (w.net >= PI) { w.net = PI; w.done = true; }
+      }
+      if (d.done && w.done) { phase = 'arrived'; hold = 0; }
+    } else {
+      hold += dt;
+      if (hold > 3.2) {
+        mem.push({ A: A, Cd: d.C, Cw: w.C, Sw: w.C - PI });
+        if (mem.length > 5) mem.shift();
+        newJourney(A + PI);
+      }
     }
   }
-  var flash = 0, countEp = 0;
-  function pt(a, r) { return [cx + r * Math.cos(a - Math.PI / 2), cy + r * Math.sin(a - Math.PI / 2)]; }
+  function trail(t, base, grow, color, width) {
+    if (t.length < 2) return;
+    ctx.beginPath();
+    for (var i = 0; i < t.length; i++) { var p = pt(A + t[i][0], base + grow * t[i][1]); if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); }
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+  }
   function draw() {
-    ctx.clearRect(0, 0, W, H);
-    var gold = '#b8860b', ink = col('--ink2'), muted = col('--muted');
-    // memory rings: older and lighter outward
+    ctx.clearRect(0, 0, W, W);
+    var muted = col('--muted'), ink = col('--ink');
+    // memory: earlier journeys as faint half-rings; the gold ring's weight is what that journey cost
     for (var j = 0; j < mem.length; j++) {
-      var age = mem.length - 1 - j, rr = R + 26 + age * 15, a0 = mem[j].start, a1 = a0 + mem[j].dir * Math.PI;
-      ctx.beginPath(); ctx.arc(cx, cy, rr, Math.min(a0, a1) - Math.PI / 2, Math.max(a0, a1) - Math.PI / 2);
-      ctx.strokeStyle = 'rgba(184,134,11,' + (0.42 * Math.pow(q, age)).toFixed(3) + ')'; ctx.lineWidth = 2 + Math.min(mem[j].S, 3); ctx.stroke();
+      var age = mem.length - 1 - j, al = 0.28 * Math.pow(0.7, age), m = mem[j];
+      ctx.beginPath(); ctx.arc(cx, cy, R - 40 - age * 9, m.A - PI / 2, m.A + PI / 2); ctx.strokeStyle = 'rgba(79,109,138,' + al.toFixed(3) + ')'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, R - 40 - age * 9 - 4, m.A - PI / 2, m.A + PI / 2); ctx.strokeStyle = 'rgba(184,134,11,' + al.toFixed(3) + ')'; ctx.lineWidth = 2 + Math.min(m.Sw, 8) * 0.8; ctx.stroke();
     }
     // the circle
-    ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.strokeStyle = 'rgba(138,133,123,0.35)'; ctx.lineWidth = 2; ctx.stroke();
-    // walked arc this episode
-    var a0 = u0, a1 = u;
-    ctx.beginPath(); ctx.arc(cx, cy, R, Math.min(a0, a1) - Math.PI / 2, Math.max(a0, a1) - Math.PI / 2);
-    ctx.strokeStyle = 'rgba(184,134,11,0.75)'; ctx.lineWidth = 5; ctx.stroke();
-    // steps back
-    ctx.fillStyle = 'rgba(160,60,40,0.55)';
-    for (var k = 0; k < back.length; k += 3) { var p = pt(back[k], R + 9); ctx.fillRect(p[0] - 1.5, p[1] - 1.5, 3, 3); }
-    // the model's projection: start to its opposite, through the empty centre
-    var s0 = pt(u0, R), s1 = pt(u0 + Math.PI, R);
-    ctx.setLineDash([10, 10]); ctx.beginPath(); ctx.moveTo(s0[0], s0[1]); ctx.lineTo(s1[0], s1[1]);
-    ctx.strokeStyle = 'rgba(138,133,123,0.55)'; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
-    ctx.beginPath(); ctx.arc(s1[0], s1[1], 7, 0, TAU); ctx.strokeStyle = 'rgba(138,133,123,0.7)'; ctx.stroke();
-    // now
-    ctx.fillStyle = muted; ctx.font = 'italic 30px "Cormorant Garamond", Georgia, serif'; ctx.textAlign = 'center';
-    ctx.fillText('now', cx, cy + 10);
-    // world (faint) and its last glimpse
-    var w = pt(phi, R); ctx.beginPath(); ctx.arc(w[0], w[1], 10, 0, TAU); ctx.fillStyle = 'rgba(169,164,154,0.85)'; ctx.fill();
-    var g = pt(lastObs, R - 22); ctx.beginPath(); ctx.arc(g[0], g[1], 3.5, 0, TAU); ctx.fillStyle = 'rgba(169,164,154,0.6)'; ctx.fill();
-    // belief
-    var b = pt(u, R); ctx.beginPath(); ctx.arc(b[0], b[1], 13 + 10 * flash, 0, TAU); ctx.fillStyle = gold; ctx.fill();
-    if (flash > 0) { ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.strokeStyle = 'rgba(212,160,18,' + (0.5 * flash).toFixed(3) + ')'; ctx.lineWidth = 6; ctx.stroke(); }
-    // readouts
-    var net = Math.abs(u - u0), Sn = Math.max(0, C - net);
-    document.getElementById('rF').textContent = Fs.toFixed(2);
-    document.getElementById('rC').textContent = C.toFixed(2);
-    document.getElementById('rCs').textContent = net.toFixed(2);
-    document.getElementById('rS').textContent = Sn.toFixed(2);
-    document.getElementById('rN').textContent = String(countEp);
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.strokeStyle = 'rgba(138,133,123,0.30)'; ctx.lineWidth = 2; ctx.stroke();
+    // the direct way: A to B through the empty centre
+    var pA = pt(A, R), pB = pt(A + PI, R);
+    ctx.setLineDash([12, 12]); ctx.beginPath(); ctx.moveTo(pA[0], pA[1]); ctx.lineTo(pB[0], pB[1]); ctx.strokeStyle = 'rgba(138,133,123,0.6)'; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = muted; ctx.font = 'italic 30px "Cormorant Garamond", Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('now', cx + 34 * Math.cos(A), cy + 34 * Math.sin(A));
+    // the two journeys: direct just inside the circle, wandering outside it, spiralling out as it walks
+    trail(d.trail, R - 18, 0, BLUE, 6);
+    trail(w.trail, R + 18, 7.5, GOLD, 4);
+    // A and B
+    ctx.font = '500 40px "Cormorant Garamond", Georgia, serif'; ctx.fillStyle = ink;
+    var lA = pt(A, R - 70), lB = pt(A + PI, R - 70);
+    ctx.fillText('A', lA[0], lA[1]); ctx.fillText('B', lB[0], lB[1]);
+    ctx.beginPath(); ctx.arc(pA[0], pA[1], 8, 0, TAU); ctx.fillStyle = ink; ctx.fill();
+    ctx.beginPath(); ctx.arc(pB[0], pB[1], 10, 0, TAU); ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
+    // the walkers
+    var hd = d.trail[d.trail.length - 1], hw = w.trail[w.trail.length - 1];
+    var qd = pt(A + hd[0], R - 18), qw = pt(A + hw[0], R + 18 + 7.5 * hw[1]);
+    ctx.beginPath(); ctx.arc(qd[0], qd[1], 13, 0, TAU); ctx.fillStyle = BLUE; ctx.fill();
+    ctx.beginPath(); ctx.arc(qw[0], qw[1], 13, 0, TAU); ctx.fillStyle = GOLD; ctx.fill();
+    // arrival: the wanderer's spiral is drawn outside the circle, so drop a line to show it is at B too
+    if (w.done) {
+      var qB = pt(A + PI, R);
+      ctx.setLineDash([4, 6]); ctx.beginPath(); ctx.moveTo(qw[0], qw[1]); ctx.lineTo(qB[0], qB[1]); ctx.strokeStyle = GOLD; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(qB[0], qB[1], 17, 0, TAU); ctx.strokeStyle = GOLD; ctx.lineWidth = 3; ctx.stroke();
+    }
+    var msg = document.getElementById('arrive');
+    if (msg) msg.style.opacity = phase === 'arrived' ? String(Math.min(1, hold / 0.6)) : '0';
+    document.getElementById('tD').textContent = d.C.toFixed(2);
+    document.getElementById('tDS').textContent = Math.max(0, d.C - d.net).toFixed(2);
+    document.getElementById('tW').textContent = w.C.toFixed(2);
+    document.getElementById('tWS').textContent = Math.max(0, w.C - w.net).toFixed(2);
   }
   function loop(ts) {
     if (paused) return;
     if (last === null) last = ts;
-    var dt = Math.min(0.05, (ts - last) / 1000) * (reduce ? 0.35 : 1); last = ts;
-    step(dt);
-    flash = Math.max(0, flash - dt * 1.6);
-    draw();
+    var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
+    step(dt * (reduce ? 0.4 : 1)); draw();
     requestAnimationFrame(loop);
   }
-  if (reduce) { paused = true; draw(); } else requestAnimationFrame(loop);
+  if (reduce) { paused = true; for (var i = 0; i < 400; i++) step(0.04); draw(); } else requestAnimationFrame(loop);
   var sun = document.getElementById('crrSun');
   if (sun) sun.addEventListener('click', function () { sun.classList.remove('erupting'); void sun.offsetWidth; sun.classList.add('erupting'); setTimeout(function () { sun.classList.remove('erupting'); }, 800); });
 })();
