@@ -30,6 +30,9 @@ h1 { font-weight: 400; font-size: 34px; letter-spacing: 0.32em; margin: 0; paddi
 .tally .sub b { display: inline; font-size: 12px; color: var(--ink2); }
 @media (max-width: 480px) { .tally b { font-size: 17px; } .tally .lab { font-size: 13px; } }
 .arrive { text-align: center; font-style: italic; font-size: 22px; color: var(--ink); margin: 6px 0 0; opacity: 0; transition: opacity 0.3s; min-height: 1.4em; }
+.quiet { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); margin: 2px 0 0; letter-spacing: 0.02em; }
+.quiet b { font-weight: 400; color: var(--ink2); }
+.hint { text-align: center; font-size: 15px; font-style: italic; color: var(--muted); margin: 10px 0 0; }
 .readout { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 18px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); margin-top: 6px; }
 .readout b { font-weight: 400; color: var(--ink2); }
 .caption { font-size: 16px; color: var(--ink2); text-align: center; margin: 14px auto 0; max-width: 520px; }
@@ -98,15 +101,11 @@ footer a { color: var(--muted); }
 <p class="strap">Coherence · Rupture · Regeneration</p>
 </header>
 
-<section class="sim" aria-label="Two journeys from A to B">
-<canvas id="agent" width="920" height="920" role="img" aria-label="Animation. Two walkers start together at point A on a circle and travel to the opposite point B. The blue walker goes directly. The gold walker wanders, turning back many times; its trail spirals outward so every detour stays visible. A dashed line through the empty centre joins A and B. Both arrive at B. Counters show the same distance from A to B for both, but very different paths walked. Then B becomes the new A and the next journey begins."></canvas>
-<div class="tally" aria-live="off">
-  <div class="cell"><span class="lab">A to B, for both</span><b id="tAB">3.14</b></div>
-  <div class="cell"><span class="lab"><span class="dot" style="background:#4f6d8a"></span>direct · walked</span><b id="tD">0.00</b><span class="sub">surplus <b id="tDS">0.00</b></span></div>
-  <div class="cell"><span class="lab"><span class="dot" style="background:#b8860b"></span>wandering · walked</span><b id="tW">0.00</b><span class="sub">surplus <b id="tWS">0.00</b></span></div>
-</div>
-<p class="arrive" id="arrive" aria-hidden="true">Same place. Different journeys.</p>
-<p class="caption">Two journeys from A to B. They start together and end in the same place, so judged by where they arrive, they know the same thing. One went straight there. The other wandered, turned back, met resistance and took longer. The dashed line is the direct way from A to B: a model can project it for free. The walk is what it costs, and the difference between them, the surplus, is the journey that the destination alone does not show. Then B becomes the new A, and the next journey begins from what this one settled. <span style="color:var(--muted)">Tap to pause.</span></p>
+<section class="sim" aria-label="A walker and its model on a held circle">
+<canvas id="agent" width="920" height="920" role="img" aria-label="Animation. A gold path walks slowly around a circle, sometimes turning back where the world resists. A pale, soft presence glides smoothly ahead of it: the model of where the walk is going. When a visitor points, the pale presence leaps there at once along a straight line, while the gold path must walk the long way round, and the pale presence is then drawn gently back towards it. Each time the gold path first arrives opposite where it began, the walked arc settles outside the circle as a ring, and older rings drift outward and fade. The centre stays empty."></canvas>
+<p class="quiet" id="quiet">walked <b id="tW">0.00</b> · direct <b id="tC">0.00</b> · difference <b id="tS">0.00</b></p>
+<p class="caption">The pale light is a model: where the walk expects to be. It moves freely, and it is never quite where the walk is.<br>The gold is what is lived. It costs, it is sometimes turned back, and it is remembered.<br>Neither is the whole. The difference between them is where the world is met.</p>
+<p class="hint">Point anywhere to set an intention. Tap the centre to pause.</p>
 </section>
 
 <hr>
@@ -138,100 +137,122 @@ footer a { color: var(--muted); }
 <script>
 (function () {
   var cv = document.getElementById('agent'), ctx = cv.getContext('2d');
-  var W = cv.width, cx = W / 2, cy = W / 2, R = W * 0.29, PI = Math.PI, TAU = PI * 2;
-  var BLUE = '#4f6d8a', GOLD = '#b8860b';
+  var W = cv.width, cx = W / 2, cy = W / 2, R = W * 0.30, PI = Math.PI, TAU = PI * 2;
+  var GOLD = '184,134,11', PALE = '120,138,160';
   var css = getComputedStyle(document.documentElement);
   function col(n) { return css.getPropertyValue(n).trim() || '#888'; }
-  function randn() { var u = 1 - Math.random(), v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * v); }
+  function wrap(a) { a = (a + PI) % TAU; if (a < 0) a += TAU; return a - PI; }
+  function randn() { var x = 1 - Math.random(), y = Math.random(); return Math.sqrt(-2 * Math.log(x)) * Math.cos(TAU * y); }
   function pt(a, r) { return [cx + r * Math.cos(a - PI / 2), cy + r * Math.sin(a - PI / 2)]; }
-  var A, dir, d, w, phase, hold, mem = [], paused = false, last = null;
+
+  // the lived walk (unwrapped angle), its episode, and what it has settled
+  var u = 0, vel = 0, A = 0, C = 0, trail = [[0, 0]], back = [], rings = [], episodes = 0;
+  // the model: a smooth expectation of where the walk is, and its sense of pace
+  var g = 0.45, pace = 0.32, K = 1.4;           // K: how strongly the model is drawn back to what is lived (per second)
+  // the world's resistance: almost none at first, then gradually more ("good enough")
+  function resistance() { return Math.min(0.85, 0.12 + 0.11 * episodes); }
+  var push = 0;                                   // a current push-back from the world
+  // an intention: by default the far side of the circle; a visitor can set their own
+  var intent = null, intentAge = 0, paused = false, last = null;
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function newJourney(start) {
-    A = start; dir = 1;
-    d = { net: 0, C: 0, done: false, trail: [[0, 0]] };
-    w = { net: 0, C: 0, done: false, trail: [[0, 0]], n: 0, t: 0, amp: 1.0 + 0.3 * Math.random(), om: 1.1 + 0.3 * Math.random(), ph: 3.4 + 0.7 * Math.random() };
-    phase = 'walk'; hold = 0;
+
+  function toAngle(ev) {
+    var r = cv.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * W - cx, y = (ev.clientY - r.top) / r.height * W - cy;
+    return { a: Math.atan2(y, x) + PI / 2, d: Math.sqrt(x * x + y * y) };
   }
-  newJourney(0);
-  cv.addEventListener('click', function () { paused = !paused; if (!paused) { last = null; requestAnimationFrame(loop); } });
+  cv.addEventListener('pointerdown', function (ev) {
+    var q = toAngle(ev);
+    if (q.d < R * 0.22) { paused = !paused; if (!paused) { last = null; requestAnimationFrame(loop); } return; }
+    // the target, on the circle, nearest the point chosen (unwrapped near the walk)
+    intent = u + wrap(q.a - u); intentAge = 0;
+    g = intent;                                    // fantasy is free: the model is there at once
+    if (paused) { paused = false; last = null; requestAnimationFrame(loop); }
+  });
+
   function step(dt) {
-    if (phase === 'walk') {
-      if (!d.done) { var dd = Math.min(PI - d.net, (PI / 5.5) * dt); d.net += dd; d.C += dd; d.trail.push([d.net, d.C]); if (d.net >= PI - 1e-9) d.done = true; }
-      if (!w.done) {
-        // a walker drawn towards B, but swaying: forward, back, forward, with a little noise
-        w.t += dt; w.n += (-2 * w.n) * dt + 0.6 * Math.sqrt(dt) * randn();
-        var dw = (0.3 + (w.t > 15 ? 0.3 : 0) + w.amp * Math.sin(w.om * w.t + w.ph) + w.n) * dt;
-        if (w.net + dw < -0.6) dw = -0.6 - w.net;          // it never strays too far behind A
-        w.net += dw; w.C += Math.abs(dw); w.trail.push([w.net, w.C]);
-        if (w.net >= PI) { w.net = PI; w.done = true; }
-      }
-      if (d.done && w.done) { phase = 'arrived'; hold = 0; }
-    } else {
-      hold += dt;
-      if (hold > 3.2) {
-        mem.push({ A: A, Cd: d.C, Cw: w.C, Sw: w.C - PI });
-        if (mem.length > 5) mem.shift();
-        newJourney(A + PI);
-      }
+    // where the walk is heading
+    var target = intent !== null ? intent : A + PI;
+    var dirn = Math.sign(target - u) || 1, far = Math.abs(target - u);
+    var want = dirn * 0.34 * Math.min(1, far / 0.4);
+    // the world answers back: now and then a gentle push the other way, more as the walk matures
+    if (push <= 0 && Math.random() < dt * 0.55 * (0.4 + resistance())) push = (0.5 + Math.random()) * (0.35 + resistance());
+    var resist = 0; if (push > 0) { resist = -dirn * push; push -= dt * 0.9; }
+    vel += ((want + resist) - vel) * Math.min(1, dt * 2.2) + 0.05 * Math.sqrt(dt) * randn();
+    var du = vel * dt; u += du; C += Math.abs(du); trail.push([u, C]);
+    if (du * (Math.sign(u - A) || 1) < -1e-4 && back.length < 600) back.push(u);
+    if (trail.length > 2400) trail.shift();
+    // the model glides at its expected pace, and is drawn back to what is lived at the right weight
+    // while an intention is held the model rests there, and is drawn back only slowly
+    // otherwise it sits a little ahead, where the walk is expected to be a moment from now
+    var expect = intent !== null ? u : u + dirn * pace * 1.4, k = intent !== null ? 0.12 : K;
+    g += k * dt * (expect - g);
+    if (intent !== null) { intentAge += dt; if (Math.abs(target - u) < 0.03 || intentAge > 14) intent = null; }
+    // the episode completes when the walk first arrives opposite where it began
+    var net = u - A;
+    if (Math.abs(net) >= PI) {
+      rings.unshift({ a0: A, a1: u, S: Math.max(0, C - Math.abs(net)), born: 0 });
+      if (rings.length > 9) rings.pop();
+      // the model learns its pace from what was lived
+      pace += 0.3 * ((Math.abs(net) / Math.max(1, epT)) - pace);
+      A = u; C = 0; trail = [[u, 0]]; back = []; episodes += 1; epT = 0; intent = null;
     }
+    epT += dt;
+    for (var i = 0; i < rings.length; i++) rings[i].born += dt;
   }
-  function trail(t, base, grow, color, width) {
-    if (t.length < 2) return;
-    ctx.beginPath();
-    for (var i = 0; i < t.length; i++) { var p = pt(A + t[i][0], base + grow * t[i][1]); if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); }
-    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+  var epT = 0;
+
+  function arc(r, a0, a1, color, width) {
+    ctx.beginPath(); ctx.arc(cx, cy, r, Math.min(a0, a1) - PI / 2, Math.max(a0, a1) - PI / 2);
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.stroke();
   }
   function draw() {
     ctx.clearRect(0, 0, W, W);
-    var muted = col('--muted'), ink = col('--ink');
-    // memory: earlier journeys as faint half-rings; the gold ring's weight is what that journey cost
-    for (var j = 0; j < mem.length; j++) {
-      var age = mem.length - 1 - j, al = 0.28 * Math.pow(0.7, age), m = mem[j];
-      ctx.beginPath(); ctx.arc(cx, cy, R - 40 - age * 9, m.A - PI / 2, m.A + PI / 2); ctx.strokeStyle = 'rgba(79,109,138,' + al.toFixed(3) + ')'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.beginPath(); ctx.arc(cx, cy, R - 40 - age * 9 - 4, m.A - PI / 2, m.A + PI / 2); ctx.strokeStyle = 'rgba(184,134,11,' + al.toFixed(3) + ')'; ctx.lineWidth = 2 + Math.min(m.Sw, 8) * 0.8; ctx.stroke();
+    var muted = col('--muted');
+    // the settled past: rings outside the circle, the newest nearest, older ones further out and fainter
+    for (var i = 0; i < rings.length; i++) {
+      var rg = rings[i], grow = Math.min(1, rg.born / 1.2), rr = R + 30 + i * 14 + (1 - grow) * -14;
+      var al = (0.55 * Math.pow(0.78, i)) * grow;
+      arc(rr, rg.a0, rg.a1, 'rgba(' + GOLD + ',' + al.toFixed(3) + ')', 1.5 + Math.min(rg.S, 4));
     }
-    // the circle
-    ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.strokeStyle = 'rgba(138,133,123,0.30)'; ctx.lineWidth = 2; ctx.stroke();
-    // the direct way: A to B through the empty centre
+    // the held circle, and the faint ruler it is read by: its marks start wherever this episode began
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.strokeStyle = 'rgba(138,133,123,0.28)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.strokeStyle = 'rgba(138,133,123,0.16)'; ctx.lineWidth = 1;
+    for (var t = 0; t < 24; t++) { var ta = A + t * TAU / 24, t0 = pt(ta, R - 7), t1 = pt(ta, R - (t % 6 ? 13 : 19)); ctx.beginPath(); ctx.moveTo(t0[0], t0[1]); ctx.lineTo(t1[0], t1[1]); ctx.stroke(); }
+    // the walk so far in this episode, drawn exactly on the circle; its turnings marked lightly
+    if (trail.length > 1) arc(R, A, u, 'rgba(' + GOLD + ',0.8)', 5);
+    ctx.fillStyle = 'rgba(' + GOLD + ',0.5)';
+    for (var k = 0; k < back.length; k += 4) { var pb = pt(back[k], R + 11); ctx.beginPath(); ctx.arc(pb[0], pb[1], 2, 0, TAU); ctx.fill(); }
+    // where the episode began, and the far side it walks towards
     var pA = pt(A, R), pB = pt(A + PI, R);
-    ctx.setLineDash([12, 12]); ctx.beginPath(); ctx.moveTo(pA[0], pA[1]); ctx.lineTo(pB[0], pB[1]); ctx.strokeStyle = 'rgba(138,133,123,0.6)'; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = muted; ctx.font = 'italic 30px "Cormorant Garamond", Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('now', cx + 34 * Math.cos(A), cy + 34 * Math.sin(A));
-    // the two journeys: direct just inside the circle, wandering outside it, spiralling out as it walks
-    trail(d.trail, R - 18, 0, BLUE, 6);
-    trail(w.trail, R + 18, 7.5, GOLD, 4);
-    // A and B
-    ctx.font = '500 40px "Cormorant Garamond", Georgia, serif'; ctx.fillStyle = ink;
-    var lA = pt(A, R - 70), lB = pt(A + PI, R - 70);
-    ctx.fillText('A', lA[0], lA[1]); ctx.fillText('B', lB[0], lB[1]);
-    ctx.beginPath(); ctx.arc(pA[0], pA[1], 8, 0, TAU); ctx.fillStyle = ink; ctx.fill();
-    ctx.beginPath(); ctx.arc(pB[0], pB[1], 10, 0, TAU); ctx.strokeStyle = ink; ctx.lineWidth = 2.5; ctx.stroke();
-    // the walkers
-    var hd = d.trail[d.trail.length - 1], hw = w.trail[w.trail.length - 1];
-    var qd = pt(A + hd[0], R - 18), qw = pt(A + hw[0], R + 18 + 7.5 * hw[1]);
-    ctx.beginPath(); ctx.arc(qd[0], qd[1], 13, 0, TAU); ctx.fillStyle = BLUE; ctx.fill();
-    ctx.beginPath(); ctx.arc(qw[0], qw[1], 13, 0, TAU); ctx.fillStyle = GOLD; ctx.fill();
-    // arrival: the wanderer's spiral is drawn outside the circle, so drop a line to show it is at B too
-    if (w.done) {
-      var qB = pt(A + PI, R);
-      ctx.setLineDash([4, 6]); ctx.beginPath(); ctx.moveTo(qw[0], qw[1]); ctx.lineTo(qB[0], qB[1]); ctx.strokeStyle = GOLD; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
-      ctx.beginPath(); ctx.arc(qB[0], qB[1], 17, 0, TAU); ctx.strokeStyle = GOLD; ctx.lineWidth = 3; ctx.stroke();
+    ctx.beginPath(); ctx.arc(pA[0], pA[1], 4, 0, TAU); ctx.fillStyle = 'rgba(138,133,123,0.8)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(pB[0], pB[1], 6, 0, TAU); ctx.strokeStyle = 'rgba(138,133,123,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
+    // the model: a soft presence, and the straight line by which it gets anywhere for free
+    var pg = pt(g, R), pu = pt(u, R);
+    if (intent !== null) {
+      var pI = pt(intent, R), fade = Math.max(0.15, 1 - intentAge / 5);
+      ctx.beginPath(); ctx.moveTo(pu[0], pu[1]); ctx.lineTo(pI[0], pI[1]); ctx.strokeStyle = 'rgba(' + PALE + ',' + (0.55 * fade).toFixed(3) + ')'; ctx.lineWidth = 1.5; ctx.stroke();
     }
-    var msg = document.getElementById('arrive');
-    if (msg) msg.style.opacity = phase === 'arrived' ? String(Math.min(1, hold / 0.6)) : '0';
-    document.getElementById('tD').textContent = d.C.toFixed(2);
-    document.getElementById('tDS').textContent = Math.max(0, d.C - d.net).toFixed(2);
-    document.getElementById('tW').textContent = w.C.toFixed(2);
-    document.getElementById('tWS').textContent = Math.max(0, w.C - w.net).toFixed(2);
+    var halo = ctx.createRadialGradient(pg[0], pg[1], 0, pg[0], pg[1], 46);
+    halo.addColorStop(0, 'rgba(' + PALE + ',0.42)'); halo.addColorStop(1, 'rgba(' + PALE + ',0)');
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(pg[0], pg[1], 46, 0, TAU); ctx.fill();
+    // the walker
+    ctx.beginPath(); ctx.arc(pu[0], pu[1], 12, 0, TAU); ctx.fillStyle = 'rgb(' + GOLD + ')'; ctx.fill();
+    // the centre holds nothing
+    ctx.fillStyle = muted; ctx.font = 'italic 30px "Cormorant Garamond", Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.globalAlpha = paused ? 0.95 : 0.6; ctx.fillText(paused ? 'paused' : 'now', cx, cy); ctx.globalAlpha = 1;
+    var net = Math.abs(u - A);
+    document.getElementById('tW').textContent = C.toFixed(2);
+    document.getElementById('tC').textContent = net.toFixed(2);
+    document.getElementById('tS').textContent = Math.max(0, C - net).toFixed(2);
   }
   function loop(ts) {
-    if (paused) return;
+    if (paused) { draw(); return; }
     if (last === null) last = ts;
     var dt = Math.min(0.05, (ts - last) / 1000); last = ts;
     step(dt * (reduce ? 0.4 : 1)); draw();
     requestAnimationFrame(loop);
   }
-  if (reduce) { paused = true; for (var i = 0; i < 400; i++) step(0.04); draw(); } else requestAnimationFrame(loop);
+  if (reduce) { for (var i = 0; i < 600; i++) step(0.04); paused = true; draw(); } else requestAnimationFrame(loop);
   var sun = document.getElementById('crrSun');
   if (sun) sun.addEventListener('click', function () { sun.classList.remove('erupting'); void sun.offsetWidth; sun.classList.add('erupting'); setTimeout(function () { sun.classList.remove('erupting'); }, 800); });
 })();
