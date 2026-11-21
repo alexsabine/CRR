@@ -287,7 +287,7 @@
   </style>
 </head>
 <body>
-<a id="sitehome" href="index.html#more" style="position:fixed;left:12px;bottom:12px;z-index:99;font:400 13px/1 Georgia,serif;color:#14202a;background:rgba(255,253,248,.94);border:1px solid #d9cfae;padding:8px 11px;text-decoration:none">&larr; Alexander Sabine</a>
+<a id="sitehome" href="workshop.html" style="position:fixed;left:12px;bottom:12px;z-index:99;font:400 13px/1 Georgia,serif;color:#14202a;background:rgba(255,253,248,.94);border:1px solid #d9cfae;padding:8px 11px;text-decoration:none">&larr; The workshop</a>
 
 <div class="loading-screen" id="loadingScreen">
   <div class="loading-content">
@@ -771,9 +771,29 @@ function detectSeason(date = new Date(), latitude = null) {
   return 'winter';
 }
 
+/* Whose year is it? The same wood, counted in different calendars. */
+const FRAMES = { 'Everyone': null, 'The turning year': ['Spring Equinox', 'Summer Solstice', 'Autumn Equinox', 'Winter Solstice'],
+  'Britain and Ireland': ['Global', 'Christian', 'Commonwealth', 'Irish', 'Celtic', 'Western'], 'North America': ['Global', 'American', 'Christian', 'Western', 'African American', 'Mexican'],
+  'East Asia': ['Global', 'Chinese', 'Japanese', 'Buddhist'], 'South Asia': ['Global', 'Hindu', 'Buddhist', 'Islamic'], 'The Jewish year': ['Jewish'], 'The Islamic year': ['Islamic'], 'Persian and Nordic': ['Persian', 'Nordic', 'Celtic'] };
+let frameName = 'Everyone'; try { frameName = localStorage.getItem('forestFrame') || 'Everyone'; } catch (e) {} if (!(frameName in FRAMES)) frameName = 'Everyone';
+function inFrame(e) { const f = FRAMES[frameName]; if (!f) return true; if (frameName === 'The turning year') return f.indexOf(e.name) >= 0; return f.indexOf(e.culture) >= 0; }
+addEventListener('DOMContentLoaded', function () { const ev = document.getElementById('events'); if (!ev) return; const sel = document.createElement('select'); sel.setAttribute('aria-label', 'Whose calendar to count by');
+  sel.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:60;font:400 13px/1 Georgia,serif;color:#14202a;background:rgba(255,253,248,.92);border:1px solid #d9cfae;padding:7px 9px;max-width:46vw';
+  Object.keys(FRAMES).forEach(function (k) { const o = document.createElement('option'); o.value = k; o.textContent = k === 'Everyone' ? 'Whose calendar? Everyone' : k; if (k === frameName) o.selected = true; sel.appendChild(o); });
+  sel.addEventListener('change', function () { frameName = sel.value; try { localStorage.setItem('forestFrame', frameName); } catch (e) {} }); document.body.appendChild(sel); });
+
 function generateYearEvents(year) {
   const events = [];
-  const add = (name, date, culture, icon = '✨') => events.push({ name, date: new Date(date), culture, icon });
+  /* Movable feasts. The lunar ones are listed for 2026 and 2027 from published interfaith calendars; many shift by a day with place or moon sighting.
+     Easter (Western) and Thanksgiving are worked out for any year. In a year with no entry the old fixed date is kept and marked "about". */
+  const MOV = { 2026: { "Chinese New Year": '02-17', "Holi": '03-04', "Eid al-Fitr": '03-20', "Vesak": '05-31', "Eid al-Adha": '05-27', "Mid-Autumn Festival": '09-25', "Rosh Hashanah": '09-12', "Dussehra": '10-20', "Diwali": '11-08', "Hanukkah": '12-04' },
+                2027: { "Chinese New Year": '02-06', "Holi": '03-22', "Eid al-Fitr": '03-10', "Vesak": '05-20', "Eid al-Adha": '05-17', "Mid-Autumn Festival": '09-15', "Rosh Hashanah": '10-02', "Dussehra": '10-09', "Diwali": '10-29', "Hanukkah": '12-25' } };
+  const two = n => String(n).padStart(2, '0');
+  const easter = (() => { const a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451), mo = Math.floor((h + l - 7 * m + 114) / 31), da = ((h + l - 7 * m + 114) % 31) + 1; return two(mo) + '-' + two(da); })();
+  const thanks = (() => { const first = new Date(year, 10, 1).getDay(), d = 1 + ((4 - first + 7) % 7) + 21; return '11-' + two(d); })();
+  const add = (name, date, culture, icon = '✨') => { let about = false; const m = MOV[year] && MOV[year][name];
+    if (m) date = `${year}-${m}`; else if (name === 'Easter Sunday') date = `${year}-${easter}`; else if (name === 'Thanksgiving') date = `${year}-${thanks}`; else if (MOV[2026][name]) about = true;
+    events.push({ name: about ? name + ' (about)' : name, date: new Date(date), culture, icon }); };
   
   // Global & Western
   add("New Year's Day", `${year}-01-01`, 'Global', '🎉');
@@ -3564,6 +3584,7 @@ function updateCalendar() {
   
   for (const e of yearEvents) { 
     if (shown >= 3) break;
+    if (!inFrame(e)) continue;
     const diff = e.date - now;
     const past = diff < 0;
     if (past && abs(diff) > 86400000) continue;
