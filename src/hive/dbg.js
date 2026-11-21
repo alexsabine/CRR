@@ -1,0 +1,2 @@
+const H=require('./hive_model.js');const W=H.create(+process.argv[2]||3);
+for(let i=0;i<16;i++){H.run(W,30);const m=H.measure(W);console.log(m.t.toFixed(0),'n',m.n.join('/'),'stim',W.stim.map(v=>v.toFixed(2)).join(' '),'full',m.fullness.toFixed(2),'T',m.temp.toFixed(1),'out',m.foragersOut,'in',m.intake60,'wait',W.waiting,'dancers',m.dancers,'front',W.front.length,'built',m.built,'cons',m.consensus&&m.consensus.toFixed(2),'waits',(W.waits.reduce((a,b)=>a+b,0)/(W.waits.length||1)).toFixed(1),'trem',W.nTremble)}
