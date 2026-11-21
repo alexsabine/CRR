@@ -1,0 +1,1164 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8">
+<title>The Clay Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{ --studio:#0b0a09; --ink:#f3ecdf; --ink-soft:rgba(243,236,223,.72); --panel:rgba(16,14,12,.6); --line:rgba(243,236,223,.2);
+  --accent:#f0b45a; --bad:#e5604c; --gem:#bfe9ff; --ruby:#ff5a7a;
+  --display:"Fraunces",Georgia,"Times New Roman",serif; --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace; color-scheme:dark; }
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+body{font:400 13px/1.45 var(--mono)}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#stage.tool{cursor:crosshair}
+.glass{background:var(--panel);border:1px solid var(--line);border-radius:16px;-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2)}
+button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--ink-soft)}
+button[aria-pressed="true"]{background:var(--ink);color:#15120e;border-color:var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.35;cursor:default}
+button.primary{background:var(--accent);border-color:var(--accent);color:#1a1206}
+.top{position:fixed;left:max(16px,env(safe-area-inset-left,0px));top:calc(14px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:16px;z-index:3;pointer-events:none}
+.top>*{pointer-events:auto}
+.top h1{font:600 clamp(20px,2.4vw,28px)/1 var(--display);margin:0;letter-spacing:-.01em;text-shadow:0 1px 12px rgba(0,0,0,.7);pointer-events:none}
+.seg{display:flex;gap:4px}
+#modes{padding:5px}
+#rail{position:fixed;left:max(16px,env(safe-area-inset-left,0px));top:calc(70px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:4px;padding:9px;z-index:3;max-height:calc(100vh - 148px);overflow:auto;width:176px}#rail[hidden]{display:none}
+#rail h2,.side h2{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:6px 2px 4px}
+#rail button{border-radius:10px;text-align:left;padding:6px 9px;display:grid;gap:2px;white-space:normal}
+#rail button small{font-size:11px;color:var(--ink-soft);line-height:1.25}
+#rail button[aria-pressed="true"] small{color:#4a4238}
+.side{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(14px + env(safe-area-inset-top,0px));width:292px;padding:12px 14px 14px;z-index:3;max-height:calc(100vh - 150px);overflow:auto}
+.side section{margin-bottom:12px}.side section[hidden]{display:none}
+.row{display:flex;align-items:center;gap:8px;margin:5px 0}.row label{color:var(--ink-soft);min-width:66px}.row input[type=range]{flex:1;min-width:60px;accent-color:var(--accent);height:22px}.row output{min-width:6ch;text-align:right;color:var(--accent);font-variant-numeric:tabular-nums}
+select{font:500 12.5px/1 var(--mono);color:var(--ink);background:#1b1815;border:1px solid var(--line);border-radius:8px;padding:7px 8px;flex:1}
+#palette{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-top:6px}
+#palette button{width:100%;aspect-ratio:1;padding:0;border-radius:50%;background:var(--g);border:2px solid rgba(243,236,223,.3)}
+#palette button[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 2px var(--accent);background:var(--g)}
+#glazeName{color:var(--accent);margin:6px 0 0}
+.jar{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;margin:6px 0}
+.jar b{font-weight:500}.jar .lvl{grid-column:1/3;height:6px;border-radius:3px;background:rgba(243,236,223,.14);overflow:hidden}.jar .lvl i{display:block;height:100%;width:0;background:var(--gem)}.jar.ruby .lvl i{background:var(--ruby)}
+.jar small{grid-column:1/3;color:var(--ink-soft);font-size:11px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0;font-size:12px}.facts dt{color:var(--ink-soft)}.facts dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+#kbOut{color:var(--accent);margin:6px 0;min-height:2.9em}.keys{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0 0 10px;font-size:11.5px}.keys dt{color:var(--ink);white-space:nowrap}.keys dd{margin:0;color:var(--ink-soft)}
+#whud{display:block;width:100%;height:150px;margin-top:6px}
+#swatch{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);flex:none}
+#band{color:var(--ink);font:400 14px/1.35 var(--display);margin:6px 0 8px;min-height:3.9em}
+.dock{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;z-index:3}.dock>*{pointer-events:auto}
+#card{width:min(700px,100%);padding:10px 18px;text-align:center;font:400 clamp(15px,1.3vw,17.5px)/1.36 var(--display);text-wrap:balance}
+#card[data-tone=warn]{border-color:var(--accent)}#card[data-tone=bad]{border-color:var(--bad)}
+.bar{width:100%;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:9px 12px}
+.grow{flex:1 1 8px}
+.sheet{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.55);padding:20px;z-index:6}
+.sheet[hidden]{display:none}
+.sheet>div{max-width:700px;max-height:86vh;overflow:auto;padding:26px 30px;font:400 14.5px/1.55 Georgia,serif;color:var(--ink)}
+.sheet h2{font:600 26px/1.1 var(--display);margin:0 0 10px}.sheet h3{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:20px 0 6px}
+.sheet p{margin:0 0 9px}.sheet small{color:var(--ink-soft);font:400 12px/1.5 var(--mono)}
+#fail{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:400 15px/1.5 var(--mono)}
+body[data-mode=wheel] .bench-only,body[data-mode=kiln] .bench-only,body:not([data-mode=wheel]) .wheel-only,body:not([data-mode=kiln]) .kiln-only{display:none!important}
+#panelBtn{display:none}
+@media (max-width:900px){ .side{width:250px} #rail{width:150px} }
+@media (max-width:700px){ .top h1{display:none} #rail{flex-direction:row;top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px));left:8px;right:8px;width:auto;max-height:none;overflow-x:auto;padding:6px} #rail h2{display:none} #rail button{flex:none} #rail button small{display:none}
+  .side{display:none;left:8px;right:8px;width:auto;top:60px;max-height:calc(100vh - 290px)} body.panel .side{display:block} #panelBtn{display:inline-block} #card{font-size:14px;padding:8px 12px} .bar{gap:6px;padding:7px 8px} .bar button{padding:8px 9px} }
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="A pottery studio: a bench with clay on a turntable, a potter's wheel, a kiln, and a hammer beside two gemstones"></canvas>
+<div class="top"><h1>The Clay Studio</h1>
+  <div id="modes" class="seg glass" role="group" aria-label="Where to work"><button type="button" data-m="bench">Bench</button><button type="button" data-m="wheel">Wheel</button><button type="button" data-m="kiln">Kiln</button></div></div>
+<div id="rail" class="glass"></div>
+<div class="side glass">
+  <section class="bench-only"><h2>Tool</h2>
+    <div class="row"><label for="size">Size</label><input id="size" type="range" min="0.06" max="0.9" step="0.01" value="0.32"><output id="sizeOut"></output></div>
+    <div class="row"><label for="force">Force</label><input id="force" type="range" min="0.1" max="1" step="0.05" value="0.55"><output id="forceOut"></output></div>
+  </section>
+  <section class="bench-only" id="glazeSec"><h2>Glazes</h2><div id="palette" role="group" aria-label="Glaze colour"></div><p id="glazeName"></p></section>
+  <section class="bench-only"><h2>Gem dust</h2>
+    <div class="jar"><b>Diamond dust</b><button id="bashD" type="button">Bash a diamond</button><div class="lvl"><i id="barD"></i></div><small id="grainD">The jar is empty. The hammer is waiting.</small></div>
+    <div class="jar ruby"><b>Ruby dust</b><button id="bashR" type="button">Bash a ruby</button><div class="lvl"><i id="barR"></i></div><small id="grainR">The jar is empty.</small></div>
+  </section>
+  <section class="wheel-only"><h2>The wheel</h2>
+    <div class="row"><label for="speed">Speed</label><input id="speed" type="range" min="0" max="4" step="0.05" value="2.6"><output id="rpm"></output></div>
+    <canvas id="whud" role="img" aria-label="The pot cut through, showing the thickness of its wall"></canvas>
+    <p id="kbOut" aria-live="polite"></p>
+    <dl class="keys"><dt>1 2 3 4</dt><dd>outside tool, inside tool, thumb, steady hands</dd><dt>Space</dt><dd>put the tool on the clay, or lift it</dd><dt>← →</dt><dd>move the tool left and right</dd><dt>↑ ↓</dt><dd>move it up and down the wall</dd><dt>Shift</dt><dd>with an arrow: slowly</dd><dt>− =</dt><dd>wheel slower, faster</dd><dt>W C</dt><dd>water, cut free</dd><dt>Enter</dt><dd>take it to the bench</dd></dl>
+    <dl class="facts"><dt>off-centre</dt><dd id="fWob"></dd><dt>thinnest wall</dt><dd id="fThin"></dd><dt>wetness</dt><dd id="fWet"></dd><dt>your weight ÷ the clay’s</dt><dd id="fBal"></dd></dl>
+  </section>
+  <section class="kiln-only"><h2>The kiln</h2>
+    <div class="row"><span id="swatch"></span><input id="temp" type="range" min="500" max="1350" step="10" value="1220" aria-label="Kiln temperature"><output id="tempOut"></output></div>
+    <p id="band"></p>
+    <button id="fire" type="button" class="primary">Fire it</button>
+  </section>
+  <section><h2>This piece</h2>
+    <div class="row bench-only"><label for="body">New clay</label><select id="body"></select></div>
+    <dl class="facts"><dt>clay</dt><dd id="fMass"></dd><dt>stands</dt><dd id="fTall"></dd><dt>state</dt><dd id="fState"></dd></dl>
+  </section>
+</div>
+<div class="dock">
+  <div id="card" class="glass" aria-live="polite"></div>
+  <div class="bar glass">
+    <button id="undo" type="button" class="bench-only">Undo</button>
+    <button id="lump" type="button" class="bench-only">New lump</button>
+    <button id="keep" type="button" class="bench-only">Put on the shelf</button>
+    <button id="toWheel" type="button" class="bench-only">Take it to the wheel</button>
+    <button id="water" type="button" class="wheel-only">Water</button>
+    <button id="cut" type="button" class="wheel-only">Cut free</button>
+    <button id="take" type="button" class="wheel-only primary">Take it to the bench</button>
+    <button id="again" type="button" class="wheel-only">New clay</button>
+    <span class="grow"></span>
+    <button id="jpg" type="button">Save a photo (JPG)</button>
+    <button id="obj" type="button">Export 3D (OBJ)</button>
+    <button id="panelBtn" type="button">Panel</button>
+    <button id="about" type="button">About</button>
+  </div>
+</div>
+<div class="sheet" id="sheet" hidden><div class="glass">
+  <h2>How the studio works</h2>
+  <p>Three places to work. At the <strong>bench</strong> you shape clay by hand with tools. At the <strong>wheel</strong> you throw a pot. In the <strong>kiln</strong> you fire what you made. Drag on the clay to use a tool; drag anywhere else to look round; scroll to come closer. Click a piece on the shelf to bring it back to the bench.</p>
+  <h3>The clay at the bench</h3>
+  <p>The clay is a closed skin of about forty thousand points. After every touch its volume is measured exactly, and the clay near the tool is moved out or in by the one amount that puts the volume back. So a thumb pressed in raises a rim round itself, and squeezing one place swells another. Only the loop tool and the needle take clay away, and only “add clay” gives any; both are counted. It cannot tear or join to itself, which real clay can.</p>
+  <h3>The clay on the wheel</h3>
+  <p>The same model as The Potter’s Wheel: a stack of rings that conserves its clay. A still tool centres it, a moving one does not; thin wet walls give way; speed throws anything off-centre further out. When you cut the pot free it becomes a skin like any other and can be carved, glazed and dusted at the bench. Soft clay can also go the other way, from the bench to the wheel. The wheel only knows round things, so what arrives is the round pot nearest to what you made: each slice keeps its average radius, a hollow pressed in from the top becomes the inside, and anything lopsided becomes wobble to be centred. Carved detail, glaze and dust do not survive the trip, and fired clay cannot be thrown.</p>
+  <h3>The kiln</h3>
+  <p>The glow is the colour a hot body really has at that temperature. Below about 600 °C clay is still mud that would dissolve in water. It shrinks as it fires, by about an eighth in all at stoneware heat. Unfired glaze is a pale chalky powder whatever its final colour; it melts to glass at around 1200 °C; hotter than that it runs down the wall, and past about 1285 °C the pot itself sags. The cone numbers are the potter’s usual measure and are approximate. These thresholds are typical figures for a stoneware body, not measurements of any one clay, and real glazes each have their own range.</p>
+  <h3>The gem dust</h3>
+  <p>The hammer is magic; the rest is true. Diamond is the hardest thing there is, but hard is not tough: it cleaves, and a hammer does shatter it. Each blow makes the grain finer. Diamond is also pure carbon, and in the air of a kiln it burns away above roughly 700 °C. Ruby is aluminium oxide coloured by chromium and comes through any firing here. So dust a piece with diamond <em>after</em> its last firing, or keep the kiln cool.</p>
+  <h3>Keys</h3>
+  <p><strong>At the bench:</strong> 1 to 9 choose the shaping tools, G the glaze brush, D diamond dust, R ruby dust; [ and ] make the tool smaller and larger; Ctrl+Z undoes. <strong>At the wheel</strong> everything can be done from the keyboard. 1, 2, 3 and 4 choose the outside tool, the inside tool, the thumb and steady hands. Space puts the tool on the clay and lifts it off. While it is lifted, up and down choose the height it will go on at. The arrows move the tool as you see it: left and right across, up and down the wall; with Shift it moves slowly. Minus and equals slow and quicken the wheel. W is water, C cuts the pot free, Enter takes it to the bench, N is new clay. Holding H steadies the clay for as long as it is down. B, T and K go to the bench, the wheel and the kiln.</p>
+  <h3>Taking your work away</h3>
+  <p>“Save a photo” gives a JPG of the view you have. “Export 3D” gives a ZIP holding a Wavefront OBJ: a watertight mesh in millimetres with a colour on every point, ready for a slicer, Blender or a game engine. The ZIP is there because this page is not allowed to hand over a bare .obj file. Glitter and gloss are not in the OBJ; they are properties of light, not of shape.</p>
+  <p><small>Renderer, clay shader, lens and grain follow the studio’s Clay Sea piece. three.js r158.</small></p>
+  <button id="close" type="button">Close</button>
+</div></div>
+<div id="fail">This piece needs WebGL 2, which this browser or device has not made available.</div>
+<script src="vendor/three-0.158.0.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+const canvas = document.getElementById('stage');
+if (!window.THREE || !canvas.getContext('webgl2')) { document.getElementById('fail').style.display='grid'; return; }
+/* ───────────────────────── noise (CPU) ───────────────────────── */
+function h3(x,y,z){ let n = Math.imul(x|0,374761393) ^ Math.imul(y|0,668265263) ^ Math.imul(z|0,1440662683);
+  n = Math.imul(n ^ (n>>>13), 1274126177); return ((n ^ (n>>>16))>>>0)/4294967296; }
+function vn3(x,y,z){ const xi=Math.floor(x), yi=Math.floor(y), zi=Math.floor(z);
+  let fx=x-xi, fy=y-yi, fz=z-zi; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); fz=fz*fz*(3-2*fz);
+  const a=h3(xi,yi,zi), b=h3(xi+1,yi,zi), c=h3(xi,yi+1,zi), d=h3(xi+1,yi+1,zi),
+        e=h3(xi,yi,zi+1), f=h3(xi+1,yi,zi+1), g=h3(xi,yi+1,zi+1), h=h3(xi+1,yi+1,zi+1);
+  const ab=a+(b-a)*fx, cd=c+(d-c)*fx, ef=e+(f-e)*fx, gh=g+(h-g)*fx;
+  const p=ab+(cd-ab)*fy, q=ef+(gh-ef)*fy; return p+(q-p)*fz; }
+function fbm3(x,y,z){ return vn3(x,y,z)*.55 + vn3(x*2.1+5,y*2.1+3,z*2.1+1)*.3 + vn3(x*4.3+9,y*4.3+7,z*4.3+2)*.15; }
+const rnd=(i,j)=>h3(i,j,77);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const sstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+
+/* ───────────────────────── renderer ───────────────────────── */
+const renderer = new THREE.WebGLRenderer({canvas, antialias:false, alpha:false, powerPreference:'high-performance', preserveDrawingBuffer:true});
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+const HDR = renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float');
+
+/* Contact-hardening soft shadows (PCSS) patched into three's shadow lookup. */
+(function(){
+  const pcss = `
+  float ignoise(vec2 p){ return fract(52.9829189*fract(dot(p, vec2(0.06711056,0.00583715)))); }
+  float pcssShadow(sampler2D sm, vec3 c, float K){
+    float rot = ignoise(gl_FragCoord.xy)*6.2831853;
+    float search = K*0.05, bsum=0., bn=0.;
+    for(int i=0;i<14;i++){ float fi=float(i)+.5; float r=sqrt(fi/14.); float a=fi*2.39996323+rot;
+      float d = unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*search));
+      if(d < c.z-0.0006){ bsum+=d; bn+=1.; } }
+    if(bn<.5) return 1.;
+    float pen = clamp((c.z-bsum/bn)*K, 0.0006, 0.02);
+    float s=0.;
+    for(int i=0;i<28;i++){ float fi=float(i)+.5; float r=sqrt(fi/28.); float a=fi*2.39996323+rot*1.7;
+      s += step(c.z, unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*pen))); }
+    return s/28.;
+  }`;
+  let ch = THREE.ShaderChunk.shadowmap_pars_fragment;
+  ch = ch.replace('#ifdef USE_SHADOWMAP', '#ifdef USE_SHADOWMAP\n'+pcss);
+  ch = ch.replace('#if defined( SHADOWMAP_TYPE_PCF )', 'return pcssShadow(shadowMap, shadowCoord.xyz, shadowRadius);\n#if defined( SHADOWMAP_TYPE_PCF )');
+  THREE.ShaderChunk.shadowmap_pars_fragment = ch;
+})();
+
+/* ───────────────────────── materials ───────────────────────── */
+const shared = { uSeed:{value:new THREE.Vector3()}, uShip:{value:new THREE.Vector4()}, uSeaT:{value:0} };
+const GLSL_NOISE = `
+float hash13(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32); return fract((p.x+p.y)*p.z); }
+float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash13(i),hash13(i+vec3(1,0,0)),f.x),mix(hash13(i+vec3(0,1,0)),hash13(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash13(i+vec3(0,0,1)),hash13(i+vec3(1,0,1)),f.x),mix(hash13(i+vec3(0,1,1)),hash13(i+vec3(1,1,1)),f.x),f.y),f.z); }`;
+const CLAY_PARS = GLSL_NOISE + `
+uniform mat3 normalMatrix;
+uniform vec3 uSeed; uniform float uBoil, uBump, uSmear, uSpeck; uniform vec3 uCol2;
+uniform vec4 uBandY; uniform vec3 uBandC[4];
+uniform vec4 uShip; uniform float uSeaT; uniform vec3 uDeep, uMid, uLight, uFoam;
+varying vec3 vObjPos; varying vec3 vObjN;
+#ifdef SEA
+varying vec2 vSea;
+#endif
+float clayH(vec3 p){
+  vec3 q = p + uSeed*uBoil;
+  float h = (vn(q*8.)-.5) + (vn(q*21.+3.)-.5)*.5 + (vn(q*57.+7.)-.5)*.22;
+  vec3 w = q*5.5; float fpMask = smoothstep(.56,.8, vn(w*.8+11.));
+  vec2 cc = fract(w.xy + w.z*.37)-.5;
+  h += sin(length(cc)*52. + vn(q*19.)*7.)*fpMask*.028;
+  h += smoothstep(.8,.95, vn(vec3(q.x*3., q.y*40., q.z*3.)+2.))*-.07;
+  return h;
+}
+vec3 clayNormal(vec3 nView){
+  #ifdef MODE_CLAY
+  vec3 p = vObjPos; float e = .0035;
+  float h0 = clayH(p);
+  vec3 g = vec3(clayH(p+vec3(e,0,0))-h0, clayH(p+vec3(0,e,0))-h0, clayH(p+vec3(0,0,e))-h0)/e;
+  vec3 nO = normalize(vObjN);
+  g -= dot(g,nO)*nO;
+  vec3 nP = normalize(nO - g*uBump*.011);
+  vec3 nV = normalize(normalMatrix*nP);
+  return dot(nV,nView) < 0. ? -nV : nV;
+  #else
+  return nView;
+  #endif
+}
+float clayRough(float r){
+  #ifdef MODE_CLAY
+  float m = vn(vObjPos*6.+uSeed*uBoil+40.);
+  return clamp(r + (m-.5)*.3 - smoothstep(.7,.9,vn(vObjPos*3.+9.))*.14, .2, 1.);
+  #else
+  return r;
+  #endif
+}
+vec3 clayAlbedo(vec3 base){
+  vec3 p = vObjPos; vec3 c = base;
+  #ifdef MODE_CLAY
+    #ifdef BANDS
+      float wob = (vn(p*7.)-.5)*.035 + (vn(p*23.)-.5)*.012;
+      float y = p.y + wob;
+      c = uBandC[0];
+      c = mix(c, uBandC[1], smoothstep(-.004,.004, y-uBandY.x));
+      c = mix(c, uBandC[2], smoothstep(-.004,.004, y-uBandY.y));
+      c = mix(c, uBandC[3], smoothstep(-.004,.004, y-uBandY.z));
+    #endif
+    #ifdef SEA
+      vec2 P = p.xz; vec2 d1 = vec2(.5,.866);
+      float along = dot(P, vec2(d1.y,-d1.x)), across = dot(P,d1);
+      float st  = vn(vec3(along*.9, across*3.6 - uSeaT*.55, 3.+uSeed.x*.2));
+      float st2 = vn(vec3(along*2.3+5., across*8. - uSeaT*.9, 9.+uSeed.y*.2));
+      c = mix(uDeep, uMid, smoothstep(.22,.7,st));
+      c = mix(c, uLight, smoothstep(.5,.82,st2)*.75);
+      float hN = vSea.x;
+      c = mix(c, uDeep*.75, smoothstep(.42,.05,hN)*.55);
+      float nz = vn(vec3(P*6.5, uSeed.y*3.))-.5;
+      float crest = smoothstep(.86,.98, hN + nz*.3);
+      vec2 L = P - uShip.xy;
+      float e = length(vec2(L.x/.98, L.y/.36));
+      float ring = smoothstep(1.42,1.08,e);
+      float b = -L.x - .55; float wake = 0.;
+      if(b>0.){ float arm = exp(-pow((abs(L.y)-(.2+.3*b))/.075,2.))*exp(-b*.5);
+        float churn = exp(-pow(L.y/(.13+.06*b),2.))*exp(-b*.75); wake = max(arm, churn); }
+      float foam = smoothstep(.34,.56, max(ring,wake) + (vn(vec3(P*10., uSeed.z*3.))-.5)*.55);
+      c = mix(c, uFoam, max(crest*.92, foam*.95)*(1.-vSea.y));
+      c = mix(c, uDeep*.9, vSea.y*.6);
+    #endif
+    float m = vn(p*5.+uSeed*uBoil)*.6 + vn(p*17.+4.)*.4;
+    c *= .86 + .28*m;
+    float s = smoothstep(.6,.8, vn(vec3(p.x*3.,p.y*8.,p.z*3.)+31.));
+    c = mix(c, uCol2, s*uSmear);
+    float sp = smoothstep(.9,.95, vn(p*150.+17.))*step(.75, vn(p*9.+70.));
+    c = mix(c, vec3(.82,.78,.7), sp*.35*uSpeck);
+  #endif
+  #ifdef MODE_WOOD
+    vec2 P = p.xz; float pid = floor(P.y/1.15+.5); float py = fract(P.y/1.15+.5);
+    float gw = vn(vec3(P.x*.5+pid*7., P.y*5., pid));
+    float rings = sin(P.y*46. + gw*9. + vn(vec3(P.x*.25,P.y*1.5,pid*3.))*14.);
+    c = mix(vec3(.25,.14,.07), vec3(.47,.29,.15), .5+.5*rings*.7);
+    c *= .8 + .35*vn(vec3(P.x*8., P.y*160., pid));
+    c *= mix(.45,1., smoothstep(0.,.02,py)*smoothstep(1.,.98,py));
+    c *= base;
+  #endif
+  #ifdef MODE_PAPER
+    float y = clamp((p.y+3.55)/2.5,0.,1.);
+    float br = (vn(vec3(p.x*.5,p.y*5.,1.))-.5)*.08 + (vn(vec3(p.x*3.,p.y*30.,4.))-.5)*.03;
+    y += br;
+    c = mix(vec3(.96,.62,.40), vec3(.93,.80,.68), smoothstep(.04,.2,y));
+    c = mix(c, vec3(.36,.62,.86), smoothstep(.14,.46,y));
+    c = mix(c, vec3(.12,.32,.64), smoothstep(.5,1.,y));
+    c *= .93+.14*vn(p*14.);
+  #endif
+  return c;
+}`;
+function lin(hex){ return new THREE.Color(hex); }
+function mat(o){
+  o = o || {};
+  const mode = o.mode || 'CLAY';
+  const m = new THREE.MeshPhysicalMaterial({ color:o.color!==undefined?o.color:0xffffff, roughness:o.rough!==undefined?o.rough:.56, metalness:0,
+    sheen: mode==='CLAY'?.45:0, sheenRoughness:.5, sheenColor:new THREE.Color(o.color!==undefined?o.color:0xffffff).lerp(new THREE.Color(0xffffff),.5),
+    specularIntensity: o.spec!==undefined?o.spec:.75, envMapIntensity:o.env!==undefined?o.env:1, side:o.side||THREE.FrontSide });
+  if(o.emissive){ m.emissive=new THREE.Color(o.emissive); m.emissiveIntensity=o.emissiveIntensity||1; }
+  const bands = o.bands||null;
+  const u = { uSeed:shared.uSeed, uShip:shared.uShip, uSeaT:shared.uSeaT,
+    uBoil:{value:o.boil||0}, uBump:{value:o.bump!==undefined?o.bump:1}, uSmear:{value:o.smear||0}, uSpeck:{value:o.speck!==undefined?o.speck:1}, uCol2:{value:lin(o.color2!==undefined?o.color2:0xffffff)},
+    uBandY:{value:new THREE.Vector4(bands?bands.y[0]:9, bands&&bands.y[1]!==undefined?bands.y[1]:9, bands&&bands.y[2]!==undefined?bands.y[2]:9, 0)},
+    uBandC:{value:[0,1,2,3].map(i=>lin(bands?bands.c[Math.min(i,bands.c.length-1)]:0xffffff))},
+    uDeep:{value:lin(0x0b3a78)}, uMid:{value:lin(0x1668b8)}, uLight:{value:lin(0x2fa3c9)}, uFoam:{value:lin(0xf1eee2)} };
+  m.defines = Object.assign({}, m.defines, {['MODE_'+mode]:''});
+  if(bands) m.defines.BANDS='';
+  if(o.sea) m.defines.SEA='';
+  m.userData.u = u;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjPos; varying vec3 vObjN;\n#ifdef SEA\nattribute vec2 aSea; varying vec2 vSea;\n#endif')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObjPos=position; vObjN=normal;\n#ifdef SEA\nvSea=aSea;\n#endif');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n'+CLAY_PARS)
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = clayAlbedo(diffuseColor.rgb);')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clayRough(roughnessFactor);')
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal = clayNormal(normal);');
+  };
+  m.customProgramCacheKey = () => 'clay|'+mode+'|'+(bands?1:0)+'|'+(o.sea?1:0);
+  return m;
+}
+
+/* ───────────────────────── geometry helpers ───────────────────────── */
+function weld(geo){
+  const p=geo.attributes.position, n=new Float32Array(p.count*3), map=new Map(), key=new Array(p.count);
+  for(let i=0;i<p.count;i++){ key[i]=Math.round(p.getX(i)*2e4)+'_'+Math.round(p.getY(i)*2e4)+'_'+Math.round(p.getZ(i)*2e4); if(!map.has(key[i])) map.set(key[i],[0,0,0]); }
+  const idx=geo.index, tri=idx?idx.count/3:p.count/3, a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let t=0;t<tri;t++){ const i0=idx?idx.getX(t*3):t*3, i1=idx?idx.getX(t*3+1):t*3+1, i2=idx?idx.getX(t*3+2):t*3+2;
+    a.fromBufferAttribute(p,i0); b.fromBufferAttribute(p,i1); c.fromBufferAttribute(p,i2); b.sub(a); c.sub(a); b.cross(c);
+    for(const i of [i0,i1,i2]){ const m=map.get(key[i]); m[0]+=b.x; m[1]+=b.y; m[2]+=b.z; } }
+  for(let i=0;i<p.count;i++){ const m=map.get(key[i]); const l=Math.hypot(m[0],m[1],m[2])||1; n[i*3]=m[0]/l; n[i*3+1]=m[1]/l; n[i*3+2]=m[2]/l; }
+  geo.setAttribute('normal', new THREE.BufferAttribute(n,3)); return geo;
+}
+let seedC = 1;
+function clayify(geo, amp, freq){
+  const sd = (seedC++)*13.7; weld(geo);
+  const p=geo.attributes.position, n=geo.attributes.normal;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+    const d=(fbm3(x*freq+sd,y*freq+sd*.7,z*freq+sd*.3)-.5)*2*amp;
+    p.setXYZ(i, x+n.getX(i)*d, y+n.getY(i)*d, z+n.getZ(i)*d); }
+  weld(geo); geo.computeBoundingSphere(); return geo;
+}
+function blob(r, sx, sy, sz, amp, freq, det){
+  const g=new THREE.SphereGeometry(r, det||40, Math.round((det||40)*.7)); g.scale(sx||1,sy||1,sz||1);
+  return clayify(g, amp!==undefined?amp:r*.12, freq||(1.6/r));
+}
+function rbox(w,h,d,r,amp,freq){
+  const s=14, g=new THREE.BoxGeometry(w,h,d,s,s,s), p=g.attributes.position, hx=w/2-r, hy=h/2-r, hz=d/2-r, v=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); c.set(clamp(v.x,-hx,hx),clamp(v.y,-hy,hy),clamp(v.z,-hz,hz)); v.sub(c);
+    if(v.lengthSq()>1e-12){ v.normalize().multiplyScalar(r).add(c); p.setXYZ(i,v.x,v.y,v.z); } }
+  return clayify(g, amp!==undefined?amp:.012, freq||7);
+}
+function lathe(pts, amp, freq, seg){
+  const g=new THREE.LatheGeometry(pts.map(q=>new THREE.Vector2(q[0],q[1])), seg||44); return clayify(g, amp!==undefined?amp:.01, freq||7);
+}
+function grid(nu,nv,fn){
+  const pos=new Float32Array((nu+1)*(nv+1)*3), idx=[]; let k=0; const o=[0,0,0];
+  for(let i=0;i<=nu;i++) for(let j=0;j<=nv;j++){ fn(i/nu,j/nv,o); pos[k++]=o[0]; pos[k++]=o[1]; pos[k++]=o[2]; }
+  for(let i=0;i<nu;i++) for(let j=0;j<nv;j++){ const a=i*(nv+1)+j, b=a+1, c=a+nv+1, d=c+1; idx.push(a,b,c, b,d,c); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3)); g.setIndex(idx); return g;
+}
+function flip(g){ const ix=g.index.array; for(let i=0;i<ix.length;i+=3){ const t=ix[i+1]; ix[i+1]=ix[i+2]; ix[i+2]=t; } return g; }
+function mesh(g,m,x,y,z,parent){ const o=new THREE.Mesh(g,m); o.position.set(x||0,y||0,z||0); o.castShadow=true; o.receiveShadow=true; (parent||scene).add(o); return o; }
+
+/* ───────────────────────── the clay: on the wheel, and in the hand ───────────────────────── */
+/* The clay on the wheel: a small, stated model. One unit is 10 cm.
+   The pot is a stack of rings: outer radius ro, inner radius ri (0 where solid), off-centre e, at heights j*DY.
+   Volume is conserved: whatever a touch frees or takes, the rim rises or falls to pay for it.
+   A touch is a meeting of two precisions. The hand's is its pressure; the clay's is its firmness (thick and dry is firm,
+   thin and wet is soft). Each turn the clay moves a fraction K = hand / (hand + clay) of the way to the hand:
+   the Kalman gain, and exactly a precision-weighted average: new = (clay*old + hand*target) / (clay + hand).
+   In CRR's terms each turn of contact is one occasion: the wall is re-seeded as m' = q*m + (1-q)*Phi with q = 1-K.
+   The balance shown on screen is Omega = hand / clay = K / (1-K): 1 is matched weight, above is heavy, below is light.
+   C counts every change the clay has been through; C* is the net change; S = C - C* >= 0 is the surplus,
+   the overworking, and it tires the clay. A teaching model: plausible to a potter, not a simulation of real clay. */
+(function (root) {
+  const DY = .02, M = 220, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  /* What each lump 'wants'. Real clay wants nothing: this is put into the model so that the meeting has two sides.
+     A touch that goes the clay's way meets less resistance. A touch against it meets more, and leaves a strain that
+     stays in the wall and shows later, on the wheel or in the kiln. */
+  const WANTS = {
+    bowl: { name: 'a wide bowl', H: 1.6, r: u => .8 + .52 * Math.pow(clamp(u, 0, 1), 1.15) },
+    jar: { name: 'a round jar', H: 2.3, r: u => .74 + .38 * Math.sin(Math.PI * Math.pow(clamp(u, 0, 1), .85)) },
+    bottle: { name: 'a tall bottle', H: 3.1, r: u => { u = clamp(u, 0, 1); return .7 + .32 * Math.sin(Math.PI * Math.pow(u, .7)) * (1 - .5 * u) - .08 * u; } }
+  };
+  function create(seed, wantKey) {
+    let s0 = (seed || 1) >>> 0; const rnd = () => { s0 = (s0 + 0x6D2B79F5) >>> 0; let t = s0; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const P = { DY, M, ro: new Float32Array(M), ri: new Float32Array(M), e: new Float32Array(M), ph: new Float32Array(M), ring: new Float32Array(M), stress: new Float32Array(M), ro0: new Float32Array(M), pro: new Float32Array(M), pri: new Float32Array(M), cro: new Float32Array(M), cri: new Float32Array(M),
+      strain: new Float32Array(M), want: WANTS[wantKey] || WANTS[['bowl', 'jar', 'bottle'][(seed || 1) % 3]], wantKey: wantKey || ['bowl', 'jar', 'bottle'][(seed || 1) % 3], withNow: 0, H: 1.2, V0: 0, wet: .64, C: 0, rev: 0, floor: .16, collapsed: false, collapseAt: -1, why: '', hole: false, cut: false, over: 0, K: 0, gap: 0, firm: 0, press: 0, F: 0, jolt: 0, t: 0 };
+    for (let j = 0; j < M; j++) { const y = j * DY, u = Math.min(1, y / 1.3); P.ro[j] = .98 * Math.pow(1 - u * u, .42) * (1 + .05 * Math.sin(y * 9)); P.e[j] = .1 + .05 * rnd(); P.ph[j] = y * 1.4; P.ro0[j] = y < 1.2 ? P.ro[j] : 0; P.pro[j] = P.ro0[j]; }
+    P.n = () => Math.min(M - 1, Math.ceil(P.H / DY));
+    const area = j => P.ro[j] * P.ro[j] - P.ri[j] * P.ri[j];
+    P.volume = () => { let v = 0; const n = Math.floor(P.H / DY); for (let j = 0; j < n; j++) v += area(j); v += area(Math.min(n, M - 1)) * (P.H / DY - n); return v * Math.PI * DY; };
+    P.V0 = P.volume();
+    function conserve() { // find the height at which the clay we have is used up
+      const n0 = P.n(); for (let j = n0; j < M; j++) { P.ro[j] = Math.max(P.ro[n0 - 1], .3); P.ri[j] = P.ri[n0 - 1]; P.e[j] = P.e[n0 - 1]; P.ph[j] = P.ph[n0 - 1]; P.ring[j] = P.ring[n0 - 1]; }
+      let v = P.V0 / (Math.PI * DY), j = 0; while (j < M - 1 && v > area(j) && area(j) > 1e-5) { v -= area(j); j++; }
+      const target = (j + clamp(v / Math.max(area(j), 1e-5), 0, 1)) * DY; P.H += clamp(target - P.H, -.04, .04); }
+    P.firmAt = j => { const t = P.ri[j] > 0 ? P.ro[j] - P.ri[j] : Math.min(P.ro[j], 1); return Math.max(.02, (t / .25) * (1.45 - P.wet) * (1 - .55 * P.over)); };
+    /* C: every change each ring has been through. C*: its net change. S = C - C* >= 0 ring by ring (the triangle inequality). */
+    function tally() { let C = 0, net = 0; for (let j = 0; j < M; j++) { const live = j * DY < P.H, a = live ? P.ro[j] : 0, b = live ? P.ri[j] : 0; P.cro[j] += Math.abs(a - P.pro[j]); P.cri[j] += Math.abs(b - P.pri[j]); P.pro[j] = a; P.pri[j] = b; C += P.cro[j] + P.cri[j]; net += Math.abs(a - P.ro0[j]) + b; } P.C = C * DY; P.Cstar = net * DY; P.S = Math.max(0, P.C - P.Cstar); }
+    P.surplus = () => P.S || 0;
+    P.omega = () => P.K / Math.max(1e-6, 1 - P.K);
+    P.bump = a => { const n = P.n(); for (let j = Math.floor(n * .35); j < n; j++) P.e[j] += a * (j / n); };
+    P.wobble = () => { const n = P.n(); let s = 0; for (let j = 0; j < n; j++) s += P.e[j]; return s / n; };
+    P.depth = () => { const n = P.n(); let d = 0; for (let j = n - 1; j >= 0 && P.ri[j] > 0; j--) d += DY; return d; };
+    P.wantR = j => P.want.r(j * DY / P.want.H);
+    P.strained = () => { const n = P.n(); let s = 0; for (let j = 0; j < n; j++) s = Math.max(s, P.strain[j]); return s; };
+    P.fit = () => { const n = P.n(); let d = 0, c = 0; for (let j = 4; j < n; j++) if (P.ri[j] > 0) { d += Math.abs(P.ro[j] - P.wantR(j)); c++; } return c ? clamp(1 - (d / c) / .45 - Math.abs(P.H - P.want.H) / 2.2, 0, 1) : 0; };
+    P.thin = () => { const n = P.n(); let t = 9; for (let j = 0; j < n; j++) if (P.ri[j] > 0) t = Math.min(t, P.ro[j] - P.ri[j]); return t; };
+    P.water = () => { P.wet = clamp(P.wet + .14, 0, 1); };
+    P.release = p => { if (p > .45) { const n = P.n(); for (let j = 0; j < n; j++) P.e[j] += p * .07; P.jolt = 1; } };
+    function fail(j, why) { if (!P.collapsed) { P.collapsed = true; P.collapseAt = j; P.why = why; } }
+    /* hand: { on, type: 'out' | 'in' | 'top', y, R, vy, vR }.  w is the wheel in turns a second. */
+    P.step = (dt, w, hand) => {
+      P.t += dt; const dth = w * dt; P.rev += dth; P.jolt = Math.max(0, P.jolt - dt * 1.5); let n = P.n();
+      P.K = 0; P.gap = 0; P.press = 0; P.firm = 0; let F = 0;
+      if (P.collapsed) { P.fall = (P.fall || 0) + dt; if (P.fall < 1.3) { const jc = Math.max(4, P.collapseAt); for (let j = jc; j < n; j++) { const k = (j - jc) / Math.max(1, n - jc); P.ro[j] = Math.min(1.9, P.ro[j] * (1 + 1.1 * dt * (.4 + k))); P.ri[j] = Math.min(P.ro[j] - .03, P.ri[j] * (1 + 1.3 * dt * (.4 + k))); P.e[j] = Math.min(.5, P.e[j] + dt * .35); } P.H = Math.max(jc * DY + .14, P.H - dt * 1.4 * (P.H - jc * DY)); } return; }
+      if (P.cut) return;
+      if (hand && hand.on && w > .05) {
+        const rate = 1 - Math.exp(-dth * 1.7), share = K => 1 - Math.pow(1 - Math.min(K, .97), dth), mv = Math.abs(hand.vy || 0) + Math.abs(hand.vR || 0), still = Math.exp(-mv * 3), jh = clamp(Math.round(hand.y / DY), 0, n - 1);
+        if (hand.type === 'hold') { // two hands round the form: weight spent only on steadying, none on reshaping
+          const wgt = clamp(hand.weight, 0, 1), firm = P.firmAt(jh); P.press = wgt; P.firm = firm; P.K = 2.5 * wgt / (2.5 * wgt + firm); P.touch = wgt; P.withNow *= .9;
+          for (let j = 0; j < n; j++) { const dq = (j * DY - hand.y) / .7; P.e[j] -= Math.max(0, P.e[j] - .004) * wgt * still * rate * 2.4 * Math.exp(-dq * dq / 2); }
+        } else if (hand.type === 'top') { // opening: a thumb goes down through the middle and makes an inside
+          const p = clamp((P.H - hand.y) / .25, 0, 1), Rw = clamp(hand.R, .2, .7); P.press = p; P.firm = P.firmAt(n - 1); P.K = 2.5 * p / (2.5 * p + .6);
+          for (let j = Math.max(0, Math.floor(hand.y / DY)); j < n; j++) { const want = Math.min(Rw, P.ro[j] - .09); if (want > P.ri[j]) { const d = (want - P.ri[j]) * share(P.K); P.ri[j] += d; P.ro[j] += d * .35; } P.e[j] -= P.e[j] * p * still * rate * .4; }
+          if (hand.y < .07) P.hole = true; P.floor = Math.min(P.floor > 0 && P.depth() > 0 ? P.floor : 9, Math.max(.03, hand.y));
+          if (P.depth() > 0) P.floor = Math.max(.03, Math.min(P.floor, hand.y));
+        } else {
+          for (let j = Math.max(0, jh - 46); j < Math.min(n, jh + 47); j++) {
+            const hollow = P.ri[j] > 0 && j * DY >= P.floor, dyh = (j * DY - hand.y) / (hollow ? .2 : .42), wj = Math.exp(-dyh * dyh / 2);   // on a solid lump the whole palm is on the clay
+            if (hand.type === 'in' && !hollow) continue;
+            const pen = hand.type === 'out' ? P.ro[j] - hand.R : hand.R - P.ri[j]; if (pen <= 0) continue;
+            const p = clamp(pen / .3, 0, 1) * wj; let firm = P.firmAt(j), along = 0;
+            if (hollow) { const pull = hand.type === 'out' && (hand.vy || 0) > .12, gapW = P.wantR(j) - P.ro[j]; along = pull ? (P.H < P.want.H - .04 ? 1 : -1) : Math.abs(gapW) < .05 ? 0 : (hand.type === 'out' ? -1 : 1) * Math.sign(gapW); firm *= along > 0 ? .6 : along < 0 ? 1.9 : 1; }
+            const K = 2.5 * p / (2.5 * p + firm), d = pen * share(K); if (along < 0) P.strain[j] = Math.min(1.5, P.strain[j] - along * d * 5);
+            if (wj > .97) { P.K = K; P.gap = pen; P.press = p; P.firm = firm; P.withNow += (along - P.withNow) * Math.min(1, rate * 3); } F += .5 * 2.5 * p * pen * pen;
+            if (hand.type === 'out') { if (hollow && (hand.vy || 0) > .12) { P.ro[j] -= Math.min(d, Math.max(0, P.ro[j] - P.ri[j] - .01)); } else if (hollow) { const dd = Math.min(d, Math.max(0, P.ri[j] - .08)); P.ro[j] -= dd; P.ri[j] -= dd * .92; } else P.ro[j] -= Math.min(d, Math.max(0, P.ro[j] - .16)); }
+            else { const A = area(j); P.ri[j] += d; P.ro[j] = Math.sqrt(P.ri[j] * P.ri[j] + A); }
+            P.ring[j] += (p - P.ring[j]) * rate * .6;
+            P.e[j] += mv * p * dt * .22;
+          }
+          if (P.depth() < .03) for (let k = 0; k < 2; k++) for (let j = 1; j < n - 1; j++) P.ro[j] += ((P.ro[j - 1] + P.ro[j + 1]) / 2 - P.ro[j]) * Math.min(.5, rate * 1.2);   // wet clay under a palm smooths itself
+          // a still hand is a fixed point: once a turn the high side meets it, and gives way a little. A moving hand teaches nothing.
+          const jc = clamp(Math.round(hand.y / DY), 0, n - 1), touch = clamp(((hand.type === 'out' ? P.ro[jc] - hand.R : hand.R - P.ri[jc]) + .04) / .1, 0, 1); P.touch = touch; for (let j = 0; j < n; j++) { const dq = (j * DY - hand.y) / .55; P.e[j] -= Math.max(0, P.e[j] - .004) * touch * still * rate * 2.4 * Math.exp(-dq * dq / 2); }
+        }
+        P.wet = clamp(P.wet - .005 * dth * P.press, 0, 1);
+      }
+      // what the clay does on its own: the wheel throws anything off-centre further out, opens thin walls, and gravity waits
+      const w2 = w * w; let above = 0;
+      for (let j = n - 1; j >= 0; j--) {
+        const firm = P.firmAt(j), hollow = P.ri[j] > 0 && j * DY >= P.floor; above += area(j) * DY;
+        P.e[j] += P.e[j] * w2 * .012 * dt / (.4 + firm); if (j > 0) P.e[j] += Math.max(0, P.e[j - 1] - P.e[j]) * dt * 3; if (j > 0 && j < n - 1) P.e[j] += ((P.e[j - 1] + P.e[j + 1]) / 2 - P.e[j]) * dt * 2;
+        P.e[j] = clamp(P.e[j], 0, .6);
+        if (hollow) { const up = j * DY / Math.max(P.H, .1), fl = w2 * P.ro[j] * .0035 * up * up / firm * dt, A = area(j); P.ri[j] += fl; P.ro[j] = Math.sqrt(P.ri[j] * P.ri[j] + A);
+          const t = P.ro[j] - P.ri[j], st = P.strain[j] * .3 + above * .9 / (t * (P.ro[j] + P.ri[j]) * (1.55 - P.wet * 1.25) * (1 - .6 * P.over)) * .11 + P.e[j] * w2 * .09 + Math.max(0, P.ro[j] - 1.45) * w2 * .08;
+          P.stress[j] += (st - P.stress[j]) * Math.min(1, dt * 4); if (t < .035) fail(j, P.press > .3 ? 'hard' : 'thin'); else if (P.stress[j] > 1) fail(j, P.strain[j] > .75 ? 'forced' : P.e[j] * w2 * .09 > .5 ? 'wobble' : P.press > .5 ? 'hard' : P.wet > .82 ? 'wet' : w > 3.4 ? 'fast' : P.over > .75 ? 'tired' : 'thin');
+        } else { P.stress[j] = Math.min(.95, P.e[j] * w2 * .05); if (P.e[j] * w2 > 5.5 && P.ro[j] > .3) fail(Math.max(4, j - 10), 'wobble'); }
+        F += .5 * 6 * P.e[j] * P.e[j] * DY * 20;
+      }
+      P.wet = clamp(P.wet - .004 * dt, 0, 1); conserve(); tally(); P.over = clamp(P.S / 3.4, 0, 1); P.F += (F - P.F) * Math.min(1, dt * 6);
+    };
+    P.cutFree = () => { P.cut = true; };
+    return P;
+  }
+  const api = { create, DY, M, WANTS };
+  if (typeof module === 'object' && module.exports) module.exports = api; else root.PotModel = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* Clay you can work by hand: a closed skin of triangles. One unit is 10 cm.
+   Every tool moves the skin; then the volume is measured exactly (a sum of signed tetrahedra) and, for tools that neither add
+   nor take away, the skin near the tool is moved along its own normals by the one amount that puts the volume back:
+       delta = -(V - V0) / sum(w_i * A_i)        w_i the weight of vertex i, A_i the skin it stands for.
+   So a thumb pressed in raises a rim round itself, as clay does. Carving and adding change V0 by what they take or give. */
+(function (root) {
+  const Clay = {};
+  Clay.icosphere = function (level, R) {
+    const t = (1 + Math.sqrt(5)) / 2; let v = [-1, t, 0, 1, t, 0, -1, -t, 0, 1, -t, 0, 0, -1, t, 0, 1, t, 0, -1, -t, 0, 1, -t, t, 0, -1, t, 0, 1, -t, 0, -1, -t, 0, 1];
+    let f = [0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8, 3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1];
+    for (let l = 0; l < level; l++) { const nf = [], mid = new Map(), big = v.length / 3 * 4 + 8;
+      const m = (a, b) => { const k = a < b ? a * big + b : b * big + a; let i = mid.get(k); if (i === undefined) { i = v.length / 3; v.push((v[a * 3] + v[b * 3]) / 2, (v[a * 3 + 1] + v[b * 3 + 1]) / 2, (v[a * 3 + 2] + v[b * 3 + 2]) / 2); mid.set(k, i); } return i; };
+      for (let i = 0; i < f.length; i += 3) { const a = f[i], b = f[i + 1], c = f[i + 2], ab = m(a, b), bc = m(b, c), ca = m(c, a); nf.push(a, ab, ca, b, bc, ab, c, ca, bc, ab, bc, ca); } f = nf; }
+    const pos = new Float32Array(v.length); for (let i = 0; i < v.length; i += 3) { const l = R / Math.hypot(v[i], v[i + 1], v[i + 2]); pos[i] = v[i] * l; pos[i + 1] = v[i + 1] * l; pos[i + 2] = v[i + 2] * l; }
+    return { pos, idx: new Uint32Array(f) };
+  };
+  /* a pot from the wheel, as a closed skin: up the outside, over the rim, down the inside, across the floor */
+  Clay.potProfile = function (P) {
+    const n = P.n(), DY = P.DY, top = n - 1, pts = [], put = (r, y, j) => pts.push([Math.max(r, .004), y, j]);
+    put(P.ro[0] * .93, 0, 0); for (let j = 0; j < top; j++) put(P.ro[j], j * DY + .012, j);
+    const ro = P.ro[top], ri = P.ri[top], H = P.H, hollow = ri > 0 && P.depth() > .03; let endY;
+    if (hollow) { const c = (ro + ri) / 2, rad = Math.max(.012, (ro - ri) / 2); for (let a = 0; a <= 6; a++) { const an = a / 6 * Math.PI; put(c + rad * Math.cos(an), H + rad * Math.sin(an) * .9, top); }
+      let jf = top; while (jf > 0 && P.ri[jf - 1] > 0 && (jf - 1) * DY >= P.floor) jf--;
+      for (let j = top - 1; j >= jf; j--) put(P.ri[j], j * DY + .012, j);
+      const rf = P.ri[jf], yf = Math.max(P.floor, .02); for (let a = 1; a <= 4; a++) { const an = a / 5 * Math.PI / 2; put(rf * Math.cos(an), yf - .06 * Math.sin(an) * Math.min(1, yf / .08), jf); } endY = yf - .06 * Math.min(1, yf / .08); }
+    else { for (let a = 0; a <= 7; a++) { const an = a / 8 * Math.PI / 2; put(ro * Math.cos(an), H + ro * .22 * Math.sin(an), top); } endY = H + ro * .22; }
+    return { pts, endY, hollow };
+  };
+  Clay.fromPot = function (P, spin, seg) {
+    seg = seg || 160; const { pts, endY } = Clay.potProfile(P), K = pts.length, nv = K * seg + 2, pos = new Float32Array(nv * 3), idx = []; spin = spin || 0;
+    const off = j => { const e = Math.min(P.e[j], .25), ph = spin + P.ph[j]; return [e * Math.cos(ph), e * Math.sin(ph)]; };
+    let o = off(0); pos[0] = o[0]; pos[1] = 0; pos[2] = o[1];
+    for (let k = 0; k < K; k++) { const [r, y, j] = pts[k]; o = off(j); for (let s = 0; s < seg; s++) { const a = s / seg * Math.PI * 2, q = (1 + k * seg + s) * 3; pos[q] = o[0] + r * Math.cos(a); pos[q + 1] = y; pos[q + 2] = o[1] + r * Math.sin(a); } }
+    o = off(pts[K - 1][2]); const last = nv - 1; pos[last * 3] = o[0]; pos[last * 3 + 1] = endY; pos[last * 3 + 2] = o[1];
+    for (let s = 0; s < seg; s++) { const s1 = (s + 1) % seg; idx.push(0, 1 + s, 1 + s1); }
+    for (let k = 0; k < K - 1; k++) for (let s = 0; s < seg; s++) { const s1 = (s + 1) % seg, a = 1 + k * seg + s, b = 1 + k * seg + s1, c = a + seg, d = b + seg; idx.push(a, c, b, b, c, d); }
+    for (let s = 0; s < seg; s++) { const s1 = (s + 1) % seg, b = 1 + (K - 1) * seg; idx.push(last, b + s1, b + s); }
+    const ix = new Uint32Array(idx), p = Clay.make(pos, ix); if (p.V < 0) { for (let i = 0; i < ix.length; i += 3) { const t = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = t; } p.V = p.update(); }
+    return p;
+  };
+  Clay.make = function (pos, idx) {
+    const n = pos.length / 3, nt = idx.length / 3;
+    const p = { pos, idx, n, nt, nor: new Float32Array(n * 3), area: new Float32Array(n), col: new Float32Array(n * 3), m: new Float32Array(n * 4), V: 0, taken: 0, given: 0 };
+    /* neighbours, as one flat list */
+    const deg = new Uint32Array(n + 1), seen = new Set(), big = n + 1, pairs = [];
+    for (let i = 0; i < idx.length; i += 3) for (let e = 0; e < 3; e++) { const a = idx[i + e], b = idx[i + (e + 1) % 3], k = a < b ? a * big + b : b * big + a; if (!seen.has(k)) { seen.add(k); pairs.push(a, b); deg[a + 1]++; deg[b + 1]++; } }
+    for (let i = 0; i < n; i++) deg[i + 1] += deg[i]; const nb = new Uint32Array(pairs.length), fill = new Uint32Array(n);
+    for (let i = 0; i < pairs.length; i += 2) { const a = pairs[i], b = pairs[i + 1]; nb[deg[a] + fill[a]++] = b; nb[deg[b] + fill[b]++] = a; }
+    p.nb = nb; p.nb0 = deg; p.edges = pairs.length / 2;
+    const sel = new Uint32Array(n), wt = new Float32Array(n), tmp = new Float32Array(n * 3); let ns = 0;
+    /* normals, the skin each vertex stands for, and the exact volume, in one pass over the triangles */
+    p.update = function () { const nor = p.nor, ar = p.area; nor.fill(0); ar.fill(0); let V = 0;
+      for (let i = 0; i < idx.length; i += 3) { const a = idx[i] * 3, b = idx[i + 1] * 3, c = idx[i + 2] * 3, ax = pos[a], ay = pos[a + 1], az = pos[a + 2], bx = pos[b], by = pos[b + 1], bz = pos[b + 2], cx = pos[c], cy = pos[c + 1], cz = pos[c + 2];
+        const ux = bx - ax, uy = by - ay, uz = bz - az, vx = cx - ax, vy = cy - ay, vz = cz - az, nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+        nor[a] += nx; nor[a + 1] += ny; nor[a + 2] += nz; nor[b] += nx; nor[b + 1] += ny; nor[b + 2] += nz; nor[c] += nx; nor[c + 1] += ny; nor[c + 2] += nz;
+        const A = Math.sqrt(nx * nx + ny * ny + nz * nz) / 6; ar[a / 3] += A; ar[b / 3] += A; ar[c / 3] += A;
+        V += (ax * (by * cz - bz * cy) + ay * (bz * cx - bx * cz) + az * (bx * cy - by * cx)) / 6; }
+      for (let i = 0; i < n * 3; i += 3) { const l = 1 / (Math.hypot(nor[i], nor[i + 1], nor[i + 2]) || 1); nor[i] *= l; nor[i + 1] *= l; nor[i + 2] *= l; }
+      return V; };
+    function select(c, R) { const R2 = R * R; ns = 0; for (let i = 0, q = 0; i < n; i++, q += 3) { const dx = pos[q] - c[0], dy = pos[q + 1] - c[1], dz = pos[q + 2] - c[2], d2 = dx * dx + dy * dy + dz * dz; if (d2 < R2) { const u = 1 - d2 / R2; sel[ns] = i; wt[ns] = u * u; ns++; } } return ns; }
+    function floor() { for (let q = 1; q < n * 3; q += 3) if (pos[q] < 0) pos[q] = 0; }
+    p.conserve = function (c, Rc) { const V = p.update(), dV = V - p.V; if (Math.abs(dV) < 1e-9) return 0; select(c, Rc); let sum = 0; const nor = p.nor;
+      for (let k = 0; k < ns; k++) { const i = sel[k]; if (pos[i * 3 + 1] < 2e-3 && nor[i * 3 + 1] < 0) { wt[k] = 0; continue; } sum += wt[k] * p.area[i]; }
+      if (sum < 1e-9) return dV; const lim = Rc * .12, d = Math.max(-lim, Math.min(lim, -dV / sum));
+      for (let k = 0; k < ns; k++) { const i = sel[k] * 3, w = wt[k] * d; pos[i] += nor[i] * w; pos[i + 1] += nor[i + 1] * w; pos[i + 2] += nor[i + 2] * w; } floor(); return dV; };
+    /* one touch of a tool. c: where, nh: the surface normal there, R: size, amt: how far this touch goes (in units of R) */
+    p.touch = function (tool, c, nh, R, amt) {
+      if (tool === 'needle') R = Math.min(R, .05); if (!select(c, R)) return; const nor = p.nor, d = amt * R;
+      if (tool === 'press' || tool === 'carve' || tool === 'needle') for (let k = 0; k < ns; k++) { const i = sel[k] * 3, w = wt[k] * d * (tool === 'needle' ? 1.6 : 1); pos[i] -= nh[0] * w; pos[i + 1] -= nh[1] * w; pos[i + 2] -= nh[2] * w; }
+      else if (tool === 'pull') for (let k = 0; k < ns; k++) { const i = sel[k] * 3, w = wt[k] * d; pos[i] += nh[0] * w; pos[i + 1] += nh[1] * w; pos[i + 2] += nh[2] * w; }
+      else if (tool === 'add') for (let k = 0; k < ns; k++) { const i = sel[k] * 3, w = wt[k] * d; pos[i] += nor[i] * w; pos[i + 1] += nor[i + 1] * w; pos[i + 2] += nor[i + 2] * w; }
+      else if (tool === 'flatten') for (let k = 0; k < ns; k++) { const i = sel[k] * 3, h = (pos[i] - c[0]) * nh[0] + (pos[i + 1] - c[1]) * nh[1] + (pos[i + 2] - c[2]) * nh[2], w = Math.min(1, wt[k] * amt * 3) * h; pos[i] -= nh[0] * w; pos[i + 1] -= nh[1] * w; pos[i + 2] -= nh[2] * w; }
+      else if (tool === 'pinch') for (let k = 0; k < ns; k++) { const i = sel[k] * 3; let dx = c[0] - pos[i], dy = c[1] - pos[i + 1], dz = c[2] - pos[i + 2]; const h = dx * nh[0] + dy * nh[1] + dz * nh[2]; dx -= nh[0] * h; dy -= nh[1] * h; dz -= nh[2] * h; const w = Math.min(.6, wt[k] * amt * 2.2); pos[i] += dx * w + nh[0] * w * R * .25; pos[i + 1] += dy * w + nh[1] * w * R * .25; pos[i + 2] += dz * w + nh[2] * w * R * .25; }
+      else if (tool === 'smooth') for (let it = 0; it < 2; it++) { for (let k = 0; k < ns; k++) { const i = sel[k], a = p.nb0[i], b = p.nb0[i + 1]; let x = 0, y = 0, z = 0; for (let e = a; e < b; e++) { const j = nb[e] * 3; x += pos[j]; y += pos[j + 1]; z += pos[j + 2]; } const g = 1 / (b - a); tmp[k * 3] = x * g; tmp[k * 3 + 1] = y * g; tmp[k * 3 + 2] = z * g; }
+          for (let k = 0; k < ns; k++) { const i = sel[k] * 3, w = Math.min(.85, wt[k] * amt * 5); pos[i] += (tmp[k * 3] - pos[i]) * w; pos[i + 1] += (tmp[k * 3 + 1] - pos[i + 1]) * w; pos[i + 2] += (tmp[k * 3 + 2] - pos[i + 2]) * w; } }
+      const work = tool === 'smooth' ? 1 : tool === 'carve' || tool === 'needle' ? -1 : 0; if (work) for (let k = 0; k < ns; k++) { const i = sel[k] * 4 + 3; p.m[i] = Math.max(-1, Math.min(1, p.m[i] + work * wt[k] * .25)); }
+      floor();
+      if (tool === 'carve' || tool === 'needle' || tool === 'add') { const V = p.update(); if (tool === 'add') p.given += V - p.V; else p.taken += p.V - V; p.V = V; }
+      else { p.conserve(c, R * 2.4); p.update(); }
+    };
+    /* taking hold of the clay and moving it: the weights are fixed when you take hold */
+    let gsel = null, gwt = null, gc = null, gR = 0;
+    p.grab = function (c, R) { select(c, R); gsel = sel.slice(0, ns); gwt = wt.slice(0, ns); gc = c.slice(); gR = R; };
+    p.drag = function (dx, dy, dz) { if (!gsel) return; for (let k = 0; k < gsel.length; k++) { const i = gsel[k] * 3, w = gwt[k]; pos[i] += dx * w; pos[i + 1] += dy * w; pos[i + 2] += dz * w; } gc[0] += dx * .6; gc[1] += dy * .6; gc[2] += dz * .6; floor(); p.conserve(gc, gR * 2.6); p.update(); };
+    p.letGo = function () { gsel = null; };
+    /* colour and dust go on the skin. Returns the area covered, so the jar can be charged for it. */
+    p.paint = function (what, c, R, amt, rgb) { select(c, R); let used = 0;
+      for (let k = 0; k < ns; k++) { const i = sel[k], w = Math.min(1, wt[k] * amt), q = i * 4;
+        if (what === 'glaze') { const a = p.m[q], t = a < .02 ? 1 : w; p.col[i * 3] += (rgb[0] - p.col[i * 3]) * t; p.col[i * 3 + 1] += (rgb[1] - p.col[i * 3 + 1]) * t; p.col[i * 3 + 2] += (rgb[2] - p.col[i * 3 + 2]) * t; p.m[q] = Math.min(1, a + w); }
+        else if (what === 'wipe') { p.m[q] *= 1 - w; p.m[q + 1] *= 1 - w; p.m[q + 2] *= 1 - w; }
+        else { const ch = what === 'diamond' ? 1 : 2, a = p.m[q + ch], b = Math.min(1, a + w * .5); p.m[q + ch] = b; used += (b - a) * p.area[i]; } }
+      return used; };
+    /* the kiln. Too hot, and the pot sags under its own weight; a runny glaze flows down the wall. */
+    p.slump = function (s) { let H = 0; for (let q = 1; q < n * 3; q += 3) H = Math.max(H, pos[q]); for (let q = 0; q < n * 3; q += 3) { const u = pos[q + 1] / H, lean = s * .22 * u * u, wide = 1 + s * .3 * (1 - u) * u * 2; pos[q] = pos[q] * wide + lean * H * .5; pos[q + 2] *= wide; pos[q + 1] *= 1 - s * .38 * u; } p.V = p.update(); };
+    p.runGlaze = function (r) { const it = Math.round(r * 14), m = p.m, col = p.col; for (let t = 0; t < it; t++) for (let i = 0; i < n; i++) { let hi = -1, hy = pos[i * 3 + 1] + 1e-4; for (let e = p.nb0[i]; e < p.nb0[i + 1]; e++) { const j = nb[e]; if (pos[j * 3 + 1] > hy) { hy = pos[j * 3 + 1]; hi = j; } }
+        if (hi < 0) { m[i * 4] *= 1 - .12 * r; continue; } const g = m[hi * 4] * .5 * r; if (g > .002) { const a = m[i * 4], tt = g / (a + g); col[i * 3] += (col[hi * 3] - col[i * 3]) * tt; col[i * 3 + 1] += (col[hi * 3 + 1] - col[i * 3 + 1]) * tt; col[i * 3 + 2] += (col[hi * 3 + 2] - col[i * 3 + 2]) * tt; m[i * 4] = Math.min(1.6, a + g * .5); } } };
+    p.snapshot = () => ({ pos: pos.slice(), col: p.col.slice(), m: p.m.slice(), V: p.V, taken: p.taken, given: p.given });
+    p.restore = s => { pos.set(s.pos); p.col.set(s.col); p.m.set(s.m); p.V = s.V; p.taken = s.taken; p.given = s.given; p.update(); };
+    p.height = () => { let H = 0; for (let q = 1; q < n * 3; q += 3) H = Math.max(H, pos[q]); return H; };
+    p.V = p.update(); p.V0 = p.V;
+    return p;
+  };
+  /* Wavefront OBJ, in millimetres, with a colour on every vertex (v x y z r g b), y up */
+  Clay.toOBJ = function (p, scale, rgbOf, name) { const out = ['# ' + name, '# units: millimetres, y up. Vertex colours follow each position (r g b, 0..1).', 'o ' + name.replace(/\W+/g, '_')], f = x => x.toFixed(3);
+    for (let i = 0; i < p.n; i++) { const c = rgbOf(i); out.push('v ' + f(p.pos[i * 3] * scale) + ' ' + f(p.pos[i * 3 + 1] * scale) + ' ' + f(p.pos[i * 3 + 2] * scale) + ' ' + c[0].toFixed(3) + ' ' + c[1].toFixed(3) + ' ' + c[2].toFixed(3)); }
+    for (let i = 0; i < p.n; i++) out.push('vn ' + p.nor[i * 3].toFixed(4) + ' ' + p.nor[i * 3 + 1].toFixed(4) + ' ' + p.nor[i * 3 + 2].toFixed(4));
+    for (let i = 0; i < p.idx.length; i += 3) { const a = p.idx[i] + 1, b = p.idx[i + 1] + 1, c = p.idx[i + 2] + 1; out.push('f ' + a + '//' + a + ' ' + b + '//' + b + ' ' + c + '//' + c); }
+    return out.join('\n') + '\n'; };
+  /* a ZIP file with nothing compressed, so it needs no library */
+  Clay.zip = function (files) { const enc = new TextEncoder(), T = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; T[i] = c >>> 0; }
+    const crc = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = T[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }, parts = [], cen = []; let off = 0;
+    const rec = (sig, name, data, c, extra) => { const h = new DataView(new ArrayBuffer(extra ? 46 : 30)); let o = 0; const u32 = v => { h.setUint32(o, v, true); o += 4; }, u16 = v => { h.setUint16(o, v, true); o += 2; };
+      u32(sig); if (extra) u16(20); u16(20); u16(0x800); u16(0); u16(0); u16(0x21); u32(c); u32(data.length); u32(data.length); u16(name.length); u16(0); if (extra) { u16(0); u16(0); u16(0); u32(0); u32(extra.off); } return new Uint8Array(h.buffer); };
+    for (const f of files) { const name = enc.encode(f.name), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data, c = crc(data); parts.push(rec(0x04034b50, name, data, c), name, data); cen.push(rec(0x02014b50, name, data, c, { off }), name); off += 30 + name.length + data.length; }
+    const cs = cen.reduce((a, b) => a + b.length, 0), e = new DataView(new ArrayBuffer(22)); e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+    const all = parts.concat(cen, [new Uint8Array(e.buffer)]), out = new Uint8Array(all.reduce((a, b) => a + b.length, 0)); let q = 0; for (const b of all) { out.set(b, q); q += b.length; } return out; };
+  if (typeof module === 'object' && module.exports) module.exports = Clay; else root.Clay = Clay;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+const PotModel=window.PotModel, Clay=window.Clay;
+/* ───────────────────────── post: ambient occlusion → lens blur → film ───────────────────────── */
+const postScene=new THREE.Scene(), postCam=new THREE.Camera();
+const tri=new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1,-1,0, 3,-1,0, -1,3,0]),3)));
+tri.frustumCulled=false; postScene.add(tri);
+const VS='varying vec2 vUv; void main(){ vUv=position.xy*.5+.5; gl_Position=vec4(position.xy,0.,1.); }';
+const pm=(fs,u)=>new THREE.ShaderMaterial({vertexShader:VS, fragmentShader:fs, uniforms:u, depthTest:false, depthWrite:false});
+const DEPTH=`uniform sampler2D tDepth; uniform float uNear,uFar; uniform vec2 uProj;
+float linZ(vec2 uv){ float d=texture2D(tDepth,uv).x; return (uNear*uFar)/(uFar-d*(uFar-uNear)); }
+vec3 vpos(vec2 uv){ float z=linZ(uv); vec2 n=uv*2.-1.; return vec3(n.x/uProj.x*z, n.y/uProj.y*z, -z); }`;
+const U={ tDepth:{value:null}, uNear:{value:.6}, uFar:{value:40}, uProj:{value:new THREE.Vector2()}, uRes:{value:new THREE.Vector2()} };
+const aoMat=pm(DEPTH+`uniform vec2 uRes; uniform float uAOs; varying vec2 vUv;
+void main(){ vec3 C=vpos(vUv); vec3 n=normalize(cross(dFdx(C),dFdy(C)));
+  float R=.24*uAOs, ssr=R*uProj.y*.5/(-C.z);
+  float rot=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853, sum=0.;
+  for(int i=0;i<22;i++){ float a=(float(i)+.5)/22.; float ang=a*6.2831853*7.+rot; float r=ssr*a;
+    vec3 v=vpos(vUv+vec2(cos(ang)*uRes.y/uRes.x,sin(ang))*r)-C; float vv=dot(v,v), vn=dot(v,n);
+    float f=max(1.-vv/(R*R),0.); sum+=f*f*f*max((vn+C.z*.0025)/(vv+.0004),0.); }
+  gl_FragColor=vec4(vec3(max(0.,1.-sum*5.*R/22.*1.9)),1.); }`, Object.assign({uAOs:{value:1}},U));
+const prepMat=pm(DEPTH+`uniform sampler2D tColor,tAO; uniform vec2 uRes; uniform float uFocus,uAperture; varying vec2 vUv;
+void main(){ float z=linZ(vUv); float ao=0., w=0.;
+  for(int x=-2;x<2;x++) for(int y=-2;y<2;y++){ vec2 o=(vec2(float(x),float(y))+.5)/uRes; float zz=linZ(vUv+o);
+    float k=max(0.,1.-abs(zz-z)/(.03*z)); ao+=texture2D(tAO,vUv+o).r*k; w+=k; }
+  ao = w>0. ? ao/w : 1.;
+  vec3 c=texture2D(tColor,vUv).rgb; c*=mix(vec3(.16,.13,.14), vec3(1.), pow(ao,1.25));
+  gl_FragColor=vec4(c, clamp((1./uFocus-1./z)*uAperture,-1.,1.)); }`, Object.assign({tColor:{value:null}, tAO:{value:null}, uFocus:{value:5}, uAperture:{value:6}},U));
+const dofMat=pm(`uniform sampler2D tPrep; uniform vec2 uRes; uniform float uMaxPx,uStep; varying vec2 vUv;
+void main(){ vec4 c0=texture2D(tPrep,vUv); float cs=abs(c0.a)*uMaxPx; vec3 acc=c0.rgb; float tot=1.; float r=uStep;
+  float ang=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853;
+  for(int i=0;i<260;i++){ if(r>uMaxPx) break; ang+=2.39996323;
+    vec4 s=texture2D(tPrep, vUv+vec2(cos(ang),sin(ang))*r/uRes); float ss=abs(s.a)*uMaxPx;
+    if(s.a>c0.a) ss=clamp(ss,0.,cs*2.);
+    float m=smoothstep(r-.5,r+.5,ss); acc+=mix(acc/tot,s.rgb,m); tot+=1.; r+=uStep/r; }
+  gl_FragColor=vec4(acc/tot,1.); }`, {tPrep:{value:null}, uRes:U.uRes, uMaxPx:{value:20}, uStep:{value:1.3}});
+const finMat=pm(`uniform sampler2D tDof; uniform vec2 uRes; uniform vec3 uFilm; uniform float uExpo,uFlash; varying vec2 vUv;
+float h(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+void main(){ vec2 uv=vUv+uFilm.xy/uRes; vec2 d=uv-.5; float r2=dot(d,d);
+  vec2 ca=d*r2*.012;
+  vec3 c=vec3(texture2D(tDof,uv+ca).r, texture2D(tDof,uv).g, texture2D(tDof,uv-ca).b);
+  vec3 glow=textureLod(tDof,uv,4.).rgb*.5+textureLod(tDof,uv,6.).rgb*.5;
+  c=mix(c,glow,.07)+max(glow-.9,0.)*.12;
+  c*=uExpo*(1.-r2*.95);
+  c+=vec3(1.,.72,.42)*uFlash*(.25+r2*2.);
+  c=aces(c*vec3(1.03,1.,.97));
+  c=pow(c,vec3(1./2.2));
+  c=mix(c, c*c*(3.-2.*c), .22);
+  float g=h(gl_FragCoord.xy+uFilm.z*91.7)-.5; float l=dot(c,vec3(.3,.6,.1));
+  c+=g*.038*(1.-.6*l);
+  gl_FragColor=vec4(c,1.); }`, {tDof:{value:null}, uRes:U.uRes, uFilm:{value:new THREE.Vector3()}, uExpo:{value:1}, uFlash:{value:0}});
+
+let rt=null, budget=TEST&&TEST.budget ? TEST.budget : 2.1e6, msaa=4;
+function build(){
+  const cw=canvas.clientWidth||window.innerWidth, chh=canvas.clientHeight||window.innerHeight, dpr=Math.min(window.devicePixelRatio||1,2);
+  const scale=Math.min(dpr, Math.sqrt(budget/(cw*chh)));
+  renderer.setPixelRatio(scale); renderer.setSize(cw,chh,false);
+  const w=Math.max(2,Math.floor(cw*scale)), h=Math.max(2,Math.floor(chh*scale));
+  if(rt) for(const k in rt) rt[k].dispose();
+  const T=HDR?THREE.HalfFloatType:THREE.UnsignedByteType;
+  const dt=new THREE.DepthTexture(w,h); dt.type=THREE.UnsignedIntType; dt.minFilter=dt.magFilter=THREE.NearestFilter;
+  rt={ scene:new THREE.WebGLRenderTarget(w,h,{type:T, samples:msaa, depthTexture:dt}),
+       ao:new THREE.WebGLRenderTarget(w,h,{type:THREE.UnsignedByteType}),
+       prep:new THREE.WebGLRenderTarget(w,h,{type:T}),
+       dof:new THREE.WebGLRenderTarget(w,h,{type:T, generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter}) };
+  U.uRes.value.set(w,h); camera.aspect=cw/chh; camera.fov = cw/chh<1 ? 44 : (cw/chh<1.4 ? 33 : 27); camera.updateProjectionMatrix();
+}
+
+/* ───────────────────────── the clay studio: scene ───────────────────────── */
+const $ = id => document.getElementById(id), lerp = (a, b, t) => a + (b - a) * t, TAU = Math.PI * 2;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0a09);
+const camera = new THREE.PerspectiveCamera(27, 16 / 9, .6, 90);
+const DESK = -1.07, WX = 9.5, KX = -10.6, KZ = -2.2;
+const V3 = new THREE.Vector3(), V3b = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0), FWD = new THREE.Vector3(0, 0, -1), RIGHT = new THREE.Vector3(1, 0, 0);
+
+/* a tall north window to the left, a warm wall behind, the bounce off the bench */
+(function () {
+  const es = new THREE.Scene(), bm = (c, i) => { const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(i), side: THREE.DoubleSide }); m.toneMapped = false; return m; };
+  es.add(new THREE.Mesh(new THREE.SphereGeometry(30, 24, 16), bm(0x2a2520, .25)));
+  const add = (w, h, c, i, x, y, z) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), bm(c, i)); p.position.set(x, y, z); p.lookAt(0, 0, 0); es.add(p); };
+  add(8, 11, 0xf4f1ea, 11, -11, 8, 2); add(4, 11, 0xf4f1ea, 5, -9, 8, -6); add(9, 8, 0xffe2c0, 1.6, 11, 5, 4); add(18, 5, 0xffd9b0, 2.2, 2, 10, -10); add(30, 30, 0x4a3320, .55, 0, -6, 0);
+  const pmg = new THREE.PMREMGenerator(renderer); scene.environment = pmg.fromScene(es, .03).texture; pmg.dispose();
+})();
+const key = new THREE.DirectionalLight(0xfff0dc, 3.4); key.position.set(-7.5, 9.5, 4.5); key.target.position.set(0, .8, 0);
+key.castShadow = true; key.shadow.mapSize.set(4096, 4096);
+{ const sc = key.shadow.camera; sc.left = -8; sc.right = 8; sc.top = 7; sc.bottom = -6; sc.near = 1; sc.far = 32; sc.updateProjectionMatrix(); key.shadow.bias = -.0008; key.shadow.normalBias = .045; key.shadow.radius = .085 * (sc.far - sc.near) / (sc.right - sc.left); }
+scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0xffd2a6, .9); rim.position.set(6, 4, -7); scene.add(rim);
+const LIGHTS = { uL0: { value: new THREE.Vector3(0, 1, 0) }, uL1: { value: new THREE.Vector3(0, 1, 0) } }, GRAIN = { value: new THREE.Vector2(75, 75) };
+
+/* the room: one long bench, the wall, a shelf for finished work */
+mesh(new THREE.BoxGeometry(64, .5, 26), mat({ mode: 'WOOD', rough: .6, spec: .5, env: .8 }), 0, DESK - .25, -2).castShadow = false;
+mesh(new THREE.BoxGeometry(64, 16, .4), mat({ color: 0xbfb3a2, rough: .95, spec: .15, env: .5, bump: .5, speck: .2 }), 0, 5, -9.2).castShadow = false;
+mesh(new THREE.BoxGeometry(19, .22, 2.6), mat({ mode: 'WOOD', rough: .55, spec: .5 }), 0, 2.3, -7.9);
+const steelM = () => { const m = mat({ color: 0xa7adb3, rough: .34, spec: 1, bump: .2, speck: .4 }); m.metalness = .9; return m; };
+/* the turntable the bench work stands on */
+mesh(new THREE.CylinderGeometry(1.7, 1.7, .12, 72), mat({ color: 0x2b2f35, rough: .4, spec: .7, bump: .25, speck: 0 }), 0, -.06, 0);
+mesh(new THREE.CylinderGeometry(.3, .42, .86, 32), mat({ color: 0x23262b, rough: .45, spec: .7, bump: .2, speck: 0 }), 0, -.55, 0);
+mesh(new THREE.CylinderGeometry(1.1, 1.2, .1, 48), mat({ color: 0x23262b, rough: .45, spec: .7, bump: .2, speck: 0 }), 0, DESK + .05, 0);
+/* tools left lying about */
+{ const wood = () => mat({ mode: 'WOOD', rough: .45, spec: .6 }), put = (g, m, x, z, ry, y) => { const o = mesh(g, m, x, DESK + (y || .06), z); o.rotation.y = ry; return o; };
+  const stickG = (l, r) => { const g = new THREE.CapsuleGeometry(r, l, 8, 14); g.rotateZ(Math.PI / 2); return clayify(g, .003, 5); };
+  put(stickG(2.2, .06), wood(), 3.1, 2.3, .4); put(stickG(1.8, .05), wood(), 3.5, 2.9, .15);
+  { const g = new THREE.SphereGeometry(1, 30, 20); g.scale(.5, .05, .28); put(clayify(g, .004, 5), wood(), 2.1, 3.2, -.5, .05); }
+  { const l = put(stickG(1.5, .05), wood(), 4.4, 1.7, .9); const t = new THREE.Mesh(new THREE.TorusGeometry(.14, .012, 6, 24), steelM()); t.rotation.x = Math.PI / 2; t.position.x = .92; t.castShadow = true; l.add(t); }
+  put(rbox(1.0, .42, .72, .14, .03, 5), mat({ color: 0xd8b04a, rough: .95, spec: .1, bump: 2.2, speck: 0 }), -1.4, 3.0, .5, .21);
+  { const b = put(stickG(1.7, .045), wood(), -2.9, 3.3, -.3); const h = new THREE.Mesh(clayify(new THREE.ConeGeometry(.09, .5, 14), .004, 9), mat({ color: 0x3a2a1c, rough: .7, bump: 1.5, speck: 0 })); h.rotation.z = -Math.PI / 2; h.position.x = 1.1; h.castShadow = true; b.add(h); } }
+
+/* the wheel's own corner */
+const WS = new THREE.Group(); WS.position.set(WX, 0, 0); scene.add(WS);
+mesh(new THREE.CylinderGeometry(2.55, 2.7, .95, 72), mat({ color: 0x2b2f35, rough: .42, spec: .7, bump: .25, speck: 0 }), 0, -.6, 0, WS);
+mesh(lathe([[1.95, -.34], [1.95, -.14], [2.1, -.1], [2.95, -.1], [3.08, -.02], [3.14, .36], [3.22, .4], [3.27, .36], [3.2, -.3], [3.0, -.36], [1.95, -.36]], .006, 5, 96), mat({ color: 0xa99a80, rough: .5, spec: .6, bump: .3, smear: .55, color2: 0x7c6a58, speck: .2 }), 0, 0, 0, WS);
+{ const b = mesh(lathe([[.05, 0], [1.0, 0], [1.22, 1.75], [1.27, 1.78], [1.24, 1.84], [1.13, 1.8], [.94, .12], [.05, .1]], .004, 4, 64), steelM(), -4.6, DESK, -2.2, WS);
+  const w = new THREE.Mesh(new THREE.CircleGeometry(1.12, 48), new THREE.MeshPhysicalMaterial({ color: 0x5c4a3c, roughness: .06, clearcoat: 1 })); w.rotation.x = -Math.PI / 2; w.position.y = 1.45; b.add(w); }
+let P = PotModel.create(3, 'jar');
+/* the wheel head: spun aluminium, with slip thrown across it. Detail is smeared round the axis by the speed, so the
+   middle stays sharp and still while the edge streaks. */
+const SPIN = { uSpin: { value: 0 }, uBlur: { value: 0 }, uWet: { value: .6 }, uFire: { value: 0 }, uBisque: { value: 0 }, uGlaze: { value: 0 }, uCrack: { value: 0 }, uOpaque: { value: 0 }, uGlazeCol: { value: new THREE.Color(0x7fa696) } };
+const headMat = new THREE.MeshPhysicalMaterial({ color: 0x9da2a8, roughness: .26, metalness: 1, envMapIntensity: 1.25 });
+headMat.onBeforeCompile = sh => { Object.assign(sh.uniforms, SPIN);
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP=position;');
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform mat3 normalMatrix; uniform float uSpin,uBlur; varying vec3 vOP; float gHead;\n' + GLSL_NOISE)
+    .replace('#include <color_fragment>', `#include <color_fragment>
+{ float rr=length(vOP.xz), th=atan(vOP.z,vOP.x)-uSpin, s=0.; for(int i=0;i<7;i++){ float t=th+(float(i)/6.-.5)*uBlur; s+=vn(vec3(cos(t)*rr*4.2,sin(t)*rr*4.2,1.7))*.7+vn(vec3(cos(t)*rr*11.,sin(t)*rr*11.,4.))*.3; } s/=7.;
+  float sp=sin(th*2.+log(rr+.04)*7.)*.5+.5; gHead=smoothstep(.6,.72,s*.74+sp*.26*smoothstep(.15,1.2,rr))*step(.5,vOP.y*30.+.5);
+  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(.16,.115,.085)*(.7+.6*s), gHead); }`)
+    .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor=mix(clamp(roughnessFactor+(vn(vec3(length(vOP.xz)*70.,2.,0.))-.5)*.2,.12,1.), .5, gHead);')
+    .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor*=1.-gHead;')
+    .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n{ float rr=length(vOP.xz); vec3 rad=normalize(normalMatrix*vec3(vOP.x,0.,vOP.z)+1e-5); normal=normalize(normal+rad*cos(rr*74.)*.05*(1.-gHead)); }'); };
+const head = new THREE.Mesh(new THREE.CylinderGeometry(1.82, 1.82, .1, 128, 1), headMat); head.position.y = -.05; head.castShadow = head.receiveShadow = true; WS.add(head);
+
+/* the clay. Rebuilt every picture from the model's rings. Wet, with the potter's lines in it. */
+const potMat = new THREE.MeshPhysicalMaterial({ shadowSide: THREE.FrontSide, color: 0x7a6452, roughness: .45, metalness: 0, clearcoat: .6, clearcoatRoughness: .25, sheen: .35, sheenRoughness: .5, sheenColor: new THREE.Color(0xcbbba8), specularIntensity: .85, envMapIntensity: 1, side: THREE.DoubleSide });
+potMat.onBeforeCompile = sh => { Object.assign(sh.uniforms, SPIN);
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aInfo; varying vec3 vInfo; varying vec3 vOP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP=position; vInfo=aInfo;');
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+uniform mat3 normalMatrix; uniform float uSpin,uBlur,uWet,uFire,uBisque,uGlaze,uCrack,uOpaque; uniform vec3 uGlazeCol; varying vec3 vInfo; varying vec3 vOP; vec3 gPot; float gCrack; vec2 gZen;
+` + GLSL_NOISE + `
+float potTex(float f){ float rr=length(vOP.xz), th=atan(vOP.z,vOP.x)-uSpin, s=0.; for(int i=0;i<6;i++){ float t=th+(float(i)/5.-.5)*uBlur; s+=vn(vec3(cos(t)*rr*f, vOP.y*f, sin(t)*rr*f)); } return s/6.; }`)
+    .replace('#include <color_fragment>', `#include <color_fragment>
+{ float t1=potTex(6.), t2=potTex(21.); float slip=smoothstep(.48,.78,vn(vec3(vOP.y*19.,length(vOP.xz)*2.,3.)+t1*1.5)); gPot=vec3(t1,t2,slip);
+  diffuseColor.rgb*=.82+.22*t1+.1*t2;
+  { float rr0=max(length(vOP.xz),1e-7), lp=log(rr0), th0=atan(vOP.z,vOP.x)-uSpin, near=1.-smoothstep(.2,.55,rr0), sv=0., sp=0.;
+    for(int i=0;i<6;i++){ float t=th0+(float(i)/5.-.5)*uBlur; sv+=vn(vec3(lp*2.6+7.,cos(t)*1.9,sin(t)*1.9))*.6+vn(vec3(lp*6.1,cos(t)*4.3,sin(t)*4.3)+3.)*.4; sp+=.5+.5*cos(t*2.+lp*9.); }
+    sv/=6.; sp/=6.; gZen=vec2(near, sp); diffuseColor.rgb*=mix(1., (.7+.5*sv)*(.86+.24*sp), near); } diffuseColor.rgb=mix(diffuseColor.rgb, vec3(.62,.54,.46), slip*.34*uWet); diffuseColor.rgb*=mix(.96,.72,uWet);
+  /* fired: biscuit, then glaze. A clear glaze pools in the potter's lines and shows them; an opaque one covers them. */
+  float thr=atan(vOP.z,vOP.x)-uSpin, raa=1.-smoothstep(.7,2.4,fwidth(vOP.y*135.)), ringv=mix(.5,.5+.5*cos(vOP.y*135.+thr),raa);
+  vec3 bis=vec3(.60,.37,.24)*(.78+.32*t1+.14*t2); diffuseColor.rgb=mix(diffuseColor.rgb,bis,uBisque);
+  vec3 gz=uGlazeCol*mix(.62+.6*ringv*vInfo.x+.25*(1.-vInfo.x), 1., uOpaque)*(.9+.2*t1); gz=mix(gz,bis*.8,(1.-uOpaque)*.3*(1.-ringv)*vInfo.x);
+  diffuseColor.rgb=mix(diffuseColor.rgb,gz,uGlaze);
+  gCrack=smoothstep(.022,.0,abs(vn(vec3(cos(thr)*3.1,vOP.y*.9,sin(thr)*3.1)+5.)-.5+(vn(vec3(cos(thr)*9.,vOP.y*7.,sin(thr)*9.))-.5)*.06))*smoothstep(.3,.6,vn(vec3(cos(thr)*.9,vOP.y*.7,sin(thr)*.9)+2.))*uCrack*step(.5,2.-vInfo.y);
+  diffuseColor.rgb*=1.-.9*gCrack; }`)
+    .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor=clamp(mix(.78,.24,uWet)+(gPot.y-.5)*.34-gPot.z*.1,.1,1.); roughnessFactor=mix(roughnessFactor,.93,uBisque); roughnessFactor=mix(roughnessFactor,mix(.06,.2,gPot.y),uGlaze); roughnessFactor=mix(roughnessFactor,1.,gCrack);')
+    .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+{ float rr=length(vOP.xz), th=atan(vOP.z,vOP.x)-uSpin; vec3 up=normalize(normalMatrix*vec3(0.,1.,0.)); float fs=gl_FrontFacing?1.:-1.;
+  float soft=(1.-.6*smoothstep(.4,3.,uBlur*rr*3.))*(1.-.8*uGlaze*uOpaque); vec3 nn=normal+up*cos(vOP.y*135.+th)*vInfo.x*.5*soft*fs*(1.-smoothstep(.7,2.4,fwidth(vOP.y*135.)))+up*(gPot.y-.5)*.5;
+  if(vInfo.y>1.5){ vec3 rad=normalize(normalMatrix*vec3(vOP.x,0.,vOP.z)+1e-5); nn+=rad*cos(th+log(rr+.02)*13.)*.45*fs; }
+  else if(gZen.x>.01){ vec3 rad=normalize(normalMatrix*vec3(vOP.x,0.,vOP.z)+1e-9); nn+=rad*sin(th*2.+log(max(rr,1e-7))*9.)*.3*gZen.x*fs; }
+  normal=normalize(nn); }`)
+    .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.30,.05)*uFire*uFire*(.6+.7*gPot.x)*2.4;'); };
+const SEG = 96, PMAX = 2 * PotModel.M + 40;
+const potGeo = new THREE.BufferGeometry(); { const nv = PMAX * (SEG + 1); potGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nv * 3), 3)); potGeo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(nv * 3), 3)); potGeo.setAttribute('aInfo', new THREE.BufferAttribute(new Float32Array(nv * 3), 3));
+  const ix = new Uint32Array((PMAX - 1) * SEG * 6); let k = 0; for (let p = 0; p < PMAX - 1; p++) for (let s = 0; s < SEG; s++) { const a = p * (SEG + 1) + s, b = a + 1, c = a + SEG + 1, d = c + 1; ix[k++] = a; ix[k++] = c; ix[k++] = b; ix[k++] = b; ix[k++] = c; ix[k++] = d; }
+  potGeo.setIndex(new THREE.BufferAttribute(ix, 1)); potGeo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 2, 0), 6); }
+const pot = new THREE.Mesh(potGeo, potMat); pot.castShadow = pot.receiveShadow = true; pot.frustumCulled = false; WS.add(pot);
+const COS = new Float32Array(SEG + 1), SIN = new Float32Array(SEG + 1); for (let s = 0; s <= SEG; s++) { COS[s] = Math.cos(s / SEG * TAU); SIN[s] = Math.sin(s / SEG * TAU); }
+const prof = { r: new Float32Array(PMAX), y: new Float32Array(PMAX), j: new Int16Array(PMAX), k: new Float32Array(PMAX), n: 0 };
+function profile(P) { // the outline of the pot, walked up the outside, over the rim and down the inside
+  const n = P.n(), DY = P.DY, top = n - 1; let q = 0; const put = (r, y, j, kind) => { prof.r[q] = Math.max(r, 1e-7); prof.y[q] = y; prof.j[q] = j; prof.k[q] = kind; q++; };
+  put(P.ro[0] * .93, 0, 0, 0); for (let j = 0; j < top; j++) put(P.ro[j], j * DY + .012, j, 0);
+  const ro = P.ro[top], ri = P.ri[top], H = P.H, hollow = ri > 0 && P.depth() > .03;
+  if (hollow) { const c = (ro + ri) / 2, rad = Math.max(.012, (ro - ri) / 2); for (let a = 0; a <= 6; a++) { const an = a / 6 * Math.PI; put(c + rad * Math.cos(an), H + rad * Math.sin(an) * .9, top, 0); }
+    let jf = top; while (jf > 0 && P.ri[jf - 1] > 0 && (jf - 1) * DY >= P.floor) jf--;
+    for (let j = top - 1; j >= jf; j--) put(P.ri[j], j * DY + .012, j, 1);
+    const rf = P.ri[jf], yf = Math.max(P.floor, .02); for (let a = 1; a <= 5; a++) { const an = a / 5 * Math.PI / 2; put(rf * Math.cos(an) + .0005, yf - .0 + (1 - Math.sin(an)) * .06 - .06 + .06 * (1 - a / 5) * 0, jf, 2); }
+  } else { for (let a = 0; a <= 8; a++) { const an = a / 8 * Math.PI / 2; put(a === 8 ? 0 : ro * Math.cos(an), H + ro * .22 * Math.sin(an), top, 0); } }
+  prof.n = q; return q;
+}
+function buildPot(P, spin) {
+  const q = profile(P), pos = potGeo.attributes.position.array, nor = potGeo.attributes.normal.array, inf = potGeo.attributes.aInfo.array; let v = 0;
+  for (let p = 0; p < q; p++) {
+    const a = Math.max(0, p - 1), b = Math.min(q - 1, p + 1); let tr = prof.r[b] - prof.r[a], ty = prof.y[b] - prof.y[a]; const tl = Math.hypot(tr, ty) || 1; tr /= tl; ty /= tl; const nr = ty, ny = -tr;
+    const j = prof.j[p], e = P.e[j], ph = spin + P.ph[j], cx = e * Math.cos(ph), cz = e * Math.sin(ph), r = prof.r[p], y = prof.y[p], lump = Math.min(.5, e * 1.3), ring = Math.min(1, P.ring[j]), kind = prof.k[p], st = P.stress[j];
+    for (let s = 0; s <= SEG; s++, v += 3) { const th = s / SEG * TAU - spin, l = 1 + lump * (Math.sin(th * 2 + y * 3.1) * .5 + Math.sin(th * 3 - y * 5.3) * .3 + Math.sin(th * 5 + y * 9) * .2);
+      pos[v] = cx + r * l * COS[s]; pos[v + 1] = y; pos[v + 2] = cz + r * l * SIN[s]; nor[v] = nr * COS[s]; nor[v + 1] = ny; nor[v + 2] = nr * SIN[s]; inf[v] = ring; inf[v + 1] = kind; inf[v + 2] = st; }
+  }
+  potGeo.attributes.position.needsUpdate = potGeo.attributes.normal.needsUpdate = potGeo.attributes.aInfo.needsUpdate = true; potGeo.setDrawRange(0, (q - 1) * SEG * 6);
+}
+/* the potter's tools: a wooden rib held against the outside, a throwing stick for the inside. The hands are out of frame. */
+const fingers = new THREE.Group(), rib = new THREE.Group(), stick = new THREE.Group(); { const wood = mat({ mode: 'WOOD', rough: .42, spec: .7, env: 1 }), wet = mat({ color: 0x6c5848, rough: .3, spec: .9, bump: .6, speck: .3 }); wet.clearcoat = .7;
+  const rg = new THREE.SphereGeometry(1, 40, 28); rg.scale(.085, .62, .36); { const p = rg.attributes.position; for (let k = 0; k < p.count; k++) { const z = p.getZ(k), y = p.getY(k); p.setZ(k, z + .1 * (1 - (y / .62) * (y / .62)) - .1); } } const r1 = new THREE.Mesh(clayify(rg, .004, 6), wood); r1.castShadow = true; rib.add(r1);
+  const sg = new THREE.CapsuleGeometry(.085, 3.2, 10, 20); const s1 = new THREE.Mesh(clayify(sg, .004, 5), wood); s1.position.y = 1.6 + .2; s1.castShadow = true; stick.add(s1); const knob = new THREE.Mesh(clayify(new THREE.SphereGeometry(.2, 28, 20), .006, 6), wet); knob.scale.set(1, .85, 1); knob.position.y = .16; knob.castShadow = true; stick.add(knob);
+  const rib2 = rib.clone(); rib2.name = 'rib2'; fingers.add(rib, rib2, stick); fingers.userData.rib2 = rib2; fingers.visible = false; WS.add(fingers); }
+
+function placeFingers(h) {
+  if (!h || !h.on) { fingers.visible = false; return; } fingers.visible = true; const n = P.n(), j = clamp(Math.round(h.y / P.DY), 0, n - 1), sd = h.side || 1; const hold = h.type === 'hold', rib2 = fingers.userData.rib2; rib.visible = h.type === 'out' || hold; rib2.visible = hold; stick.visible = !rib.visible;
+  if (hold) { const R = P.ro[j] + .34 + (1 - (h.weight || 0)) * .25; rib.position.copy(RIGHT).multiplyScalar(R).setY(h.y); rib.rotation.set(0, Math.atan2(-RIGHT.z, RIGHT.x) + Math.PI / 2, -.1); rib2.position.copy(RIGHT).multiplyScalar(-R).setY(h.y); rib2.rotation.set(0, Math.atan2(RIGHT.z, -RIGHT.x) + Math.PI / 2, -.1); return; }
+  if (h.type === 'out') { const R = Math.max(h.R, P.ro[j] - .03) + .36, ca = .5; rib.position.copy(RIGHT).multiplyScalar(sd * R * Math.cos(ca)).addScaledVector(FWD, -R * Math.sin(ca)).setY(h.y + .08); rib.rotation.set(0, Math.atan2(-(sd * Math.cos(ca) * RIGHT.z - Math.sin(ca) * FWD.z), sd * Math.cos(ca) * RIGHT.x - Math.sin(ca) * FWD.x) + Math.PI / 2, sd * -.12); }
+  else { const R = h.type === 'in' ? Math.max(.05, Math.min(h.R, P.ri[j] + .04) - .17) : 0, dir = V3.copy(UP).multiplyScalar(.93).addScaledVector(FWD, -.34).addScaledVector(RIGHT, sd * (h.type === 'in' ? -.12 : .0)).normalize(); stick.quaternion.setFromUnitVectors(UP, dir); stick.position.copy(RIGHT).multiplyScalar(sd * R).setY(Math.max(h.y, P.floor) - .02); }
+}
+
+
+/* the kiln: a steel box lined with firebrick, a door on a hinge, a shelf inside */
+const KS = new THREE.Group(); KS.position.set(KX, DESK, KZ); scene.add(KS);
+const brickM = new THREE.MeshPhysicalMaterial({ color: 0xcdbb9c, roughness: .95, emissive: 0x000000 }), kSteel = () => mat({ color: 0x5b6470, rough: .5, spec: .7, bump: .3, speck: .3 });
+{ const slab = (w, h, d, x, y, z, m) => mesh(new THREE.BoxGeometry(w, h, d), m, x, y, z, KS);
+  slab(4.6, .5, 4.2, 0, .25, 0, kSteel()); slab(4.6, .5, 4.2, 0, 5.05, 0, kSteel()); slab(.5, 4.3, 4.2, -2.05, 2.65, 0, kSteel()); slab(.5, 4.3, 4.2, 2.05, 2.65, 0, kSteel()); slab(3.6, 4.3, .5, 0, 2.65, -1.85, kSteel());
+  slab(3.56, .14, 3.5, 0, .57, .1, brickM); slab(3.56, .14, 3.5, 0, 4.73, .1, brickM); slab(.14, 4.1, 3.5, -1.73, 2.65, .1, brickM); slab(.14, 4.1, 3.5, 1.73, 2.65, .1, brickM); slab(3.5, 4.1, .14, 0, 2.65, -1.53, brickM);
+  slab(3.1, .1, 2.9, 0, .9, .2, mat({ color: 0xb9ad98, rough: .95, spec: .1, bump: .8, speck: .3 })); }
+const kDoor = new THREE.Group(); kDoor.position.set(-2.3, 0, 2.1); KS.add(kDoor);
+{ mesh(new THREE.BoxGeometry(4.6, 4.8, .36), kSteel(), 2.3, 2.65, .18, kDoor); mesh(new THREE.BoxGeometry(3.5, 4.0, .16), brickM, 2.3, 2.65, -.06, kDoor);
+  mesh(new THREE.CylinderGeometry(.09, .09, 1.2, 14), steelM(), 4.25, 2.65, .5, kDoor); }
+const kGlow = new THREE.PointLight(0xff6a1e, 0, 16, 1.6); kGlow.position.set(0, 2.6, .4); KS.add(kGlow);
+const KSHELF = new THREE.Vector3(KX, DESK + .95, KZ + .2);
+
+/* the hammer's corner: an anvil, a stone, two jars */
+const HS = new THREE.Group(); HS.position.set(-3.6, DESK, -3.0); scene.add(HS);
+mesh(rbox(1.5, .6, 1.0, .08, .004, 6), steelM(), 0, .3, 0, HS);
+const gemGeo = (() => { const g = new THREE.LatheGeometry([[0.001, -.3], [.3, .02], [.3, .06], [.17, .17], [0.001, .17]].map(q => new THREE.Vector2(q[0], q[1])), 8).toNonIndexed(); g.computeVertexNormals(); return g; })();
+const gemM = { diamond: new THREE.MeshPhysicalMaterial({ color: 0x1a2630, roughness: 0, ior: 2.33, envMapIntensity: 6, clearcoat: 1, clearcoatRoughness: 0, emissive: 0x16242c, flatShading: true }),
+  ruby: new THREE.MeshPhysicalMaterial({ color: 0x8a0018, roughness: 0, ior: 1.77, envMapIntensity: 4, clearcoat: 1, clearcoatRoughness: 0, emissive: 0x3a0008, flatShading: true }) };
+const gem = new THREE.Mesh(gemGeo, gemM.diamond); gem.position.set(0, .9, 0); gem.castShadow = true; HS.add(gem);
+const hammer = new THREE.Group(); hammer.position.set(2.0, 1.05, .05); HS.add(hammer);
+{ const h = mesh(clayify(new THREE.CylinderGeometry(.075, .09, 2.2, 14), .003, 5), mat({ mode: 'WOOD', rough: .4, spec: .7 }), -1.0, 0, 0, hammer); h.rotation.z = Math.PI / 2;
+  const hm = new THREE.MeshPhysicalMaterial({ color: 0xd9a531, roughness: .22, metalness: 1, emissive: 0xffb340, emissiveIntensity: .25 }); mesh(rbox(.5, .74, .5, .06, .003, 6), hm, -2.0, 0, 0, hammer); hammer.userData.m = hm;
+  const l = new THREE.PointLight(0xffc060, 0, 5, 2); l.position.set(-2, 0, 0); hammer.add(l); hammer.userData.l = l; }
+const NP = 170, bits = new THREE.InstancedMesh(new THREE.OctahedronGeometry(.035), new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0, envMapIntensity: 5, emissive: 0xffffff, emissiveIntensity: .7, flatShading: true }), NP); bits.frustumCulled = false; bits.count = 0; HS.add(bits);
+const bitS = { p: new Float32Array(NP * 3), v: new Float32Array(NP * 3), t: -1, kind: 'diamond' }, M4 = new THREE.Matrix4(), Q4 = new THREE.Quaternion(), S3 = new THREE.Vector3();
+const jarFill = {}; [['diamond', 1.5, -1.3, 0xdfeff7], ['ruby', 2.6, -1.5, 0xb01030]].forEach(([k, x, z, c]) => {
+  const j = new THREE.Mesh(new THREE.LatheGeometry([[.02, 0], [.42, 0], [.44, .8], [.34, .9], [.34, 1.0], [.37, 1.02]].map(q => new THREE.Vector2(q[0], q[1])), 40), new THREE.MeshPhysicalMaterial({ color: 0xeaf4f2, roughness: .04, transparent: true, opacity: .3, envMapIntensity: 1.7, clearcoat: 1, side: THREE.DoubleSide, depthWrite: false })); j.position.set(x, 0, z); j.renderOrder = 3; HS.add(j);
+  const f = mesh(new THREE.CylinderGeometry(.36, .36, 1, 28), new THREE.MeshPhysicalMaterial({ color: c, roughness: .35, emissive: c, emissiveIntensity: .12, envMapIntensity: 2 }), x, .02, z, HS); f.scale.y = .001; f.castShadow = false; jarFill[k] = f; });
+
+/* ───────────────────────── a piece of work ───────────────────────── */
+const BODIES = { stoneware: ['Stoneware', 0x7a6452, [0xc99378, 0xb98a63, 0x8f6a4c, 0x4a3a30]], terracotta: ['Terracotta', 0x8a4a32, [0xd9825a, 0xb5532f, 0x8a3a22, 0x3c1c14]], porcelain: ['Porcelain', 0xb9b3a8, [0xe9dfd2, 0xece6da, 0xe6e4e0, 0xb9b7b0]], black: ['Black clay', 0x3a322d, [0x5a4a40, 0x33291f, 0x1c1815, 0x121010]] };
+const GLAZES = [['Celadon', 0x8fb3a0], ['Tenmoku', 0x2a1a12], ['Cobalt', 0x1f3f8a], ['Copper green', 0x2f7d5b], ['Oxblood', 0x7a1418], ['Chun blue', 0x8fb6d8], ['Shino', 0xe2c9a8], ['Iron yellow', 0xc89a2a],
+  ['Manganese purple', 0x4a2a5a], ['Turquoise', 0x1fa7a0], ['Tin white', 0xe9e6dc], ['Satin black', 0x151515], ['Chrome-tin pink', 0xd88aa0], ['Honey', 0xb5651d], ['Rutile orange', 0xd9742a], ['Lime', 0x9fbf3a]];
+const bodyAt = (body, T, out) => { const c = BODIES[body][2], k = [650, 1000, 1240, 1340]; let i = 0; while (i < 2 && T > k[i + 1]) i++; return out.set(c[i]).lerp(V_C.set(c[i + 1]), clamp((T - k[i]) / (k[i + 1] - k[i]), 0, 1)); }, V_C = new THREE.Color();
+/* the colour a hot body glows, by temperature (an approximation to Planck's law for 600 to 1400 C) */
+function glowOf(Tc, out) { const K = Tc + 273; if (K < 800) return out.setRGB(0, 0, 0); const g = clamp((99.47 * Math.log(K / 100) - 161.12) / 255, 0, 1), b = K < 1900 ? 0 : .1, I = Math.pow(clamp((K - 780) / 850, 0, 1), 2.2) * 5; return out.setRGB(I, I * g * g, I * b); }
+function makePiece(clay, body) {
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(clay.pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(clay.nor, 3)); geo.setAttribute('aCol', new THREE.BufferAttribute(clay.col, 3)); geo.setAttribute('aM', new THREE.BufferAttribute(clay.m, 4));
+  geo.setIndex(new THREE.BufferAttribute(clay.idx, 1)); geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 1.5, 0), 8);
+  const U = { uWet: { value: .62 }, uFired: { value: 0 }, uGloss: { value: 0 }, uBloat: { value: 0 }, uRaw: { value: new THREE.Color(BODIES[body][1]) }, uBody: { value: new THREE.Color(BODIES[body][2][1]) }, uHeat: { value: new THREE.Color(0) }, uGrain: GRAIN, uL0: LIGHTS.uL0, uL1: LIGHTS.uL1 };
+  const m = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: .5, metalness: 0, clearcoat: 1, clearcoatRoughness: .1, sheen: .3, sheenRoughness: .5, sheenColor: new THREE.Color(0xcbbba8), specularIntensity: .85, envMapIntensity: 1.1 });
+  m.onBeforeCompile = sh => { Object.assign(sh.uniforms, U);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aCol; attribute vec4 aM; varying vec3 vCol; varying vec4 vM; varying vec3 vOP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP=position; vCol=aCol; vM=aM;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+uniform mat3 normalMatrix; uniform float uWet,uFired,uGloss,uBloat; uniform vec3 uRaw,uBody,uHeat,uL0,uL1; uniform vec2 uGrain; varying vec3 vCol; varying vec4 vM; varying vec3 vOP; vec3 gP; float gG;
+` + GLSL_NOISE + `
+float sh1(vec3 p){ return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }
+/* gem dust: each grain is a tiny mirror facing its own way. It flashes when it happens to throw a light into the eye. */
+vec3 flakes(vec3 p, float sc, float dens, vec3 N, vec3 V, float seed){ vec3 q=p*sc, id=floor(q); float h=sh1(id+seed); if(h>dens) return vec3(0.);
+  vec3 rn=normalize(vec3(sh1(id+1.3+seed),sh1(id+7.1+seed),sh1(id+3.7+seed))*2.-1.), nf=normalize(N+normalMatrix*rn*.85);
+  float s=pow(max(dot(nf,normalize(uL0+V)),0.),240.)+pow(max(dot(nf,normalize(uL1+V)),0.),240.)*.6+pow(max(dot(nf,normalize(vec3(.3,.8,.5)+V)),0.),160.)*.4+pow(max(dot(nf,normalize(vec3(-.6,.5,.6)+V)),0.),160.)*.3;
+  vec3 f=fract(q)-.5; return vec3(s*smoothstep(.5,.1,length(f)), sh1(id+9.9), 0.); }`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+{ float t1=vn(vOP*6.), t2=vn(vOP*21.), t3=vn(vOP*70.);
+  vec3 raw=uRaw*(.84+.2*t1+.1*t2)*mix(1.,.72,uWet), body=uBody*(.8+.26*t1+.14*t2+.06*t3)*(1.-uBloat*.45*smoothstep(.55,.8,t2));
+  vec3 c=mix(raw,body,uFired); c*=1.-.22*max(0.,-vM.w);
+  float g=smoothstep(.12,.5,vM.x+(t2-.5)*.25); gG=g;
+  vec3 gzRaw=mix(vCol,vec3(.86,.84,.8),.6)*(.88+.16*t3), gzF=vCol*(.72+.4*t1)*mix(1.,.78,smoothstep(1.,1.5,vM.x));
+  c=mix(c,mix(gzRaw,gzF,uGloss),g);
+  c=mix(c,vec3(.42,.015,.05),clamp(vM.z,0.,1.)*.3); c=mix(c,vec3(.8,.84,.88),clamp(vM.y,0.,1.)*.1);
+  gP=vec3(t1,t2,t3); diffuseColor.rgb=c; }`)
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n{ float rr=mix(mix(.86,.3,uWet)-.14*max(0.,vM.w),.92,uFired); rr=mix(rr,mix(.96,.06,uGloss),gG); roughnessFactor=clamp(rr+(gP.y-.5)*.2*(1.-gG*uGloss),.04,1.); }')
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal=normalize(normal+normalMatrix*vec3(gP.y-.5,0.,gP.z-.5)*.22*(1.-gG*uGloss*.9));')
+      .replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\nmaterial.clearcoat=clamp(max(gG*uGloss,(1.-uFired)*uWet*.55*(1.-gG)),0.,1.);')
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+{ vec3 V=normalize(vViewPosition), sp=vec3(0.);
+  if(vM.y>.01){ for(int k=0;k<2;k++){ vec3 f=flakes(vOP, uGrain.x*(k==0?1.:2.1), clamp(vM.y,0.,1.)*.8, normal, V, float(k)*17.); vec3 hue=.6+.4*cos(6.2832*(f.y+vec3(0.,.33,.67))); sp+=f.x*mix(vec3(1.),hue,.45)*10.; } }
+  if(vM.z>.01){ for(int k=0;k<2;k++){ vec3 f=flakes(vOP+3.3, uGrain.y*(k==0?1.:2.1), clamp(vM.z,0.,1.)*.8, normal, V, 40.+float(k)*17.); sp+=f.x*vec3(1.,.06,.14)*10.; } }
+  totalEmissiveRadiance+=sp+uHeat*(.7+.6*gP.x); }`); };
+  m.customProgramCacheKey = () => 'piece';
+  const o = new THREE.Mesh(geo, m); o.castShadow = o.receiveShadow = true; o.frustumCulled = false; scene.add(o);
+  return { clay, geo, mesh: o, U, body, fired: false, T: 0, gloss: 0, scale: 1, firings: 0, from: 'bench' };
+}
+function sync(pc, paintOnly) { const a = pc.geo.attributes; if (!paintOnly) { a.position.needsUpdate = true; a.normal.needsUpdate = true; } a.aCol.needsUpdate = true; a.aM.needsUpdate = true; }
+function newLump(body) { const s = Clay.icosphere(6, 1.05), q = s.pos; for (let i = 0; i < q.length; i += 3) { const n = 1 + .1 * (fbm3(q[i] * 1.3 + 5, q[i + 1] * 1.3, q[i + 2] * 1.3) - .5) + .03 * (vn3(q[i] * 6, q[i + 1] * 6, q[i + 2] * 6) - .5); q[i] *= n; q[i + 2] *= n; q[i + 1] = Math.max(0, q[i + 1] * n * .82 + .78); }
+  return makePiece(Clay.make(s.pos, s.idx), body); }
+
+/* ───────────────────────── state ───────────────────────── */
+let wheelBody = 'stoneware', mode = 'bench', piece = null, tool = 'grab', wtool = 'auto', glazeI = 0, frameNo = 0, clock = 0, spin = 0, speed = 0, speedSet = 2.6, potTaken = false, sayT = 0;
+const shelf = [null, null, null, null, null, null], SLOT = i => V3b.set(-7.5 + i * 3, 2.41, -7.9).clone();
+const dust = { diamond: 0, ruby: 0, gD: 1.2, gR: 1.2, nD: 0, nR: 0 }, undo = [];
+const cam = { yaw: .25, pitch: .34, dist: 12, t: new THREE.Vector3(0, .9, 0), to: new THREE.Vector3(0, .9, 0), distTo: 12 }; let focusDist = 10;
+const hand = { on: false, type: 'out', y: .5, R: 1, vy: 0, vR: 0, side: 1, weight: .85 };
+const moving = []; // pieces gliding from one place to another
+function say(text, tone, hold) { $('card').textContent = text; $('card').dataset.tone = tone || ''; sayT = clock + (hold || 5); }
+const HINT = { grab: 'Take hold of the clay and move it. Drag anywhere else to look round.', press: 'Press in. The clay you move rises round the dent: none is lost.', pull: 'Draw the clay out towards you.', pinch: 'Squeeze up a ridge between finger and thumb.', flatten: 'Pat it flat with the paddle.', smooth: 'A wet sponge. It evens the surface and leaves it shining.', carve: 'The loop tool takes clay away for good.', needle: 'A fine line, for drawing and signing.', add: 'Press on more clay.', glaze: 'Paint a glaze on. Unfired glaze is pale and chalky; the kiln brings out its colour.', diamond: 'Sprinkle diamond dust. Keep it out of a hot kiln: diamond burns.', ruby: 'Sprinkle ruby dust. It comes through any fire.', wipe: 'A damp cloth takes glaze and dust off again.' };
+function setMode(m) { mode = m; document.body.dataset.mode = m; document.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m))); rail(); hand.on = false;
+  if (m === 'bench') { cam.to.set(0, .9, 0); cam.distTo = 12; say(piece ? HINT[tool] : 'The turntable is empty. Take a new lump, or throw a pot on the wheel.'); }
+  if (m === 'wheel') { cam.to.set(WX, .95, 0); cam.distTo = 10.2; cam.yaw = clamp(cam.yaw, -.8, .8); cam.pitch = clamp(cam.pitch, .1, .7); }
+  if (m === 'kiln') { cam.to.set(KX + .6, DESK + 2.5, KZ + 1); cam.distTo = 14; cam.yaw = .5; cam.pitch = .2; band(); } facts(); }
+const BT = [['grab', 'Hands', 'take hold and move it'], ['press', 'Thumb', 'press in'], ['pull', 'Pull', 'draw it out'], ['pinch', 'Pinch', 'squeeze up a ridge'], ['flatten', 'Paddle', 'pat it flat'], ['smooth', 'Sponge', 'wet and smooth'], ['carve', 'Loop tool', 'carve clay away'], ['needle', 'Needle', 'a fine line'], ['add', 'Add clay', 'press more on'],
+  ['glaze', 'Glaze brush', 'paint a glaze'], ['diamond', 'Diamond dust', 'sprinkle it'], ['ruby', 'Ruby dust', 'sprinkle it'], ['wipe', 'Damp cloth', 'wipe it off']], WT = [['auto', 'Fingers', 'outside, inside, or down through the top'], ['hold', 'Steady hands', 'hold still to centre it']];
+function rail() { const r = $('rail'); r.hidden = mode === 'kiln'; const list = mode === 'wheel' ? WT : BT, cur = mode === 'wheel' ? wtool : tool;
+  r.innerHTML = '<h2>' + (mode === 'wheel' ? 'On the wheel' : 'Tools') + '</h2>' + list.map(([k, n, d], i) => (i === 9 && mode === 'bench' ? '<h2>Finish</h2>' : '') + '<button type="button" data-k="' + k + '" aria-pressed="' + (k === cur) + '">' + n + '<small>' + d + '</small></button>').join('');
+  r.querySelectorAll('button').forEach(b => b.onclick = () => { if (mode === 'wheel') wtool = b.dataset.k; else { tool = b.dataset.k; say(HINT[tool]); } rail(); }); canvas.classList.toggle('tool', mode !== 'kiln'); }
+
+/* ───────────────────────── the bench: tools on clay ───────────────────────── */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(), hitP = new THREE.Vector3(); let ptr = null, stroke = null, orbit = null, hover = null;
+const ring = new THREE.Mesh(new THREE.RingGeometry(.955, 1, 56), new THREE.MeshBasicMaterial({ color: 0xfff2d8, transparent: true, opacity: .75, depthTest: false, side: THREE.DoubleSide })); ring.renderOrder = 9; ring.visible = false; scene.add(ring);
+function castPiece() { if (!piece || !ptr) return null; ray.setFromCamera(ndc.set(ptr.x, ptr.y), camera); const h = ray.intersectObject(piece.mesh, false)[0]; if (!h) return null;
+  const c = piece.mesh.worldToLocal(h.point.clone()), f = h.face, nr = piece.clay.nor, n = [0, 0, 0]; for (const i of [f.a, f.b, f.c]) { n[0] += nr[i * 3]; n[1] += nr[i * 3 + 1]; n[2] += nr[i * 3 + 2]; } const l = Math.hypot(n[0], n[1], n[2]) || 1;
+  return { w: h.point, c: [c.x, c.y, c.z], n: [n[0] / l, n[1] / l, n[2] / l] }; }
+const SHAPING = { grab: 1, press: 1, pull: 1, pinch: 1, flatten: 1, smooth: 1, carve: 1, needle: 1, add: 1 }, RATE = { press: 1.0, pull: 1.0, pinch: 1.1, flatten: 1.3, smooth: 1.1, carve: .9, needle: .8, add: .8 };
+function pushUndo() { if (!piece) return; undo.push({ pc: piece, s: piece.clay.snapshot() }); if (undo.length > 10) undo.shift(); }
+function beginStroke() { const h = castPiece(); if (!h) return false;
+  if (SHAPING[tool] && piece.fired) { say('Fired clay is stone now and will not move. It can still be glazed, dusted and fired again.', 'warn'); return true; }
+  if ((tool === 'diamond' || tool === 'ruby') && dust[tool] <= 0) { say('The ' + tool + ' jar is empty. Bash a ' + tool + ' with the hammer first.', 'warn'); return true; }
+  pushUndo(); const R = +$('size').value / piece.scale; stroke = { tool, R, last: h };
+  if (tool === 'grab') { piece.clay.grab(h.c, R * 1.5); plane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(V3).negate(), h.w); stroke.at = h.w.clone(); } return true; }
+function workStroke(dt) { if (!stroke || !piece) return; const cl = piece.clay, f = +$('force').value, t = stroke.tool;
+  if (t === 'grab') { if (!ptr) return; ray.setFromCamera(ndc.set(ptr.x, ptr.y), camera); if (!ray.ray.intersectPlane(plane, hitP)) return; const d = V3.copy(hitP).sub(stroke.at); if (d.lengthSq() < 1e-8) return; const lim = stroke.R * .25; if (d.length() > lim) d.setLength(lim); stroke.at.add(d); d.divideScalar(piece.scale); cl.drag(d.x * (.4 + .6 * f), d.y * (.4 + .6 * f), d.z * (.4 + .6 * f)); sync(piece); return; }
+  const h = castPiece(); if (h) stroke.last = h; const q = stroke.last, amt = Math.min(.05, dt) * f;
+  if (t === 'glaze') { const c = V_C.set(GLAZES[glazeI][1]); cl.paint('glaze', q.c, stroke.R, amt * 6, [c.r, c.g, c.b]); sync(piece, true); }
+  else if (t === 'wipe') { cl.paint('wipe', q.c, stroke.R, amt * 6); sync(piece, true); }
+  else if (t === 'diamond' || t === 'ruby') { const used = cl.paint(t, q.c, stroke.R, amt * 5); dust[t] = Math.max(0, dust[t] - used); sync(piece, true); jars(); if (dust[t] <= 0) { say('The jar is empty.', 'warn'); stroke = null; } }
+  else { cl.touch(t, q.c, q.n, stroke.R, amt * RATE[t]); sync(piece); } }
+function endStroke() { if (stroke && stroke.tool === 'grab' && piece) piece.clay.letGo(); if (stroke) facts(); stroke = null; }
+
+/* ───────────────────────── the wheel ───────────────────────── */
+const WHY = { thin: 'The wall got too thin, and tore.', hard: 'Too hard a press for a wall that thin.', forced: 'It was forced against the way it was going.', wobble: 'It was off-centre, and the speed threw it.', wet: 'Too much water. It slumped.', fast: 'Too fast for a wall that thin.', tired: 'It was worked too long, and the clay tired.' };
+function pickWheel() { ray.setFromCamera(ndc.set(ptr.x, ptr.y), camera); plane.setFromNormalAndCoplanarPoint(V3.copy(FWD).negate(), V3b.set(WX, 0, 0)); return ray.ray.intersectPlane(plane, hitP) ? { x: hitP.sub(V3b).dot(RIGHT), y: hitP.y } : null; }
+let lastPt = null, keyHold = false;
+/* the wheel by keyboard: a tool that stays where you put it. Arrows move it as you see it on screen; Space puts it on the clay and lifts it off. */
+const kb = { on: false, type: 'out', y: .6, R: 1, vy: 0, vR: 0, side: 1, weight: .85 }, held = {}, KBN = { out: 'Outside tool', in: 'Inside tool', top: 'Thumb', hold: 'Steady hands' };
+function kbSeat() { const n = P.n(), hollow = P.depth() > .05; if (kb.type === 'in' && !hollow) { kb.type = 'top'; say('There is no inside yet. The thumb will open one: press the down arrow.', 'warn'); }
+  if (kb.type === 'top') { kb.y = hollow ? Math.max(P.floor + .02, .05) : P.H + .02; kb.R = hollow ? Math.max(.26, P.ri[n - 1] * .8) : .3; }
+  else { kb.y = clamp(kb.y, kb.type === 'in' ? P.floor + .06 : .08, P.H - .04); const j = clamp(Math.round(kb.y / P.DY), 0, n - 1); kb.R = kb.type === 'out' ? P.ro[j] + .015 : kb.type === 'in' ? Math.max(.05, P.ri[j] - .015) : 1; } kb.vy = kb.vR = 0; }
+function kbTool(t) { kb.type = t; if (kb.on) kbSeat(); kbSay(); }
+function kbToggle() { if (potTaken || P.cut || P.collapsed) return; kb.on = !kb.on; if (kb.on) kbSeat(); else P.release(P.press); kbSay(); }
+function kbMove(dt) { const sp = held.shift ? .35 : 1, ax = (held.arrowright ? 1 : 0) - (held.arrowleft ? 1 : 0), ay = (held.arrowup ? 1 : 0) - (held.arrowdown ? 1 : 0), n = P.n(); let vy = 0, vR = 0;
+  if (kb.type !== 'hold') { vy = ay * .42 * sp; vR = ax * (kb.type === 'top' ? .25 : .14) * sp; }
+  kb.y = clamp(kb.y + vy * dt, kb.type === 'top' ? .1 : kb.type === 'in' ? Math.max(.05, P.floor + .03) : .05, P.H + (kb.type === 'top' ? .05 : .25)); kb.R = clamp(kb.R + vR * dt, kb.type === 'top' ? .26 : .04, 2.2);
+  if (kb.type === 'hold') kb.y = P.H * .5; kb.vy += (vy - kb.vy) * Math.min(1, dt * 12); kb.vR += (vR - kb.vR) * Math.min(1, dt * 12); }
+function kbSay() { const n = P.n(), j = clamp(Math.round(kb.y / P.DY), 0, n - 1), pen = kb.type === 'out' ? P.ro[j] - kb.R : kb.type === 'in' ? kb.R - P.ri[j] : 0;
+  $('kbOut').textContent = !kb.on ? KBN[kb.type] + ', lifted' + (kb.type === 'out' || kb.type === 'in' ? ' at ' + (kb.y * 10).toFixed(1) + ' cm. Up and down choose the height; Space puts it on.' : '. Space puts it on the clay.') : kb.type === 'hold' ? 'Steady hands on the clay.' : kb.type === 'top' ? 'Thumb ' + (kb.y * 10).toFixed(1) + ' cm above the wheel, ' + (kb.R * 20).toFixed(1) + ' cm wide.' : KBN[kb.type] + ' at ' + (kb.y * 10).toFixed(1) + ' cm, ' + (pen > .002 ? 'pressing ' + (pen * 100).toFixed(0) + ' mm in' : 'just clear of the clay'); } const holdHand = { on: true, type: 'hold', y: .6, R: 1, vy: 0, vR: 0, side: 1, weight: .85 };
+function wheelDown() { const p = pickWheel(), n = P.n(); if (!(p && !potTaken && !P.cut && !P.collapsed && p.y > -.15 && p.y < P.H + .9 && Math.abs(p.x) < 2.1)) return false;
+  const j = clamp(Math.round(p.y / P.DY), 0, n - 1), ax = Math.abs(p.x), hollow = P.depth() > .05, top = n - 1; hand.side = p.x >= 0 ? 1 : -1;
+  hand.type = wtool === 'hold' ? 'hold' : (!hollow && p.y > P.H - .12 && ax < P.ro[top] * .75) ? 'top' : hollow && ax < (p.y >= P.H ? P.ri[top] : P.ri[j]) + .02 && p.y > P.floor - .05 ? (p.y < P.floor + .12 && ax < P.ri[j] * .5 ? 'top' : 'in') : 'out';
+  hand.on = true; hand.y = clamp(p.y, .05, P.H + .3); hand.R = hand.type === 'top' ? Math.max(.26, ax) : ax; hand.vy = hand.vR = 0; lastPt = { y: hand.y, R: hand.R, t: performance.now() }; return true; }
+function wheelMove() { const p = pickWheel(); if (!p || !hand.on) return; const now = performance.now(), dt = Math.max(.008, (now - lastPt.t) / 1000), y = clamp(p.y, hand.type === 'top' ? .02 : .05, P.H + .4), R = hand.type === 'top' ? Math.max(.26, Math.abs(p.x)) : Math.abs(p.x);
+  hand.vy += ((y - lastPt.y) / dt - hand.vy) * .35; hand.vR += ((R - lastPt.R) / dt - hand.vR) * .35; hand.y = y; hand.R = R; lastPt = { y, R, t: now }; }
+function wheelStep(dt) { const w = P.cut || potTaken ? 0 : speedSet; speed += (w - speed) * Math.min(1, dt * (w < speed ? 1.6 : 2.5)); if (kb.on && (potTaken || P.cut || P.collapsed)) kb.on = false; if (mode === 'wheel' && !hand.on && !potTaken) { if (kb.on) kbMove(dt); else if (kb.type === 'out' || kb.type === 'in') { const ay = (held.arrowup ? 1 : 0) - (held.arrowdown ? 1 : 0); kb.y = clamp(kb.y + ay * .6 * dt, .05, P.H); const jj = clamp(Math.round(kb.y / P.DY), 0, P.n() - 1); kb.R = kb.type === 'out' ? P.ro[jj] + .05 : Math.max(.05, P.ri[jj] - .05); } } const h = mode !== 'wheel' ? null : hand.on ? hand : kb.on ? kb : keyHold ? Object.assign(holdHand, { y: P.H * .5 }) : null; if (h) { const k = Math.exp(-dt * 9); hand.vy *= k; hand.vR *= k; }
+  if (!potTaken) { for (let i = 0; i < 2; i++) P.step(dt / 2, speed, h); spin += speed * dt * TAU; buildPot(P, spin); } placeFingers(h);
+  SPIN.uSpin.value = spin; SPIN.uBlur.value = clamp(speed * TAU / 48, 0, 1.5); SPIN.uWet.value = P.wet; potMat.clearcoat = lerp(.15, .85, P.wet); pot.visible = !potTaken; }
+function wheelSay() { if (potTaken) return 'The wheel is empty. Take new clay.'; if (P.collapsed) return (WHY[P.why] || 'It gave way.') + ' Take it to the bench as it is, or start again.'; if (P.cut) return 'Cut free. Take it to the bench to carve, glaze and fire.';
+  const hollow = P.depth() > .05; if (speed < .3) return 'Start the wheel.'; if (!hollow && P.wobble() > .03) return 'It is off-centre. Hold a tool still against it and let the high side come to you.'; if (!hollow) return 'Centred. Press down through the middle of the top to open it.';
+  if (P.wet < .3) return 'It is drying. Give it water.'; if (P.thin() < .07) return 'The wall is getting thin. Stop soon, and cut it free.'; return 'Lift the wall from outside, moving up slowly. Press from inside to swell it. Cut it free when you like it.'; }
+function newClay() { kb.on = false; P = PotModel.create(3 + Math.floor(Math.random() * 90), ['jar', 'bowl', 'bottle'][Math.floor(Math.random() * 3)]); potTaken = false; spin = 0; wheelBody = $('body').value; potMat.color.set(BODIES[wheelBody][1]); buttons(); }
+/* Back to the wheel. The wheel only knows round things, so what goes on is the round pot nearest to what was made:
+   slice by slice, the mean radius of the skin facing out, the mean radius of the skin facing in, and how far the slice sits off the axis. */
+function potFromPiece(pc) { const cl = pc.clay, pos = cl.pos, nor = cl.nor, DY = PotModel.DY, M = PotModel.M, so = new Float64Array(M), no = new Float64Array(M), si = new Float64Array(M), ni = new Float64Array(M), sx = new Float64Array(M), sz = new Float64Array(M), mx = new Float64Array(M); let H = 0;
+  for (let i = 0, q = 0; i < cl.n; i++, q += 3) { const x = pos[q], y = pos[q + 1], z = pos[q + 2], j = clamp(Math.round(y / DY), 0, M - 1), r = Math.hypot(x, z); H = Math.max(H, y); mx[j] = Math.max(mx[j], r); if (r < 1e-4) continue; const rad = (nor[q] * x + nor[q + 2] * z) / r;
+    if (rad > .25) { so[j] += r; no[j]++; sx[j] += x; sz[j] += z; } else if (rad < -.25) { si[j] += r; ni[j]++; } }
+  { let jr = 0; for (let j = 0; j < M; j++) if (no[j] + ni[j] > 5) jr = j; H = Math.min(H, (jr + 1.5) * DY); } H = clamp(H, .3, (M - 3) * DY); const Q = PotModel.create(3 + Math.floor(Math.random() * 90)), n = Math.min(M - 1, Math.ceil(H / DY)); let lastR = .5;
+  for (let j = 0; j < M; j++) { let r = no[j] > 3 ? so[j] / no[j] : mx[j] > 0 ? mx[j] * .92 : lastR; if (j >= n) r = lastR; r = clamp(r, .2, 1.75); lastR = r; Q.ro[j] = r; Q.e[j] = no[j] > 3 ? Math.min(.3, Math.hypot(sx[j], sz[j]) / no[j]) : 0; Q.ph[j] = Math.atan2(sz[j], sx[j]); Q.ri[j] = 0; Q.ring[j] = 0; Q.stress[j] = 0; Q.strain[j] = 0; }
+  for (let k = 0; k < 2; k++) for (let j = 1; j < n - 1; j++) Q.ro[j] = (Q.ro[j - 1] + 2 * Q.ro[j] + Q.ro[j + 1]) / 4;
+  const inn = new Float64Array(M); for (let j = 0; j < n; j++) inn[j] = ni[j] >= 6 && si[j] / ni[j] < Q.ro[j] - .03 ? si[j] / ni[j] : 0;
+  for (let j = 1; j < n - 1; j++) if (!inn[j]) { let a = 0, b = 0; for (let k = 1; k <= 5 && !a; k++) a = inn[j - k] || 0; for (let k = 1; k <= 5 && !b; k++) b = inn[j + k] || 0; if (a && b) inn[j] = (a + b) / 2; }
+  const inner = j => inn[j]; let jt = -1; for (let j = n - 1; j >= Math.max(0, n - 7); j--) if (inner(j)) { jt = j; break; }
+  Q.floor = .16; if (jt >= 0) { let jb = jt; while (jb > 0 && inner(jb - 1)) jb--; if (jt - jb >= 2 && jb * DY > .02) { for (let j = jb; j < M; j++) Q.ri[j] = clamp(inner(Math.min(j, jt)), .05, Q.ro[j] - .04); Q.floor = Math.max(.03, jb * DY + .05); H = Math.max(Q.floor + .2, H - (Q.ro[jt] - Q.ri[jt]) * .45); } }
+  Q.H = H; Q.wet = Math.max(.5, pc.U.uWet.value); for (let k = 0; k < 3; k++) { const f = clamp(Math.sqrt(cl.V / Math.max(Q.volume(), 1e-6)), .8, 1.25); for (let j = 0; j < M; j++) { Q.ro[j] = clamp(Q.ro[j] * f, .2, 1.78); if (Q.ri[j] > 0) Q.ri[j] = clamp(Q.ri[j] * f, .05, Q.ro[j] - .04); } } Q.V0 = Q.volume(); for (let j = 0; j < M; j++) { const live = j * DY < H; Q.ro0[j] = Q.pro[j] = live ? Q.ro[j] : 0; Q.pri[j] = live ? Q.ri[j] : 0; Q.cro[j] = Q.cri[j] = 0; } return Q; }
+function toWheel() { if (!piece || burn || piece.fired) return; const pc = piece; let lost = false; for (let i = 0; i < pc.clay.n && !lost; i++) if (pc.clay.m[i * 4] > .1 || pc.clay.m[i * 4 + 1] > .05 || pc.clay.m[i * 4 + 2] > .05) lost = true;
+  if (!potTaken && P.t > 1) { const old = makePiece(Clay.fromPot(P, spin), wheelBody); old.from = 'wheel'; old.U.uWet.value = P.wet; old.mesh.position.set(WX, 0, 0); shelve(old); }
+  kb.on = false; P = potFromPiece(pc); wheelBody = pc.body; potMat.color.set(BODIES[wheelBody][1]); potTaken = false; spin = 0; drop(pc); piece = null; undo.length = 0; setMode('wheel'); buttons();
+  say('On the wheel. It only knows round things: what you made is now the round pot nearest to it, and anything lopsided has become wobble.' + (lost ? ' The glaze and dust came off in the water.' : ''), '', 10); }
+function takePot() { if (potTaken) return; const cl = Clay.fromPot(P, spin); { const f = clamp(Math.sqrt(P.volume() / cl.V), .85, 1.1); for (let q = 0; q < cl.n * 3; q += 3) { cl.pos[q] *= f; cl.pos[q + 2] *= f; } cl.V = cl.V0 = cl.update(); } const pc = makePiece(cl, wheelBody); pc.from = 'wheel'; pc.U.uWet.value = P.wet; pc.mesh.position.set(WX, 0, 0); potTaken = true; if (piece) toShelf(true); piece = pc; undo.length = 0; glide(pc, new THREE.Vector3(0, 0, 0), 1.3); setMode('bench'); say('From the wheel to the bench. It is still soft: carve it, pull a lip, glaze it.'); buttons(); }
+const wh = $('whud').getContext('2d');
+function wheelHud() { const c = $('whud'), W = c.clientWidth, H = c.clientHeight, d = Math.min(2, devicePixelRatio || 1); if (!W) return; if (c.width !== Math.round(W * d)) { c.width = Math.round(W * d); c.height = Math.round(H * d); } wh.setTransform(d, 0, 0, d, 0, 0); wh.clearRect(0, 0, W, H);
+  const n = P.n(), s = Math.min((H - 16) / Math.max(1.6, P.H + .2), (W / 2 - 8) / 1.7), cx = W / 2, by = H - 8; wh.strokeStyle = 'rgba(243,236,223,.25)'; wh.beginPath(); wh.moveTo(8, by + .5); wh.lineTo(W - 8, by + .5); wh.stroke();
+  kbSay(); if (potTaken) return; if (kb.type !== 'hold' && (kb.on || kb.type !== 'top')) { wh.globalAlpha = kb.on ? 1 : .45; const tx = cx + kb.R * s, ty = by - kb.y * s; wh.fillStyle = '#f0b45a'; wh.beginPath(); if (kb.type === 'out') { wh.moveTo(tx, ty); wh.lineTo(tx + 9, ty - 6); wh.lineTo(tx + 9, ty + 6); } else if (kb.type === 'in') { wh.moveTo(tx, ty); wh.lineTo(tx - 9, ty - 6); wh.lineTo(tx - 9, ty + 6); } else { wh.moveTo(cx - kb.R * s, ty); wh.lineTo(cx + kb.R * s, ty); wh.lineTo(cx, ty - 9); } wh.fill(); wh.globalAlpha = 1; }
+  for (let j = 0; j < n; j++) { const y = by - (j + 1) * P.DY * s, hgt = P.DY * s + .6, ro = P.ro[j] * s, ri = (P.ri[j] > 0 && j * P.DY >= P.floor ? P.ri[j] : 0) * s; wh.fillStyle = P.stress[j] > .7 ? '#e5604c' : '#b39b84'; wh.fillRect(cx - ro, y, ro - ri, hgt); wh.fillRect(cx + ri, y, ro - ri, hgt); }
+  $('fWob').textContent = (P.wobble() * 100).toFixed(1) + ' mm'; const th = P.thin(); $('fThin').textContent = th > 8 ? 'solid' : (th * 100).toFixed(0) + ' mm'; $('fWet').textContent = Math.round(P.wet * 100) + '%'; $('fBal').textContent = hand.on ? P.omega().toFixed(2) : '–'; $('rpm').textContent = Math.round(speed * 60) + ' rpm'; }
+
+/* ───────────────────────── the kiln ───────────────────────── */
+const CONES = [[605, '022'], [720, '018'], [830, '014'], [900, '010'], [1000, '06'], [1060, '04'], [1120, '02'], [1150, '1'], [1186, '5'], [1222, '6'], [1240, '7'], [1260, '8'], [1280, '9'], [1290, '10'], [1310, '11']];
+const coneOf = T => { let c = null; for (const [t, n] of CONES) if (T >= t - 12) c = n; return c; };
+function band() { const T = +$('temp').value, c = coneOf(T); $('tempOut').textContent = T + ' °C'; glowOf(T, V_C); const k = v => Math.round(255 * Math.pow(clamp(v / 3.2, 0, 1), .45)); $('swatch').style.background = 'rgb(' + k(V_C.r) + ',' + k(V_C.g) + ',' + k(V_C.b) + ')';
+  $('band').textContent = (T < 600 ? 'Too cool to change clay. It will come out dry mud.' : T < 700 ? 'Barely fired: soft and crumbly. Diamond dust is still safe.' : T < 950 ? 'A soft biscuit firing. Diamond dust will burn away.' : T < 1150 ? 'Earthenware. Glazes will stay dry and matt.' : T < 1270 ? 'Stoneware. Glazes melt to glass.' : T < 1290 ? 'Very hot. Glazes begin to run.' : 'Too hot. The glaze runs and the pot sags.') + (c ? ' About cone ' + c + '.' : ''); }
+let burn = null;
+function fireResult(pc, T) { const cl = pc.clay, out = []; let hasG = false, hasD = false; for (let i = 0; i < cl.n; i++) { if (cl.m[i * 4] > .1) hasG = true; if (cl.m[i * 4 + 1] > .03) hasD = true; }
+  pc.U.uWet.value = 0; pc.firings++;
+  if (T < 600) { out.push('Not hot enough to change it: dry mud, which water would turn back to clay.'); return out.join(' '); }
+  if (hasD && T > 700) { const fr = sstep(700, 850, T); for (let i = 0; i < cl.n; i++) cl.m[i * 4 + 1] *= 1 - fr; out.push(fr > .95 ? 'The diamond dust burned away: diamond is carbon, and above about 700 °C it turns to gas.' : 'Some of the diamond dust burned away.'); }
+  pc.fired = true; pc.T = Math.max(pc.T, T); pc.scale = 1 - (.05 + .08 * sstep(850, 1260, pc.T)); bodyAt(pc.body, pc.T, pc.U.uBody.value); pc.U.uFired.value = 1;
+  if (hasG) { const g = sstep(960, 1190, T); pc.gloss = Math.max(pc.gloss, g); pc.U.uGloss.value = pc.gloss; out.push(g < .25 ? 'The glaze did not melt: it is still a dry powder crust.' : g < .9 ? 'The glaze half melted: satin and a little dry.' : 'The glaze melted to glass.'); const r = sstep(1250, 1340, T); if (r > .05) { cl.runGlaze(r); out.push('It ran down the wall.'); } }
+  else out.push(T < 950 ? 'Biscuit: pale, porous and ready for glaze.' : T < 1150 ? 'Fired hard, like a flowerpot.' : 'Fired to stone: dense, and it would ring if you tapped it.');
+  const s = sstep(1285, 1350, T); if (s > .02) { cl.slump(s); pc.U.uBloat.value = Math.max(pc.U.uBloat.value, s); out.push('Too hot: the pot sagged under its own weight.'); }
+  out.push('It shrank to ' + Math.round(pc.scale * 100) + '% of its size.'); sync(pc); return out.join(' '); }
+function fire() { if (!piece || burn) return; const T = +$('temp').value; undo.length = 0; burn = { t: 0, T, pc: piece, done: false, from: piece.mesh.position.clone() }; glide(piece, KSHELF.clone(), 1.1); buttons(); say('Into the kiln. Dried slowly first, so the steam does not burst it.'); }
+function kilnStep(dt) { let heat = 0, door = 0; if (burn) { const b = burn; b.t += dt; const t = b.t; door = sstep(1.1, 1.7, t) * (1 - sstep(5.2, 5.9, t)); heat = sstep(1.7, 4.4, t) * (1 - sstep(5.6, 8.6, t));
+    if (t > 1.7 && t < 5) say('Firing. ' + Math.round(20 + (b.T - 20) * sstep(1.7, 4.4, t)) + ' °C', '', 2);
+    if (!b.done && t > 4.7) { b.done = true; b.msg = fireResult(b.pc, b.T); b.pc.mesh.scale.setScalar(b.pc.scale); }
+    glowOf(20 + (b.T - 20) * heat, b.pc.U.uHeat.value); if (t > 7.6 && !b.back) { b.back = true; glide(b.pc, new THREE.Vector3(0, 0, 0), 1.2); }
+    if (t > 8.9) { b.pc.U.uHeat.value.setRGB(0, 0, 0); say(b.msg, '', 12); burn = null; setMode('bench'); say(b.msg, '', 12); buttons(); facts(); }
+    glowOf(20 + (b.T - 20) * heat, V_C); brickM.emissive.copy(V_C).multiplyScalar(.5); kGlow.color.copy(V_C).multiplyScalar(1 / Math.max(.001, Math.max(V_C.r, V_C.g, V_C.b))); kGlow.intensity = Math.max(V_C.r, V_C.g) * 14; } else { brickM.emissive.setRGB(0, 0, 0); kGlow.intensity = 0; }
+  kDoor.rotation.y = lerp(-1.95, 0, door); }
+function glide(pc, to, T) { moving.push({ pc, a: pc.mesh.position.clone(), b: to, t: 0, T }); }
+function glideStep(dt) { for (let i = moving.length - 1; i >= 0; i--) { const g = moving[i]; g.t += dt / g.T; const u = sstep(0, 1, g.t); g.pc.mesh.position.lerpVectors(g.a, g.b, u); g.pc.mesh.position.y += Math.sin(u * Math.PI) * 1.6; if (g.t >= 1) { g.pc.mesh.position.copy(g.b); moving.splice(i, 1); } } }
+function drop(pc) { scene.remove(pc.mesh); pc.geo.dispose(); pc.mesh.material.dispose(); }
+function shelve(pc) { let i = shelf.indexOf(null); if (i < 0) { i = 0; drop(shelf[0]); } shelf[i] = pc; glide(pc, SLOT(i), 1.1); }
+function toShelf(quiet) { if (!piece) return; shelve(piece); piece = null; undo.length = 0; if (!quiet) say('On the shelf. Click it there to bring it back.'); buttons(); facts(); }
+function fromShelf(i) { const pc = shelf[i]; shelf[i] = null; if (piece) { const cur = piece; shelf[i] = cur; glide(cur, SLOT(i), 1.1); } piece = pc; undo.length = 0; glide(pc, new THREE.Vector3(0, 0, 0), 1.1); buttons(); facts(); say('Back on the bench.'); }
+
+/* ───────────────────────── the magic hammer ───────────────────────── */
+let bash = null;
+function doBash(kind) { if (bash) return; bash = { t: 0, kind, hit: false }; gem.material = gemM[kind]; gem.visible = true; gem.scale.setScalar(1); bits.material.emissive.set(kind === 'ruby' ? 0xff1030 : 0xcfeaff); bits.material.color.set(kind === 'ruby' ? 0xa00020 : 0xffffff); }
+function hammerStep(dt) { const hm = hammer.userData; let ang = -.95 + Math.sin(clock * 1.7) * .04, glowK = .25 + .1 * Math.sin(clock * 3);
+  if (bash) { const b = bash; b.t += dt; const t = b.t; ang = t < .28 ? lerp(-.95, -1.5, sstep(0, .28, t)) : t < .4 ? lerp(-1.5, -.13, Math.pow((t - .28) / .12, 2)) : lerp(-.13, -.95, sstep(.46, 1.1, t)); glowK = 1.6 * (1 - sstep(.4, 1.2, t)) + .3;
+    if (!b.hit && t >= .4) { b.hit = true; gem.visible = false; bitS.t = 0; bitS.kind = b.kind; bits.count = NP; for (let i = 0; i < NP; i++) { const a = rnd(i, frameNo) * TAU, r = Math.sqrt(rnd(i, frameNo + 1)) * .2, sp = 1.2 + rnd(i, frameNo + 2) * 3.2; bitS.p[i * 3] = Math.cos(a) * r; bitS.p[i * 3 + 1] = .7 + rnd(i, 9) * .2; bitS.p[i * 3 + 2] = Math.sin(a) * r; bitS.v[i * 3] = Math.cos(a) * sp; bitS.v[i * 3 + 1] = 1.5 + rnd(i, frameNo + 3) * 3.5; bitS.v[i * 3 + 2] = Math.sin(a) * sp * .8; }
+      const D = b.kind === 'diamond'; dust[b.kind] = Math.min(12, dust[b.kind] + 3); if (D) { dust.nD++; dust.gD = Math.max(.08, 1.2 * Math.pow(.62, dust.nD - 1)); } else { dust.nR++; dust.gR = Math.max(.08, 1.2 * Math.pow(.62, dust.nR - 1)); } jars();
+      say(D ? 'Diamond is the hardest thing there is, but hard is not tough. It shatters. Each blow makes the dust finer.' : 'Ruby dust. Chromium makes it red, and no kiln here can hurt it.', '', 7); }
+    if (t > 1.5) { gem.visible = true; gem.scale.setScalar(sstep(1.5, 1.9, t)); } if (t > 1.9) bash = null; }
+  hammer.rotation.z = ang; hm.m.emissiveIntensity = glowK; hm.l.intensity = glowK * 2.2; gem.rotation.y = clock * .6;
+  if (bitS.t >= 0) { bitS.t += dt; const g = 9.8, p = bitS.p, v = bitS.v, fade = 1 - sstep(1.3, 2.1, bitS.t); for (let i = 0; i < NP; i++) { const q = i * 3; v[q + 1] -= g * dt; p[q] += v[q] * dt; p[q + 1] += v[q + 1] * dt; p[q + 2] += v[q + 2] * dt; const fl = Math.abs(p[q]) < .75 && Math.abs(p[q + 2]) < .5 ? .62 : .03; if (p[q + 1] < fl) { p[q + 1] = fl; v[q + 1] *= -.32; v[q] *= .55; v[q + 2] *= .55; }
+      S3.setScalar((.5 + rnd(i, 4) * 1.4) * fade); Q4.setFromAxisAngle(UP, i + bitS.t * 9 * rnd(i, 5)); M4.compose(V3.set(p[q], p[q + 1], p[q + 2]), Q4, S3); bits.setMatrixAt(i, M4); } bits.instanceMatrix.needsUpdate = true; if (bitS.t > 2.1) { bitS.t = -1; bits.count = 0; } } }
+function jars() { for (const k of ['diamond', 'ruby']) { const D = k === 'diamond', a = dust[k]; jarFill[k].scale.y = Math.max(.001, a / 12 * .8); jarFill[k].position.y = .02 + a / 12 * .4; $(D ? 'barD' : 'barR').style.width = a / 12 * 100 + '%'; const g = D ? dust.gD : dust.gR, n = D ? dust.nD : dust.nR;
+    $(D ? 'grainD' : 'grainR').textContent = n ? 'grain about ' + (g < 1 ? g.toFixed(2) : g.toFixed(1)) + ' mm after ' + n + (n === 1 ? ' blow' : ' blows') + (a <= 0 ? '. Jar empty.' : '') : (D ? 'The jar is empty. The hammer is waiting.' : 'The jar is empty.'); }
+  GRAIN.value.set(clamp(90 / dust.gD, 60, 260), clamp(90 / dust.gR, 60, 260)); }
+
+
+/* ───────────────────────── four digits ───────────────────────── */
+/* Any four digits typed in a row put a finished form on the bench. The last digit chooses the kind; the other three shape it.
+   Every form is a radius for every direction from a centre, so it is the same closed skin as any other clay and can be worked, glazed, fired and exported. */
+function eggShape(code) {
+  const d = [Math.floor(code / 1000) % 10, Math.floor(code / 100) % 10, Math.floor(code / 10) % 10, code % 10], u = d[0] / 9, v = d[1] / 9, w = d[2] / 9, R = k => rnd(code + 1, k), s = R(1) * 50, G = (a, b) => Math.exp(-a / b);
+  const root = f => { let lo = .03, hi = 3.2; if (f(hi) < 0) return hi; for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (f(m) < 0) lo = m; else hi = m; } return lo; };
+  const march = sdf => (x, y, z) => { let t = 3.2; for (let i = 0; i < 60; i++) { const q = sdf(x * t, y * t, z * t); if (q < .0015) break; t -= q * .8; if (t < .05) { t = .05; break; } } return t; };
+  const smin = (a, b, k) => { const h = clamp(.5 + .5 * (b - a) / k, 0, 1); return lerp(b, a, h) - k * h * (1 - h); }, smax = (a, b, k) => -smin(-a, -b, k);
+  const turn = (rho, H0, H1) => (x, y, z) => { const h = Math.hypot(x, z), ph = Math.atan2(z, x), cap = y > 1e-5 ? H1 / y : y < -1e-5 ? H0 / -y : 9; let lo = 0, hi = Math.min(cap, 4); if (hi * h - rho(hi * y, ph) < 0) return hi; for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (m * h - rho(m * y, ph) < 0) lo = m; else hi = m; } return lo; };
+  const folds = (x, y, z, f) => Math.abs(Math.sin((fbm3(x * 1.7 + s, y * 1.7, z * 1.7) * 7 + vn3(x * 4 + s, y * 4, z * 4) * 1.5) * f));
+  switch (d[3]) {
+    case 0: return { name: 'A human brain', body: 'porcelain', r: (x, y, z) => { const e = 1 / Math.sqrt(x * x / .88 + y * y / .6 + z * z / 1.3), sul = folds(x * 1.25, y * 1.25, z * 1.25, 3.6 + v * 1.2); let k = 1 - (.05 + .025 * w) * (1 - sstep(0, .6, sul));
+        k -= .13 * G(x * x, .0012) * sstep(-.25, .25, y); k = lerp(k, .86, sstep(-.2, -.75, y) * .8);
+        k += G((Math.abs(x) - .3) ** 2 + (y + .62) ** 2 + (z + .6) ** 2, .09) * (.24 + .025 * Math.sin(y * e * 70)); k += G(x * x + (z + .2) ** 2, .03) * sstep(-.6, -.95, y) * .45; return e * k * (.92 + .16 * u); } };
+    case 1: return { name: 'A head, at rest', body: 'stoneware', r: (x, y, z) => { const tp = 1 - (.16 + .1 * u) * sstep(.1, -.9, y), fr = sstep(.1, .6, z); let e = 1 / Math.sqrt(x * x / (.6 * tp * tp) + y * y / 1.05 + z * z / (.8 * tp));
+        e += fr * (.11 + .05 * v) * G(x * x, .006) * G((y + .12) ** 2, .04) * (1 + .6 * sstep(0, -.25, y)); e += fr * .035 * G((y - .16) ** 2, .004) * sstep(.5, .12, Math.abs(x)); e -= fr * .05 * G((Math.abs(x) - .27) ** 2, .012) * G((y - .06) ** 2, .006);
+        e += fr * .03 * G(x * x, .03) * G((y + .42) ** 2, .0016); e -= fr * .02 * G(x * x, .03) * G((y + .475) ** 2, .0008); e += .05 * G((Math.abs(x) - .75) ** 2, .02) * G(y * y, .03) * G((z + .05) ** 2, .03); e += fr * .04 * G(x * x, .2) * G((y + .62) ** 2, .02);
+        e += (.1 + .12 * w) * G(x * x + (y - .5) ** 2 + (z + .72) ** 2, .07); if (y < -.3) e = Math.max(e, Math.min((.36 + .25 * sstep(-.9, -1, y)) / Math.max(Math.hypot(x, z), 1e-3), 1.6 / -y)); return e; } };
+    case 2: { const m = 3 + d[0], tw = (w - .5) * 5; return { name: 'A twisted vase', body: 'terracotta', r: turn((yy, ph) => { const t = (yy + 1.1) / 2.5; return (.34 + (.42 + .2 * v) * Math.sin(Math.PI * Math.pow(clamp(t, 0, 1), .6 + v * .5)) * (1 - .4 * t) + .2 * sstep(.82, 1, t)) * (1 + .07 * Math.cos(m * (ph + tw * yy))); }, 1.1, 1.4) }; }
+    case 3: { const tn = 6 + d[0] % 4; return { name: 'A spire shell', body: 'porcelain', r: turn((yy, ph) => { const t = clamp((yy + .6) / 2.3, 0, 1), fr = (((ph / TAU + tn * t) % 1) + 1) % 1, c = Math.pow(Math.sin(Math.PI * fr), .45); return (.8 * Math.pow(1 - t, 1.05 + .3 * v) + .02) * (.86 + .16 * c + (.03 + .03 * w) * c * Math.cos(ph * 13 + t * 40)); }, .45, 2.0) }; }
+    case 4: { const sf = (a, m, n1, n2) => Math.min(3, Math.pow(Math.pow(Math.abs(Math.cos(m * a / 4)), n2) + Math.pow(Math.abs(Math.sin(m * a / 4)), n2), -1 / n1)), m1 = 3 + d[0], m2 = 2 + d[2] % 5, n1 = .9 + 1.6 * v, n2 = 1.5 + 4 * R(3);
+      return { name: 'A superformula form', body: 'black', r: (x, y, z) => .8 * sf(Math.atan2(z, x), m1, n1, n2) * sf(Math.asin(clamp(y, -1, 1)), m2, 2 + 2 * v, 2) }; }
+    case 5: { const hs = []; for (let i = 0; i < 2 + d[0] % 3; i++) { const a = R(10 + i) * TAU, b = (R(20 + i) - .35) * 1.2, rr = .42 + .25 * R(30 + i); hs.push([Math.cos(a) * Math.cos(b) * 1.05, Math.sin(b) * .8, Math.sin(a) * Math.cos(b) * .9, rr]); }
+      return { name: 'A carved pebble', body: 'stoneware', r: march((x, y, z) => { let q = (Math.sqrt(x * x / 1.3 + y * y / (.55 + .3 * v) + z * z / .85) - 1) * .7; for (const h of hs) q = smax(q, -(Math.hypot(x - h[0], y - h[1], z - h[2]) - h[3]), .12); return q; }) }; }
+    case 6: return { name: 'A heart', body: 'terracotta', r: (x, y, z) => { const t = root(t => { const X = x * t, Y = y * t, Z = z * t * (1.2 + .5 * v), a = X * X + 2.25 * Z * Z + Y * Y - 1; return a * a * a - X * X * Y * Y * Y - .1125 * Z * Z * Y * Y * Y; }); return t * (1 - .03 * w * sstep(.6, .9, Math.sin(Math.atan2(y, x) * (3 + d[0]) + z * 9))); } };
+    case 7: { const pl = [], K = 9 + d[0]; for (let i = 0; i < K; i++) { const a = R(40 + i) * TAU, b = (R(60 + i) - .5) * (i < K - 4 ? 1 : 2.6), c = Math.cos(b); pl.push([Math.cos(a) * c, Math.sin(b), Math.sin(a) * c, (i < K - 4 ? .6 : 1.25) + .25 * R(80 + i)]); }
+      return { name: 'A crystal', body: 'porcelain', r: (x, y, z) => { let r = 2.6; for (const p of pl) { const q = x * p[0] + y * p[1] + z * p[2]; if (q > 1e-3) r = Math.min(r, p[3] / q); } return r; } }; }
+    case 8: return { name: 'Brain coral', body: 'porcelain', r: (x, y, z) => { const sul = folds(x * 1.3, y * 1.3, z * 1.3, 2.6 + 1.6 * v); return (1 + (.07 + .04 * u) * sstep(.15, .7, sul) - .02 * sstep(.8, 1, sul)) / Math.sqrt(x * x + y * y / (.5 + .3 * w) + z * z); } };
+    default: { const B = [[0, 0, .08, .6 + .1 * u], [.3, -.35, -.05, .48], [-.3, -.35, -.05, .48], [.27, .42, .3, .26 + .08 * v], [-.27, .42, .3, .26 + .08 * v], [0, .5, 0, .42], [0, 1.02, .02, .26], [.2, -.85, 0, .33], [-.2, -.85, 0, .33], [.13, -1.32, 0, .2], [-.13, -1.32, 0, .2]];
+      return { name: 'A Venus figurine', body: 'terracotta', r: march((x, y, z) => { let q = 9; for (const b of B) q = smin(q, Math.hypot(x - b[0], y - b[1], z - b[2]) - b[3], .16 + .08 * w); return q; }) }; }
+  }
+}
+function egg(code) { if (burn) return; const sh = eggShape(code), ico = Clay.icosphere(6, 1), q = ico.pos; let lo = 9, mx = 0;
+  for (let i = 0; i < q.length; i += 3) { const r = sh.r(q[i], q[i + 1], q[i + 2]); q[i] *= r; q[i + 1] *= r; q[i + 2] *= r; mx = Math.max(mx, Math.hypot(q[i], q[i + 1], q[i + 2])); }
+  const k = 1.45 / mx; for (let i = 0; i < q.length; i += 3) { q[i] *= k; q[i + 1] *= k; q[i + 2] *= k; lo = Math.min(lo, q[i + 1]); } for (let i = 1; i < q.length; i += 3) q[i] = Math.max(0, q[i] - lo - .03);
+  if (piece) toShelf(true); piece = makePiece(Clay.make(ico.pos, ico.idx), sh.body); piece.from = 'egg'; piece.U.uWet.value = .45; piece.mesh.position.set(0, 6, 0); glide(piece, new THREE.Vector3(0, 0, 0), .9); undo.length = 0; if (mode !== 'bench') setMode('bench'); buttons(); facts();
+  say(String(code).padStart(4, '0') + '. ' + sh.name + '. It is soft clay like any other: work it, glaze it, fire it.', '', 10); return sh.name; }
+let digits = '', digitAt = 0;
+/* ───────────────────────── facts, buttons, taking work away ───────────────────────── */
+function facts() { const pc = piece; if (mode === 'wheel' && !potTaken) { $('fMass').textContent = (P.volume() * 1.8).toFixed(2) + ' kg'; $('fTall').textContent = (P.H * 10).toFixed(1) + ' cm'; $('fState').textContent = P.collapsed ? 'collapsed' : P.cut ? 'cut free' : 'on the wheel'; return; }
+  if (!pc) { $('fMass').textContent = '–'; $('fTall').textContent = '–'; $('fState').textContent = 'nothing on the bench'; return; }
+  const s = pc.scale; $('fMass').textContent = (pc.clay.V * s * s * s * (pc.fired ? 2.2 : 1.8)).toFixed(2) + ' kg'; $('fTall').textContent = (pc.clay.height() * s * 10).toFixed(1) + ' cm'; $('fState').textContent = pc.fired ? 'fired at ' + pc.T + ' °C' + (pc.gloss > .9 ? ', glazed' : '') : pc.firings ? 'dry' : 'soft clay'; }
+function buttons() { $('undo').disabled = !undo.length; $('keep').disabled = !piece || !!burn; $('toWheel').disabled = !piece || !!burn || piece.fired; $('fire').disabled = !piece || !!burn; $('cut').disabled = potTaken || P.cut || P.collapsed; $('take').disabled = potTaken || !(P.cut || P.collapsed); $('water').disabled = potTaken || P.cut; $('obj').disabled = !piece; }
+const srgb = v => Math.pow(clamp(v, 0, 1), 1 / 2.2), C1 = new THREE.Color(), C2 = new THREE.Color();
+function colourOf(pc) { const cl = pc.clay, base = pc.fired ? C1.copy(pc.U.uBody.value) : C1.copy(pc.U.uRaw.value); return i => { const g = clamp((cl.m[i * 4] - .12) / .38, 0, 1), r = cl.m[i * 4 + 2] * .3; let R = cl.col[i * 3], G = cl.col[i * 3 + 1], B = cl.col[i * 3 + 2]; if (pc.gloss < .5) { R = lerp(R, .86, .6); G = lerp(G, .84, .6); B = lerp(B, .8, .6); }
+    return [srgb(lerp(lerp(base.r, R, g), .42, r)), srgb(lerp(lerp(base.g, G, g), .015, r)), srgb(lerp(lerp(base.b, B, g), .05, r))]; }; }
+let saver; const downloads = () => saver || (saver = window.claude && window.claude.use ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null));
+async function give(filename, data, what) { const d = await downloads();
+  if (d) { try { await d.save({ filename, data }); say(what + ' saved.'); } catch (e) { say(e && e.code === 'declined' ? 'Not saved.' : 'This view would not save the file (' + ((e && e.code) || 'unavailable') + ').', 'warn'); } return; }
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data])); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); say(what + ' handed to the browser.'); } catch (e) { say('This view cannot save files.', 'warn'); } }
+function exportOBJ() { if (!piece) return; const pc = piece, name = 'clay-studio-' + (pc.from === 'wheel' ? 'pot' : 'piece'); pc.clay.update();
+  const obj = Clay.toOBJ(pc.clay, pc.scale * 100, colourOf(pc), 'Made in The Clay Studio'), note = 'Made in The Clay Studio.\r\n\r\n' + name + '.obj is a Wavefront OBJ: one closed, watertight mesh.\r\nUnits are millimetres and y is up. ' + pc.clay.n + ' points, ' + pc.clay.nt + ' triangles.\r\nIt stands ' + (pc.clay.height() * pc.scale * 100).toFixed(0) + ' mm tall.\r\nEach "v" line carries a colour after the position (r g b, 0 to 1), which Blender, MeshLab and most game engines read as vertex colour.\r\nGlaze shine and gem dust are not in the file: they are properties of light, not of shape.\r\nFor a 3D printer, open the .obj in your slicer; it is already in millimetres.\r\n';
+  give(name + '.zip', new Blob([Clay.zip([{ name: name + '.obj', data: obj }, { name: 'read-me.txt', data: note }])]), 'The 3D model'); }
+function exportJPG() { ring.visible = false; draw(0); canvas.toBlob(b => { if (b) give('clay-studio.jpg', b, 'The photo'); else say('This view could not make a photo.', 'warn'); }, 'image/jpeg', .93); }
+
+/* ───────────────────────── camera and picture ───────────────────────── */
+function place() { cam.t.lerp(cam.to, .09); cam.dist += (cam.distTo - cam.dist) * .09; const cp = Math.cos(cam.pitch), tall = camera.aspect < 1 ? 1.35 : 1, shiftR = camera.aspect > 1.3 ? .0 : 0, d = cam.dist * tall;
+  camera.position.set(cam.t.x + shiftR + Math.sin(cam.yaw) * cp * d, cam.t.y + Math.sin(cam.pitch) * d, cam.t.z + Math.cos(cam.yaw) * cp * d); camera.lookAt(cam.t.x + shiftR, cam.t.y, cam.t.z); focusDist = d;
+  FWD.set(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw)); RIGHT.set(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)); key.target.position.set(cam.t.x, .8, 0); key.position.set(cam.t.x - 7.5, 9.5, 4.5);
+  camera.updateMatrixWorld(); LIGHTS.uL0.value.copy(key.position).sub(key.target.position).normalize().transformDirection(camera.matrixWorldInverse); LIGHTS.uL1.value.copy(rim.position).normalize().transformDirection(camera.matrixWorldInverse); }
+function draw(dt) {
+  clock += dt; frameNo++;
+  if (dt > 0) { workStroke(dt); wheelStep(Math.min(dt, .05)); kilnStep(dt); glideStep(dt); hammerStep(dt); }
+  place();
+  hover = (mode === 'bench' && ptr && !orbit && !burn) ? (stroke && stroke.tool !== 'grab' ? stroke.last : stroke ? null : castPiece()) : null;
+  if (hover && piece) { const R = (tool === 'needle' ? Math.min(.05, +$('size').value) : tool === 'grab' ? +$('size').value * 1.5 : +$('size').value); ring.visible = true; ring.scale.setScalar(R); V3.set(hover.c[0], hover.c[1], hover.c[2]); piece.mesh.localToWorld(V3); ring.position.copy(V3).addScaledVector(V3b.set(hover.n[0], hover.n[1], hover.n[2]), .02); ring.lookAt(V3.add(V3b)); } else ring.visible = false;
+  renderer.setRenderTarget(rt.scene); renderer.render(scene, camera);
+  const PM = camera.projectionMatrix.elements;
+  for (const m of [aoMat, prepMat]) { m.uniforms.tDepth.value = rt.scene.depthTexture; m.uniforms.uNear.value = camera.near; m.uniforms.uFar.value = camera.far; m.uniforms.uProj.value.set(PM[0], PM[5]); m.uniforms.uRes.value.copy(U.uRes.value); }
+  tri.material = aoMat; renderer.setRenderTarget(rt.ao); renderer.render(postScene, postCam);
+  prepMat.uniforms.tColor.value = rt.scene.texture; prepMat.uniforms.tAO.value = rt.ao.texture; prepMat.uniforms.uFocus.value = focusDist; prepMat.uniforms.uAperture.value = 7;
+  tri.material = prepMat; renderer.setRenderTarget(rt.prep); renderer.render(postScene, postCam);
+  dofMat.uniforms.tPrep.value = rt.prep.texture; dofMat.uniforms.uMaxPx.value = U.uRes.value.y * .019; dofMat.uniforms.uStep.value = Math.max(1.1, U.uRes.value.y / 820);
+  tri.material = dofMat; renderer.setRenderTarget(rt.dof); renderer.render(postScene, postCam);
+  finMat.uniforms.tDof.value = rt.dof.texture; finMat.uniforms.uFilm.value.set((rnd(frameNo, 50) - .5) * .6, (rnd(frameNo, 51) - .5) * .6, rnd(frameNo, 52) * 100); finMat.uniforms.uExpo.value = .98; finMat.uniforms.uFlash.value = 0;
+  tri.material = finMat; renderer.setRenderTarget(null); renderer.render(postScene, postCam);
+  if (mode === 'wheel' && (frameNo % 4 === 0 || TEST)) { wheelHud(); facts(); if (clock > sayT) { $('card').textContent = wheelSay(); $('card').dataset.tone = P.collapsed ? 'bad' : ''; } if (frameNo % 20 === 0) buttons(); }
+}
+
+/* ───────────────────────── controls ───────────────────────── */
+const setPtr = e => { const b = canvas.getBoundingClientRect(); ptr = { x: (e.clientX - b.left) / b.width * 2 - 1, y: -((e.clientY - b.top) / b.height * 2 - 1) }; };
+canvas.addEventListener('pointerdown', e => { setPtr(e); canvas.setPointerCapture(e.pointerId); let used = false;
+  if (mode === 'bench' && !burn) { used = e.button === 0 && beginStroke(); if (!used) { ray.setFromCamera(ndc.set(ptr.x, ptr.y), camera); for (let i = 0; i < shelf.length; i++) if (shelf[i] && ray.intersectObject(shelf[i].mesh, false).length) { fromShelf(i); used = true; break; } } }
+  else if (mode === 'wheel') used = e.button === 0 && wheelDown();
+  if (!used) orbit = { x: e.clientX, y: e.clientY }; buttons(); });
+canvas.addEventListener('pointermove', e => { setPtr(e); if (orbit) { cam.yaw -= (e.clientX - orbit.x) * .006; cam.pitch = clamp(cam.pitch + (e.clientY - orbit.y) * .005, mode === 'wheel' ? .05 : -.05, mode === 'wheel' ? .75 : 1.45); if (mode === 'wheel') cam.yaw = clamp(cam.yaw, -.9, .9); orbit = { x: e.clientX, y: e.clientY }; } else if (hand.on) wheelMove(); });
+const up = () => { endStroke(); if (hand.on) { P.release(P.press); hand.on = false; } orbit = null; buttons(); }; canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up); canvas.addEventListener('pointerleave', () => { if (!stroke && !orbit) ptr = null; });
+canvas.addEventListener('wheel', e => { e.preventDefault(); cam.distTo = clamp(cam.distTo * Math.exp(e.deltaY * .001), 3.2, 20); }, { passive: false }); canvas.addEventListener('contextmenu', e => e.preventDefault());
+document.querySelectorAll('#modes button').forEach(b => b.onclick = () => { if (!burn) setMode(b.dataset.m); });
+$('size').oninput = () => $('sizeOut').textContent = (+$('size').value * 10).toFixed(1) + ' cm'; $('force').oninput = () => $('forceOut').textContent = Math.round(+$('force').value * 100) + '%'; $('size').oninput(); $('force').oninput();
+$('palette').innerHTML = GLAZES.map(([n, c], i) => '<button type="button" title="' + n + '" aria-label="' + n + '" style="--g:#' + c.toString(16).padStart(6, '0') + '" data-i="' + i + '"></button>').join('');
+const setGlaze = i => { glazeI = i; document.querySelectorAll('#palette button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === i))); $('glazeName').textContent = GLAZES[i][0]; }; document.querySelectorAll('#palette button').forEach(b => b.onclick = () => { setGlaze(+b.dataset.i); tool = 'glaze'; rail(); say(HINT.glaze); }); setGlaze(0);
+$('body').innerHTML = Object.keys(BODIES).map(k => '<option value="' + k + '">' + BODIES[k][0] + '</option>').join(''); $('body').onchange = () => { if (!potTaken && P.t < .5) { wheelBody = $('body').value; potMat.color.set(BODIES[wheelBody][1]); } say('The next new clay will be ' + BODIES[$('body').value][0].toLowerCase() + '.'); };
+$('bashD').onclick = () => doBash('diamond'); $('bashR').onclick = () => doBash('ruby');
+$('undo').onclick = () => { const u = undo.pop(); if (u && u.pc === piece) { piece.clay.restore(u.s); sync(piece); facts(); } buttons(); };
+$('lump').onclick = () => { if (burn) return; if (piece) toShelf(true); piece = newLump($('body').value); piece.mesh.position.set(0, 5, 0); glide(piece, new THREE.Vector3(0, 0, 0), .7); undo.length = 0; buttons(); facts(); say('A new lump of ' + BODIES[piece.body][0].toLowerCase() + '. ' + HINT[tool]); };
+$('keep').onclick = () => toShelf(); $('toWheel').onclick = toWheel; $('fire').onclick = fire; $('temp').oninput = band;
+$('speed').oninput = e => speedSet = +e.target.value; $('water').onclick = () => P.water(); $('cut').onclick = () => { P.cutFree(); buttons(); }; $('take').onclick = takePot; $('again').onclick = newClay;
+$('jpg').onclick = exportJPG; $('obj').onclick = exportOBJ; $('panelBtn').onclick = () => document.body.classList.toggle('panel');
+$('about').onclick = () => $('sheet').hidden = false; $('close').onclick = () => $('sheet').hidden = true; $('sheet').onclick = e => { if (e.target === $('sheet')) $('sheet').hidden = true; };
+addEventListener('keyup', e => { const k = e.key.toLowerCase(); held[k] = false; if (k === 'shift') held.shift = false; if (k === 'h') keyHold = false; }); addEventListener('blur', () => { for (const k in held) held[k] = false; keyHold = false; });
+addEventListener('keydown', e => { if (e.key === 'Escape') $('sheet').hidden = true; if (e.target.closest && e.target.closest('input,select')) return; const k = e.key.toLowerCase();
+  if (!e.ctrlKey && !e.metaKey && !e.repeat && k >= '0' && k <= '9' && k.length === 1) { const now = performance.now(); digits = (now - digitAt < 2500 ? digits : '') + k; digitAt = now; if (digits.length === 4) { const c = +digits; digits = ''; egg(c); return; } }
+  if (!e.ctrlKey && !e.metaKey && !burn) { if (k === 'b') setMode('bench'); if (k === 't') setMode('wheel'); if (k === 'k') setMode('kiln');
+    if (mode === 'wheel') { held[k] = true; held.shift = e.shiftKey; if (k.startsWith('arrow') || k === ' ') e.preventDefault(); if (e.repeat) return; if (k === 'h') keyHold = true; if (k === 'w') P.water(); if (k === 'c' && !$('cut').disabled) $('cut').click(); if (k === 'enter' && !$('take').disabled) { e.preventDefault(); takePot(); return; } if (k === 'n') newClay();
+      if (k === ' ' && !(e.target.closest && e.target.closest('button'))) kbToggle(); if (k === '1') kbTool('out'); if (k === '2') kbTool('in'); if (k === '3') kbTool('top'); if (k === '4') kbTool('hold'); if (k === '-' || k === '=' || k === '+') { speedSet = clamp(speedSet + (k === '-' ? -.2 : .2), 0, 4); $('speed').value = speedSet; } }
+    if (mode === 'bench') { const t = k >= '1' && k <= '9' ? BT[+k - 1][0] : k === 'g' ? 'glaze' : k === 'd' ? 'diamond' : k === 'r' ? 'ruby' : null; if (t) { tool = t; rail(); say(HINT[t]); } if (k === '[' || k === ']') { $('size').value = clamp(+$('size').value * (k === ']' ? 1.15 : .87), .06, .9); $('size').oninput(); } } } if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); $('undo').click(); } });
+addEventListener('resize', () => build());
+if (/[?&]q=low/.test(location.search)) budget = 3.5e5;
+build(); piece = newLump('stoneware'); potMat.color.set(BODIES.stoneware[1]); jars(); band(); setMode('bench'); buttons(); facts();
+say('Welcome. This lump is yours. Choose a tool on the left and drag on the clay; drag anywhere else to look round.', '', 9);
+window.PIECE = { name: 'clay-studio', state: () => ({ mode, tool, volume: piece ? piece.clay.update() : 0, V0: piece ? piece.clay.V0 : 0, taken: piece ? piece.clay.taken : 0, fired: piece ? piece.fired : false, T: piece ? piece.T : 0, scale: piece ? piece.scale : 1, gloss: piece ? piece.gloss : 0, dust: [dust.diamond, dust.ruby], pot: { H: P.H, depth: P.depth(), wob: P.wobble(), cut: P.cut, collapsed: P.collapsed, why: P.why }, potTaken, shelf: shelf.filter(Boolean).length, card: $('card').textContent }),
+  set(o) { if (o.mode) setMode(o.mode); if (o.tool) { tool = o.tool; rail(); } if (o.view) Object.assign(cam, o.view); if (o.glaze != null) setGlaze(o.glaze); if (o.temp) { $('temp').value = o.temp; band(); } if (o.snap) { cam.t.copy(cam.to); cam.dist = cam.distTo; } },
+  touch(t, x, y, steps, R, f) { ptr = { x, y }; tool = t; if (R) $('size').value = R; if (f) $('force').value = f; place(); camera.updateMatrixWorld(); if (!beginStroke()) return false; for (let i = 0; i < steps; i++) workStroke(1 / 30); endStroke(); ptr = null; return true; },
+  dragClay(x0, y0, x1, y1, steps) { ptr = { x: x0, y: y0 }; tool = 'grab'; place(); camera.updateMatrixWorld(); if (!beginStroke()) return false; for (let i = 1; i <= steps; i++) { ptr = { x: lerp(x0, x1, i / steps), y: lerp(y0, y1, i / steps) }; workStroke(1 / 30); } endStroke(); ptr = null; return true; },
+  wheel(type, y, R, sec, vy) { for (let t = 0; t < sec; t += 1 / 60) { speed = speedSet; const h = type ? { on: true, type, y: y + (vy || 0) * t, R, vy: vy || 0, vR: 0, weight: .85 } : null; P.step(1 / 60, speed, h); } buildPot(P, spin); return this.state().pot; },
+  cut() { P.cutFree(); buttons(); }, take: takePot, toWheel, lump: () => $('lump').click(), bash(k, n) { for (let i = 0; i < (n || 1); i++) { bash = null; doBash(k); for (let t = 0; t < 2; t += 1 / 30) hammerStep(1 / 30); } },
+  fire(T) { $('temp').value = T; band(); fire(); for (let t = 0; t < 9.2; t += 1 / 30) { kilnStep(1 / 30); glideStep(1 / 30); } }, advance(sec) { for (let t = 0; t < sec; t += 1 / 30) { clock += 1 / 30; wheelStep(1 / 30); kilnStep(1 / 30); glideStep(1 / 30); hammerStep(1 / 30); } draw(0); renderer.getContext().finish(); return this.state(); },
+  egg, get P() { return P; }, get piece() { return piece; }, potFromPiece, obj() { return piece ? Clay.toOBJ(piece.clay, piece.scale * 100, colourOf(piece), 'test').length : 0; } };
+if (TEST) { draw(0); return; }
+let last = 0, slow = 0;
+function tick(t) { requestAnimationFrame(tick); const dt = Math.min((t - last) / 1000, .05); last = t; if (document.hidden) return; const t0 = performance.now(); draw(dt);
+  if (frameNo % 3 === 0 && !stroke) { renderer.getContext().finish(); const ms = performance.now() - t0; if (ms > 40) { if (++slow > 8 && budget > 3.5e5) { budget *= .75; slow = 0; build(); } } else slow = Math.max(0, slow - 1); } }
+requestAnimationFrame(tick);
+
+})();
+</script>
+
+<a id="mback" href="#">Back to the site</a>
+<style>#mback{position:fixed;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top,0px));z-index:5;font:500 12.5px/1 "DM Mono",ui-monospace,Menlo,Consolas,monospace;color:#f3ecdf;text-decoration:none;background:rgba(16,14,12,.6);border:1px solid rgba(243,236,223,.2);border-radius:999px;padding:9px 13px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}#mback:hover{border-color:rgba(243,236,223,.72)}#mback:focus-visible{outline:2px solid #f0b45a;outline-offset:2px}body{transition:opacity .3s}body.leaving{opacity:0}@media (max-width:700px){#mback{left:auto;right:8px;transform:none;top:8px;padding:8px 10px}}</style>
+<script>
+(function(){
+const HOME = { blake: '../index.html', jooles: '../index.html', park: '../index.html' };
+const q = new URLSearchParams(location.search); let from = q.get('from'), stop = q.get('stop');
+if (!Object.prototype.hasOwnProperty.call(HOME, from)) from = 'blake';
+if (!/^[a-z0-9_:\-]{1,40}$/.test(stop || '')) stop = 'film';
+const BACK = HOME[from] + '#museum', a = document.getElementById('mback'); a.href = BACK;
+function go(u){ document.body.classList.add('leaving'); setTimeout(function(){ location.href = u; }, 320); }
+a.addEventListener('click', function(e){ e.preventDefault(); go(BACK); });
+addEventListener('keydown', function(e){ if (e.key !== 'Escape' || document.querySelector('.sheet:not([hidden])')) return; const el = document.activeElement; if (!el || el === document.body || el.tagName === 'CANVAS') go(BACK); else el.blur(); });
+/* a button to the sister page, carrying the same way back */
+const LINKS = [[".dock .bar", "Watch the film", "potters-wheel.html", "#about"], [".dock .bar", "Held, a film", "held.html", "#about"]], tail = '?from=' + from + '&stop=' + stop + (/[?&]q=low\b/.test(location.search) ? '&q=low' : '');
+LINKS.forEach(function(L){ document.querySelectorAll(L[0]).forEach(function(bar){ const b = document.createElement('button'); b.type = 'button'; b.textContent = L[1]; b.addEventListener('click', function(){ go(L[2] + tail); }); const ref = bar.querySelector(L[3]); if (ref) bar.insertBefore(b, ref); else bar.appendChild(b); }); });
+})();
+</script>
+</body>
+</html>

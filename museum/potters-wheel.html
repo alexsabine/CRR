@@ -1,0 +1,1169 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8">
+<title>The Potter's Wheel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: full-bleed studio; stage rail left, instruments right, one caption card above a quiet control bar */
+  --studio:#0b0a09; --ink:#f3ecdf; --ink-soft:rgba(243,236,223,.72); --panel:rgba(16,14,12,.56); --line:rgba(243,236,223,.2);
+  --accent:#f0b45a; --bad:#e5604c; --slip:#b39b84;
+  --display:"Fraunces",Georgia,"Times New Roman",serif; --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+body{font:400 13px/1.45 var(--mono)}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#stage.touching{cursor:none}
+.glass{background:var(--panel);border:1px solid var(--line);border-radius:16px;-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2)}
+.head{position:fixed;left:max(20px,env(safe-area-inset-left,0px));top:calc(16px + env(safe-area-inset-top,0px));pointer-events:none;text-shadow:0 1px 12px rgba(0,0,0,.6);max-width:min(44ch,60vw)}
+.head h1{font:600 clamp(22px,3vw,34px)/1.05 var(--display);margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.head p{margin:0;color:var(--ink-soft)}
+#key{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:4px 0 8px;font-size:12.5px}#key dt{color:var(--accent)}#key dd{margin:0;color:var(--ink)}
+#caveat{font:italic 400 13.5px/1.35 var(--display);color:var(--ink)!important}
+#weight{margin:0 0 7px;font:500 12.5px/1 var(--mono);color:var(--accent);letter-spacing:.02em}#weight[data-tone=bad]{color:var(--bad)}
+.bar button:disabled{opacity:.35;cursor:default}
+#glazes button{width:26px;height:26px;padding:0;border-radius:50%;background:var(--g);border:2px solid rgba(243,236,223,.35)}#glazes button[aria-pressed=true]{border-color:var(--ink);background:var(--g)}
+#rail{position:fixed;left:max(16px,env(safe-area-inset-left,0px));top:50%;transform:translateY(-50%);margin:0;padding:16px 18px 16px 16px;list-style:none;display:flex;flex-direction:column;gap:13px;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:16px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+#rail li{display:grid;grid-template-columns:14px auto;column-gap:10px;align-items:baseline;opacity:.42;transition:opacity .4s}
+#rail li::before{content:"";width:8px;height:8px;border-radius:50%;border:1.5px solid var(--ink);grid-row:1/3;align-self:center}
+#rail li b{font:600 17px/1.1 var(--display)}
+#rail li span{grid-column:2;font-size:11.5px;color:var(--ink-soft)}
+#rail li[data-on="1"]{opacity:1}#rail li[data-on="1"]::before{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 5px rgba(240,180,90,.22)}
+#rail li[data-on="done"]{opacity:.7}#rail li[data-on="done"]::before{background:var(--ink)}
+.inst{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));width:308px;padding:0;overflow:hidden}
+#hud{display:block;width:100%;height:566px}
+.dock{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}.dock>*{pointer-events:auto}
+#card{width:min(720px,100%);padding:13px 20px 12px;text-align:center}
+#card[data-tone=bad]{border-color:var(--bad)}#card[data-tone=warn]{border-color:var(--accent)}
+#craft{font:400 clamp(16px,1.45vw,19px)/1.36 var(--display);margin:0;text-wrap:balance}
+#people{margin:9px 0 0;color:var(--accent);font-size:13px;text-wrap:balance}
+#people::before{content:"Between people · ";color:var(--ink-soft)}
+#quote{margin:8px 0 0;font:italic 400 13.5px/1.4 var(--display);color:var(--ink-soft)}
+.bar{width:100%;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:10px 14px;font-size:12.5px}
+.bar button,.sheet button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+.bar button:hover{border-color:var(--ink-soft)}
+.bar button[aria-pressed="true"]{background:var(--ink);color:#15120e;border-color:var(--ink)}
+.bar button:focus-visible,.bar input:focus-visible,.sheet button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:flex;gap:4px}.grow{flex:1 1 8px}
+.pedal{display:flex;align-items:center;gap:10px;flex:1 1 240px;min-width:200px}
+.pedal label{color:var(--ink-soft);white-space:nowrap}
+#speed{flex:1;min-width:90px;accent-color:var(--accent);height:22px}
+#rpm{font-variant-numeric:tabular-nums;min-width:8ch;color:var(--accent)}
+#inst{display:none}
+.sheet{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.55);padding:20px;z-index:5}
+.sheet[hidden]{display:none}
+.sheet>div{max-width:680px;max-height:86vh;overflow:auto;padding:26px 30px;font:400 14.5px/1.55 Georgia,serif;color:var(--ink)}
+.sheet h2{font:600 26px/1.1 var(--display);margin:0 0 10px}.sheet h3{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:20px 0 6px}
+.sheet p{margin:0 0 9px}.sheet small{color:var(--ink-soft);font:400 12px/1.5 var(--mono)}
+#chap{position:fixed;left:max(20px,env(safe-area-inset-left,0px));top:calc(58px + env(safe-area-inset-top,0px));margin:0;font:500 12.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);text-shadow:0 1px 10px rgba(0,0,0,.7)}
+#pull{position:fixed;left:max(26px,env(safe-area-inset-left,0px));top:calc(104px + env(safe-area-inset-top,0px));margin:0;max-width:min(31ch,42vw);font:italic 400 clamp(17px,1.7vw,23px)/1.3 var(--display);color:var(--ink);text-shadow:0 2px 16px rgba(0,0,0,.9),0 0 3px rgba(0,0,0,.8);transform:rotate(-3.2deg);transform-origin:left top;opacity:0;transition:opacity 1.1s;pointer-events:none;z-index:2;text-wrap:balance;white-space:pre-line}
+#pull[data-on="1"]{opacity:.96}
+#pull cite{display:block;margin-top:9px;font:500 11.5px/1.3 var(--mono);font-style:normal;letter-spacing:.04em;color:var(--accent)}
+body:not([data-ui=film]) #pull{display:none}
+#scale{position:fixed;right:max(24px,env(safe-area-inset-right,0px));top:calc(22px + env(safe-area-inset-top,0px));margin:0;text-align:right;font:400 13.5px/1.7 var(--mono);color:var(--ink-soft);text-shadow:0 1px 12px rgba(0,0,0,.9);opacity:0;transition:opacity .8s;pointer-events:none;z-index:2;font-variant-numeric:tabular-nums}#scale b{color:var(--ink);font-weight:500}#scale[data-on="1"]{opacity:1}body:not([data-ui=film]) #scale{display:none}
+.linst{position:fixed;left:max(16px,env(safe-area-inset-left,0px));top:50%;transform:translateY(-34%);width:316px;padding:0;overflow:hidden;opacity:0;transition:opacity .8s;pointer-events:none}#lhud{display:block;width:100%;height:232px}
+body[data-ui=film][data-left="1"] .linst{opacity:1}body:not([data-ui=film]) .linst{display:none}
+#sub{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));width:min(880px,calc(100% - 40px));margin:0;text-align:center;font:400 clamp(20px,2.3vw,30px)/1.32 var(--display);text-wrap:balance;color:var(--ink);text-shadow:0 2px 18px rgba(0,0,0,.95),0 0 3px rgba(0,0,0,.9);opacity:0;transition:opacity .45s;pointer-events:none}
+#sub[data-on="1"]{opacity:1}
+#fbar{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;padding:9px 12px;font-size:12.5px}
+#fbar button,#start button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+#fbar button:focus-visible,#start button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fplay,#start .primary{background:var(--accent)!important;border-color:var(--accent)!important;color:#1a1206!important;min-width:76px}
+#start button{font-size:14px;padding:12px 18px}
+#track{position:relative;flex:1;height:22px;cursor:pointer;min-width:60px}
+#ticks i{position:absolute;top:8px;height:6px;border-radius:3px;background:rgba(243,236,223,.16);box-shadow:inset -2px 0 0 var(--studio)}#ticks i[data-on=done]{background:rgba(243,236,223,.4)}#ticks i[data-on="1"]{background:rgba(243,236,223,.28)}
+#fprog{position:absolute;left:0;top:8px;height:6px;border-radius:3px;background:var(--accent);pointer-events:none;mix-blend-mode:screen;opacity:.9}
+#ftime{font-variant-numeric:tabular-nums;color:var(--ink-soft);white-space:nowrap}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 0 0 #000;transition:box-shadow .8s;z-index:1}
+body[data-slow="1"]::after{box-shadow:inset 0 0 220px 40px rgba(0,0,0,.55)}
+body[data-slow="1"] #chap::after{content:"  ·  slow motion";color:var(--ink-soft)}
+body:not([data-ui=film]) #fbar,body:not([data-ui=film]) #sub,body:not([data-ui=film]) #chap{display:none}
+body[data-ui=film] .dock,body[data-ui=film] #rail,body[data-ui=film] #key,body[data-ui=film] #caveat{display:none}
+body[data-ui=film] .inst{opacity:0;transition:opacity .8s;top:calc(16px + env(safe-area-inset-top,0px))}body[data-ui=film][data-gauge="1"] .inst{opacity:1}
+body[data-ui=film] #hud{height:400px}
+body[data-ui=start] .dock,body[data-ui=start] #rail,body[data-ui=start] .inst,body[data-ui=start] .head{display:none}
+.glass,.sheet,#fbar,.dock,.inst,#rail,.head,#chap,#sub{z-index:2}.sheet{z-index:6}
+#fail{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:400 15px/1.5 var(--mono)}
+@media (max-width:1000px){ #rail{display:none} .inst{width:260px} #hud{height:548px} #inst{display:inline-block} body.noinst .inst{display:none} }
+@media (max-width:1000px){ .linst{display:none} }
+@media (max-width:700px){ #pull{font-size:15px;max-width:70vw;top:calc(84px + env(safe-area-inset-top,0px))} #fprev,#fnext,#ftime{display:none} #sub{bottom:calc(78px + env(safe-area-inset-bottom,0px));font-size:19px} body[data-ui=film] .inst{display:none} #key,#caveat{display:none} .inst{display:none} body.noinst .inst{display:block;left:16px;right:16px;width:auto;top:70px} #card{padding:10px 14px} #craft{font-size:15px} #people{font-size:12px} #quote{display:none} .bar{gap:8px 8px;padding:8px 10px} .bar button{padding:8px 10px} .head p{display:none} }
+@media (prefers-reduced-motion:reduce){ #rail li{transition:none} }
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="A potter's wheel seen from the potter's seat, with wet clay turning on it"></canvas>
+<div class="head"><h1>The Potter’s Wheel</h1><dl id="key"><dt>The hand</dt><dd>the world outside: a parent, a teacher, whoever they lean on</dd><dt>The clay</dt><dd>another person, becoming</dd><dt>The wheel</dt><dd>time, and its pace</dd></dl><p id="caveat">Clay is passive. A child never is: active, capable, and full of meaning of their own.</p></div>
+<ol id="rail" aria-label="Stages"></ol>
+<div class="inst glass"><canvas id="hud" role="img" aria-label="Instruments: the clay cut through, the view from above, and how far each touch moves the clay"></canvas></div>
+<p id="chap" aria-live="off"></p>
+<blockquote id="pull" data-on="0"><span></span><cite></cite></blockquote>
+<p id="scale" data-on="0"></p>
+<div class="linst glass"><canvas id="lhud" role="img" aria-label="A graph of the arithmetic behind the current scene"></canvas></div>
+<p id="sub" data-on="0" aria-live="polite"></p>
+<div id="fbar" class="glass">
+  <button id="fplay" type="button">Pause</button><button id="fprev" type="button" aria-label="Previous chapter">‹</button><button id="fnext" type="button" aria-label="Next chapter">›</button>
+  <div id="track" role="group" aria-label="Chapters"><div id="ticks"></div><i id="fprog"></i></div>
+  <span id="ftime">0:00 / 0:00</span>
+  <button id="fsound" type="button" aria-pressed="true">Sound on</button>
+  <button id="fexplore" type="button">Try it yourself</button>
+</div>
+<div id="start" class="sheet"><div class="glass" style="text-align:center;max-width:560px">
+  <h2 style="font-size:38px;margin-bottom:12px">The Potter’s Wheel</h2>
+  <p style="font:400 18px/1.45 var(--display)">How to use your weight beside another person: when to hold still, when to add more, when to learn from them, and when to let go.</p>
+  <p><small>A ten-minute film with narration, then the wheel is yours. The narrator is a synthetic voice.</small></p>
+  <p style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px"><button id="beginFilm" type="button" class="primary">Begin the film</button><button id="beginExplore" type="button">Go straight to the wheel</button></p>
+</div></div>
+<div class="dock">
+<div id="card" class="glass" aria-live="polite"><p id="weight" hidden></p><p id="craft"></p><p id="people"></p><p id="quote" hidden></p></div>
+<div class="bar glass">
+  <div class="seg" id="modes"><button type="button" data-m="design">Potter with a design</button><button type="button" data-m="absent">Absent potter</button><button type="button" data-m="good">Good-enough potter</button><button type="button" data-m="hands">Your hands</button></div>
+  <div class="pedal"><label for="speed">Wheel</label><input id="speed" type="range" min="0" max="4" step="0.05" value="2.4"><span id="rpm">0 rpm</span></div>
+  <button id="water" type="button" title="A wet sponge (W)">Water</button>
+  <button id="cut" type="button">Cut free</button>
+  <button id="fire" type="button">Fire</button>
+  <div id="glazes" class="seg" role="group" aria-label="Glaze"></div>
+  <button id="again" type="button">New clay</button>
+  <span class="grow"></span>
+  <div class="seg"><button id="lensP" type="button" aria-pressed="true">Potter’s seat</button><button id="lensA" type="button" aria-pressed="false">From above</button></div>
+  <button id="inst" type="button">Instruments</button>
+  <button id="about" type="button">About</button>
+  <button id="tofilm" type="button">Watch the film</button>
+</div>
+</div>
+<div class="sheet" id="sheet" hidden><div class="glass">
+  <h2>What this is, and is not</h2>
+  <p>One lump of clay, one wheel, one pair of hands. It is a way of seeing how one person shapes another without breaking them: by holding still, by pressing just enough, by going at the pace the other can bear, and by letting go.</p>
+  <h3>The model</h3>
+  <p>The pot is a stack of rings. Clay is never made or lost: whatever a touch frees, the rim rises to use. A touch is a meeting of two firmnesses. Each turn the clay moves a share of the way to the hand, and that share is <em>hand ÷ (hand + clay)</em>. Thick, drier clay holds its shape; a thin wet wall gives way to almost anything. This is the same rule a Kalman filter uses to weigh what it already believes against what arrives, and the same weighting the free energy principle calls precision.</p>
+  <p>A still hand centres the clay, because once a turn the high side meets it. A moving hand does not. Speed throws anything off-centre further out and opens thin walls. Every change is counted; changes made and then unmade are the surplus, and they tire the clay.</p>
+  <h3>What it leaves out</h3>
+  <p><strong>What the clay “wants” is put in by this model.</strong> Each lump is given a form it yields to most easily, so that the meeting has two sides. Real clay wants nothing. And clay is compliant in a way no child is: it cannot refuse, imagine, or change the potter. The piece is about how to use weight with someone who can do all three, and the aim is that they come through as themselves.</p>
+  <p><strong>The balance in the film</strong> is the potter’s weight divided by the clay’s firmness. At one, they are matched. One finding surprised me and is worth knowing: the potter who forces the clay does not read as heavy on the balance, because clay that is being forced resists harder. The harm shows as strain in the wall, not on the balance.</p>
+  <p><strong>The voice</strong> is synthetic, and the same one as the museum films: Piper, model en_GB-vctk-medium, speaker p225, slowed a little, with light compression and room. It was trained on the CSTR VCTK Corpus (University of Edinburgh), CC BY 4.0. The corpus is recordings of real volunteers, so the voice is derived from a real person’s, though it is not presented as theirs.</p>
+  <p>Real clay is far richer than this: it shears, it has grain and memory, it dries unevenly, and a potter uses two hands, a sponge and a rib at once. The numbers are the model’s own and are not measurements of clay or of people. The link to people is an analogy offered for teaching, not a finding.</p>
+  <h3>Where the ideas come from</h3>
+  <p>Holding, the good-enough carer and graduated failure: D. W. Winnicott (1953, 1960). Potential space, play, and the question never to be asked: Winnicott, Playing and Reality (1971). The hundred languages of children, and the image of the child as rich and capable: L. Malaguzzi, tr. L. Gandini. Against the learner as an empty vessel: P. Freire (1970). Centring as a way of life: M. C. Richards (1964). The fixed point: L. E. J. Brouwer (1911). The partial view: D. Haraway, Situated Knowledges (1988). The reading of the Now as an empty place between the settled past and the open future is an interpretation. Rousseau’s tutor in <em>Emile</em> (1762) arranges the child’s world with care; the “noble savage” is not his phrase. Blake’s quarrel with Rousseau is in <em>Jerusalem</em>, plate 52, “To the Deists”, where he also writes that a person “must continually be changed into his direct Contrary”. Equanimity ordinarily means evenness of mind; the sense used here, the past carried at its earned weight, is this film’s own. Lines on screen marked “after” are paraphrases; all quotations should be checked against your own editions. Surviving without retaliating: Winnicott (1969). The weighting of prior and evidence: R. E. Kalman (1960); K. Friston (2010). Reflection in action at the bench: D. Schön (1983). Enabling constraint: A. Juarrero (1999). The measure becoming the target: D. T. Campbell (1979); M. Strathern (1997). The wheel as a way of thinking about persons: M. C. Richards, Centering (1964). Counting change, the cut and the surplus follow a process reading (CRR), which is a way of reading, not a theorem. Quotations should be checked against your own editions.</p>
+  <p><small>Renderer, clay shader, lens and grain follow the studio’s Clay Sea piece. three.js r158.</small></p>
+  <button id="close" type="button">Close</button>
+</div></div>
+<div id="fail">This piece needs WebGL 2, which this browser or device has not made available.</div>
+<script src="vendor/three-0.158.0.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+const canvas = document.getElementById('stage');
+if (!window.THREE || !canvas.getContext('webgl2')) { document.getElementById('fail').style.display='grid'; return; }
+/* ───────────────────────── noise (CPU) ───────────────────────── */
+function h3(x,y,z){ let n = Math.imul(x|0,374761393) ^ Math.imul(y|0,668265263) ^ Math.imul(z|0,1440662683);
+  n = Math.imul(n ^ (n>>>13), 1274126177); return ((n ^ (n>>>16))>>>0)/4294967296; }
+function vn3(x,y,z){ const xi=Math.floor(x), yi=Math.floor(y), zi=Math.floor(z);
+  let fx=x-xi, fy=y-yi, fz=z-zi; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); fz=fz*fz*(3-2*fz);
+  const a=h3(xi,yi,zi), b=h3(xi+1,yi,zi), c=h3(xi,yi+1,zi), d=h3(xi+1,yi+1,zi),
+        e=h3(xi,yi,zi+1), f=h3(xi+1,yi,zi+1), g=h3(xi,yi+1,zi+1), h=h3(xi+1,yi+1,zi+1);
+  const ab=a+(b-a)*fx, cd=c+(d-c)*fx, ef=e+(f-e)*fx, gh=g+(h-g)*fx;
+  const p=ab+(cd-ab)*fy, q=ef+(gh-ef)*fy; return p+(q-p)*fz; }
+function fbm3(x,y,z){ return vn3(x,y,z)*.55 + vn3(x*2.1+5,y*2.1+3,z*2.1+1)*.3 + vn3(x*4.3+9,y*4.3+7,z*4.3+2)*.15; }
+const rnd=(i,j)=>h3(i,j,77);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const sstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+
+/* ───────────────────────── renderer ───────────────────────── */
+const renderer = new THREE.WebGLRenderer({canvas, antialias:false, alpha:false, powerPreference:'high-performance', preserveDrawingBuffer:true});
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+const HDR = renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float');
+
+/* Contact-hardening soft shadows (PCSS) patched into three's shadow lookup. */
+(function(){
+  const pcss = `
+  float ignoise(vec2 p){ return fract(52.9829189*fract(dot(p, vec2(0.06711056,0.00583715)))); }
+  float pcssShadow(sampler2D sm, vec3 c, float K){
+    float rot = ignoise(gl_FragCoord.xy)*6.2831853;
+    float search = K*0.05, bsum=0., bn=0.;
+    for(int i=0;i<14;i++){ float fi=float(i)+.5; float r=sqrt(fi/14.); float a=fi*2.39996323+rot;
+      float d = unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*search));
+      if(d < c.z-0.0006){ bsum+=d; bn+=1.; } }
+    if(bn<.5) return 1.;
+    float pen = clamp((c.z-bsum/bn)*K, 0.0006, 0.02);
+    float s=0.;
+    for(int i=0;i<28;i++){ float fi=float(i)+.5; float r=sqrt(fi/28.); float a=fi*2.39996323+rot*1.7;
+      s += step(c.z, unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*pen))); }
+    return s/28.;
+  }`;
+  let ch = THREE.ShaderChunk.shadowmap_pars_fragment;
+  ch = ch.replace('#ifdef USE_SHADOWMAP', '#ifdef USE_SHADOWMAP\n'+pcss);
+  ch = ch.replace('#if defined( SHADOWMAP_TYPE_PCF )', 'return pcssShadow(shadowMap, shadowCoord.xyz, shadowRadius);\n#if defined( SHADOWMAP_TYPE_PCF )');
+  THREE.ShaderChunk.shadowmap_pars_fragment = ch;
+})();
+
+/* ───────────────────────── materials ───────────────────────── */
+const shared = { uSeed:{value:new THREE.Vector3()}, uShip:{value:new THREE.Vector4()}, uSeaT:{value:0} };
+const GLSL_NOISE = `
+float hash13(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32); return fract((p.x+p.y)*p.z); }
+float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash13(i),hash13(i+vec3(1,0,0)),f.x),mix(hash13(i+vec3(0,1,0)),hash13(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash13(i+vec3(0,0,1)),hash13(i+vec3(1,0,1)),f.x),mix(hash13(i+vec3(0,1,1)),hash13(i+vec3(1,1,1)),f.x),f.y),f.z); }`;
+const CLAY_PARS = GLSL_NOISE + `
+uniform mat3 normalMatrix;
+uniform vec3 uSeed; uniform float uBoil, uBump, uSmear, uSpeck; uniform vec3 uCol2;
+uniform vec4 uBandY; uniform vec3 uBandC[4];
+uniform vec4 uShip; uniform float uSeaT; uniform vec3 uDeep, uMid, uLight, uFoam;
+varying vec3 vObjPos; varying vec3 vObjN;
+#ifdef SEA
+varying vec2 vSea;
+#endif
+float clayH(vec3 p){
+  vec3 q = p + uSeed*uBoil;
+  float h = (vn(q*8.)-.5) + (vn(q*21.+3.)-.5)*.5 + (vn(q*57.+7.)-.5)*.22;
+  vec3 w = q*5.5; float fpMask = smoothstep(.56,.8, vn(w*.8+11.));
+  vec2 cc = fract(w.xy + w.z*.37)-.5;
+  h += sin(length(cc)*52. + vn(q*19.)*7.)*fpMask*.028;
+  h += smoothstep(.8,.95, vn(vec3(q.x*3., q.y*40., q.z*3.)+2.))*-.07;
+  return h;
+}
+vec3 clayNormal(vec3 nView){
+  #ifdef MODE_CLAY
+  vec3 p = vObjPos; float e = .0035;
+  float h0 = clayH(p);
+  vec3 g = vec3(clayH(p+vec3(e,0,0))-h0, clayH(p+vec3(0,e,0))-h0, clayH(p+vec3(0,0,e))-h0)/e;
+  vec3 nO = normalize(vObjN);
+  g -= dot(g,nO)*nO;
+  vec3 nP = normalize(nO - g*uBump*.011);
+  vec3 nV = normalize(normalMatrix*nP);
+  return dot(nV,nView) < 0. ? -nV : nV;
+  #else
+  return nView;
+  #endif
+}
+float clayRough(float r){
+  #ifdef MODE_CLAY
+  float m = vn(vObjPos*6.+uSeed*uBoil+40.);
+  return clamp(r + (m-.5)*.3 - smoothstep(.7,.9,vn(vObjPos*3.+9.))*.14, .2, 1.);
+  #else
+  return r;
+  #endif
+}
+vec3 clayAlbedo(vec3 base){
+  vec3 p = vObjPos; vec3 c = base;
+  #ifdef MODE_CLAY
+    #ifdef BANDS
+      float wob = (vn(p*7.)-.5)*.035 + (vn(p*23.)-.5)*.012;
+      float y = p.y + wob;
+      c = uBandC[0];
+      c = mix(c, uBandC[1], smoothstep(-.004,.004, y-uBandY.x));
+      c = mix(c, uBandC[2], smoothstep(-.004,.004, y-uBandY.y));
+      c = mix(c, uBandC[3], smoothstep(-.004,.004, y-uBandY.z));
+    #endif
+    #ifdef SEA
+      vec2 P = p.xz; vec2 d1 = vec2(.5,.866);
+      float along = dot(P, vec2(d1.y,-d1.x)), across = dot(P,d1);
+      float st  = vn(vec3(along*.9, across*3.6 - uSeaT*.55, 3.+uSeed.x*.2));
+      float st2 = vn(vec3(along*2.3+5., across*8. - uSeaT*.9, 9.+uSeed.y*.2));
+      c = mix(uDeep, uMid, smoothstep(.22,.7,st));
+      c = mix(c, uLight, smoothstep(.5,.82,st2)*.75);
+      float hN = vSea.x;
+      c = mix(c, uDeep*.75, smoothstep(.42,.05,hN)*.55);
+      float nz = vn(vec3(P*6.5, uSeed.y*3.))-.5;
+      float crest = smoothstep(.86,.98, hN + nz*.3);
+      vec2 L = P - uShip.xy;
+      float e = length(vec2(L.x/.98, L.y/.36));
+      float ring = smoothstep(1.42,1.08,e);
+      float b = -L.x - .55; float wake = 0.;
+      if(b>0.){ float arm = exp(-pow((abs(L.y)-(.2+.3*b))/.075,2.))*exp(-b*.5);
+        float churn = exp(-pow(L.y/(.13+.06*b),2.))*exp(-b*.75); wake = max(arm, churn); }
+      float foam = smoothstep(.34,.56, max(ring,wake) + (vn(vec3(P*10., uSeed.z*3.))-.5)*.55);
+      c = mix(c, uFoam, max(crest*.92, foam*.95)*(1.-vSea.y));
+      c = mix(c, uDeep*.9, vSea.y*.6);
+    #endif
+    float m = vn(p*5.+uSeed*uBoil)*.6 + vn(p*17.+4.)*.4;
+    c *= .86 + .28*m;
+    float s = smoothstep(.6,.8, vn(vec3(p.x*3.,p.y*8.,p.z*3.)+31.));
+    c = mix(c, uCol2, s*uSmear);
+    float sp = smoothstep(.9,.95, vn(p*150.+17.))*step(.75, vn(p*9.+70.));
+    c = mix(c, vec3(.82,.78,.7), sp*.35*uSpeck);
+  #endif
+  #ifdef MODE_WOOD
+    vec2 P = p.xz; float pid = floor(P.y/1.15+.5); float py = fract(P.y/1.15+.5);
+    float gw = vn(vec3(P.x*.5+pid*7., P.y*5., pid));
+    float rings = sin(P.y*46. + gw*9. + vn(vec3(P.x*.25,P.y*1.5,pid*3.))*14.);
+    c = mix(vec3(.25,.14,.07), vec3(.47,.29,.15), .5+.5*rings*.7);
+    c *= .8 + .35*vn(vec3(P.x*8., P.y*160., pid));
+    c *= mix(.45,1., smoothstep(0.,.02,py)*smoothstep(1.,.98,py));
+    c *= base;
+  #endif
+  #ifdef MODE_PAPER
+    float y = clamp((p.y+3.55)/2.5,0.,1.);
+    float br = (vn(vec3(p.x*.5,p.y*5.,1.))-.5)*.08 + (vn(vec3(p.x*3.,p.y*30.,4.))-.5)*.03;
+    y += br;
+    c = mix(vec3(.96,.62,.40), vec3(.93,.80,.68), smoothstep(.04,.2,y));
+    c = mix(c, vec3(.36,.62,.86), smoothstep(.14,.46,y));
+    c = mix(c, vec3(.12,.32,.64), smoothstep(.5,1.,y));
+    c *= .93+.14*vn(p*14.);
+  #endif
+  return c;
+}`;
+function lin(hex){ return new THREE.Color(hex); }
+function mat(o){
+  o = o || {};
+  const mode = o.mode || 'CLAY';
+  const m = new THREE.MeshPhysicalMaterial({ color:o.color!==undefined?o.color:0xffffff, roughness:o.rough!==undefined?o.rough:.56, metalness:0,
+    sheen: mode==='CLAY'?.45:0, sheenRoughness:.5, sheenColor:new THREE.Color(o.color!==undefined?o.color:0xffffff).lerp(new THREE.Color(0xffffff),.5),
+    specularIntensity: o.spec!==undefined?o.spec:.75, envMapIntensity:o.env!==undefined?o.env:1, side:o.side||THREE.FrontSide });
+  if(o.emissive){ m.emissive=new THREE.Color(o.emissive); m.emissiveIntensity=o.emissiveIntensity||1; }
+  const bands = o.bands||null;
+  const u = { uSeed:shared.uSeed, uShip:shared.uShip, uSeaT:shared.uSeaT,
+    uBoil:{value:o.boil||0}, uBump:{value:o.bump!==undefined?o.bump:1}, uSmear:{value:o.smear||0}, uSpeck:{value:o.speck!==undefined?o.speck:1}, uCol2:{value:lin(o.color2!==undefined?o.color2:0xffffff)},
+    uBandY:{value:new THREE.Vector4(bands?bands.y[0]:9, bands&&bands.y[1]!==undefined?bands.y[1]:9, bands&&bands.y[2]!==undefined?bands.y[2]:9, 0)},
+    uBandC:{value:[0,1,2,3].map(i=>lin(bands?bands.c[Math.min(i,bands.c.length-1)]:0xffffff))},
+    uDeep:{value:lin(0x0b3a78)}, uMid:{value:lin(0x1668b8)}, uLight:{value:lin(0x2fa3c9)}, uFoam:{value:lin(0xf1eee2)} };
+  m.defines = Object.assign({}, m.defines, {['MODE_'+mode]:''});
+  if(bands) m.defines.BANDS='';
+  if(o.sea) m.defines.SEA='';
+  m.userData.u = u;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjPos; varying vec3 vObjN;\n#ifdef SEA\nattribute vec2 aSea; varying vec2 vSea;\n#endif')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObjPos=position; vObjN=normal;\n#ifdef SEA\nvSea=aSea;\n#endif');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n'+CLAY_PARS)
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = clayAlbedo(diffuseColor.rgb);')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clayRough(roughnessFactor);')
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal = clayNormal(normal);');
+  };
+  m.customProgramCacheKey = () => 'clay|'+mode+'|'+(bands?1:0)+'|'+(o.sea?1:0);
+  return m;
+}
+
+/* ───────────────────────── geometry helpers ───────────────────────── */
+function weld(geo){
+  const p=geo.attributes.position, n=new Float32Array(p.count*3), map=new Map(), key=new Array(p.count);
+  for(let i=0;i<p.count;i++){ key[i]=Math.round(p.getX(i)*2e4)+'_'+Math.round(p.getY(i)*2e4)+'_'+Math.round(p.getZ(i)*2e4); if(!map.has(key[i])) map.set(key[i],[0,0,0]); }
+  const idx=geo.index, tri=idx?idx.count/3:p.count/3, a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let t=0;t<tri;t++){ const i0=idx?idx.getX(t*3):t*3, i1=idx?idx.getX(t*3+1):t*3+1, i2=idx?idx.getX(t*3+2):t*3+2;
+    a.fromBufferAttribute(p,i0); b.fromBufferAttribute(p,i1); c.fromBufferAttribute(p,i2); b.sub(a); c.sub(a); b.cross(c);
+    for(const i of [i0,i1,i2]){ const m=map.get(key[i]); m[0]+=b.x; m[1]+=b.y; m[2]+=b.z; } }
+  for(let i=0;i<p.count;i++){ const m=map.get(key[i]); const l=Math.hypot(m[0],m[1],m[2])||1; n[i*3]=m[0]/l; n[i*3+1]=m[1]/l; n[i*3+2]=m[2]/l; }
+  geo.setAttribute('normal', new THREE.BufferAttribute(n,3)); return geo;
+}
+let seedC = 1;
+function clayify(geo, amp, freq){
+  const sd = (seedC++)*13.7; weld(geo);
+  const p=geo.attributes.position, n=geo.attributes.normal;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+    const d=(fbm3(x*freq+sd,y*freq+sd*.7,z*freq+sd*.3)-.5)*2*amp;
+    p.setXYZ(i, x+n.getX(i)*d, y+n.getY(i)*d, z+n.getZ(i)*d); }
+  weld(geo); geo.computeBoundingSphere(); return geo;
+}
+function blob(r, sx, sy, sz, amp, freq, det){
+  const g=new THREE.SphereGeometry(r, det||40, Math.round((det||40)*.7)); g.scale(sx||1,sy||1,sz||1);
+  return clayify(g, amp!==undefined?amp:r*.12, freq||(1.6/r));
+}
+function rbox(w,h,d,r,amp,freq){
+  const s=14, g=new THREE.BoxGeometry(w,h,d,s,s,s), p=g.attributes.position, hx=w/2-r, hy=h/2-r, hz=d/2-r, v=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); c.set(clamp(v.x,-hx,hx),clamp(v.y,-hy,hy),clamp(v.z,-hz,hz)); v.sub(c);
+    if(v.lengthSq()>1e-12){ v.normalize().multiplyScalar(r).add(c); p.setXYZ(i,v.x,v.y,v.z); } }
+  return clayify(g, amp!==undefined?amp:.012, freq||7);
+}
+function lathe(pts, amp, freq, seg){
+  const g=new THREE.LatheGeometry(pts.map(q=>new THREE.Vector2(q[0],q[1])), seg||44); return clayify(g, amp!==undefined?amp:.01, freq||7);
+}
+function grid(nu,nv,fn){
+  const pos=new Float32Array((nu+1)*(nv+1)*3), idx=[]; let k=0; const o=[0,0,0];
+  for(let i=0;i<=nu;i++) for(let j=0;j<=nv;j++){ fn(i/nu,j/nv,o); pos[k++]=o[0]; pos[k++]=o[1]; pos[k++]=o[2]; }
+  for(let i=0;i<nu;i++) for(let j=0;j<nv;j++){ const a=i*(nv+1)+j, b=a+1, c=a+nv+1, d=c+1; idx.push(a,b,c, b,d,c); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3)); g.setIndex(idx); return g;
+}
+function flip(g){ const ix=g.index.array; for(let i=0;i<ix.length;i+=3){ const t=ix[i+1]; ix[i+1]=ix[i+2]; ix[i+2]=t; } return g; }
+function mesh(g,m,x,y,z,parent){ const o=new THREE.Mesh(g,m); o.position.set(x||0,y||0,z||0); o.castShadow=true; o.receiveShadow=true; (parent||scene).add(o); return o; }
+
+/* ───────────────────────── the clay model, and the demonstration ───────────────────────── */
+/* The clay on the wheel: a small, stated model. One unit is 10 cm.
+   The pot is a stack of rings: outer radius ro, inner radius ri (0 where solid), off-centre e, at heights j*DY.
+   Volume is conserved: whatever a touch frees or takes, the rim rises or falls to pay for it.
+   A touch is a meeting of two precisions. The hand's is its pressure; the clay's is its firmness (thick and dry is firm,
+   thin and wet is soft). Each turn the clay moves a fraction K = hand / (hand + clay) of the way to the hand:
+   the Kalman gain, and exactly a precision-weighted average: new = (clay*old + hand*target) / (clay + hand).
+   In CRR's terms each turn of contact is one occasion: the wall is re-seeded as m' = q*m + (1-q)*Phi with q = 1-K.
+   The balance shown on screen is Omega = hand / clay = K / (1-K): 1 is matched weight, above is heavy, below is light.
+   C counts every change the clay has been through; C* is the net change; S = C - C* >= 0 is the surplus,
+   the overworking, and it tires the clay. A teaching model: plausible to a potter, not a simulation of real clay. */
+(function (root) {
+  const DY = .02, M = 220, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  /* What each lump 'wants'. Real clay wants nothing: this is put into the model so that the meeting has two sides.
+     A touch that goes the clay's way meets less resistance. A touch against it meets more, and leaves a strain that
+     stays in the wall and shows later, on the wheel or in the kiln. */
+  const WANTS = {
+    bowl: { name: 'a wide bowl', H: 1.6, r: u => .8 + .52 * Math.pow(clamp(u, 0, 1), 1.15) },
+    jar: { name: 'a round jar', H: 2.3, r: u => .74 + .38 * Math.sin(Math.PI * Math.pow(clamp(u, 0, 1), .85)) },
+    bottle: { name: 'a tall bottle', H: 3.1, r: u => { u = clamp(u, 0, 1); return .7 + .32 * Math.sin(Math.PI * Math.pow(u, .7)) * (1 - .5 * u) - .08 * u; } }
+  };
+  function create(seed, wantKey) {
+    let s0 = (seed || 1) >>> 0; const rnd = () => { s0 = (s0 + 0x6D2B79F5) >>> 0; let t = s0; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const P = { DY, M, ro: new Float32Array(M), ri: new Float32Array(M), e: new Float32Array(M), ph: new Float32Array(M), ring: new Float32Array(M), stress: new Float32Array(M), ro0: new Float32Array(M), pro: new Float32Array(M), pri: new Float32Array(M), cro: new Float32Array(M), cri: new Float32Array(M),
+      strain: new Float32Array(M), want: WANTS[wantKey] || WANTS[['bowl', 'jar', 'bottle'][(seed || 1) % 3]], wantKey: wantKey || ['bowl', 'jar', 'bottle'][(seed || 1) % 3], withNow: 0, H: 1.2, V0: 0, wet: .64, C: 0, rev: 0, floor: .16, collapsed: false, collapseAt: -1, why: '', hole: false, cut: false, over: 0, K: 0, gap: 0, firm: 0, press: 0, F: 0, jolt: 0, t: 0 };
+    for (let j = 0; j < M; j++) { const y = j * DY, u = Math.min(1, y / 1.3); P.ro[j] = .98 * Math.pow(1 - u * u, .42) * (1 + .05 * Math.sin(y * 9)); P.e[j] = .1 + .05 * rnd(); P.ph[j] = y * 1.4; P.ro0[j] = y < 1.2 ? P.ro[j] : 0; P.pro[j] = P.ro0[j]; }
+    P.n = () => Math.min(M - 1, Math.ceil(P.H / DY));
+    const area = j => P.ro[j] * P.ro[j] - P.ri[j] * P.ri[j];
+    P.volume = () => { let v = 0; const n = Math.floor(P.H / DY); for (let j = 0; j < n; j++) v += area(j); v += area(Math.min(n, M - 1)) * (P.H / DY - n); return v * Math.PI * DY; };
+    P.V0 = P.volume();
+    function conserve() { // find the height at which the clay we have is used up
+      const n0 = P.n(); for (let j = n0; j < M; j++) { P.ro[j] = Math.max(P.ro[n0 - 1], .3); P.ri[j] = P.ri[n0 - 1]; P.e[j] = P.e[n0 - 1]; P.ph[j] = P.ph[n0 - 1]; P.ring[j] = P.ring[n0 - 1]; }
+      let v = P.V0 / (Math.PI * DY), j = 0; while (j < M - 1 && v > area(j) && area(j) > 1e-5) { v -= area(j); j++; }
+      const target = (j + clamp(v / Math.max(area(j), 1e-5), 0, 1)) * DY; P.H += clamp(target - P.H, -.04, .04); }
+    P.firmAt = j => { const t = P.ri[j] > 0 ? P.ro[j] - P.ri[j] : Math.min(P.ro[j], 1); return Math.max(.02, (t / .25) * (1.45 - P.wet) * (1 - .55 * P.over)); };
+    /* C: every change each ring has been through. C*: its net change. S = C - C* >= 0 ring by ring (the triangle inequality). */
+    function tally() { let C = 0, net = 0; for (let j = 0; j < M; j++) { const live = j * DY < P.H, a = live ? P.ro[j] : 0, b = live ? P.ri[j] : 0; P.cro[j] += Math.abs(a - P.pro[j]); P.cri[j] += Math.abs(b - P.pri[j]); P.pro[j] = a; P.pri[j] = b; C += P.cro[j] + P.cri[j]; net += Math.abs(a - P.ro0[j]) + b; } P.C = C * DY; P.Cstar = net * DY; P.S = Math.max(0, P.C - P.Cstar); }
+    P.surplus = () => P.S || 0;
+    P.omega = () => P.K / Math.max(1e-6, 1 - P.K);
+    P.bump = a => { const n = P.n(); for (let j = Math.floor(n * .35); j < n; j++) P.e[j] += a * (j / n); };
+    P.wobble = () => { const n = P.n(); let s = 0; for (let j = 0; j < n; j++) s += P.e[j]; return s / n; };
+    P.depth = () => { const n = P.n(); let d = 0; for (let j = n - 1; j >= 0 && P.ri[j] > 0; j--) d += DY; return d; };
+    P.wantR = j => P.want.r(j * DY / P.want.H);
+    P.strained = () => { const n = P.n(); let s = 0; for (let j = 0; j < n; j++) s = Math.max(s, P.strain[j]); return s; };
+    P.fit = () => { const n = P.n(); let d = 0, c = 0; for (let j = 4; j < n; j++) if (P.ri[j] > 0) { d += Math.abs(P.ro[j] - P.wantR(j)); c++; } return c ? clamp(1 - (d / c) / .45 - Math.abs(P.H - P.want.H) / 2.2, 0, 1) : 0; };
+    P.thin = () => { const n = P.n(); let t = 9; for (let j = 0; j < n; j++) if (P.ri[j] > 0) t = Math.min(t, P.ro[j] - P.ri[j]); return t; };
+    P.water = () => { P.wet = clamp(P.wet + .14, 0, 1); };
+    P.release = p => { if (p > .45) { const n = P.n(); for (let j = 0; j < n; j++) P.e[j] += p * .07; P.jolt = 1; } };
+    function fail(j, why) { if (!P.collapsed) { P.collapsed = true; P.collapseAt = j; P.why = why; } }
+    /* hand: { on, type: 'out' | 'in' | 'top', y, R, vy, vR }.  w is the wheel in turns a second. */
+    P.step = (dt, w, hand) => {
+      P.t += dt; const dth = w * dt; P.rev += dth; P.jolt = Math.max(0, P.jolt - dt * 1.5); let n = P.n();
+      P.K = 0; P.gap = 0; P.press = 0; P.firm = 0; let F = 0;
+      if (P.collapsed) { P.fall = (P.fall || 0) + dt; if (P.fall < 1.3) { const jc = Math.max(4, P.collapseAt); for (let j = jc; j < n; j++) { const k = (j - jc) / Math.max(1, n - jc); P.ro[j] = Math.min(1.9, P.ro[j] * (1 + 1.1 * dt * (.4 + k))); P.ri[j] = Math.min(P.ro[j] - .03, P.ri[j] * (1 + 1.3 * dt * (.4 + k))); P.e[j] = Math.min(.5, P.e[j] + dt * .35); } P.H = Math.max(jc * DY + .14, P.H - dt * 1.4 * (P.H - jc * DY)); } return; }
+      if (P.cut) return;
+      if (hand && hand.on && w > .05) {
+        const rate = 1 - Math.exp(-dth * 1.7), share = K => 1 - Math.pow(1 - Math.min(K, .97), dth), mv = Math.abs(hand.vy || 0) + Math.abs(hand.vR || 0), still = Math.exp(-mv * 3), jh = clamp(Math.round(hand.y / DY), 0, n - 1);
+        if (hand.type === 'hold') { // two hands round the form: weight spent only on steadying, none on reshaping
+          const wgt = clamp(hand.weight, 0, 1), firm = P.firmAt(jh); P.press = wgt; P.firm = firm; P.K = 2.5 * wgt / (2.5 * wgt + firm); P.touch = wgt; P.withNow *= .9;
+          for (let j = 0; j < n; j++) { const dq = (j * DY - hand.y) / .7; P.e[j] -= Math.max(0, P.e[j] - .004) * wgt * still * rate * 2.4 * Math.exp(-dq * dq / 2); }
+        } else if (hand.type === 'top') { // opening: a thumb goes down through the middle and makes an inside
+          const p = clamp((P.H - hand.y) / .25, 0, 1), Rw = clamp(hand.R, .2, .7); P.press = p; P.firm = P.firmAt(n - 1); P.K = 2.5 * p / (2.5 * p + .6);
+          for (let j = Math.max(0, Math.floor(hand.y / DY)); j < n; j++) { const want = Math.min(Rw, P.ro[j] - .09); if (want > P.ri[j]) { const d = (want - P.ri[j]) * share(P.K); P.ri[j] += d; P.ro[j] += d * .35; } P.e[j] -= P.e[j] * p * still * rate * .4; }
+          if (hand.y < .07) P.hole = true; P.floor = Math.min(P.floor > 0 && P.depth() > 0 ? P.floor : 9, Math.max(.03, hand.y));
+          if (P.depth() > 0) P.floor = Math.max(.03, Math.min(P.floor, hand.y));
+        } else {
+          for (let j = Math.max(0, jh - 46); j < Math.min(n, jh + 47); j++) {
+            const hollow = P.ri[j] > 0 && j * DY >= P.floor, dyh = (j * DY - hand.y) / (hollow ? .2 : .42), wj = Math.exp(-dyh * dyh / 2);   // on a solid lump the whole palm is on the clay
+            if (hand.type === 'in' && !hollow) continue;
+            const pen = hand.type === 'out' ? P.ro[j] - hand.R : hand.R - P.ri[j]; if (pen <= 0) continue;
+            const p = clamp(pen / .3, 0, 1) * wj; let firm = P.firmAt(j), along = 0;
+            if (hollow) { const pull = hand.type === 'out' && (hand.vy || 0) > .12, gapW = P.wantR(j) - P.ro[j]; along = pull ? (P.H < P.want.H - .04 ? 1 : -1) : Math.abs(gapW) < .05 ? 0 : (hand.type === 'out' ? -1 : 1) * Math.sign(gapW); firm *= along > 0 ? .6 : along < 0 ? 1.9 : 1; }
+            const K = 2.5 * p / (2.5 * p + firm), d = pen * share(K); if (along < 0) P.strain[j] = Math.min(1.5, P.strain[j] - along * d * 5);
+            if (wj > .97) { P.K = K; P.gap = pen; P.press = p; P.firm = firm; P.withNow += (along - P.withNow) * Math.min(1, rate * 3); } F += .5 * 2.5 * p * pen * pen;
+            if (hand.type === 'out') { if (hollow && (hand.vy || 0) > .12) { P.ro[j] -= Math.min(d, Math.max(0, P.ro[j] - P.ri[j] - .01)); } else if (hollow) { const dd = Math.min(d, Math.max(0, P.ri[j] - .08)); P.ro[j] -= dd; P.ri[j] -= dd * .92; } else P.ro[j] -= Math.min(d, Math.max(0, P.ro[j] - .16)); }
+            else { const A = area(j); P.ri[j] += d; P.ro[j] = Math.sqrt(P.ri[j] * P.ri[j] + A); }
+            P.ring[j] += (p - P.ring[j]) * rate * .6;
+            P.e[j] += mv * p * dt * .22;
+          }
+          if (P.depth() < .03) for (let k = 0; k < 2; k++) for (let j = 1; j < n - 1; j++) P.ro[j] += ((P.ro[j - 1] + P.ro[j + 1]) / 2 - P.ro[j]) * Math.min(.5, rate * 1.2);   // wet clay under a palm smooths itself
+          // a still hand is a fixed point: once a turn the high side meets it, and gives way a little. A moving hand teaches nothing.
+          const jc = clamp(Math.round(hand.y / DY), 0, n - 1), touch = clamp(((hand.type === 'out' ? P.ro[jc] - hand.R : hand.R - P.ri[jc]) + .04) / .1, 0, 1); P.touch = touch; for (let j = 0; j < n; j++) { const dq = (j * DY - hand.y) / .55; P.e[j] -= Math.max(0, P.e[j] - .004) * touch * still * rate * 2.4 * Math.exp(-dq * dq / 2); }
+        }
+        P.wet = clamp(P.wet - .005 * dth * P.press, 0, 1);
+      }
+      // what the clay does on its own: the wheel throws anything off-centre further out, opens thin walls, and gravity waits
+      const w2 = w * w; let above = 0;
+      for (let j = n - 1; j >= 0; j--) {
+        const firm = P.firmAt(j), hollow = P.ri[j] > 0 && j * DY >= P.floor; above += area(j) * DY;
+        P.e[j] += P.e[j] * w2 * .012 * dt / (.4 + firm); if (j > 0) P.e[j] += Math.max(0, P.e[j - 1] - P.e[j]) * dt * 3; if (j > 0 && j < n - 1) P.e[j] += ((P.e[j - 1] + P.e[j + 1]) / 2 - P.e[j]) * dt * 2;
+        P.e[j] = clamp(P.e[j], 0, .6);
+        if (hollow) { const up = j * DY / Math.max(P.H, .1), fl = w2 * P.ro[j] * .0035 * up * up / firm * dt, A = area(j); P.ri[j] += fl; P.ro[j] = Math.sqrt(P.ri[j] * P.ri[j] + A);
+          const t = P.ro[j] - P.ri[j], st = P.strain[j] * .3 + above * .9 / (t * (P.ro[j] + P.ri[j]) * (1.55 - P.wet * 1.25) * (1 - .6 * P.over)) * .11 + P.e[j] * w2 * .09 + Math.max(0, P.ro[j] - 1.45) * w2 * .08;
+          P.stress[j] += (st - P.stress[j]) * Math.min(1, dt * 4); if (t < .035) fail(j, P.press > .3 ? 'hard' : 'thin'); else if (P.stress[j] > 1) fail(j, P.strain[j] > .75 ? 'forced' : P.e[j] * w2 * .09 > .5 ? 'wobble' : P.press > .5 ? 'hard' : P.wet > .82 ? 'wet' : w > 3.4 ? 'fast' : P.over > .75 ? 'tired' : 'thin');
+        } else { P.stress[j] = Math.min(.95, P.e[j] * w2 * .05); if (P.e[j] * w2 > 5.5 && P.ro[j] > .3) fail(Math.max(4, j - 10), 'wobble'); }
+        F += .5 * 6 * P.e[j] * P.e[j] * DY * 20;
+      }
+      P.wet = clamp(P.wet - .004 * dt, 0, 1); conserve(); tally(); P.over = clamp(P.S / 3.4, 0, 1); P.F += (F - P.F) * Math.min(1, dt * 6);
+    };
+    P.cutFree = () => { P.cut = true; };
+    return P;
+  }
+  const api = { create, DY, M, WANTS };
+  if (typeof module === 'object' && module.exports) module.exports = api; else root.PotModel = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* Three potters, one lump. Each is a list of moves run through the same model as your own hands.
+   The potter with a design works to a shape of their own. The good-enough potter works to the shape the clay gives
+   most easily. The absent one starts the wheel and leaves. */
+(function (root) {
+  const lerp = (a, b, t) => a + (b - a) * t, ss = t => t * t * (3 - 2 * t), val = (v, t) => Array.isArray(v) ? lerp(v[0], v[1], ss(t)) : v;
+  const GUESS = { name: 'a tall jar', H: 2.4, r: u => .76 + .08 * Math.sin(Math.PI * Math.max(0, Math.min(1, u))) };
+  const DESIGN = { name: 'a tall, narrow bottle', H: 2.9, r: u => { u = Math.max(0, Math.min(1, u)); return .68 + .22 * Math.sin(Math.PI * Math.pow(u, .7)) * (1 - .5 * u) - .2 * u; } };
+  const START = [
+    { d: 2.0, w: 3.0, key: 'spin' },
+    { d: 2.0, w: 3.0, hand: { type: 'out', yAbs: [.5, .5], R: [1.08, .88] }, key: 'centre' },
+    { d: 4.2, w: 3.0, hand: { type: 'out', yAbs: [.5, .5], R: .88 }, key: 'centre' },
+    { d: 1.4, w: 3.0, hand: { type: 'out', yAbs: [.5, .5], R: [.88, 1.12] }, key: 'ease' },
+    { d: 1.5, w: 2.6, key: 'still' },
+    { d: 3.2, w: 2.4, hand: { type: 'top', yAbs: [1.0, .17], R: .26 }, key: 'open' },
+    { d: 2.2, w: 2.4, hand: { type: 'top', yAbs: [.17, .17], R: [.26, .5] }, key: 'open2' },
+    { d: 1.0, w: 2.0, key: 'inside' }
+  ];
+  const END = [{ d: 2.6, w: [1.0, 0], key: 'slow' }, { d: 2.4, w: 0, key: 'cut', cut: true }, { d: 2.6, w: 0, key: 'free', cut: true }];
+  const SCRIPTS = {
+    good: START.concat([
+      { d: 1.6, w: 1.8, key: 'feel' },
+      { d: 3.4, w: 1.8, shape: { pull: .34 }, key: 'follow' }, { d: .6, w: 1.8, key: 'follow', water: true },
+      { d: .5, w: 1.8, key: 'wobble', bump: .09 }, { d: 1.2, w: 1.8, key: 'wobble' },
+      { d: 4.0, w: 1.8, hold: [0, .8], key: 'lend' }, { d: 1.6, w: 1.7, hold: [.8, 0], key: 'lend_ease' },
+      { d: 3.6, w: 1.6, shape: { a: .4 }, learn: true, key: 'learn' }, { d: .6, w: 1.6, key: 'learn' },
+      { d: 3.4, w: 1.5, shape: { a: .75 }, learn: true, key: 'follow2' }, { d: .6, w: 1.5, key: 'follow2' },
+      { d: 3.4, w: 1.4, shape: { a: 1 }, key: 'follow3' }, { d: .6, w: 1.3, key: 'rings' },
+      { d: 3.2, w: 1.2, shape: { a: 1 }, key: 'belly' }, { d: 1.0, w: 1.0, key: 'ease2' }
+    ], END),
+    design: START.concat([
+      { d: 1.6, w: 1.9, key: 'd_plan' },
+      { d: 3.4, w: 1.9, shape: { pull: .34 }, key: 'd_pull' }, { d: .6, w: 1.8, key: 'd_pull', water: true },
+      { d: 3.4, w: 1.8, shape: { pull: .27 }, key: 'd_pull2' }, { d: .6, w: 1.7, key: 'd_pull2', water: true },
+      { d: 3.4, w: 1.6, shape: { pull: .21 }, key: 'd_pull3' }, { d: .6, w: 1.5, key: 'd_pull3' },
+      { d: 3.4, w: 1.4, shape: { a: .7 }, key: 'd_shape' }, { d: .5, w: 1.3, key: 'd_shape' },
+      { d: 3.4, w: 1.2, shape: { a: 1 }, key: 'd_shape2' }, { d: 1.0, w: 1.0, key: 'd_done' }
+    ], END),
+    absent: [{ d: 3, w: [0, 2.6], key: 'a_start' }, { d: 6, w: [2.6, 3.6], key: 'a_gone' }, { d: 14, w: [3.6, 4.6], key: 'a_gone2' }, { d: 6, w: [4.6, 0], key: 'a_end' }]
+  };
+  /* The potter's picture of the pot. The one with a design never changes theirs. The good-enough one starts with a guess
+     and moves it toward what the clay gives most easily, a little each time the clay resists her or yields to her. */
+  function picture(kind, P, st) { if (kind === 'design') return DESIGN; const l = st ? st.lam : 1, W = P.want; return { name: 'the potter’s picture', H: lerp(GUESS.H, W.H, l), r: u => lerp(GUESS.r(u), W.r(u), l) }; }
+  function at(kind, time, P, st, dt) {
+    const S = SCRIPTS[kind], T = picture(kind, P, st); let t = time; st = st || {};
+    for (let mi = 0; mi < S.length; mi++) { const m = S[mi]; if (t < m.d) { const u = t / m.d, w = val(m.w, u), n = P.n(); let hand = null;
+        if (m.bump && st.bumped !== mi) { st.bumped = mi; P.bump(m.bump); }
+        if (m.learn && dt) st.lam = Math.min(1, (st.lam || 0) + dt * (P.withNow < -.15 ? 1.0 : P.withNow > .3 ? .3 : .05));
+        if (m.hand) { const h = m.hand, y = val(h.yAbs, u); hand = { on: true, type: h.type, y, R: val(h.R, u), vy: 0, vR: 0 }; }
+        else if (m.hold) hand = { on: true, type: 'hold', y: P.H * .7, R: P.ro[Math.min(n - 1, Math.round(P.H * .7 / P.DY))], weight: val(m.hold, u), vy: 0, vR: 0 };
+        else if (m.shape) { const top = P.H, y = lerp(.14, .97, u) * top, j = Math.max(0, Math.min(n - 1, Math.round(y / P.DY))), vy = .85 * top / m.d;
+          if (m.shape.pull) { if (P.H < T.H - .08) hand = { on: true, type: 'out', y, R: P.ri[j] + m.shape.pull, vy, vR: 0 }; }
+          else { const want = T.r(y / T.H), a = m.shape.a, gap = Math.abs(want - P.ro[j]); let pen = gap * a * .9 + .02;
+            if (kind === 'good') pen = Math.min(pen, .3 * Math.max(.05, Math.min(1, P.firmAt(j) * 1.0 / 2.5)));
+            else pen = Math.max(pen, .3 * Math.min(1, P.firmAt(j) * 2.2 / 2.5));   // the designer leans on it   // she matches her weight to the wall: Omega near 1
+            if (want > P.ro[j] + .025) hand = { on: true, type: 'in', y, R: P.ri[j] + pen, vy: 0, vR: 0 };
+            else if (want < P.ro[j] - .025) hand = { on: true, type: 'out', y, R: P.ro[j] - pen, vy: 0, vR: 0 }; } }
+        return { w, hand, key: m.key, cut: !!m.cut, water: !!m.water && u < .1, done: false, picture: T }; } t -= m.d; }
+    return { w: 0, hand: null, key: kind === 'absent' ? 'a_end' : 'free', cut: kind !== 'absent', done: true, picture: T };
+  }
+  function when(kind, key) { let t = 0; for (const m of SCRIPTS[kind]) { if (m.key === key) return t; t += m.d; } return t; }
+  const api = { SCRIPTS, at, DESIGN, GUESS, picture, when, total: k => SCRIPTS[k].reduce((s, m) => s + m.d, 0) };
+  if (typeof module === 'object' && module.exports) module.exports = api; else root.PotDemo = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+const PotModel=window.PotModel, PotDemo=window.PotDemo;
+/* ───────────────────────── post: ambient occlusion → lens blur → film ───────────────────────── */
+const postScene=new THREE.Scene(), postCam=new THREE.Camera();
+const tri=new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1,-1,0, 3,-1,0, -1,3,0]),3)));
+tri.frustumCulled=false; postScene.add(tri);
+const VS='varying vec2 vUv; void main(){ vUv=position.xy*.5+.5; gl_Position=vec4(position.xy,0.,1.); }';
+const pm=(fs,u)=>new THREE.ShaderMaterial({vertexShader:VS, fragmentShader:fs, uniforms:u, depthTest:false, depthWrite:false});
+const DEPTH=`uniform sampler2D tDepth; uniform float uNear,uFar; uniform vec2 uProj;
+float linZ(vec2 uv){ float d=texture2D(tDepth,uv).x; return (uNear*uFar)/(uFar-d*(uFar-uNear)); }
+vec3 vpos(vec2 uv){ float z=linZ(uv); vec2 n=uv*2.-1.; return vec3(n.x/uProj.x*z, n.y/uProj.y*z, -z); }`;
+const U={ tDepth:{value:null}, uNear:{value:.6}, uFar:{value:40}, uProj:{value:new THREE.Vector2()}, uRes:{value:new THREE.Vector2()} };
+const aoMat=pm(DEPTH+`uniform vec2 uRes; uniform float uAOs; varying vec2 vUv;
+void main(){ vec3 C=vpos(vUv); vec3 n=normalize(cross(dFdx(C),dFdy(C)));
+  float R=.24*uAOs, ssr=R*uProj.y*.5/(-C.z);
+  float rot=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853, sum=0.;
+  for(int i=0;i<22;i++){ float a=(float(i)+.5)/22.; float ang=a*6.2831853*7.+rot; float r=ssr*a;
+    vec3 v=vpos(vUv+vec2(cos(ang)*uRes.y/uRes.x,sin(ang))*r)-C; float vv=dot(v,v), vn=dot(v,n);
+    float f=max(1.-vv/(R*R),0.); sum+=f*f*f*max((vn+C.z*.0025)/(vv+.0004),0.); }
+  gl_FragColor=vec4(vec3(max(0.,1.-sum*5.*R/22.*1.9)),1.); }`, Object.assign({uAOs:{value:1}},U));
+const prepMat=pm(DEPTH+`uniform sampler2D tColor,tAO; uniform vec2 uRes; uniform float uFocus,uAperture; varying vec2 vUv;
+void main(){ float z=linZ(vUv); float ao=0., w=0.;
+  for(int x=-2;x<2;x++) for(int y=-2;y<2;y++){ vec2 o=(vec2(float(x),float(y))+.5)/uRes; float zz=linZ(vUv+o);
+    float k=max(0.,1.-abs(zz-z)/(.03*z)); ao+=texture2D(tAO,vUv+o).r*k; w+=k; }
+  ao = w>0. ? ao/w : 1.;
+  vec3 c=texture2D(tColor,vUv).rgb; c*=mix(vec3(.16,.13,.14), vec3(1.), pow(ao,1.25));
+  gl_FragColor=vec4(c, clamp((1./uFocus-1./z)*uAperture,-1.,1.)); }`, Object.assign({tColor:{value:null}, tAO:{value:null}, uFocus:{value:5}, uAperture:{value:6}},U));
+const dofMat=pm(`uniform sampler2D tPrep; uniform vec2 uRes; uniform float uMaxPx,uStep; varying vec2 vUv;
+void main(){ vec4 c0=texture2D(tPrep,vUv); float cs=abs(c0.a)*uMaxPx; vec3 acc=c0.rgb; float tot=1.; float r=uStep;
+  float ang=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853;
+  for(int i=0;i<260;i++){ if(r>uMaxPx) break; ang+=2.39996323;
+    vec4 s=texture2D(tPrep, vUv+vec2(cos(ang),sin(ang))*r/uRes); float ss=abs(s.a)*uMaxPx;
+    if(s.a>c0.a) ss=clamp(ss,0.,cs*2.);
+    float m=smoothstep(r-.5,r+.5,ss); acc+=mix(acc/tot,s.rgb,m); tot+=1.; r+=uStep/r; }
+  gl_FragColor=vec4(acc/tot,1.); }`, {tPrep:{value:null}, uRes:U.uRes, uMaxPx:{value:20}, uStep:{value:1.3}});
+const finMat=pm(`uniform sampler2D tDof; uniform vec2 uRes; uniform vec3 uFilm; uniform float uExpo,uFlash; varying vec2 vUv;
+float h(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+void main(){ vec2 uv=vUv+uFilm.xy/uRes; vec2 d=uv-.5; float r2=dot(d,d);
+  vec2 ca=d*r2*.012;
+  vec3 c=vec3(texture2D(tDof,uv+ca).r, texture2D(tDof,uv).g, texture2D(tDof,uv-ca).b);
+  vec3 glow=textureLod(tDof,uv,4.).rgb*.5+textureLod(tDof,uv,6.).rgb*.5;
+  c=mix(c,glow,.07)+max(glow-.9,0.)*.12;
+  c*=uExpo*(1.-r2*.95);
+  c+=vec3(1.,.72,.42)*uFlash*(.25+r2*2.);
+  c=aces(c*vec3(1.03,1.,.97));
+  c=pow(c,vec3(1./2.2));
+  c=mix(c, c*c*(3.-2.*c), .22);
+  float g=h(gl_FragCoord.xy+uFilm.z*91.7)-.5; float l=dot(c,vec3(.3,.6,.1));
+  c+=g*.038*(1.-.6*l);
+  gl_FragColor=vec4(c,1.); }`, {tDof:{value:null}, uRes:U.uRes, uFilm:{value:new THREE.Vector3()}, uExpo:{value:1}, uFlash:{value:0}});
+
+let rt=null, budget=TEST&&TEST.budget ? TEST.budget : 2.1e6, msaa=4;
+function build(){
+  const cw=canvas.clientWidth||window.innerWidth, chh=canvas.clientHeight||window.innerHeight, dpr=Math.min(window.devicePixelRatio||1,2);
+  const scale=Math.min(dpr, Math.sqrt(budget/(cw*chh)));
+  renderer.setPixelRatio(scale); renderer.setSize(cw,chh,false);
+  const w=Math.max(2,Math.floor(cw*scale)), h=Math.max(2,Math.floor(chh*scale));
+  if(rt) for(const k in rt) rt[k].dispose();
+  const T=HDR?THREE.HalfFloatType:THREE.UnsignedByteType;
+  const dt=new THREE.DepthTexture(w,h); dt.type=THREE.UnsignedIntType; dt.minFilter=dt.magFilter=THREE.NearestFilter;
+  rt={ scene:new THREE.WebGLRenderTarget(w,h,{type:T, samples:msaa, depthTexture:dt}),
+       ao:new THREE.WebGLRenderTarget(w,h,{type:THREE.UnsignedByteType}),
+       prep:new THREE.WebGLRenderTarget(w,h,{type:T}),
+       dof:new THREE.WebGLRenderTarget(w,h,{type:T, generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter}) };
+  U.uRes.value.set(w,h); camera.aspect=cw/chh; camera.fov = cw/chh<1 ? 44 : (cw/chh<1.4 ? 33 : 27); camera.updateProjectionMatrix();
+}
+
+const NARR=[{"id": "c01", "title": "The wheel", "dur": 53.24, "cues": [[0.45, 2.23, "This is a potter's wheel."], [2.85, 5.02, "On it, a lump of wet clay."], [5.64, 9.19, "For the next ten minutes, let it stand for something else."], [9.81, 14.95, "The clay is another person. A child, a learner, someone you love."], [15.57, 23.05, "The hand that touches it is the world outside them. A parent. A teacher. Whoever they lean on."], [23.67, 25.81, "And the turning of the wheel is time."], [26.43, 28.4, "One thing, before we begin."], [29.02, 32.16, "Clay is passive. A child never is."], [32.78, 37.56, "Winnicott, Malaguzzi and Freire each began from the same place."], [38.18, 42.73, "The child arrives active, capable, and full of meaning of their own."], [43.35, 45.28, "Never a vessel to be filled."], [45.9, 48.79, "So this is not a film about shaping a person."], [49.41, 52.55, "It is about how to use your weight, beside one."]]}, {"id": "c02", "title": "Momentum", "dur": 19.83, "cues": [[0.45, 2.37, "The wheel begins to turn."], [2.99, 4.38, "Watch the clay."], [5.0, 10.04, "It is off centre, and the faster it goes, the further it throws itself out."], [10.66, 12.22, "Nothing is wrong with it."], [12.84, 19.13, "This is simply what a new thing does, when it is given time, and nothing to steady itself against."]]}, {"id": "c03", "title": "Holding", "dur": 42.95, "cues": [[0.45, 4.05, "So the potter brings a hand to the clay, and does the hardest thing."], [4.67, 6.17, "She keeps still."], [6.79, 9.19, "She is not pushing the clay to the centre."], [9.81, 11.16, "Watch slowly."], [11.78, 16.92, "Once in every turn, the high side comes round, meets her hand, and gives way a little."], [17.54, 18.74, "Then again."], [19.36, 20.54, "And again."], [21.16, 24.86, "The clay is centring itself, against something that does not move."], [25.48, 31.1, "Donald Winnicott called this holding. A steady presence, that adds nothing of its own."], [31.72, 34.75, "And when it is done, she does not pull away."], [35.37, 38.33, "She eases off, a little at a time."], [38.95, 42.24, "Let go all at once, and the clay lurches."]]}, {"id": "c04", "title": "The still point", "dur": 53.58, "cues": [[0.45, 3.69, "Now look from above, and let the wheel run fast."], [4.31, 6.18, "Everything here is moving."], [6.8, 11.65, "The clay has a body, and because it has a body in motion, it lives in time."], [12.27, 15.95, "Watch the edge blur. Every part of it is going somewhere."], [16.57, 18.08, "Except one."], [18.7, 22.59, "At the very centre, there is a point that does not turn at all."], [23.21, 26.24, "It has no size, and there is nothing in it."], [26.86, 29.9, "And yet everything else is arranged around it."], [30.52, 36.51, "Potters speak of this. Mary Caroline Richards built a whole philosophy on it, and called it centring."], [37.13, 38.93, "You have a place like this."], [39.55, 43.78, "Thoughts turn. Moods turn. Years turn."], [44.4, 46.67, "Something has been still the whole time."], [47.29, 49.53, "Ask yourself, gently."], [50.15, 52.86, "Where, and when, have you always been?"]]}, {"id": "c04z", "title": "Falling into the centre", "dur": 46.26, "cues": [[0.45, 2.19, "Let us go closer."], [2.81, 6.07, "Halfway to the centre, the clay moves at half the speed."], [6.69, 9.26, "Halfway again. And again."], [9.88, 13.63, "Each time, a smaller wheel, turning at the same rate."], [14.25, 19.6, "The still point is really there. But it has no size, so we can only ever draw nearer."], [20.22, 23.54, "Zeno would have smiled. Always halfway."], [24.16, 26.23, "Perhaps this is what Now is."], [26.85, 30.75, "An empty place, between the settled past and the open future."], [31.37, 35.98, "And notice where we are looking from. One height. One side."], [36.6, 40.9, "Donna Haraway called it the partial view. Nobody sees from nowhere."], [41.52, 45.56, "The centre is the same for everyone. The view of it never is."]]}, {"id": "c05", "title": "Making room", "dur": 29.86, "cues": [[0.45, 4.15, "The potter presses down through the middle, and now there is an inside."], [4.77, 7.27, "This is the moment a lump becomes a vessel."], [7.89, 10.14, "Notice what makes it useful."], [10.76, 15.86, "Not the clay alone. Not the emptiness alone. The two together."], [16.48, 20.7, "Painters call it figure and ground. Each gives the other its shape."], [21.32, 23.3, "A self needs room inside."], [23.92, 25.55, "And it needs a floor."], [26.17, 29.16, "Go too deep, and there is nothing left to stand on."]]}, {"id": "c06", "title": "Push meets push back", "dur": 53.89, "cues": [[0.45, 1.84, "Now the wall."], [2.46, 8.81, "Pressure from outside, support from inside, and between them, the clay begins to rise."], [9.43, 13.73, "Without any pressure from outside, nothing rises at all."], [14.35, 19.04, "Constraint is not the enemy of becoming. It is what makes becoming possible."], [19.66, 22.41, "Now watch the balance, on the right."], [23.03, 26.29, "It weighs the potter's hand against the clay's own firmness."], [26.91, 29.28, "A thick wall barely notices her."], [29.9, 33.28, "A thin, wet wall takes almost everything she gives."], [33.9, 36.98, "The more open someone is, the more your weight counts."], [37.6, 39.86, "A single word can be a spell."], [40.48, 44.19, "What costs you nothing to say, can cost them everything to hear."], [44.81, 47.82, "This is why teaching is a kind of sacred trust."], [48.44, 53.18, "And so is therapy. And so is any ordinary day spent holding someone."]]}, {"id": "c07", "title": "Lending weight", "dur": 34.27, "cues": [[0.45, 2.23, "Then, a wobble."], [2.85, 5.1, "The rim has started to wander."], [5.72, 9.2, "This is the moment the clay needs more of her, not less."], [9.82, 11.39, "So she gives it."], [12.01, 15.66, "Both hands, perfectly still, for as long as it takes."], [16.28, 18.43, "See the balance tip towards her."], [19.05, 22.2, "And as the wobble settles, she gives the weight back."], [22.82, 25.15, "That is the whole art of support."], [25.77, 27.65, "Add your weight when it is needed."], [28.27, 30.31, "Take it away when it is not."], [30.93, 33.57, "Never keep it because it feels good to be needed."]]}, {"id": "c08", "title": "Learning from the clay", "dur": 39.65, "cues": [[0.45, 3.1, "Here is something the potter did not expect."], [3.72, 8.59, "She had a picture of this pot. The dotted line. A tall jar."], [9.21, 12.35, "But when she presses that way, the clay resists."], [12.97, 15.77, "And when she presses the other way, it gives."], [16.39, 19.73, "So she changes her picture. Not the clay."], [20.35, 22.27, "Watch the dotted line move."], [22.89, 25.52, "She is learning what this pot is, from the pot."], [26.14, 28.92, "Good teaching runs in both directions."], [29.54, 34.59, "It is translation, both ways, because neither can ever see inside the other."], [35.21, 38.96, "The one with more weight has more to offer, and just as much to learn."]]}, {"id": "c09", "title": "Too heavy", "dur": 29.2, "cues": [[0.45, 3.12, "Here is the same clay, with a different potter."], [3.74, 6.7, "This one has a drawing, and does not change it."], [7.32, 10.44, "The clay goes along. It has no choice."], [11.06, 13.56, "From the potter's seat, nothing looks wrong."], [14.18, 18.27, "The outline matches the drawing. Even the balance looks fair."], [18.89, 20.88, "But the strain is in the wall."], [21.5, 24.23, "And in the kiln, the fire finds it."], [24.85, 28.51, "What is forced can hold for a long time, and show up later."]]}, {"id": "c10", "title": "Too light", "dur": 48.43, "cues": [[0.45, 4.26, "And here it is, with a potter who starts the wheel, and leaves."], [4.88, 7.57, "No pressure. No drawing."], [8.19, 10.04, "It may look like freedom."], [10.66, 15.07, "People sometimes read Rousseau this way. Leave the child to nature."], [15.69, 22.38, "He never said that. In Emile, the tutor is always there, arranging the world with great care."], [23.0, 28.12, "Blake went further. Rousseau, he wrote, thought us good by nature."], [28.74, 34.21, "Blake thought a person has to be made new, again and again, by what stands against them."], [34.83, 37.54, "Without contraries, is no progression."], [38.16, 41.18, "Nothing holds the clay, so nothing centres it."], [41.8, 44.17, "And the turning of the world does the rest."], [44.79, 47.73, "Too little weight is also a way of failing someone."]]}, {"id": "c11", "title": "Equanimity", "dur": 45.82, "cues": [[0.45, 3.61, "Between too heavy and too light, there is a middle way."], [4.23, 8.97, "It has an old name. Equanimity. Evenness of mind."], [9.59, 11.69, "Here, it means something particular."], [12.31, 18.28, "Carrying everything you have lived, all your skill, all your history, at exactly the weight it has earned."], [18.9, 21.29, "Heavy enough to be someone the other can lean on."], [21.91, 24.76, "Light enough that they can come through as themselves."], [25.38, 30.35, "Winnicott's phrase for it was good enough. Not perfect. Good enough."], [30.97, 37.31, "It is the same in a classroom, in a consulting room, at a bedside, at a kitchen table."], [37.93, 40.49, "The potter knows a great deal about pots."], [41.11, 45.12, "She holds all of it lightly, so that this one can tell her what it is."]]}, {"id": "c12", "title": "Letting go", "dur": 17.14, "cues": [[0.45, 2.08, "The wheel slows."], [2.7, 4.65, "Her hands are already gone."], [5.27, 9.15, "Then a wire, under the foot, and the pot is free."], [9.77, 13.94, "It stands a little off the centre of the wheel, and that no longer matters."], [14.56, 16.44, "It has its own centre now."]]}, {"id": "c13", "title": "Fire and glaze", "dur": 25.08, "cues": [[0.45, 1.87, "Into the fire."], [2.49, 5.35, "Until now, everything could be changed."], [5.97, 8.09, "After this, it cannot."], [8.71, 11.46, "The moment settles, and becomes the past."], [12.08, 15.42, "Then the glaze. The face the world will see."], [16.04, 21.44, "This one is clear, so every line the potter's hand left is still there, shining through."], [22.06, 24.37, "We carry our history at our surface."]]}, {"id": "c14", "title": "Potential space", "dur": 62.82, "cues": [[0.45, 1.48, "A bowl."], [2.1, 6.24, "Nobody could have said so at the start. Not even the potter."], [6.86, 10.61, "So, was it made? Or was it found?"], [11.23, 13.5, "Winnicott's answer was: never ask."], [14.12, 18.5, "Between the hand and the clay, there is a space that belongs to neither."], [19.12, 21.34, "He called it potential space."], [21.96, 26.32, "It is where a child plays. And it is where anything new begins."], [26.94, 29.03, "But remember what the clay could not do."], [29.65, 34.7, "It could not refuse. It could not imagine. It could not play."], [35.32, 36.91, "A child can."], [37.53, 43.27, "Loris Malaguzzi said that a child has a hundred languages, and that we steal ninety-nine."], [43.89, 47.11, "So this is the real work. Not the pot."], [47.73, 49.78, "Keeping that space open."], [50.4, 54.64, "Hold still. Press lightly. Go at their pace."], [55.26, 57.3, "And let all hundred come through."], [57.92, 59.67, "The wheel has stopped."], [60.29, 62.12, "The centre never moved."]]}];
+/* ───────────────────────── the potter's wheel: scene ───────────────────────── */
+const $ = id => document.getElementById(id), lerp = (a, b, t) => a + (b - a) * t, TAU = Math.PI * 2;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0a09);
+const camera = new THREE.PerspectiveCamera(27, 16 / 9, .6, 60);
+
+/* studio: a tall north window to the left, a warm wall behind, the bounce off the bench */
+(function () {
+  const es = new THREE.Scene(), bm = (c, i) => { const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(i), side: THREE.DoubleSide }); m.toneMapped = false; return m; };
+  es.add(new THREE.Mesh(new THREE.SphereGeometry(30, 24, 16), bm(0x2a2520, .25)));
+  const add = (w, h, c, i, x, y, z) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), bm(c, i)); p.position.set(x, y, z); p.lookAt(0, 0, 0); es.add(p); };
+  add(8, 11, 0xf4f1ea, 11, -11, 8, 2);      // the window
+  add(4, 11, 0xf4f1ea, 5, -9, 8, -6);       // its second pane
+  add(9, 8, 0xffe2c0, 1.6, 11, 5, 4);       // warm wall bounce
+  add(18, 5, 0xffd9b0, 2.2, 2, 10, -10);    // back strip
+  add(30, 30, 0x4a3320, .55, 0, -6, 0);     // bench bounce
+  const pmg = new THREE.PMREMGenerator(renderer); scene.environment = pmg.fromScene(es, .03).texture; pmg.dispose();
+})();
+const key = new THREE.DirectionalLight(0xfff0dc, 3.4); key.position.set(-7.5, 9.5, 4.5); key.target.position.set(0, .8, 0);
+key.castShadow = true; key.shadow.mapSize.set(4096, 4096);
+{ const sc = key.shadow.camera; sc.left = -7; sc.right = 7; sc.top = 6; sc.bottom = -5; sc.near = 1; sc.far = 30; sc.updateProjectionMatrix(); key.shadow.bias = -.0008; key.shadow.normalBias = .045; key.shadow.radius = .085 * (sc.far - sc.near) / (sc.right - sc.left); }
+scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0xffd2a6, .9); rim.position.set(6, 4, -7); scene.add(rim);
+
+/* the set: bench, wheel, splash pan, bucket, sponge, tools, a shelf of earlier pots out of focus */
+mesh(new THREE.BoxGeometry(44, .5, 26), mat({ mode: 'WOOD', rough: .6, spec: .5, env: .8 }), 0, -1.32, -2).castShadow = false;
+mesh(new THREE.BoxGeometry(44, 14, .4), mat({ color: 0xbfb3a2, rough: .95, spec: .15, env: .5, bump: .5, speck: .2 }), 0, 5, -9.2).castShadow = false;
+mesh(new THREE.CylinderGeometry(2.55, 2.7, .95, 72), mat({ color: 0x2b2f35, rough: .42, spec: .7, bump: .25, speck: 0 }), 0, -.6, 0);
+mesh(lathe([[1.95, -.34], [1.95, -.14], [2.1, -.1], [2.95, -.1], [3.08, -.02], [3.14, .36], [3.22, .4], [3.27, .36], [3.2, -.3], [3.0, -.36], [1.95, -.36]], .006, 5, 96), mat({ color: 0xa99a80, rough: .5, spec: .6, bump: .3, smear: .55, color2: 0x7c6a58, speck: .6 }), 0, 0, 0);
+const GLZ = (c, r) => { const m = mat({ color: c, rough: r || .22, spec: 1, bump: .25, speck: .3 }); m.clearcoat = 1; m.clearcoatRoughness = .12; return m; };
+mesh(new THREE.BoxGeometry(13, .22, 1.9), mat({ mode: 'WOOD', rough: .55, spec: .5 }), 1.5, 2.3, -8.2);
+[[[.05, 0], [.7, .02], [.95, .6], [.85, 1.3], [.5, 1.7], [.42, 2.0], [.5, 2.1]], [[.05, 0], [.5, .02], [1.1, .5], [1.25, .9], [1.3, .95]], [[.05, 0], [.6, .02], [.75, 1.0], [.72, 1.9], [.78, 2.0]], [[.05, 0], [.45, .02], [.9, .4], [.6, 1.0], [.35, 1.5], [.4, 1.6]], [[.05, 0], [.8, .02], [.95, .8], [.9, .95]]]
+  .forEach((p, i) => mesh(lathe(p, .012, 3, 48), GLZ([0x6f9a8c, 0x2a1a12, 0xd9d2c2, 0x2f4f86, 0xb89a6a][i], i === 1 ? .16 : .24), -3.2 + i * 2.35, 2.41, -8.2 + (i % 2) * .25));
+const bucket = mesh(lathe([[.05, 0], [1.0, 0], [1.22, 1.75], [1.27, 1.78], [1.24, 1.84], [1.13, 1.8], [.94, .12], [.05, .1]], .004, 4, 64), (() => { const m = mat({ color: 0xa7adb3, rough: .38, spec: 1, bump: .2, speck: .5 }); m.metalness = .85; return m; })(), -5.6, -1.07, -1.4);
+{ const w = new THREE.Mesh(new THREE.CircleGeometry(1.12, 48), new THREE.MeshPhysicalMaterial({ color: 0x5c4a3c, roughness: .06, metalness: 0, clearcoat: 1 })); w.rotation.x = -Math.PI / 2; w.position.set(-5.6, .38, -1.4); w.receiveShadow = true; scene.add(w); }
+mesh(rbox(1.0, .42, .72, .14, .03, 5), mat({ color: 0xd8b04a, rough: .95, spec: .1, bump: 2.2, speck: 0 }), 4.4, -.86, 1.0).rotation.y = .5;
+mesh(rbox(1.3, .07, .5, .03, .004, 6), mat({ mode: 'WOOD', rough: .5 }), 4.9, -1.03, -.9).rotation.y = -.7;
+const wire = new THREE.Group(); { const steel = new THREE.MeshPhysicalMaterial({ color: 0x8a8d91, roughness: .3, metalness: 1 }); const w = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, 5.4, 6), steel); w.rotation.z = Math.PI / 2; wire.add(w);
+  [-2.75, 2.75].forEach(x => { const t = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .5, 12), mat({ mode: 'WOOD', rough: .5 })); t.rotation.x = Math.PI / 2; t.position.x = x; t.castShadow = true; wire.add(t); }); wire.position.set(0, .012, 4.2); wire.visible = false; scene.add(wire); }
+
+/* the rest of the clay studio, behind the wheel: the kiln with its door ajar, the hammer's corner, a turntable with a lump waiting on it.
+   Set dressing for the film. They are worked for real in clay-studio.html. */
+(function () { const D = -1.07, steel = () => { const m = mat({ color: 0xa7adb3, rough: .34, spec: 1, bump: .2, speck: .4 }); m.metalness = .9; return m; }, ks = () => mat({ color: 0x5b6470, rough: .5, spec: .7, bump: .3, speck: .3 }), brick = new THREE.MeshPhysicalMaterial({ color: 0xcdbb9c, roughness: .95, emissive: 0x2a0d02 });
+  const K = new THREE.Group(); K.position.set(-5.9, D, -6.0); K.scale.setScalar(.72); K.rotation.y = .42; scene.add(K); const slab = (w, h, d, x, y, z, m, p) => mesh(new THREE.BoxGeometry(w, h, d), m, x, y, z, p || K);
+  slab(4.6, .5, 4.2, 0, .25, 0, ks()); slab(4.6, .5, 4.2, 0, 5.05, 0, ks()); slab(.5, 4.3, 4.2, -2.05, 2.65, 0, ks()); slab(.5, 4.3, 4.2, 2.05, 2.65, 0, ks()); slab(3.6, 4.3, .5, 0, 2.65, -1.85, ks());
+  slab(3.56, .14, 3.5, 0, .57, .1, brick); slab(.14, 4.1, 3.5, -1.73, 2.65, .1, brick); slab(.14, 4.1, 3.5, 1.73, 2.65, .1, brick); slab(3.5, 4.1, .14, 0, 2.65, -1.53, brick); slab(3.1, .1, 2.9, 0, .9, .2, mat({ color: 0xb9ad98, rough: .95, spec: .1, bump: .8, speck: .3 }));
+  const door = new THREE.Group(); door.position.set(-2.3, 0, 2.1); door.rotation.y = -1.25; K.add(door); slab(4.6, 4.8, .36, 2.3, 2.65, .18, ks(), door); slab(3.5, 4.0, .16, 2.3, 2.65, -.06, brick, door);
+  const H = new THREE.Group(); H.position.set(6.3, D, -4.9); H.rotation.y = -.35; scene.add(H); mesh(rbox(1.5, .6, 1.0, .08, .004, 6), steel(), 0, .3, 0, H);
+  const gg = new THREE.LatheGeometry([[0.001, -.3], [.3, .02], [.3, .06], [.17, .17], [0.001, .17]].map(q => new THREE.Vector2(q[0], q[1])), 8).toNonIndexed(); gg.computeVertexNormals();
+  const gem = new THREE.Mesh(gg, new THREE.MeshPhysicalMaterial({ color: 0x1a2630, roughness: 0, ior: 2.33, envMapIntensity: 6, clearcoat: 1, emissive: 0x16242c, flatShading: true })); gem.position.set(0, .9, 0); gem.castShadow = true; H.add(gem);
+  const hm = new THREE.Group(); hm.position.set(2.0, 1.05, .05); hm.rotation.z = -.95; H.add(hm); const hd = mesh(clayify(new THREE.CylinderGeometry(.075, .09, 2.2, 14), .003, 5), mat({ mode: 'WOOD', rough: .4, spec: .7 }), -1.0, 0, 0, hm); hd.rotation.z = Math.PI / 2;
+  mesh(rbox(.5, .74, .5, .06, .003, 6), new THREE.MeshPhysicalMaterial({ color: 0xd9a531, roughness: .22, metalness: 1, emissive: 0xffb340, emissiveIntensity: .3 }), -2.0, 0, 0, hm);
+  [[1.5, -1.3, 0xdfeff7, .5], [2.6, -1.5, 0xb01030, .3]].forEach(([x, z, c, f]) => { const j = new THREE.Mesh(new THREE.LatheGeometry([[.02, 0], [.42, 0], [.44, .8], [.34, .9], [.34, 1.0], [.37, 1.02]].map(q => new THREE.Vector2(q[0], q[1])), 40), new THREE.MeshPhysicalMaterial({ color: 0xeaf4f2, roughness: .04, transparent: true, opacity: .3, envMapIntensity: 1.7, clearcoat: 1, side: THREE.DoubleSide, depthWrite: false })); j.position.set(x, 0, z); j.renderOrder = 3; H.add(j);
+    mesh(new THREE.CylinderGeometry(.36, .36, f, 28), new THREE.MeshPhysicalMaterial({ color: c, roughness: .35, emissive: c, emissiveIntensity: .12, envMapIntensity: 2 }), x, .02 + f / 2, z, H).castShadow = false; });
+  const T = new THREE.Group(); T.position.set(4.7, 0, -6.6); scene.add(T); const dk = () => mat({ color: 0x2b2f35, rough: .42, spec: .7, bump: .25, speck: 0 });
+  mesh(new THREE.CylinderGeometry(1.7, 1.7, .12, 72), dk(), 0, -.06, 0, T); mesh(new THREE.CylinderGeometry(.3, .42, .86, 32), dk(), 0, -.55, 0, T); mesh(new THREE.CylinderGeometry(1.1, 1.2, .1, 48), dk(), 0, D + .05, 0, T);
+  const lump = new THREE.SphereGeometry(1, 48, 32); lump.scale(1.0, .78, 1.0); const lm = mesh(clayify(lump, .05, 1.6), mat({ color: 0x7a6452, rough: .4, spec: .8, bump: .8, speck: .3 }), 0, .72, 0, T); lm.material.clearcoat = .5;
+})();
+
+/* the wheel head: spun aluminium, with slip thrown across it. Detail is smeared round the axis by the speed, so the
+   middle stays sharp and still while the edge streaks. */
+const SPIN = { uSpin: { value: 0 }, uBlur: { value: 0 }, uWet: { value: .6 }, uFire: { value: 0 }, uBisque: { value: 0 }, uGlaze: { value: 0 }, uCrack: { value: 0 }, uOpaque: { value: 0 }, uGlazeCol: { value: new THREE.Color(0x7fa696) } };
+const headMat = new THREE.MeshPhysicalMaterial({ color: 0x9da2a8, roughness: .26, metalness: 1, envMapIntensity: 1.25 });
+headMat.onBeforeCompile = sh => { Object.assign(sh.uniforms, SPIN);
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP=position;');
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform mat3 normalMatrix; uniform float uSpin,uBlur; varying vec3 vOP; float gHead;\n' + GLSL_NOISE)
+    .replace('#include <color_fragment>', `#include <color_fragment>
+{ float rr=length(vOP.xz), th=atan(vOP.z,vOP.x)-uSpin, s=0.; for(int i=0;i<7;i++){ float t=th+(float(i)/6.-.5)*uBlur; s+=vn(vec3(cos(t)*rr*4.2,sin(t)*rr*4.2,1.7))*.7+vn(vec3(cos(t)*rr*11.,sin(t)*rr*11.,4.))*.3; } s/=7.;
+  float sp=sin(th*2.+log(rr+.04)*7.)*.5+.5; gHead=smoothstep(.6,.72,s*.74+sp*.26*smoothstep(.15,1.2,rr))*step(.5,vOP.y*30.+.5);
+  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(.16,.115,.085)*(.7+.6*s), gHead); }`)
+    .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor=mix(clamp(roughnessFactor+(vn(vec3(length(vOP.xz)*70.,2.,0.))-.5)*.2,.12,1.), .5, gHead);')
+    .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor*=1.-gHead;')
+    .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n{ float rr=length(vOP.xz); vec3 rad=normalize(normalMatrix*vec3(vOP.x,0.,vOP.z)+1e-5); normal=normalize(normal+rad*cos(rr*74.)*.05*(1.-gHead)); }'); };
+const head = new THREE.Mesh(new THREE.CylinderGeometry(1.82, 1.82, .1, 128, 1), headMat); head.position.y = -.05; head.castShadow = head.receiveShadow = true; scene.add(head);
+
+/* the clay. Rebuilt every picture from the model's rings. Wet, with the potter's lines in it. */
+const potMat = new THREE.MeshPhysicalMaterial({ shadowSide: THREE.FrontSide, color: 0x7a6452, roughness: .45, metalness: 0, clearcoat: .6, clearcoatRoughness: .25, sheen: .35, sheenRoughness: .5, sheenColor: new THREE.Color(0xcbbba8), specularIntensity: .85, envMapIntensity: 1, side: THREE.DoubleSide });
+potMat.onBeforeCompile = sh => { Object.assign(sh.uniforms, SPIN);
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aInfo; varying vec3 vInfo; varying vec3 vOP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP=position; vInfo=aInfo;');
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+uniform mat3 normalMatrix; uniform float uSpin,uBlur,uWet,uFire,uBisque,uGlaze,uCrack,uOpaque; uniform vec3 uGlazeCol; varying vec3 vInfo; varying vec3 vOP; vec3 gPot; float gCrack; vec2 gZen;
+` + GLSL_NOISE + `
+float potTex(float f){ float rr=length(vOP.xz), th=atan(vOP.z,vOP.x)-uSpin, s=0.; for(int i=0;i<6;i++){ float t=th+(float(i)/5.-.5)*uBlur; s+=vn(vec3(cos(t)*rr*f, vOP.y*f, sin(t)*rr*f)); } return s/6.; }`)
+    .replace('#include <color_fragment>', `#include <color_fragment>
+{ float t1=potTex(6.), t2=potTex(21.); float slip=smoothstep(.48,.78,vn(vec3(vOP.y*19.,length(vOP.xz)*2.,3.)+t1*1.5)); gPot=vec3(t1,t2,slip);
+  diffuseColor.rgb*=.82+.22*t1+.1*t2;
+  { float rr0=max(length(vOP.xz),1e-7), lp=log(rr0), th0=atan(vOP.z,vOP.x)-uSpin, near=1.-smoothstep(.2,.55,rr0), sv=0., sp=0.;
+    for(int i=0;i<6;i++){ float t=th0+(float(i)/5.-.5)*uBlur; sv+=vn(vec3(lp*2.6+7.,cos(t)*1.9,sin(t)*1.9))*.6+vn(vec3(lp*6.1,cos(t)*4.3,sin(t)*4.3)+3.)*.4; sp+=.5+.5*cos(t*2.+lp*9.); }
+    sv/=6.; sp/=6.; gZen=vec2(near, sp); diffuseColor.rgb*=mix(1., (.7+.5*sv)*(.86+.24*sp), near); } diffuseColor.rgb=mix(diffuseColor.rgb, vec3(.62,.54,.46), slip*.34*uWet); diffuseColor.rgb*=mix(.96,.72,uWet);
+  /* fired: biscuit, then glaze. A clear glaze pools in the potter's lines and shows them; an opaque one covers them. */
+  float thr=atan(vOP.z,vOP.x)-uSpin, raa=1.-smoothstep(.7,2.4,fwidth(vOP.y*135.)), ringv=mix(.5,.5+.5*cos(vOP.y*135.+thr),raa);
+  vec3 bis=vec3(.60,.37,.24)*(.78+.32*t1+.14*t2); diffuseColor.rgb=mix(diffuseColor.rgb,bis,uBisque);
+  vec3 gz=uGlazeCol*mix(.62+.6*ringv*vInfo.x+.25*(1.-vInfo.x), 1., uOpaque)*(.9+.2*t1); gz=mix(gz,bis*.8,(1.-uOpaque)*.3*(1.-ringv)*vInfo.x);
+  diffuseColor.rgb=mix(diffuseColor.rgb,gz,uGlaze);
+  gCrack=smoothstep(.022,.0,abs(vn(vec3(cos(thr)*3.1,vOP.y*.9,sin(thr)*3.1)+5.)-.5+(vn(vec3(cos(thr)*9.,vOP.y*7.,sin(thr)*9.))-.5)*.06))*smoothstep(.3,.6,vn(vec3(cos(thr)*.9,vOP.y*.7,sin(thr)*.9)+2.))*uCrack*step(.5,2.-vInfo.y);
+  diffuseColor.rgb*=1.-.9*gCrack; }`)
+    .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor=clamp(mix(.78,.24,uWet)+(gPot.y-.5)*.34-gPot.z*.1,.1,1.); roughnessFactor=mix(roughnessFactor,.93,uBisque); roughnessFactor=mix(roughnessFactor,mix(.06,.2,gPot.y),uGlaze); roughnessFactor=mix(roughnessFactor,1.,gCrack);')
+    .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+{ float rr=length(vOP.xz), th=atan(vOP.z,vOP.x)-uSpin; vec3 up=normalize(normalMatrix*vec3(0.,1.,0.)); float fs=gl_FrontFacing?1.:-1.;
+  float soft=(1.-.6*smoothstep(.4,3.,uBlur*rr*3.))*(1.-.8*uGlaze*uOpaque); vec3 nn=normal+up*cos(vOP.y*135.+th)*vInfo.x*.5*soft*fs*(1.-smoothstep(.7,2.4,fwidth(vOP.y*135.)))+up*(gPot.y-.5)*.5;
+  if(vInfo.y>1.5){ vec3 rad=normalize(normalMatrix*vec3(vOP.x,0.,vOP.z)+1e-5); nn+=rad*cos(th+log(rr+.02)*13.)*.45*fs; }
+  else if(gZen.x>.01){ vec3 rad=normalize(normalMatrix*vec3(vOP.x,0.,vOP.z)+1e-9); nn+=rad*sin(th*2.+log(max(rr,1e-7))*9.)*.3*gZen.x*fs; }
+  normal=normalize(nn); }`)
+    .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.30,.05)*uFire*uFire*(.6+.7*gPot.x)*2.4;'); };
+const SEG = 96, PMAX = 2 * PotModel.M + 40;
+const potGeo = new THREE.BufferGeometry(); { const nv = PMAX * (SEG + 1); potGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nv * 3), 3)); potGeo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(nv * 3), 3)); potGeo.setAttribute('aInfo', new THREE.BufferAttribute(new Float32Array(nv * 3), 3));
+  const ix = new Uint32Array((PMAX - 1) * SEG * 6); let k = 0; for (let p = 0; p < PMAX - 1; p++) for (let s = 0; s < SEG; s++) { const a = p * (SEG + 1) + s, b = a + 1, c = a + SEG + 1, d = c + 1; ix[k++] = a; ix[k++] = c; ix[k++] = b; ix[k++] = b; ix[k++] = c; ix[k++] = d; }
+  potGeo.setIndex(new THREE.BufferAttribute(ix, 1)); potGeo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 2, 0), 6); }
+const pot = new THREE.Mesh(potGeo, potMat); pot.castShadow = pot.receiveShadow = true; pot.frustumCulled = false; scene.add(pot);
+const COS = new Float32Array(SEG + 1), SIN = new Float32Array(SEG + 1); for (let s = 0; s <= SEG; s++) { COS[s] = Math.cos(s / SEG * TAU); SIN[s] = Math.sin(s / SEG * TAU); }
+const prof = { r: new Float32Array(PMAX), y: new Float32Array(PMAX), j: new Int16Array(PMAX), k: new Float32Array(PMAX), n: 0 };
+function profile(P) { // the outline of the pot, walked up the outside, over the rim and down the inside
+  const n = P.n(), DY = P.DY, top = n - 1; let q = 0; const put = (r, y, j, kind) => { prof.r[q] = Math.max(r, 1e-7); prof.y[q] = y; prof.j[q] = j; prof.k[q] = kind; q++; };
+  put(P.ro[0] * .93, 0, 0, 0); for (let j = 0; j < top; j++) put(P.ro[j], j * DY + .012, j, 0);
+  const ro = P.ro[top], ri = P.ri[top], H = P.H, hollow = ri > 0 && P.depth() > .03;
+  if (hollow) { const c = (ro + ri) / 2, rad = Math.max(.012, (ro - ri) / 2); for (let a = 0; a <= 6; a++) { const an = a / 6 * Math.PI; put(c + rad * Math.cos(an), H + rad * Math.sin(an) * .9, top, 0); }
+    let jf = top; while (jf > 0 && P.ri[jf - 1] > 0 && (jf - 1) * DY >= P.floor) jf--;
+    for (let j = top - 1; j >= jf; j--) put(P.ri[j], j * DY + .012, j, 1);
+    const rf = P.ri[jf], yf = Math.max(P.floor, .02); for (let a = 1; a <= 5; a++) { const an = a / 5 * Math.PI / 2; put(rf * Math.cos(an) + .0005, yf - .0 + (1 - Math.sin(an)) * .06 - .06 + .06 * (1 - a / 5) * 0, jf, 2); }
+  } else { for (let a = 0; a <= 8; a++) { const an = a / 8 * Math.PI / 2; put(a === 8 ? 0 : ro * Math.cos(an), H + ro * .22 * Math.sin(an), top, 0); } }
+  prof.n = q; return q;
+}
+function buildPot(P, spin) {
+  const q = profile(P), pos = potGeo.attributes.position.array, nor = potGeo.attributes.normal.array, inf = potGeo.attributes.aInfo.array; let v = 0;
+  for (let p = 0; p < q; p++) {
+    const a = Math.max(0, p - 1), b = Math.min(q - 1, p + 1); let tr = prof.r[b] - prof.r[a], ty = prof.y[b] - prof.y[a]; const tl = Math.hypot(tr, ty) || 1; tr /= tl; ty /= tl; const nr = ty, ny = -tr;
+    const j = prof.j[p], e = P.e[j], ph = spin + P.ph[j], cx = e * Math.cos(ph), cz = e * Math.sin(ph), r = prof.r[p], y = prof.y[p], lump = Math.min(.5, e * 1.3), ring = Math.min(1, P.ring[j]), kind = prof.k[p], st = P.stress[j];
+    for (let s = 0; s <= SEG; s++, v += 3) { const th = s / SEG * TAU - spin, l = 1 + lump * (Math.sin(th * 2 + y * 3.1) * .5 + Math.sin(th * 3 - y * 5.3) * .3 + Math.sin(th * 5 + y * 9) * .2);
+      pos[v] = cx + r * l * COS[s]; pos[v + 1] = y; pos[v + 2] = cz + r * l * SIN[s]; nor[v] = nr * COS[s]; nor[v + 1] = ny; nor[v + 2] = nr * SIN[s]; inf[v] = ring; inf[v + 1] = kind; inf[v + 2] = st; }
+  }
+  potGeo.attributes.position.needsUpdate = potGeo.attributes.normal.needsUpdate = potGeo.attributes.aInfo.needsUpdate = true; potGeo.setDrawRange(0, (q - 1) * SEG * 6);
+}
+/* the potter's tools: a wooden rib held against the outside, a throwing stick for the inside. The hands are out of frame. */
+const fingers = new THREE.Group(), rib = new THREE.Group(), stick = new THREE.Group(); { const wood = mat({ mode: 'WOOD', rough: .42, spec: .7, env: 1 }), wet = mat({ color: 0x6c5848, rough: .3, spec: .9, bump: .6, speck: .3 }); wet.clearcoat = .7;
+  const rg = new THREE.SphereGeometry(1, 40, 28); rg.scale(.085, .62, .36); { const p = rg.attributes.position; for (let k = 0; k < p.count; k++) { const z = p.getZ(k), y = p.getY(k); p.setZ(k, z + .1 * (1 - (y / .62) * (y / .62)) - .1); } } const r1 = new THREE.Mesh(clayify(rg, .004, 6), wood); r1.castShadow = true; rib.add(r1);
+  const sg = new THREE.CapsuleGeometry(.085, 3.2, 10, 20); const s1 = new THREE.Mesh(clayify(sg, .004, 5), wood); s1.position.y = 1.6 + .2; s1.castShadow = true; stick.add(s1); const knob = new THREE.Mesh(clayify(new THREE.SphereGeometry(.2, 28, 20), .006, 6), wet); knob.scale.set(1, .85, 1); knob.position.y = .16; knob.castShadow = true; stick.add(knob);
+  const rib2 = rib.clone(); rib2.name = 'rib2'; fingers.add(rib, rib2, stick); fingers.userData.rib2 = rib2; fingers.visible = false; scene.add(fingers); }
+
+/* ───────────────────────── state ───────────────────────── */
+const kiln = new THREE.PointLight(0xff6a1e, 0, 14, 1.6); kiln.position.set(1.2, 2.2, 2.6); scene.add(kiln);
+let P = PotModel.create(1, 'bowl'), spin = 0, speed = 0, speedSet = 2.4, mode = 'design', demoT = 0, demoKey = 'spin', lens = 0, lensTo = 0, cutT = -1, frameNo = 0, playing = true, sinceTouch = 99, endHold = 0, clayNo = 0;
+const newPost = () => ({ phase: 'wet', t: 0, glaze: '', heat: 0, bisque: 0, glazed: 0, crack: 0 }); let post = newPost(), potSt = { lam: 0 }, lastPicture = null;
+const GLAZES = { celadon: ['Celadon', 0x7fa696, 0], tenmoku: ['Tenmoku', 0x2a1a12, 0], cobalt: ['Cobalt', 0x2f4f86, 0], white: ['Opaque white', 0xd9d2c2, 1], bare: ['Leave it bare', 0, 0] };
+const ORDER = ['design', 'absent', 'good'];
+const hand = { on: false, type: 'out', y: .5, R: 1, vy: 0, vR: 0, side: 1 };
+const view = { yaw: 0, pitch: 0, zoom: 1 }; let focusDist = 9;
+const watching = () => mode !== 'hands';
+function reset() { clayNo++; P = watching() ? PotModel.create(1, 'bowl') : PotModel.create(1 + clayNo * 7, ['jar', 'bowl', 'bottle'][clayNo % 3]); spin = 0; demoT = 0; cutT = -1; hand.on = false; wire.visible = false; pot.position.set(0, 0, 0); pot.scale.setScalar(1); endHold = 0; post = newPost(); potSt = { lam: 0 }; buttons(); }
+function fire() { if (post.phase === 'wet' && P.cut && !P.collapsed) { post.phase = 'firing'; post.t = 0; buttons(); } }
+function glaze(k) { if (post.phase === 'bisque') { post.glaze = k; if (k === 'bare') { post.phase = 'done'; post.t = 0; } else { SPIN.uGlazeCol.value.set(GLAZES[k][1]); SPIN.uOpaque.value = GLAZES[k][2]; post.phase = 'glazing'; post.t = 0; } buttons(); } }
+
+/* ───────────────────────── what to say ───────────────────────── */
+const SAY = {
+  spin: ['A lump of clay on a spinning wheel. It is off-centre, and the faster it turns the further it throws itself out.', 'Before anyone holds it, a new life has only its own momentum.', 0],
+  centre: ['Hold still. You are not pushing the clay to the centre. The tool stays where it is; once a turn the high side meets it, and gives way.', 'Holding. A reliable presence that puts nothing in. The other finds their own centre against you.', 0],
+  ease: ['Ease off slowly. Let go all at once and it lurches off-centre again.', 'Good-enough care withdraws a little at a time.', 0],
+  still: ['Now look at the middle. Everything turns round a point that does not move.', 'The still point. It is certain, and there is nothing in it.', 0, '“At the still point of the turning world … there the dance is.” T. S. Eliot, Burnt Norton'],
+  open: ['The middle is pressed down, and now there is an inside.', 'A self needs room inside. The clay and the space it holds make the vessel together: figure and ground.', 1, '“Clay is fashioned into vessels; but it is on their empty hollowness that their use depends.” Tao Te Ching 11, tr. Legge'],
+  open2: ['The floor widens. Go too deep and there is no ground left to stand on.', 'Room is made inside, and something is kept underneath.', 1],
+  inside: ['An inside, an outside, and a wall between them that was not there before.', 'This is the beginning of an edge.', 1],
+  feel: ['This potter has no drawing. A light touch, and a wait, to feel which way the clay gives.', 'Good teaching starts by finding out who is there.', 2],
+  follow: ['It rises a little, easily, and then no further. The potter stops where the clay stops.', 'Constraint from outside is what lets anything rise at all. The skill is in stopping.', 2],
+  follow2: ['From inside, a gentle push outward. The clay opens that way almost by itself.', 'Just enough weight to let the other come through.', 3],
+  follow3: ['The potter follows it out. Very little pressure; almost no strain in the wall.', 'With, not to.', 3, '“The most sublime act is to set another before you.” William Blake'],
+  wobble: ['A wobble. The rim has started to wander.', 'This is when the other needs more of you, not less.', 2],
+  lend: ['Both hands, perfectly still. She lends her weight for as long as it is needed.', 'Support: add your weight when it is needed.', 2],
+  lend_ease: ['The wobble has settled, and she gives the weight back.', 'And take it away when it is not.', 2],
+  learn: ['She presses toward the pot she had pictured, and the clay resists. So she changes the picture, not the clay.', 'Good teaching runs in both directions.', 3],
+  rings: ['Those lines are the potter’s touch. Every pass is still there in the wall.', 'We carry our history at our surface.', 3],
+  belly: ['One last pass, and it is the bowl this clay was reaching for. The potter did not know that at the start.', 'Made and found, both.', 3],
+  ease2: ['And ease away. Never leave suddenly.', 'Good-enough care withdraws a little at a time.', 3],
+  d_plan: ['This potter has a drawing: a tall, narrow bottle. The clay has not been asked.', 'A curriculum decided before the learner arrived.', 2],
+  d_pull: ['The first pull goes well enough. Up to here the clay was willing.', 'Some of what we impose happens to suit.', 2],
+  d_pull2: ['Now it is being drawn up past where it gives. It takes more force, and the wall remembers.', 'The other complies. Compliance is not agreement.', 2],
+  d_pull3: ['Taller still. On the right, the strain is climbing. From the potter’s seat nothing looks wrong.', 'The heavier one rarely feels their own weight.', 2],
+  d_shape: ['Held in hard to the shape on the drawing.', 'Control: the same care as holding, unaware of its weight.', 3],
+  d_shape2: ['It matches the drawing. A measure of the outline would call this a success.', 'When the measure becomes the target, the measure stops telling you anything.', 3],
+  d_done: ['A tall bottle, as designed.', 'It is the potter’s pot.', 3],
+  a_start: ['This potter starts the wheel.', 'A beginning is provided.', 0],
+  a_gone: ['And leaves. Nothing holds the clay, so nothing centres it.', 'No constraint from outside is not freedom. Nothing can rise without something to rise against.', 0],
+  a_gone2: ['The wheel keeps speeding up. The clay throws itself further and further out.', 'Left alone with the pace of the world.', 0],
+  a_end: ['No pot. Not because the clay was pressed too hard, but because it was never met.', 'Too little weight is also a way of failing someone.', -1],
+  slow: ['The wheel slows. The hands are already gone.', 'The holding ends before the turning does.', 4],
+  cut: ['A wire under the foot, and it is free of the wheel.', 'Separation. It leaves carrying its own shape, and the potter’s touch.', 5],
+  free: ['It stands on its own, a little off the centre of the wheel, and that no longer matters.', 'Still soft. Nothing is settled until it is fired.', 5],
+  fire: ['Into the kiln. Everything it has been through is about to become permanent.', 'A moment settles. After this it is the past, and the past is not remade.', 6],
+  fire_crack: ['It cracks. Nothing was wrong on the wheel. The strain of being forced was in the wall all along, and the fire found it.', 'What is imposed can hold for years and show up later.', 6],
+  bisque: ['Fired. Smaller, harder, and itself. Now choose how the world will see it.', 'The glaze is the face. The pot underneath is the history.', 7],
+  bisque_crack: ['Fired, and cracked along the lines where it was forced.', 'It is still a pot. It carries what happened to it.', 7],
+  glazing: ['The glaze melts and sets.', 'A clear glaze pools in the potter’s lines and lets them show. An opaque one covers them. Under either, the pot is what it was thrown as.', 7],
+  done_good: ['A bowl. Nobody could have said so beforehand, the potter included. Clay did all of this by being compliant. A child is not compliant, and should not be.', 'Children push back, imagine, and reshape the potter too. Keep them that way. The potter’s whole task was to let this one come through.', 7, '“He who binds to himself a joy / Does the winged life destroy” William Blake'],
+  done_design: ['The potter’s bottle, glazed white so the cracks and the lines are covered. Clay let this happen. It could not say no.', 'A child can say no, and that is not a fault to be corrected. It is the thing to protect.', 7],
+  done: ['Fired and finished. Clay did all of this by being compliant. A child is not compliant, and should not be.', 'Children push back, imagine, and reshape the potter too. Keep them that way.', 7],
+  f_forced: ['It gave way where it was being forced. The clay went along with it for as long as it could.', 'Compliance has a limit, and it is reached without warning. Nothing is wasted: the clay goes back to be thrown again.', -1],
+  f_hard: ['That was more than this wall could take. A thick lump would have shrugged it off. A thin wet wall takes the whole of it.', 'A single word is a spell, when the other is this open. Nothing is wasted: the clay goes back to be thrown again.', -1],
+  f_thin: ['The wall grew too thin to carry what was above it, and folded.', 'Growth faster than strength. Nothing is wasted: the clay goes back to be thrown again.', -1],
+  f_fast: ['Too fast. The wheel opened the wall wider than it could hold, and it flew out flat.', 'When the world turns faster than a form can keep up with, it loses its shape. The answer is a slower wheel, not harder hands.', -1],
+  f_wobble: ['It was never centred, and speed made the wobble worse until it tore itself off.', 'Without holding first, everything that comes after is harder.', -1],
+  f_wet: ['Too much water. The clay had nothing left to stand on.', 'Too much help dissolves what it was meant to support.', -1],
+  f_tired: ['Overworked. Every change you made and unmade stayed in the clay, and at last it gave way.', 'Too much attention is also a weight.', -1],
+  hole: ['Through the bottom. There is no floor left.', 'Room inside needs ground underneath.', 1],
+  jolt: ['You let go all at once, and it lurched. Ease off slowly.', 'Sudden absence is its own kind of push.', -2],
+  chase: ['You are chasing the wobble. Hold still, and let the clay come to you.', 'You cannot push someone to their centre.', 0],
+  spell: ['Careful. The wall is thin here, so your touch counts for almost everything.', 'Feel your own weight.', -2],
+  against: ['It resists here. You can force it, and it will go, and it will remember.', 'This is your shape, not theirs.', -2],
+  along: ['It gives easily here. This is the way it was already going.', 'You are following now, not leading.', -2],
+  stopped: ['Nothing happens. A still wheel gives you nothing to work with.', 'Time has to be moving for anything to change.', -2],
+  veryfast: ['The wheel is very fast now. Thin walls are beginning to open.', 'Speed is not strength.', -2],
+  g_centre: ['Rest against the side of the clay and stay there.', 'Start by holding.', 0],
+  g_open: ['Centred, or near enough. Now press down through the middle to open it.', 'Good enough, not perfect.', 1],
+  g_pull: ['There is an inside. Press on the outside of the wall and draw slowly upward. Feel where it stops being willing.', 'Meet the push from inside.', 2],
+  g_shape: ['Push out from inside, or hold in from outside, and watch whether the clay gives or resists. Slow the wheel when you are done.', 'Find out which pot this is.', 3],
+  g_letgo: ['The wheel has stopped. Cut it free when you are ready.', 'Letting go is part of the making.', 4],
+  g_fire: ['Free of the wheel. Fire it when you are ready. There is no changing it after that.', 'Still possible, until the moment settles.', 5]
+};
+const STAGES = [['Centre', 'Holding'], ['Open', 'Making room inside'], ['Raise', 'Push meets push back'], ['Shape', 'Becoming'], ['Let go', 'Graduated release'], ['Cut free', 'Separation'], ['Fire', 'The moment settles'], ['Glaze', 'How it is seen']];
+function narrate() {
+  if (P.collapsed) return 'f_' + P.why;
+  if (post.phase === 'firing') return post.crack > .05 ? 'fire_crack' : 'fire';
+  if (post.phase === 'bisque') return post.crack > .05 ? 'bisque_crack' : 'bisque';
+  if (post.phase === 'glazing') return 'glazing';
+  if (post.phase === 'done') return mode === 'good' ? 'done_good' : mode === 'design' ? 'done_design' : 'done';
+  if (watching()) return demoKey;
+  if (P.cut) return cutT > 2.4 ? 'g_fire' : 'cut';
+  if (P.hole) return 'hole';
+  if (P.jolt > .2) return 'jolt';
+  const wob = P.wobble(), depth = P.depth(), hollow = depth > .05;
+  if (hand.on && speed < .06) return 'stopped';
+  if (hand.on && hand.type !== 'top' && hollow && P.K > .78 && P.press > .2) return 'spell';
+  if (hand.on && wob > .03 && Math.abs(hand.vy) + Math.abs(hand.vR) > .5) return 'chase';
+  if (hand.on && hollow && P.press > .08 && P.withNow < -.45) return 'against';
+  if (hand.on && hollow && P.press > .08 && P.withNow > .55) return 'along';
+  if (speed > 3.5 && hollow) return 'veryfast';
+  if (hand.on) return !hollow ? (hand.type === 'top' ? 'open' : 'centre') : 'g_shape';
+  if (wob > .035 && !hollow) return speed > .3 ? (sinceTouch < 3 ? 'g_centre' : 'spin') : 'g_centre';
+  if (!hollow) return sinceTouch < 4 ? 'still' : 'g_open';
+  if (speed < .08 && P.H > 1.2) return 'g_letgo';
+  if (P.depth() < P.H - .3 || sinceTouch > 6 && P.S < .9) return 'g_pull';
+  return sinceTouch < 3 && P.ring[Math.round(P.n() / 2)] > .2 ? 'rings' : 'g_shape';
+}
+function stageNow(key) { const s = SAY[key][2]; if (s >= 0) return s; if (post.phase !== 'wet') return post.phase === 'firing' ? 6 : 7; if (P.cut) return 5; const hollow = P.depth() > .05; return !hollow ? (P.wobble() > .035 ? 0 : 1) : P.depth() < P.H - .3 ? 2 : speed < .08 ? 4 : 3; }
+
+/* ───────────────────────── the instruments: the same meeting, drawn as inference ───────────────────────── */
+const hudC = $('hud'), hg = hudC.getContext('2d');
+function hud() {
+  if (film.on) return hudFilm();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), W = hudC.clientWidth, H = hudC.clientHeight; if (!W) return; if (hudC.width !== Math.round(W * dpr)) { hudC.width = Math.round(W * dpr); hudC.height = Math.round(H * dpr); }
+  const g = hg; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); const ink = '#f3ecdf', soft = 'rgba(243,236,223,.6)', gold = '#f0b45a', red = '#e5604c', teal = '#8fd0c2';
+  g.font = '500 11px "DM Mono", monospace'; g.textBaseline = 'alphabetic';
+  const n = P.n(), cx = W * .5, base = 224, sc = Math.min(56, 188 / Math.max(P.H + .3, 2.2)), X = r => cx + r * sc, Y = y => base - y * sc;
+  g.fillStyle = soft; g.textAlign = 'left'; g.fillText('THE CLAY, CUT THROUGH', 14, 18);
+  g.strokeStyle = 'rgba(243,236,223,.3)'; g.lineWidth = 1; g.beginPath(); g.moveTo(X(-1.9), base + .5); g.lineTo(X(1.9), base + .5); g.stroke();
+  g.setLineDash([2, 4]); g.beginPath(); g.moveTo(cx + .5, base); g.lineTo(cx + .5, 28); g.stroke(); g.setLineDash([]);
+  const hollow = P.depth() > .03;
+  for (const sd of [-1, 1]) for (let j = 0; j < n - 1; j++) { const y0 = j * P.DY, y1 = Math.min(P.H, y0 + P.DY), st = Math.max(P.stress[j], P.strain[j] * .8), inner = P.ri[j] > 0 && y0 >= P.floor ? P.ri[j] : 0; g.fillStyle = st > .75 ? red : st > .4 ? gold : '#b39b84'; const xa = X(sd * inner), xb = X(sd * P.ro[j]); g.fillRect(Math.min(xa, xb), Y(y1), Math.abs(xb - xa) + .6, (y1 - y0) * sc + .7); }
+  const outline = (T, col) => { g.strokeStyle = col; g.lineWidth = 1.6; g.setLineDash([4, 4]); for (const sd of [-1, 1]) { g.beginPath(); for (let k = 0; k <= 30; k++) { const u = k / 30, x = X(sd * T.r(u)), y = Y(u * T.H); k ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); } g.setLineDash([]); };
+  const reveal = P.cut || P.collapsed; let ly = 50;
+  if (watching() && lastPicture && hollow && mode !== 'absent') { const dz = mode === 'design'; outline(lastPicture, dz ? red : gold); g.fillStyle = dz ? red : gold; g.textAlign = 'right'; g.fillText(dz ? '- - the potter’s drawing' : '- - the potter’s picture of it', W - 14, ly); ly += 15; }
+  if (reveal && hollow) { outline(P.want, teal); g.fillStyle = teal; g.textAlign = 'right'; g.fillText('- - what the clay gave most easily', W - 14, ly); ly += 15; }
+  const h = watching() ? demoHand : (hand.on ? hand : null);
+  if (h) { const sd = h.side || 1, hx = X(sd * h.R), hy = Y(h.y); g.strokeStyle = ink; g.lineWidth = 2; g.beginPath(); if (h.type === 'top') { g.moveTo(cx, hy - 34); g.lineTo(cx, hy); } else { const from = h.type === 'out' ? sd * 34 : -sd * 22; g.moveTo(hx + from, hy); g.lineTo(hx, hy); } g.stroke(); g.fillStyle = ink; g.beginPath(); g.arc(h.type === 'top' ? cx : hx, hy, 4, 0, TAU); g.fill(); }
+  g.fillStyle = soft; g.textAlign = 'right'; g.fillText((P.H * 10 * pot.scale.y).toFixed(1) + ' cm tall' + (hollow ? ' · wall ' + Math.max(0, P.thin() * 100).toFixed(0) + ' mm' : ''), W - 14, 34);
+  const ty = 286, tr = 34, tx = 58; g.fillStyle = soft; g.textAlign = 'left'; g.fillText('FROM ABOVE', 14, 246);
+  const wob = P.wobble(), ex = Math.cos(spin) * wob * 110, ez = Math.sin(spin) * wob * 110;
+  g.strokeStyle = 'rgba(243,236,223,.22)'; g.lineWidth = 1; g.beginPath(); g.arc(tx, ty, tr, 0, TAU); g.stroke();
+  g.strokeStyle = gold; g.lineWidth = 2.2; g.beginPath(); g.ellipse(tx + ex, ty + ez, tr * (1 + wob * .8), tr * (1 - wob * .8), spin, 0, TAU); g.stroke();
+  g.strokeStyle = ink; g.lineWidth = 2; g.beginPath(); g.moveTo(tx + tr + 20, ty); g.lineTo(tx + tr - (h ? 4 : -8), ty); g.stroke(); g.fillStyle = ink; g.beginPath(); g.arc(tx, ty, 2.6, 0, TAU); g.fill();
+  g.fillStyle = soft; g.fillText('the circle: the clay', tx + tr + 32, ty - 18); g.fillText('the line: the hand', tx + tr + 32, ty - 2); g.fillText('the point: still', tx + tr + 32, ty + 14);
+  g.fillStyle = wob > .03 ? gold : teal; g.fillText(wob > .03 ? 'off-centre by ' + (wob * 100).toFixed(0) + ' mm' : 'centred, near enough', tx + tr + 32, ty + 32);
+  let y = 346; const bar = (label, v, txt, col) => { g.fillStyle = soft; g.textAlign = 'left'; g.fillText(label, 14, y); g.textAlign = 'right'; g.fillStyle = ink; g.fillText(txt, W - 14, y); g.fillStyle = 'rgba(243,236,223,.12)'; g.fillRect(14, y + 6, W - 28, 4); g.fillStyle = col || gold; g.fillRect(14, y + 6, (W - 28) * clamp(v, 0, 1), 4); y += 27; };
+  const touching = P.press > .01, sm = P.strained();
+  bar('The hand insists', P.press, touching ? P.press.toFixed(2) : 'off');
+  bar('The clay holds its shape', clamp(P.firm / 3, 0, 1), touching ? P.firm.toFixed(2) : '–', '#b39b84');
+  bar('So this touch moves it', P.K, touching ? Math.round(P.K * 100) + '% of the way' : '–', P.K > .78 ? red : gold);
+  { g.fillStyle = soft; g.textAlign = 'left'; g.fillText('The clay', 14, y); const w = P.withNow, on = touching && hollow; g.textAlign = 'right'; g.fillStyle = !on ? ink : w > .3 ? teal : w < -.3 ? red : ink; g.fillText(!on ? '–' : w > .3 ? 'gives' : w < -.3 ? 'resists' : 'neither', W - 14, y); const mx = W / 2; g.fillStyle = 'rgba(243,236,223,.12)'; g.fillRect(14, y + 6, W - 28, 4); if (on) { g.fillStyle = w > 0 ? teal : red; g.fillRect(Math.min(mx, mx + w * (W / 2 - 14)), y + 6, Math.abs(w) * (W / 2 - 14), 4); } g.fillStyle = ink; g.fillRect(mx - .5, y + 3, 1, 10); y += 27; }
+  bar('Forced against its grain', sm / 1.5, sm.toFixed(2), sm > .6 ? red : '#b39b84');
+  bar('Worked and reworked', P.over, P.S ? P.S.toFixed(2) : '0.00', P.over > .75 ? red : '#b39b84');
+  bar('Wheel', speed / 4.6, Math.round(speed * 60) + ' turns a minute', '#8fb6d6');
+  g.fillStyle = soft; g.textAlign = 'left'; g.fillText('moved = hand ÷ (hand + clay)', 14, H - 12);
+}
+let demoHand = null, lastKey = '';
+function say() {
+  const key = narrate(), s = SAY[key] || SAY.spin; if (key !== lastKey) { lastKey = key; $('craft').textContent = s[0]; $('people').textContent = s[1]; $('quote').textContent = s[3] || ''; $('quote').hidden = !s[3]; const st = stageNow(key); document.querySelectorAll('#rail li').forEach((li, i) => { li.dataset.on = i === st ? '1' : i < st ? 'done' : '0'; }); $('card').dataset.tone = key.startsWith('f_') || key === 'hole' || key === 'fire_crack' || key === 'bisque_crack' || key === 'a_end' ? 'bad' : ['jolt', 'spell', 'chase', 'veryfast', 'against'].includes(key) || key.startsWith('d_pull') || key.startsWith('d_shape') ? 'warn' : 'ok'; }
+  const w = $('weight'); if (P.press > .02) { const pct = Math.round(P.K * 100), hollow = P.depth() > .05; w.hidden = false; w.textContent = (watching() ? 'The potter’s weight in this meeting: ' : 'Your weight in this meeting: ') + pct + '%' + (hollow && Math.abs(P.withNow) > .3 ? (P.withNow > 0 ? ' · the clay gives' : ' · the clay resists') : ''); w.dataset.tone = P.withNow < -.3 && hollow ? 'bad' : 'ok'; } else w.hidden = true;
+}
+
+/* ───────────────────────── the film: ten minutes, narrated ─────────────────────────
+   The same model, played through a list of beats. A 'play' beat runs the potter's moves at a time scale (below one is
+   slow motion, above one is time-lapse); the clay does exactly what it does in the tested runs. A 'hold' beat lets the
+   wheel idle while the narrator speaks; the clay is not stepped, so nothing drifts. */
+const film = { zoom: 1, across: 0, on: false, playing: false, t: 0, ci: -1, total: 0, ch: [], pots: {}, muted: false, audio: {}, vspin: 0, ts: 1, idle: 0, cue: '' };
+const G = k => PotDemo.when('good', k), Dz = k => PotDemo.when('design', k);
+const DIR = {
+  c01: { pot: 'main', fresh: true, cam: { lens: 0, z: [1.12, .98], yaw: [.32, .06] }, beats: [{ hold: 1, w: 0 }], quotes: [['never a vessel', 'The child is rich in potential, strong, powerful, competent.', 'after Loris Malaguzzi']], pad: 0.6 },
+  c02: { left: 'trace', pot: 'main', cam: { lens: 0, z: [.98, .86], yaw: [.06, -.1] }, beats: [{ play: [0, 2], ts: .5 }, { hold: 5, w: 3, vts: 1 }, { hold: 1, w: 3, vts: .16, fill: true }], pad: 0.6 },
+  c03: { left: 'trace', pot: 'main', cam: { lens: 0, z: [.9, .8], yaw: [-.1, .18] }, beats: [{ play: [2, 4], ts: .5 }, { play: [4, G('ease')], ts: .13 }, { play: [G('ease'), G('still')], ts: .3 }, { hold: 1, w: 2.8, vts: .5, fill: true }], quotes: [['called this holding', '…the experience of being alone in the presence of someone.', 'D. W. Winnicott, The Capacity to be Alone (1958)']], pad: 0.6 },
+  c04: { left: 'speed', pot: 'main', cam: { lens: 1, z: [1, .62], yaw: [0, 0] }, beats: [{ play: [G('still'), G('open')], ts: .6 }, { hold: 1, w: 4.4, vts: 1, fill: true }], quotes: [['except one', 'At the still point of the turning world … there the dance is.', 'T. S. Eliot, Burnt Norton'], ['you have a place', 'The thirty spokes unite in the one nave; but it is on the empty space that the use of the wheel depends.', 'Tao Te Ching 11, tr. Legge']], pad: 0.8 },
+  c04z: { pot: 'main', left: 'speed', cam: { lens: 1, z: [.62, .62], yaw: [0, .5], lensAt: ['notice where we are', 0] }, zoomAt: ['go closer', 'perhaps this is', 'notice where we are'], beats: [{ hold: 1, w: 4.4, vts: 1, fill: true }],
+    quotes: [['smaller wheel', 'Every continuous map of a disc into itself leaves at least one point fixed.', 'L. E. J. Brouwer, 1911'], ['perhaps this is', '…And do not call it fixity, / Where past and future are gathered.', 'T. S. Eliot, Burnt Norton'], ['partial view', '…the god trick of seeing everything from nowhere.', 'Donna Haraway, Situated Knowledges (1988)']], pad: 0.8 },
+  c05: { left: 'gain', pot: 'main', cam: { lens: 0, z: [.92, .84], yaw: [.2, -.05] }, beats: [{ play: [G('open'), G('inside')], ts: .32 }, { play: [G('inside'), G('feel')], ts: .5 }, { hold: 1, w: 2, vts: .4, fill: true }], quotes: [['figure and ground', 'Clay is fashioned into vessels; but it is on their empty hollowness that their use depends.', 'Tao Te Ching 11, tr. Legge']], pad: 0.6 },
+  c06: { left: 'gain', pot: 'main', gauge: true, cam: { lens: 0, z: [.95, .82], yaw: [-.05, .22] }, beats: [{ play: [G('feel'), G('follow')], ts: .5 }, { play: [G('follow'), G('follow') + 3.4], ts: .19 }, { play: [G('follow') + 3.4, G('wobble')], ts: .5 }, { hold: 1, w: 1.8, vts: .4, fill: true }], quotes: [['constraint is not', 'Opposition is true Friendship.', 'William Blake'], ['sacred trust', 'The most sublime act is to set another before you.', 'William Blake']], pad: 0.6 },
+  c07: { left: 'trace', pot: 'main', gauge: true, cam: { lens: 0, z: [.84, .78], yaw: [.22, .0] }, beats: [{ hold: 2.2, w: 1.8, vts: .5 }, { play: [G('wobble'), G('lend')], ts: .35 }, { play: [G('lend'), G('lend_ease')], ts: .2 }, { play: [G('lend_ease'), G('learn')], ts: .3 }, { hold: 1, w: 1.7, vts: .4, fill: true }], quotes: [['whole art of support', 'Teach us to care and not to care / Teach us to sit still.', 'T. S. Eliot, Ash-Wednesday']], pad: 0.6 },
+  c08: { left: 'learn', pot: 'main', gauge: true, cam: { lens: 0, z: [.9, .84], yaw: [0, -.2] }, beats: [{ hold: 5.5, w: 1.6, vts: .4 }, { play: [G('learn'), G('learn') + 3.6], ts: .24 }, { play: [G('learn') + 3.6, G('follow2')], ts: .5 }, { play: [G('follow2'), G('follow3')], ts: .34 }, { hold: 1, w: 1.5, vts: .4, fill: true }], quotes: [['translation', 'No one educates anyone else, nor do we educate ourselves. We educate one another, mediated by the world.', 'after Paulo Freire']], pad: 0.6 },
+  c09: { left: 'goodhart', pot: 'design', fresh: true, gauge: true, cam: { lens: 0, z: [1, .9], yaw: [-.25, .15] }, beats: [{ play: [0, Dz('d_plan')], ts: 5 }, { play: [Dz('d_plan'), Dz('d_done')], ts: 2.2 }, { play: [Dz('d_done'), Dz('free') + 1.2], ts: 1.5 }, { hold: 1, w: 0, fill: true }], fire: 'kiln', quotes: [['outline matches', 'When a measure becomes a target, it ceases to be a good measure.', 'Marilyn Strathern, on Goodhart’s law']], pad: 1.2 },
+  c10: { left: 'trace', pot: 'absent', fresh: true, cam: { lens: 0, z: [1, .86], yaw: [.2, -.1] }, fallAt: 'nothing holds', beats: [{ play: [0, 3], ts: 1 }, { play: [3, 18.5], ts: 2.4, slowFall: .14 }, { hold: 1, w: .5, fill: true }], quotes: [['good by nature', 'Rousseau thought Men Good by Nature; he found them Evil & found no friend.', 'William Blake, Jerusalem, plate 52'], ['without contraries', 'Without Contraries is no progression.', 'William Blake, The Marriage of Heaven and Hell']], pad: 1.2 },
+  c11: { left: 'gain', pot: 'main', gauge: true, cam: { lens: 0, z: [.9, .8], yaw: [-.2, .2] }, beats: [{ hold: 4, w: 1.4, vts: .4 }, { play: [G('follow3'), G('rings')], ts: .2 }, { play: [G('rings'), G('belly')], ts: .5 }, { play: [G('belly'), G('ease2')], ts: .3 }, { play: [G('ease2'), G('slow')], ts: .5 }, { hold: 1, w: 1, vts: .5, fill: true }], quotes: [['light enough', 'He who binds to himself a joy / Does the winged life destroy', 'William Blake']], pad: 0.6 },
+  c12: { left: 'learn', pot: 'main', cam: { lens: 0, z: [.86, .92], yaw: [.2, 0] }, beats: [{ play: [G('slow'), G('cut')], ts: .5 }, { play: [G('cut'), G('free')], ts: .3 }, { play: [G('free'), G('free') + 2.6], ts: 1 }, { hold: 1, w: 0, fill: true }], pad: 0.8 },
+  c13: { left: 'learn', pot: 'main', cam: { lens: 0, z: [.92, .8], yaw: [0, .45] }, beats: [{ hold: 1, w: 0, fill: true }], fire: 'fire', glaze: 'glaze', quotes: [['becomes the past', 'Eternity is in love with the productions of time.', 'William Blake']], pad: 1.2 },
+  c14: { left: 'learn', pot: 'main', cam: { lens: 0, z: [.8, .9], yaw: [.45, -.1], lensAt: ['keeping that space', 1] }, beats: [{ hold: 1, w: 0, fill: true }], quotes: [['never ask', '…we will never ask the question: “Did you conceive of this or was it presented to you from without?”', 'D. W. Winnicott, Playing and Reality'], ['hundred languages', '…and of the hundred / they steal ninety-nine.', 'Loris Malaguzzi, tr. Lella Gandini']], pad: 2.5 }
+};
+function filmBuild() {
+  let t = 0; film.ch = NARR.map(n => { const d = DIR[n.id]; if (d.fallAt) { const c = n.cues.find(c => c[2].toLowerCase().includes(d.fallAt)); if (c) d.beats[1].ts = (14.5 - 3) / Math.max(4, c[0] - 3); }   // the absent potter's clay is lost at script second 14.5
+    const beats = d.beats.map(b => Object.assign({}, b, { len: b.play ? (b.play[1] - b.play[0]) / b.ts : b.hold })); const fixed = beats.reduce((s, b) => s + b.len, 0), D = Math.max(n.dur + d.pad, fixed); const f = beats.find(b => b.fill); if (f) f.len += D - fixed;
+    const cueAt = w => { const c = n.cues.find(c => c[2].toLowerCase().includes(w)); return c ? c[0] : null; };
+    return Object.assign({}, d, n, { beats, D, fill: f, fireAt: d.fire ? cueAt(d.fire) : null, glazeAt: d.glaze ? cueAt(d.glaze) : null, lensT: d.cam.lensAt ? cueAt(d.cam.lensAt[0]) : null, lead: 0, zt: d.zoomAt ? d.zoomAt.map(cueAt) : null, qs: (d.quotes || []).map(q => [cueAt(q[0]), q[1], q[2]]).filter(q => q[0] != null) }); });
+  // stretch to ten minutes: a quiet lead-in before each chapter's narration, and more room after the contemplative ones
+  const WT = { c04: 3, c14: 2.2, c13: 1.8, c11: 1.5, c01: 1.2 }, have = film.ch.reduce((s, c) => s + c.D, 0), extra = Math.max(0, 590 - have), wsum = film.ch.reduce((s, c) => s + (WT[c.id] || 1), 0);
+  film.ch.forEach(c => { const x = extra * (WT[c.id] || 1) / wsum; c.lead = c.id === 'c01' ? 1 : Math.min(3.5, x * .45); c.D += x; if (c.fill) c.fill.len += x; ['fireAt', 'glazeAt', 'lensT'].forEach(k => { if (c[k] != null) c[k] += c.lead; }); c.cues = c.cues.map(q => [q[0] + c.lead, q[1] + c.lead, q[2]]); c.qs.forEach(q => { q[0] += c.lead; }); if (c.zt) c.zt = c.zt.map(v => v + c.lead); c.t0 = t; t += c.D; }); film.total = t;
+}
+function newPot(kind) { return { kind, P: PotModel.create(1, 'bowl'), st: { lam: 0 }, post: newPost(), cutT: -1, s: 0, wd: 0, tr: [], trS: -1 }; }
+function matchTo(P, T) { const n = P.n(); let d = 0, c = 0; for (let j = 4; j < n; j++) if (P.ri[j] > 0) { d += Math.abs(P.ro[j] - T.r(j * P.DY / T.H)); c++; } return c ? clamp(1 - (d / c) / .45 - Math.abs(P.H - T.H) / 2.2, 0, 1) : 0; }
+function potStep(o, h) { // one small step of a potter's script on one pot
+  const kind = o.kind === 'main' ? 'good' : o.kind, a = PotDemo.at(kind, o.s, o.P, o.st, h); if (a.water && !o.wd) { o.P.water(); o.wd = 1; } if (!a.water) o.wd = 0; if (a.cut && !o.P.cut && !o.P.collapsed) { o.P.cutFree(); o.cutT = 0; }
+  o.P.step(h, a.w, a.hand); o.s += h; if (o.cutT >= 0) o.cutT += h;
+  if (o.s - o.trS >= .2) { o.trS = o.s; const P = o.P, hollow = P.depth() > .05; o.tr.push({ rev: P.rev, wob: P.wobble(), strain: P.strained(), far: hollow ? 1 - P.fit() : 1, pic: 1 - (o.st.lam || 0), match: hollow && kind === 'design' ? matchTo(P, PotDemo.DESIGN) : 0, hollow }); }
+  return a; }
+function filmUse(o) { film.cur = o; P = o.P; post = o.post; cutT = o.cutT; potSt = o.st; mode = o.kind === 'main' ? 'good' : o.kind; }
+function filmSeek(ci, tau) { // rebuild the state at the start of a chapter by replaying the main pot to where it should be
+  ci = clamp(ci, 0, film.ch.length - 1); const main = newPot('main'); let s = 0, fired = false, glazed = false;
+  for (let k = 0; k < ci; k++) { const c = film.ch[k]; if (c.pot === 'main') { for (const b of c.beats) if (b.play) s = Math.max(s, b.play[1]); if (c.fireAt != null) fired = true; if (c.glazeAt != null) glazed = true; } }
+  while (main.s < s - 1e-6) potStep(main, Math.min(1 / 60, s - main.s));
+  if (fired) { Object.assign(main.post, { phase: glazed ? 'done' : 'bisque', bisque: 1, glazed: glazed ? 1 : 0, glaze: glazed ? 'celadon' : '', heat: 0 }); if (glazed) { SPIN.uGlazeCol.value.set(GLAZES.celadon[1]); SPIN.uOpaque.value = 0; } }
+  film.pots = { main }; film.ci = -1; film.t = film.ch[ci].t0 + (tau || 0); film.vspin = 0; film.entered = -1; filmEnter(ci); pot.position.x = main.cutT > 2.7 ? .34 : 0; filmAudio(true);
+}
+function filmEnter(ci) { const c = film.ch[ci]; film.ci = ci; film.entered = ci; if (c.fresh || !film.pots[c.pot]) film.pots[c.pot] = newPot(c.pot); const o = film.pots[c.pot]; filmUse(o); film.fired = false; film.glazedEv = false; if (c.pot !== 'main') { pot.position.x = 0; wire.visible = false; }
+  $('chap').textContent = (ci + 1) + ' · ' + c.title; document.body.dataset.gauge = c.gauge ? '1' : '0'; document.querySelectorAll('#ticks i').forEach((e, k) => e.dataset.on = k === ci ? '1' : k < ci ? 'done' : '0'); }
+function filmAdvance(dt) {
+  if (!film.playing) dt = 0; film.t = Math.min(film.total, film.t + dt); let ci = film.ci; while (ci < film.ch.length - 1 && film.t >= film.ch[ci].t0 + film.ch[ci].D) ci++; if (ci !== film.entered) { filmEnter(ci); filmAudio(true); }
+  const c = film.ch[ci], o = film.pots[c.pot], tau = film.t - c.t0; let acc = 0, beat = c.beats[c.beats.length - 1], bt = 0; for (const b of c.beats) { if (tau < acc + b.len) { beat = b; bt = tau - acc; break; } acc += b.len; }
+  let h = null, a = null, ts = 1, w = 0;
+  if (beat.play && dt > 0) { ts = beat.slowFall && o.P.collapsed && (o.P.fall || 0) < 1.25 ? beat.slowFall : beat.ts; const target = Math.min(beat.play[1], beat.play[0] + (beat.slowFall ? 1e9 : bt * beat.ts)); let left = dt * ts, guard = 0;
+    while (left > 1e-6 && guard++ < 400 && (beat.slowFall ? o.s < beat.play[1] : o.s < target)) { const hh = Math.min(1 / 60, left, beat.slowFall ? 1 : target - o.s); a = potStep(o, Math.max(hh, 1e-5)); left -= hh; }
+    if (!a) a = PotDemo.at(mode, o.s, o.P, o.st, 0); h = a.hand; w = a.w; if (o.P.collapsed) w = Math.min(w, 1.2); }
+  else { a = PotDemo.at(mode, Math.max(0, o.s - 1e-4), o.P, o.st, 0); w = beat.w != null ? beat.w : a.w; ts = beat.vts != null ? beat.vts : 1; if (beat.play) { h = a.hand; w = a.w; ts = beat.ts; } }
+  if (h) h.side = 1; demoKey = a.key; lastPicture = a.picture; demoHand = h; cutT = o.cutT; film.ts = ts;
+  const vis = w * Math.min(ts, 1.4); speed += (vis - speed) * Math.min(1, (dt || .016) * 3); spin += speed * dt * TAU; sinceTouch = h ? 0 : sinceTouch + dt;
+  if (c.fireAt != null && tau >= c.fireAt && !film.fired && post.phase === 'wet' && P.cut) { film.fired = true; fire(); }
+  if (c.glazeAt != null && tau >= c.glazeAt && !film.glazedEv && post.phase === 'bisque') { film.glazedEv = true; glaze('celadon'); }
+  if (cutT >= 0 && c.pot === 'main') { wire.visible = cutT < 1.6; wire.position.z = lerp(4.2, -3.2, clamp(cutT / 1.3, 0, 1)); pot.position.x = lerp(0, .34, clamp((cutT - 1.5) / 1.2, 0, 1) ** .7); } else if (c.pot !== 'main') { wire.visible = false; pot.position.x = o.cutT >= 0 ? lerp(0, .34, clamp((o.cutT - 1.5) / 1.2, 0, 1) ** .7) : 0; }
+  afterwards(dt);
+  const u = clamp(tau / c.D, 0, 1), e = u * u * (3 - 2 * u); view.zoom = lerp(c.cam.z[0], c.cam.z[1], e) * (ts < .3 && beat.play ? .94 : 1); view.yaw = lerp(c.cam.yaw[0], c.cam.yaw[1], e); view.pitch = 0; lensTo = c.lensT != null && tau >= c.lensT ? c.cam.lensAt[1] : c.cam.lens;
+  let cue = ''; for (const q of c.cues) if (tau >= q[0] - .15 && tau <= q[1] + .9) cue = q[2]; if (cue !== film.cue) { film.cue = cue; $('sub').textContent = cue; $('sub').dataset.on = cue ? '1' : '0'; }
+  // falling into the centre: the lens halves the picture again and again. The pattern is the same at every size, so there is always further to go
+  let zm = 1; if (c.zt) { const [z0, z1, z2] = c.zt, L = Math.log(1500); if (tau > z0 && tau <= z1) { const u = (tau - z0) / (z1 - z0); zm = Math.exp(L * u * u * (3 - 2 * u)); } else if (tau > z1 && tau <= z2) zm = Math.exp(L + Math.log(4) * (tau - z1) / (z2 - z1)); else if (tau > z2) zm = Math.exp(Math.max(0, (L + Math.log(4)) * (1 - (tau - z2) / 3.2))); }
+  film.zoom += (zm - film.zoom) * Math.min(1, (dt || .03) * 6); if (!c.zt) film.zoom = 1;
+  const sc = $('scale'); if (film.zoom > 1.4) { const w = film.across * 100, v = TAU * speed * (film.across / 2) * 100, fm = x => x >= 10 ? x.toFixed(0) + ' mm' : x >= 1 ? x.toFixed(1) + ' mm' : x >= .01 ? (x * 1000).toFixed(0) + ' thousandths of a mm' : (x * 1000).toFixed(2) + ' thousandths of a mm'; sc.dataset.on = '1'; sc.innerHTML = '<b>' + fm(w) + '</b> across this picture<br>at its edge the clay moves <b>' + fm(v) + '</b> a second<br>at the centre, <b>nothing</b>'; } else sc.dataset.on = '0';
+  let pq = null; for (const q of c.qs) if (tau >= q[0] + .4 && tau < q[0] + 12) pq = q; if (pq !== film.pq) { film.pq = pq; const el = $('pull'); el.dataset.on = pq ? '1' : '0'; if (pq) { el.firstChild.textContent = '“' + pq[1] + '”'; el.lastChild.textContent = pq[2]; } }
+  const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); $('ftime').textContent = fmt(film.t) + ' / ' + fmt(film.total); $('fprog').style.width = (film.t / film.total * 100) + '%';
+  document.body.dataset.slow = ts < .3 && beat.play ? '1' : '0'; if (film.t >= film.total && film.playing) { film.playing = false; $('fplay').textContent = 'Play again'; }
+  filmAudio(false); return h;
+}
+function filmAudio(force) { // each chapter's narration is fetched once and played from a blob, in step with the film clock
+  if (!film.on) return; const c = film.ch[film.ci]; if (!c) return; const tau = film.t - c.t0;
+  [film.ci, film.ci + 1].forEach(k => { const ch = film.ch[k]; if (ch && !film.audio[ch.id]) { const el = new Audio(); el.preload = 'auto'; film.audio[ch.id] = el; fetch('potters-wheel-audio/' + ch.id + '.mp3').then(r => r.ok ? r.blob() : Promise.reject()).then(b => { el.src = URL.createObjectURL(b); }).catch(() => { el.failed = true; }); } });
+  for (const id in film.audio) { const el = film.audio[id]; if (id !== c.id && !el.paused) el.pause(); }
+  const el = film.audio[c.id]; if (!el || el.failed || !el.src) return; el.muted = film.muted; const at = tau - c.lead;
+  const want = film.playing && at >= 0 && at < c.dur - .05; if (want) { if (force || el.paused || Math.abs(el.currentTime - at) > .4) { try { el.currentTime = clamp(at, 0, c.dur); } catch (e) {} } if (el.paused) { const p = el.play(); if (p && p.catch) p.catch(() => {}); } } else if (!el.paused) el.pause();
+}
+function filmStart(ci) { film.on = true; film.playing = true; document.body.dataset.ui = 'film'; $('fplay').textContent = 'Pause'; filmSeek(ci || 0, 0); build(); }
+function filmStop() { film.on = false; film.playing = false; for (const id in film.audio) film.audio[id].pause(); document.body.dataset.ui = 'explore'; document.body.dataset.slow = '0'; view.zoom = 1; view.yaw = 0; lensTo = 0; pot.position.x = 0; auto = false; setMode('good'); build(); }
+/* the left-hand graph: the arithmetic behind whatever is on screen */
+const lhC = $('lhud'), lg = lhC.getContext('2d');
+function hudLeft() {
+  const c = film.ch[film.ci], kind = c && c.left; document.body.dataset.left = kind ? '1' : '0'; if (!kind) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), W = lhC.clientWidth, H = lhC.clientHeight; if (!W) return; if (lhC.width !== Math.round(W * dpr)) { lhC.width = Math.round(W * dpr); lhC.height = Math.round(H * dpr); }
+  const g = lg; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); const ink = '#f3ecdf', soft = 'rgba(243,236,223,.62)', faint = 'rgba(243,236,223,.18)', gold = '#f0b45a', red = '#e5604c', teal = '#8fd0c2'; g.font = '500 11.5px "DM Mono", monospace'; g.textBaseline = 'alphabetic';
+  const x0 = 16, x1 = W - 16, y0 = 44, y1 = H - 46, title = t => { g.fillStyle = soft; g.textAlign = 'left'; g.fillText(t, 14, 20); }, foot = (a, b) => { g.fillStyle = soft; g.textAlign = 'left'; g.fillText(a, x0, H - 14); if (b) { g.textAlign = 'right'; g.fillText(b, x1, H - 14); } };
+  const frame = () => { g.strokeStyle = faint; g.lineWidth = 1; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x0, y1); g.lineTo(x1, y1); g.stroke(); };
+  const line = (pts, col, wd, dash) => { if (pts.length < 2) return; g.strokeStyle = col; g.lineWidth = wd || 2.2; g.setLineDash(dash || []); g.lineJoin = 'round'; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); g.setLineDash([]); };
+  const dot = (x, y, col) => { g.fillStyle = col; g.beginPath(); g.arc(x, y, 5, 0, TAU); g.fill(); g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 1.5; g.stroke(); };
+  const tag = (t, x, y, col, al) => { g.fillStyle = col; g.textAlign = al || 'left'; g.fillText(t, x, y); };
+  const tr = film.cur ? film.cur.tr : [], r0 = tr.length ? tr[0].rev : 0, r1 = Math.max(r0 + 8, tr.length ? tr[tr.length - 1].rev : 8), X = r => x0 + (r - r0) / (r1 - r0) * (x1 - x0), Y = v => y1 - clamp(v, 0, 1) * (y1 - y0);
+  if (kind === 'trace') { title('OFF CENTRE, TURN BY TURN'); frame(); const top = Math.max(.16, ...tr.map(p => p.wob)); line(tr.map(p => [X(p.rev), Y(p.wob / top)]), gold); const l = tr[tr.length - 1]; if (l) { dot(X(l.rev), Y(l.wob / top), gold); tag((l.wob * 100).toFixed(1) + ' mm', Math.min(X(l.rev) + 9, x1 - 54), Y(l.wob / top) - 9, ink); } tag((top * 100).toFixed(0) + ' mm', x0 + 5, y0 + 4, soft); foot('turns of the wheel', Math.round(r1 - r0) + ' so far'); }
+  else if (kind === 'speed') { title('HALVE THE DISTANCE, HALVE THE SPEED'); frame(); const om = TAU * Math.max(speed, .2), lx = v => x0 + (Math.log10(v) + 3.6) / 6 * (x1 - x0), ly = v => y1 - (Math.log10(v) + 2.2) / 6.2 * (y1 - y0);   // millimetres from the centre, and millimetres a second, both on halving scales
+    line([[lx(180), ly(om * 180)], [lx(.0004), ly(om * .0004)]], gold); g.fillStyle = soft; g.textAlign = 'center'; [[100, '10 cm'], [1, '1 mm'], [.01, '0.01 mm']].forEach(([v, t]) => { g.fillRect(lx(v) - .5, y1 - 4, 1, 8); g.fillText(t, lx(v), y1 + 16); });
+    const r = clamp(film.across * 100 / 2, .0004, 180); dot(lx(r), ly(om * r), ink); tag('the edge of this picture', Math.min(lx(r) + 10, x1 - 150), ly(om * r) - 10, ink); tag('← and on, without end', x0 + 6, y1 - 10, soft); tag('fast', x0 + 5, y0 + 4, soft); foot('distance from the centre'); }
+  else if (kind === 'gain') { title('HOW FAR ONE TOUCH MOVES THE CLAY'); frame(); if (P.press > .03) film.h = 2.5 * P.press; const h = film.h || .6, cx = v => x0 + (v - .05) / 3 * (x1 - x0), pts = [], pts2 = []; for (let i = 0; i <= 50; i++) { const cl = .05 + i / 50 * 3; pts.push([cx(cl), Y(h / (h + cl))]); pts2.push([cx(cl), Y(3 * h / (3 * h + cl))]); }
+    line(pts2, faint, 1.6, [4, 4]); line(pts, gold); tag('a heavier hand', x1 - 4, pts2[42][1] - 7, soft, 'right'); if (P.press > .03) { dot(cx(clamp(P.firm, .05, 3.05)), Y(P.K), P.K > .78 ? red : ink); tag(Math.round(P.K * 100) + '%', Math.min(cx(clamp(P.firm, .05, 3.05)) + 10, x1 - 34), Y(P.K) - 9, ink); }
+    tag('all the way', x0 + 5, y0 + 4, soft); foot('thin, wet wall', 'thick, firm clay'); }
+  else if (kind === 'goodhart') { title('THE MEASURE, AND WHAT IT MISSES'); frame(); const q = tr.filter(p => p.hollow); const a = q.map(p => [X(p.rev), Y(p.match)]), b = q.map(p => [X(p.rev), Y(p.strain / 1.5)]); line(b, red); line(a, ink); const l = q[q.length - 1]; if (l) { tag('— match to the drawing: ' + Math.round(l.match * 100) + '%', x0 + 8, y0 + 8, ink); tag('— strain in the wall', x0 + 8, y0 + 25, red); } foot('turns of the wheel'); }
+  else if (kind === 'learn') { title('TWO LEARNERS'); frame(); const q = tr.filter(p => p.hollow); line(q.map(p => [X(p.rev), Y(p.pic)]), ink, 2.2, [5, 4]); line(q.map(p => [X(p.rev), Y(p.far)]), teal); const l = q[q.length - 1]; if (l) { tag('- - her picture: how far from the clay', x1, y0 + 8, ink, 'right'); tag('— the pot: how far from its own form', x1, y0 + 25, teal, 'right'); } foot('turns of the wheel', 'both come down'); }
+}
+function hudFilm() {
+  hudLeft(); // in the film: the clay cut through, the potter's picture, and one balance
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), W = hudC.clientWidth, H = hudC.clientHeight; if (!W) return; if (hudC.width !== Math.round(W * dpr)) { hudC.width = Math.round(W * dpr); hudC.height = Math.round(H * dpr); }
+  const g = hg; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); const ink = '#f3ecdf', soft = 'rgba(243,236,223,.62)', gold = '#f0b45a', red = '#e5604c', teal = '#8fd0c2'; g.font = '500 11.5px "DM Mono", monospace';
+  const n = P.n(), cx = W * .5, base = 196, sc = Math.min(54, 160 / Math.max(P.H + .3, 2.0)), X = r => cx + r * sc, Y = y => base - y * sc, hollow = P.depth() > .03;
+  g.strokeStyle = 'rgba(243,236,223,.3)'; g.lineWidth = 1; g.beginPath(); g.moveTo(X(-1.9), base + .5); g.lineTo(X(1.9), base + .5); g.stroke();
+  for (const sd of [-1, 1]) for (let j = 0; j < n - 1; j++) { const y0 = j * P.DY, y1 = Math.min(P.H, y0 + P.DY), st = Math.max(P.stress[j], P.strain[j] * .8), inner = P.ri[j] > 0 && y0 >= P.floor ? P.ri[j] : 0; g.fillStyle = st > .75 ? red : st > .4 ? gold : '#b39b84'; const xa = X(sd * inner), xb = X(sd * P.ro[j]); g.fillRect(Math.min(xa, xb), Y(y1), Math.abs(xb - xa) + .6, (y1 - y0) * sc + .7); }
+  const outline = (T, col) => { g.strokeStyle = col; g.lineWidth = 1.8; g.setLineDash([4, 4]); for (const sd of [-1, 1]) { g.beginPath(); for (let k = 0; k <= 30; k++) { const u = k / 30, x = X(sd * T.r(u)), y = Y(u * T.H); k ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); } g.setLineDash([]); };
+  g.textAlign = 'left'; let ly = 18; if (lastPicture && hollow && mode !== 'absent') { const dz = mode === 'design'; outline(lastPicture, dz ? red : gold); g.fillStyle = dz ? red : gold; g.fillText(dz ? '- - the potter’s drawing' : '- - the potter’s picture', 14, ly); ly += 16; }
+  if ((P.cut || mode === 'design') && hollow) { outline(P.want, teal); g.fillStyle = teal; g.fillText('- - what the clay gives most easily', 14, ly); }
+  if (demoHand) { const h = demoHand, hx = X(h.R), hy = Y(h.y); g.strokeStyle = ink; g.lineWidth = 2; g.beginPath(); if (h.type === 'top') { g.moveTo(cx, hy - 30); g.lineTo(cx, hy); } else if (h.type === 'hold') { g.moveTo(hx + 30, hy); g.lineTo(hx + 3, hy); g.moveTo(X(-h.R) - 30, hy); g.lineTo(X(-h.R) - 3, hy); } else { g.moveTo(hx + (h.type === 'out' ? 30 : -20), hy); g.lineTo(hx, hy); } g.stroke(); }
+  // the balance: the potter's weight against the clay's own firmness (Omega = hand / clay = K / (1 - K))
+  const by = 252, x0 = 22, x1 = W - 22, mid = (x0 + x1) / 2, touching = P.press > .02, om = P.omega(), pos = clamp(Math.log2(Math.max(om, .01)) / 3, -1, 1);
+  g.fillStyle = soft; g.textAlign = 'left'; g.fillText('HER WEIGHT', 14, by - 22); g.textAlign = 'right'; g.fillStyle = touching ? ink : soft; g.fillText(touching ? (om >= 10 ? om.toFixed(0) : om.toFixed(1)) + ' × the clay’s' : 'hands off', W - 14, by - 22);
+  g.strokeStyle = 'rgba(243,236,223,.35)'; g.lineWidth = 2; g.beginPath(); g.moveTo(x0, by); g.lineTo(x1, by); g.stroke(); g.fillStyle = ink; g.fillRect(mid - 1, by - 9, 2, 18);
+  if (touching) { const px = mid + pos * (x1 - x0) / 2; g.fillStyle = Math.abs(pos) < .34 ? teal : pos > 0 ? red : gold; g.beginPath(); g.arc(px, by, 9, 0, TAU); g.fill(); }
+  g.fillStyle = soft; g.textAlign = 'left'; g.fillText('too light', x0, by + 26); g.textAlign = 'center'; g.fillText('matched', mid, by + 26); g.textAlign = 'right'; g.fillText('too heavy', x1, by + 26);
+  let y = by + 58; const bar = (label, v, txt, col) => { g.fillStyle = soft; g.textAlign = 'left'; g.fillText(label, 14, y); g.textAlign = 'right'; g.fillStyle = ink; g.fillText(txt, W - 14, y); g.fillStyle = 'rgba(243,236,223,.12)'; g.fillRect(14, y + 7, W - 28, 5); g.fillStyle = col; g.fillRect(14, y + 7, (W - 28) * clamp(v, 0, 1), 5); y += 32; };
+  bar('Her touch moves the clay', P.K, touching ? Math.round(P.K * 100) + '% of the way' : '–', P.K > .78 ? red : gold);
+  const w = P.withNow, on = touching && hollow && demoHand && demoHand.type !== 'hold'; bar('The clay', on ? Math.abs(w) : 0, !on ? '–' : w > .3 ? 'gives' : w < -.3 ? 'resists' : 'neither', w > 0 ? teal : red);
+  const sm = P.strained(); bar('Strain left in the wall', sm / 1.5, sm.toFixed(2), sm > .6 ? red : '#b39b84');
+}
+
+/* ───────────────────────── a picture ───────────────────────── */
+const V3 = new THREE.Vector3(), RIGHT = new THREE.Vector3(), FWD = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
+function place() {
+  lens += (lensTo - lens) * .08; const e = lens * lens * (3 - 2 * lens), tall = clamp((P.H - 1.3) / 1.9, 0, 1);
+  const tgtY = lerp(lerp(.3, 1.25, tall), .5, e), dist = lerp(lerp(8.8, 12.4, tall), 11.5, e) * view.zoom, pitch = lerp(.36 + view.pitch, 1.5, e), yaw = view.yaw * (1 - e);
+  const zf = film.on ? film.zoom : 1, zk = clamp(Math.log(zf) / Math.log(8), 0, 1), nt = P.n() - 1, topY = P.depth() > .03 ? Math.max(P.floor, .02) : P.H + P.ro[nt] * .22, ty = lerp(tgtY, topY, zk), pz = lerp(pitch, Math.PI / 2 - 1e-4, zk);
+  camera.position.set(Math.sin(yaw) * Math.cos(pz) * dist, ty + Math.sin(pz) * dist, Math.cos(yaw) * Math.cos(pz) * dist); camera.lookAt(0, ty, 0); focusDist = zk > 0 ? lerp(camera.position.distanceTo(V3.set(0, lerp(P.H * .55, .1, e), 0)), dist, zk) : camera.position.distanceTo(V3.set(0, lerp(P.H * .55, .1, e), 0));
+  const asp = camera.aspect, f0 = asp < 1 ? 44 : asp < 1.4 ? 33 : 27; if (Math.abs(camera.fov - f0 / zf) > 1e-9) { camera.fov = f0 / zf; camera.updateProjectionMatrix(); } aoMat.uniforms.uAOs.value = 1 / zf;
+  film.across = 2 * dist * Math.tan(camera.fov * Math.PI / 360) * asp;
+  FWD.set(-Math.sin(yaw), 0, -Math.cos(yaw)); RIGHT.set(Math.cos(yaw), 0, -Math.sin(yaw));
+}
+function placeFingers(h) {
+  if (!h || !h.on) { fingers.visible = false; return; } fingers.visible = true; const n = P.n(), j = clamp(Math.round(h.y / P.DY), 0, n - 1), sd = h.side || 1; const hold = h.type === 'hold', rib2 = fingers.userData.rib2; rib.visible = h.type === 'out' || hold; rib2.visible = hold; stick.visible = !rib.visible;
+  if (hold) { const R = P.ro[j] + .34 + (1 - (h.weight || 0)) * .25; rib.position.copy(RIGHT).multiplyScalar(R).setY(h.y); rib.rotation.set(0, Math.atan2(-RIGHT.z, RIGHT.x) + Math.PI / 2, -.1); rib2.position.copy(RIGHT).multiplyScalar(-R).setY(h.y); rib2.rotation.set(0, Math.atan2(RIGHT.z, -RIGHT.x) + Math.PI / 2, -.1); return; }
+  if (h.type === 'out') { const R = Math.max(h.R, P.ro[j] - .03) + .36, ca = .5; rib.position.copy(RIGHT).multiplyScalar(sd * R * Math.cos(ca)).addScaledVector(FWD, -R * Math.sin(ca)).setY(h.y + .08); rib.rotation.set(0, Math.atan2(-(sd * Math.cos(ca) * RIGHT.z - Math.sin(ca) * FWD.z), sd * Math.cos(ca) * RIGHT.x - Math.sin(ca) * FWD.x) + Math.PI / 2, sd * -.12); }
+  else { const R = h.type === 'in' ? Math.max(.05, Math.min(h.R, P.ri[j] + .04) - .17) : 0, dir = V3.copy(UP).multiplyScalar(.93).addScaledVector(FWD, -.34).addScaledVector(RIGHT, sd * (h.type === 'in' ? -.12 : .0)).normalize(); stick.quaternion.setFromUnitVectors(UP, dir); stick.position.copy(RIGHT).multiplyScalar(sd * R).setY(Math.max(h.y, P.floor) - .02); }
+}
+function afterwards(dt) { // the kiln, and the glaze
+  const p = post; p.t += dt;
+  if (p.phase === 'firing') { p.heat = Math.sin(clamp(p.t / 5.5, 0, 1) * Math.PI); p.bisque = clamp((p.t - 1.6) / 2.2, 0, 1); const s = P.strained(); p.crack = s > .6 ? clamp((p.t - 2.4) / 1.6, 0, 1) * clamp((s - .35) / .9, .25, 1) : 0; if (p.t > 5.5) { p.phase = 'bisque'; p.t = 0; p.heat = 0; buttons(); } }
+  else if (p.phase === 'glazing') { p.heat = Math.sin(clamp(p.t / 4.5, 0, 1) * Math.PI) * .8; p.glazed = clamp((p.t - 1.2) / 2, 0, 1); if (p.t > 4.5) { p.phase = 'done'; p.t = 0; p.heat = 0; buttons(); } }
+  if (watching() && !film.on && !P.collapsed && P.cut) { if (p.phase === 'wet' && cutT > 4.4) fire(); if (p.phase === 'bisque' && p.t > 3.2) glaze(mode === 'design' ? 'white' : 'celadon'); }
+}
+function advance(dt) {
+  if (film.on) return filmAdvance(dt);
+  let h = null, w;
+  if (watching()) { const a = PotDemo.at(mode, demoT, P, potSt, dt); lastPicture = a.picture; demoKey = a.key; w = a.w; h = a.hand; if (h) h.side = 1; if (a.water && !advance.wd) { P.water(); advance.wd = 1; } if (!a.water) advance.wd = 0; if (a.cut && !P.cut && !P.collapsed) { P.cutFree(); cutT = 0; buttons(); } demoT += dt;
+    const over = P.collapsed || (a.done && (mode === 'absent' || post.phase === 'done')); if (over) { endHold += dt; if (endHold > (P.collapsed ? 7 : 11) && auto) setMode(ORDER[(ORDER.indexOf(mode) + 1) % 3]); } if (P.collapsed) w = Math.min(w, .6); speedSet = w; }
+  else { w = P.cut ? 0 : speedSet; if (hand.on) { h = hand; const k = Math.exp(-dt * 9); hand.vy *= k; hand.vR *= k; } }
+  demoHand = watching() ? h : null; speed += (w - speed) * Math.min(1, dt * (w < speed ? 1.6 : 2.5)); if (P.cut) speed *= Math.max(0, 1 - dt * 3);
+  const sub = 2; for (let i = 0; i < sub; i++) P.step(dt / sub, speed, h); spin += speed * dt * TAU; sinceTouch = h ? 0 : sinceTouch + dt;
+  if (cutT >= 0) { cutT += dt; wire.visible = cutT < 1.6; wire.position.z = lerp(4.2, -3.2, clamp(cutT / 1.3, 0, 1)); pot.position.x = lerp(0, .34, clamp((cutT - 1.5) / 1.2, 0, 1) ** .7); }
+  afterwards(dt); return h;
+}
+function draw(dt) {
+  const h = advance(dt); frameNo++; place(); buildPot(P, spin); placeFingers(h);
+  const b = post.bisque, gl = post.glazed; pot.scale.setScalar(1 - .07 * b);
+  SPIN.uSpin.value = spin; SPIN.uBlur.value = clamp(speed * TAU / 48 * (1 + lens * 1.3), 0, 1.5);   /* from above the shutter is left open longer, so the still centre shows */ SPIN.uWet.value = P.wet * (1 - b); SPIN.uFire.value = post.heat; SPIN.uBisque.value = b; SPIN.uGlaze.value = gl; SPIN.uCrack.value = post.crack;
+  potMat.clearcoat = lerp(lerp(.15, .85, P.wet) * (1 - b), 1, gl); potMat.clearcoatRoughness = lerp(.25, .06, gl); potMat.sheen = .35 * (1 - b);
+  kiln.intensity = post.heat * 60; key.intensity = 3.4 * (1 - .72 * post.heat); rim.intensity = .9 * (1 - .5 * post.heat);
+  renderer.setRenderTarget(rt.scene); renderer.render(scene, camera);
+  const PM = camera.projectionMatrix.elements;
+  for (const m of [aoMat, prepMat]) { m.uniforms.tDepth.value = rt.scene.depthTexture; m.uniforms.uNear.value = camera.near; m.uniforms.uFar.value = camera.far; m.uniforms.uProj.value.set(PM[0], PM[5]); m.uniforms.uRes.value.copy(U.uRes.value); }
+  tri.material = aoMat; renderer.setRenderTarget(rt.ao); renderer.render(postScene, postCam);
+  prepMat.uniforms.tColor.value = rt.scene.texture; prepMat.uniforms.tAO.value = rt.ao.texture; prepMat.uniforms.uFocus.value = focusDist; prepMat.uniforms.uAperture.value = lerp(7.5, 3, lens);
+  tri.material = prepMat; renderer.setRenderTarget(rt.prep); renderer.render(postScene, postCam);
+  dofMat.uniforms.tPrep.value = rt.prep.texture; dofMat.uniforms.uMaxPx.value = U.uRes.value.y * .021; dofMat.uniforms.uStep.value = Math.max(1.1, U.uRes.value.y / 820);
+  tri.material = dofMat; renderer.setRenderTarget(rt.dof); renderer.render(postScene, postCam);
+  finMat.uniforms.tDof.value = rt.dof.texture; finMat.uniforms.uFilm.value.set((rnd(frameNo, 50) - .5) * .6, (rnd(frameNo, 51) - .5) * .6, rnd(frameNo, 52) * 100); finMat.uniforms.uExpo.value = .98 * (1 - .3 * post.heat); finMat.uniforms.uFlash.value = post.heat * .25;
+  tri.material = finMat; renderer.setRenderTarget(null); renderer.render(postScene, postCam);
+  hud(); say(); $('rpm').textContent = Math.round(speed * 60) + ' rpm';
+}
+
+/* ───────────────────────── hands and controls ───────────────────────── */
+let auto = true;
+function buttons() { const free = P.cut && !P.collapsed; $('cut').disabled = P.cut || P.collapsed || watching(); $('fire').disabled = !(free && post.phase === 'wet') || watching(); $('water').disabled = P.cut || watching(); document.querySelectorAll('#glazes button').forEach(b => { b.disabled = post.phase !== 'bisque' || watching(); b.setAttribute('aria-pressed', String(b.dataset.g === post.glaze)); }); }
+function setMode(m, keep) { mode = m; document.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m))); document.body.dataset.mode = m; if (!keep) reset(); if (m === 'hands') { speedSet = 2.6; $('speed').value = 2.6; } buttons(); }
+const ray = new THREE.Raycaster(), plane = new THREE.Plane(), hit = new THREE.Vector3(); let down = null, orbit = false, lastPt = null;
+function pick(e) { const b = canvas.getBoundingClientRect(); ray.setFromCamera(new THREE.Vector2((e.clientX - b.left) / b.width * 2 - 1, -((e.clientY - b.top) / b.height * 2 - 1)), camera); plane.setFromNormalAndCoplanarPoint(V3.copy(FWD).negate(), new THREE.Vector3(0, 0, 0)); return ray.ray.intersectPlane(plane, hit) ? { x: hit.dot(RIGHT), y: hit.y } : null; }
+canvas.addEventListener('pointerdown', e => { if (document.body.dataset.ui !== 'explore') return; canvas.setPointerCapture(e.pointerId); down = { x: e.clientX, y: e.clientY }; const p = lens < .5 ? pick(e) : null, n = P.n();
+  if (p && !P.cut && !P.collapsed && post.phase === 'wet' && p.y > -.15 && p.y < P.H + .9 && Math.abs(p.x) < 2.1) {
+    if (mode !== 'hands') { auto = false; setMode('hands', true); }
+    const j = clamp(Math.round(p.y / P.DY), 0, n - 1), ax = Math.abs(p.x), hollow = P.depth() > .05, top = n - 1; hand.side = p.x >= 0 ? 1 : -1;
+    hand.type = (!hollow && p.y > P.H - .12 && ax < P.ro[top] * .75) || (p.y > P.H - .02 && ax < Math.max(.3, P.ri[top] * .5) && !hollow) ? 'top' : hollow && ax < (p.y >= P.H ? P.ri[top] : P.ri[j]) + .02 && p.y > P.floor - .05 ? (p.y < P.floor + .12 && ax < P.ri[j] * .5 ? 'top' : 'in') : 'out';
+    hand.on = true; hand.y = clamp(p.y, .05, P.H + .3); hand.R = hand.type === 'top' ? Math.max(.26, ax) : ax; hand.vy = hand.vR = 0; lastPt = { y: hand.y, R: hand.R, t: performance.now() }; orbit = false; canvas.classList.add('touching');
+  } else orbit = true; });
+canvas.addEventListener('pointermove', e => { if (!down) return;
+  if (orbit) { view.yaw = clamp(view.yaw - (e.clientX - down.x) * .005, -.9, .9); view.pitch = clamp(view.pitch + (e.clientY - down.y) * .004, -.3, .5); down = { x: e.clientX, y: e.clientY }; return; }
+  const p = pick(e); if (!p || !hand.on) return; const now = performance.now(), dt = Math.max(.008, (now - lastPt.t) / 1000), y = clamp(p.y, hand.type === 'top' ? .02 : .05, P.H + .4), R = hand.type === 'top' ? Math.max(.26, Math.abs(p.x)) : Math.abs(p.x);
+  hand.vy += ((y - lastPt.y) / dt - hand.vy) * .35; hand.vR += ((R - lastPt.R) / dt - hand.vR) * .35; hand.y = y; hand.R = R; lastPt = { y, R, t: now }; });
+function up() { if (hand.on) { P.release(P.press); hand.on = false; } down = null; orbit = false; canvas.classList.remove('touching'); }
+canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+canvas.addEventListener('wheel', e => { e.preventDefault(); view.zoom = clamp(view.zoom * Math.exp(e.deltaY * .001), .7, 1.4); }, { passive: false });
+$('speed').oninput = () => { speedSet = +$('speed').value; if (mode !== 'hands') { auto = false; setMode('hands', true); } };
+document.querySelectorAll('#modes button').forEach(b => { b.onclick = () => { auto = false; setMode(b.dataset.m); }; });
+$('water').onclick = () => { P.water(); };
+$('cut').onclick = () => { if (!P.cut && !P.collapsed) { speedSet = 0; $('speed').value = 0; setTimeout(() => { if (!P.cut) { P.cutFree(); cutT = 0; buttons(); } }, 900); } };
+$('fire').onclick = () => fire();
+$('glazes').innerHTML = Object.keys(GLAZES).map(k => '<button type="button" data-g="' + k + '" title="' + GLAZES[k][0] + '" aria-label="' + GLAZES[k][0] + '" style="--g:' + (k === 'bare' ? '#a86a48' : '#' + GLAZES[k][1].toString(16).padStart(6, '0')) + '"></button>').join('');
+document.querySelectorAll('#glazes button').forEach(b => { b.onclick = () => glaze(b.dataset.g); });
+$('again').onclick = () => { auto = false; reset(); if (mode === 'hands') { speedSet = 2.6; $('speed').value = 2.6; } };
+$('lensP').onclick = () => { lensTo = 0; $('lensP').setAttribute('aria-pressed', 'true'); $('lensA').setAttribute('aria-pressed', 'false'); };
+$('lensA').onclick = () => { lensTo = 1; $('lensA').setAttribute('aria-pressed', 'true'); $('lensP').setAttribute('aria-pressed', 'false'); };
+$('about').onclick = () => { $('sheet').hidden = !$('sheet').hidden; }; $('close').onclick = () => { $('sheet').hidden = true; };
+$('inst').onclick = () => { document.body.classList.toggle('noinst'); };
+addEventListener('keydown', e => { if (e.target.closest && e.target.closest('input')) return; if (film.on) { if (e.code === 'Space' && !(e.target.closest && e.target.closest('button'))) { e.preventDefault(); $('fplay').click(); } if (e.key === 'ArrowRight') $('fnext').click(); if (e.key === 'ArrowLeft') $('fprev').click(); return; } if (e.code === 'Space' && !(e.target.closest && e.target.closest('button'))) { e.preventDefault(); playing = !playing; } if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && mode === 'hands') { e.preventDefault(); speedSet = clamp(speedSet + (e.key === 'ArrowUp' ? .2 : -.2), 0, 4); $('speed').value = speedSet; } if ((e.key === 'w' || e.key === 'W') && mode === 'hands') P.water(); if (e.key === 'Escape') $('sheet').hidden = true; });
+addEventListener('resize', () => build());
+$('rail').innerHTML = STAGES.map(s => '<li data-on="0"><b>' + s[0] + '</b><span>' + s[1] + '</span></li>').join('');
+
+filmBuild(); $('ticks').innerHTML = film.ch.map(c => '<i data-on="0" title="' + c.title + '" style="left:' + (c.t0 / film.total * 100) + '%;width:' + (c.D / film.total * 100) + '%"></i>').join('');
+$('track').onclick = e => { const b = $('track').getBoundingClientRect(), t = (e.clientX - b.left) / b.width * film.total; let k = 0; film.ch.forEach((c, i) => { if (t >= c.t0) k = i; }); film.playing = true; $('fplay').textContent = 'Pause'; filmSeek(k, 0); };
+$('fplay').onclick = () => { if (film.t >= film.total) { filmStart(0); return; } film.playing = !film.playing; $('fplay').textContent = film.playing ? 'Pause' : 'Play'; filmAudio(true); };
+$('fprev').onclick = () => { film.playing = true; $('fplay').textContent = 'Pause'; filmSeek(film.ci - (film.t - film.ch[film.ci].t0 < 3 ? 1 : 0), 0); };
+$('fnext').onclick = () => { film.playing = true; $('fplay').textContent = 'Pause'; filmSeek(film.ci + 1, 0); };
+$('fsound').onclick = () => { film.muted = !film.muted; $('fsound').setAttribute('aria-pressed', String(!film.muted)); $('fsound').textContent = film.muted ? 'Sound off' : 'Sound on'; filmAudio(false); };
+$('fexplore').onclick = () => filmStop(); $('tofilm').onclick = () => filmStart(0);
+$('beginFilm').onclick = () => { $('start').hidden = true; filmStart(0); }; $('beginExplore').onclick = () => { $('start').hidden = true; document.body.dataset.ui = 'explore'; auto = true; setMode('design'); };
+if (/[?&]q=low/.test(location.search)) budget = 3.5e5;   // for a machine with no graphics card
+build(); setMode('good'); document.body.dataset.ui = 'start';
+window.PIECE = { name: 'potters-wheel', state: () => ({ H: P.H, wobble: P.wobble(), depth: P.depth(), thin: P.thin(), wet: P.wet, S: P.S, K: P.K, strain: P.strained(), fit: P.fit(), want: P.wantKey, speed, mode, collapsed: P.collapsed, why: P.why, cut: P.cut, key: lastKey, phase: post.phase, crack: post.crack, glaze: post.glaze, volume: P.volume() / P.V0, hand: hand.on ? [hand.type, +hand.R.toFixed(2), +hand.y.toFixed(2)] : null }),
+  advance(sec) { for (let t = 0; t < sec; t += 1 / 60) advance(1 / 60); draw(0); renderer.getContext().finish(); return this.state(); }, set(o) { if (o.auto != null) auto = o.auto; if (o.mode) setMode(o.mode); if (o.speed != null) { speedSet = o.speed; $('speed').value = o.speed; } if (o.lens != null) { lensTo = o.lens; lens = o.lens; } if (o.hand) Object.assign(hand, o.hand); if (o.water) P.water(); if (o.fire) fire(); if (o.glaze) glaze(o.glaze); }, get P() { return P; }, film: { start: ci => { $('start').hidden = true; filmStart(ci || 0); }, seek: (ci, tau) => { film.playing = true; filmSeek(ci, 0); for (let t = 0; t < (tau || 0); t += 1 / 30) filmAdvance(1 / 30); film.playing = false; lens = lensTo; draw(0); document.querySelector('.inst').style.transition = 'none'; renderer.getContext().finish(); return { ci: film.ci, t: film.t, total: film.total, ts: film.ts, key: demoKey, cue: film.cue, H: P.H, K: P.K, om: P.omega(), zoom: film.zoom, across: film.across, strain: P.strained(), lam: potSt.lam, phase: post.phase, crack: post.crack, collapsed: P.collapsed, chapters: film.ch.map(c => [c.id, +c.D.toFixed(1), +c.dur.toFixed(1)]) }; } },
+  screen(R, y, side) { const b = canvas.getBoundingClientRect(), v = new THREE.Vector3().copy(RIGHT).multiplyScalar((side || 1) * R).setY(y).project(camera); return [b.left + (v.x * .5 + .5) * b.width, b.top + (-v.y * .5 + .5) * b.height]; } };
+if (TEST) { draw(0); return; }
+let last = 0, slow = 0;
+function tick(t) { requestAnimationFrame(tick); const dt = Math.min((t - last) / 1000, film.on ? .5 : .05); last = t; /* the film keeps real time even when pictures are slow, so the voice stays in step */ if (document.hidden) return; const t0 = performance.now(); draw(playing ? dt : 0);
+  if (frameNo % 3 === 0) { renderer.getContext().finish(); const ms = performance.now() - t0; if (ms > 34) { if (++slow > 8 && budget > 3.5e5) { budget *= .75; slow = 0; build(); } } else slow = Math.max(0, slow - 1); } }
+requestAnimationFrame(tick);
+
+})();
+</script>
+
+<a id="mback" href="#">Back to the site</a>
+<style>#mback{position:fixed;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top,0px));z-index:5;font:500 12.5px/1 "DM Mono",ui-monospace,Menlo,Consolas,monospace;color:#f3ecdf;text-decoration:none;background:rgba(16,14,12,.6);border:1px solid rgba(243,236,223,.2);border-radius:999px;padding:9px 13px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}#mback:hover{border-color:rgba(243,236,223,.72)}#mback:focus-visible{outline:2px solid #f0b45a;outline-offset:2px}body{transition:opacity .3s}body.leaving{opacity:0}@media (max-width:700px){#mback{left:auto;right:8px;transform:none;top:8px;padding:8px 10px}}</style>
+<script>
+(function(){
+const HOME = { blake: '../index.html', jooles: '../index.html', park: '../index.html' };
+const q = new URLSearchParams(location.search); let from = q.get('from'), stop = q.get('stop');
+if (!Object.prototype.hasOwnProperty.call(HOME, from)) from = 'blake';
+if (!/^[a-z0-9_:\-]{1,40}$/.test(stop || '')) stop = 'film';
+const BACK = HOME[from] + '#museum', a = document.getElementById('mback'); a.href = BACK;
+function go(u){ document.body.classList.add('leaving'); setTimeout(function(){ location.href = u; }, 320); }
+a.addEventListener('click', function(e){ e.preventDefault(); go(BACK); });
+addEventListener('keydown', function(e){ if (e.key !== 'Escape' || document.querySelector('.sheet:not([hidden])')) return; const el = document.activeElement; if (!el || el === document.body || el.tagName === 'CANVAS') go(BACK); else el.blur(); });
+/* a button to the sister page, carrying the same way back */
+const LINKS = [["#fbar", "The Clay Studio", "clay-studio.html", "#fexplore"], [".dock .bar", "The Clay Studio", "clay-studio.html", "#about"]], tail = '?from=' + from + '&stop=' + stop + (/[?&]q=low\b/.test(location.search) ? '&q=low' : '');
+LINKS.forEach(function(L){ document.querySelectorAll(L[0]).forEach(function(bar){ const b = document.createElement('button'); b.type = 'button'; b.textContent = L[1]; b.addEventListener('click', function(){ go(L[2] + tail); }); const ref = bar.querySelector(L[3]); if (ref) bar.insertBefore(b, ref); else bar.appendChild(b); }); });
+})();
+</script>
+</body>
+</html>

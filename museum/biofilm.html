@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8">
+<title>A Biofilm Taking Turns</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{ --studio:#0a0b0c; --ink:#eef0ea; --ink-soft:rgba(238,240,234,.72); --panel:rgba(12,14,15,.58); --line:rgba(238,240,234,.2);
+  --accent:#f0b45a; --sig:#5fe0d0; --grow:#b8d66a; --bad:#e5604c;
+  --display:"Fraunces",Georgia,"Times New Roman",serif; --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace; color-scheme:dark; }
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+body{font:400 13px/1.45 var(--mono)}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.glass{background:var(--panel);border:1px solid var(--line);border-radius:16px;-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2)}
+.head{position:fixed;left:max(20px,env(safe-area-inset-left,0px));top:calc(16px + env(safe-area-inset-top,0px));pointer-events:none;text-shadow:0 1px 12px rgba(0,0,0,.7);max-width:min(40ch,56vw);z-index:2}
+.head h1{font:600 clamp(22px,3vw,34px)/1.05 var(--display);margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.head p{margin:0;color:var(--ink-soft)}
+#key{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:8px 0 0;font-size:12.5px}#key dt{color:var(--accent)}#key dd{margin:0;color:var(--ink)}
+.inst{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));width:316px;padding:0;overflow:hidden;z-index:2}
+#hud{display:block;width:100%;height:520px}
+.dock{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none;z-index:2}.dock>*{pointer-events:auto}
+#card{width:min(760px,100%);padding:13px 20px 12px;text-align:center}
+#craft{font:400 clamp(16px,1.45vw,19px)/1.36 var(--display);margin:0;text-wrap:balance}
+#read{margin:9px 0 0;color:var(--accent);font-size:13px;text-wrap:balance}
+#read::before{content:"One way of reading it · ";color:var(--ink-soft)}
+.bar{width:100%;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:10px 14px;font-size:12.5px}
+.bar button,.sheet button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+.bar button:hover{border-color:var(--ink-soft)}
+.bar button[aria-pressed="true"]{background:var(--ink);color:#111;border-color:var(--ink)}
+.bar button:focus-visible,.bar input:focus-visible,.sheet button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:flex;gap:4px}.grow{flex:1 1 8px}
+.dial{display:flex;align-items:center;gap:10px;flex:1 1 230px;min-width:200px}
+.dial label{color:var(--ink-soft);white-space:nowrap}
+.dial input{flex:1;min-width:80px;accent-color:var(--accent);height:22px}
+.dial output{font-variant-numeric:tabular-nums;min-width:11ch;color:var(--accent)}
+#inst{display:none}
+.sheet{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.55);padding:20px;z-index:6}
+.sheet[hidden]{display:none}
+.sheet>div{max-width:700px;max-height:86vh;overflow:auto;padding:26px 30px;font:400 14.5px/1.55 Georgia,serif;color:var(--ink)}
+.sheet h2{font:600 26px/1.1 var(--display);margin:0 0 10px}.sheet h3{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:20px 0 6px}
+.sheet p{margin:0 0 9px}.sheet small{color:var(--ink-soft);font:400 12px/1.5 var(--mono)}
+#fail{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:400 15px/1.5 var(--mono)}
+@media (max-width:1000px){ .inst{width:270px} #inst{display:inline-block} body.noinst .inst{display:none} }
+@media (max-width:700px){ #key{display:none} .inst{display:none} body.noinst .inst{display:block;left:16px;right:16px;width:auto;top:64px} #card{padding:10px 14px} #craft{font-size:15px} #read{font-size:12px} .bar{gap:8px;padding:8px 10px} .bar button{padding:8px 10px} .head p{display:none} }
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="A glass dish on a laboratory bench, with a wrinkled colony of bacteria growing on it"></canvas>
+<div class="head"><h1>A Biofilm Taking Turns</h1><p>A colony of bacteria that keeps its own middle alive by stopping to let it eat.</p>
+<dl id="key"><dt>The edge</dt><dd>reaches the food first</dd><dt>The middle</dt><dd>gets what is left</dd><dt>The glow</dt><dd>the middle saying it is hungry</dd></dl></div>
+<div class="inst glass"><canvas id="hud" role="img" aria-label="Instruments: a cut through the colony from centre to edge, the growth of the edge over time, and the count for each turn"></canvas></div>
+<div class="dock">
+<div id="card" class="glass" aria-live="polite"><p id="craft"></p><p id="read"></p></div>
+<div class="bar glass">
+  <button id="play" type="button" aria-pressed="false">Pause</button>
+  <div class="dial"><label for="listen">The edge listens</label><input id="listen" type="range" min="0" max="4" step="0.05" value="1"><output id="listenOut" for="listen"></output></div>
+  <div class="dial" style="flex:0 1 190px;min-width:150px"><label for="pace">Pace</label><input id="pace" type="range" min="1" max="8" step="1" value="4"></div>
+  <div class="seg" role="group" aria-label="Light"><button id="day" type="button" aria-pressed="false">Daylight</button><button id="dye" type="button" aria-pressed="true">Dye lamp</button></div>
+  <button id="again" type="button">New colony</button>
+  <span class="grow"></span>
+  <button id="inst" type="button">Instruments</button>
+  <button id="about" type="button">About</button>
+</div>
+</div>
+<div class="sheet" id="sheet" hidden><div class="glass">
+  <h2>What this is, and is not</h2>
+  <p>Some bacteria live together in a thick mat called a biofilm. Food arrives from outside, so the cells at the edge eat first and the cells in the middle get what is left. Once the colony is large enough, the middle goes hungry. Then something remarkable happens: the edge stops growing for a while, the food passes inward, the middle recovers, and the edge starts again. The colony takes turns with itself.</p>
+  <h3>What was found in the laboratory</h3>
+  <p>The stop-and-start growth, and the size at which it begins: Liu and colleagues, <em>Nature</em> 523 (2015). That the hungry middle tells the edge with an electrical signal, a wave of potassium passed from cell to cell: Prindle and colleagues, <em>Nature</em> 527 (2015). The glow under the dye lamp stands for the dye those experiments used to see the signal. The two references were checked against PubMed (26200335 and 26503040); what is said of them here is a summary from memory, so read the papers before quoting it. The amber at the rim marks where cells are growing; it is drawn in by the model and is not a real dye.</p>
+  <h3>The model</h3>
+  <p>The colony is a grid seen from above. Each square holds four things: how much colony is there, how much food, whether the cells are signalling, and how thick the mat has grown. Food spreads inward and is eaten. A cell starts signalling when it is short of food, sooner if its neighbours are already signalling, and stops only when it has been properly fed. Signal spreads and fades. A cell that receives signal eats less for growth, though it still eats to stay alive. A cell left signalling for a long time dies. Nothing else is put in: the turn-taking is not scripted, it comes out of those rules.</p>
+  <p><strong>The dial</strong> sets how much a cell cuts its growth for a given signal. At nought the edge is deaf.</p>
+  <h3>What was checked, and what failed</h3>
+  <p>Four guesses were written down before the runs. Three held: a small colony does not take turns and a larger one does; a deaf edge loses more of its middle (about 83% alive against 95%); and the count of change in each turn varies less than the clock time the turn takes. One failed: I guessed the colony with the most living matter would be one that listens a moderate amount. It was the deaf one. In this model, listening costs growth and buys the middle its life. It is a trade, not a free gain.</p>
+  <h3>What it leaves out</h3>
+  <p>Real biofilms are three-dimensional, are fed from below as well as from the side, and use a second chemical, ammonium, which the middle makes and the edge needs; that mutual need is in the experiments and is not in this model. The wrinkles are drawn for the eye and are not simulated. The experiments were done in a small flow chamber under a microscope, not on a dish this size. The time shown in hours is set so that a turn takes about as long as in the experiments; the model does not predict it. The numbers are the model's own and are not measurements.</p>
+  <h3>The readings</h3>
+  <p>The lines marked “one way of reading it” are analogies, offered for thinking, and are not findings. Holding and the good-enough carer: D. W. Winnicott (1960). Making-with, sympoiesis: D. Haraway, <em>Staying with the Trouble</em> (2016), after M. Beth Dempster. Counting change, the handover and the surplus follow a process reading (CRR), which is a way of reading and not a theorem. Bacteria do not intend, wait or care; the words are ours.</p>
+  <p><small>Renderer, lens and grain follow the studio’s Clay Sea piece. three.js r158.</small></p>
+  <button id="close" type="button">Close</button>
+</div></div>
+<div id="fail">This piece needs WebGL 2, which this browser or device has not made available.</div>
+<script src="vendor/three-0.158.0.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+const canvas = document.getElementById('stage');
+if (!window.THREE || !canvas.getContext('webgl2')) { document.getElementById('fail').style.display='grid'; return; }
+/* ───────────────────────── noise (CPU) ───────────────────────── */
+function h3(x,y,z){ let n = Math.imul(x|0,374761393) ^ Math.imul(y|0,668265263) ^ Math.imul(z|0,1440662683);
+  n = Math.imul(n ^ (n>>>13), 1274126177); return ((n ^ (n>>>16))>>>0)/4294967296; }
+function vn3(x,y,z){ const xi=Math.floor(x), yi=Math.floor(y), zi=Math.floor(z);
+  let fx=x-xi, fy=y-yi, fz=z-zi; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); fz=fz*fz*(3-2*fz);
+  const a=h3(xi,yi,zi), b=h3(xi+1,yi,zi), c=h3(xi,yi+1,zi), d=h3(xi+1,yi+1,zi),
+        e=h3(xi,yi,zi+1), f=h3(xi+1,yi,zi+1), g=h3(xi,yi+1,zi+1), h=h3(xi+1,yi+1,zi+1);
+  const ab=a+(b-a)*fx, cd=c+(d-c)*fx, ef=e+(f-e)*fx, gh=g+(h-g)*fx;
+  const p=ab+(cd-ab)*fy, q=ef+(gh-ef)*fy; return p+(q-p)*fz; }
+function fbm3(x,y,z){ return vn3(x,y,z)*.55 + vn3(x*2.1+5,y*2.1+3,z*2.1+1)*.3 + vn3(x*4.3+9,y*4.3+7,z*4.3+2)*.15; }
+const rnd=(i,j)=>h3(i,j,77);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const sstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+
+/* ───────────────────────── renderer ───────────────────────── */
+const renderer = new THREE.WebGLRenderer({canvas, antialias:false, alpha:false, powerPreference:'high-performance', preserveDrawingBuffer:true});
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+const HDR = renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float');
+
+/* Contact-hardening soft shadows (PCSS) patched into three's shadow lookup. */
+(function(){
+  const pcss = `
+  float ignoise(vec2 p){ return fract(52.9829189*fract(dot(p, vec2(0.06711056,0.00583715)))); }
+  float pcssShadow(sampler2D sm, vec3 c, float K){
+    float rot = ignoise(gl_FragCoord.xy)*6.2831853;
+    float search = K*0.05, bsum=0., bn=0.;
+    for(int i=0;i<14;i++){ float fi=float(i)+.5; float r=sqrt(fi/14.); float a=fi*2.39996323+rot;
+      float d = unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*search));
+      if(d < c.z-0.0006){ bsum+=d; bn+=1.; } }
+    if(bn<.5) return 1.;
+    float pen = clamp((c.z-bsum/bn)*K, 0.0006, 0.02);
+    float s=0.;
+    for(int i=0;i<28;i++){ float fi=float(i)+.5; float r=sqrt(fi/28.); float a=fi*2.39996323+rot*1.7;
+      s += step(c.z, unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*pen))); }
+    return s/28.;
+  }`;
+  let ch = THREE.ShaderChunk.shadowmap_pars_fragment;
+  ch = ch.replace('#ifdef USE_SHADOWMAP', '#ifdef USE_SHADOWMAP\n'+pcss);
+  ch = ch.replace('#if defined( SHADOWMAP_TYPE_PCF )', 'return pcssShadow(shadowMap, shadowCoord.xyz, shadowRadius);\n#if defined( SHADOWMAP_TYPE_PCF )');
+  THREE.ShaderChunk.shadowmap_pars_fragment = ch;
+})();
+
+/* ───────────────────────── materials ───────────────────────── */
+const shared = { uSeed:{value:new THREE.Vector3()}, uShip:{value:new THREE.Vector4()}, uSeaT:{value:0} };
+const GLSL_NOISE = `
+float hash13(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32); return fract((p.x+p.y)*p.z); }
+float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash13(i),hash13(i+vec3(1,0,0)),f.x),mix(hash13(i+vec3(0,1,0)),hash13(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash13(i+vec3(0,0,1)),hash13(i+vec3(1,0,1)),f.x),mix(hash13(i+vec3(0,1,1)),hash13(i+vec3(1,1,1)),f.x),f.y),f.z); }`;
+const CLAY_PARS = GLSL_NOISE + `
+uniform mat3 normalMatrix;
+uniform vec3 uSeed; uniform float uBoil, uBump, uSmear, uSpeck; uniform vec3 uCol2;
+uniform vec4 uBandY; uniform vec3 uBandC[4];
+uniform vec4 uShip; uniform float uSeaT; uniform vec3 uDeep, uMid, uLight, uFoam;
+varying vec3 vObjPos; varying vec3 vObjN;
+#ifdef SEA
+varying vec2 vSea;
+#endif
+float clayH(vec3 p){
+  vec3 q = p + uSeed*uBoil;
+  float h = (vn(q*8.)-.5) + (vn(q*21.+3.)-.5)*.5 + (vn(q*57.+7.)-.5)*.22;
+  vec3 w = q*5.5; float fpMask = smoothstep(.56,.8, vn(w*.8+11.));
+  vec2 cc = fract(w.xy + w.z*.37)-.5;
+  h += sin(length(cc)*52. + vn(q*19.)*7.)*fpMask*.028;
+  h += smoothstep(.8,.95, vn(vec3(q.x*3., q.y*40., q.z*3.)+2.))*-.07;
+  return h;
+}
+vec3 clayNormal(vec3 nView){
+  #ifdef MODE_CLAY
+  vec3 p = vObjPos; float e = .0035;
+  float h0 = clayH(p);
+  vec3 g = vec3(clayH(p+vec3(e,0,0))-h0, clayH(p+vec3(0,e,0))-h0, clayH(p+vec3(0,0,e))-h0)/e;
+  vec3 nO = normalize(vObjN);
+  g -= dot(g,nO)*nO;
+  vec3 nP = normalize(nO - g*uBump*.011);
+  vec3 nV = normalize(normalMatrix*nP);
+  return dot(nV,nView) < 0. ? -nV : nV;
+  #else
+  return nView;
+  #endif
+}
+float clayRough(float r){
+  #ifdef MODE_CLAY
+  float m = vn(vObjPos*6.+uSeed*uBoil+40.);
+  return clamp(r + (m-.5)*.3 - smoothstep(.7,.9,vn(vObjPos*3.+9.))*.14, .2, 1.);
+  #else
+  return r;
+  #endif
+}
+vec3 clayAlbedo(vec3 base){
+  vec3 p = vObjPos; vec3 c = base;
+  #ifdef MODE_CLAY
+    #ifdef BANDS
+      float wob = (vn(p*7.)-.5)*.035 + (vn(p*23.)-.5)*.012;
+      float y = p.y + wob;
+      c = uBandC[0];
+      c = mix(c, uBandC[1], smoothstep(-.004,.004, y-uBandY.x));
+      c = mix(c, uBandC[2], smoothstep(-.004,.004, y-uBandY.y));
+      c = mix(c, uBandC[3], smoothstep(-.004,.004, y-uBandY.z));
+    #endif
+    #ifdef SEA
+      vec2 P = p.xz; vec2 d1 = vec2(.5,.866);
+      float along = dot(P, vec2(d1.y,-d1.x)), across = dot(P,d1);
+      float st  = vn(vec3(along*.9, across*3.6 - uSeaT*.55, 3.+uSeed.x*.2));
+      float st2 = vn(vec3(along*2.3+5., across*8. - uSeaT*.9, 9.+uSeed.y*.2));
+      c = mix(uDeep, uMid, smoothstep(.22,.7,st));
+      c = mix(c, uLight, smoothstep(.5,.82,st2)*.75);
+      float hN = vSea.x;
+      c = mix(c, uDeep*.75, smoothstep(.42,.05,hN)*.55);
+      float nz = vn(vec3(P*6.5, uSeed.y*3.))-.5;
+      float crest = smoothstep(.86,.98, hN + nz*.3);
+      vec2 L = P - uShip.xy;
+      float e = length(vec2(L.x/.98, L.y/.36));
+      float ring = smoothstep(1.42,1.08,e);
+      float b = -L.x - .55; float wake = 0.;
+      if(b>0.){ float arm = exp(-pow((abs(L.y)-(.2+.3*b))/.075,2.))*exp(-b*.5);
+        float churn = exp(-pow(L.y/(.13+.06*b),2.))*exp(-b*.75); wake = max(arm, churn); }
+      float foam = smoothstep(.34,.56, max(ring,wake) + (vn(vec3(P*10., uSeed.z*3.))-.5)*.55);
+      c = mix(c, uFoam, max(crest*.92, foam*.95)*(1.-vSea.y));
+      c = mix(c, uDeep*.9, vSea.y*.6);
+    #endif
+    float m = vn(p*5.+uSeed*uBoil)*.6 + vn(p*17.+4.)*.4;
+    c *= .86 + .28*m;
+    float s = smoothstep(.6,.8, vn(vec3(p.x*3.,p.y*8.,p.z*3.)+31.));
+    c = mix(c, uCol2, s*uSmear);
+    float sp = smoothstep(.9,.95, vn(p*150.+17.))*step(.75, vn(p*9.+70.));
+    c = mix(c, vec3(.82,.78,.7), sp*.35*uSpeck);
+  #endif
+  #ifdef MODE_WOOD
+    vec2 P = p.xz; float pid = floor(P.y/1.15+.5); float py = fract(P.y/1.15+.5);
+    float gw = vn(vec3(P.x*.5+pid*7., P.y*5., pid));
+    float rings = sin(P.y*46. + gw*9. + vn(vec3(P.x*.25,P.y*1.5,pid*3.))*14.);
+    c = mix(vec3(.25,.14,.07), vec3(.47,.29,.15), .5+.5*rings*.7);
+    c *= .8 + .35*vn(vec3(P.x*8., P.y*160., pid));
+    c *= mix(.45,1., smoothstep(0.,.02,py)*smoothstep(1.,.98,py));
+    c *= base;
+  #endif
+  #ifdef MODE_PAPER
+    float y = clamp((p.y+3.55)/2.5,0.,1.);
+    float br = (vn(vec3(p.x*.5,p.y*5.,1.))-.5)*.08 + (vn(vec3(p.x*3.,p.y*30.,4.))-.5)*.03;
+    y += br;
+    c = mix(vec3(.96,.62,.40), vec3(.93,.80,.68), smoothstep(.04,.2,y));
+    c = mix(c, vec3(.36,.62,.86), smoothstep(.14,.46,y));
+    c = mix(c, vec3(.12,.32,.64), smoothstep(.5,1.,y));
+    c *= .93+.14*vn(p*14.);
+  #endif
+  return c;
+}`;
+function lin(hex){ return new THREE.Color(hex); }
+function mat(o){
+  o = o || {};
+  const mode = o.mode || 'CLAY';
+  const m = new THREE.MeshPhysicalMaterial({ color:o.color!==undefined?o.color:0xffffff, roughness:o.rough!==undefined?o.rough:.56, metalness:0,
+    sheen: mode==='CLAY'?.45:0, sheenRoughness:.5, sheenColor:new THREE.Color(o.color!==undefined?o.color:0xffffff).lerp(new THREE.Color(0xffffff),.5),
+    specularIntensity: o.spec!==undefined?o.spec:.75, envMapIntensity:o.env!==undefined?o.env:1, side:o.side||THREE.FrontSide });
+  if(o.emissive){ m.emissive=new THREE.Color(o.emissive); m.emissiveIntensity=o.emissiveIntensity||1; }
+  const bands = o.bands||null;
+  const u = { uSeed:shared.uSeed, uShip:shared.uShip, uSeaT:shared.uSeaT,
+    uBoil:{value:o.boil||0}, uBump:{value:o.bump!==undefined?o.bump:1}, uSmear:{value:o.smear||0}, uSpeck:{value:o.speck!==undefined?o.speck:1}, uCol2:{value:lin(o.color2!==undefined?o.color2:0xffffff)},
+    uBandY:{value:new THREE.Vector4(bands?bands.y[0]:9, bands&&bands.y[1]!==undefined?bands.y[1]:9, bands&&bands.y[2]!==undefined?bands.y[2]:9, 0)},
+    uBandC:{value:[0,1,2,3].map(i=>lin(bands?bands.c[Math.min(i,bands.c.length-1)]:0xffffff))},
+    uDeep:{value:lin(0x0b3a78)}, uMid:{value:lin(0x1668b8)}, uLight:{value:lin(0x2fa3c9)}, uFoam:{value:lin(0xf1eee2)} };
+  m.defines = Object.assign({}, m.defines, {['MODE_'+mode]:''});
+  if(bands) m.defines.BANDS='';
+  if(o.sea) m.defines.SEA='';
+  m.userData.u = u;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjPos; varying vec3 vObjN;\n#ifdef SEA\nattribute vec2 aSea; varying vec2 vSea;\n#endif')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObjPos=position; vObjN=normal;\n#ifdef SEA\nvSea=aSea;\n#endif');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n'+CLAY_PARS)
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = clayAlbedo(diffuseColor.rgb);')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clayRough(roughnessFactor);')
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal = clayNormal(normal);');
+  };
+  m.customProgramCacheKey = () => 'clay|'+mode+'|'+(bands?1:0)+'|'+(o.sea?1:0);
+  return m;
+}
+
+/* ───────────────────────── geometry helpers ───────────────────────── */
+function weld(geo){
+  const p=geo.attributes.position, n=new Float32Array(p.count*3), map=new Map(), key=new Array(p.count);
+  for(let i=0;i<p.count;i++){ key[i]=Math.round(p.getX(i)*2e4)+'_'+Math.round(p.getY(i)*2e4)+'_'+Math.round(p.getZ(i)*2e4); if(!map.has(key[i])) map.set(key[i],[0,0,0]); }
+  const idx=geo.index, tri=idx?idx.count/3:p.count/3, a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let t=0;t<tri;t++){ const i0=idx?idx.getX(t*3):t*3, i1=idx?idx.getX(t*3+1):t*3+1, i2=idx?idx.getX(t*3+2):t*3+2;
+    a.fromBufferAttribute(p,i0); b.fromBufferAttribute(p,i1); c.fromBufferAttribute(p,i2); b.sub(a); c.sub(a); b.cross(c);
+    for(const i of [i0,i1,i2]){ const m=map.get(key[i]); m[0]+=b.x; m[1]+=b.y; m[2]+=b.z; } }
+  for(let i=0;i<p.count;i++){ const m=map.get(key[i]); const l=Math.hypot(m[0],m[1],m[2])||1; n[i*3]=m[0]/l; n[i*3+1]=m[1]/l; n[i*3+2]=m[2]/l; }
+  geo.setAttribute('normal', new THREE.BufferAttribute(n,3)); return geo;
+}
+let seedC = 1;
+function clayify(geo, amp, freq){
+  const sd = (seedC++)*13.7; weld(geo);
+  const p=geo.attributes.position, n=geo.attributes.normal;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+    const d=(fbm3(x*freq+sd,y*freq+sd*.7,z*freq+sd*.3)-.5)*2*amp;
+    p.setXYZ(i, x+n.getX(i)*d, y+n.getY(i)*d, z+n.getZ(i)*d); }
+  weld(geo); geo.computeBoundingSphere(); return geo;
+}
+function blob(r, sx, sy, sz, amp, freq, det){
+  const g=new THREE.SphereGeometry(r, det||40, Math.round((det||40)*.7)); g.scale(sx||1,sy||1,sz||1);
+  return clayify(g, amp!==undefined?amp:r*.12, freq||(1.6/r));
+}
+function rbox(w,h,d,r,amp,freq){
+  const s=14, g=new THREE.BoxGeometry(w,h,d,s,s,s), p=g.attributes.position, hx=w/2-r, hy=h/2-r, hz=d/2-r, v=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); c.set(clamp(v.x,-hx,hx),clamp(v.y,-hy,hy),clamp(v.z,-hz,hz)); v.sub(c);
+    if(v.lengthSq()>1e-12){ v.normalize().multiplyScalar(r).add(c); p.setXYZ(i,v.x,v.y,v.z); } }
+  return clayify(g, amp!==undefined?amp:.012, freq||7);
+}
+function lathe(pts, amp, freq, seg){
+  const g=new THREE.LatheGeometry(pts.map(q=>new THREE.Vector2(q[0],q[1])), seg||44); return clayify(g, amp!==undefined?amp:.01, freq||7);
+}
+function grid(nu,nv,fn){
+  const pos=new Float32Array((nu+1)*(nv+1)*3), idx=[]; let k=0; const o=[0,0,0];
+  for(let i=0;i<=nu;i++) for(let j=0;j<=nv;j++){ fn(i/nu,j/nv,o); pos[k++]=o[0]; pos[k++]=o[1]; pos[k++]=o[2]; }
+  for(let i=0;i<nu;i++) for(let j=0;j<nv;j++){ const a=i*(nv+1)+j, b=a+1, c=a+nv+1, d=c+1; idx.push(a,b,c, b,d,c); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3)); g.setIndex(idx); return g;
+}
+function flip(g){ const ix=g.index.array; for(let i=0;i<ix.length;i+=3){ const t=ix[i+1]; ix[i+1]=ix[i+2]; ix[i+2]=t; } return g; }
+function mesh(g,m,x,y,z,parent){ const o=new THREE.Mesh(g,m); o.position.set(x||0,y||0,z||0); o.castShadow=true; o.receiveShadow=true; (parent||scene).add(o); return o; }
+
+/* ───────────────────────── the colony model ───────────────────────── */
+/* A biofilm as a field on a square grid, seen from above. One grid cell is about 10 micrometres.
+   b  how much of the cell is colony (0..1)        G  food (glutamate), topped up outside the colony, eaten inside it
+   p  the signal firing cells put out (potassium)   w  whether the cell is firing h  thickness laid down by growth (the colony's record of itself)
+   Food comes in from the edge. Cells near the edge eat first. Cells further in get what is left. A cell that is short
+   of food puts out signal; signal spreads and fades; a cell that receives signal eats less for growth (it still eats to live).
+   'listen' is how strongly a cell cuts its growth for a given signal. */
+(function (root) {
+  const on = (b, l) => b > .5 && l > .05;
+  const DEF = { N: 112, dt: .1, DG: 1.0, DP: 1.5, DB: .004, cm: .003, cg: .05, kg: .12, Gs: .12, Gon: .08, Goff: .3, kappa: .15, alpha: .2, gamma: .06, p0: .1, listen: 1, mu: .01, feed: .6, die: .0004, seed: 1 };
+  function create(opt) {
+    const o = Object.assign({}, DEF, opt || {}), N = o.N, n = N * N, c = (N - 1) / 2;
+    const S = { o, N, t: 0, b: new Float32Array(n), G: new Float32Array(n).fill(1), p: new Float32Array(n), w: new Float32Array(n), h: new Float32Array(n), u: new Float32Array(n), st: new Float32Array(n), age: new Float32Array(n), live: new Float32Array(n).fill(1), born: new Float32Array(n),
+      growth: 0, stress: 0, signal: 0, area: 0, radius: 0, hist: [], path: 0, ns: 0 };
+    let s = o.seed * 9301 + 49297; const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+    S.tex = new Float32Array(n); for (let i = 0; i < n; i++) S.tex[i] = .85 + .3 * rnd();        // cells are not identical: each eats at a slightly different rate
+    const r0 = o.r0 || 4; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const d = Math.hypot(x - c, y - c); if (d < r0) { S.b[y * N + x] = 1; S.h[y * N + x] = .2; } }
+    const tb = new Float32Array(n), tG = new Float32Array(n), tp = new Float32Array(n), tw = new Float32Array(n);
+    S.step = function () {
+      const { b, G, p, w, h, u, st, tex, live } = S, dt = o.dt; let growth = 0, stress = 0, signal = 0, area = 0, edgeSig = 0, edgeN = 0;
+      for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) { const i = y * N + x, bb = b[i], g = G[i], pp = p[i];
+        const lapG = G[i - 1] + G[i + 1] + G[i - N] + G[i + N] - 4 * g, lapP = p[i - 1] + p[i + 1] + p[i - N] + p[i + N] - 4 * pp, lapB = b[i - 1] + b[i + 1] + b[i - N] + b[i + N] - 4 * bb;
+        const lv = live[i], sat = g / (g + o.kg), q = Math.max(0, pp) * o.listen / o.p0, gate = 1 / (1 + q * q * q * q), ug = bb * lv * o.cg * sat * gate * tex[i], um = bb * lv * o.cm * sat;
+        const sg = w[i];
+        tG[i] = g + dt * (o.DG * lapG - ug - um + o.feed * (1 - g) * (1 - bb) * (1 - bb));
+        /* a cell is in one of two states: resting, or firing. It starts firing when it is short of food (sooner if its neighbours are already
+           firing), and it stops only when it has been properly fed. Two thresholds, so it does not flicker. */
+        let f = w[i]; if (f < .5) { if (on(bb, lv) && g - o.kappa * pp < o.Gon * tex[i]) f = 1; } else if (g > o.Goff || !on(bb, lv)) f = 0; tw[i] = f;
+        { const np = pp + dt * (o.DP * lapP + o.alpha * f * bb * lv - o.gamma * pp); tp[i] = np < 1e-9 ? 0 : np; }
+        const gr = ug / o.cg;                                   // growth, 0..1
+        tb[i] = Math.min(1, bb + dt * (o.mu * gr * (1 - bb) * 4 + o.DB * Math.max(0, lapB) * (b[i - 1] * u[i - 1] + b[i + 1] * u[i + 1] + b[i - N] * u[i - N] + b[i + N] * u[i + N]) * 40));
+        if (bb < .5 && tb[i] >= .5) S.born[i] = S.half.length; h[i] += dt * o.mu * gr * .5; u[i] = gr; st[i] = sg;
+        if (sg > .5) live[i] = Math.max(0, lv - dt * o.die); else if (lv < 1 && lv > .02) live[i] = Math.min(1, lv + dt * o.die * .5);   // long starvation kills; a fed cell recovers
+        growth += gr; stress += sg; signal += Math.max(0, pp) * bb; area += bb; }
+      b.set(tb); G.set(tG); p.set(tp); w.set(tw); S.t += dt;
+      S.growth = growth; S.stress = stress; S.signal = signal; S.area = area; S.radius = Math.sqrt(area / Math.PI);
+    };
+    /* the count: the share of the colony that is growing rather than waiting. A cut is a handover between the two. */
+    let sm = 0, prev = 0, dir = 0, ext = 0, top = .05;
+    S.observe = function () { const f = S.growth / (2 * Math.PI * Math.max(S.radius, 3)); sm += (f - sm) * .3; S.path += Math.abs(sm - prev); prev = sm; top = Math.max(top * .9995, sm); const d = .15 * top;
+      S.ns++; S.hist.push(sm); if (S.hist.length > 6000) S.hist.shift();
+      if (dir >= 0 && sm < ext - d) { mark('yield', ext); dir = -1; ext = sm; } else if (dir <= 0 && sm > ext + d) { mark(dir === 0 ? 'start' : 'grow', ext); dir = 1; ext = sm; }
+      else if (dir >= 0) ext = Math.max(ext, sm); else ext = Math.min(ext, sm);
+      S.f = sm; S.top = top; S.dir = dir; };
+    /* a cut is a handover: the edge stops growing and the interior feeds ('yield'), or the edge takes up growing again ('grow').
+       Between two cuts, C is how far the growth rate travelled in all, the chord is how far it got, and the surplus is the difference. */
+    let lastExt = 0, pathAt = 0, tAt = 0; S.half = [];
+    function mark(kind, e) { const chord = Math.abs(e - lastExt), C = S.path - pathAt; S.half.push({ t: S.t, kind, C, chord, S: Math.max(0, C - chord), dur: S.t - tAt, r: S.radius, n: S.ns }); lastExt = e; pathAt = S.path; tAt = S.t; if (S.half.length > 400) S.half.shift(); }
+    S.run = function (T) { const k = Math.round(T / o.dt); for (let i = 0; i < k; i++) { S.step(); if (i % 4 === 0) S.observe(); } return S; };
+    S.liveMass = function () { let m = 0; for (let i = 0; i < n; i++) m += S.b[i] * S.live[i] * Math.max(S.h[i], .2); return m; };
+    S.liveShare = function () { let m = 0, a = 0; for (let i = 0; i < n; i++) { m += S.b[i] * S.live[i]; a += S.b[i]; } return m / Math.max(a, 1); };
+    return S;
+  }
+  root.Biofilm = { create, DEF };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+const Biofilm=window.Biofilm;
+/* ───────────────────────── post: ambient occlusion → lens blur → film ───────────────────────── */
+const postScene=new THREE.Scene(), postCam=new THREE.Camera();
+const tri=new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1,-1,0, 3,-1,0, -1,3,0]),3)));
+tri.frustumCulled=false; postScene.add(tri);
+const VS='varying vec2 vUv; void main(){ vUv=position.xy*.5+.5; gl_Position=vec4(position.xy,0.,1.); }';
+const pm=(fs,u)=>new THREE.ShaderMaterial({vertexShader:VS, fragmentShader:fs, uniforms:u, depthTest:false, depthWrite:false});
+const DEPTH=`uniform sampler2D tDepth; uniform float uNear,uFar; uniform vec2 uProj;
+float linZ(vec2 uv){ float d=texture2D(tDepth,uv).x; return (uNear*uFar)/(uFar-d*(uFar-uNear)); }
+vec3 vpos(vec2 uv){ float z=linZ(uv); vec2 n=uv*2.-1.; return vec3(n.x/uProj.x*z, n.y/uProj.y*z, -z); }`;
+const U={ tDepth:{value:null}, uNear:{value:.6}, uFar:{value:40}, uProj:{value:new THREE.Vector2()}, uRes:{value:new THREE.Vector2()} };
+const aoMat=pm(DEPTH+`uniform vec2 uRes; uniform float uAOs; varying vec2 vUv;
+void main(){ vec3 C=vpos(vUv); vec3 n=normalize(cross(dFdx(C),dFdy(C)));
+  float R=.24*uAOs, ssr=R*uProj.y*.5/(-C.z);
+  float rot=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853, sum=0.;
+  for(int i=0;i<22;i++){ float a=(float(i)+.5)/22.; float ang=a*6.2831853*7.+rot; float r=ssr*a;
+    vec3 v=vpos(vUv+vec2(cos(ang)*uRes.y/uRes.x,sin(ang))*r)-C; float vv=dot(v,v), vn=dot(v,n);
+    float f=max(1.-vv/(R*R),0.); sum+=f*f*f*max((vn+C.z*.0025)/(vv+.0004),0.); }
+  gl_FragColor=vec4(vec3(max(0.,1.-sum*5.*R/22.*1.9)),1.); }`, Object.assign({uAOs:{value:1}},U));
+const prepMat=pm(DEPTH+`uniform sampler2D tColor,tAO; uniform vec2 uRes; uniform float uFocus,uAperture; varying vec2 vUv;
+void main(){ float z=linZ(vUv); float ao=0., w=0.;
+  for(int x=-2;x<2;x++) for(int y=-2;y<2;y++){ vec2 o=(vec2(float(x),float(y))+.5)/uRes; float zz=linZ(vUv+o);
+    float k=max(0.,1.-abs(zz-z)/(.03*z)); ao+=texture2D(tAO,vUv+o).r*k; w+=k; }
+  ao = w>0. ? ao/w : 1.;
+  vec3 c=texture2D(tColor,vUv).rgb; c*=mix(vec3(.16,.13,.14), vec3(1.), pow(ao,1.25));
+  gl_FragColor=vec4(c, clamp((1./uFocus-1./z)*uAperture,-1.,1.)); }`, Object.assign({tColor:{value:null}, tAO:{value:null}, uFocus:{value:5}, uAperture:{value:6}},U));
+const dofMat=pm(`uniform sampler2D tPrep; uniform vec2 uRes; uniform float uMaxPx,uStep; varying vec2 vUv;
+void main(){ vec4 c0=texture2D(tPrep,vUv); float cs=abs(c0.a)*uMaxPx; vec3 acc=c0.rgb; float tot=1.; float r=uStep;
+  float ang=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853;
+  for(int i=0;i<260;i++){ if(r>uMaxPx) break; ang+=2.39996323;
+    vec4 s=texture2D(tPrep, vUv+vec2(cos(ang),sin(ang))*r/uRes); float ss=abs(s.a)*uMaxPx;
+    if(s.a>c0.a) ss=clamp(ss,0.,cs*2.);
+    float m=smoothstep(r-.5,r+.5,ss); acc+=mix(acc/tot,s.rgb,m); tot+=1.; r+=uStep/r; }
+  gl_FragColor=vec4(acc/tot,1.); }`, {tPrep:{value:null}, uRes:U.uRes, uMaxPx:{value:20}, uStep:{value:1.3}});
+const finMat=pm(`uniform sampler2D tDof; uniform vec2 uRes; uniform vec3 uFilm; uniform float uExpo,uFlash; varying vec2 vUv;
+float h(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+void main(){ vec2 uv=vUv+uFilm.xy/uRes; vec2 d=uv-.5; float r2=dot(d,d);
+  vec2 ca=d*r2*.012;
+  vec3 c=vec3(texture2D(tDof,uv+ca).r, texture2D(tDof,uv).g, texture2D(tDof,uv-ca).b);
+  vec3 glow=textureLod(tDof,uv,4.).rgb*.5+textureLod(tDof,uv,6.).rgb*.5;
+  c=mix(c,glow,.07)+max(glow-.9,0.)*.12;
+  c*=uExpo*(1.-r2*.95);
+  c+=vec3(1.,.72,.42)*uFlash*(.25+r2*2.);
+  c=aces(c*vec3(1.03,1.,.97));
+  c=pow(c,vec3(1./2.2));
+  c=mix(c, c*c*(3.-2.*c), .22);
+  float g=h(gl_FragCoord.xy+uFilm.z*91.7)-.5; float l=dot(c,vec3(.3,.6,.1));
+  c+=g*.038*(1.-.6*l);
+  gl_FragColor=vec4(c,1.); }`, {tDof:{value:null}, uRes:U.uRes, uFilm:{value:new THREE.Vector3()}, uExpo:{value:1}, uFlash:{value:0}});
+
+let rt=null, budget=TEST&&TEST.budget ? TEST.budget : 2.1e6, msaa=4;
+function build(){
+  const cw=canvas.clientWidth||window.innerWidth, chh=canvas.clientHeight||window.innerHeight, dpr=Math.min(window.devicePixelRatio||1,2);
+  const scale=Math.min(dpr, Math.sqrt(budget/(cw*chh)));
+  renderer.setPixelRatio(scale); renderer.setSize(cw,chh,false);
+  const w=Math.max(2,Math.floor(cw*scale)), h=Math.max(2,Math.floor(chh*scale));
+  if(rt) for(const k in rt) rt[k].dispose();
+  const T=HDR?THREE.HalfFloatType:THREE.UnsignedByteType;
+  const dt=new THREE.DepthTexture(w,h); dt.type=THREE.UnsignedIntType; dt.minFilter=dt.magFilter=THREE.NearestFilter;
+  rt={ scene:new THREE.WebGLRenderTarget(w,h,{type:T, samples:msaa, depthTexture:dt}),
+       ao:new THREE.WebGLRenderTarget(w,h,{type:THREE.UnsignedByteType}),
+       prep:new THREE.WebGLRenderTarget(w,h,{type:T}),
+       dof:new THREE.WebGLRenderTarget(w,h,{type:T, generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter}) };
+  U.uRes.value.set(w,h); camera.aspect=cw/chh; camera.fov = cw/chh<1 ? 44 : (cw/chh<1.4 ? 33 : 27); camera.updateProjectionMatrix();
+}
+
+/* ───────────────────────── a biofilm taking turns: scene ───────────────────────── */
+const $ = id => document.getElementById(id), lerp = (a, b, t) => a + (b - a) * t, TAU = Math.PI * 2;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0a0b0c);
+const camera = new THREE.PerspectiveCamera(27, 16 / 9, .6, 80);
+
+/* a laboratory: a long ceiling panel, a window to the left, pale walls */
+(function () {
+  const es = new THREE.Scene(), bm = (c, i) => { const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(i), side: THREE.DoubleSide }); m.toneMapped = false; return m; };
+  es.add(new THREE.Mesh(new THREE.SphereGeometry(30, 24, 16), bm(0x23272a, .3)));
+  const add = (w, h, c, i, x, y, z) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), bm(c, i)); p.position.set(x, y, z); p.lookAt(0, 0, 0); es.add(p); };
+  add(16, 4, 0xf2f6ff, 3.2, 1, 13, -3);       // ceiling panel
+  add(7, 10, 0xeaf2ff, 5, -12, 7, 3);       // window
+  add(10, 8, 0xdfe6e8, 1.4, 12, 5, 5);      // far wall
+  add(20, 6, 0xcfd8dc, 1.6, 0, 8, -12);     // back wall
+  add(30, 30, 0x16181a, .5, 0, -6, 0);      // the bench, from below
+  const pmg = new THREE.PMREMGenerator(renderer); scene.environment = pmg.fromScene(es, .03).texture; pmg.dispose();
+})();
+const key = new THREE.DirectionalLight(0xf4f7ff, 2.7); key.position.set(-7, 11, 5); key.target.position.set(0, .4, 0);
+key.castShadow = true; key.shadow.mapSize.set(4096, 4096);
+{ const sc = key.shadow.camera; sc.left = -11; sc.right = 11; sc.top = 9; sc.bottom = -9; sc.near = 1; sc.far = 34; sc.updateProjectionMatrix(); key.shadow.bias = -.0006; key.shadow.normalBias = .03; key.shadow.radius = .085 * (sc.far - sc.near) / (sc.right - sc.left); }
+scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0xdfeaff, .8); rim.position.set(7, 5, -8); scene.add(rim);
+
+/* the set: a black bench, a glass dish of agar, its lid set down beside it, a wire loop, bottles of broth out of focus */
+const AGAR_Y = .44, CELL = .1;
+mesh(new THREE.BoxGeometry(60, .5, 34), mat({ color: 0x121416, rough: .62, spec: .45, env: .6, bump: .3, speck: .35 }), 0, -.25, -2).castShadow = false;
+mesh(new THREE.BoxGeometry(60, 18, .4), mat({ color: 0xaab3b6, rough: .9, spec: .2, env: .5, bump: .4, speck: .1 }), 0, 7, -13).castShadow = false;
+const GLASS = () => new THREE.MeshPhysicalMaterial({ color: 0xeaf4f2, roughness: .04, metalness: 0, transparent: true, opacity: .13, envMapIntensity: 1.7, clearcoat: 1, clearcoatRoughness: .03, specularIntensity: 1, side: THREE.DoubleSide, depthWrite: false });
+const glassM = GLASS();
+const dishProfile = (R, H, t) => [[.02, 0], [R, 0], [R + t * .5, t * .5], [R + t, H], [R + t * .5, H + t * .6], [R, H], [R - t * .2, t], [.02, t]];
+const dish = new THREE.Mesh(new THREE.LatheGeometry(dishProfile(5.75, .95, .07).map(q => new THREE.Vector2(q[0], q[1])), 128), glassM); dish.renderOrder = 3; scene.add(dish);
+const agarM = new THREE.MeshPhysicalMaterial({ color: 0x80692f, roughness: .16, metalness: 0, clearcoat: .7, clearcoatRoughness: .12, sheen: .4, sheenColor: new THREE.Color(0xfff0c0), specularIntensity: .8 });
+{ const a = mesh(new THREE.CylinderGeometry(5.72, 5.72, AGAR_Y - .07, 128), agarM, 0, .07 + (AGAR_Y - .07) / 2, 0); a.castShadow = false; }
+{ const lid = new THREE.Mesh(new THREE.LatheGeometry(dishProfile(5.95, .7, .07).map(q => new THREE.Vector2(q[0], q[1])), 128), GLASS()); lid.position.set(13.2, 0, -6.4); lid.renderOrder = 3; scene.add(lid); }
+{ const steel = new THREE.MeshPhysicalMaterial({ color: 0xa2a6aa, roughness: .25, metalness: 1 }), g = new THREE.Group();
+  const w = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, 4.2, 8), steel); w.rotation.z = Math.PI / 2; w.position.x = 2.1; w.castShadow = true; g.add(w);
+  const lp = new THREE.Mesh(new THREE.TorusGeometry(.16, .018, 8, 28), steel); lp.rotation.x = Math.PI / 2; lp.position.x = 4.36; lp.castShadow = true; g.add(lp);
+  const hd = new THREE.Mesh(new THREE.CylinderGeometry(.13, .13, 3.4, 20), mat({ color: 0x20355c, rough: .4, spec: .8, bump: .2, speck: 0 })); hd.rotation.z = Math.PI / 2; hd.position.x = -1.7; hd.castShadow = true; g.add(hd);
+  g.position.set(-10.2, .14, 4.6); g.rotation.y = .5; scene.add(g); }
+[[-8.5, -9.5, 1.5, 0xb98a2f], [-5.2, -10.4, 1.25, 0x9c6f24], [7.5, -10, 1.4, 0xc49a3e]].forEach(([x, z, r, c]) => {
+  const b = new THREE.Mesh(new THREE.LatheGeometry([[.02, 0], [r, 0], [r, 3.6], [r * .45, 4.5], [r * .45, 5.3], [r * .52, 5.35]].map(q => new THREE.Vector2(q[0], q[1])), 48), GLASS()); b.position.set(x, 0, z); b.renderOrder = 3; scene.add(b);
+  mesh(new THREE.CylinderGeometry(r * .94, r * .94, 2.6, 40), new THREE.MeshPhysicalMaterial({ color: c, roughness: .15, clearcoat: 1 }), x, 1.34, z);
+  mesh(new THREE.CylinderGeometry(r * .5, r * .5, .5, 32), mat({ color: 0x2b3f6b, rough: .5, spec: .6, bump: .3, speck: 0 }), x, 5.5, z); });
+
+/* ───────────────────────── the colony ───────────────────────── */
+let S = Biofilm.create({ seed: 1 }); const N = S.N, M = 2 * N - 1, HALF = (N - 1) / 2 * CELL;
+const colGeo = new THREE.BufferGeometry(); const cPos = new Float32Array(M * M * 3), cNor = new Float32Array(M * M * 3), cD = new Float32Array(M * M * 4), cB = new Float32Array(M * M), WR = new Float32Array(M * M);
+{ let k = 0; for (let j = 0; j < M; j++) for (let i = 0; i < M; i++, k++) { const x = i * CELL / 2 - HALF, z = j * CELL / 2 - HALF; cPos[k * 3] = x; cPos[k * 3 + 1] = 0; cPos[k * 3 + 2] = z; cNor[k * 3 + 1] = 1;
+    /* wrinkles: drawn, not simulated. Ridges that run outward and branch, as the real mats have. */
+    const r = Math.hypot(x, z), th = Math.atan2(z, x), rd = v => 1 - Math.abs(2 * v - 1);
+    const a = rd(vn3(Math.cos(th) * 3.2 + vn3(x * 1.5, z * 1.5, 2) * 1.2, Math.sin(th) * 3.2, r * .55 + 4)), b2 = rd(vn3(Math.cos(th) * 7.5, Math.sin(th) * 7.5 + vn3(x * 2.4, z * 2.4, 9), r * .9 + 11)), c = rd(vn3(x * 2.6 + 3, z * 2.6, 6));
+    WR[k] = Math.pow(a, 3) * .62 * sstep(.25, 1.3, r) + Math.pow(b2, 4) * .3 * sstep(1, 2.4, r) + Math.pow(c, 3) * .34; }
+  const ix = new Uint32Array((M - 1) * (M - 1) * 6); let q = 0; for (let j = 0; j < M - 1; j++) for (let i = 0; i < M - 1; i++) { const a = j * M + i, b = a + 1, c = a + M, d = c + 1; ix[q++] = a; ix[q++] = c; ix[q++] = b; ix[q++] = b; ix[q++] = c; ix[q++] = d; }
+  colGeo.setAttribute('position', new THREE.BufferAttribute(cPos, 3)); colGeo.setAttribute('normal', new THREE.BufferAttribute(cNor, 3)); colGeo.setAttribute('aD', new THREE.BufferAttribute(cD, 4)); colGeo.setAttribute('aB', new THREE.BufferAttribute(cB, 1));
+  colGeo.setIndex(new THREE.BufferAttribute(ix, 1)); colGeo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 9); }
+const LAMP = { uLamp: { value: 1 } };
+const colMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: .8, metalness: 0, sheen: .5, sheenRoughness: .6, sheenColor: new THREE.Color(0xfff4dc), specularIntensity: .5, envMapIntensity: .9, shadowSide: THREE.FrontSide });
+colMat.onBeforeCompile = sh => { Object.assign(sh.uniforms, LAMP);
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 aD; attribute float aB; varying vec4 vD; varying float vB; varying vec3 vOP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP=position; vD=aD; vB=aB;');
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+uniform mat3 normalMatrix; uniform float uLamp; varying vec4 vD; varying float vB; varying vec3 vOP; vec3 gC;
+` + GLSL_NOISE + `
+float fine(vec2 q){ return vn(vec3(q*9.,1.))*.5+vn(vec3(q*23.,4.))*.3+vn(vec3(q*61.,8.))*.2; }`)
+    .replace('#include <color_fragment>', `#include <color_fragment>
+{ if(vB<.42) discard; vec2 q=vOP.xz; float f=fine(q), thick=clamp(vOP.y*3.2,0.,1.), live=vD.z, grow=vD.y;
+  vec3 c=mix(vec3(.50,.43,.27), vec3(.58,.53,.40), thick);            /* thin film is translucent over the agar; thick mat is cream */
+  c=mix(c, vec3(.66,.63,.53), grow*.55);                              /* fresh growth is paler and wetter */
+  c*=.88+.14*sin(vD.w*3.14159);                                       /* each turn leaves a faint band, as a tree leaves rings */
+  c=mix(vec3(.25,.21,.15), c, .25+.75*live);                          /* cells that starved too long go dull */
+  c*=.74+.46*f; c*=mix(.78,1.,smoothstep(.0,.5,thick));
+  gC=vec3(f,thick,grow); diffuseColor.rgb=c; }`)
+    .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor=clamp(.86-.42*gC.z-.2*(1.-gC.y)+(gC.x-.5)*.25,.2,1.);')
+    .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+{ vec2 q=vOP.xz; float e=.012, h0=fine(q), hx=fine(q+vec2(e,0.)), hz=fine(q+vec2(0.,e)); normal=normalize(normal-normalMatrix*vec3(hx-h0,0.,hz-h0)/e*.045*(.4+.6*gC.y)); }`)
+    .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+{ float sig=vD.x, lv=vD.z; totalEmissiveRadiance+=uLamp*(vec3(.05,.9,.74)*pow(sig,1.7)*1.5*(.45+1.1*gC.x)*(.3+.7*lv) + vec3(1.,.6,.1)*pow(vD.y,1.5)*.7 + vec3(.02,.09,.08)*(.4+.6*lv)); }`); };
+const colony = new THREE.Mesh(colGeo, colMat); colony.position.y = AGAR_Y; colony.castShadow = colony.receiveShadow = true; colony.frustumCulled = false; scene.add(colony);
+const glow = new THREE.PointLight(0x40e8d0, 0, 9, 2); glow.position.set(0, 1.6, 0); scene.add(glow);
+
+/* the model's grid, smoothed and laid onto the mesh: height, slope, and what each patch is doing */
+const Hs = new Float32Array(N * N), Ht = new Float32Array(N * N), Hv = new Float32Array(M * M);
+function skin() {
+  const { b, h, p, u, live, born } = S, n = N * N, nh = S.half.length;
+  for (let i = 0; i < n; i++) { const bb = b[i]; Hs[i] = bb * bb * (3 - 2 * bb) * (.045 + .17 * Math.pow(h[i], .8)); }
+  for (let pass = 0; pass < 2; pass++) { for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) { const i = y * N + x; Ht[i] = (Hs[i] * 4 + (Hs[i - 1] + Hs[i + 1] + Hs[i - N] + Hs[i + N]) * 2 + Hs[i - N - 1] + Hs[i - N + 1] + Hs[i + N - 1] + Hs[i + N + 1]) / 16; } Hs.set(Ht); }
+  let k = 0; for (let j = 0; j < M; j++) { const y0 = j >> 1, y1 = Math.min(N - 1, y0 + (j & 1)); for (let i = 0; i < M; i++, k++) { const x0 = i >> 1, x1 = Math.min(N - 1, x0 + (i & 1)), a = y0 * N + x0, bq = y0 * N + x1, c = y1 * N + x0, d = y1 * N + x1;
+      const hh = (Hs[a] + Hs[bq] + Hs[c] + Hs[d]) * .25; Hv[k] = hh + WR[k] * .36 * Math.min(1, hh * 4.5) * Math.min(1, hh * 4.5); cPos[k * 3 + 1] = Hv[k];
+      cB[k] = (b[a] + b[bq] + b[c] + b[d]) * .25; const k4 = k * 4;
+      cD[k4] = Math.min(1, (p[a] + p[bq] + p[c] + p[d]) * .25 * .33); cD[k4 + 1] = Math.min(1, (u[a] + u[bq] + u[c] + u[d]) * .25 * 1.5); cD[k4 + 2] = (live[a] + live[bq] + live[c] + live[d]) * .25; cD[k4 + 3] = (born[a] + born[bq] + born[c] + born[d]) * .25; } }
+  const inv = 1 / CELL; for (let j = 1; j < M - 1; j++) for (let i = 1; i < M - 1; i++) { const q = j * M + i, dx = (Hv[q + 1] - Hv[q - 1]) * inv, dz = (Hv[q + M] - Hv[q - M]) * inv, l = 1 / Math.hypot(dx, 1, dz); cNor[q * 3] = -dx * l; cNor[q * 3 + 1] = l; cNor[q * 3 + 2] = -dz * l; }
+  for (const a of ['position', 'normal', 'aD', 'aB']) colGeo.attributes[a].needsUpdate = true;
+}
+
+/* ───────────────────────── state ───────────────────────── */
+let playing = true, pace = 4, lamp = 1, lampTo = 1, frameNo = 0, stepNo = 0, full = false, colonyNo = 1, sayKey = '', sayAt = -9, clock = 0;
+const view = { yaw: .5, pitch: .56, dist: 28 }; let focusDist = 20;
+const HOURS = t => t / 50;      // set so a turn takes about as long as in the experiments; not predicted
+function reset() { colonyNo++; S = Biofilm.create({ seed: colonyNo, listen: +$('listen').value }); full = false; stepNo = 0; sayKey = ''; }
+function advance(steps) { if (full) return; for (let i = 0; i < steps; i++) { S.step(); if (++stepNo % 4 === 0) S.observe(); } if (S.radius > N * .43) full = true; }
+
+const SAY = {
+  small: ['A small colony. Food reaches every cell, so nobody has anything to say.', 'Before there is an inside and an outside, there is nothing to negotiate.'],
+  yield: ['The middle is short of food and is signalling. The edge has stopped growing, and the food it would have eaten passes inward.', 'The one who could take more, waits. Room is made, and nothing is put in.'],
+  grow: ['The middle has been fed and gone quiet. The edge is growing again.', 'Neither part does this alone. It is made between them: making-with.'],
+  deaf: ['An edge that does not listen. It grows fastest of all, and its middle starves.', 'Weight used without regard for the other. It wins on size and loses its own centre.'],
+  anxious: ['An edge that stops at the faintest signal. Almost everyone stays alive, and the colony goes almost nowhere.', 'So ready to yield that there is little left to bring. The other is spared, and nothing grows between them.'],
+  full: ['The colony has reached the wall of the dish.', 'What it did on the way is written in its rings.'] };
+function say() { const L = S.o.listen; let k = full ? 'full' : L < .12 ? 'deaf' : L > 2.6 ? 'anxious' : S.half.length < 2 ? 'small' : S.dir < 0 ? 'yield' : 'grow';
+  if (k === sayKey || (!TEST && clock - sayAt < 2.2 && sayKey && k !== 'full')) return; sayKey = k; sayAt = clock; $('craft').textContent = SAY[k][0]; $('read').textContent = SAY[k][1]; }
+
+/* ───────────────────────── instruments ───────────────────────── */
+const hudC = $('hud'), hx = hudC.getContext('2d'); const RB = 60, rad = { G: new Float32Array(RB), p: new Float32Array(RB), u: new Float32Array(RB), b: new Float32Array(RB), l: new Float32Array(RB), n: new Float32Array(RB) };
+function radial() { for (const k in rad) rad[k].fill(0); const c = (N - 1) / 2; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const r = Math.round(Math.hypot(x - c, y - c)); if (r >= RB) continue; const i = y * N + x; rad.G[r] += S.G[i]; rad.p[r] += S.p[i]; rad.u[r] += S.u[i]; rad.b[r] += S.b[i]; rad.l[r] += S.live[i] * S.b[i]; rad.n[r]++; }
+  for (let r = 0; r < RB; r++) { const n = rad.n[r] || 1; rad.G[r] /= n; rad.p[r] /= n; rad.u[r] /= n; rad.l[r] = rad.b[r] > 0 ? rad.l[r] / rad.b[r] : 1; rad.b[r] /= n; } }
+function hud() {
+  const W = hudC.clientWidth, H = hudC.clientHeight, d = Math.min(2, window.devicePixelRatio || 1); if (hudC.width !== Math.round(W * d)) { hudC.width = Math.round(W * d); hudC.height = Math.round(H * d); }
+  hx.setTransform(d, 0, 0, d, 0, 0); hx.clearRect(0, 0, W, H); const ink = '#eef0ea', soft = 'rgba(238,240,234,.62)', line = 'rgba(238,240,234,.18)', sig = '#5fe0d0', grw = '#b8d66a', food = '#f0b45a';
+  const mono = (s, w) => hx.font = (w || 400) + ' ' + s + 'px "DM Mono",ui-monospace,monospace', T = (s, x, y, c, a) => { hx.fillStyle = c || ink; hx.textAlign = a || 'left'; hx.fillText(s, x, y); };
+  const P = 16, w = W - 2 * P; radial();
+  /* A: a cut through */
+  mono(11, 500); T('A CUT THROUGH, CENTRE TO EDGE', P, 24, soft); const y0 = 40, hA = 104, Rmax = Math.min(RB - 1, Math.max(14, S.radius + 9)), X = r => P + r / Rmax * w, Y = v => y0 + hA - Math.min(1, v) * hA;
+  hx.fillStyle = 'rgba(238,240,234,.09)'; hx.beginPath(); hx.moveTo(X(0), Y(0)); for (let r = 0; r <= Rmax; r++) hx.lineTo(X(r), Y(rad.b[r] * (.25 + .75 * rad.l[r]))); hx.lineTo(X(Rmax), Y(0)); hx.fill();
+  hx.fillStyle = 'rgba(95,224,208,.3)'; hx.beginPath(); hx.moveTo(X(0), Y(0)); for (let r = 0; r <= Rmax; r++) hx.lineTo(X(r), Y(rad.p[r] * .27)); hx.lineTo(X(Rmax), Y(0)); hx.fill();
+  const curve = (a, k, col, lw) => { hx.strokeStyle = col; hx.lineWidth = lw; hx.beginPath(); for (let r = 0; r <= Rmax; r++) { const x = X(r), y = Y(a[r] * k); r ? hx.lineTo(x, y) : hx.moveTo(x, y); } hx.stroke(); };
+  curve(rad.p, .27, sig, 1.6); curve(rad.G, 1, food, 2); curve(rad.u, 1.2, grw, 2);
+  hx.strokeStyle = line; hx.lineWidth = 1; hx.beginPath(); hx.moveTo(P, y0 + hA + .5); hx.lineTo(P + w, y0 + hA + .5); hx.stroke();
+  mono(11); T('centre', P, y0 + hA + 15, soft); T('edge', X(Math.min(Rmax, S.radius)), y0 + hA + 15, soft, 'center'); T('agar', P + w, y0 + hA + 15, soft, 'right');
+  let lx = P; [['food', food], ['signal', sig], ['growing', grw]].forEach(([s, c]) => { hx.fillStyle = c; hx.fillRect(lx, y0 + hA + 26, 10, 3); T(s, lx + 14, y0 + hA + 32, ink); lx += 22 + hx.measureText(s).width + 8; });
+  /* B: the edge's growth over time, with each handover marked */
+  const yB = 218, hB = 84; mono(11, 500); T('THE EDGE’S GROWTH, OVER TIME', P, yB, soft); const hist = S.hist, WN = 700, n0 = Math.max(0, hist.length - WN), top = Math.max(.05, S.top || .05) * 1.1, XB = k => P + (k - n0) / WN * w, YB = v => yB + 14 + hB - Math.min(1, v / top) * hB;
+  S.half.forEach(hf => { const k = hf.n - (S.ns - hist.length); if (k < n0 || hf.kind === 'start') return; hx.strokeStyle = hf.kind === 'yield' ? sig : grw; hx.globalAlpha = .7; hx.lineWidth = 1; hx.beginPath(); hx.moveTo(XB(k), yB + 12); hx.lineTo(XB(k), yB + 14 + hB); hx.stroke(); hx.globalAlpha = 1; });
+  hx.strokeStyle = ink; hx.lineWidth = 1.8; hx.beginPath(); for (let k = n0; k < hist.length; k++) { const x = XB(k), y = YB(hist[k]); k === n0 ? hx.moveTo(x, y) : hx.lineTo(x, y); } hx.stroke();
+  hx.strokeStyle = line; hx.beginPath(); hx.moveTo(P, yB + 14 + hB + .5); hx.lineTo(P + w, yB + 14 + hB + .5); hx.stroke();
+  mono(11); hx.fillStyle = sig; hx.fillRect(P, yB + hB + 25, 3, 10); T('edge yields', P + 8, yB + hB + 34, ink); hx.fillStyle = grw; hx.fillRect(P + 104, yB + hB + 25, 3, 10); T('edge grows again', P + 112, yB + hB + 34, ink);
+  /* C: each turn, by the clock and by the count */
+  const yC = 366; mono(11, 500); T('EACH TURN: BY THE CLOCK, AND BY THE COUNT', P, yC, soft); const hs = S.half.filter(q => q.kind !== 'start').slice(1).slice(-14), bw = w / 14;
+  if (hs.length) { const mD = Math.max(...hs.map(q => q.dur)), mC = Math.max(...hs.map(q => q.C));
+    hs.forEach((q, i) => { const x = P + i * bw, col = q.kind === 'yield' ? grw : sig;   /* the half-cycle that ENDS in a yield was a growing one */
+      hx.fillStyle = 'rgba(238,240,234,.5)'; const a = q.dur / mD * 34; hx.fillRect(x + 2, yC + 46 - a, bw - 4, a); hx.fillStyle = col; const c = q.C / mC * 34; hx.fillRect(x + 2, yC + 92 - c, bw - 4, c); }); }
+  else { mono(11); T('No turns yet.', P, yC + 40, soft); }
+  mono(11); T('clock time', P + w, yC + 58, soft, 'right'); T('count of change', P + w, yC + 104, soft, 'right');
+  const last = hs[hs.length - 1]; mono(12.5); const alive = Math.round(S.liveShare() * 100);
+  T(HOURS(S.t).toFixed(1) + ' h', P, yC + 128, ink); T('turns ' + Math.max(0, S.half.length - 1), P + 76, yC + 128, ink); T('alive ' + alive + '%', P + w, yC + 128, alive < 88 ? '#e5604c' : ink, 'right');
+  if (last) { mono(11); T('last: count ' + last.C.toFixed(1) + ' · surplus ' + last.S.toFixed(2) + ' · ' + (HOURS(last.dur) * 60).toFixed(0) + ' min', P, yC + 146, soft); }
+}
+
+/* ───────────────────────── camera, light, picture ───────────────────────── */
+const V3 = new THREE.Vector3();
+function place() { const cp = Math.cos(view.pitch), wide = camera.aspect > 1.3, tx = wide ? 1.5 : 0, ty = .3, dist = view.dist * (camera.aspect < 1 ? 1.25 : 1);
+  camera.position.set(tx + Math.sin(view.yaw) * cp * dist, ty + Math.sin(view.pitch) * dist, Math.cos(view.yaw) * cp * dist); camera.lookAt(tx, ty, 0); focusDist = camera.position.distanceTo(V3.set(0, AGAR_Y, 0)); }
+const envMats = []; scene.traverse(o => { if (o.material && o.material.envMapIntensity !== undefined) envMats.push([o.material, o.material.envMapIntensity]); });
+const DAY = new THREE.Color(0xf4f7ff), UV = new THREE.Color(0x3f58ff), BG0 = new THREE.Color(0x0a0b0c);
+function light() { lamp += (lampTo - lamp) * .08; const k = lamp; LAMP.uLamp.value = k; key.color.copy(DAY).lerp(UV, k); key.intensity = lerp(2.7, .5, k); rim.intensity = lerp(.8, .06, k);
+  for (const [m, e] of envMats) m.envMapIntensity = e * lerp(1, .1, k); glow.intensity = 0; }
+function draw(dt) {
+  if (playing && dt > 0) advance(pace); clock += dt; frameNo++; light(); place(); if (frameNo % 2 === 1 || TEST) skin();
+  renderer.setRenderTarget(rt.scene); renderer.render(scene, camera);
+  const PM = camera.projectionMatrix.elements;
+  for (const m of [aoMat, prepMat]) { m.uniforms.tDepth.value = rt.scene.depthTexture; m.uniforms.uNear.value = camera.near; m.uniforms.uFar.value = camera.far; m.uniforms.uProj.value.set(PM[0], PM[5]); m.uniforms.uRes.value.copy(U.uRes.value); }
+  tri.material = aoMat; renderer.setRenderTarget(rt.ao); renderer.render(postScene, postCam);
+  prepMat.uniforms.tColor.value = rt.scene.texture; prepMat.uniforms.tAO.value = rt.ao.texture; prepMat.uniforms.uFocus.value = focusDist; prepMat.uniforms.uAperture.value = 6.5;
+  tri.material = prepMat; renderer.setRenderTarget(rt.prep); renderer.render(postScene, postCam);
+  dofMat.uniforms.tPrep.value = rt.prep.texture; dofMat.uniforms.uMaxPx.value = U.uRes.value.y * .021; dofMat.uniforms.uStep.value = Math.max(1.1, U.uRes.value.y / 820);
+  tri.material = dofMat; renderer.setRenderTarget(rt.dof); renderer.render(postScene, postCam);
+  finMat.uniforms.tDof.value = rt.dof.texture; finMat.uniforms.uFilm.value.set((rnd(frameNo, 50) - .5) * .6, (rnd(frameNo, 51) - .5) * .6, rnd(frameNo, 52) * 100); finMat.uniforms.uExpo.value = lerp(.95, 1.1, lamp); finMat.uniforms.uFlash.value = 0;
+  tri.material = finMat; renderer.setRenderTarget(null); renderer.render(postScene, postCam);
+  if (frameNo % 3 === 0 || TEST) hud(); say();
+}
+
+/* ───────────────────────── controls ───────────────────────── */
+const listenWord = v => v < .12 ? 'not at all' : v < .6 ? 'a little' : v < 1.6 ? 'steadily' : v < 2.6 ? 'closely' : 'anxiously';
+function setListen(v) { S.o.listen = v; $('listen').value = v; $('listenOut').textContent = listenWord(v); }
+$('listen').oninput = e => setListen(+e.target.value); $('pace').oninput = e => pace = +e.target.value;
+$('play').onclick = () => { playing = !playing; $('play').textContent = playing ? 'Pause' : 'Play'; };
+function setLamp(v) { lampTo = v; $('day').setAttribute('aria-pressed', String(!v)); $('dye').setAttribute('aria-pressed', String(!!v)); }
+$('day').onclick = () => setLamp(0); $('dye').onclick = () => setLamp(1);
+$('again').onclick = reset; $('about').onclick = () => $('sheet').hidden = false; $('close').onclick = () => $('sheet').hidden = true; $('sheet').onclick = e => { if (e.target === $('sheet')) $('sheet').hidden = true; };
+$('inst').onclick = () => document.body.classList.toggle('noinst');
+addEventListener('keydown', e => { if (e.key === 'Escape') $('sheet').hidden = true; if (e.key === ' ' && e.target === document.body) { e.preventDefault(); $('play').click(); } });
+{ let drag = null; canvas.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY, view.yaw, view.pitch]; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', e => { if (!drag) return; view.yaw = drag[2] - (e.clientX - drag[0]) * .006; view.pitch = clamp(drag[3] + (e.clientY - drag[1]) * .005, .16, 1.5); });
+  const up = () => drag = null; canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('wheel', e => { e.preventDefault(); view.dist = clamp(view.dist * Math.exp(e.deltaY * .001), 7, 40); }, { passive: false }); }
+addEventListener('resize', () => build());
+if (/[?&]q=low/.test(location.search)) budget = 3.5e5;   // for a machine with no graphics card
+build(); setListen(1); setLamp(1); lamp = 1;
+window.PIECE = { name: 'biofilm', state: () => ({ t: S.t, hours: HOURS(S.t), radius: S.radius, turns: S.half.length, alive: S.liveShare(), dir: S.dir, listen: S.o.listen, lamp: lampTo, full, say: sayKey }),
+  advance(steps) { advance(steps); draw(0); renderer.getContext().finish(); return this.state(); },
+  set(o) { if (o.listen != null) setListen(o.listen); if (o.lamp != null) { setLamp(o.lamp); lamp = o.lamp; } if (o.view) Object.assign(view, o.view); if (o.pace) pace = o.pace; if (o.reset) reset(); }, get S() { return S; } };
+if (TEST) { draw(0); return; }
+let last = 0, slow = 0;
+function tick(t) { requestAnimationFrame(tick); const dt = Math.min((t - last) / 1000, .05); last = t; if (document.hidden) return; const t0 = performance.now(); draw(dt);
+  if (frameNo % 3 === 0) { renderer.getContext().finish(); const ms = performance.now() - t0; if (ms > 40) { if (++slow > 8 && budget > 3.5e5) { budget *= .75; slow = 0; build(); } } else slow = Math.max(0, slow - 1); } }
+requestAnimationFrame(tick);
+
+})();
+</script>
+
+<a id="mback" href="#">Back to the site</a>
+<style>#mback{position:fixed;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top,0px));z-index:5;font:500 12.5px/1 "DM Mono",ui-monospace,Menlo,Consolas,monospace;color:#f3ecdf;text-decoration:none;background:rgba(16,14,12,.6);border:1px solid rgba(243,236,223,.2);border-radius:999px;padding:9px 13px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}#mback:hover{border-color:rgba(243,236,223,.72)}#mback:focus-visible{outline:2px solid #f0b45a;outline-offset:2px}body{transition:opacity .3s}body.leaving{opacity:0}@media (max-width:700px){#mback{left:auto;right:8px;transform:none;top:8px;padding:8px 10px}}</style>
+<script>
+(function(){
+const HOME = { blake: '../index.html', jooles: '../index.html', park: '../index.html' };
+const q = new URLSearchParams(location.search); let from = q.get('from'), stop = q.get('stop');
+if (!Object.prototype.hasOwnProperty.call(HOME, from)) from = 'jooles';
+if (!/^[a-z0-9_:\-]{1,40}$/.test(stop || '')) stop = 'waves';
+const BACK = HOME[from] + '#museum', a = document.getElementById('mback'); a.href = BACK;
+function go(u){ document.body.classList.add('leaving'); setTimeout(function(){ location.href = u; }, 320); }
+a.addEventListener('click', function(e){ e.preventDefault(); go(BACK); });
+addEventListener('keydown', function(e){ if (e.key !== 'Escape' || document.querySelector('.sheet:not([hidden])')) return; const el = document.activeElement; if (!el || el === document.body || el.tagName === 'CANVAS') go(BACK); else el.blur(); });
+/* a button to the sister page, carrying the same way back */
+const LINKS = [], tail = '?from=' + from + '&stop=' + stop + (/[?&]q=low\b/.test(location.search) ? '&q=low' : '');
+LINKS.forEach(function(L){ document.querySelectorAll(L[0]).forEach(function(bar){ const b = document.createElement('button'); b.type = 'button'; b.textContent = L[1]; b.addEventListener('click', function(){ go(L[2] + tail); }); const ref = bar.querySelector(L[3]); if (ref) bar.insertBefore(b, ref); else bar.appendChild(b); }); });
+})();
+</script>
+</body>
+</html>

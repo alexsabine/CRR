@@ -1,5 +1,7 @@
 # Coherence–Rupture–Regeneration (CRR)
 
+> **Site structure, November 2026.** `index.html` is now the home page for Alexander Sabine's pedagogical simulation design: the Museum, two films in clay, the clay studio and a symposium talk. The CRR research programme is unchanged and starts at `crr.html` (the former home page). The clay pieces hosted on the site live in `museum/`, with the films as MP4 in `museum/films/`.
+
 > *"Eternity is in love with the productions of time."*
 > — William Blake, *The Marriage of Heaven and Hell*
 
