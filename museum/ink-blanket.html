@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Living ink</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: full-bleed stage, quiet film-slate controls pinned to the corners */
+  --studio:#0c0d10;
+  --ink:#f3ecdf;
+  --ink-soft:rgba(243,236,223,.72);
+  --panel:rgba(14,15,19,.58);
+  --line:rgba(243,236,223,.22);
+  --accent:#ff7a3c;
+  --sen:#e9b63a;
+  --act:#e0533f;
+  --in:#7f9bd6;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+body{transition:opacity .35s}
+body.leaving{opacity:0}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#stage.dragging{cursor:grabbing}
+#stage.stir{cursor:crosshair}
+#over{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+.head{position:fixed;left:20px;top:16px;right:348px;pointer-events:none;text-shadow:0 1px 10px rgba(0,0,0,.6)}
+.head h1{font:600 clamp(22px,3.2vw,34px)/1.05 var(--display);margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.head p{font:400 13px/1.45 var(--mono);margin:0 0 6px;color:var(--ink-soft);max-width:50ch}
+#hint{position:fixed;left:20px;bottom:78px;margin:0;font:400 12px/1.4 var(--mono);color:var(--ink-soft);pointer-events:none;text-shadow:0 1px 8px rgba(0,0,0,.7)}
+button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);
+  border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--ink-soft)}
+button[aria-pressed="true"]{background:var(--ink);color:#15161a;border-color:var(--ink)}
+button:focus-visible,input:focus-visible,#stage:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#back{margin-left:auto}
+.bar{position:fixed;left:16px;right:16px;bottom:16px;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;
+  padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font:400 12.5px/1 var(--mono)}
+#play{min-width:74px;background:var(--accent);border-color:var(--accent);color:#1a0d05}
+#scrub{flex:1 1 140px;min-width:100px;accent-color:var(--accent);height:22px}
+#count{font-variant-numeric:tabular-nums;color:var(--ink-soft);white-space:nowrap}
+.sep{width:1px;height:22px;background:var(--line)}
+#readbtn{display:none}
+.panel{position:fixed;right:16px;top:16px;width:312px;max-height:calc(100% - 100px);overflow:auto;padding:11px 14px 11px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  font:400 11.5px/1.4 var(--mono);color:var(--ink-soft)}
+.panel h2{font:600 16px/1.1 var(--display);color:var(--ink);margin:0 0 6px}
+.panel h3{font:500 12px/1.2 var(--mono);color:var(--ink);margin:9px 0 4px;padding-top:8px;border-top:1px solid var(--line)}
+.panel .row{display:flex;justify-content:space-between;gap:8px;margin:4px 0 2px}
+.panel .row b{font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+.meter{height:9px;border-radius:5px;background:rgba(243,236,223,.1);overflow:hidden;display:flex;position:relative}
+.meter i{display:block;height:100%}
+.meter .e{background:var(--ink)} .meter .cx{background:var(--in)} .meter .ia{background:var(--accent)}
+.key{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}
+.note{margin:5px 0 0}
+.chain{display:grid;gap:3px;margin:2px 0 4px}
+.chain .node{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 8px;border-radius:8px;background:rgba(243,236,223,.06);color:var(--ink)}
+.chain .dots{display:flex;gap:3px}
+.chain .dots i{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.2}
+.chain .sen{color:var(--sen)} .chain .act{color:var(--act)} .chain .in{color:#a9bfee} .chain .out{color:var(--ink-soft)}
+.chain button{justify-self:start;margin-left:12px;padding:5px 10px;font-size:11.5px}
+.chain button::before{content:"\2193  "}
+.chain button[aria-pressed="false"]{text-decoration:line-through;color:var(--ink-soft)}
+.chain .fixed{margin-left:22px;font-size:11.5px}
+.big{font:600 20px/1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+.two{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:baseline}
+#about{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(680px,calc(100% - 32px));max-height:calc(100% - 120px);overflow:auto;
+  padding:18px 20px;background:rgba(14,15,19,.93);border:1px solid var(--line);border-radius:14px;font:400 12.5px/1.55 var(--mono);color:var(--ink-soft);display:none}
+#about.open{display:block}
+#about h2{font:600 20px/1.1 var(--display);color:var(--ink);margin:0 0 8px}
+#about h3{font:500 12.5px/1.2 var(--mono);color:var(--ink);margin:14px 0 4px}
+#about p{margin:0 0 8px}
+#about button{float:right;margin:0 0 8px 12px}
+#fail{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:400 15px/1.5 var(--mono)}
+[hidden]{display:none!important}
+@media (max-width:760px){
+  .head{right:16px;left:16px;top:12px}
+  .head p{font-size:11.5px;line-height:1.4}
+  #hint{display:none}
+  .bar{left:8px;right:8px;bottom:8px;padding:8px;gap:6px}
+  .bar button{padding:8px 10px}
+  .sep{display:none}
+  #readbtn{display:inline-block}
+  .panel{left:8px;right:8px;top:auto;bottom:150px;width:auto;max-height:36vh}
+  .panel.shut{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="stage" tabindex="0" aria-label="A glass tank of water on a wooden bench, with a small glowing heater hanging in it. A drop of ink falls in and either spreads until the water is evenly grey, or holds together as a small creature with a two-coloured skin. Drag inside the tank to stir the water."></canvas>
+<canvas id="over" aria-hidden="true"></canvas>
+<div class="head">
+  <h1>Living ink</h1>
+  <p id="what">A Markov blanket is a thing's skin, written as a rule: whatever the inside learns about the world comes in through the skin, and whatever it does to the world goes out through the skin. So once you know exactly what the skin is doing, the inside has nothing more to tell you about the outside.</p>
+</div>
+
+<aside class="panel" id="panel" aria-label="Readouts">
+  <h2 id="actname">Act 1. Dead ink</h2>
+  <p id="actline" style="margin:0 0 6px"></p>
+  <div id="deadbox">
+    <div class="row"><span>Entropy of the ink</span><b id="dH">0.00 bits</b></div>
+    <div class="meter" role="img" aria-label="Entropy of the ink as a share of its ceiling"><i class="e" id="dbar" style="width:0%"></i></div>
+    <div class="row"><span>Ceiling</span><b id="dmax"></b></div>
+    <div class="row"><span>Spread over</span><b id="dspread">0% of the tank</b></div>
+    <div class="row"><span>Ink in the tank</span><b id="dmass">100.00%</b></div>
+    <p class="note" id="dnote"></p>
+  </div>
+  <div id="livebox" hidden>
+    <div class="chain" id="chain">
+      <span class="node sen">gold cells sense <span class="dots" id="sdots" aria-hidden="true"></span></span>
+      <button type="button" id="l0" aria-pressed="true">sensors tell the inside</button>
+      <span class="node in">the inside believes <span id="belief">...</span></span>
+      <button type="button" id="l1" aria-pressed="true">inside drives the actuators</button>
+      <span class="node act">red cells act <span class="dots" id="adots" aria-hidden="true"></span></span>
+      <button type="button" id="l2" aria-pressed="true">actuators work on the water</button>
+    </div>
+    <p class="note" id="lnote"></p>
+    <h3>Free energy <span id="Fv" style="float:right"></span></h3>
+    <div class="meter" role="img" aria-label="Free energy split into complexity and inaccuracy"><i class="cx" id="fcx" style="width:0%"></i><i class="ia" id="fia" style="width:0%"></i></div>
+    <div class="row"><span><i class="key" style="background:var(--in)"></i>complexity <b id="Fc">0.0</b></span><span><i class="key" style="background:var(--accent)"></i>inaccuracy <b id="Fi">0.0</b></span></div>
+    <h3>Its own states</h3>
+    <div class="row"><span>Entropy of its ink</span><b id="lH">0.00 bits</b></div>
+    <div class="meter" role="img" aria-label="Entropy of the creature's ink as a share of the dead ink's ceiling"><i class="e" id="lbar" style="width:0%"></i></div>
+    <div class="row"><span>Held together <b id="lheld">100%</b></span><span>To the heater <b id="ldist">0 cm</b></span></div>
+    <h3>Act 3. Test the blanket</h3>
+    <div class="two">
+      <span>Inside against outside</span><span class="big" id="rraw">...</span>
+      <span>The same, skin held fixed</span><span class="big" id="rpar">...</span>
+    </div>
+    <p class="note" id="rnote"></p>
+  </div>
+</aside>
+
+<p id="hint">Drag in the tank to stir. Drag outside it to move the camera.</p>
+<div class="bar">
+  <button id="play" type="button">Pause</button>
+  <input id="scrub" type="range" min="0" max="0" step="1" value="0" aria-label="Look back through the pictures already shot">
+  <span id="count">step 0</span>
+  <span class="sep"></span>
+  <button id="mdead" type="button" aria-pressed="true">Dead ink</button>
+  <button id="mlive" type="button" aria-pressed="false">Living ink</button>
+  <span class="sep"></span>
+  <button id="drop" type="button">Drop again</button>
+  <button id="stirb" type="button" title="Give the water a stir. You can also drag in the tank.">Stir</button>
+  <button id="readbtn" type="button" aria-pressed="true">Readouts</button>
+  <button id="aboutb" type="button" aria-expanded="false" aria-controls="about">About</button>
+  <button id="back" type="button">Back to the museum</button>
+</div>
+
+<div id="about" role="dialog" aria-label="About this piece" tabindex="-1">
+  <button type="button" id="aboutx">Close</button>
+  <h2>About this piece</h2>
+  <p>The picture of the ink drop is Karl Friston's: ink in water disperses, because there are vastly more ways for it to be spread out than gathered, and anything that lasts has to keep doing the opposite. Everything on screen is computed as you watch. This is a cartoon of the mathematics, not a model of a cell.</p>
+  <h3>The water</h3>
+  <p>A flat slice of the tank, 240 by 150 cells on a staggered grid (each cell about 1.3 mm of a 32 cm tank), solved on the graphics card. The scheme is stable fluids (J. Stam, SIGGRAPH 1999): the velocity is carried along itself by tracing back along the flow, a small viscosity and a faint drag are applied, and a pressure solve (40 Jacobi sweeps, started from the last answer; once the film is undercranked and the flow is slow, 8 sweeps and a doubled time step) makes the flow incompressible. Ink is carried by an upwind scheme in flux form (with van Leer's limited slopes, to keep the plume crisp) and diffuses; a scheme in that form cannot create or destroy ink, so the "ink in the tank" figure should stay at 100% but for rounding. Ink is a little denser than water. Five slow gyres, each waxing and waning on its own clock, stand in for the convection that every real tank has. Entropy is the Shannon entropy of where the ink is, taken over the 36,000 cells; its ceiling is log2 of 36,000, about 15.1 bits, reached when every cell holds the same share. Once the plume has passed the film is undercranked as far as your machine allows, and the slate says by how much.</p>
+  <h3>The creature</h3>
+  <p>Sixteen cells in a ring: eight sensory (gold), eight active (red). A small heater hangs in the tank and wanders slowly; warmth spreads from it far faster than ink does and leaks away through the glass. <b>Sensory</b> cells each read the logarithm of the warmth where they sit, with a little noise. The <b>inside</b> holds a Gaussian belief q about where the heater is, measured from itself: a mean and a spread. Its generative model says: the heater is somewhere nearby (prior: a Gaussian centred on itself, 60 cells wide), and a sensor at distance r from it should read b &minus; x &minus; &frac12; ln(x + 0.1), with x = r/28, give or take 0.25 (roughly how warmth thins out from a point in a thin tank that is losing heat). The belief moves down the gradient of the variational free energy F = complexity + inaccuracy, where complexity is the divergence of q from the prior and inaccuracy is the expected squared misfit of the eight readings (between them they give the level of the warmth and its slope), weighted by their assumed precision (less a constant that depends only on units, and with the curved part of the model left out). <b>Active</b> cells are set by the belief and nothing else: each pumps stray ink back inward at a fixed internal setting, and hauls the creature's ink through the water in proportion to how far the belief says the heater lies in its direction, pushing a little water back as it goes. The currents carry the creature as they carry everything else. The gold and red you see are pigment in the water, held in place by the same pumps, so when the actuators are cut the skin dissolves with the rest.</p>
+  <p>The three switches cut real lines of the program. With "sensors tell the inside" cut, the readings are still taken but never reach the belief, which sinks back to its prior. With "inside drives the actuators" cut, the active cells receive only their own noise. With "actuators work on the water" cut, they fire and nothing happens.</p>
+  <h3>The test</h3>
+  <p>Every sixth step the page records the belief (inside), the true offset of the heater (outside), and the 24 numbers of the skin (8 readings, 8 pump settings, 8 pushes). The first figure is the ordinary correlation between inside and outside over the last 360 records. The second is the partial correlation: both are first predicted as well as a straight-line fit allows from the skin's numbers alone, and what is left over is correlated. Because the active cells carry the belief out so directly, many designs would pass this test. It shows what the definition says; it does not show that anything is alive.</p>
+  <h3>What this leaves out</h3>
+  <p>The third dimension (in a real tank the drop makes a vortex ring; in a slice it makes a vortex pair). Surface waves, the glass's grip on the water, and any chemistry. A real cell's blanket is not a tidy band of two kinds of cell, and here the creature's shape and its pumps are given by decree rather than earned. Warm water is not allowed to rise, as it would. Its model of the warmth is deliberately rough, so its guess of the distance is biased. The free energy principle is a principle and a way of modelling, not a finding that one experiment could refute; its author says so. How far the Markov blankets drawn in models correspond to real boundaries is disputed, and conditional independence given the present state of a blanket does not hold for every system that has one drawn round it.</p>
+  <h3>Sources</h3>
+  <p>K. Friston, "Life as we know it", J. R. Soc. Interface 10 (2013); K. Friston, Nature Reviews Neuroscience 11 (2010); T. Parr, G. Pezzulo and K. Friston, <i>Active Inference</i> (MIT Press, 2022); M. Kirchhoff and colleagues, J. R. Soc. Interface 15 (2018); J. Bruineberg and colleagues, "The Emperor's New Markov Blankets", Behavioral and Brain Sciences 45 (2022); M. Aguilera and colleagues, Physics of Life Reviews 40 (2022); J. Stam, "Stable Fluids", SIGGRAPH 1999.</p>
+</div>
+<div id="fail">This piece needs WebGL 2 with floating-point render targets, which this browser or device has not made available.</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+const HOME = { blake: 'index.html', jooles: 'jooles.html', park: 'park.html' };
+const QS = new URLSearchParams(location.search);
+const FROM = Object.prototype.hasOwnProperty.call(HOME, QS.get('from')||'') ? QS.get('from') : 'blake';
+const STOP = /^[a-z0-9_:\-]{1,40}$/.test(QS.get('stop')||'') ? QS.get('stop') : 'ink';
+const BACK = HOME[FROM] + '#' + STOP;
+const LOW = QS.get('q')==='low';
+const $=id=>document.getElementById(id);
+function goBack(){ document.body.classList.add('leaving'); setTimeout(()=>{ location.href = BACK; }, 360); }
+$('back').onclick = goBack;
+
+const canvas = $('stage');
+const gl0 = window.THREE && canvas.getContext('webgl2');
+if (!gl0 || !gl0.getExtension('EXT_color_buffer_float')) { $('fail').style.display='grid'; window.PIECE={ name:'ink-blanket', back:BACK, state(){ return { failed:true }; } }; return; }
+
+/* ───────────────────────── noise (CPU) ───────────────────────── */
+function h3(x,y,z){ let n = Math.imul(x|0,374761393) ^ Math.imul(y|0,668265263) ^ Math.imul(z|0,1440662683);
+  n = Math.imul(n ^ (n>>>13), 1274126177); return ((n ^ (n>>>16))>>>0)/4294967296; }
+function vn3(x,y,z){ const xi=Math.floor(x), yi=Math.floor(y), zi=Math.floor(z);
+  let fx=x-xi, fy=y-yi, fz=z-zi; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); fz=fz*fz*(3-2*fz);
+  const a=h3(xi,yi,zi), b=h3(xi+1,yi,zi), c=h3(xi,yi+1,zi), d=h3(xi+1,yi+1,zi),
+        e=h3(xi,yi,zi+1), f=h3(xi+1,yi,zi+1), g=h3(xi,yi+1,zi+1), h=h3(xi+1,yi+1,zi+1);
+  const ab=a+(b-a)*fx, cd=c+(d-c)*fx, ef=e+(f-e)*fx, gh=g+(h-g)*fx;
+  const p=ab+(cd-ab)*fy, q=ef+(gh-ef)*fy; return p+(q-p)*fz; }
+function fbm3(x,y,z){ return vn3(x,y,z)*.55 + vn3(x*2.1+5,y*2.1+3,z*2.1+1)*.3 + vn3(x*4.3+9,y*4.3+7,z*4.3+2)*.15; }
+const rnd=(i,j)=>h3(i,j,77);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const sstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+
+/* ───────────────────────── renderer ───────────────────────── */
+const renderer = new THREE.WebGLRenderer({canvas, context:gl0, antialias:false, alpha:false, powerPreference:'high-performance', preserveDrawingBuffer:true});
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+const HDR = true;
+
+/* Contact-hardening soft shadows (PCSS) patched into three's shadow lookup. */
+(function(){
+  const pcss = `
+  float ignoise(vec2 p){ return fract(52.9829189*fract(dot(p, vec2(0.06711056,0.00583715)))); }
+  float pcssShadow(sampler2D sm, vec3 c, float K){
+    float rot = ignoise(gl_FragCoord.xy)*6.2831853;
+    float search = K*0.05, bsum=0., bn=0.;
+    for(int i=0;i<14;i++){ float fi=float(i)+.5; float r=sqrt(fi/14.); float a=fi*2.39996323+rot;
+      float d = unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*search));
+      if(d < c.z-0.0006){ bsum+=d; bn+=1.; } }
+    if(bn<.5) return 1.;
+    float pen = clamp((c.z-bsum/bn)*K, 0.0006, 0.02);
+    float s=0.;
+    for(int i=0;i<28;i++){ float fi=float(i)+.5; float r=sqrt(fi/28.); float a=fi*2.39996323+rot*1.7;
+      s += step(c.z, unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*pen))); }
+    return s/28.;
+  }`;
+  let ch = THREE.ShaderChunk.shadowmap_pars_fragment;
+  ch = ch.replace('#ifdef USE_SHADOWMAP', '#ifdef USE_SHADOWMAP\n'+pcss);
+  ch = ch.replace('#if defined( SHADOWMAP_TYPE_PCF )', 'return pcssShadow(shadowMap, shadowCoord.xyz, shadowRadius);\n#if defined( SHADOWMAP_TYPE_PCF )');
+  THREE.ShaderChunk.shadowmap_pars_fragment = ch;
+})();
+
+/* ───────────────────────── materials (clay, wood, paper: as in the references) ───────────────────────── */
+const shared = { uSeed:{value:new THREE.Vector3()} };
+const GLSL_NOISE = `
+float hash13(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32); return fract((p.x+p.y)*p.z); }
+float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash13(i),hash13(i+vec3(1,0,0)),f.x),mix(hash13(i+vec3(0,1,0)),hash13(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash13(i+vec3(0,0,1)),hash13(i+vec3(1,0,1)),f.x),mix(hash13(i+vec3(0,1,1)),hash13(i+vec3(1,1,1)),f.x),f.y),f.z); }`;
+const CLAY_PARS = GLSL_NOISE + `
+uniform mat3 normalMatrix;
+uniform vec3 uSeed; uniform float uBoil, uBump, uSmear, uSpeck; uniform vec3 uCol2;
+uniform vec4 uBandY; uniform vec3 uBandC[4];
+varying vec3 vObjPos; varying vec3 vObjN;
+float clayH(vec3 p){
+  vec3 q = p + uSeed*uBoil;
+  float h = (vn(q*8.)-.5) + (vn(q*21.+3.)-.5)*.5 + (vn(q*57.+7.)-.5)*.22;
+  vec3 w = q*5.5; float fpMask = smoothstep(.56,.8, vn(w*.8+11.));
+  vec2 cc = fract(w.xy + w.z*.37)-.5;
+  h += sin(length(cc)*52. + vn(q*19.)*7.)*fpMask*.028;
+  h += smoothstep(.8,.95, vn(vec3(q.x*3., q.y*40., q.z*3.)+2.))*-.07;
+  return h;
+}
+vec3 clayNormal(vec3 nView){
+  #ifdef MODE_CLAY
+  vec3 p = vObjPos; float e = .0035;
+  float h0 = clayH(p);
+  vec3 g = vec3(clayH(p+vec3(e,0,0))-h0, clayH(p+vec3(0,e,0))-h0, clayH(p+vec3(0,0,e))-h0)/e;
+  vec3 nO = normalize(vObjN);
+  g -= dot(g,nO)*nO;
+  vec3 nP = normalize(nO - g*uBump*.011);
+  vec3 nV = normalize(normalMatrix*nP);
+  return dot(nV,nView) < 0. ? -nV : nV;
+  #else
+  return nView;
+  #endif
+}
+float clayRough(float r){
+  #ifdef MODE_CLAY
+  float m = vn(vObjPos*6.+uSeed*uBoil+40.);
+  return clamp(r + (m-.5)*.3 - smoothstep(.7,.9,vn(vObjPos*3.+9.))*.14, .2, 1.);
+  #else
+  return r;
+  #endif
+}
+vec3 clayAlbedo(vec3 base){
+  vec3 p = vObjPos; vec3 c = base;
+  #ifdef MODE_CLAY
+    #ifdef BANDS
+      float wob = (vn(p*7.)-.5)*.035 + (vn(p*23.)-.5)*.012;
+      float y = p.y + wob;
+      c = uBandC[0];
+      c = mix(c, uBandC[1], smoothstep(-.004,.004, y-uBandY.x));
+      c = mix(c, uBandC[2], smoothstep(-.004,.004, y-uBandY.y));
+      c = mix(c, uBandC[3], smoothstep(-.004,.004, y-uBandY.z));
+    #endif
+    float m = vn(p*5.+uSeed*uBoil)*.6 + vn(p*17.+4.)*.4;
+    c *= .86 + .28*m;
+    float s = smoothstep(.6,.8, vn(vec3(p.x*3.,p.y*8.,p.z*3.)+31.));
+    c = mix(c, uCol2, s*uSmear);
+    float sp = smoothstep(.9,.95, vn(p*150.+17.))*step(.75, vn(p*9.+70.));
+    c = mix(c, vec3(.82,.78,.7), sp*.35*uSpeck);
+  #endif
+  #ifdef MODE_WOOD
+    vec2 P = p.xz; float pid = floor(P.y/1.15+.5); float py = fract(P.y/1.15+.5);
+    float gw = vn(vec3(P.x*.5+pid*7., P.y*5., pid));
+    float rings = sin(P.y*46. + gw*9. + vn(vec3(P.x*.25,P.y*1.5,pid*3.))*14.);
+    c = mix(vec3(.25,.14,.07), vec3(.47,.29,.15), .5+.5*rings*.7);
+    c *= .8 + .35*vn(vec3(P.x*8., P.y*160., pid));
+    c *= mix(.45,1., smoothstep(0.,.02,py)*smoothstep(1.,.98,py));
+    c *= base;
+  #endif
+  #ifdef MODE_PAPER
+    float y = clamp((p.y+6.)/12.,0.,1.);
+    float br = (vn(vec3(p.x*.5,p.y*5.,1.))-.5)*.08 + (vn(vec3(p.x*3.,p.y*30.,4.))-.5)*.03;
+    y += br;
+    c = mix(vec3(.80,.70,.55), vec3(.93,.88,.77), smoothstep(.16,.42,y));
+    c = mix(c, vec3(.86,.89,.86), smoothstep(.5,.95,y));
+    c *= .92+.14*vn(p*1.6+3.);
+    c *= .95+.08*vn(vec3(p.x*40.,p.y*6.,2.));
+  #endif
+  return c;
+}`;
+function lin(hex){ return new THREE.Color(hex); }
+function mat(o){
+  o = o || {};
+  const mode = o.mode || 'CLAY';
+  const m = new THREE.MeshPhysicalMaterial({ color:o.color!==undefined?o.color:0xffffff, roughness:o.rough!==undefined?o.rough:.56, metalness:0,
+    sheen: mode==='CLAY'?.45:0, sheenRoughness:.5, sheenColor:new THREE.Color(o.color!==undefined?o.color:0xffffff).lerp(new THREE.Color(0xffffff),.5),
+    specularIntensity: o.spec!==undefined?o.spec:.75, envMapIntensity:o.env!==undefined?o.env:1, side:o.side||THREE.FrontSide });
+  if(o.emissive){ m.emissive=new THREE.Color(o.emissive); m.emissiveIntensity=o.emissiveIntensity||1; }
+  const bands = o.bands||null;
+  const u = { uSeed:shared.uSeed,
+    uBoil:{value:o.boil||0}, uBump:{value:o.bump!==undefined?o.bump:1}, uSmear:{value:o.smear||0}, uSpeck:{value:o.speck!==undefined?o.speck:1}, uCol2:{value:lin(o.color2!==undefined?o.color2:0xffffff)},
+    uBandY:{value:new THREE.Vector4(bands?bands.y[0]:9, bands&&bands.y[1]!==undefined?bands.y[1]:9, bands&&bands.y[2]!==undefined?bands.y[2]:9, 0)},
+    uBandC:{value:[0,1,2,3].map(i=>lin(bands?bands.c[Math.min(i,bands.c.length-1)]:0xffffff))} };
+  m.defines = Object.assign({}, m.defines, {['MODE_'+mode]:''});
+  if(bands) m.defines.BANDS='';
+  m.userData.u = u;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjPos; varying vec3 vObjN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObjPos=position; vObjN=normal;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n'+CLAY_PARS)
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = clayAlbedo(diffuseColor.rgb);')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clayRough(roughnessFactor);')
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal = clayNormal(normal);');
+  };
+  m.customProgramCacheKey = () => 'clay|'+mode+'|'+(bands?1:0);
+  return m;
+}
+
+/* ───────────────────────── geometry helpers ───────────────────────── */
+function weld(geo){
+  const p=geo.attributes.position, n=new Float32Array(p.count*3), map=new Map(), key=new Array(p.count);
+  for(let i=0;i<p.count;i++){ key[i]=Math.round(p.getX(i)*2e4)+'_'+Math.round(p.getY(i)*2e4)+'_'+Math.round(p.getZ(i)*2e4); if(!map.has(key[i])) map.set(key[i],[0,0,0]); }
+  const idx=geo.index, tri=idx?idx.count/3:p.count/3, a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let t=0;t<tri;t++){ const i0=idx?idx.getX(t*3):t*3, i1=idx?idx.getX(t*3+1):t*3+1, i2=idx?idx.getX(t*3+2):t*3+2;
+    a.fromBufferAttribute(p,i0); b.fromBufferAttribute(p,i1); c.fromBufferAttribute(p,i2); b.sub(a); c.sub(a); b.cross(c);
+    for(const i of [i0,i1,i2]){ const m=map.get(key[i]); m[0]+=b.x; m[1]+=b.y; m[2]+=b.z; } }
+  for(let i=0;i<p.count;i++){ const m=map.get(key[i]); const l=Math.hypot(m[0],m[1],m[2])||1; n[i*3]=m[0]/l; n[i*3+1]=m[1]/l; n[i*3+2]=m[2]/l; }
+  geo.setAttribute('normal', new THREE.BufferAttribute(n,3)); return geo;
+}
+let seedC = 1;
+function clayify(geo, amp, freq){
+  const sd = (seedC++)*13.7; weld(geo);
+  const p=geo.attributes.position, n=geo.attributes.normal;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+    const d=(fbm3(x*freq+sd,y*freq+sd*.7,z*freq+sd*.3)-.5)*2*amp;
+    p.setXYZ(i, x+n.getX(i)*d, y+n.getY(i)*d, z+n.getZ(i)*d); }
+  weld(geo); geo.computeBoundingSphere(); return geo;
+}
+function blob(r, sx, sy, sz, amp, freq, det){
+  const g=new THREE.SphereGeometry(r, det||40, Math.round((det||40)*.7)); g.scale(sx||1,sy||1,sz||1);
+  return clayify(g, amp!==undefined?amp:r*.12, freq||(1.6/r));
+}
+function rbox(w,h,d,r,amp,freq){
+  const s=10, g=new THREE.BoxGeometry(w,h,d,s,s,s), p=g.attributes.position, hx=w/2-r, hy=h/2-r, hz=d/2-r, v=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); c.set(clamp(v.x,-hx,hx),clamp(v.y,-hy,hy),clamp(v.z,-hz,hz)); v.sub(c);
+    if(v.lengthSq()>1e-12){ v.normalize().multiplyScalar(r).add(c); p.setXYZ(i,v.x,v.y,v.z); } }
+  return clayify(g, amp!==undefined?amp:.012, freq||7);
+}
+function lathe(pts, amp, freq, seg){
+  const g=new THREE.LatheGeometry(pts.map(q=>new THREE.Vector2(q[0],q[1])), seg||44); return clayify(g, amp!==undefined?amp:.01, freq||7);
+}
+function mesh(g,m,x,y,z,parent){ const o=new THREE.Mesh(g,m); o.position.set(x||0,y||0,z||0); o.castShadow=true; o.receiveShadow=true; (parent||scene).add(o); return o; }
+
+/* ───────────────────────── scene ───────────────────────── */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x08090b);
+const camera = new THREE.PerspectiveCamera(27, 16/9, .6, 40);
+
+/* studio environment: a softbox to the side, a fill card and the bounce off the set */
+(function(){
+  const es=new THREE.Scene(); const bm=(c,i)=>{ const m=new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(i), side:THREE.DoubleSide}); m.toneMapped=false; return m; };
+  es.add(new THREE.Mesh(new THREE.SphereGeometry(30,24,16), bm(0x2a2622,.22)));
+  const add=(w,h,c,i,x,y,z)=>{ const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h), bm(c,i)); p.position.set(x,y,z); p.lookAt(0,1,0); es.add(p); };
+  add(8,8,0xfff0dc,10,-11,6,3);      // key softbox, side on
+  add(7,9,0xcfe0ff,2.0,11,4,6);      // cool fill card
+  add(16,5,0xffd9b0,2.6,2,9,-10);    // back rim strip
+  add(30,12,0xd8cfbb,.9,0,4,-14);    // paper bounce
+  add(30,30,0x4a2f18,.5,0,-6,0);     // bench bounce
+  const pm=new THREE.PMREMGenerator(renderer); scene.environment=pm.fromScene(es,.035).texture; pm.dispose();
+})();
+
+const key = new THREE.DirectionalLight(0xffe7c8, 3.5);
+key.castShadow=true; key.shadow.mapSize.set(LOW?2048:4096,LOW?2048:4096);
+const sc=key.shadow.camera; sc.left=-5.6; sc.right=5.6; sc.top=4.2; sc.bottom=-4.2; sc.near=1; sc.far=26; sc.updateProjectionMatrix();
+key.shadow.bias=-.0006; key.shadow.normalBias=.02;
+key.shadow.radius = .085*(sc.far-sc.near)/(sc.right-sc.left);   // read by the PCSS patch as penumbra scale
+scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0xbfd6ff, 1.1); rim.position.set(6,4.5,-6); scene.add(rim);
+
+/* bench, backdrop */
+mesh(new THREE.BoxGeometry(30,.4,16,1,1,1), mat({mode:'WOOD', rough:.62, spec:.5, env:.8}), 0,-.2,0).castShadow=false;
+(function(){ const b=mesh(new THREE.PlaneGeometry(30,12,1,1), mat({mode:'PAPER', rough:.95, spec:.2, env:.5}), 0,5.2,-4.6); b.castShadow=false; })();
+
+/* the tank. The simulated slice is its middle plane: NX by NY cells across WX by WH of water. */
+const NX=240, NY=150, WX=3.2, WH=2.0, Y0=.05, ZD=.46, GL=.035, RIM=.16;
+const toWorld=(cx,cy,out)=>{ out=out||new THREE.Vector3(); return out.set((cx/NX-.5)*WX, Y0+cy/NY*WH, 0); };
+const dispU = { tDye:{value:null}, uBmin:{value:new THREE.Vector3(-WX/2,Y0,-ZD)}, uBmax:{value:new THREE.Vector3(WX/2,Y0+WH,ZD)}, uJit:{value:0} };
+const waterMat = new THREE.ShaderMaterial({ uniforms:dispU, transparent:true, depthWrite:false,
+  blending:THREE.CustomBlending, blendEquation:THREE.AddEquation, blendSrc:THREE.DstColorFactor, blendDst:THREE.ZeroFactor,
+  vertexShader:`varying vec3 vW; void main(){ vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+  /* Ink only takes light away, so the water is drawn by multiplying what is behind it by its transmittance (Beer-Lambert).
+     The slice is given a soft thickness about the tank's middle plane so the camera sees a body of ink, not a decal. */
+  fragmentShader:GLSL_NOISE+`
+  uniform sampler2D tDye; uniform vec3 uBmin,uBmax; uniform float uJit; varying vec3 vW;
+  const int NS=${LOW?7:11};
+  void main(){
+    vec3 ro=cameraPosition, rd=normalize(vW-cameraPosition), inv=1./rd;
+    vec3 ta=(uBmin-ro)*inv, tb=(uBmax-ro)*inv, tmn=min(ta,tb), tmx=max(ta,tb);
+    float t0=max(max(tmn.x,tmn.y),max(tmn.z,0.)), t1=min(min(tmx.x,tmx.y),tmx.z);
+    if(t1<=t0) discard;
+    float ZS=.3, za=(-ZS-ro.z)*inv.z, zb=(ZS-ro.z)*inv.z, s0=max(t0,min(za,zb)), s1=min(t1,max(za,zb));
+    vec3 tau=vec3(0.);
+    if(s1>s0){ float ds=(s1-s0)/float(NS), j=fract(52.9829189*fract(dot(gl_FragCoord.xy+uJit,vec2(.06711056,.00583715))));
+      for(int i=0;i<NS;i++){ vec3 p=ro+rd*(s0+(float(i)+j)*ds); vec2 uv=clamp((p.xy-uBmin.xy)/(uBmax.xy-uBmin.xy),.002,.998);
+        float zc=(vn(vec3(p.xy*2.3,1.))-.5)*.2, zw=.085+.08*vn(vec3(p.xy*3.1,7.));
+        float pr=exp(-pow((p.z-zc)/zw,2.))*.14/zw;
+        vec4 d=texture2D(tDye,uv);
+        tau += (d.r*vec3(150.,132.,84.) + d.b*vec3(6.,22.,120.) + d.a*vec3(10.,105.,96.) + d.g*vec3(0.))*pr*ds; } }
+    vec3 T=exp(-tau)*exp(-vec3(.085,.03,.04)*(t1-t0));
+    gl_FragColor=vec4(T,1.);
+  }` });
+const TANK = new THREE.Group(); scene.add(TANK);
+(function(){
+  const water=new THREE.Mesh(new THREE.BoxGeometry(WX,WH,ZD*2), waterMat); water.position.set(0,Y0+WH/2,0); water.renderOrder=5; TANK.add(water);
+  const sheen=o=>new THREE.MeshPhysicalMaterial(Object.assign({color:0x000000, roughness:.05, metalness:0, envMapIntensity:1.25, specularIntensity:1,
+    blending:THREE.AdditiveBlending, transparent:true, depthWrite:false, side:THREE.DoubleSide}, o||{}));
+  const HT=Y0+WH+RIM, ox=WX/2+GL/2, oz=ZD+GL/2;
+  const pane=(w,h,d,x,y,z,m,ro)=>{ const p=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m); p.position.set(x,y,z); p.renderOrder=ro; TANK.add(p); return p; };
+  pane(WX+GL*2,HT,GL, 0,HT/2,-oz, sheen(), 6); pane(GL,HT,ZD*2, -ox,HT/2,0, sheen(), 6); pane(GL,HT,ZD*2, ox,HT/2,0, sheen(), 6);
+  pane(WX+GL*2,HT,GL, 0,HT/2,oz, sheen({depthWrite:true, side:THREE.FrontSide}), 10);   // the front pane also sets the depth the lens focuses on
+  const surf=new THREE.Mesh(new THREE.PlaneGeometry(WX,ZD*2), sheen({envMapIntensity:.9})); surf.rotation.x=-Math.PI/2; surf.position.y=Y0+WH; surf.renderOrder=7; TANK.add(surf);
+  /* the glass's cut edges and floor are thick enough to see: pale green, slightly frosted */
+  const edge=new THREE.MeshPhysicalMaterial({color:0x9fc9b6, roughness:.25, metalness:0, transparent:true, opacity:.5, envMapIntensity:1.2});
+  const bar=(w,h,d,x,y,z)=>{ const p=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), edge); p.position.set(x,y,z); p.castShadow=true; p.renderOrder=8; TANK.add(p); };
+  for(const sx of [-1,1]) for(const sz of [-1,1]) bar(GL,HT,GL, sx*ox,HT/2,sz*oz);
+  for(const sz of [-1,1]) bar(WX+GL*2,GL*.6,GL, 0,HT-GL*.3,sz*oz);
+  for(const sx of [-1,1]) bar(GL,GL*.6,ZD*2, sx*ox,HT-GL*.3,0);
+  bar(WX+GL*2,Y0,ZD*2+GL*2, 0,Y0/2,0);
+  const line=new THREE.Mesh(new THREE.BoxGeometry(WX,.012,.012), new THREE.MeshBasicMaterial({color:0xcfe6dc, transparent:true, opacity:.35, depthWrite:false})); line.position.set(0,Y0+WH,ZD-.006); line.renderOrder=9; TANK.add(line);
+})();
+
+/* props: a pipette on a lolly stick across the rim, the little heater on its wire, bottles, clutter */
+const C={ indigo:0x1b2550, cream:0xf2e6cf, gold:0xe2a826, red:0xd2412f, cork:0xb98a55, rubber:0xd9532b, black:0x1c1c20, teal:0x1f8f8a, amber:0xf0a030 };
+const TOP=Y0+WH+RIM, DROPX=101, DROPY=141, stickM=mat({mode:'WOOD', color:0xe0bb8c, rough:.6});
+const PIP=new THREE.Group(); scene.add(PIP);
+let bulb, bead;
+(function(){
+  const s=mesh(rbox(.2,.035,ZD*2+.5,.012,.003,9), stickM, 0,TOP+.02,0,PIP);
+  s.geometry.computeBoundingSphere();
+  const tube=new THREE.Mesh(new THREE.CylinderGeometry(.032,.012,.62,20,1,true), new THREE.MeshPhysicalMaterial({color:0xd8ece4, roughness:.08, envMapIntensity:1.6, transparent:true, opacity:.32, depthWrite:false, side:THREE.DoubleSide}));
+  tube.position.set(0,TOP+.31,0); tube.renderOrder=11; PIP.add(tube);
+  mesh(new THREE.CylinderGeometry(.022,.007,.4,14), new THREE.MeshPhysicalMaterial({color:0x0c1230, roughness:.3}), 0,TOP+.2,0,PIP);
+  bulb=mesh(lathe([[0,0],[.036,0],[.04,.03],[.06,.09],[.066,.17],[.05,.25],[.02,.285],[0,.29]],.004,12), mat({color:C.rubber, color2:0xf07a3c, smear:.4, bump:1.2}), 0,TOP+.6,0,PIP);
+  bead=mesh(blob(.03,1,1.25,1,.002,20,14), new THREE.MeshPhysicalMaterial({color:0x0b1030, roughness:.2}), 0,0,0,PIP); bead.visible=false;
+  toWorld(DROPX,DROPY,PIP.position); PIP.position.y=0;
+})();
+const SUG=new THREE.Group(); scene.add(SUG);
+let thread, crystal;
+(function(){
+  mesh(rbox(.16,.03,ZD*2+.42,.012,.003,9), stickM, 0,TOP+.018,0,SUG);
+  thread=mesh(new THREE.CylinderGeometry(.006,.006,1,6), new THREE.MeshStandardMaterial({color:0x2a2420, roughness:.6}), 0,0,.06,SUG);
+  crystal=mesh(blob(.055,1,1.15,1,.005,9,22), mat({color:0xffc060, color2:0xffe2a0, smear:.4, rough:.4, emissive:0xff7a1a, emissiveIntensity:2.4}), 0,0,.06,SUG);
+  mesh(lathe([[0,0],[.03,0],[.034,.03],[.012,.05],[0,.05]],.003,12), mat({color:C.black, rough:.5}), 0,0,.06,SUG).userData.cap=1;
+})();
+(function(){
+  // ink bottle, and the two pigments the skin is painted in
+  const bottle=(x,z,s,body,lab,ry)=>{ const g=new THREE.Group(); g.position.set(x,0,z); g.scale.setScalar(s); g.rotation.y=ry; scene.add(g);
+    mesh(lathe([[0,0],[.2,0],[.22,.03],[.22,.36],[.17,.44],[.085,.48],[.085,.57],[.1,.58],[.1,.61],[0,.61]],.006,7), mat({bands:{y:[.12,.3,9], c:[body,lab,body,body]}, rough:.3, bump:.6, spec:1}), 0,0,0,g);
+    mesh(lathe([[0,0],[.075,0],[.085,.1],[0,.1]],.006,10), mat({color:C.cork, bump:1.5, rough:.8}), 0,.6,0,g); };
+  bottle(-2.75,.95,1,C.indigo,C.cream,.4); bottle(2.55,1.2,.62,C.gold,C.cream,1.1); bottle(2.98,.92,.62,C.red,C.cream,2.2);
+  const cols=[C.indigo,C.cream,C.gold,C.red,C.teal,C.amber,0x2a3f8a];
+  for(let i=0;i<26;i++){ const r=.02+rnd(i,1)*.045, front=rnd(i,5)<.75;
+    const x=(rnd(i,2)-.5)*8.6, z=front? ZD+.35+rnd(i,3)*1.5 : -ZD-.3-rnd(i,3)*.9;
+    const b=mesh(blob(r,1,.45+rnd(i,6)*.3,1,r*.2,1.5/r,14), mat({color:cols[i%cols.length]}), x,r*.3,z); b.rotation.y=rnd(i,4)*6; }
+  const tool=mesh(lathe([[0,0],[.012,0],[.045,.15],[.05,.9],[.04,1.25],[.016,1.5],[.05,1.62],[.012,1.75],[0,1.75]],0,1,20), mat({mode:'WOOD', color:0xe0bb8c, rough:.5}), -.9,.05,ZD+1.0);
+  tool.rotation.set(0,.35,Math.PI/2);
+  mesh(blob(.19,1,.8,1,.03,6,30), mat({color:C.indigo, color2:0x3a4a9a, smear:.5, bump:1.4}), -2.25,.13,1.5);
+  mesh(blob(.11,1,.85,1,.02,8,26), mat({color:C.gold, bump:1.4}), 2.1,.085,1.75);
+})();
+
+/* ═════════════════════════ THE MODEL ═════════════════════════
+   Water: 2-D incompressible flow on a 240 x 150 staggered (MAC) grid, cell = 1, time step = 1.
+     Stable fluids (J. Stam, SIGGRAPH 1999): semi-Lagrangian self-advection of velocity, explicit viscosity NU,
+     linear drag, body forces, then a pressure projection (JAC Jacobi sweeps, warm-started). Free-slip closed walls.
+   Scalars (one RGBA float texture): R ink, G warmth (temperature above the room's), B sensory pigment, A active pigment.
+     Upwind transport in flux form with van Leer limited slopes, using the projected face velocities (exactly
+     conservative), and explicit diffusion. Warmth is carried the same way, then diffuses NSUB times a step (heat spreads far faster than dye),
+     with a small source that wanders slowly and a first-order loss through the glass.
+   Creature (Friston's ink-drop picture; Parr, Pezzulo and Friston, Active Inference, 2022, chapters 2 to 4):
+     sensory states o_k = ln(warmth at cell k) + noise                          (set by the outside only)
+     internal states mu, s2: belief q(d) = N(mu, s2 I) about the heater's offset d from the creature;
+       generative model p(d) = N(0, SIGP^2 I), p(o_k|d) = N(BETA0 - |d - r_k|/LAM, SIGO^2);
+       F = KL[q||p(d)] + E_q[-ln p(o|d)] (first order, constant dropped); mu and ln s2 descend its gradient
+                                                                               (read the sensory states only)
+     active states: pump_k = tone + noise, thr_k = mu.e_k/L0 + noise            (read the internal states only)
+     outside: ink and pigments are pumped inward at up to W0 near active cells and hauled through the water at
+       WT sum_k tanh(thr_k) e_k / 4 (capped at WT); the water is pushed back with F0 tanh(thr_k) e_k; the creature's
+       centre moves with the haul plus the mean water velocity inside it.       (touched by the active states only) */
+const P = { VMAX:.3, NU:.012, DRAG:.002, GRAV:.0013, JAC:LOW?24:40, JACLAPSE:8, DINK:.01, DHEAT:.2, NSUB:8, DECAY:2.04e-3, SRCQ:.08,
+  RB:20, RS:4, W0:.12, WT:.12, F0:.0008, L0:25, LAM:28, BETA0:-1.44, SIGO:.25, SIGP:60, SIGS:.04, SIGA:.012, SIGI:.15,
+  FD:2.8e-4, INK:1.15, INKR:8, PIG:.55, IMP:-.3, CM:32/NX };
+const SIM_HEAD=`precision highp float; precision highp sampler2D; out vec4 o;
+uniform sampler2D tV,tS,tP; const ivec2 N=ivec2(${NX},${NY}); const float PI=3.14159265;
+float U(int i,int j){ if(i<=0||i>=N.x) return 0.; return texelFetch(tV,ivec2(i,clamp(j,0,N.y-1)),0).x; }
+float W(int i,int j){ if(j<=0||j>=N.y) return 0.; return texelFetch(tV,ivec2(clamp(i,0,N.x-1),j),0).y; }
+vec4 S(int i,int j){ return texelFetch(tS,ivec2(clamp(i,0,N.x-1),clamp(j,0,N.y-1)),0); }
+float Pr(int i,int j){ return texelFetch(tP,ivec2(clamp(i,0,N.x-1),clamp(j,0,N.y-1)),0).x; }
+float sU(vec2 p){ p.y-=.5; vec2 f=floor(p), a=p-f; int i=int(f.x), j=int(f.y); return mix(mix(U(i,j),U(i+1,j),a.x),mix(U(i,j+1),U(i+1,j+1),a.x),a.y); }
+float sW(vec2 p){ p.x-=.5; vec2 f=floor(p), a=p-f; int i=int(f.x), j=int(f.y); return mix(mix(W(i,j),W(i+1,j),a.x),mix(W(i,j+1),W(i+1,j+1),a.x),a.y); }
+`;
+const SIM_VS='in vec3 position; void main(){ gl_Position=vec4(position.xy,0.,1.); }';
+const simMat=(fs,u)=>new THREE.RawShaderMaterial({glslVersion:THREE.GLSL3, vertexShader:SIM_VS, fragmentShader:SIM_HEAD+fs, uniforms:u, depthTest:false, depthWrite:false});
+const SU={ tV:{value:null}, tS:{value:null}, tP:{value:null}, uX:{value:new THREE.Vector2(DROPX,DROPY)}, uRb:{value:P.RB},
+  uThr:{value:[0,0,0,0,0,0,0,0]}, uPump:{value:[0,0,0,0,0,0,0,0]}, uDrift:{value:[0,0,0,0,0]}, uStir:{value:new THREE.Vector4()},
+  uImp:{value:new THREE.Vector4()}, uSrc:{value:new THREE.Vector2(173,46)}, uInk:{value:new THREE.Vector4()}, uRing:{value:0}, uClear:{value:0}, uInit:{value:0}, uLive:{value:0}, uWt:{value:new THREE.Vector2()}, uDt:{value:1} };
+const advMat=simMat(`uniform vec2 uX; uniform float uDrift[5]; uniform float uRb,uDt; uniform float uThr[8]; uniform vec4 uStir,uImp;
+vec2 force(vec2 p){ vec2 q=p/vec2(N); float px=PI*q.x, py=PI*q.y, ar=float(N.y)/float(N.x);
+  vec2 f=vec2(0.);          // the standing currents: curls of sin(m pi x) sin(n pi y), each waxing and waning on its own clock
+  for(int k=0;k<5;k++){ float m=float(k==1||k==4 ? 2 : (k==3 ? 3 : 1)), n=float(k==2||k==3 ? 2 : (k==4 ? 3 : 1));
+    f+=uDrift[k]*vec2(n*sin(m*px)*cos(n*py), -m*ar*cos(m*px)*sin(n*py)); }
+  for(int k=0;k<8;k++){ float th=(float(k)+.5)*PI/4.; vec2 e=vec2(cos(th),sin(th)), d=p-(uX+uRb*e); f+=uThr[k]*e*exp(-dot(d,d)/50.); }
+  vec2 d=p-uStir.xy; f+=uStir.zw*exp(-dot(d,d)/128.);
+  d=p-uImp.xy; f.y+=uImp.z*exp(-dot(d,d)/(uImp.w*uImp.w));
+  return f; }
+void main(){ ivec2 c=ivec2(gl_FragCoord.xy); int i=c.x, j=c.y;
+  vec2 pu=vec2(float(i),float(j)+.5), pv=vec2(float(i)+.5,float(j));
+  vec2 vu=vec2(U(i,j), .25*(W(i,j)+W(i,j+1)+W(i-1,j)+W(i-1,j+1)));
+  vec2 vv=vec2(.25*(U(i,j)+U(i+1,j)+U(i,j-1)+U(i+1,j-1)), W(i,j));
+  float un=sU(pu-vu*uDt), wn=sW(pv-vv*uDt);
+  un+=uDt*${P.NU}*(U(i+1,j)+U(i-1,j)+U(i,j+1)+U(i,j-1)-4.*U(i,j));
+  wn+=uDt*${P.NU}*(W(i+1,j)+W(i-1,j)+W(i,j+1)+W(i,j-1)-4.*W(i,j));
+  un=un*(1.-uDt*${P.DRAG})+uDt*force(pu).x; wn=wn*(1.-uDt*${P.DRAG})+uDt*force(pv).y;
+  vec4 sa=S(i,j), sb=S(i,j-1); wn-=uDt*${P.GRAV}*.5*(sa.r+sa.b+sa.a+sb.r+sb.b+sb.a);
+  if(i==0) un=0.; if(j==0) wn=0.;
+  o=vec4(clamp(un,-${P.VMAX},${P.VMAX}),clamp(wn,-${P.VMAX},${P.VMAX}),0.,1.); }`, SU);
+const jacMat=simMat(`void main(){ ivec2 c=ivec2(gl_FragCoord.xy); int i=c.x, j=c.y;
+  float div=U(i+1,j)-U(i,j)+W(i,j+1)-W(i,j), s=0., n=0.;
+  if(i>0){ s+=Pr(i-1,j); n+=1.; } if(i<N.x-1){ s+=Pr(i+1,j); n+=1.; } if(j>0){ s+=Pr(i,j-1); n+=1.; } if(j<N.y-1){ s+=Pr(i,j+1); n+=1.; }
+  o=vec4((s-div)/n,0.,0.,1.); }`, SU);
+const prjMat=simMat(`void main(){ ivec2 c=ivec2(gl_FragCoord.xy); int i=c.x, j=c.y;
+  float u=i>0 ? U(i,j)-(Pr(i,j)-Pr(i-1,j)) : 0., w=j>0 ? W(i,j)-(Pr(i,j)-Pr(i,j-1)) : 0.;
+  o=vec4(u,w,0.,1.); }`, SU);
+const sclMat=simMat(`uniform vec2 uX,uSrc,uWt; uniform float uRb,uRing,uClear,uInit,uLive,uDt; uniform float uPump[8]; uniform vec4 uInk;
+float Pth(float th){ float f=th/(2.*PI)*8.-.5, fl=floor(f); return max(0.,mix(uPump[int(mod(fl,8.))],uPump[int(mod(fl+1.,8.))],f-fl)); }
+/* pump velocity of each channel along axis ax at point p: ink inward, each pigment towards its nearest cell of the ring,
+   and all three hauled together through the water at uWt */
+vec4 wAt(vec2 p,int ax){ if(uLive<.5) return vec4(0.); vec2 d=p-uX; float r=length(d)+1e-4; float fade=1.-smoothstep(1.7*uRb,2.1*uRb,r); if(fade<=0.) return vec4(0.);
+  float th=atan(d.y,d.x), A=Pth(th)*${P.W0}*fade; float tr=fade*(ax==0?uWt.x:uWt.y);
+  vec2 wi=-(d/r)*smoothstep(.62*uRb,.82*uRb,r);
+  float ks=floor(th/(PI/4.)+.5)*PI/4.; vec2 qs=uX+uRb*vec2(cos(ks),sin(ks))-p; float ls=length(qs)+1e-4; vec2 ws=qs/ls*smoothstep(1.,3.5,ls);
+  float ka=(floor(th/(PI/4.))+.5)*PI/4.; vec2 qa=uX+uRb*vec2(cos(ka),sin(ka))-p; float la=length(qa)+1e-4; vec2 wa=qa/la*smoothstep(1.,3.5,la);
+  return A*(ax==0 ? vec4(wi.x,0.,ws.x,wa.x) : vec4(wi.y,0.,ws.y,wa.y))+vec4(tr,0.,tr,tr); }
+vec4 vl(vec4 a,vec4 b){ vec4 p=a*b; return mix(vec4(0.),2.*p/(a+b+sign(a+b)*1e-12+1e-30),step(vec4(1e-30),p)); }
+/* flux through the face between cells b and c (a and d lie beyond them): upwind value plus a limited slope */
+vec4 flux(vec4 a,vec4 b,vec4 c,vec4 d,vec4 v){ vec4 h=.5*(1.-abs(v));
+  return mix(c-h*vl(c-b,d-c), b+h*vl(b-a,c-b), step(0.,v))*v; }
+float K0(float x){ x=max(x,.07); return x<1.2 ? (-log(x*.5)-.5772)*(1.+x*x*.25)+x*x*.25 : sqrt(1.5708/x)*exp(-x)*(1.-.125/x+.0703/(x*x)); }
+void main(){ ivec2 c=ivec2(gl_FragCoord.xy); int i=c.x, j=c.y; vec2 p=vec2(c)+.5; vec4 s=S(i,j);
+  if(uInit>.5){ o=vec4(0., ${(P.SRCQ*8*Math.PI/(2*Math.PI*P.DHEAT*P.NSUB)).toFixed(5)}*K0(length(p-uSrc)*${Math.sqrt(P.DECAY/(P.DHEAT*P.NSUB)).toFixed(6)}), 0., 0.); return; }
+  float M=.45;        // a face may pass at most this share of a cell in one step
+  vec4 FL=i>0 ? flux(S(i-2,j),S(i-1,j),s,S(i+1,j),vec4(clamp(U(i,j)*uDt,-M,M))+wAt(vec2(float(i),float(j)+.5),0)) : vec4(0.);
+  vec4 FR=i<N.x-1 ? flux(S(i-1,j),s,S(i+1,j),S(i+2,j),vec4(clamp(U(i+1,j)*uDt,-M,M))+wAt(vec2(float(i)+1.,float(j)+.5),0)) : vec4(0.);
+  vec4 FB=j>0 ? flux(S(i,j-2),S(i,j-1),s,S(i,j+1),vec4(clamp(W(i,j)*uDt,-M,M))+wAt(vec2(float(i)+.5,float(j)),1)) : vec4(0.);
+  vec4 FT=j<N.y-1 ? flux(S(i,j-1),s,S(i,j+1),S(i,j+2),vec4(clamp(W(i,j+1)*uDt,-M,M))+wAt(vec2(float(i)+.5,float(j)+1.),1)) : vec4(0.);
+  vec4 lap=vec4(0.); if(i>0) lap+=S(i-1,j)-s; if(i<N.x-1) lap+=S(i+1,j)-s; if(j>0) lap+=S(i,j-1)-s; if(j<N.y-1) lap+=S(i,j+1)-s;
+  vec4 sn=s+FL-FR+FB-FT+uDt*vec4(${P.DINK},0.,${P.DINK},${P.DINK})*lap; vec2 d;
+  if(uClear>.5) sn.rba=vec3(0.);
+  if(uInk.w>0.){ d=p-uInk.xy; sn.r+=uInk.w*exp(-dot(d,d)/(uInk.z*uInk.z));
+    if(uRing>0.) for(int k=0;k<8;k++){ float th=float(k)*PI/4.; vec2 e=uInk.xy+uRb*vec2(cos(th),sin(th))-p; sn.b+=uRing*exp(-dot(e,e)/7.);
+      th+=PI/8.; e=uInk.xy+uRb*vec2(cos(th),sin(th))-p; sn.a+=uRing*exp(-dot(e,e)/7.); } }
+  o=max(sn,vec4(0.)); }`, SU);
+const heatMat=simMat(`uniform vec2 uSrc;
+void main(){ ivec2 c=ivec2(gl_FragCoord.xy); int i=c.x, j=c.y; vec4 s=S(i,j); float g=s.g, lap=0.;
+  if(i>0) lap+=S(i-1,j).g-g; if(i<N.x-1) lap+=S(i+1,j).g-g; if(j>0) lap+=S(i,j-1).g-g; if(j<N.y-1) lap+=S(i,j+1).g-g;
+  vec2 d=vec2(c)+.5-uSrc; s.g=g+${P.DHEAT}*lap+${(P.SRCQ/P.NSUB).toFixed(6)}*exp(-dot(d,d)/8.)-${(P.DECAY/P.NSUB).toExponential(4)}*g; o=s; }`, SU);
+const prbMat=simMat(`uniform vec2 uX; uniform float uRb;
+void main(){ ivec2 c=ivec2(gl_FragCoord.xy); float k=float(c.x);
+  if(c.y==0){ float th=k*PI/4.; vec2 q=uX+(uRb+${P.RS}.)*vec2(cos(th),sin(th))-.5; vec2 f=floor(q), a=q-f; int i=int(f.x), j=int(f.y);
+    o=vec4(mix(mix(S(i,j).g,S(i+1,j).g,a.x),mix(S(i,j+1).g,S(i+1,j+1).g,a.x),a.y),0.,0.,1.); }
+  else { float th=(k+.5)*PI/4.; vec2 e=vec2(cos(th),sin(th)), acc=vec2(0.);
+    for(int m=0;m<4;m++){ vec2 q=uX+uRb*(.2+.25*float(m))*e; int i=int(floor(q.x)), j=int(floor(q.y)); acc+=vec2(.5*(U(i,j)+U(i+1,j)), .5*(W(i,j)+W(i,j+1))); }
+    o=vec4(acc*.25,0.,1.); } }`, SU);
+const cpyU={ tSrc:{value:null}, uSnap:{value:0} };
+const cpyMat=new THREE.RawShaderMaterial({glslVersion:THREE.GLSL3, vertexShader:SIM_VS, depthTest:false, depthWrite:false, uniforms:cpyU,
+  fragmentShader:`precision highp float; precision highp sampler2D; out vec4 o; uniform sampler2D tSrc; uniform float uSnap;
+  void main(){ o=texelFetch(tSrc,ivec2(gl_FragCoord.xy),0); if(uSnap>.5) o=o*o*4.; }`});
+const fRT=(w,h)=>new THREE.WebGLRenderTarget(w,h,{type:THREE.FloatType, format:THREE.RGBAFormat, minFilter:THREE.NearestFilter, magFilter:THREE.NearestFilter, depthBuffer:false, generateMipmaps:false});
+const V=[fRT(NX,NY),fRT(NX,NY)], PR=[fRT(NX,NY),fRT(NX,NY)], SC=[fRT(NX,NY),fRT(NX,NY)], PROBE=fRT(8,2);
+const DISP=new THREE.WebGLRenderTarget(NX,NY,{type:THREE.HalfFloatType, format:THREE.RGBAFormat, minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter, depthBuffer:false, generateMipmaps:false, wrapS:THREE.ClampToEdgeWrapping, wrapT:THREE.ClampToEdgeWrapping});
+dispU.tDye.value=DISP.texture;
+const postScene=new THREE.Scene(), postCam=new THREE.Camera();
+const tri=new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1,-1,0, 3,-1,0, -1,3,0]),3)));
+tri.frustumCulled=false; postScene.add(tri);
+function pass(m,target){ tri.material=m; renderer.setRenderTarget(target); renderer.render(postScene,postCam); }
+const swap=a=>{ const t=a[0]; a[0]=a[1]; a[1]=t; };
+
+/* seeded noise so that a run can be repeated */
+let done=0, rate=1;
+let rs=20240611; function rand(){ rs=(rs+0x6D2B79F5)|0; let t=Math.imul(rs^(rs>>>15),1|rs); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }
+function gauss(){ return Math.sqrt(-2*Math.log(rand()+1e-12))*Math.cos(6.2831853*rand()); }
+
+const DRIFT=[[1,1900,.6],[.8,1300,1],[.6,2300,2],[.4,1500,3.3],[.4,1100,4.6]];     // weight, period in steps, phase of each current
+const HMAX=Math.log(NX*NY), SAMP_EVERY=6, SAMP_N=360, SNAP_EVERY=30, SNAP_N=120, NREG=24;
+const ES=[], EA=[]; for(let k=0;k<8;k++){ ES.push([Math.cos(k*Math.PI/4),Math.sin(k*Math.PI/4)]); EA.push([Math.cos((k+.5)*Math.PI/4),Math.sin((k+.5)*Math.PI/4)]); }
+const sim={ step:0, since:0, mode:'dead', links:[true,true,true], mass:0, mass0:0, H:0, held:1, pendInk:false, stir:[0,0,0,0], imp:0,
+  X:[DROPX,DROPY], src:[173,46], mu:[0,0], s2:P.SIGP*P.SIGP, tone:1, sens:new Float32Array(8), pump:new Float32Array(8), thr:new Float32Array(8),
+  Fc:0, Fi:0, Fmax:8, haul:[0,0], corr:NaN, pcorr:NaN, csens:NaN, samples:[], Hpeak:0, HminAfter:0, divs:0 };
+const sbuf=new Float32Array(NX*NY*4), pbuf=new Float32Array(8*2*4);
+const snaps=[];
+function srcAt(step){ return [173+22*Math.sin(6.2831853*step/5200), 46+10*Math.sin(6.2831853*step/3700+1)]; }
+function initHeat(){        // the warmth is started at its settled shape (and the tank emptied of ink)
+  sim.src=srcAt(sim.step); SU.uSrc.value.set(sim.src[0],sim.src[1]); SU.uInit.value=1; SU.tV.value=V[0].texture; SU.tS.value=SC[0].texture; pass(sclMat,SC[1]); swap(SC); SU.uInit.value=0;
+}
+function initFields(){
+  for(const a of [V,PR]) for(const t of a){ renderer.setRenderTarget(t); renderer.setClearColor(0x000000,0); renderer.clear(); }
+  initHeat();
+}
+/* ── the creature: three separate functions, one per kind of state, so the links can be read off the code ── */
+function sense(){                                   // outside -> sensory
+  for(let k=0;k<8;k++) sim.sens[k]=Math.log(pbuf[k*4]+1e-7)+P.SIGS*gauss();
+}
+/* what the model expects sensor k to read if the heater is at offset (mx,my); returns [reading, d/dmx, d/dmy] */
+function expect(mx,my,k,out){ const dx=mx-(P.RB+P.RS)*ES[k][0], dy=my-(P.RB+P.RS)*ES[k][1], dist=Math.sqrt(dx*dx+dy*dy+4), x=dist/P.LAM;
+  out[0]=P.BETA0-x-.5*Math.log(x+.1); const sl=-(1+.5/(x+.1))/(P.LAM*dist); out[1]=sl*dx; out[2]=sl*dy; return out; }
+const gk=[0,0,0];
+function freeEnergy(mx,my,s2,useS){
+  const sp2=P.SIGP*P.SIGP; let ia=0;
+  if(useS) for(let k=0;k<8;k++){ expect(mx,my,k,gk); const e=sim.sens[k]-gk[0]; ia+=(e*e+s2*(gk[1]*gk[1]+gk[2]*gk[2]))/(2*P.SIGO*P.SIGO); }
+  return [ (mx*mx+my*my+2*s2)/(2*sp2)-1-Math.log(s2/sp2), ia ];
+}
+function perceive(){                                // sensory -> internal (and nothing else -> internal)
+  const useS=sim.links[0], sp2=P.SIGP*P.SIGP, so2=P.SIGO*P.SIGO;
+  let mx=sim.mu[0], my=sim.mu[1], Hs=1/sp2;
+  for(let it=0;it<6;it++){ let gx=mx/sp2, gy=my/sp2, tr=0;       // gradient of F in mu, and a safe step from its curvature
+    if(useS) for(let k=0;k<8;k++){ expect(mx,my,k,gk); const e=sim.sens[k]-gk[0]; gx-=e*gk[1]/so2; gy-=e*gk[2]/so2; tr+=(gk[1]*gk[1]+gk[2]*gk[2])/so2; }
+    Hs=1/sp2+tr/2; mx-=gx/(1/sp2+tr); my-=gy/(1/sp2+tr); }
+  const m=Math.hypot(mx,my); if(m>260){ mx*=260/m; my*=260/m; }
+  sim.s2=clamp(sim.s2*Math.exp(-.5*clamp(sim.s2*Hs-1,-1,3)),1,sp2);    // gradient of F in ln s2 is s2*Hs - 1
+  sim.mu[0]=mx+P.SIGI*gauss(); sim.mu[1]=my+P.SIGI*gauss();
+  const F=freeEnergy(sim.mu[0],sim.mu[1],sim.s2,useS); sim.Fc=F[0]; sim.Fi=F[1];
+}
+function act(){                                     // internal -> active
+  const on=sim.links[1];
+  for(let k=0;k<8;k++){ sim.pump[k]=(on?sim.tone:0)+P.SIGA*gauss(); sim.thr[k]=(on?(sim.mu[0]*EA[k][0]+sim.mu[1]*EA[k][1])/P.L0:0)+P.SIGA*gauss(); }
+}
+function effect(){                                  // active -> outside
+  const on=sim.links[2] && sim.mode==='living', th=SU.uThr.value, pu=SU.uPump.value;
+  let hx=0, hy=0;
+  for(let k=0;k<8;k++){ const a=on?Math.tanh(sim.thr[k]):0; hx+=a*EA[k][0]; hy+=a*EA[k][1]; th[k]=-P.F0*a; pu[k]=on?clamp(sim.pump[k],0,1.3):0; }
+  const hm=Math.max(1,Math.hypot(hx,hy)/4); sim.haul=[P.WT*hx/4/hm, P.WT*hy/4/hm]; SU.uWt.value.set(sim.haul[0],sim.haul[1]); SU.uLive.value=on?1:0;
+}
+function simStep(){
+  const living=sim.mode==='living';
+  const dt=!living && lapseNow()>4 && sim.since%2===0 ? 2 : 1; SU.uDt.value=dt;     // late in Act 1 the flow is slow: a doubled time step holds
+  if(living){ sense(); perceive(); act(); } effect();
+  sim.src=srcAt(sim.step); SU.uSrc.value.set(sim.src[0],sim.src[1]); SU.uX.value.set(sim.X[0],sim.X[1]);
+  const ph=sim.step; for(let k=0;k<5;k++) SU.uDrift.value[k]=P.FD*DRIFT[k][0]*Math.sin(6.2831853*ph/DRIFT[k][1]+DRIFT[k][2]);
+  SU.uStir.value.set(sim.stir[0],sim.stir[1],sim.stir[2],sim.stir[3]); sim.stir[2]*=.8; sim.stir[3]*=.8;
+  const inj=sim.pendInk; sim.pendInk=false;
+  SU.uImp.value.set(sim.X[0],sim.X[1],inj?P.IMP:(sim.imp>0?P.IMP*.15:0),11); if(inj) sim.imp=24; else if(sim.imp>0) sim.imp--;
+  SU.tV.value=V[0].texture; SU.tS.value=SC[0].texture; pass(advMat,V[1]); swap(V);
+  SU.tV.value=V[0].texture;
+  const nj=living||lapseNow()<2 ? P.JAC : P.JACLAPSE;      // the late dead-ink flow is slow and smooth: fewer sweeps hold it
+  for(let k=0;k<nj;k++){ SU.tP.value=PR[0].texture; pass(jacMat,PR[1]); swap(PR); }
+  SU.tP.value=PR[0].texture; pass(prjMat,V[1]); swap(V);
+  SU.tV.value=V[0].texture; SU.uClear.value=inj?1:0; SU.uInk.value.set(sim.X[0],sim.X[1],P.INKR,inj?P.INK:0); SU.uRing.value=inj&&living?P.PIG:0;
+  pass(sclMat,SC[1]); swap(SC); SU.tS.value=SC[0].texture;
+  if(living) for(let k=0;k<P.NSUB;k++){ pass(heatMat,SC[1]); swap(SC); SU.tS.value=SC[0].texture; }    // nothing feels the warmth in Act 1
+  if(living){ pass(prbMat,PROBE); renderer.readRenderTargetPixels(PROBE,0,0,8,2,pbuf);
+    let vx=0, vy=0; for(let k=0;k<8;k++){ vx+=pbuf[32+k*4]; vy+=pbuf[32+k*4+1]; }
+    sim.X[0]=clamp(sim.X[0]+vx/8+sim.haul[0],P.RB*.6,NX-P.RB*.6); sim.X[1]=clamp(sim.X[1]+vy/8+sim.haul[1],P.RB*.6,NY-P.RB*.6); }
+  sim.step+=dt; sim.since+=dt; done+=dt;
+  const every=living?6:(lapseNow()>2?12:6);
+  if(inj || sim.since%every===0) stats(inj);
+  if(living && sim.since%SAMP_EVERY===0) sample();
+  if(sim.since%SNAP_EVERY===0) snapshot();
+}
+function stats(first){
+  renderer.readRenderTargetPixels(SC[0],0,0,NX,NY,sbuf);
+  let m=0, sl=0, near=0; const X=sim.X, R2=Math.pow(P.RB*1.6,2);
+  for(let j=0,q=0;j<NY;j++) for(let i=0;i<NX;i++,q+=4){ const c=sbuf[q]+sbuf[q+2]+sbuf[q+3]; if(c>0){ m+=c; sl+=c*Math.log(c);
+      const dx=i+.5-X[0], dy=j+.5-X[1]; if(dx*dx+dy*dy<R2) near+=c; } }
+  sim.mass=m; if(first) sim.mass0=m; sim.H=m>0?Math.log(m)-sl/m:0; sim.held=m>0?near/m:0;
+  if(first){ sim.Hpeak=sim.H; sim.maxDrop=0; } else { sim.maxDrop=Math.max(sim.maxDrop, sim.Hpeak-sim.H); sim.Hpeak=Math.max(sim.Hpeak,sim.H); }
+}
+/* Act 3: records of (inside | outside | blanket), and the two correlations */
+function sample(){
+  const r=new Float32Array(4+NREG); r[0]=sim.mu[0]; r[1]=sim.mu[1]; r[2]=sim.src[0]-sim.X[0]; r[3]=sim.src[1]-sim.X[1];
+  for(let k=0;k<8;k++){ r[4+k]=sim.sens[k]; r[12+k]=sim.pump[k]; r[20+k]=sim.thr[k]; }
+  sim.samples.push(r); if(sim.samples.length>SAMP_N) sim.samples.shift();
+}
+function pearson(a,b){ const n=a.length; let ma=0, mb=0; for(let i=0;i<n;i++){ ma+=a[i]; mb+=b[i]; } ma/=n; mb/=n; let sa=0, sb=0, sab=0;
+  for(let i=0;i<n;i++){ const x=a[i]-ma, y=b[i]-mb; sa+=x*x; sb+=y*y; sab+=x*y; } return sa>1e-12&&sb>1e-12 ? sab/Math.sqrt(sa*sb) : 0; }
+function residuals(rows,tcol,cols){          // what is left of column tcol after a ridge straight-line fit on the columns cols
+  const n=rows.length, m=cols.length, mean=new Float64Array(m), sd=new Float64Array(m); let ty=0;
+  for(const r of rows){ ty+=r[tcol]; for(let a=0;a<m;a++) mean[a]+=r[cols[a]]; } ty/=n; for(let a=0;a<m;a++) mean[a]/=n;
+  for(const r of rows) for(let a=0;a<m;a++){ const d=r[cols[a]]-mean[a]; sd[a]+=d*d; } for(let a=0;a<m;a++) sd[a]=Math.sqrt(sd[a]/n)||1;
+  const G=[], z=new Float64Array(m); for(let a=0;a<m;a++){ G.push(new Float64Array(m+1)); }
+  for(const r of rows){ for(let a=0;a<m;a++) z[a]=(r[cols[a]]-mean[a])/sd[a]; const y=r[tcol]-ty;
+    for(let a=0;a<m;a++){ const g=G[a], za=z[a]; for(let b=0;b<m;b++) g[b]+=za*z[b]; g[m]+=za*y; } }
+  for(let a=0;a<m;a++) G[a][a]+=1e-6*n;
+  for(let a=0;a<m;a++){ let p=a; for(let b=a+1;b<m;b++) if(Math.abs(G[b][a])>Math.abs(G[p][a])) p=b; const t=G[a]; G[a]=G[p]; G[p]=t;
+    const d=G[a][a]; for(let b=a;b<=m;b++) G[a][b]/=d;
+    for(let b=0;b<m;b++) if(b!==a){ const f=G[b][a]; if(f!==0) for(let c2=a;c2<=m;c2++) G[b][c2]-=f*G[a][c2]; } }
+  const out=new Float64Array(n); for(let i=0;i<n;i++){ const r=rows[i]; let y=r[tcol]-ty; for(let a=0;a<m;a++) y-=G[a][m]*(r[cols[a]]-mean[a])/sd[a]; out[i]=y; }
+  return out;
+}
+const COLS_ALL=[], COLS_SEN=[]; for(let a=0;a<NREG;a++){ COLS_ALL.push(4+a); if(a<8) COLS_SEN.push(4+a); }
+function blanketTest(){
+  const rows=sim.samples, n=rows.length; if(n<80){ sim.corr=sim.pcorr=sim.csens=NaN; return; }
+  const col=c=>{ const a=new Float64Array(n); for(let i=0;i<n;i++) a[i]=rows[i][c]; return a; };
+  sim.corr=(Math.abs(pearson(col(0),col(2)))+Math.abs(pearson(col(1),col(3))))/2;
+  const R=[0,1,2,3].map(c=>residuals(rows,c,COLS_ALL)); sim.pcorr=(Math.abs(pearson(R[0],R[2]))+Math.abs(pearson(R[1],R[3])))/2;
+  const Q=[0,1,2,3].map(c=>residuals(rows,c,COLS_SEN)); sim.csens=(Math.abs(pearson(Q[0],Q[2]))+Math.abs(pearson(Q[1],Q[3])))/2;
+}
+function readout(){ return { step:sim.step, since:sim.since, mode:sim.mode, links:sim.links.slice(), H:sim.H, mass:sim.mass, mass0:sim.mass0, held:sim.held,
+  X:sim.X.slice(), src:sim.src.slice(), mu:sim.mu.slice(), s2:sim.s2, Fc:sim.Fc, Fi:sim.Fi, Fmax:sim.Fmax, corr:sim.corr, pcorr:sim.pcorr, n:sim.samples.length,
+  sens:Array.from(sim.sens), pump:Array.from(sim.pump), thr:Array.from(sim.thr), lapse:playing&&!TEST ? rate : lapseNow() }; }
+function snapshot(){
+  let px; if(snaps.length>=SNAP_N){ px=snaps.shift().px; } else px=new Uint8Array(NX*NY*4);
+  for(let q=0;q<px.length;q++) px[q]=Math.min(255,Math.sqrt(Math.max(sbuf[q],0)/4)*255+.5);
+  if(sim.mode==='living') blanketTest();
+  snaps.push({px, r:readout()});
+}
+const snapTex=new THREE.DataTexture(new Uint8Array(NX*NY*4),NX,NY,THREE.RGBAFormat,THREE.UnsignedByteType); snapTex.minFilter=snapTex.magFilter=THREE.NearestFilter;
+function lapseNow(){ return sim.mode==='dead' ? 1+15*sstep(700,2500,sim.since) : 1; }
+function newDrop(){ sim.X=[DROPX,DROPY]; sim.mu=[0,0]; sim.s2=P.SIGP*P.SIGP; sim.samples.length=0; sim.corr=sim.pcorr=sim.csens=NaN; sim.Fmax=8; sim.since=0; sim.pendInk=true; sim.imp=0;
+  for(let k=0;k<8;k++){ sim.pump[k]=sim.thr[k]=0; } }
+initFields();
+
+/* ───────────────────────── animation: props and camera on twos, the water every frame ───────────────────────── */
+const TPS=24;
+const view={yaw:0, pitch:0, zoom:1};
+const camTarget=new THREE.Vector3(), tmp=new THREE.Vector3(), tmp2=new THREE.Vector3();
+let focusDist=8, dropAt=-1, narrow=false;
+function pose(f){
+  const fi=Math.round(f);
+  shared.uSeed.value.set(rnd(fi,1)*40, rnd(fi,2)*40, rnd(fi,3)*40);
+  // the pipette: squeeze, bead falls, then the model takes over
+  const a=dropAt>=0 ? f-dropAt : 99;
+  const sq=a<8 ? sstep(0,6,a) : sstep(18,10,a);
+  bulb.scale.set(1-.26*sq, 1+.05*sq, 1-.2*sq); bulb.rotation.y=(rnd(fi,20)-.5)*.2;
+  PIP.rotation.z=(rnd(fi,21)-.5)*.008; PIP.position.z=(rnd(fi,22)-.5)*.006;
+  bead.visible=a>=6&&a<16; if(bead.visible){ const u=clamp((a-6)/10,0,1); bead.position.set(0, TOP+.0-.012*(1-u)-(TOP-(Y0+WH)-.02)*u*u, 0); bead.scale.setScalar(.55+.45*Math.min(1,(a-4)/4)); }
+  // the heater on its wire
+  const sp=review>=0 ? snaps[review].r.src : sim.src; toWorld(sp[0],sp[1],tmp);
+  SUG.position.set(tmp.x+(rnd(fi,23)-.5)*.004, 0, (rnd(fi,24)-.5)*.004);
+  const len=TOP+.03-tmp.y; thread.scale.y=len; thread.position.y=tmp.y+len/2; crystal.position.y=tmp.y; crystal.rotation.set(rnd(fi,25)*.3,.6+(rnd(fi,26)-.5)*.25,rnd(fi,27)*.3); SUG.children[3].position.y=tmp.y+.05;
+  crystal.material.emissiveIntensity=2.4*(1+(rnd(fi,28)-.5)*.12);
+  // camera on its motion-control rig
+  const asp=camera.aspect; narrow=asp<1.25;
+  camTarget.set(narrow?0:.52, narrow?(asp<.7?.35:.9):1.32, 0);
+  const dist=Math.max(8.5, 2.05/(Math.tan(camera.fov*Math.PI/360)*asp));
+  const base=tmp.set(narrow?.5:1.35, 1.75+(narrow?.4:0), 0).sub(camTarget); base.z=Math.sqrt(Math.max(1,dist*dist-base.x*base.x-base.y*base.y));
+  const r=base.length()*view.zoom, yaw0=Math.atan2(base.x,base.z), pit0=Math.asin(base.y/base.length());
+  const yaw=yaw0+view.yaw+(rnd(fi,30)-.5)*.0012, pit=clamp(pit0+view.pitch,.02,1.1);
+  camera.position.set(camTarget.x+r*Math.sin(yaw)*Math.cos(pit), camTarget.y+r*Math.sin(pit), camTarget.z+r*Math.cos(yaw)*Math.cos(pit));
+  camera.lookAt(camTarget); camera.updateMatrixWorld();
+  const dir=camera.getWorldDirection(tmp2);
+  focusDist=Math.max(1, tmp.set(0,1.1,.1).sub(camera.position).dot(dir));
+  key.target.position.set(0,.8,0); key.position.set(-8.5,6.2,3.4); key.target.updateMatrixWorld();
+  key.intensity=3.5*(1+(rnd(fi,40)-.5)*.035);
+  return fi;
+}
+
+/* ───────────────────────── post: ambient occlusion → lens blur → film ───────────────────────── */
+const VS='varying vec2 vUv; void main(){ vUv=position.xy*.5+.5; gl_Position=vec4(position.xy,0.,1.); }';
+const pm=(fs,u)=>new THREE.ShaderMaterial({vertexShader:VS, fragmentShader:fs, uniforms:u, depthTest:false, depthWrite:false});
+const DEPTH=`uniform sampler2D tDepth; uniform float uNear,uFar; uniform vec2 uProj;
+float linZ(vec2 uv){ float d=texture2D(tDepth,uv).x; return (uNear*uFar)/(uFar-d*(uFar-uNear)); }
+vec3 vpos(vec2 uv){ float z=linZ(uv); vec2 n=uv*2.-1.; return vec3(n.x/uProj.x*z, n.y/uProj.y*z, -z); }`;
+const U={ tDepth:{value:null}, uNear:{value:.6}, uFar:{value:40}, uProj:{value:new THREE.Vector2()}, uRes:{value:new THREE.Vector2()} };
+const aoMat=pm(DEPTH+`uniform vec2 uRes; varying vec2 vUv;
+void main(){ vec3 C=vpos(vUv); vec3 n=normalize(cross(dFdx(C),dFdy(C)));
+  float R=.24, ssr=R*uProj.y*.5/(-C.z);
+  float rot=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853, sum=0.;
+  for(int i=0;i<22;i++){ float a=(float(i)+.5)/22.; float ang=a*6.2831853*7.+rot; float r=ssr*a;
+    vec3 v=vpos(vUv+vec2(cos(ang)*uRes.y/uRes.x,sin(ang))*r)-C; float vv=dot(v,v), vn=dot(v,n);
+    float f=max(1.-vv/(R*R),0.); sum+=f*f*f*max((vn+C.z*.0025)/(vv+.0004),0.); }
+  gl_FragColor=vec4(vec3(max(0.,1.-sum*5.*R/22.*1.9)),1.); }`, Object.assign({},U));
+const prepMat=pm(DEPTH+`uniform sampler2D tColor,tAO; uniform vec2 uRes; uniform float uFocus,uAperture; varying vec2 vUv;
+void main(){ float z=linZ(vUv); float ao=0., w=0.;
+  for(int x=-2;x<2;x++) for(int y=-2;y<2;y++){ vec2 o=(vec2(float(x),float(y))+.5)/uRes; float zz=linZ(vUv+o);
+    float k=max(0.,1.-abs(zz-z)/(.03*z)); ao+=texture2D(tAO,vUv+o).r*k; w+=k; }
+  ao = w>0. ? ao/w : 1.;
+  vec3 c=texture2D(tColor,vUv).rgb; c*=mix(vec3(.16,.13,.14), vec3(1.), pow(ao,1.25));
+  gl_FragColor=vec4(c, clamp((1./uFocus-1./z)*uAperture,-1.,1.)); }`, Object.assign({tColor:{value:null}, tAO:{value:null}, uFocus:{value:5}, uAperture:{value:6}},U));
+const dofMat=pm(`uniform sampler2D tPrep; uniform vec2 uRes; uniform float uMaxPx,uStep; varying vec2 vUv;
+void main(){ vec4 c0=texture2D(tPrep,vUv); float cs=abs(c0.a)*uMaxPx; vec3 acc=c0.rgb; float tot=1.; float r=uStep;
+  float ang=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853;
+  for(int i=0;i<${LOW?90:260};i++){ if(r>uMaxPx) break; ang+=2.39996323;
+    vec4 s=texture2D(tPrep, vUv+vec2(cos(ang),sin(ang))*r/uRes); float ss=abs(s.a)*uMaxPx;
+    if(s.a>c0.a) ss=clamp(ss,0.,cs*2.);
+    float m=smoothstep(r-.5,r+.5,ss); acc+=mix(acc/tot,s.rgb,m); tot+=1.; r+=uStep/r; }
+  gl_FragColor=vec4(acc/tot,1.); }`, {tPrep:{value:null}, uRes:U.uRes, uMaxPx:{value:20}, uStep:{value:1.3}});
+const finMat=pm(`uniform sampler2D tDof; uniform vec2 uRes; uniform vec3 uFilm; uniform float uExpo,uFlash; varying vec2 vUv;
+float h(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+void main(){ vec2 uv=vUv+uFilm.xy/uRes; vec2 d=uv-.5; float r2=dot(d,d);
+  vec2 ca=d*r2*.012;
+  vec3 c=vec3(texture2D(tDof,uv+ca).r, texture2D(tDof,uv).g, texture2D(tDof,uv-ca).b);
+  vec3 glow=textureLod(tDof,uv,4.).rgb*.5+textureLod(tDof,uv,6.).rgb*.5;
+  c=mix(c,glow,.07)+max(glow-.9,0.)*.12;
+  c*=uExpo*(1.-r2*.95);
+  c+=vec3(1.,.72,.42)*uFlash*(.25+r2*2.);
+  c=aces(c*vec3(1.03,1.,.97));
+  c=pow(c,vec3(1./2.2));
+  c=mix(c, c*c*(3.-2.*c), .22);
+  float g=h(gl_FragCoord.xy+uFilm.z*91.7)-.5; float l=dot(c,vec3(.3,.6,.1));
+  c+=g*.038*(1.-.6*l);
+  gl_FragColor=vec4(c,1.); }`, {tDof:{value:null}, uRes:U.uRes, uFilm:{value:new THREE.Vector3()}, uExpo:{value:1}, uFlash:{value:0}});
+
+const over=$('over'), og=over.getContext('2d');
+let rt=null, budget=TEST&&TEST.budget ? TEST.budget : (LOW?5e5:2.1e6), msaa=LOW?0:4;
+function build(){
+  const cw=canvas.clientWidth||window.innerWidth, chh=canvas.clientHeight||window.innerHeight, dpr=Math.min(window.devicePixelRatio||1,2);
+  const scale=Math.min(dpr, Math.sqrt(budget/(cw*chh)));
+  renderer.setPixelRatio(scale); renderer.setSize(cw,chh,false);
+  const w=Math.max(2,Math.floor(cw*scale)), h=Math.max(2,Math.floor(chh*scale));
+  if(rt) for(const k in rt) rt[k].dispose();
+  const T=HDR?THREE.HalfFloatType:THREE.UnsignedByteType;
+  const dt=new THREE.DepthTexture(w,h); dt.type=THREE.UnsignedIntType; dt.minFilter=dt.magFilter=THREE.NearestFilter;
+  rt={ scene:new THREE.WebGLRenderTarget(w,h,{type:T, samples:msaa, depthTexture:dt}),
+       ao:new THREE.WebGLRenderTarget(w,h,{type:THREE.UnsignedByteType}),
+       prep:new THREE.WebGLRenderTarget(w,h,{type:T}),
+       dof:new THREE.WebGLRenderTarget(w,h,{type:T, generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter}) };
+  U.uRes.value.set(w,h); camera.aspect=cw/chh; camera.fov = cw/chh<1 ? 44 : (cw/chh<1.4 ? 33 : 27); camera.updateProjectionMatrix();
+  over.width=Math.round(cw*dpr); over.height=Math.round(chh*dpr);
+}
+let flashAt=0;
+function draw(f){
+  const fi=pose(f);
+  if(review>=0){ snapTex.image.data.set(snaps[review].px); snapTex.needsUpdate=true; cpyU.tSrc.value=snapTex; cpyU.uSnap.value=1; }
+  else { cpyU.tSrc.value=SC[0].texture; cpyU.uSnap.value=0; }
+  pass(cpyMat,DISP); dispU.uJit.value=rnd(fi,60)*64;
+  renderer.setRenderTarget(rt.scene); renderer.render(scene,camera);
+  const Pm=camera.projectionMatrix.elements;
+  for(const m of [aoMat,prepMat]){ m.uniforms.tDepth.value=rt.scene.depthTexture; m.uniforms.uNear.value=camera.near; m.uniforms.uFar.value=camera.far; m.uniforms.uProj.value.set(Pm[0],Pm[5]); m.uniforms.uRes.value.copy(U.uRes.value); }
+  tri.material=aoMat; renderer.setRenderTarget(rt.ao); renderer.render(postScene,postCam);
+  prepMat.uniforms.tColor.value=rt.scene.texture; prepMat.uniforms.tAO.value=rt.ao.texture;
+  prepMat.uniforms.uFocus.value=focusDist; prepMat.uniforms.uAperture.value=6.5;
+  tri.material=prepMat; renderer.setRenderTarget(rt.prep); renderer.render(postScene,postCam);
+  dofMat.uniforms.tPrep.value=rt.prep.texture; dofMat.uniforms.uMaxPx.value=U.uRes.value.y*.021; dofMat.uniforms.uStep.value=Math.max(1.1, U.uRes.value.y/820);
+  tri.material=dofMat; renderer.setRenderTarget(rt.dof); renderer.render(postScene,postCam);
+  finMat.uniforms.tDof.value=rt.dof.texture;
+  finMat.uniforms.uFilm.value.set((rnd(fi,50)-.5)*1.2,(rnd(fi,51)-.5)*1.2,rnd(fi,52)*100);
+  finMat.uniforms.uExpo.value=1.06*(1+(rnd(fi,53)-.5)*.03);
+  finMat.uniforms.uFlash.value=f-flashAt<6?Math.exp(-(f-flashAt)*.7)*.9:0;
+  tri.material=finMat; renderer.setRenderTarget(null); renderer.render(postScene,postCam);
+  annotate();
+}
+/* a pencil note over the picture: where the creature believes the heater is. Not in the tank; drawn on the print. */
+function scr(cx,cy){ toWorld(cx,cy,tmp).project(camera); return [(tmp.x*.5+.5)*over.width, (-tmp.y*.5+.5)*over.height]; }
+function annotate(){
+  og.clearRect(0,0,over.width,over.height);
+  const r=review>=0 ? snaps[review].r : readout(); if(r.mode!=='living' || r.since<20) return;
+  const k=over.width/(canvas.clientWidth||1), a=scr(r.X[0],r.X[1]), bx=clamp(r.X[0]+r.mu[0],2,NX-2), by=clamp(r.X[1]+r.mu[1],2,NY-2), b=scr(bx,by);
+  const e=scr(bx+2*Math.sqrt(r.s2),by), rad=clamp(Math.abs(e[0]-b[0]),5*k,90*k);
+  og.lineWidth=1.3*k; og.strokeStyle='rgba(243,236,223,.78)'; og.fillStyle='rgba(243,236,223,.85)'; og.setLineDash([4*k,4*k]);
+  og.beginPath(); og.arc(b[0],b[1],rad,0,6.2832); og.stroke();
+  const dx=b[0]-a[0], dy=b[1]-a[1], L=Math.hypot(dx,dy);
+  if(L>rad+26*k){ og.globalAlpha=.5; og.beginPath(); og.moveTo(a[0]+dx/L*22*k,a[1]+dy/L*22*k); og.lineTo(b[0]-dx/L*rad,b[1]-dy/L*rad); og.stroke(); og.globalAlpha=1; }
+  og.setLineDash([]); og.font='500 '+Math.round(11*k)+'px "DM Mono",ui-monospace,monospace'; og.textAlign='center';
+  og.shadowColor='rgba(0,0,0,.6)'; og.shadowBlur=6*k; og.fillText('its belief', b[0], b[1]-rad-6*k); og.shadowBlur=0;
+}
+
+/* ───────────────────────── readouts ───────────────────────── */
+const E={}; for(const id of ['actname','deadbox','livebox','dH','dbar','dmax','dspread','dmass','dnote','belief','lnote','Fv','fcx','fia','Fc','Fi','lH','lbar','lheld','ldist','rraw','rpar','rnote','actline','sdots','adots','count','scrub','play','panel']) E[id]=$(id);
+for(const d of [E.sdots,E.adots]) for(let k=0;k<8;k++) d.appendChild(document.createElement('i'));
+const bits=x=>(x/Math.LN2).toFixed(2), FSCALE=24;
+E.dmax.textContent=bits(HMAX)+' bits';
+const ACT1='The drop rolls into a plume, the currents fold it, and it spreads until no part of the tank can be told from any other. A thing that does not keep itself apart from its surroundings stops being a thing.';
+const ACT2='The same drop, with a skin. Gold cells feel how warm the water is, red cells pump and haul, and the dark inside guesses where the heater hangs.';
+function hud(){
+  const r=review>=0 ? snaps[review].r : readout(), live=r.mode==='living';
+  E.deadbox.hidden=live; E.livebox.hidden=!live; E.actname.textContent=live?'Act 2. Living ink':'Act 1. Dead ink'; E.actline.textContent=live?ACT2:ACT1;
+  const frac=Math.exp(r.H-HMAX), mok=r.mass0>0;
+  if(!live){
+    E.dH.textContent=bits(r.H)+' bits'; E.dbar.style.width=(100*r.H/HMAX).toFixed(1)+'%';
+    E.dspread.textContent=(frac<.1?(100*frac).toFixed(1):Math.round(100*frac))+'% of the tank';
+    E.dmass.textContent=mok?(100*r.mass/r.mass0).toFixed(2)+'%':'...';
+    E.dnote.textContent=!mok?'Waiting for the drop.':frac>.97?'At the ceiling, near enough. Nothing in the tank can now be told from anything else, and nothing will gather the ink again.':frac>.5?'The water is going grey. Entropy has only ever risen.':r.since<500?'The plume: a vortex pair, the flat cousin of the ring a real drop makes.':'The slow currents fold the ink into the water. A stir would hurry it.';
+  } else {
+    const d=Math.hypot(r.src[0]-r.X[0],r.src[1]-r.X[1]), F=r.Fc+r.Fi, sc=FSCALE, cl=Math.min(1,sc/Math.max(F,1e-9));
+    E.belief.textContent=r.links[0]?'heat '+Math.round(Math.hypot(r.mu[0],r.mu[1])*P.CM)+' cm off':'nothing new';
+    E.Fv.textContent=F.toFixed(1)+' nats'; E.fcx.style.width=(100*cl*r.Fc/sc).toFixed(1)+'%'; E.fia.style.width=(100*cl*r.Fi/sc).toFixed(1)+'%';
+    E.Fc.textContent=r.Fc.toFixed(1); E.Fi.textContent=r.links[0]?r.Fi.toFixed(1):'none';
+    E.lH.textContent=bits(r.H)+' of '+(HMAX/Math.LN2).toFixed(1)+' bits'; E.lbar.style.width=(100*r.H/HMAX).toFixed(1)+'%'; E.lheld.textContent=Math.round(100*r.held)+'%'; E.ldist.textContent=Math.round(d*P.CM)+' cm';
+    const lo=Math.min.apply(null,r.sens), hi=Math.max.apply(null,r.sens);
+    for(let k=0;k<8;k++){ E.sdots.children[k].style.opacity=(.2+.8*(hi>lo?(r.sens[k]-lo)/(hi-lo):0)).toFixed(2); E.adots.children[k].style.opacity=(.2+.8*clamp(.5+.5*Math.tanh(r.thr[k]),0,1)*clamp(r.pump[k],0,1)).toFixed(2); }
+    const L=r.links;
+    E.lnote.textContent=L[0]&&L[1]&&L[2] ? (d<26?'Whole. It has found the warm spot and holds its place against the current.':'Whole. It feels that one side is warmer and hauls itself that way.')
+      : !L[0]&&L[1]&&L[2] ? 'Blind. The pumps still hold it together, but its belief has sunk back to its prior, and the current and its own weight take it where they will.'
+      : !L[1] ? 'It still senses and still believes, but nothing tells the red cells what to do. The skin stops being kept.'
+      : 'The red cells fire into nothing. It knows where the warmth is and dissolves all the same.';
+    const ok=isFinite(r.corr);
+    E.rraw.textContent=ok?r.corr.toFixed(2):'...'; E.rpar.textContent=ok?r.pcorr.toFixed(2):'...';
+    E.rnote.textContent=!ok?'Gathering readings ('+r.n+' of 80 needed).':(r.corr>.5&&r.pcorr<.25?'Large, then near zero: given the skin, the inside adds nothing. That is conditional independence.':r.corr<=.5?'The inside is not tracking the outside at present, so there is little for the skin to explain.':(!r.links[1]?'With the red cells silent the straight-line test has only the gold cells to go on, and it is too blunt to read the belief off them. The second number rises for that reason.':'From the last '+r.n+' readings.'));
+  }
+  for(let k=0;k<3;k++) $('l'+k).setAttribute('aria-pressed', sim.links[k]);
+  $('mdead').setAttribute('aria-pressed', sim.mode==='dead'); $('mlive').setAttribute('aria-pressed', sim.mode==='living');
+  E.scrub.max=snaps.length; if(review<0) E.scrub.value=snaps.length;
+  E.count.textContent=review>=0 ? 'rush '+String(review+1).padStart(3,'0')+' / '+String(snaps.length).padStart(3,'0') : 'step '+String(sim.since).padStart(5,'0')+(r.lapse>1.05?'  time-lapse x'+r.lapse.toFixed(0):'');
+  E.play.textContent=playing&&review<0?'Pause':'Play';
+}
+
+/* ───────────────────────── playback and controls ───────────────────────── */
+const REDUCED=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+const rateAcc=[0,0];
+let frame=0, playing=!REDUCED, dirty=true, acc=0, last=0, slow=0, review=-1, want=0, dropInj=-1;
+function requestDrop(now){ review=-1; newDrop(); sim.pendInk=false; if(now){ dropAt=-1; dropInj=-1; sim.pendInk=true; } else { dropAt=frame; dropInj=frame+16; playing=true; } dirty=true; hud(); }
+function flushDrop(){ if(dropInj>=0){ dropInj=-1; sim.pendInk=true; } }
+function setMode(m,now){ if(m!=='dead'&&m!=='living') return; sim.mode=m; if(m==='living') initHeat(); requestDrop(now); }
+function setLink(k,v){ sim.links[k]=!!v; dirty=true; hud(); }
+function stir(x,y,vx,vy){ sim.stir=[clamp(x,0,NX),clamp(y,0,NY),clamp(vx,-.5,.5),clamp(vy,-.5,.5)]; }
+function run(n){ flushDrop(); review=-1; for(let i=0;i<n;i++) simStep(); if(sim.mode==='living') blanketTest(); dirty=true; hud(); return sim.step; }
+E.play.onclick=()=>{ if(review>=0){ review=-1; playing=true; } else playing=!playing; dirty=true; hud(); };
+E.scrub.oninput=()=>{ const v=+E.scrub.value; if(v>=snaps.length){ review=-1; } else { review=v; playing=false; } dirty=true; hud(); };
+$('mdead').onclick=()=>setMode('dead'); $('mlive').onclick=()=>setMode('living');
+$('drop').onclick=()=>requestDrop();
+$('stirb').onclick=()=>{ const c=sim.mode==='living'?sim.X:[NX*.5,NY*.5], a=rand()*6.28; stir(c[0]-14*Math.cos(a),c[1]-14*Math.sin(a),.45*Math.cos(a+1.2),.45*Math.sin(a+1.2)); if(review>=0) review=-1; playing=true; hud(); };
+for(let k=0;k<3;k++) $('l'+k).onclick=()=>setLink(k,!sim.links[k]);
+$('readbtn').onclick=()=>{ const s=E.panel.classList.toggle('shut'); $('readbtn').setAttribute('aria-pressed',!s); };
+const about=$('about'), aboutb=$('aboutb');
+function setAbout(v){ about.classList.toggle('open',v); aboutb.setAttribute('aria-expanded',v); if(v) about.focus(); else aboutb.focus(); }
+aboutb.onclick=()=>setAbout(!about.classList.contains('open')); $('aboutx').onclick=()=>setAbout(false);
+addEventListener('keydown',e=>{ const t=e.target, tag=t&&t.tagName;
+  if(e.key==='Escape'){ if(about.classList.contains('open')){ setAbout(false); return; } if(!t||t===document.body||t===canvas||t===document.documentElement) goBack(); else if(t.blur) t.blur(); return; }
+  if(tag==='BUTTON'||tag==='INPUT'||about.contains(t)) return;
+  if(e.code==='Space'){ e.preventDefault(); E.play.click(); } });
+/* pointer: inside the water it is a stirring rod, outside it moves the camera */
+const ray=new THREE.Raycaster(), plane=new THREE.Plane(new THREE.Vector3(0,0,1),0);
+function tankCell(e){ const b=canvas.getBoundingClientRect(); ray.setFromCamera(new THREE.Vector2((e.clientX-b.left)/b.width*2-1, -((e.clientY-b.top)/b.height*2-1)), camera);
+  const p=ray.ray.intersectPlane(plane,tmp2); if(!p) return null; const cx=(p.x/WX+.5)*NX, cy=(p.y-Y0)/WH*NY; return cx>=0&&cx<=NX&&cy>=0&&cy<=NY ? [cx,cy] : null; }
+let down=null;
+canvas.addEventListener('pointerdown',e=>{ const c=tankCell(e); down={x:e.clientX,y:e.clientY,c}; canvas.setPointerCapture(e.pointerId); canvas.classList.add(c?'stir':'dragging'); });
+canvas.addEventListener('pointermove',e=>{ if(!down){ canvas.classList.toggle('stir',!!tankCell(e)); return; }
+  if(down.c){ const c=tankCell(e); if(c){ stir(c[0],c[1],(c[0]-down.c[0])*.12,(c[1]-down.c[1])*.12); down.c=c; if(review>=0){ review=-1; } if(!playing){ playing=true; } } return; }
+  const dx=e.clientX-down.x, dy=e.clientY-down.y;
+  view.yaw=clamp(view.yaw-dx*.004,-.7,.7); view.pitch=clamp(view.pitch+dy*.003,-.14,.5); down.x=e.clientX; down.y=e.clientY; dirty=true; });
+const up=()=>{ down=null; canvas.classList.remove('dragging'); }; canvas.addEventListener('pointerup',up); canvas.addEventListener('pointercancel',up);
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); view.zoom=clamp(view.zoom*Math.exp(e.deltaY*.0012),.55,1.5); dirty=true; },{passive:false});
+addEventListener('resize',()=>{ build(); dirty=true; });
+
+const vbuf=new Float32Array(NX*NY*4);
+function flow(){ renderer.readRenderTargetPixels(V[0],0,0,NX,NY,vbuf); let m=0, mx=0, dv=0; for(let j=0;j<NY-1;j++) for(let i=0;i<NX-1;i++){ const q=(j*NX+i)*4, sp=Math.hypot(vbuf[q],vbuf[q+1]); m+=sp; if(sp>mx) mx=sp;
+    dv=Math.max(dv,Math.abs(vbuf[q+4]-vbuf[q]+vbuf[q+NX*4+1]-vbuf[q+1])); } return { mean:m/((NX-1)*(NY-1)), max:mx, maxDivergence:dv }; }
+window.PIECE={ name:'ink-blanket', flow, back:BACK, params:P, grid:[NX,NY], samples:()=>sim.samples.map(r=>Array.from(r)), expect:(mx,my,k)=>expect(mx,my,k,[0,0,0])[0], run, setMode:m=>setMode(m,true), setLink, stir, drop:()=>requestDrop(true),
+  state(){ const r=readout(); return { frame, step:sim.step, since:sim.since, mode:sim.mode, playing:playing&&review<0, review, links:r.links, lapse:r.lapse,
+    mass:sim.mass, mass0:sim.mass0, massError:sim.mass0>0?Math.abs(sim.mass/sim.mass0-1):null, entropy:sim.H, entropyBits:sim.H/Math.LN2, entropyMax:HMAX, spread:Math.exp(sim.H-HMAX), entropyMaxDrop:sim.maxDrop||0,
+    held:sim.held, haul:sim.haul.slice(), stir:sim.stir.slice(), about:about.classList.contains('open'), X:r.X, source:r.src, dist:Math.hypot(r.src[0]-r.X[0],r.src[1]-r.X[1]), mu:r.mu, s2:sim.s2, complexity:sim.Fc, inaccuracy:sim.Fi, F:sim.Fc+sim.Fi,
+    corr:sim.corr, pcorr:sim.pcorr, pcorrSensorsOnly:sim.csens, samples:sim.samples.length, snaps:snaps.length, sens:r.sens, pump:r.pump, thr:r.thr, low:LOW }; } };
+
+build();
+if(E.panel && innerWidth<=760){ E.panel.classList.add('shut'); $('readbtn').setAttribute('aria-pressed',false); }
+E.dmax.textContent=bits(HMAX)+' bits';
+if(TEST){ setMode('dead',true); hud(); window.__clay={ shot(f,v){ if(v) Object.assign(view,v); const n=Math.max(0,f-sim.since); for(let i=0;i<n;i++) simStep(); frame=f-f%2; hud(); draw(frame); renderer.getContext().finish(); return true; } }; return; }
+if(REDUCED){ setMode('dead',true); run(420); } else { requestDrop(); dropAt=10; dropInj=26; }
+hud();
+function tick(t){ requestAnimationFrame(tick);
+  const dt=Math.min(t-last,250); last=t;
+  if(playing&&review<0){
+    acc+=dt; const per=1000/TPS*2; let ticked=false; while(acc>=per){ acc-=per; frame+=2; ticked=true; if(dropInj>=0&&frame>=dropInj) flushDrop(); }
+    want+=dt/1000*90*lapseNow(); const t0=performance.now(), cap=Math.max(9,dt*.4);
+    const d0=done; while(want>=1 && performance.now()-t0<cap){ simStep(); want-=done-d0>0 ? SU.uDt.value : 1; } if(want>60) want=0;
+    rateAcc[0]+=done-d0; rateAcc[1]+=dt; if(rateAcc[1]>=1000){ rate=Math.max(1,rateAcc[0]/(rateAcc[1]/1000*90)); rateAcc[0]=rateAcc[1]=0; }
+    if(ticked) hud(); dirty=true; }
+  if(dirty){ dirty=false; const t0=performance.now(); draw(frame); renderer.getContext().finish(); const ms=performance.now()-t0;
+    // if a picture takes longer than its slot, shoot at a lower resolution
+    if(ms>1000/TPS*2*.85){ if(++slow>5 && budget>5e5){ budget*=.72; slow=0; build(); dirty=true; } } else slow=Math.max(0,slow-1); }
+}
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

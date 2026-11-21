@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Tyger's forge</title>
+<meta name="description" content="Blake's smithy from The Tyger, at night in a forest: work the bellows, heat the iron, strike it, quench it, and see what answers the fire.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --studio:#060607;
+  --ink:#f3ecdf;
+  --ink-soft:rgba(243,236,223,.72);
+  --panel:rgba(10,9,9,.6);
+  --line:rgba(243,236,223,.22);
+  --accent:#ff7a3c;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+body{transition:opacity .35s ease}
+body.leaving{opacity:0}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#stage.dragging{cursor:grabbing}
+#stage.point{cursor:pointer}
+#stage:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+.head{position:fixed;left:20px;top:16px;max-width:min(400px,calc(100vw - 40px));max-height:calc(100vh - 130px);overflow:auto;pointer-events:none;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.head h1{font:600 clamp(21px,3vw,30px)/1.05 var(--display);margin:0 0 8px;letter-spacing:-.01em;text-wrap:balance}
+.head p{font:400 13px/1.45 var(--mono);margin:0;color:var(--ink-soft);max-width:46ch;text-wrap:pretty}
+.head .verse{font:400 italic 16.5px/1.42 var(--display);color:var(--ink);white-space:pre-line;margin:0 0 9px;transition:opacity .9s ease}
+.head .verse.turn{opacity:0}
+.bar{position:fixed;left:16px;right:16px;bottom:16px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;
+  padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font:400 12.5px/1 var(--mono)}
+.bar button,.task button,.back{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);
+  border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+.bar button:hover,.task button:hover,.back:hover{border-color:var(--ink-soft)}
+.bar button[aria-pressed="true"],.task button[aria-pressed="true"]{background:var(--ink);color:#15161a;border-color:var(--ink)}
+.bar button:focus-visible,.bar input:focus-visible,.task button:focus-visible,.back:focus-visible,.about summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bar button.go,.task button.go{background:var(--accent);border-color:var(--accent);color:#1a0d05}
+.bar button:disabled{opacity:.4;cursor:default}
+.back,.task{position:fixed;right:16px;background:var(--panel);border:1px solid var(--line);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.back{top:16px;padding:11px 15px}
+.task{top:66px;width:min(300px,calc(100vw - 32px));max-height:calc(100vh - 190px);overflow:auto;padding:13px 14px 6px;border-radius:14px;font:400 12.5px/1.45 var(--mono);color:var(--ink-soft)}
+.task .lab{display:block;color:var(--ink);margin:0 0 9px}
+.task p{margin:0 0 8px;text-wrap:pretty}
+.task .num{color:var(--ink);font-variant-numeric:tabular-nums;display:flex;gap:8px;align-items:center}
+.task .num b{font-weight:500;margin-left:auto}
+.task .sw{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid var(--line);background:#000;flex:none}
+.task [hidden]{display:none}
+.about{pointer-events:auto;margin-top:10px;font:400 12px/1.5 var(--mono);color:var(--ink-soft)}
+.about summary{cursor:pointer;display:inline-block;padding:6px 12px;border:1px solid var(--line);border-radius:999px;color:var(--ink);list-style:none}
+.about summary::-webkit-details-marker{display:none}
+.about summary:hover{border-color:var(--ink-soft)}
+.about p{margin:9px 0 0;max-width:54ch;text-wrap:pretty}
+.about b{color:var(--ink);font-weight:500}
+.bar input[type=range]{flex:1 1 90px;min-width:70px;max-width:150px;accent-color:var(--accent);height:22px}
+.grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.grp>span{color:var(--ink-soft)}
+.eyebrow{font:400 12px/1.3 var(--mono);color:var(--ink-soft);margin-bottom:8px;letter-spacing:.02em}
+@media (max-width:760px){
+  .head{left:10px;top:58px;max-width:calc(100vw - 20px);padding:10px 12px}
+  .head h1{font-size:20px;margin-bottom:5px}
+  .head p{font-size:12px}
+  .head #p{display:none}
+  .head .verse{font-size:14.5px;line-height:1.34;margin-bottom:6px}
+  .back{right:10px;top:10px}
+  .bar{left:10px;right:10px;bottom:10px;gap:7px;padding:8px 9px}
+  .bar button{padding:8px 10px}
+  .task{left:10px;right:10px;width:auto;top:auto;bottom:calc(var(--barh,150px) + 18px);padding:8px 12px 2px;font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+  .task .lab,.task .long{display:none}
+  .task p{margin-bottom:6px}
+  .task #note{grid-column:1/3}
+  .grp>span{display:none}
+}
+@media (prefers-reduced-motion:reduce){body,.head .verse{transition:none}}
+#fail{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:400 15px/1.5 var(--mono)}
+</style>
+</head>
+<body>
+<canvas id="stage" tabindex="0" aria-label="A smithy at night, open to a forest. A charcoal fire on the left, an anvil in front of you, a stone trough of water on the right, dark trees beyond. Drag to look round. B pumps the bellows. F, A and Q carry the iron to the fire, the anvil and the trough. Left and right arrows choose where to strike, Space strikes."></canvas>
+<button id="back" class="back" type="button">Back to the museum</button>
+<div class="head" id="head">
+  <div class="eyebrow">William Blake &middot; Songs of Experience, 1794 &middot; <span id="where">verse 1 of 6</span></div>
+  <h1 id="h">The Tyger&rsquo;s forge</h1>
+  <p class="verse" id="verse" aria-live="polite"></p>
+  <p id="p"></p>
+  <details class="about" id="about">
+    <summary>About this piece</summary>
+    <p><b>What is computed.</b> The fire is a heat balance on a lump of burning charcoal: carbon burns as fast as the bellows bring oxygen, and heat leaves by radiation, with the hot gases, and through the hearth. The colour of everything that glows comes from Planck&rsquo;s law for a black body, weighed by the eye&rsquo;s colour matching functions (CIE 1931). Heat runs along the iron by the heat equation, solved as you watch in a hundred cells, and leaves each cell by radiation and convection. A blow carries momentum and energy; hot iron is soft, so the energy does plastic work and the iron spreads, and each cell keeps its volume exactly. Thin places cool faster than thick ones, which is why the bar goes striped as it fades. Sparks are flakes of scale on ballistic paths, cooling by radiation, coloured by their own temperature. The anvil&rsquo;s ring is a sum of decaying modes, excited by the impulse and the length of the contact, made in the browser. In the trough the iron first wears a jacket of steam and cools slowly (the Leidenfrost effect); when the jacket fails the water boils hard. The numbers on the pyrometer are the model&rsquo;s own.</p>
+    <p><b>What this leaves out, and what is squeezed.</b> No screen can show iron at 1300 &deg;C some ten thousand times brighter than iron at 700 &deg;C. The hue is the computed one; the brightness is the true luminance raised to the power 0.55, and very bright colours wash towards white as they do in an eye or a camera. Real black-body light at 1300 &deg;C is still orange on paper: it looks near white because it is so bright. The fire is one temperature, not a bed with a hot heart and a cool crust. The iron conducts along its length only. Heat lost into the anvil, drag on the sparks, and the chemistry of burning iron are left out or stood in for by simple rules. The anvil&rsquo;s notes were chosen by ear, not measured. Flames, steam and the flicker of the light are drawn, though how much of each there is comes from the model. The exposure opens in a dim room and closes in the blast, as an eye does, so the swatches on the pyrometer (fixed exposure) can look dimmer than the picture when the fire is slack. Light thrown back by the floor and the brick is stood in for by two small fill lights, and a little night sky comes in through the open wall. Constants marked &ldquo;chosen&rdquo; in the notes are not measurements.</p>
+    <p><b>What is art.</b> The stripes in the forest, the eyes, and the rain of starlight are not physics. Each tree lights in step with one cut in the iron, and its twin lights on the other side: that mirror is the piece&rsquo;s reading of &ldquo;fearful symmetry&rdquo;, not Blake&rsquo;s. Their colour and strength follow the fire. No tiger is drawn.</p>
+    <p><b>Blake&rsquo;s words.</b> &ldquo;The Tyger&rdquo;, from <i>Songs of Experience</i> (1794), complete, in the reading of D. V. Erdman&rsquo;s edition, which keeps Blake&rsquo;s own spelling (&ldquo;sieze&rdquo;) and pointing. Public domain. Nothing else on this page is quoted.</p>
+    <p><b>Sources.</b> D. V. Erdman (ed.), <i>The Complete Poetry and Prose of William Blake</i> (1988). M. Planck (1900); CIE 1931 standard observer, in the fit of C. Wyman, P.-P. Sloan and P. Shirley, <i>Journal of Computer Graphics Techniques</i> 2 (2013). F. P. Incropera and D. P. DeWitt, <i>Fundamentals of Heat and Mass Transfer</i>, for conduction, radiation and the boiling curve. S. Nukiyama (1934) and J. G. Leidenfrost (1756) on boiling. T. D. Rossing and N. H. Fletcher, <i>The Physics of Musical Instruments</i>, for struck bars and modes.</p>
+  </details>
+</div>
+<div class="task" id="task">
+  <div class="lab">Pyrometer</div>
+  <p class="num"><span class="sw" id="swF"></span><span>Fire</span><b id="nF"></b></p>
+  <p class="num"><span class="sw" id="swI"></span><span>Iron</span><b id="nI"></b></p>
+  <p class="num long"><span>Blast of air</span><b id="nA"></b></p>
+  <p class="num"><span>Cuts made</span><b id="nS"></b></p>
+  <p class="num long"><span>Blows</span><b id="nB"></b></p>
+  <p class="num" id="rowW" hidden><span>Water</span><b id="nW"></b></p>
+  <p id="note" aria-live="polite"></p>
+  <p id="rowDoor" hidden><button id="door" class="go" type="button">Leave by the door</button></p>
+</div>
+<div class="bar" id="bar">
+  <button id="play" type="button">Pause</button>
+  <button id="auto" type="button" aria-pressed="false">Watch the smith</button>
+  <button id="pump" class="go" type="button">Pull the chain</button>
+  <span class="grp" role="group" aria-label="Where the iron is">
+    <span>Iron:</span>
+    <button type="button" id="pFire" aria-pressed="true">Fire</button>
+    <button type="button" id="pAnvil" aria-pressed="false">Anvil</button>
+    <button type="button" id="pTrough" aria-pressed="false">Trough</button>
+  </span>
+  <span class="grp">
+    <button type="button" id="strike" class="go">Strike</button>
+    <input id="power" type="range" min="0" max="100" step="1" value="80" aria-label="How hard the hammer falls, from light to heavy">
+  </span>
+  <button type="button" id="sound" aria-pressed="false">Sound</button>
+</div>
+<div id="fail">This piece needs WebGL 2, which this browser or device has not made available.</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+/* ───────────────────────── the way back to the museum ───────────────────────── */
+const HOME = { blake: 'index.html', jooles: 'jooles.html', park: 'park.html' };
+const QS = new URLSearchParams(location.search);
+const FROM = Object.prototype.hasOwnProperty.call(HOME, QS.get('from')||'') ? QS.get('from') : 'blake';
+const STOP = /^[a-z0-9_:\-]{1,40}$/.test(QS.get('stop')||'') ? QS.get('stop') : 'tyger';
+const BACKTO = HOME[FROM] + '#' + STOP;                 // only ever built from the table and a checked name
+const LOW = QS.get('q')==='low';
+const REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const $ = id => document.getElementById(id);
+function leave(to){ if(document.body.classList.contains('leaving')) return; document.body.classList.add('leaving'); setTimeout(()=>{ location.href = to; }, REDUCED?0:360); }
+function goBack(){ leave(BACKTO); }
+$('back').onclick = goBack; $('door').onclick = goBack;   // the door at the end leads the same way: back to the museum
+window.PIECE = { name:'tyger-forge', back:BACKTO, state:()=>({ frame:0, webgl:false }) };
+function rng(seed){ let a=seed>>>0; return ()=>{ a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
+function h1(n){ const s=Math.sin(n*127.1)*43758.5453; return s-Math.floor(s); }
+function sn(x){ const i=Math.floor(x), f=x-i, u=f*f*(3-2*f); return h1(i)+(h1(i+1)-h1(i))*u; }          // smooth noise in one dimension, 0..1
+
+/* ═════════════════════════ the physics (no drawing in here; every number on the page comes from these) ═════════════════════════ */
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)), lerp=(a,b,t)=>a+(b-a)*t, sat=v=>clamp(v,0,1);
+const sstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+const TAU=Math.PI*2, GRAV=9.81, K0=273.15;
+const PH={ h:6.62607015e-34, c:2.99792458e8, k:1.380649e-23, sigma:5.670374419e-8 };
+
+/* ── 1. Black-body colour. Planck's law, weighted by the CIE 1931 colour matching functions, gives X, Y, Z; the standard
+   matrix gives linear sRGB. The matching functions are the piecewise-Gaussian fit of Wyman, Sloan and Shirley (2013),
+   good to about one part in a hundred. Luminance is 683 lm/W times the Y integral, in candela per square metre. ── */
+function planck(lam,T){ return 2*PH.h*PH.c*PH.c/Math.pow(lam,5)/Math.expm1(PH.h*PH.c/(lam*PH.k*T)); }      // W per m2 per steradian per metre of wavelength
+function cmf(nm){ const g=(m,s1,s2)=>{ const t=(nm-m)/(nm<m?s1:s2); return Math.exp(-.5*t*t); };
+  return [ 1.056*g(599.8,37.9,31.0)+.362*g(442.0,16.0,26.7)-.065*g(501.1,20.4,26.2), .821*g(568.8,46.9,40.5)+.286*g(530.9,16.3,31.1), 1.217*g(437.0,11.8,36.0)+.681*g(459.0,26.0,13.8) ]; }
+function bbXYZ(T){ let X=0,Y=0,Z=0; for(let nm=380;nm<=780;nm+=2){ const L=planck(nm*1e-9,T)*2e-9, m=cmf(nm); X+=L*m[0]; Y+=L*m[1]; Z+=L*m[2]; } return [X,Y,Z]; }
+function bbxy(T){ const v=bbXYZ(T), s=v[0]+v[1]+v[2]; return [v[0]/s, v[1]/s]; }
+function bbLum(T){ return 683*bbXYZ(T)[1]; }                                                              // cd/m2 of a perfect black body
+function xyz2rgb(v){ return [ 3.2406*v[0]-1.5372*v[1]-.4986*v[2], -.9689*v[0]+1.8758*v[1]+.0415*v[2], .0557*v[0]-.2040*v[1]+1.0570*v[2] ]; }
+function bbChroma(T){ const v=bbXYZ(T), r=xyz2rgb([v[0]/v[1],1,v[2]/v[1]]); return r.map(c=>Math.max(c,0)); }  // linear sRGB at unit luminance; a glow this red lies outside sRGB, so the negative blue is cut to nothing
+/* What the screen can do with it. Iron at 1300 C is some thousands of times brighter than iron at 700 C; no screen is.
+   So the brightness drawn is the true luminance raised to a power (DISP.gamma), then put through the same film curve
+   as everything else in the picture. The hue is the computed one; the brightness is squeezed. */
+const DISP={ Tref:1273.15, gain:.54, gamma:.55 }; let LREF=0;
+function bbDisplay(T){ if(!LREF) LREF=bbLum(DISP.Tref); if(T<700) return [0,0,0]; const c=bbChroma(T), d=DISP.gain*Math.pow(bbLum(T)/LREF,DISP.gamma); return [c[0]*d,c[1]*d,c[2]*d]; }
+function tone(c){ const L=.2126*c[0]+.7152*c[1]+.0722*c[2], w=L/(L+5), k=w*w*.92;                           // very bright colours wash towards white, as in an eye or a camera
+  return c.map(v=>{ v=v+(L-v)*k; return clamp(v*(2.51*v+.03)/(v*(2.43*v+.59)+.14),0,1); }); }                 // then the usual filmic shoulder (Narkowicz's fit)
+function srgb8(c){ return c.map(v=>Math.round(255*(v<=.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-.055))); }
+function swatch(T){ return srgb8(tone(bbDisplay(T))); }                                                   // the colour the page shows for a body at T kelvin
+
+/* ── 2. The fire: one lump of burning charcoal (the heart of the fire) with a temperature T.
+   Carbon burns as fast as the air brings oxygen (C + O2 -> CO2), unless it is too cold for the chemistry (an
+   Arrhenius rate); the two limits act in series. Heat leaves by radiation from the open top (emissivity x sigma x
+   area x T^4), with the hot gases (mass flow x specific heat x rise) and through the hearth. dT/dt = net / (m c).
+   The bellows are a reservoir: a pull fills it, a weighted board presses the air out through the tuyere. ── */
+const FUR={ m:.35, cp:1300, area:.025, eps:.85, wall:1.5, Tair:288.15, dH:32.8e6, O2:.233, eff:.9, cpg:1150, kA:40, kE:9000,
+  draught:.0022, blast:.018, tau:3.5, pull:.36, rhoAir:1.2 };
+function airFlow(b){ return FUR.draught+FUR.blast*Math.sqrt(sat(b)); }                                       // kg of air a second for a reservoir fill b in 0..1
+function furnaceRates(T,air){ const rO=air*FUR.O2*(12/32)*FUR.eff, rK=FUR.kA*Math.exp(-FUR.kE/T), burn=rO*rK/(rO+rK),
+    gen=burn*FUR.dH, rad=FUR.eps*PH.sigma*FUR.area*(Math.pow(T,4)-Math.pow(FUR.Tair,4)), flue=(air+burn)*FUR.cpg*(T-FUR.Tair), wall=FUR.wall*(T-FUR.Tair);
+  return { burn, gen, rad, flue, wall, net:gen-rad-flue-wall }; }
+function furnaceStep(f,dt,toIron){ const n=Math.max(1,Math.ceil(dt/.02)), h=dt/n; let r;
+  for(let i=0;i<n;i++){ f.air=airFlow(f.b); r=furnaceRates(f.T,f.air); f.T+=h*(r.net-(toIron||0))/(FUR.m*FUR.cp); f.burnt+=h*r.burn; f.b=Math.max(0,f.b-h*Math.sqrt(Math.max(f.b,0))/FUR.tau); if(f.b<1e-5) f.b=0; }
+  f.rates=r; return f; }
+function furnaceSteady(air){ let lo=600, hi=2600; for(let i=0;i<60;i++){ const m=(lo+hi)/2; if(furnaceRates(m,air).net>0) lo=m; else hi=m; } return (lo+hi)/2; }   // the hot steady state
+function pump(f){ f.b=Math.min(1,f.b+FUR.pull); f.pulls=(f.pulls||0)+1; return f.b; }
+
+/* ── 3. The iron: a flat bar cut into cells along its length. Each cell keeps its own length dx, width w, thickness h
+   and temperature T. Heat moves between neighbours by Fourier's law (the heat equation in one dimension, in
+   conservative form, so heat is neither made nor lost by the sums), and leaves through the sides by radiation and
+   convection to whatever the cell is in: air, fire or water. Explicit steps, well inside the stability limit. ── */
+const IRON={ rho:7700, c:600, k:40, eps:.8, hAir:18, L:.6, N:120, w:.040, h:.012, hot:.28, zones:7, zoneLen:.02,
+  s0:400e6, sT:463, face:.022, hamM:3, spread:.55, strainMax:.42, Tcrack:873.15, Tweld:1523.15, Tburn:1673.15, burnRate:.004, scaleK:.045, scaleE:14000 };
+const ALPHA=IRON.k/(IRON.rho*IRON.c);
+function makeBar(o){ o=o||{}; const N=o.N||IRON.N, L=o.L||IRON.L, T0=o.T||288.15, b={ N, dx:new Float64Array(N).fill(L/N), w:new Float64Array(N).fill(o.w||IRON.w), h:new Float64Array(N).fill(o.h||IRON.h),
+    T:new Float64Array(N).fill(T0), q:new Float64Array(N), scale:new Float64Array(N), dmg:new Float64Array(N), crack:new Uint8Array(N), V0:0, burnt:0, shed:0, blows:0, steam:0, toWater:0, fromFire:0, lostAir:0 };
+  b.V0=barVolume(b); return b; }
+function barVolume(b){ let v=0; for(let i=0;i<b.N;i++) v+=b.dx[i]*b.w[i]*b.h[i]; return v; }
+function barEnergy(b){ let e=0; for(let i=0;i<b.N;i++) e+=IRON.rho*IRON.c*b.dx[i]*b.w[i]*b.h[i]*b.T[i]; return e; }
+function barLength(b){ let s=0; for(let i=0;i<b.N;i++) s+=b.dx[i]; return s; }
+/* Boiling in the trough. Above the Leidenfrost point the iron wears a jacket of steam and cools slowly (film
+   boiling); when it falls below, the water touches it and the heat flux leaps (transition, then nucleate boiling up to
+   the critical heat flux); below 100 C it is plain convection. The numbers are of the size reported for steel in cold water; cold water holds the jacket only down to about 600 C. */
+const BOIL={ Tsat:373.15, Tleid:873.15, hFilm:800, chf:3.5e6, dTchf:30, hConv:1200, hfg:2.257e6, cw:4186, toSteam:.5, mass:40 };
+function boilFlux(Ts,Tw){ if(Ts<=BOIL.Tsat) return { q:BOIL.hConv*(Ts-Tw), regime:'convection' };
+  const film=T=>BOIL.hFilm*(T-BOIL.Tsat)+IRON.eps*PH.sigma*(Math.pow(T,4)-Math.pow(BOIL.Tsat,4));
+  if(Ts>=BOIL.Tleid) return { q:film(Ts), regime:'film' };
+  const dT=Ts-BOIL.Tsat; if(dT<=BOIL.dTchf){ const qc=BOIL.hConv*(BOIL.Tsat-Tw); return { q:qc+(BOIL.chf-qc)*Math.pow(dT/BOIL.dTchf,3), regime:'nucleate' }; }
+  const u=(dT-BOIL.dTchf)/(BOIL.Tleid-BOIL.Tsat-BOIL.dTchf); return { q:Math.exp(lerp(Math.log(BOIL.chf),Math.log(film(BOIL.Tleid)),u)), regime:'transition' }; }
+/* env: { kind(i): 0 air, 1 fire, 2 water;  Tfire, blast (0..1), Tw, Tair, lossless } */
+function barStep(b,dt,env){ env=env||{}; const N=b.N, T=b.T, q=b.q, Ta=env.Tair||288.15, rc=IRON.rho*IRON.c; let fire=0, water=0, steam=0, air=0;
+  let amin=1e9; for(let i=0;i<N;i++) amin=Math.min(amin,b.dx[i]); const n=Math.max(1,Math.ceil(dt/Math.min(.02,.2*amin*amin/ALPHA))), h=dt/n;
+  for(let s=0;s<n;s++){ q.fill(0);
+    for(let i=0;i<N-1;i++){ const A1=b.w[i]*b.h[i], A2=b.w[i+1]*b.h[i+1], f=IRON.k*(T[i+1]-T[i])/(.5*b.dx[i]/A1+.5*b.dx[i+1]/A2); q[i]+=f; q[i+1]-=f; }   // watts across the face between two cells
+    if(!env.lossless) for(let i=0;i<N;i++){ const S=2*(b.w[i]+b.h[i])*b.dx[i]+(i===0?b.w[i]*b.h[i]:0), kind=env.kind?env.kind(i):0; let f;
+      if(kind===1){ f=S*(IRON.eps*PH.sigma*(Math.pow(env.Tfire,4)-Math.pow(T[i],4))+(60+150*Math.sqrt(env.blast||0))*(env.Tfire-T[i])); fire+=f*h; }
+      else if(kind===2){ const cap=rc*b.dx[i]*b.w[i]*b.h[i]*(T[i]-env.Tw)/h; f=-Math.min(S*boilFlux(T[i],env.Tw).q,cap); water-=f*h; if(T[i]>BOIL.Tsat) steam+=-f*h*BOIL.toSteam/(BOIL.hfg+BOIL.cw*(BOIL.Tsat-env.Tw)); }
+      else { f=-S*(IRON.eps*PH.sigma*(Math.pow(T[i],4)-Math.pow(Ta,4))+IRON.hAir*(T[i]-Ta)); air-=f*h; }
+      q[i]+=f; }
+    for(let i=0;i<N;i++){ T[i]+=h*q[i]/(rc*b.dx[i]*b.w[i]*b.h[i]);
+      if(!env.lossless){ b.scale[i]+=h*IRON.scaleK*Math.exp(-IRON.scaleE/T[i]);                                    // oxide (scale) grows on hot iron
+        if(T[i]>IRON.Tburn){ const lost=Math.min(.5,h*IRON.burnRate*(T[i]-IRON.Tburn)/100), v=b.dx[i]*b.w[i]*b.h[i]; b.h[i]*=1-lost; b.burnt+=v*lost; } } } }   // burning iron is lost for good
+  b.fromFire+=fire; b.toWater+=water; b.steam+=steam; b.lostAir+=air; return { fire:fire/dt, water:water/dt, steam:steam/dt, air:air/dt }; }
+/* The blow. A hammer of mass m arriving at speed v carries momentum m v and energy m v^2 / 2. Hot iron is soft and
+   the blow is nearly dead; cold iron and bare anvil throw the hammer back. The energy that stays does plastic work:
+   work = flow stress x volume under the face x true strain. The thickness goes down by that strain; width and length
+   go up by exactly as much between them, so each cell keeps its volume. */
+function flowStress(T){ return IRON.s0*Math.exp(-(T-K0)/IRON.sT); }                                           // pascals; a fit to handbook values for soft iron: 400 MPa cold, about 37 MPa at 1100 C
+function restitution(T){ return clamp(.12+.6*flowStress(T)/IRON.s0,.12,.72); }
+function blow(b,x,v,m){ m=m||IRON.hamM; let s=0, c=-1, best=1e9; const xs=new Float64Array(b.N);
+  for(let i=0;i<b.N;i++){ xs[i]=s+b.dx[i]/2; s+=b.dx[i]; if(Math.abs(xs[i]-x)<best){ best=Math.abs(xs[i]-x); c=i; } }
+  const idx=[], wt=[]; let vol=0, Tm=0, wsum=0; for(let i=0;i<b.N;i++){ const d=Math.abs(xs[i]-x)/(IRON.face/2+b.dx[i]/2); if(d<1){ const g=Math.cos(d*Math.PI/2); idx.push(i); wt.push(g*g); const V=b.dx[i]*b.w[i]*b.h[i]; vol+=V*g*g; Tm+=b.T[i]*g*g; wsum+=g*g; } }
+  if(!idx.length) return { hit:false, e:.72, energy:.5*m*v*v, impulse:m*v*1.72, strain:0, T:288.15, cell:-1, sparks:0 };
+  Tm/=wsum; const e=restitution(Tm), E=.5*m*v*v, work=E*(1-e*e)*.9, sig=flowStress(Tm), strain=Math.min(IRON.strainMax,work/(sig*vol)); let shed=0, cracked=false, healed=false;
+  const V0=barVolume(b);
+  idx.forEach((i,j)=>{ const eps=strain*wt[j], r=Math.exp(-eps); b.h[i]*=r; b.w[i]*=Math.pow(r,-IRON.spread); b.dx[i]*=Math.pow(r,-(1-IRON.spread));        // h w dx is unchanged
+    b.T[i]+=sig*eps/(IRON.rho*IRON.c);                                                                         // the work done turns to heat in the iron (about a degree)
+    const sc=b.scale[i]; if(sc>0){ const lost=Math.min(.2*b.h[i],sc*.8); shed+=lost*b.w[i]*b.dx[i]; b.h[i]-=lost; b.scale[i]=sc*.2; }                       // the blow knocks the scale off: that iron is gone
+    if(Tm<IRON.Tcrack){ b.dmg[i]+=.4*wt[j]*E/100; if(b.dmg[i]>=1&&!b.crack[i]){ b.crack[i]=1; cracked=true; } }
+    else if(Tm>IRON.Tweld&&b.crack[i]){ b.crack[i]=0; b.dmg[i]=0; healed=true; } });
+  b.shed+=shed; b.blows++;
+  return { hit:true, e, energy:E, work, impulse:m*v*(1+e), strain, T:Tm, cell:c, sparks:shed, cracked, healed, volBefore:V0, volAfter:barVolume(b)+shed }; }
+function zoneCells(j){ const per=Math.round(IRON.hot/IRON.zones/(IRON.L/IRON.N)), a=j*per+Math.round((per-IRON.zoneLen/(IRON.L/IRON.N))/2); return [a, a+Math.round(IRON.zoneLen/(IRON.L/IRON.N))]; }  // the cells of cut j, counted from the tip
+function zoneThin(b,j){ const z=zoneCells(j); let m=0; for(let i=z[0];i<z[1];i++) m+=b.h[i]; return 1-m/(z[1]-z[0])/IRON.h; }   // how far cut j has gone down: 0 untouched, 0.42 is 42% thinner
+function zoneX(b,j){ const z=zoneCells(j); let s=0, x=0; for(let i=0;i<z[1];i++){ if(i>=z[0]) x+=s+b.dx[i]/2; s+=b.dx[i]; } return x/(z[1]-z[0]); }
+const DONE=.42;                                                                                               // a cut counts as made when the iron there has lost 42% of its first thickness, on average over the cut
+
+/* ── 4. Sparks: flakes of hot scale. Thrown on ballistic paths (gravity, no air drag), each a small sphere of oxide
+   cooling by radiation alone: dT/dt = -(6 eps sigma / (rho c d)) (T^4 - Tair^4). With Tair = 0 that has the exact
+   answer T = T0 (1 + 3 K T0^3 t)^(-1/3), which the test checks. ── */
+const SPARK={ rho:5700, c:700, eps:.8, d:3e-4 };
+function sparkK(d){ return 6*SPARK.eps*PH.sigma/(SPARK.rho*SPARK.c*(d||SPARK.d)); }
+function sparkCool(T,dt,d,Tair){ const K=sparkK(d), Ta4=Math.pow(Tair===undefined?288.15:Tair,4), f=x=>-K*(Math.pow(x,4)-Ta4);                      // one Runge-Kutta step
+  const k1=f(T), k2=f(T+.5*dt*k1), k3=f(T+.5*dt*k2), k4=f(T+dt*k3); return T+dt*(k1+2*k2+2*k3+k4)/6; }
+function sparkExact(T0,t,d){ return T0*Math.pow(1+3*sparkK(d)*T0*T0*T0*t,-1/3); }
+
+/* ── 5. The ring of the anvil: a handful of modes, each a sine that dies away. A blow is a half-sine push lasting the
+   contact time tc, so mode f is excited by impulse x the spectrum of that push, cos(pi f tc) / (1 - (2 f tc)^2):
+   a short hard contact (cold iron, bare face) rings bright, a long soft one (hot iron) is a dull knock. The
+   frequencies and decay times are chosen by ear for a large anvil; they are not measured from one. ── */
+const ANVIL={ f:[1174,2290,3052,3916,5134,6650], tau:[1.15,.85,.6,.42,.3,.2], w:[1,.8,.62,.5,.36,.25], tcHard:2.2e-4 };
+function contactTime(e){ return ANVIL.tcHard*(1+5*(1-clamp(e,0,.72)/.72)); }
+function ringModes(impulse,e){ const tc=contactTime(e); return ANVIL.f.map((f,i)=>{ const u=2*f*tc, sp=Math.abs(Math.abs(u-1)<1e-6?Math.PI/4:Math.cos(Math.PI*f*tc)/(1-u*u));
+  return { f, tau:ANVIL.tau[i]*(.35+.65*e/.72), a:impulse*ANVIL.w[i]*sp }; }); }
+function ringSamples(modes,rate,dur){ const n=Math.floor(rate*dur), out=new Float32Array(n); for(const m of modes){ const w=TAU*m.f/rate, d=Math.exp(-1/(m.tau*rate)); let env=m.a; for(let i=0;i<n;i++){ out[i]+=env*Math.sin(w*i); env*=d; } } return out; }
+
+/* ═════════════════════════ BLAKE'S WORDS. "The Tyger", Songs of Experience (1794), complete, after Erdman (1988). Nothing is added. ═════════════════════════ */
+const VERSES=[
+'Tyger Tyger, burning bright,\nIn the forests of the night;\nWhat immortal hand or eye,\nCould frame thy fearful symmetry?',
+'In what distant deeps or skies.\nBurnt the fire of thine eyes?\nOn what wings dare he aspire?\nWhat the hand, dare sieze the fire?',
+'And what shoulder, & what art,\nCould twist the sinews of thy heart?\nAnd when thy heart began to beat,\nWhat dread hand? & what dread feet?',
+'What the hammer? what the chain,\nIn what furnace was thy brain?\nWhat the anvil? what dread grasp,\nDare its deadly terrors clasp!',
+'When the stars threw down their spears\nAnd water’d heaven with their tears:\nDid he smile his work to see?\nDid he who made the Lamb make thee?',
+'Tyger Tyger burning bright,\nIn the forests of the night:\nWhat immortal hand or eye,\nDare frame thy fearful symmetry?' ];
+const QUESTION='Did he who made the Lamb make thee?';
+
+/* ═════════════════════════ THE SMITHY: its state, and one step of everything in it ═════════════════════════ */
+const FIRE_LEN=.31, WATER_LEN=.36, SWING=.16, VMIN=4, VMAX=9;
+const S={ t:0, playing:true, auto:false, fire:{ T:0, b:0, burnt:0, air:0, pulls:0 }, bar:null, place:'fire', from:'fire', move:1, water:{ T:288.15, steam:0, heat:0 }, steamRate:0, regime:'',
+  aim:0, power:.8, swing:null, last:null, verse:0, verseT:0, ended:false, endT:0, rain:0, eyes:0, door:0, flash:new Float32Array(IRON.zones), pullA:0, chainTh:0, chainOm:0, hotBlows:0, msg:'', msgT:0, au:{ t:0 } };
+const SPN=LOW?260:700, SP={ p:new Float32Array(SPN*3), v:new Float32Array(SPN*3), T:new Float32Array(SPN), d:new Float32Array(SPN), n:0, next:0, made:0 };
+const STN=LOW?160:640, ST={ p:new Float32Array(STN*3), v:new Float32Array(STN*3), a:new Float32Array(STN), next:0, acc:0 };
+const R0=rng(1794);
+/* where things stand, in metres; you stand at the origin of x, looking down -z */
+const CAMP=[0,1.52,1.5], FIREP=[-1.75,.86,-.7], ANV={ x:0, z:.35, top:.8, tip:.29 }, TRO={ x:1.55, z:.1, water:.44 };
+const POSE={ fire:{ tip:[FIREP[0]-.13,FIREP[1]+.03,FIREP[2]-.115], dir:[.74,.16,.65] }, anvil:{ tip:[ANV.tip,ANV.top+.004,ANV.z], dir:[-1,0,0] }, trough:{ tip:[TRO.x-.02,.17,TRO.z-.05], dir:[-.35,.75,.55] } };
+function cellsWithin(L){ const b=S.bar; let s=0, n=0; for(let i=0;i<b.N;i++){ s+=b.dx[i]; if(s<=L) n++; else break; } return n; }
+const ENV={ Tfire:0, blast:0, Tw:288.15, n:0, k:0, kind(i){ return i<this.n?this.k:0; } };
+function arrived(){ return S.move>=1; }
+function setPlace(p){ if(!POSE[p]||p===S.place) return false; S.from=S.place; S.place=p; S.move=TEST&&!TEST.travel?1:0; lookTo(p); syncUI(); return true; }
+function doPump(){ pump(S.fire); S.pullA=1; S.chainOm+=.9; emitSparks(8, FIREP[0],FIREP[1]+.08,FIREP[2], S.fire.T, 1.2,3.6, .9); audioPump(); syncUI(); return S.fire.b; }
+function aimX(){ return zoneX(S.bar,S.aim); }
+function swingAt(x,v){ if(S.swing&&S.swing.t<SWING+.12) return false; S.swing={ t:0, x:x===undefined?aimX():x, v:v||(VMIN+(VMAX-VMIN)*S.power), hit:false, e:.3 }; return true; }
+function zoneOfCell(c){ for(let j=0;j<IRON.zones;j++){ const z=zoneCells(j); if(c>=z[0]-1&&c<=z[1]) return j; } return -1; }
+function strikeNow(x,v){ const onAnvil=S.place==='anvil'&&arrived(); let r;
+  if(onAnvil) r=blow(S.bar,x,v); else r={ hit:false, e:.72, energy:.5*IRON.hamM*v*v, impulse:IRON.hamM*v*1.72, strain:0, T:288.15, cell:-1, sparks:0 };
+  const wx=ANV.tip-(onAnvil?Math.min(x,.5):.1), wy=ANV.top+.012;
+  if(r.hit){ const hot=r.T>IRON.Tcrack; if(hot&&r.strain>.08) S.hotBlows++; const j=zoneOfCell(r.cell); if(j>=0&&hot) S.flash[j]=1;
+    emitSparks(Math.round(clamp((hot?6:1)+r.sparks*1.5e9+(r.T>IRON.Tweld?14:0),1,56)), wx,wy,ANV.z, r.T, 1.5,2+v*.6, .35);
+    if(r.cracked) say('Too cold. The iron has cracked there. Only a near-white heat and a blow will close it.',7);
+    else if(r.healed) say('At that heat the crack has welded shut.',5);
+    else if(!hot) say('Too cold. The hammer bounces and the iron hardly moves. Put it back in the fire.',5);
+    if(zoneThin(S.bar,S.aim)>=DONE){ const n=nextZone(); if(n>=0) S.aim=n; } }
+  S.last={ hit:r.hit, T:r.T, strain:r.strain, e:r.e, impulse:r.impulse, energy:r.energy, modes:ringModes(r.impulse,r.e), cracked:!!r.cracked };
+  audioRing(r.impulse,r.e); return r; }
+function nextZone(){ for(let j=0;j<IRON.zones;j++) if(zoneThin(S.bar,j)<DONE) return j; return -1; }
+function stripesDone(){ let n=0; for(let j=0;j<IRON.zones;j++) if(zoneThin(S.bar,j)>=DONE) n++; return n; }
+function ironMax(){ let m=0; const b=S.bar; for(let i=0;i<b.N;i++) if(b.T[i]>m) m=b.T[i]; return m; }
+function wetMax(){ let m=0; const b=S.bar, n=cellsWithin(WATER_LEN); for(let i=0;i<n;i++) if(b.T[i]>m) m=b.T[i]; return m; }
+function ironRead(){ return S.place==='trough'&&arrived()?wetMax():ironMax(); }                 // what the pyrometer is pointed at: the working end
+function zoneT(j){ const z=zoneCells(j); return S.bar.T[z[0]+1]; }
+function say(m,sec){ S.msg=m; S.msgT=sec||5; }
+function emitSparks(n,x,y,z,T,v0,v1,up){ for(let k=0;k<n;k++){ const i=SP.next; SP.next=(SP.next+1)%SPN; const a=R0()*TAU, el=(up+(1-up)*R0()*.9)*(.25+R0()*.75), sp=v0+(v1-v0)*R0()*R0(), c=Math.cos(el*1.45);
+    SP.p[i*3]=x+(R0()-.5)*.02; SP.p[i*3+1]=y; SP.p[i*3+2]=z+(R0()-.5)*.02; SP.v[i*3]=Math.cos(a)*c*sp; SP.v[i*3+1]=Math.sin(el*1.45)*sp; SP.v[i*3+2]=Math.sin(a)*c*sp; SP.T[i]=T*(.94+.1*R0()); SP.d[i]=(1.4+4.5*R0()*R0())*1e-4; SP.made++; } }
+function sparksStep(dt){ let n=0; for(let i=0;i<SPN;i++){ if(SP.T[i]<=0) continue; const o=i*3; SP.p[o]+=SP.v[o]*dt; SP.p[o+1]+=SP.v[o+1]*dt-.5*GRAV*dt*dt; SP.p[o+2]+=SP.v[o+2]*dt; SP.v[o+1]-=GRAV*dt;   // exact for a body falling freely
+    if(SP.p[o+1]<.004&&SP.v[o+1]<0){ SP.p[o+1]=.004; SP.v[o+1]*=-.32; SP.v[o]*=.6; SP.v[o+2]*=.6; }
+    SP.T[i]=sparkCool(SP.T[i],dt,SP.d[i]); if(SP.T[i]<760) SP.T[i]=0; else n++; } SP.n=n; }
+function steamStep(dt){ ST.acc+=S.steamRate*dt*(LOW?3000:7000); while(ST.acc>=1){ ST.acc-=1; const i=ST.next; ST.next=(ST.next+1)%STN; const o=i*3; ST.p[o]=TRO.x+(R0()-.5)*.16; ST.p[o+1]=TRO.water+.02; ST.p[o+2]=TRO.z+.05+(R0()-.5)*.3; ST.v[o]=(R0()-.5)*.3; ST.v[o+1]=.5+R0()*.9; ST.v[o+2]=(R0()-.5)*.3; ST.a[i]=1; }
+  for(let i=0;i<STN;i++){ if(ST.a[i]<=0) continue; const o=i*3; ST.p[o]+=ST.v[o]*dt; ST.p[o+1]+=ST.v[o+1]*dt; ST.p[o+2]+=ST.v[o+2]*dt; ST.v[o]*=1-.6*dt; ST.v[o+2]*=1-.6*dt; ST.a[i]-=dt/2.6; } }
+function showVerse(n){ if(n<=S.verse) return; S.verse=n; S.verseT=S.t; }
+function progress(dt){ const done=stripesDone(), b=S.bar;
+  if(S.verse<1&&S.fire.pulls>=3) showVerse(1);
+  if(S.verse<2&&S.hotBlows>=1) showVerse(2);
+  if(S.verse<3&&done>=3&&S.t-S.verseT>3) showVerse(3);
+  if(S.verse<4&&done>=IRON.zones&&S.place==='trough'&&arrived()) showVerse(4);
+  if(S.verse===4&&S.t-S.verseT>5&&wetMax()<BOIL.Tsat+60) showVerse(5);
+  if(S.verse===5&&!S.ended&&S.t-S.verseT>(TEST?4:11)){ S.ended=true; S.endT=S.t; S.auto=false; syncUI(); }
+  const k=1-Math.exp(-dt*.5); S.rain+=((S.verse>=4?1:0)-S.rain)*k; S.eyes+=((S.verse>=5?1:done>=IRON.zones?.5:done>=5?.22:0)-S.eyes)*k; S.door+=((S.ended?1:0)-S.door)*(1-Math.exp(-dt*.3));
+  for(let j=0;j<IRON.zones;j++) S.flash[j]*=Math.exp(-dt*3.2);
+  if(S.msgT>0) S.msgT-=dt;
+  if(S.place==='fire'&&arrived()&&ironMax()>IRON.Tburn){ if(R0()<dt*26){ const c=Math.floor(R0()*cellsWithin(.2)), p=barPoint(c); emitSparks(1+Math.floor(R0()*3),p[0],p[1]+.04,p[2],b.T[c],1.2,3.2,.6); } if(S.msgT<=0) say('Too hot. The iron is burning away in sparks. Draw it out.',3); } }
+function barPoint(c){ const P=POSE[S.place], b=S.bar; let s=0; for(let i=0;i<c;i++) s+=b.dx[i]; const L=Math.hypot(P.dir[0],P.dir[1],P.dir[2]); return [P.tip[0]+P.dir[0]/L*s, P.tip[1]+P.dir[1]/L*s, P.tip[2]+P.dir[2]/L*s]; }
+/* the smith who works when you choose to watch: the same pulls, carries and blows, through the same model */
+function smith(dt){ const A=S.au; A.t-=dt; if(A.t>0||S.ended||!arrived()) return; const nd=nextZone();
+  if(S.place==='fire'){ if(nd<0){ setPlace('trough'); A.t=1.2; return; } if(S.fire.b<.55){ doPump(); A.t=.9; return; } if(zoneT(nd)>1150+K0){ setPlace('anvil'); A.t=1.3; return; } A.t=.4; }
+  else if(S.place==='anvil'){ if(nd<0){ setPlace('trough'); A.t=1.2; return; } if(zoneT(nd)<880+K0){ setPlace('fire'); A.t=1.2; return; } S.aim=nd; swingAt(aimX(),8); A.t=.66; }
+  else { if(nd>=0&&ironMax()<500){ setPlace('fire'); A.t=1.2; } else A.t=.5; } }
+function step(dt){ S.t+=dt; const b=S.bar;
+  if(S.move<1) S.move=Math.min(1,S.move+dt/.75);
+  ENV.Tfire=S.fire.T; ENV.blast=S.fire.b; ENV.Tw=S.water.T; ENV.k=0; ENV.n=0;
+  if(arrived()){ if(S.place==='fire'){ ENV.k=1; ENV.n=cellsWithin(FIRE_LEN); } else if(S.place==='trough'){ ENV.k=2; ENV.n=cellsWithin(WATER_LEN); } }
+  const r=barStep(b,dt,ENV); furnaceStep(S.fire,dt,r.fire);
+  if(r.water!==0){ const lat=r.steam*(BOIL.hfg+BOIL.cw*(BOIL.Tsat-S.water.T)); S.water.T+=dt*(r.water-lat)/(BOIL.mass*BOIL.cw); S.water.steam+=r.steam*dt; S.water.heat+=r.water*dt; }   // what does not leave as steam warms the trough
+  S.steamRate=r.steam; S.regime=ENV.k===2?boilFlux(wetMax(),S.water.T).regime:'';
+  if(S.swing){ const w=S.swing; w.t+=dt; if(!w.hit&&w.t>=SWING){ w.hit=true; w.e=strikeNow(w.x,w.v).e; } if(w.t>=SWING+.4) S.swing=null; }
+  sparksStep(dt); steamStep(dt);
+  S.pullA*=Math.exp(-dt*2.6); S.chainOm+=dt*(-(GRAV/1.0)*Math.sin(S.chainTh)-.9*S.chainOm); S.chainTh+=dt*S.chainOm;        // the chain is a damped pendulum a metre long
+  progress(dt); if(S.auto) smith(dt); }
+function advance(sec,dt){ dt=dt||1/30; const n=Math.round(sec/dt); for(let i=0;i<n;i++) step(dt); return S.t; }
+function reset(){ S.bar=makeBar(); S.fire.T=furnaceSteady(airFlow(0)); S.fire.b=0; S.fire.pulls=0; S.place='fire'; S.from='fire'; S.move=1; S.water.T=288.15; S.water.steam=0; S.water.heat=0; S.verse=0; S.ended=false; S.rain=0; S.eyes=0; S.door=0; S.hotBlows=0; S.aim=0; S.swing=null; S.last=null; S.msg=''; S.auto=false; S.flash.fill(0); SP.T.fill(0); ST.a.fill(0);
+  for(let i=0;i<400*30;i++){ ENV.Tfire=S.fire.T; ENV.blast=0; ENV.k=1; ENV.n=cellsWithin(FIRE_LEN); furnaceStep(S.fire,1/30,barStep(S.bar,1/30,ENV).fire); }   // the iron has lain some minutes in a slack fire
+  const B=S.bar; B.fromFire=0; B.lostAir=0; B.scale.fill(0); S.fire.burnt=0; S.t=0; S.verseT=0; }
+reset();
+
+/* ═════════════════════════ THE PICTURE ═════════════════════════ */
+const canvas = $('stage');
+if (!window.THREE || !canvas.getContext('webgl2')) { $('fail').style.display='grid'; return; }
+const renderer = new THREE.WebGLRenderer({canvas, antialias:false, alpha:false, powerPreference:'high-performance', preserveDrawingBuffer:true});
+renderer.toneMapping = THREE.NoToneMapping; renderer.autoClear = true;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const HF = THREE.HalfFloatType, V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x000000); scene.fog = new THREE.FogExp2(0x010204, .032);
+const camera = new THREE.PerspectiveCamera(55, 1, .05, 200); camera.position.set(CAMP[0],CAMP[1],CAMP[2]); camera.rotation.order='YXZ';
+const G={ uTime:{value:0}, uT:{value:1000}, uBlast:{value:0}, uL:{value:V3(0,0,0)}, uLc:{value:V3(0,0,0)}, uGlow:{value:V3(0,0,0)}, uRain:{value:0}, tBB:{value:null} };
+/* the black-body colours as a strip the shaders read: 512 steps from 500 K to 2000 K */
+{ const n=512, a=new Uint16Array(n*4); for(let i=0;i<n;i++){ const c=bbDisplay(500+1500*i/(n-1)); for(let k=0;k<3;k++) a[i*4+k]=THREE.DataUtils.toHalfFloat(Math.min(c[k],6e4)); a[i*4+3]=THREE.DataUtils.toHalfFloat(1); }
+  const t=new THREE.DataTexture(a,n,1,THREE.RGBAFormat,HF); t.minFilter=t.magFilter=THREE.LinearFilter; t.needsUpdate=true; G.tBB.value=t; }
+const GLSL=`
+uniform float uTime, uT, uBlast, uRain; uniform vec3 uL, uLc, uGlow; uniform sampler2D tBB;
+vec3 bb(float T){ return texture2D(tBB, vec2(clamp((T-500.)/1500.,0.,1.)*.998+.001,.5)).rgb; }
+float h13(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32); return fract((p.x+p.y)*p.z); }
+float vn(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(mix(h13(i),h13(i+vec3(1,0,0)),f.x),mix(h13(i+vec3(0,1,0)),h13(i+vec3(1,1,0)),f.x),f.y), mix(mix(h13(i+vec3(0,0,1)),h13(i+vec3(1,0,1)),f.x),mix(h13(i+vec3(0,1,1)),h13(i+vec3(1,1,1)),f.x),f.y),f.z); }
+float fbm(vec3 p){ return .5*vn(p)+.25*vn(p*2.03+7.)+.125*vn(p*4.01+13.)+.125*vn(p*8.1+3.); }
+vec3 fireLit(vec3 alb, vec3 N, vec3 W){ vec3 d=uL-W; float d2=dot(d,d); return alb*.3183*uLc*max(dot(N,normalize(d)),0.)/d2; }
+`;
+const sm=o=>new THREE.ShaderMaterial(Object.assign({}, o, { uniforms:Object.assign(o.uniforms||{}, G), vertexShader:GLSL+o.vertexShader, fragmentShader:GLSL+o.fragmentShader }));
+
+/* ── small made textures: grain for earth and stone, courses of brick, planks ── */
+function canvasTex(w,h,fn,rx,ry){ const c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d'); fn(g,w,h); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(rx||1,ry||1); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; return t; }
+function speckle(g,w,h,n,R,lo,hi,sz){ for(let i=0;i<n;i++){ const v=Math.floor(lo+(hi-lo)*R()); g.fillStyle='rgba('+v+','+v+','+v+','+(.25+.5*R())+')'; const s=1+R()*sz; g.fillRect(R()*w,R()*h,s,s); } }
+const RT=rng(7);
+const texGrain=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#808080'; g.fillRect(0,0,w,h); speckle(g,w,h,9000,RT,40,210,3); },3,3);
+const texBrick=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#3a3530'; g.fillRect(0,0,w,h); for(let r=0;r<8;r++) for(let c=-1;c<4;c++){ const v=RT(); g.fillStyle='rgb('+Math.floor(105+50*v)+','+Math.floor(62+30*v)+','+Math.floor(48+22*v)+')'; g.fillRect(c*64+(r%2)*32+3,r*32+3,58,26); } speckle(g,w,h,5000,RT,20,120,2); },2,2);
+const texWood=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#6b5743'; g.fillRect(0,0,w,h); for(let i=0;i<220;i++){ const v=Math.floor(60+70*RT()); g.strokeStyle='rgba('+v+','+Math.floor(v*.8)+','+Math.floor(v*.62)+',.5)'; g.lineWidth=.5+RT()*1.6; const x=RT()*w; g.beginPath(); g.moveTo(x,0); g.bezierCurveTo(x+RT()*8-4,h*.3,x+RT()*8-4,h*.7,x+RT()*6-3,h); g.stroke(); } for(let p=0;p<4;p++){ g.fillStyle='rgba(15,10,6,.8)'; g.fillRect(p*64-1,0,3,h); } },1,1);
+const std=(col,rough,metal,map,bump)=>{ const m=new THREE.MeshStandardMaterial({ color:col, roughness:rough, metalness:metal||0 }); if(map){ m.map=map; } if(bump){ m.bumpMap=bump; m.bumpScale=typeof bump==='number'?bump:1.2; m.bumpMap=texGrain; } return m; };
+const M={ earth:std(0x6a5a4c,1,0,texGrain,1), brick:std(0xb8a79a,.95,0,texBrick,1), stone:std(0x77726c,.9,0,texGrain,1), wood:std(0x9a8672,.85,0,texWood,1), dark:std(0x2a2623,.9,0,null,1),
+  steel:std(0x6a6e75,.45,.55), face:std(0x8a8f96,.24,.9), iron:std(0x2c2d30,.6,.6), leather:std(0x4a3526,.8,0,texGrain,1), water:new THREE.MeshStandardMaterial({ color:0x030506, roughness:.06, metalness:.0, transparent:true, opacity:.5 }) };
+M.leather.side=THREE.DoubleSide;
+const roomG=new THREE.Group(); scene.add(roomG);
+function box(w,h,d,mat,x,y,z,par,noCast){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); m.castShadow=!noCast; m.receiveShadow=true; (par||roomG).add(m); return m; }
+function cyl(r1,r2,h,mat,x,y,z,par,seg){ const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg||16),mat); m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true; (par||roomG).add(m); return m; }
+function between(m,a,b){ const d=V3(b[0]-a[0],b[1]-a[1],b[2]-a[2]), L=d.length(); m.position.set((a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2); m.scale.set(1,L,1); m.quaternion.setFromUnitVectors(V3(0,1,0), d.normalize()); }
+
+/* ── the room: earth floor, a brick wall on the left behind the hearth, planks on the right, a back wall that is mostly open ── */
+{ const fl=new THREE.Mesh(new THREE.PlaneGeometry(5.6,6.4), M.earth); fl.rotation.x=-Math.PI/2; fl.position.set(0,0,1.0); fl.receiveShadow=true; roomG.add(fl);
+  const bw=M.brick.clone(); bw.map=texBrick.clone(); bw.map.repeat.set(5,3); bw.map.needsUpdate=true;
+  box(.2,3.2,6.4,bw,-2.8,1.6,1.0,null,true); const rw=M.wood.clone(); rw.map=texWood.clone(); rw.map.repeat.set(5,1); rw.map.needsUpdate=true; box(.2,3.2,6.4,rw,2.8,1.6,1.0,null,true);
+  box(.8,3.0,.16,rw,-2.3,1.5,-2.2); box(.8,3.0,.16,rw,2.3,1.5,-2.2);                          // what there is of a back wall, either side of the opening
+  box(.2,2.7,.2,M.wood,-1.9,1.35,-2.2); box(.2,2.7,.2,M.wood,1.9,1.35,-2.2); box(4.2,.32,.24,M.wood,0,2.84,-2.2);  // posts and lintel
+  const roof=box(5.6,.1,6.4,M.dark,0,3.05,1.0,null,true); for(let i=0;i<4;i++) box(5.4,.16,.14,M.wood,0,2.93,-1.4+i*1.35);
+  box(.2,3.2,5.6,M.dark,0,1.6,4.3,null,true).rotation.y=Math.PI/2; }
+/* ── the hearth, its hood, and the fire ── */
+box(1.5,.8,1.5,M.brick,-1.95,.4,-.7); box(1.5,.1,.12,M.brick,-1.95,.85,.0); box(.12,.1,1.5,M.brick,-1.26,.85,-.7);
+{ const hood=new THREE.Mesh(new THREE.CylinderGeometry(.28,.95,.75,4,1,true), M.iron); hood.material=M.iron.clone(); hood.material.side=THREE.DoubleSide; hood.rotation.y=Math.PI/4; hood.position.set(-1.95,2.1,-.75); hood.castShadow=true; roomG.add(hood); box(.38,.6,.38,M.iron,-1.95,2.75,-.75); }
+const coalGeo=new THREE.SphereGeometry(.38,48,18,0,TAU,0,Math.PI/2); { const p=coalGeo.attributes.position, Rc=rng(5); for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i), k=1+.16*(sn(x*31+z*17)+sn(z*29-x*13+y*40)-1); p.setXYZ(i,x*k,y*.34*k+ (Rc()-.5)*.012,z*k); } coalGeo.computeVertexNormals(); }
+const coalMat=sm({ vertexShader:`varying vec3 vW, vN; void main(){ vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }`,
+  fragmentShader:`varying vec3 vW, vN; uniform vec3 uC; uniform float uLump;
+  void main(){ vec3 q=vW*26.; float lump=fbm(q), cell=fbm(q*2.3+4.), crev=smoothstep(.62,.34,lump)*.75+smoothstep(.6,.4,cell)*.25;      // hot in the gaps, cooler on the crusts
+    float r=length(vW.xz-uC.xz)/.38, sh=.5+.5*sin(uTime*(1.2+2.*uBlast)+lump*40.), breathe=fbm(q*.5+vec3(0.,-uTime*.35,0.));
+    float T=uT*(.74+.3*crev+.05*sh*uBlast+.07*(breathe-.5))*mix(1.,.5,smoothstep(.62,1.,r));   // drawn: the model has one temperature; this spreads it over lumps and a cold rim
+    T*=mix(1.,.8+.26*(1.-normalize(vN).y)*(.6+.8*cell),uLump);      // a lump is cooler on top, where it sees the sky, and hottest underneath
+    vec3 c=bb(T)+fireLit(vec3(.05,.045,.04),normalize(vN),vW)*.3+vec3(.012,.01,.009)*(.4+lump); gl_FragColor=vec4(c,1.); }`, uniforms:{ uC:{value:V3(FIREP[0],FIREP[1],FIREP[2])}, uLump:{value:0} } });
+const coal=new THREE.Mesh(coalGeo,coalMat); coal.position.set(FIREP[0],.8,FIREP[2]); roomG.add(coal);
+{ const Rl=rng(21), base=new THREE.IcosahedronGeometry(1,0), bp=base.attributes.position, nL=LOW?70:130, pos=new Float32Array(nL*bp.count*3), v=V3(0,0,0), e=new THREE.Euler(), m4=new THREE.Matrix4(), q=new THREE.Quaternion();   // separate lumps, so the bed has depth: dark tops, bright gaps
+  for(let l=0;l<nL;l++){ const a=Rl()*TAU, r=.36*Math.sqrt(Rl()), sz=.022+.03*Rl(), y=.8+.125*Math.sqrt(Math.max(0,1-r*r/.145))+sz*.3; e.set(Rl()*6,Rl()*6,Rl()*6); q.setFromEuler(e); m4.compose(V3(FIREP[0]+Math.cos(a)*r,y,FIREP[2]+Math.sin(a)*r),q,V3(sz*(1+.6*Rl()),sz*.75,sz));
+    for(let i=0;i<bp.count;i++){ v.fromBufferAttribute(bp,i).applyMatrix4(m4); pos.set([v.x,v.y,v.z],(l*bp.count+i)*3); } }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.computeVertexNormals(); const lm=coalMat.clone(); lm.uniforms=Object.assign({ uC:{value:V3(FIREP[0],FIREP[1],FIREP[2])}, uLump:{value:1} }, G); roomG.add(new THREE.Mesh(g,lm)); }
+const flameMat=sm({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide,
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader:`varying vec2 vUv; uniform float uSeed;
+  void main(){ float x=(vUv.x-.5)*2., hgt=.38+.62*uBlast, y=vUv.y/hgt; float n=fbm(vec3(x*2.2+uSeed, vUv.y*3.2-uTime*(1.5+1.6*uBlast), uTime*.5+uSeed*3.)), n2=fbm(vec3(x*5.+uSeed*2., vUv.y*8.-uTime*3.4, uTime*.9));
+    float w=(1.-y)*(.7+.5*n2), body=smoothstep(0.,.4,w-abs(x+(n-.5)*1.1*y)*1.35)*smoothstep(0.,.07,vUv.y)*smoothstep(1.,.75,abs(x))*smoothstep(1.,.85,vUv.y);
+    float T=uT*(1.03-.4*y*(.5+n)); gl_FragColor=vec4(bb(max(T,1420.*(1.-.25*y)))*body*(.55+.3*uBlast),1.); }      // a flame's soot glows at its own heat, hotter than a slack bed`, uniforms:{ uSeed:{value:0} } });
+const flames=[]; for(let i=0;i<4;i++){ const m=flameMat.clone(); m.uniforms=Object.assign({ uSeed:{value:i*3.7} }, G); const f=new THREE.Mesh(new THREE.PlaneGeometry(.62,.95).translate(0,.47,0), m); f.position.set(FIREP[0]+(i%2?.05:-.05),FIREP[1]+.02,FIREP[2]+(i>1?.06:-.06)); f.rotation.y=i*Math.PI/4+.3; roomG.add(f); flames.push(f); }
+const fireLight=new THREE.PointLight(0xff6a20, 10, 0, 2); fireLight.castShadow=true; fireLight.shadow.mapSize.set(LOW?512:1024,LOW?512:1024); fireLight.shadow.bias=-.004; fireLight.shadow.normalBias=.03; fireLight.shadow.camera.near=.06; fireLight.shadow.camera.far=16; fireLight.shadow.radius=3; scene.add(fireLight);
+const ironLight=new THREE.PointLight(0xff8030, 0, 0, 2); scene.add(ironLight);
+const doorLight=new THREE.PointLight(0xfff0d8, 0, 0, 2); doorLight.position.set(1.95,1.0,-1.75); scene.add(doorLight);
+const sky=new THREE.HemisphereLight(0x5a78b8, 0x05060a, .02); scene.add(sky);
+/* One cheap bounce: the firelight that the floor and the brick wall throw back, stood in for by two small lights with no shadows.
+   And the night sky, coming in through the open wall. Both are fills; the fire is still what lights the room. */
+const bounceF=new THREE.PointLight(0xffffff, 0, 0, 2); bounceF.position.set(-.2,.5,.7); scene.add(bounceF);
+const bounceW=new THREE.PointLight(0xffffff, 0, 0, 2); bounceW.position.set(-2.2,1.7,-.2); scene.add(bounceW);
+const nightL=new THREE.PointLight(0x6f8fd0, .5, 0, 2); nightL.position.set(0,2.1,-3.6); scene.add(nightL);
+let expo=1, expoT=-1;
+
+/* ── the bellows, the lever over them, and the chain you pull ── */
+const BEL={ x:-2.2, y:.92, z:.72, len:1.25 };
+function tear(t){ return .37*Math.pow(Math.sin(Math.PI*Math.pow(t,.6)),.8); }
+const belN=20, belOut=[]; for(let k=0;k<=belN;k++){ const t=k/belN*.5; belOut.push([tear(t*2), t*2]); } for(let k=belN-1;k>=0;k--){ const t=k/belN; belOut.push([-tear(t), t]); }
+function boardGeo(){ const sh=new THREE.Shape(); belOut.forEach((p,i)=>{ if(i) sh.lineTo(p[0],p[1]*BEL.len); else sh.moveTo(p[0],p[1]*BEL.len); }); const g=new THREE.ExtrudeGeometry(sh,{depth:.035,bevelEnabled:false}); g.rotateX(Math.PI/2); return g; }
+const belG=new THREE.Group(); belG.position.set(BEL.x,BEL.y,BEL.z-BEL.len+.55); roomG.add(belG);
+const belLow=new THREE.Mesh(boardGeo(),M.wood); belLow.castShadow=true; belG.add(belLow);
+const belTop=new THREE.Mesh(boardGeo(),M.wood); belTop.castShadow=true; belG.add(belTop);
+const belSkinGeo=new THREE.BufferGeometry(); { const n=belOut.length, pos=new Float32Array(n*2*3), idx=[]; for(let i=0;i<n;i++){ const j=(i+1)%n; idx.push(i*2,j*2,i*2+1, i*2+1,j*2,j*2+1); } belSkinGeo.setAttribute('position',new THREE.BufferAttribute(pos,3)); belSkinGeo.setIndex(idx); }
+const belSkin=new THREE.Mesh(belSkinGeo,M.leather); belSkin.castShadow=true; belG.add(belSkin);
+cyl(.035,.05,.5,M.iron,BEL.x,BEL.y-.03,BEL.z-BEL.len+.36).rotation.x=Math.PI/2;                // the tuyere, into the hearth
+box(.9,.08,.1,M.wood,BEL.x,.5,BEL.z-.5); box(.1,.92,.1,M.wood,BEL.x-.38,.46,BEL.z-.5); box(.1,.92,.1,M.wood,BEL.x+.38,.46,BEL.z-.5);
+const LEV={ a:[-2.2,2.3,.95], b:[-.62,2.3,.5] }; const lever=cyl(.035,.045,1,M.wood,0,0,0), rod=cyl(.012,.012,1,M.iron,0,0,0,null,6); box(.14,.5,.14,M.wood,-1.41,2.78,.725);
+const CHN=22, chainGeo=new THREE.TorusGeometry(.024,.006,6,12), chain=new THREE.InstancedMesh(chainGeo,M.iron,CHN); chain.castShadow=true; roomG.add(chain);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(.06,.009,8,20),M.iron); ring.castShadow=true; roomG.add(ring);
+function bellowsNow(){ const ang=.1+.34*S.fire.b; belTop.rotation.x=0; belTop.position.set(0,0,0); const p=belSkinGeo.attributes.position.array, n=belOut.length;
+  for(let i=0;i<n;i++){ const o=belOut[i], z=o[1]*BEL.len, lift=.035+Math.tan(ang)*z*.62; p[i*6]=o[0]*.97; p[i*6+1]=-.03; p[i*6+2]=z; p[i*6+3]=o[0]*.97*(1+.05*Math.sin(z*30)); p[i*6+4]=lift; p[i*6+5]=z; }
+  belSkinGeo.attributes.position.needsUpdate=true; belSkinGeo.computeVertexNormals(); belTop.rotation.x=-Math.atan(Math.tan(ang)*.62); belTop.position.y=.07;
+  const dy=.2*S.pullA, a=[LEV.a[0],LEV.a[1]+dy,LEV.a[2]], b=[LEV.b[0],LEV.b[1]-dy,LEV.b[2]]; between(lever,a,b); between(rod,a,[BEL.x,BEL.y+.07+Math.tan(ang)*BEL.len*.62*.9,BEL.z+.4]);
+  const L=.95, th=S.chainTh, dx=Math.sin(th), dyc=-Math.cos(th), mt=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler();
+  for(let i=0;i<CHN;i++){ const s=(i+.5)/CHN*L; e.set(0,i%2?Math.PI/2:0,-th,'ZYX'); q.setFromEuler(e); mt.compose(V3(b[0]+dx*s,b[1]+dyc*s,b[2]),q,V3(1,1.25,1)); chain.setMatrixAt(i,mt); } chain.instanceMatrix.needsUpdate=true;
+  ring.position.set(b[0]+dx*(L+.05),b[1]+dyc*(L+.05),b[2]); ring.rotation.z=-th; }
+
+/* ── the anvil on its stump ── */
+const anvG=new THREE.Group(); anvG.position.set(ANV.x,0,ANV.z); roomG.add(anvG);
+{ const st=cyl(.27,.3,.46,M.wood,0,.23,0,anvG,20); box(.34,.07,.26,M.steel,.02,.495,0,anvG); box(.17,.13,.15,M.steel,.02,.595,0,anvG); box(.36,.06,.2,M.steel,.02,.685,0,anvG);
+  box(.58,.085,.15,M.steel,.03,.7575,0,anvG).material=[M.steel,M.steel,M.face,M.steel,M.steel,M.steel];
+  const horn=new THREE.Mesh(new THREE.ConeGeometry(.062,.27,18),M.steel); horn.rotation.z=Math.PI/2; horn.position.set(-.395,.752,0); horn.castShadow=true; anvG.add(horn); }
+/* ── the trough ── */
+{ const s=M.stone; box(.62,.5,.08,s,TRO.x,.25,TRO.z-.55); box(.62,.5,.08,s,TRO.x,.25,TRO.z+.55); box(.08,.5,1.02,s,TRO.x-.27,.25,TRO.z); box(.08,.5,1.02,s,TRO.x+.27,.25,TRO.z); box(.5,.06,1.02,s,TRO.x,.03,TRO.z);
+  const w=new THREE.Mesh(new THREE.PlaneGeometry(.46,1.02),M.water); w.rotation.x=-Math.PI/2; w.position.set(TRO.x,TRO.water,TRO.z); roomG.add(w); }
+/* ── a rail of tools by the right wall, hung where the fire throws their shadows large ── */
+{ box(.07,.07,1.9,M.wood,2.1,1.82,-.95); box(.6,.06,.06,M.wood,2.42,1.82,-1.8); box(.6,.06,.06,M.wood,2.42,1.82,-.1);
+  const tongs=(z,a)=>{ const g=new THREE.Group(); g.position.set(2.1,1.78,z); box(.022,.62,.012,M.iron,-.02,-.31,0,g).rotation.z=a; box(.022,.62,.012,M.iron,.02,-.31,0,g).rotation.z=-a; cyl(.02,.02,.03,M.iron,0,-.2,0,g,8).rotation.x=Math.PI/2; g.rotation.y=Math.PI/2; roomG.add(g); };
+  tongs(-1.55,.07); tongs(-1.2,.045);
+  const hm=new THREE.Group(); hm.position.set(2.1,1.76,-.8); cyl(.016,.019,.5,M.wood,0,-.3,0,hm,8); box(.05,.06,.15,M.steel,0,-.04,0,hm); roomG.add(hm);
+  const lp=new THREE.InstancedMesh(chainGeo,M.iron,26), mt=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(); for(let i=0;i<26;i++){ const u=i/25, z=-.52+u*.36, y=1.76-.42*Math.sin(Math.PI*u); e.set(i%2?Math.PI/2:0,0,Math.atan2(-.42*Math.PI*Math.cos(Math.PI*u),.36)+Math.PI/2*0,'XYZ'); q.setFromEuler(e); mt.compose(V3(2.1,y,z),q,V3(1,1.2,1)); lp.setMatrixAt(i,mt); } lp.castShadow=true; roomG.add(lp); }
+/* ── the door in the back wall, on the right: shut and dark until the end ── */
+const doorG=new THREE.Group(); doorG.position.set(2.3,0,-2.1); roomG.add(doorG); box(.62,1.95,.05,M.wood,0,.975,0,doorG,true); box(.05,.05,.04,M.iron,-.22,1.0,.04,doorG,true);
+const doorGlow=new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color:0x000000, side:THREE.DoubleSide }));
+{ const q=(x0,y0,x1,y1)=>[x0,y0,0, x1,y0,0, x1,y1,0, x0,y0,0, x1,y1,0, x0,y1,0]; doorGlow.geometry.setAttribute('position',new THREE.Float32BufferAttribute([].concat(q(-.335,0,-.312,1.97), q(-.312,1.955,.33,1.97), q(-.312,0,.33,.014)),3)); doorGlow.position.z=.03; doorG.add(doorGlow); }
+
+/* ── the iron: a strip rebuilt every frame from the cells of the model, glowing by their temperatures ── */
+const BN=IRON.N, barGeo=new THREE.BufferGeometry(), barPos=new Float32Array((BN+1)*8*3+12), barNor=new Float32Array((BN+1)*8*3+12), barT=new Float32Array((BN+1)*8+4), barK=new Float32Array((BN+1)*8+4);
+{ const idx=[], nr=[[0,1,0],[0,1,0],[0,-1,0],[0,-1,0],[0,0,1],[0,0,1],[0,0,-1],[0,0,-1]]; for(let k=0;k<=BN;k++) for(let v=0;v<8;v++) barNor.set(nr[v],(k*8+v)*3);
+  for(let k=0;k<BN;k++) for(let f=0;f<4;f++){ const a=k*8+2*f, b=a+1, c=a+8, d=c+1; idx.push(a,c,b, b,c,d); } const e=(BN+1)*8; for(let v=0;v<4;v++) barNor.set([-1,0,0],(e+v)*3); idx.push(e,e+1,e+2, e,e+2,e+3);
+  barGeo.setAttribute('position',new THREE.BufferAttribute(barPos,3)); barGeo.setAttribute('normal',new THREE.BufferAttribute(barNor,3)); barGeo.setAttribute('aT',new THREE.BufferAttribute(barT,1)); barGeo.setAttribute('aK',new THREE.BufferAttribute(barK,1)); barGeo.setIndex(idx); }
+const barMat=sm({ side:THREE.DoubleSide, vertexShader:`attribute float aT, aK; varying float vT, vK; varying vec3 vW, vN, vO; void main(){ vT=aT; vK=aK; vO=position; vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }`,
+  fragmentShader:`varying float vT, vK; varying vec3 vW, vN, vO; uniform float uWater;
+  void main(){ float sc=fbm(vO*vec3(160.,400.,160.)), fl=smoothstep(.42,.62,fbm(vO*vec3(60.,90.,60.)+3.)); vec3 alb=vec3(.085,.08,.078)*(.6+.8*sc);
+    vec3 N=normalize(vN); vec3 V=normalize(cameraPosition-vW), Ld=normalize(uL-vW); float d2=dot(uL-vW,uL-vW); vec3 c=fireLit(alb,N,vW)+uLc*.02*pow(max(dot(N,normalize(V+Ld)),0.),24.)/d2+alb*vec3(.004,.006,.01);
+    vec3 e=bb(vT)*(.82+.3*sc-.22*fl);                                   // the glow, mottled by scale
+    e*=1.-.8*smoothstep(.2,.9,vK)*smoothstep(.55,.35,fbm(vO*vec3(900.,30.,30.)));  // a crack shows dark
+    if(vW.y<uWater) e*=vec3(.5,.75,.8);
+    gl_FragColor=vec4(c+e,1.); }`, uniforms:{ uWater:{value:-1} } });
+const barMesh=new THREE.Mesh(barGeo,barMat); barMesh.frustumCulled=false; barMesh.matrixAutoUpdate=false; scene.add(barMesh);
+const tongG=new THREE.Group(); tongG.matrixAutoUpdate=false; scene.add(tongG); box(.5,.014,.02,M.iron,.2,.012,.004,tongG,true); box(.5,.014,.02,M.iron,.2,-.012,-.004,tongG,true);
+const aimMark=new THREE.Mesh(new THREE.ConeGeometry(.009,.03,4), new THREE.MeshBasicMaterial({ color:new THREE.Color(.5,.46,.38) })); aimMark.rotation.x=Math.PI; scene.add(aimMark);
+const poseA={ tip:V3(0,0,0), dir:V3(0,0,0) }, bx=V3(0,0,0), by=V3(0,0,0), bz=V3(0,0,0), UP=V3(0,1,0);
+function barNow(){ const b=S.bar, A=POSE[S.from], B=POSE[S.place], e=S.move*S.move*(3-2*S.move);
+  poseA.tip.set(lerp(A.tip[0],B.tip[0],e),lerp(A.tip[1],B.tip[1],e)+.28*Math.sin(Math.PI*e),lerp(A.tip[2],B.tip[2],e)); poseA.dir.set(lerp(A.dir[0],B.dir[0],e),lerp(A.dir[1],B.dir[1],e),lerp(A.dir[2],B.dir[2],e)).normalize();
+  bx.copy(poseA.dir); bz.crossVectors(bx,UP).normalize(); by.crossVectors(bz,bx); barMesh.matrix.makeBasis(bx,by,bz).setPosition(poseA.tip); barMesh.matrixWorld.copy(barMesh.matrix);
+  let s=0, hot=0, hx=0, hsum=0; for(let k=0;k<=BN;k++){ const i0=Math.max(0,k-1), i1=Math.min(BN-1,k), w=(b.w[i0]+b.w[i1])/4, h=(b.h[i0]+b.h[i1])/2, T=(b.T[i0]+b.T[i1])/2, K=Math.max(b.crack[i0],b.crack[i1]), o=k*24;
+    const P=[[s,h,-w],[s,h,w],[s,0,w],[s,0,-w],[s,h,w],[s,0,w],[s,0,-w],[s,h,-w]]; for(let v=0;v<8;v++){ barPos.set(P[v],o+v*3); barT[k*8+v]=T; barK[k*8+v]=K; }
+    if(k<BN){ const d=T>800?Math.pow(bbLum(T)/LREF,DISP.gamma)*b.w[k]*b.dx[k]:0; hot+=d; hx+=d*(s+b.dx[k]/2); s+=b.dx[k]; } }
+  const e0=(BN+1)*8, w0=b.w[0]/2, h0=b.h[0]; barPos.set([0,0,-w0, 0,0,w0, 0,h0,w0, 0,h0,-w0],e0*3); for(let v=0;v<4;v++) barT[e0+v]=b.T[0];
+  barGeo.attributes.position.needsUpdate=true; barGeo.attributes.aT.needsUpdate=true; barGeo.attributes.aK.needsUpdate=true;
+  tongG.matrix.copy(barMesh.matrix).multiply(new THREE.Matrix4().makeTranslation(s-.16,b.h[BN-1]/2,0)); tongG.matrixWorldNeedsUpdate=true;
+  const c=hot>0?hx/hot:.1, hmx=ironMax(), col=bbChroma(Math.max(hmx,800)), m=Math.max(col[0],col[1],col[2]); ironLight.position.copy(poseA.tip).addScaledVector(bx,c).addScaledVector(by,.05); ironLight.color.setRGB(col[0]/m,col[1]/m,col[2]/m); ironLight.intensity=Math.min(1.3,hot*250)*(S.place==='fire'&&arrived()?0:1);
+  barMat.uniforms.uWater.value=S.place==='trough'||S.from==='trough'?TRO.water:-1;
+  const on=S.place==='anvil'&&arrived()&&!S.ended; aimMark.visible=on; if(on){ const x=aimX(); aimMark.position.set(ANV.tip-x,ANV.top+.05+.004*Math.sin(S.t*4),ANV.z); } }
+/* ── the hammer ── */
+const hamG=new THREE.Group(); scene.add(hamG); { box(.045,.05,.12,M.steel,0,0,0,hamG); const h=cyl(.014,.017,.42,M.wood,0,.0,.23,hamG,8); h.rotation.x=Math.PI/2; }
+function hammerNow(){ const rest=[.46,1.12,.78], w=S.swing; let p=rest, rx=-.55;
+  if(w){ const tx=ANV.tip-Math.min(w.x,.5), hy=ANV.top+.035+(S.place==='anvil'&&arrived()?.008:0), top=[tx+.04,1.38,ANV.z+.16];
+    if(w.t<SWING){ const u=w.t/SWING, e=u*u; p=[lerp(top[0],tx,e),lerp(top[1],hy,e),lerp(top[2],ANV.z,e)]; rx=lerp(-.9,0,e); }
+    else { const u=(w.t-SWING)/.4, bounce=Math.sin(Math.min(u*2.2,1)*Math.PI)*.16*w.e, e=sstep(.35,1,u); p=[lerp(tx,rest[0],e),lerp(hy+bounce,rest[1],e),lerp(ANV.z,rest[2],e)]; rx=lerp(-.25*w.e,-.55,e); } }
+  else if(S.place!=='anvil'||!arrived()){ hamG.position.set(-.1,ANV.top+.026,ANV.z+.01); hamG.rotation.set(0,.5,0); return; }
+  hamG.position.set(p[0],p[1],p[2]); hamG.rotation.set(rx,-.25,0); }
+
+/* ── sparks (lines from where each flake was to where it is) and steam ── */
+const spGeo=new THREE.BufferGeometry(), spPos=new Float32Array(SPN*6), spCol=new Float32Array(SPN*6); spGeo.setAttribute('position',new THREE.BufferAttribute(spPos,3)); spGeo.setAttribute('color',new THREE.BufferAttribute(spCol,3));
+const spLines=new THREE.LineSegments(spGeo,new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false })); spLines.frustumCulled=false; scene.add(spLines);
+const BBJ=[]; for(let i=0;i<=150;i++) BBJ.push(bbDisplay(500+10*i));
+function sparksNow(){ for(let i=0;i<SPN;i++){ const o=i*3, q=i*6, T=SP.T[i]; if(T<=0){ spPos[q]=spPos[q+3]=0; spPos[q+1]=spPos[q+4]=-5; spPos[q+2]=spPos[q+5]=0; continue; }
+    const c=BBJ[Math.min(150,Math.round((T-500)/10))], k=2.2; spPos[q]=SP.p[o]; spPos[q+1]=SP.p[o+1]; spPos[q+2]=SP.p[o+2]; spPos[q+3]=SP.p[o]-SP.v[o]*.028; spPos[q+4]=SP.p[o+1]-SP.v[o+1]*.028; spPos[q+5]=SP.p[o+2]-SP.v[o+2]*.028;
+    spCol[q]=c[0]*k; spCol[q+1]=c[1]*k; spCol[q+2]=c[2]*k; spCol[q+3]=c[0]*k*.25; spCol[q+4]=c[1]*k*.25; spCol[q+5]=c[2]*k*.25; }
+  spGeo.attributes.position.needsUpdate=true; spGeo.attributes.color.needsUpdate=true; }
+const stGeo=new THREE.BufferGeometry(); stGeo.setAttribute('position',new THREE.BufferAttribute(ST.p,3)); stGeo.setAttribute('aA',new THREE.BufferAttribute(ST.a,1));
+const stMat=sm({ transparent:true, depthWrite:false, vertexShader:`attribute float aA; varying float vA; varying vec3 vW; uniform float uPx; void main(){ vA=aA; vW=position; vec4 mv=viewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv; gl_PointSize=aA>0.?uPx*(.07+.3*(1.-aA))/-mv.z:0.; }`,
+  fragmentShader:`varying float vA; varying vec3 vW; void main(){ vec2 p=gl_PointCoord-.5; float r=length(p)*2.; if(r>1.) discard; vec3 d=uL-vW; vec3 c=vec3(.9,.85,.8)*uLc*.16/dot(d,d)+uGlow*.3*exp(-(vW.y-.44)*5.)+vec3(.012,.016,.026)*(1.+3.*uRain); gl_FragColor=vec4(c,(1.-r)*(1.-r)*smoothstep(0.,.3,vA)*smoothstep(1.,.85,vA)*.17); }`, uniforms:{ uPx:{value:600} } });
+const steam=new THREE.Points(stGeo,stMat); steam.frustumCulled=false; scene.add(steam);
+
+/* ── the forests of the night: ground, mirrored trunks, the sky, the trunks that answer the fire, and the eyes ── */
+{ const g=new THREE.Mesh(new THREE.PlaneGeometry(90,70), std(0x4a4a40,1,0,texGrain,1)); g.material.map=texGrain.clone(); g.material.map.repeat.set(40,30); g.material.map.needsUpdate=true; g.rotation.x=-Math.PI/2; g.position.set(0,-.01,-37.2); g.receiveShadow=true; scene.add(g); }
+const PAIRS=IRON.zones, pairX=j=>.92+.55*(PAIRS-1-j), STRZ=-7.6;
+{ const Rf=rng(33), list=[]; for(let tries=0;list.length<(LOW?34:64)&&tries<1500;tries++){ const x=.75+Rf()*15, z=-4.6-Rf()*27, r=.06+Rf()*Rf()*.2; if(z>STRZ-1.6&&x<5.3) continue; if(x<1.15&&z>-13) continue; if(list.some(t=>Math.hypot(t[0]-x,t[1]-z)<.9)) continue; list.push([x,z,r]); }
+  const tg=new THREE.CylinderGeometry(.8,1.1,1,10,1,true).translate(0,.5,0), bark=std(0x5c5046,1,0,texGrain,1); bark.map=texGrain.clone(); bark.map.repeat.set(2,14); bark.map.needsUpdate=true;
+  const im=new THREE.InstancedMesh(tg,bark,list.length*2), mt=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler();
+  list.forEach((t,i)=>{ for(let s=0;s<2;s++){ const sg=s?-1:1; e.set(0,i,sg*-.012*t[0]); q.setFromEuler(e); mt.compose(V3(sg*t[0],-.05,t[1]),q,V3(t[2],15,t[2])); im.setMatrixAt(i*2+s,mt); } }); scene.add(im); }
+const strGeo=new THREE.CylinderGeometry(1,1.12,1,16,1,true).translate(0,.5,0);
+const aLv=new THREE.InstancedBufferAttribute(new Float32Array(PAIRS*2),1), aFl=new THREE.InstancedBufferAttribute(new Float32Array(PAIRS*2),1), aSeed=new THREE.InstancedBufferAttribute(new Float32Array(PAIRS*2),1), aTop=new THREE.InstancedBufferAttribute(new Float32Array(PAIRS*2),1);
+strGeo.setAttribute('aLv',aLv); strGeo.setAttribute('aFl',aFl); strGeo.setAttribute('aSeed',aSeed); strGeo.setAttribute('aTop',aTop);
+const strMat=sm({ vertexShader:`attribute float aLv, aFl, aSeed, aTop; varying float vLv, vFl, vSeed, vTop; varying vec3 vW, vN, vO;
+  void main(){ vLv=aLv; vFl=aFl; vSeed=aSeed; vTop=aTop; vO=position; vec4 w=modelMatrix*instanceMatrix*vec4(position,1.); vW=w.xyz; vN=normalize(mat3(modelMatrix)*mat3(instanceMatrix)*vec3(normal.x,0.,normal.z)); gl_Position=projectionMatrix*viewMatrix*w; }`,
+  fragmentShader:`varying float vLv, vFl, vSeed, vTop; varying vec3 vW, vN, vO; uniform vec3 uStripe;
+  void main(){ vec3 N=normalize(vN), V=normalize(cameraPosition-vW); float sx=sign(vW.x), ang=atan(vO.z,vO.x*sx), wa=sx*(.55*sin(vW.y*1.7+vSeed*23.)+.25*sin(vW.y*4.1+vSeed*51.)); vec3 Vr=vec3(V.x*cos(wa)-V.z*sin(wa),V.y,V.x*sin(wa)+V.z*cos(wa)); float f=max(dot(N,Vr),0.)*smoothstep(-.1,.3,dot(N,V));   // the lit band wanders round the trunk as it climbs
+    float bark=fbm(vec3(ang*3.+vSeed*9., vW.y*.9, vSeed*4.)), ridge=.5+.5*smoothstep(.3,.7,fbm(vec3(ang*9.+vSeed, vW.y*.45, vSeed*2.)));
+    vec3 alb=vec3(.2,.165,.14)*ridge; vec3 c=fireLit(alb,N,vW)+alb*vec3(.002,.003,.006)*(1.+6.*uRain);
+    float top=.5+vTop*smoothstep(0.,1.,vLv), y=vW.y-.5*fract(vSeed*7.3);                         // the stripe grows up the trunk as its cut goes down
+    float env=smoothstep(.0,.9,y)*(1.-smoothstep(top*.5,top,y)), taper=pow(f,2.+5.*smoothstep(top*.3,top,y)+3.*smoothstep(.9,0.,y)), rag=.35+1.1*bark;
+    float lv=vLv*(1.+2.2*vFl); c+=uStripe*ridge*lv*env*taper*rag;
+    float dist=length(cameraPosition-vW), fg=exp(-pow(.032*dist,2.)); gl_FragColor=vec4(c*fg,1.); }`, uniforms:{ uStripe:{value:V3(0,0,0)} } });
+const strMesh=new THREE.InstancedMesh(strGeo,strMat,PAIRS*2); strMesh.frustumCulled=false; scene.add(strMesh);
+{ const mt=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), Rs=rng(9); for(let j=0;j<PAIRS;j++){ const x=pairX(j), k=PAIRS-1-j, z=STRZ-.5*Rs()-.12*k, r=.17+.07*Rs(), top=3.3-.2*k+Rs()*.5-(k%2)*.35; for(let s=0;s<2;s++){ const sg=s?-1:1, i=j*2+s; e.set(0,0,sg*-(.012+.011*k)); q.setFromEuler(e); mt.compose(V3(sg*x,-.05,z),q,V3(r,15,r)); strMesh.setMatrixAt(i,mt); aSeed.array[i]=j*.37+.1; aTop.array[i]=top; } } }
+const lvL=new Float32Array(PAIRS);                          // the left-hand twin follows its right-hand tree a moment late: the mirror is seen to happen
+const eyeMat=sm({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader:`varying vec2 vUv; uniform float uOpen, uSide; uniform vec3 uEye;
+  void main(){ vec2 p=(vUv-.5)*vec2(1.5,1.); p.x*=uSide; float r=length(p*vec2(1.,1.2)), disc=smoothstep(.2,.165,r), lid=-.2+.3*uOpen+.55*p.x, m=smoothstep(lid+.02,lid-.02,p.y)*smoothstep(-.25+.1*uOpen,-.2+.1*uOpen,p.y+.25*p.x);
+    float core=exp(-r*r*70.), halo=exp(-r*7.)*.16*uOpen; gl_FragColor=vec4(uEye*(disc*m*(.55+2.2*core)+halo)*smoothstep(0.,.25,uOpen),1.); }`, uniforms:{ uOpen:{value:0}, uSide:{value:1}, uEye:{value:V3(0,0,0)} } });
+const eyes=[1,-1].map(sg=>{ const m=eyeMat.clone(); m.uniforms=Object.assign({ uOpen:{value:0}, uSide:{value:sg}, uEye:{value:V3(0,0,0)} }, G); const e=new THREE.Mesh(new THREE.PlaneGeometry(1.2,.8),m); e.position.set(sg*.43,2.25,STRZ+.2); e.renderOrder=3; scene.add(e); return e; });
+const skyMat=sm({ side:THREE.BackSide, depthWrite:false, fog:false, vertexShader:`varying vec3 vD; void main(){ vD=position; gl_Position=projectionMatrix*viewMatrix*vec4(position+cameraPosition,1.); gl_Position.z=gl_Position.w*.9999; }`,
+  fragmentShader:`varying vec3 vD;
+  void main(){ vec3 d=normalize(vD); vec3 c=vec3(.004,.0065,.015)*(1.+3.*pow(1.-abs(d.y),4.))*(1.+1.2*uRain); vec3 p=d*70.; vec3 id=floor(p); float h=h13(id);
+    if(h>.62){ vec3 o=fract(p)-.5-(vec3(h13(id+7.),h13(id+11.),h13(id+17.))-.5)*.6; o.y=o.y>0.?o.y/(1.+7.*uRain):o.y; float s=smoothstep(.13,0.,length(o)), tw=.7+.3*sin(uTime*(1.5+h*40.)+h*90.); c+=mix(vec3(.75,.85,1.),vec3(1.,.9,.75),h13(id+3.))*s*tw*(.25+3.*pow((h-.62)/.38,3.))*(.6+uRain*.5)*smoothstep(-.02,.06,d.y); }
+    gl_FragColor=vec4(c,1.); }` });
+const skyMesh=new THREE.Mesh(new THREE.SphereGeometry(100,24,12),skyMat); skyMesh.frustumCulled=false; skyMesh.renderOrder=-1; scene.add(skyMesh);
+/* the rain of starlight: drawn, not computed */
+const RN=LOW?160:520, rnGeo=new THREE.BufferGeometry(), rnPos=new Float32Array(RN*6), rnCol=new Float32Array(RN*6), rnS=new Float32Array(RN*4); { const Rr=rng(77); for(let i=0;i<RN;i++){ rnS[i*4]=(Rr()-.5)*26; rnS[i*4+1]=-2.6-Rr()*24; rnS[i*4+2]=Rr()*16; rnS[i*4+3]=9+Rr()*7; } rnGeo.setAttribute('position',new THREE.BufferAttribute(rnPos,3)); rnGeo.setAttribute('color',new THREE.BufferAttribute(rnCol,3)); }
+const rain=new THREE.LineSegments(rnGeo,new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false })); rain.frustumCulled=false; scene.add(rain);
+function rainNow(){ const a=S.rain; rain.visible=a>.01; if(!rain.visible) return; for(let i=0;i<RN;i++){ const q=i*6, sp=rnS[i*4+3], y=16-((rnS[i*4+2]+S.t*sp)%16), x=rnS[i*4], z=rnS[i*4+1], len=.35+sp*.035, b=a*(.05+.22*h1(i))*(i/RN<a?1:0);
+    rnPos[q]=x; rnPos[q+1]=y; rnPos[q+2]=z; rnPos[q+3]=x; rnPos[q+4]=y+len; rnPos[q+5]=z; rnCol[q]=.75*b; rnCol[q+1]=.86*b; rnCol[q+2]=b; rnCol[q+3]=0; rnCol[q+4]=0; rnCol[q+5]=0; } rnGeo.attributes.position.needsUpdate=true; rnGeo.attributes.color.needsUpdate=true; }
+
+/* ── what can be clicked ── */
+const hits=[]; function hit(name,w,h,d,x,y,z){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshBasicMaterial({ visible:false })); m.position.set(x,y,z); m.userData.name=name; scene.add(m); hits.push(m); }
+hit('pump',.36,1.3,.36,LEV.b[0],1.75,LEV.b[2]); hit('pump',1.0,.9,1.5,BEL.x,1.0,BEL.z); hit('fire',1.5,1.3,1.5,-1.95,.75,-.7); hit('anvil',.75,1.0,.5,ANV.x,.55,ANV.z); hit('trough',.66,.9,1.14,TRO.x,.4,TRO.z); hit('door',.7,2.0,.3,2.3,1.0,-2.1);
+
+/* ═════════════════════════ looking, and the controls ═════════════════════════ */
+const look={ yaw:0, pitch:-.2, ty:0, tp:-.2, auto:0, z:CAMP[2], tz:CAMP[2] }; let dirty=true;
+const wide=()=>(canvas.clientWidth||innerWidth)/(canvas.clientHeight||innerHeight)>1;
+function lookTo(p){ const w=wide(); look.ty=p==='fire'?(w?.36:.62):p==='trough'?(w?-.5:-.8):p==='start'?(w?.13:.42):0; look.tp=p==='anvil'?-.3:p==='end'?-.03:p==='start'?(w?-.2:-.24):p==='trough'?-.42:-.2; look.tz=CAMP[2]+(p==='start'||p==='end'?(w?.75:.5):0); look.auto=2.2; if(TEST||REDUCED){ look.yaw=look.ty; look.pitch=look.tp; look.z=look.tz; look.auto=0; } dirty=true; }
+function lookStep(dt){ if(look.auto>0){ look.auto-=dt; const k=1-Math.exp(-dt*3.2); look.yaw+=(look.ty-look.yaw)*k; look.pitch+=(look.tp-look.pitch)*k; look.z+=(look.tz-look.z)*k; dirty=true; } }
+const HEAT=[[520,'black heat'],[760,'dull red'],[1000,'orange'],[1200,'yellow'],[1400,'near white'],[1e9,'burning']];
+const heatName=T=>HEAT.find(h=>T-K0<h[0])[1];
+const fmtC=T=>Math.round(T-K0).toLocaleString('en-GB')+' °C';
+let shownVerse=-1, shownEnd=false;
+function guide(){ const done=stripesDone(), hot=ironMax(), nd=nextZone();
+  if(S.ended) return 'The poem does not answer, and nor does this page. A door stands a little open.';
+  if(S.verse>=5) return 'Look into the trees.';
+  if(S.verse>=4) return S.regime==='film'?'The iron glows on under the water inside a jacket of steam. Wait for the jacket to fail.':S.regime==='transition'||S.regime==='nucleate'?'The jacket has failed. Now the water boils hard on the iron.':'Quenched. Look up.';
+  if(S.msgT>0) return S.msg;
+  if(done>=IRON.zones) return 'Seven cuts are made. Carry the iron to the trough and quench it.';
+  if(S.place==='fire') return S.fire.pulls<1?'The fire is slack. Pull the chain to work the bellows, and keep pulling.':hot<IRON.Tburn-150?(zoneT(Math.max(nd,0))>1050+K0?'The iron is at a good heat. Carry it to the anvil.':'Keep the blast up. Leave the iron in the fire until it glows yellow.'):'Near white: draw it out now, before it burns.';
+  if(S.place==='anvil') return zoneT(Math.max(nd,0))<IRON.Tcrack?'It has gone dull. Iron this cold will not move and may crack. Back to the fire.':'Strike at the mark, three or four times in each place. Watch the trees as you do.';
+  return 'The iron is in the trough. Back to the fire when you are ready.'; }
+function syncUI(){ const hot=ironRead(), fs=swatch(S.fire.T), is=swatch(hot), done=stripesDone();
+  $('swF').style.background='rgb('+fs.join(',')+')'; $('swI').style.background='rgb('+is.join(',')+')';
+  $('nF').textContent=fmtC(S.fire.T); $('nI').textContent=fmtC(hot)+', '+heatName(hot); $('nA').textContent=(S.fire.air/FUR.rhoAir*1000).toFixed(1)+' litres a second';
+  $('nS').textContent=done+' of '+IRON.zones; $('nB').textContent=String(S.bar.blows); $('rowW').hidden=S.place!=='trough'; $('nW').textContent=fmtC(S.water.T)+(S.regime==='film'?', steam jacket':S.regime==='transition'||S.regime==='nucleate'?', boiling hard':'');
+  $('note').textContent=guide();
+  [['pFire','fire'],['pAnvil','anvil'],['pTrough','trough']].forEach(a=>$(a[0]).setAttribute('aria-pressed',String(S.place===a[1])));
+  $('auto').setAttribute('aria-pressed',String(S.auto)); $('play').textContent=S.playing?'Pause':'Play'; $('strike').disabled=S.place!=='anvil'; $('rowDoor').hidden=!S.ended;
+  if(S.verse!==shownVerse||S.ended!==shownEnd){ const first=shownVerse<0; shownVerse=S.verse; shownEnd=S.ended; const v=$('verse'), put=()=>{ v.textContent=S.ended?QUESTION:VERSES[S.verse]; $('where').textContent=S.ended?'the last question':'verse '+(S.verse+1)+' of 6'; v.classList.remove('turn'); };
+    if(first||TEST||REDUCED) put(); else { v.classList.add('turn'); setTimeout(put,900); } if(S.ended) lookTo('end'); else if(S.verse>=4) { look.ty=0; look.tp=-.08; look.auto=3; } }
+  $('p').textContent=S.ended?'':(S.verse===0?'A smithy at night, open to the trees. The fire is the only light.':''); $('p').hidden=!$('p').textContent; }
+$('pump').onclick=doPump; $('pFire').onclick=()=>setPlace('fire'); $('pAnvil').onclick=()=>setPlace('anvil'); $('pTrough').onclick=()=>setPlace('trough');
+$('strike').onclick=()=>{ if(S.place==='anvil') swingAt(); }; $('power').oninput=e=>{ S.power=clamp(+e.target.value/100,0,1); };
+$('play').onclick=()=>{ S.playing=!S.playing; dirty=true; syncUI(); }; $('auto').onclick=()=>{ S.auto=!S.auto; S.au.t=.3; if(S.auto) S.playing=true; syncUI(); };
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+function hitAt(cx,cy){ const r=canvas.getBoundingClientRect(); ndc.set((cx-r.left)/r.width*2-1, 1-(cy-r.top)/r.height*2); ray.setFromCamera(ndc,camera); const h=ray.intersectObjects(hits,false)[0]; if(!h) return null; const n=h.object.userData.name; if(n==='door'&&!S.ended) return null; return { name:n, ray:ray.ray }; }
+function act(h){ if(!h) return; if(h.name==='pump') doPump(); else if(h.name==='door') goBack(); else if(h.name==='anvil'&&S.place==='anvil'&&arrived()){ const r=h.ray, t=(ANV.top+.012-r.origin.y)/r.direction.y, x=r.origin.x+r.direction.x*t; swingAt(clamp(ANV.tip-x,.004,.3)); } else setPlace(h.name); }
+let down=null;
+canvas.addEventListener('pointerdown',e=>{ down={ x:e.clientX, y:e.clientY, moved:0 }; try{ canvas.setPointerCapture(e.pointerId); }catch(_){} canvas.classList.add('dragging'); });
+canvas.addEventListener('pointermove',e=>{ if(!down){ canvas.classList.toggle('point',!!hitAt(e.clientX,e.clientY)); return; } const dx=e.clientX-down.x, dy=e.clientY-down.y; down.x=e.clientX; down.y=e.clientY; down.moved+=Math.abs(dx)+Math.abs(dy);
+  if(down.moved>6){ look.auto=0; look.yaw=clamp(look.yaw+dx*.004,-1.25,1.25); look.pitch=clamp(look.pitch+dy*.004,-.75,.45); dirty=true; } });
+const pup=e=>{ if(down&&down.moved<=6) act(hitAt(e.clientX,e.clientY)); down=null; canvas.classList.remove('dragging'); };
+canvas.addEventListener('pointerup',pup); canvas.addEventListener('pointercancel',()=>{ down=null; canvas.classList.remove('dragging'); });
+addEventListener('keydown',e=>{ const a=document.activeElement, ab=$('about'), k=e.key.toLowerCase();
+  if(e.key==='Escape'){ if(ab.open){ ab.open=false; return; } if(!a||a===document.body||a===canvas) goBack(); else a.blur(); return; }
+  if(a&&a!==document.body&&a!==canvas) return; if(e.ctrlKey||e.metaKey||e.altKey) return;
+  if(k==='b') doPump(); else if(k==='f') setPlace('fire'); else if(k==='a') setPlace('anvil'); else if(k==='q') setPlace('trough');
+  else if(k===' '||k==='h'||k==='enter'){ e.preventDefault(); if(S.place==='anvil') swingAt(); }
+  else if(k==='arrowleft'||k==='arrowright'){ e.preventDefault(); if(S.place==='anvil'){ S.aim=clamp(S.aim+(k==='arrowleft'?1:-1),0,IRON.zones-1); dirty=true; } else { look.auto=0; look.yaw=clamp(look.yaw+(k==='arrowleft'?.12:-.12),-1.25,1.25); dirty=true; } }
+  else if(k==='arrowup'||k==='arrowdown'){ e.preventDefault(); look.auto=0; look.pitch=clamp(look.pitch+(k==='arrowup'?.08:-.08),-.75,.45); dirty=true; }
+  else if(k==='p'){ $('play').click(); } });
+
+/* ═════════════════════════ sound: all of it made here ═════════════════════════ */
+const AU={ on:false, ctx:null, rings:0 };
+function soundOn(on){ try{ if(!on){ AU.on=false; if(AU.master) AU.master.gain.setTargetAtTime(0,AU.ctx.currentTime,.1); $('sound').setAttribute('aria-pressed','false'); return; }
+    if(!AU.ctx){ const C=window.AudioContext||window.webkitAudioContext; if(!C) return; const c=AU.ctx=new C(), master=AU.master=c.createGain(); master.gain.value=0; master.connect(c.destination);
+      const nb=AU.nb=c.createBuffer(1,c.sampleRate*3,c.sampleRate), d=nb.getChannelData(0), R=rng(11); for(let i=0;i<d.length;i++) d[i]=R()*2-1;
+      const mk=(type,f,q)=>{ const n=c.createBufferSource(); n.buffer=nb; n.loop=true; const fl=c.createBiquadFilter(); fl.type=type; fl.frequency.value=f; fl.Q.value=q||.7; const g=c.createGain(); g.gain.value=0; n.connect(fl); fl.connect(g); g.connect(master); n.start(0,R()*2); return { f:fl, g }; };
+      AU.roar=mk('lowpass',300,.5); AU.hiss=mk('highpass',3200,.6); AU.rain=mk('bandpass',5200,.4); AU.puff=mk('bandpass',520,.8); }
+    AU.ctx.resume(); AU.on=true; AU.master.gain.setTargetAtTime(.8,AU.ctx.currentTime,.2); $('sound').setAttribute('aria-pressed','true'); }catch(_){ AU.on=false; } }
+function audioRing(J,e){ AU.rings++; if(!AU.on||!AU.ctx) return; const c=AU.ctx, sr=c.sampleRate, s=ringSamples(ringModes(J,e),sr,1.6), tc=contactTime(e), n=Math.floor(tc*sr*6); for(let i=0;i<n;i++) s[i]+=J*.6*(R0()*2-1)*Math.exp(-i/(tc*sr*1.5));   // the knock itself: a burst as long as the contact
+  const buf=c.createBuffer(1,s.length,sr); buf.copyToChannel(s,0); const src=c.createBufferSource(); src.buffer=buf; const g=c.createGain(); g.gain.value=.012; src.connect(g); g.connect(AU.master); src.start(); }
+function audioPump(){ if(!AU.on||!AU.ctx) return; const t=AU.ctx.currentTime, g=AU.puff.g.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value,t); g.linearRampToValueAtTime(.25,t+.25); g.linearRampToValueAtTime(0,t+1.1); }
+function soundTick(){ if(!AU.on||!AU.ctx) return; const t=AU.ctx.currentTime, b=S.playing?S.fire.b:0; AU.roar.g.gain.setTargetAtTime(S.playing?.05+.5*Math.sqrt(b):0,t,.15); AU.roar.f.frequency.setTargetAtTime(240+700*b,t,.2);
+  AU.hiss.g.gain.setTargetAtTime(S.playing?Math.min(.5,S.steamRate*9):0,t,.06); AU.rain.g.gain.setTargetAtTime(S.playing?.07*S.rain:0,t,.5); }
+$('sound').onclick=()=>soundOn(!AU.on);
+
+/* ═════════════════════════ drawing a frame ═════════════════════════ */
+const postScene=new THREE.Scene(), postCam=new THREE.Camera();
+const tri=new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1,-1,0, 3,-1,0, -1,3,0]),3))); tri.frustumCulled=false; postScene.add(tri);
+const VSQ='varying vec2 vUv; void main(){ vUv=position.xy*.5+.5; gl_Position=vec4(position.xy,0.,1.); }';
+const copyMat=new THREE.ShaderMaterial({ vertexShader:VSQ, fragmentShader:'varying vec2 vUv; uniform sampler2D tA; void main(){ gl_FragColor=vec4(min(texture2D(tA,vUv).rgb,vec3(200.)),1.); }', uniforms:{ tA:{value:null} }, depthTest:false, depthWrite:false });
+const finMat=new THREE.ShaderMaterial({ vertexShader:VSQ, depthTest:false, depthWrite:false, uniforms:{ tB:{value:null}, uFilm:{value:0}, uExpo:{value:1}, uPale:{value:0} }, fragmentShader:`varying vec2 vUv; uniform sampler2D tB; uniform float uFilm, uExpo, uPale;
+float hsh(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+void main(){ vec2 d=vUv-.5; float r2=dot(d,d); vec2 px=.5/vec2(textureSize(tB,0)); vec3 c=(textureLod(tB,vUv+px*vec2(1.,.4),0.).rgb+textureLod(tB,vUv+px*vec2(-.4,1.),0.).rgb+textureLod(tB,vUv+px*vec2(-1.,-.4),0.).rgb+textureLod(tB,vUv+px*vec2(.4,-1.),0.).rgb)*.25;
+  vec3 glow=textureLod(tB,vUv,2.5).rgb*.3+textureLod(tB,vUv,4.5).rgb*.35+textureLod(tB,vUv,6.5).rgb*.35; c+=glow*.22;      // glare: bright things bleed, as in an eye
+  c*=uExpo; float L=dot(c,vec3(.2126,.7152,.0722)), w=L/(L+5.); c=mix(c,vec3(L),w*w*.92); c=clamp((c*(2.51*c+.03))/(c*(2.43*c+.59)+.14),0.,1.);   // the same film curve as tone() above
+  c*=1.-r2*.85; c=mix(12.92*c, 1.055*pow(c,vec3(1./2.4))-.055, step(.0031308,c)); c+=(hsh(gl_FragCoord.xy+uFilm)-.5)*.03; gl_FragColor=vec4(c,1.); }` });
+let rtA=null, rtB=null, budget=TEST&&TEST.budget?TEST.budget:(LOW?1.6e5:1.3e6), slow=0, fast=0, frame=0, drawn=0, flick=1, shadowN=0; const BMIN=LOW?5e4:2.4e5, BMAX=budget;
+function build(){ const cw=canvas.clientWidth||innerWidth, ch=canvas.clientHeight||innerHeight, dpr=Math.min(devicePixelRatio||1,2), scale=Math.min(dpr,Math.sqrt(budget/(cw*ch))), out=LOW?Math.min(dpr,1):dpr;
+  renderer.setPixelRatio(out); renderer.setSize(cw,ch,false); /* the scene is drawn at 'scale'; the last pass enlarges it smoothly to the screen's own pixels and lays the grain on top */ const w=Math.max(2,Math.floor(cw*scale)), h=Math.max(2,Math.floor(ch*scale));
+  if(rtA){ rtA.dispose(); rtB.dispose(); }
+  rtA=new THREE.WebGLRenderTarget(w,h,{ type:HF, samples:4 }); rtB=new THREE.WebGLRenderTarget(w,h,{ type:HF, generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter, depthBuffer:false });
+  camera.aspect=cw/ch; camera.fov=cw/ch<.8?72:cw/ch<1.2?62:55; camera.updateProjectionMatrix(); stMat.uniforms.uPx.value=h/(2*Math.tan(camera.fov*Math.PI/360)); }
+function draw(){ const t=S.t, Tf=S.fire.T, D=Math.pow(bbLum(Tf)/LREF,DISP.gamma), ch=bbChroma(Tf), cm=Math.max(ch[0],ch[1],ch[2]);
+  flick=1+(.1+.16*S.fire.b)*(sn(t*7.3)+.6*sn(t*17.1+3)+.3*sn(t*41+9)-.95);                     // the flicker is drawn: stronger in the blast
+  const I=46*Math.pow(D/12,.27)*flick; fireLight.color.setRGB(ch[0]/cm,ch[1]/cm,ch[2]/cm); fireLight.intensity=I;
+  fireLight.position.set(FIREP[0]+.05*(sn(t*5.1)-.5),FIREP[1]+.2+.05*(sn(t*6.7+5)-.5),FIREP[2]+.05*(sn(t*4.3+2)-.5));
+  if(LOW){ fireLight.shadow.autoUpdate=false; if(shadowN++%3===0) fireLight.shadow.needsUpdate=true; }
+  G.uTime.value=t; G.uT.value=Tf; G.uBlast.value=S.fire.b; G.uL.value.copy(fireLight.position); G.uLc.value.set(ch[0]/cm*I,ch[1]/cm*I,ch[2]/cm*I); G.uRain.value=S.rain;
+  const hm=ironMax(), gl=bbDisplay(hm); G.uGlow.value.set(gl[0],gl[1],gl[2]);
+  sky.intensity=.02+.05*S.rain; nightL.intensity=.5+.9*S.rain;
+  bounceF.color.setRGB(ch[0]/cm,ch[1]/cm*.8,ch[2]/cm*.7); bounceF.intensity=.1*I; bounceW.color.setRGB(ch[0]/cm,ch[1]/cm*.7,ch[2]/cm*.6); bounceW.intensity=.09*I;
+  { const want=clamp(Math.pow(46/(I/flick),.85),1,3.4), dtE=expoT<0||TEST||REDUCED?1e9:Math.abs(t-expoT); expoT=t; expo+=(want-expo)*(1-Math.exp(-dtE/1.4)); finMat.uniforms.uExpo.value=expo; }   // the exposure opens in a dim room and closes in the blast, as an eye does, over a second or two
+  barNow(); hammerNow(); bellowsNow(); sparksNow(); rainNow(); stGeo.attributes.position.needsUpdate=true; stGeo.attributes.aA.needsUpdate=true;
+  /* the trees answer the fire: each lights as far as its cut has gone down, the right-hand one at once, its twin after it */
+  const sK=.45+1.6*Math.pow(D/12,.35)*flick; strMat.uniforms.uStripe.value.set(ch[0]/cm*sK,(ch[1]/cm+.05)*sK,ch[2]/cm*sK);
+  for(let j=0;j<PAIRS;j++){ const lv=sat(zoneThin(S.bar,j)/DONE); lvL[j]+=(lv-lvL[j])*(TEST||REDUCED?1:.035); aLv.array[j*2]=lv; aLv.array[j*2+1]=lvL[j]; aFl.array[j*2]=S.flash[j]; aFl.array[j*2+1]=S.flash[j]*.5; } aLv.needsUpdate=true; aFl.needsUpdate=true;
+  const blink=1-sstep(.0,.06,((t*.19)%1))*sstep(.14,.08,((t*.19)%1)), ec=bbChroma(Math.max(Tf+150,900)), em=Math.max(ec[0],ec[1],ec[2]), eI=(1.2+2.6*Math.pow(D/12,.35))*flick;
+  eyes.forEach(e=>{ e.visible=S.eyes>.01; e.material.uniforms.uOpen.value=S.eyes*blink; e.material.uniforms.uEye.value.set(ec[0]/em*eI,(ec[1]/em+.12)*eI,(ec[2]/em+.02)*eI); });
+  const dl=S.door*(1+.03*Math.sin(t*.7)); doorGlow.material.color.setRGB(.5*dl,.45*dl,.36*dl); doorLight.intensity=.3*dl;
+  camera.position.z=look.z; camera.rotation.set(look.pitch,look.yaw,0); camera.updateMatrixWorld();
+  renderer.setRenderTarget(rtA); renderer.render(scene,camera);
+  copyMat.uniforms.tA.value=rtA.texture; tri.material=copyMat; renderer.setRenderTarget(rtB); renderer.render(postScene,postCam);
+  finMat.uniforms.tB.value=rtB.texture; finMat.uniforms.uFilm.value=(drawn*.37)%97; tri.material=finMat; renderer.setRenderTarget(null); renderer.render(postScene,postCam); drawn++; }
+
+/* ═════════════════════════ the hook for tests, and for anyone at the console ═════════════════════════ */
+window.PIECE={ name:'tyger-forge', back:BACKTO,
+  state(){ const b=S.bar, thin=[]; for(let j=0;j<IRON.zones;j++) thin.push(zoneThin(b,j));
+    return { frame, drawn, t:Math.round(S.t*1000)/1000, playing:S.playing, auto:S.auto, low:LOW, reduced:REDUCED, pixels:rtA?rtA.width*rtA.height:0, screenPixels:canvas.width*canvas.height, exposure:expo, budget,
+      place:S.place, arrived:arrived(), fireC:S.fire.T-K0, fill:S.fire.b, air:S.fire.air, pulls:S.fire.pulls, charcoalBurnt:S.fire.burnt, ironMaxC:ironMax()-K0, ironC:ironRead()-K0, tipC:b.T[0]-K0, heat:heatName(ironMax()),
+      blows:b.blows, hotBlows:S.hotBlows, thin, stripes:stripesDone(), aim:S.aim, power:S.power, volume:barVolume(b), V0:b.V0, shed:b.shed, burntIron:b.burnt, length:barLength(b), cracks:b.crack.reduce((a,c)=>a+c,0),
+      waterC:S.water.T-K0, steamKg:S.water.steam, steamRate:S.steamRate, regime:S.regime, sparks:SP.n, sparksMade:SP.made, verse:S.verse, ended:S.ended, rain:S.rain, eyes:S.eyes, door:S.door, last:S.last,
+      yaw:look.yaw, pitch:look.pitch, light:fireLight.intensity, flick, swatchFire:swatch(S.fire.T), swatchIron:swatch(ironMax()), audio:{ on:AU.on, state:AU.ctx?AU.ctx.state:'none', rings:AU.rings } }; },
+  model:{ planck, cmf, bbXYZ, bbxy, bbLum, bbChroma, bbDisplay, tone, swatch, airFlow, furnaceRates, furnaceStep, furnaceSteady, pump, makeBar, barStep, barVolume, barEnergy, barLength, boilFlux, flowStress, restitution, blow, zoneCells, zoneThin, zoneX,
+    sparkCool, sparkExact, sparkK, ringModes, ringSamples, contactTime, consts:{ PH, DISP, FUR, IRON, BOIL, SPARK, ANVIL, ALPHA, DONE, K0, GRAV, FIRE_LEN, WATER_LEN, VMIN, VMAX } },
+  verses:VERSES, question:QUESTION, bar:()=>S.bar, sparks:()=>({ p:Array.from(SP.p), v:Array.from(SP.v), T:Array.from(SP.T), d:Array.from(SP.d) }),
+  advance, reset(){ reset(); syncUI(); dirty=true; }, pump:doPump, place:setPlace, aim(j){ S.aim=clamp(j|0,0,IRON.zones-1); dirty=true; }, power(p){ S.power=clamp(+p,0,1); $('power').value=Math.round(S.power*100); },
+  strike(x,v){ return strikeNow(x===undefined?aimX():x, v||(VMIN+(VMAX-VMIN)*S.power)); }, swing:swingAt, auto(on){ S.auto=!!on; S.au.t=0; syncUI(); }, play(on){ S.playing=!!on; syncUI(); }, sound:soundOn,
+  setFire(Tc,b){ S.fire.T=Tc+K0; if(b!==undefined) S.fire.b=b; }, setIron(Tc,n){ const B=S.bar; for(let i=0;i<(n||B.N);i++) B.T[i]=Tc+K0; },
+  look(yaw,pitch,z){ look.yaw=yaw; look.pitch=pitch; if(z!==undefined) look.z=look.tz=z; look.auto=0; dirty=true; },
+  where(name){ const m=hits.find(h=>h.userData.name===name); if(!m) return null; camera.position.z=look.z; camera.rotation.set(look.pitch,look.yaw,0); camera.updateMatrixWorld(); const p=m.position.clone().project(camera), r=canvas.getBoundingClientRect(); return { x:r.left+(p.x+1)/2*r.width, y:r.top+(1-p.y)/2*r.height, front:p.z<1 }; },
+  shot(){ draw(); syncUI(); renderer.getContext().finish(); return true; } };
+
+/* ═════════════════════════ start ═════════════════════════ */
+const barH=()=>document.documentElement.style.setProperty('--barh',$('bar').offsetHeight+'px');
+addEventListener('resize',()=>{ build(); barH(); dirty=true; });
+/* With reduced motion the piece opens paused on a made frame: the smith has been at work and stands at the anvil with hot iron. Play goes on from there. */
+if(REDUCED){ S.auto=true; for(let i=0;i<30*200&&!(S.place==='anvil'&&arrived()&&stripesDone()>=4);i++) step(1/30); S.playing=false; S.auto=false; }
+build(); barH(); lookTo(S.place==='anvil'?'anvil':'start'); look.yaw=look.ty; look.pitch=look.tp; look.z=look.tz; look.auto=0; syncUI(); window.__ready=true;
+if(TEST){ draw(); return; }
+let last=0, uiT=0;
+function tick(now){ requestAnimationFrame(tick); const dt=Math.min((now-last)/1000,.1); last=now; frame++;
+  if(S.playing){ step(dt); dirty=true; } lookStep(dt); soundTick(); if((uiT+=dt)>.25){ uiT=0; syncUI(); }
+  if(dirty){ dirty=false; const t0=performance.now(); draw(); renderer.getContext().finish(); const ms=performance.now()-t0;
+    if(ms>42){ fast=0; if(++slow>6&&budget>BMIN){ budget=Math.max(BMIN,budget*.75); slow=0; build(); dirty=true; } } else { slow=Math.max(0,slow-1); if(ms<13&&budget<BMAX){ if(++fast>90){ budget=Math.min(BMAX,budget*1.25); fast=0; build(); } } else fast=0; } } }
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

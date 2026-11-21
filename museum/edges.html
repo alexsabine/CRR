@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where the edges meet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: full-bleed stage, quiet film-slate controls pinned to the corners */
+  --studio:#0c0d10;
+  --ink:#f3ecdf;
+  --ink-soft:rgba(243,236,223,.72);
+  --panel:rgba(14,15,19,.58);
+  --line:rgba(243,236,223,.22);
+  --accent:#ff7a3c;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+body{transition:opacity .45s ease}
+body.leaving{opacity:0}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#stage.dragging{cursor:grabbing}
+#stage.over{cursor:pointer}
+#stage:focus-visible{outline:2px solid var(--accent);outline-offset:-4px}
+.head{position:fixed;left:20px;top:16px;right:190px;pointer-events:none;text-shadow:0 1px 10px rgba(0,0,0,.6),0 0 4px rgba(0,0,0,.55)}
+.head h1{font:600 clamp(22px,3.2vw,34px)/1.05 var(--display);margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.head p{font:400 13px/1.45 var(--mono);margin:0;color:var(--ink);max-width:50ch}
+.pill,.bar button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);
+  border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+#back{position:fixed;right:16px;top:16px;background:var(--panel);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);z-index:3}
+.pill:hover,.bar button:hover{border-color:var(--ink-soft)}
+.foot{position:fixed;left:16px;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.foot>*{pointer-events:auto}
+.slate{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:flex-end;justify-content:space-between;padding:10px 14px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#cap{flex:1 1 100%;margin:0;font:400 clamp(15px,1.6vw,17.5px)/1.35 var(--display);max-width:120ch;text-wrap:pretty}
+.read{display:flex;flex-wrap:wrap;gap:6px 20px;margin:0;font:400 12px/1.35 var(--mono)}
+.read div{min-width:0}
+.read dt{color:var(--ink-soft);margin:0}
+.read dd{margin:0;font-variant-numeric:tabular-nums;font-weight:500}
+.read dd small{font-weight:400;font-size:11px;color:var(--ink-soft)}
+.bar{display:flex;flex-wrap:wrap;gap:10px 10px;align-items:center;
+  padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font:400 12.5px/1 var(--mono)}
+.bar button[aria-pressed="true"]{background:var(--ink);color:#15161a;border-color:var(--ink)}
+.bar button:disabled{opacity:.4;cursor:default}
+.pill:focus-visible,.bar button:focus-visible,.bar input:focus-visible,#about a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#play{min-width:74px;background:var(--accent);border-color:var(--accent);color:#1a0d05}
+#scrub{flex:1 1 90px;min-width:84px;accent-color:var(--accent);height:22px}
+#count{font-variant-numeric:tabular-nums;color:var(--ink-soft);white-space:nowrap}
+.mist{display:inline-flex;align-items:center;gap:8px;color:var(--ink-soft);white-space:nowrap}
+.mist input{width:84px;accent-color:var(--accent);height:22px}
+#about{position:fixed;right:16px;top:60px;bottom:16px;width:min(460px,calc(100vw - 32px));overflow:auto;z-index:4;display:none;
+  padding:18px 20px 22px;background:rgba(14,15,19,.9);border:1px solid var(--line);border-radius:14px;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);font:400 12.5px/1.6 var(--mono);color:var(--ink-soft)}
+#about.open{display:block}
+#about h2{font:600 20px/1.15 var(--display);color:var(--ink);margin:0 0 10px}
+#about h3{font:600 15px/1.2 var(--display);color:var(--ink);margin:18px 0 6px}
+#about p{margin:0 0 9px}
+#about b{color:var(--ink);font-weight:500}
+#about .x{float:right;margin:-4px -6px 0 10px}
+#fail{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:400 15px/1.5 var(--mono)}
+@media (max-width:640px){
+  .head{left:14px;top:12px;right:14px}
+  .head h1{padding-right:150px}
+  .head p{font-size:12px}
+  #back{right:10px;top:10px;padding:8px 11px}
+  .foot{left:8px;right:8px;bottom:8px;gap:6px}
+  .bar{padding:8px 9px;gap:7px 7px}
+  .slate{padding:8px 10px}
+  .bar button{padding:8px 10px;font-size:12px}
+  #cap{font-size:14.5px;flex-basis:100%}
+  .read{font-size:11px;gap:4px 14px}
+  .mist input{width:64px}
+  #about{top:52px;right:8px;bottom:8px;width:calc(100vw - 16px)}
+}
+@media (prefers-reduced-motion:reduce){ body{transition:none} }
+</style>
+</head>
+<body>
+<canvas id="stage" tabindex="0" aria-label="A clay table-top country of hills, a river and a coast. Small clay map-makers walk it, each carrying a paper map of its own patch. Where two patches overlap and the maps disagree, a seam of pink clay glows. Arrow keys move the chosen map-maker."></canvas>
+<div class="head">
+  <h1>Where the edges meet</h1>
+  <p>Nobody holds the whole map. Each of these map-makers has a map of the patch it has walked, and the learning happens where one map meets another and does not fit.</p>
+</div>
+<button id="back" class="pill" type="button">Back to the museum</button>
+<div class="foot">
+  <div class="slate">
+    <p id="cap" aria-live="polite"></p>
+    <dl class="read">
+      <div><dt>Best single map</dt><dd id="r1">&nbsp;</dd></div>
+      <div><dt>All maps pooled</dt><dd id="r2">&nbsp;</dd></div>
+      <div><dt>Learned at seams</dt><dd id="r3">&nbsp;</dd></div>
+    </dl>
+  </div>
+  <div class="bar">
+    <button id="play" type="button">Pause</button>
+    <input id="scrub" type="range" min="0" max="720" step="1" value="0" aria-label="Time, in steps">
+    <span id="count">step 000 / 720</span>
+    <button id="add" type="button" title="Or click the table">Add a map-maker</button>
+    <button id="stranger" type="button" title="A map made on a different table">A stranger</button>
+    <button id="next" type="button" title="Choose the next map-maker">Next</button>
+    <button id="single" type="button" aria-pressed="false" title="Make the chosen map-maker's confidence absolute">Single vision</button>
+    <label class="mist">Mist <input id="mist" type="range" min="0" max="100" step="1" value="0" aria-label="Mist: how noisy each reading is"></label>
+    <button id="again" type="button">Start again</button>
+    <button id="aboutBtn" type="button" aria-expanded="false" aria-controls="about">About</button>
+  </div>
+</div>
+<div id="about" role="dialog" aria-label="About this piece">
+  <button class="pill x" id="aboutX" type="button">Close</button>
+  <h2>About this table</h2>
+  <p>An <b>edge</b>, in this museum's words, is the place where what you already think meets something that does not fit. This is a working model of that sentence. It is small and everything in it is computed.</p>
+  <h3>The model</h3>
+  <p><b>The territory</b> is one number at each place, a height h(x, y), made from a seed so it is the same every visit. The maps use a coarse grid of 44 by 30 cells. Heights are shown on a scale where the table runs from about 0 to 100.</p>
+  <p><b>Alone.</b> A map-maker walks a round patch. At every step it reads the cells within a step and a half of its feet. A reading is the true height, bent by the map-maker's own lens (a smooth error that is its alone and that it cannot see), plus mist (random noise). For each cell it keeps an estimate and a confidence, updated by the one-number Kalman rule: new estimate = old + (reading &minus; old) &times; (confidence of the reading &divide; total confidence). Unwalked paper stays blank and is scored as a guess of level ground.</p>
+  <p>Choose a map-maker and the caption gives two numbers: how far its map is from the table, and how far it reckons it is. The second comes only from its own confidence and shrinks with every reading. The lens never shows up in it. From inside one map there is nothing to check the map against. The board called Drift makes the same point.</p>
+  <p><b>Meeting at an edge.</b> Where two map-makers have both walked a cell, they compare. If they agree to within 1.2, nothing happens. If not, each crosses 6% of its share of the gap per step, and its share is the other's confidence over the sum: precision-weighted averaging. With equal confidence they end midway. What is learned is kept as a correction to that cell, and confidence is not raised by it, so the same evidence is not counted twice. The pink seam shows the gap, cell by cell, and fades as it closes.</p>
+  <p><b>Single vision</b> makes one map-maker's confidence in its own readings absolute. It drops whatever it had taken from others, stops revising what it has drawn, and at its edges its share of every gap is nothing, so the others cross the whole way. Two lenses averaged are usually nearer the truth than one, so this usually raises the error on the ground they share, though not always. Switching it off does not undo it: by then the others agree with it, and where maps agree nothing happens. Blake's prayer was <i>May God us keep / From Single vision &amp; Newtons sleep</i>.</p>
+  <p><b>The stranger</b> arrives sure of a map made on a different table (another seed). Its seams are the widest. It learns most there, and its neighbours are pulled furthest from the truth.</p>
+  <p><b>The readouts.</b> Error is the root-mean-square distance from the true heights over the whole table, blank paper included. The pooled map takes, in each cell, the confidence-weighted average of every map that has walked it. Learning is counted as error removed (squared, summed over all maps), and each update is booked to its cause: first sight of a cell, re-reading it, or a seam. The share shown is seams &divide; (seams + re-reading); the smaller figure counts first sight as well. It is whatever the run gives, and it can be negative when seams have taught more wrong than right.</p>
+  <p><b>When pooling helps.</b> Once seams are quiet, the pooled map equals the best single map inside that map's patch and adds the others' ground outside it. So pooled error is no worse than the best single error provided nobody's confidence is absolute and each added map is nearer the truth than blank paper. A stranger or one single vision can break that, and the numbers will show it.</p>
+  <h3>Sources</h3>
+  <p>R. E. Kalman, Journal of Basic Engineering 82 (1960), for the update rule. K. Friston and C. Frith, &ldquo;A Duet for one&rdquo;, Consciousness and Cognition 36 (2015), where two agents each weight the other's signal by its precision and come into step. This table borrows only that weighting. It is not their model, which is about two birds predicting each other's song. W. Blake, letter to Thomas Butts, 22 November 1802.</p>
+  <h3>What this leaves out</h3>
+  <p>Nearly everything about people. A height is one number, and what people know is not. Here there is a true table to score against, and outside this room nobody is handed one. The stranger's map is true of somewhere else, and on this table that can only show up as error. Map-makers here never refuse to meet, never mishear, and always report their confidence honestly unless you switch single vision on. Nobody generalises: a correction learned at a seam stays in that cell. Whether minds weight each other by precision in this way is a modelling proposal and not a settled finding.</p>
+</div>
+<div id="fail">This piece needs WebGL 2, which this browser or device has not made available.</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+const canvas = document.getElementById('stage');
+const $=id=>document.getElementById(id);
+
+/* ───────────────────────── the way back ───────────────────────── */
+const HOME = { blake: 'index.html', jooles: 'jooles.html', park: 'park.html' };
+const QS = new URLSearchParams(location.search);
+let from = QS.get('from'); if (!Object.prototype.hasOwnProperty.call(HOME, from || '')) from = 'blake';
+let stop = QS.get('stop'); if (!/^[a-z0-9_:\-]{1,40}$/.test(stop || '')) stop = 'edges';
+const BACK = HOME[from] + '#' + stop;
+const REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+let leaving = false;
+function goBack(){ if (leaving) return; leaving = true; document.body.classList.add('leaving'); setTimeout(()=>{ location.href = BACK; }, REDUCED ? 0 : 460); }
+$('back').onclick = goBack;
+const aboutEl = $('about'), aboutBtn = $('aboutBtn');
+function setAbout(on){ aboutEl.classList.toggle('open', on); aboutBtn.setAttribute('aria-expanded', on); if (on) $('aboutX').focus(); else if (aboutEl.contains(document.activeElement)) aboutBtn.focus(); }
+aboutBtn.onclick = ()=>setAbout(!aboutEl.classList.contains('open'));
+$('aboutX').onclick = ()=>setAbout(false);
+addEventListener('keydown', e=>{ if (e.key !== 'Escape') return;
+  if (aboutEl.classList.contains('open')) { setAbout(false); return; }
+  const a = document.activeElement; if (!a || a === document.body || a === document.documentElement) goBack(); });
+
+/* ───────────────────────── noise (CPU) ───────────────────────── */
+function h3(x,y,z){ let n = Math.imul(x|0,374761393) ^ Math.imul(y|0,668265263) ^ Math.imul(z|0,1440662683);
+  n = Math.imul(n ^ (n>>>13), 1274126177); return ((n ^ (n>>>16))>>>0)/4294967296; }
+function vn3(x,y,z){ const xi=Math.floor(x), yi=Math.floor(y), zi=Math.floor(z);
+  let fx=x-xi, fy=y-yi, fz=z-zi; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); fz=fz*fz*(3-2*fz);
+  const a=h3(xi,yi,zi), b=h3(xi+1,yi,zi), c=h3(xi,yi+1,zi), d=h3(xi+1,yi+1,zi),
+        e=h3(xi,yi,zi+1), f=h3(xi+1,yi,zi+1), g=h3(xi,yi+1,zi+1), h=h3(xi+1,yi+1,zi+1);
+  const ab=a+(b-a)*fx, cd=c+(d-c)*fx, ef=e+(f-e)*fx, gh=g+(h-g)*fx;
+  const p=ab+(cd-ab)*fy, q=ef+(gh-ef)*fy; return p+(q-p)*fz; }
+function fbm3(x,y,z){ return vn3(x,y,z)*.55 + vn3(x*2.1+5,y*2.1+3,z*2.1+1)*.3 + vn3(x*4.3+9,y*4.3+7,z*4.3+2)*.15; }
+const rnd=(i,j)=>h3(i,j,77);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const sstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+
+/* ═════════════════════════ THE MODEL ═════════════════════════
+   Everything on screen that is called a number comes from here. No rendering in this section.
+
+   Territory: a scalar field h(x, y) (height), procedural from a seed, sampled at the centres of a GX x GY grid.
+   Map-maker i holds, for each cell c it has walked: an estimate k_i(c) from its own readings, a precision
+   (confidence) p_i(c), and a correction s_i(c) learned from others. Its map is m_i(c) = k_i(c) + s_i(c).
+
+   Reading (every step, cells within SIGHT of its feet and inside its round patch of radius RAD):
+       z = h(c) + lens_i(c) + sigma * N(0,1)
+     lens_i is a smooth error of the map-maker's own, unknown to it; sigma is the mist.
+     Scalar Kalman update for a quantity that does not change (R. E. Kalman, J. Basic Eng. 82, 1960):
+       p' = p + 1/sigma^2 ;  k' = k + (z - k) / (sigma^2 p')
+     Prior: k = MU0 (level ground), p = P0. A cell never read stays exactly at the prior ("blank").
+
+   Seam (every step, each pair, each cell both have read): if |m_i - m_j| > TAU,
+       m_i += KAPPA * p_j/(p_i+p_j) * (m_j - m_i) ;  m_j += KAPPA * p_i/(p_i+p_j) * (m_i - m_j)
+     Precision-weighted averaging: the weighting used for the two agents in K. Friston and C. Frith,
+     "A Duet for one", Consciousness and Cognition 36 (2015). Only the weighting is borrowed.
+     The change goes into s; p is left alone (meeting again must not count the same evidence twice).
+     Each step conserves p_i m_i + p_j m_j, so with equal precision the pair ends midway.
+
+   Single vision: that map-maker's precision in its own readings is treated as infinite. So it drops every correction
+     it took from others (s = 0: with infinite weight on its own reading the weighted average is its own reading),
+     never revises a cell it has drawn (blank paper still takes one first reading), and at a seam its weight is 1
+     and the other's is 0. Switching it off restores ordinary weights; it does not undo what the others took on.
+
+   Stranger: arrives with its patch already drawn, from a different territory (seed + 1000), as if read 12 times.
+
+   Scores: error = RMS of (map - h) over ALL cells, blank counted at MU0. Pooled map = precision-weighted mean,
+     per cell, of the maps that have read it. Learning = fall in sum over maps and cells of (m - h)^2, booked per
+     update to: first sight of a cell, re-reading, or seam.  J(0) - J(t) = first + re + seam  (checked in tests). */
+const GX=44, GY=30, NC=GX*GY, SEA=.3;
+const RAD=6, SIGHT=1.5, SPEED=.9;
+const MU0=.45, P0=1/(.3*.3), SIG0=.02, SIG1=.25, TAU=.012, KAPPA=.06, LENS=.3, T_END=720, MAXM=9;
+function gauss(a,b,c){ const u=Math.max(h3(a,b,c),1e-9), v=h3(a+7919,b+13,c+104729); return Math.sqrt(-2*Math.log(u))*Math.cos(6.2831853*v); }
+
+let _riv=0;
+function terrainH(x,y,s){            // x in [0,GX], y in [0,GY]; returns h, sets _riv (0..1 river bed)
+  const u=x/GX, v=y/GY, o=s*17.31;
+  const hills=fbm3(u*3.3+o, v*2.3+o*.7, s*.37);
+  const ridge=1-Math.abs(2*vn3(u*2.1+o+40, v*1.7+7, s*.11+3)-1);
+  const coast=.8+.06*Math.sin(v*4.4+s*1.9)+.07*(vn3(v*4+o,3.5,s*.7)-.5);
+  const land=sstep(-.03,.2,coast-u);
+  let h=SEA-.2*(1-land)*(1-land)-.03*(1-land) + land*(.035+.78*Math.pow(clamp((hills-.2)/.56,0,1),1.25)*(.55+.45*ridge)*(.72+.5*(1-u)));
+  const vr=.5+.17*Math.sin(u*5.4+s*1.3)+.045*Math.sin(u*13.7+s*.6), d=Math.abs(v-vr)*GY;
+  const src=sstep(.1,.2,u), bed=SEA+.012+Math.max(0,coast-u)*.09;
+  const w=Math.exp(-(d*d)/(1.9*1.9))*src*land;
+  h=h+(Math.min(h,bed)-h)*w;
+  _riv=(d<.5+.5*sstep(.3,.8,u)?1:0)*src*(land>.25?1:0);
+  return h;
+}
+const _fields={};
+function truthField(seed){ if(_fields[seed]) return _fields[seed]; const H=new Float32Array(NC);
+  for(let cy=0;cy<GY;cy++) for(let cx=0;cx<GX;cx++) H[cy*GX+cx]=terrainH(cx+.5,cy+.5,seed); return _fields[seed]=H; }
+
+function kalman(k,p,z,r){ const p2=p+1/r; return [k+(z-k)/(r*p2), p2]; }       // r = reading variance
+function meet(mi,pi,mj,pj,rate){                                              // one seam step for one cell
+  let wi, wj; const ii=pi===Infinity, jj=pj===Infinity;
+  if(ii&&jj){ wi=0; wj=0; } else if(ii){ wi=0; wj=1; } else if(jj){ wi=1; wj=0; } else { const s=pi+pj; wi=s>0?pj/s:.5; wj=s>0?pi/s:.5; }
+  const d=mj-mi; return [mi+rate*wi*d, mj-rate*wj*d]; }
+
+class World {
+  constructor(seed){ this.seed=seed|0; this.t=0; this.sigma=SIG0; this.H=truthField(this.seed); this.makers=[]; this.nextId=0;
+    this.acc={first:0,re:0,seam:0}; this.delta=new Float32Array(NC); this.seamCells=0; this.seamSum=0; }
+  byId(id){ for(const m of this.makers) if(m.id===id) return m; return null; }
+  add(x,y,stranger){ if(this.makers.length>=MAXM) return -1;
+    const id=this.nextId++, o=h3(this.seed,id,901)*90+id*3.7;
+    const m={ id, stranger:!!stranger, single:false, hx:clamp(x,1,GX-1), hy:clamp(y,1,GY-1), x:0, y:0, wk:0, hd:0,
+      k:new Float32Array(NC).fill(MU0), s:new Float32Array(NC), p:new Float32Array(NC).fill(P0), n:new Uint16Array(NC), D:new Float32Array(NC) };
+    m.x=m.hx; m.y=m.hy; const b=(h3(this.seed,id,902)-.5)*.1;
+    for(let cy=0;cy<GY;cy++) for(let cx=0;cx<GX;cx++) m.D[cy*GX+cx]=b+LENS*2*(fbm3(cx*.11+o, cy*.11+o*.6, o*.3)-.5);
+    if(stranger){ const H2=truthField(this.seed+1000);
+      for(let cy=0;cy<GY;cy++) for(let cx=0;cx<GX;cx++){ const dx=cx+.5-m.hx, dy=cy+.5-m.hy; if(dx*dx+dy*dy>RAD*RAD) continue;
+        const c=cy*GX+cx; m.k[c]=H2[c]; m.n[c]=12; m.p[c]=P0+12/(SIG0*SIG0); } }
+    this.makers.push(m); this.measure(); return id; }
+  move(id,x,y){ const m=this.byId(id); if(!m) return; m.hx=clamp(x,1,GX-1); m.hy=clamp(y,1,GY-1); m.x=m.hx; m.y=m.hy; m.wk=0; }
+  setSingle(id,on){ for(const m of this.makers){ const was=m.single; m.single = !!on && m.id===id; if(m.single&&!was) m.s.fill(0); } this.measure(); }
+  waypoint(m){ const k=m.wk, a0=h3(this.seed,m.id,5)*6.283; let r, a;
+    if(k<24){ a=Math.sqrt(6.7*k); r=Math.min(.477*a, RAD*.92); a+=a0; }       // first a spiral out from the middle
+    else { a=k*2.39996+a0; const f=k*.61803+a0; r=RAD*.92*Math.sqrt(f-Math.floor(f)); }   // then wander
+    return [clamp(m.hx+r*Math.cos(a),.5,GX-.5), clamp(m.hy+r*Math.sin(a),.5,GY-.5)]; }
+  step(){ const t=this.t, s2=this.sigma*this.sigma, H=this.H, acc=this.acc;
+    for(const m of this.makers){
+      const w=this.waypoint(m), dx=w[0]-m.x, dy=w[1]-m.y, d=Math.hypot(dx,dy);
+      if(d>1e-6) m.hd=Math.atan2(dx,dy);
+      if(d<=SPEED){ m.x=w[0]; m.y=w[1]; m.wk++; } else { m.x+=dx/d*SPEED; m.y+=dy/d*SPEED; }
+      const x0=Math.max(0,Math.floor(m.x-SIGHT)), x1=Math.min(GX-1,Math.floor(m.x+SIGHT)), y0=Math.max(0,Math.floor(m.y-SIGHT)), y1=Math.min(GY-1,Math.floor(m.y+SIGHT));
+      for(let cy=y0;cy<=y1;cy++) for(let cx=x0;cx<=x1;cx++){
+        const ax=cx+.5-m.x, ay=cy+.5-m.y; if(ax*ax+ay*ay>SIGHT*SIGHT) continue;
+        const bx=cx+.5-m.hx, by=cy+.5-m.hy; if(bx*bx+by*by>RAD*RAD) continue;
+        const c=cy*GX+cx, first=m.n[c]===0; if(m.single&&!first) continue;
+        const z=H[c]+m.D[c]+this.sigma*gauss(this.seed*131+m.id*17+3,t,c);
+        const e0=m.k[c]+m.s[c]-H[c], r=kalman(m.k[c],m.p[c],z,s2); m.k[c]=r[0]; m.p[c]=r[1]; if(m.n[c]<65535) m.n[c]++;
+        const e1=m.k[c]+m.s[c]-H[c]; if(first) acc.first+=e0*e0-e1*e1; else acc.re+=e0*e0-e1*e1; } }
+    this.t++; this.measure(true); }
+  /* compare every pair on the cells both have read; with learn, also take one seam step */
+  measure(learn){ const M=this.makers, H=this.H, dl=this.delta; dl.fill(0);
+    for(let i=0;i<M.length;i++) for(let j=i+1;j<M.length;j++){ const A=M[i], B=M[j];
+      const an=A.n, bn=B.n;
+      for(let c=0;c<NC;c++){ if(!an[c]||!bn[c]) continue;
+        const a=A.k[c]+A.s[c], b=B.k[c]+B.s[c], g=Math.abs(a-b); if(g>dl[c]) dl[c]=g;
+        if(!learn||g<=TAU) continue;
+        const r=meet(a, A.single?Infinity:A.p[c], b, B.single?Infinity:B.p[c], KAPPA), h=H[c];
+        this.acc.seam+=(a-h)*(a-h)+(b-h)*(b-h)-(r[0]-h)*(r[0]-h)-(r[1]-h)*(r[1]-h);
+        A.s[c]+=r[0]-a; B.s[c]+=r[1]-b; } }
+    if(learn){ dl.fill(0); for(let i=0;i<M.length;i++) for(let j=i+1;j<M.length;j++){ const A=M[i], B=M[j];
+      for(let c=0;c<NC;c++){ if(!A.n[c]||!B.n[c]) continue; const g=Math.abs(A.k[c]+A.s[c]-B.k[c]-B.s[c]); if(g>dl[c]) dl[c]=g; } } }
+    let n=0, s=0; for(let c=0;c<NC;c++) if(dl[c]>TAU){ n++; s+=dl[c]; } this.seamCells=n; this.seamSum=s; }
+  clone(){ const w=Object.create(World.prototype); w.seed=this.seed; w.t=this.t; w.sigma=this.sigma; w.H=this.H; w.nextId=this.nextId;
+    w.acc={first:this.acc.first,re:this.acc.re,seam:this.acc.seam}; w.delta=this.delta.slice(); w.seamCells=this.seamCells; w.seamSum=this.seamSum;
+    w.makers=this.makers.map(m=>Object.assign({},m,{k:m.k.slice(),s:m.s.slice(),p:m.p.slice(),n:m.n.slice()})); return w; }   // D is shared: it never changes
+  J(){ let j=0; const H=this.H; for(const m of this.makers) for(let c=0;c<NC;c++){ const e=m.k[c]+m.s[c]-H[c]; j+=e*e; } return j; }
+  pooled(){ const out=new Float32Array(NC), cov=new Uint8Array(NC), M=this.makers;
+    for(let c=0;c<NC;c++){ let sw=0, sm=0, abs=null;
+      for(const m of M){ if(!m.n[c]) continue; const v=m.k[c]+m.s[c]; if(m.single){ abs=v; break; } sw+=m.p[c]; sm+=m.p[c]*v; }
+      if(abs!==null){ out[c]=abs; cov[c]=1; } else if(sw>0){ out[c]=sm/sw; cov[c]=1; } else out[c]=MU0; }
+    return {map:out, cov}; }
+  stats(){ const H=this.H, M=this.makers, per=[]; let best=-1, bestErr=Infinity;
+    for(const m of M){ let se=0, so=0, sb=0, nw=0;
+      for(let c=0;c<NC;c++){ const e=m.k[c]+m.s[c]-H[c]; se+=e*e; if(m.n[c]){ nw++; so+=e*e; sb+=1/m.p[c]; } }
+      const o={ id:m.id, err:Math.sqrt(se/NC), cover:nw/NC, own:nw?Math.sqrt(so/nw):0, believed:nw?(m.single?0:Math.sqrt(sb/nw)):0, walked:nw };
+      per.push(o); if(o.err<bestErr){ bestErr=o.err; best=m.id; } }
+    const P=this.pooled(); let sp=0, nc=0, sw=0; for(let c=0;c<NC;c++){ const e=P.map[c]-H[c]; sp+=e*e; if(P.cov[c]){ nc++; sw+=e*e; } }
+    let blank=0; for(let c=0;c<NC;c++){ const e=MU0-H[c]; blank+=e*e; }
+    const a=this.acc, den=a.seam+a.re, denAll=den+a.first;
+    return { per, best, bestErr:M.length?bestErr:Math.sqrt(blank/NC), bestCover:best<0?0:per.find(o=>o.id===best).cover,
+      poolErr:Math.sqrt(sp/NC), poolCover:nc/NC, poolOwn:nc?Math.sqrt(sw/nc):0, bestOwn:best<0?0:per.find(o=>o.id===best).own, blankErr:Math.sqrt(blank/NC),
+      share:Math.abs(den)>1e-9?a.seam/den:null, shareAll:Math.abs(denAll)>1e-9?a.seam/denAll:null,
+      first:a.first, re:a.re, seam:a.seam, seamCells:this.seamCells, seamSum:this.seamSum, J:this.J() }; }
+}
+
+/* ───────────────────────── time: a log of what the visitor did, and keyframes to scrub by ───────────────────────── */
+const SEED = (()=>{ const s=parseInt(QS.get('seed'),10); return s>=1&&s<=9999?s:7; })();
+const START=[[10,10],[17.5,13.5],[25,9],[13.5,21],[33.5,22.5]];
+const KF=20;
+let W, events, kfs, tmax;
+function applyEv(w,e){ if(e.type==='add') w.add(e.x,e.y,e.stranger); else if(e.type==='move') w.move(e.id,e.x,e.y);
+  else if(e.type==='single') w.setSingle(e.id,e.on); else if(e.type==='mist') w.sigma=e.s; }
+function init(){ W=new World(SEED); for(const p of START) W.add(p[0],p[1]); events=[]; kfs={0:W.clone()}; tmax=0; }
+function stepForward(){ if(W.t>=T_END) return false; W.step(); for(const e of events) if(e.t===W.t) applyEv(W,e);
+  if(W.t%KF===0&&!kfs[W.t]) kfs[W.t]=W.clone(); if(W.t>tmax) tmax=W.t; return true; }
+function seek(t){ t=clamp(Math.round(t),0,T_END); if(t<W.t){ let k=Math.floor(t/KF)*KF; while(k>0&&!kfs[k]) k-=KF; W=kfs[k].clone(); }
+  while(W.t<t) stepForward(); }
+function act(e){ e.t=W.t; events=events.filter(x=>x.t<=W.t && !(x.t===e.t&&x.type==='mist'&&e.type==='mist'));
+  events.push(e); applyEv(W,e); for(const k in kfs) if(+k>=W.t) delete kfs[k]; if(W.t%KF===0) kfs[W.t]=W.clone(); tmax=W.t; }
+init();
+
+/* ───────────────────────── words ───────────────────────── */
+const NAMES=['red','teal','yellow','blue','green','orange','cream','brown','grey'];
+const COLS=[0xd92b22,0x1f8f8a,0xf0b21e,0x2a62c9,0x4c8f4a,0xf2731d,0xf2e6cf,0x8a5a3c,0x8d9299];
+const STRANGER_COL=0x6b3fa0;
+const nameOf=m=>m.stranger?'the stranger':'the '+NAMES[m.id%NAMES.length]+' one';
+const Name=m=>{ const s=nameOf(m); return s[0].toUpperCase()+s.slice(1); };
+const f1=v=>(v*100).toFixed(1), pc=v=>Math.round(v*100)+'%';
+let selected=-1, note=null;                 // note: {text, until} a line about what the visitor just did
+function say(text){ note={text, until:W.t+70, at:W.t}; }
+function caption(S){
+  let s;
+  const single=W.makers.find(m=>m.single);
+  if(note && W.t<=note.until && W.t>=note.at) s=note.text;
+  else if(W.t>=T_END) s='Nobody holds the whole map. The best single map covers '+pc(S.bestCover)+' of the table and all of them together cover '+pc(S.poolCover)+'.';
+  else if(single){ const ev=events.filter(e=>e.type==='single'&&e.on&&e.t<=W.t).pop();
+    s=Name(single)+' holds its map as finished. At its edges it never moves, and the others bend to it.'+(ev?' Pooled error on walked ground was '+f1(ev.base)+' and is now '+f1(S.poolOwn)+'.':''); }
+  else if(S.seamCells>0) s='Pink clay marks an edge: the place where what you already think meets something that does not fit. Both maps are learning there, each in proportion to the other’s confidence.';
+  else if(W.t<40) s='Each map-maker walks its own patch and draws what it finds on the paper it carries. Click the table to set down another, or a map-maker to ask how wrong it is.';
+  else if(S.seam!==0) s='The seams have gone quiet. Where maps agree, nothing happens.';
+  else s='No patches touch. Each map is as good as it will get on its own.';
+  const m=W.byId(selected);
+  if(m){ const o=S.per.find(q=>q.id===m.id);
+    if(o&&o.walked) s+=' '+Name(m)+' is off by '+f1(o.own)+' on its own patch. By its own reckoning: '+f1(o.believed)+'. It has only its map to check against.'; }
+  return s;
+}
+
+/* ───────────────────────── test hook (the model is usable even without WebGL) ───────────────────────── */
+let playing=!REDUCED, dirty=true, drawn=0;
+const view={yaw:0, pitch:0, zoom:1, focus:null};
+function state(){ const S=W.stats(), single=W.makers.find(m=>m.single);
+  return { name:'edges', frame:W.t, step:W.t, tmax, end:T_END, playing, seed:SEED, makers:W.makers.length, strangers:W.makers.filter(m=>m.stranger).length,
+    selected, single:single?single.id:-1, mist:W.sigma, bestErr:S.bestErr*100, bestId:S.best, bestCover:S.bestCover, poolErr:S.poolErr*100, poolCover:S.poolCover,
+    blankErr:S.blankErr*100, bestWalkedErr:S.bestOwn*100, poolWalkedErr:S.poolOwn*100, seamShare:S.share, seamShareAll:S.shareAll, learnedFirst:S.first, learnedRe:S.re, learnedSeam:S.seam, seamCells:S.seamCells, seamGap:S.seamSum*100,
+    totalSq:S.J, homes:W.makers.map(m=>[m.id,+m.hx.toFixed(2),+m.hy.toFixed(2)]), about:aboutEl.classList.contains('open'), from, stop, back:BACK, drawn,
+    caption:$('cap').textContent }; }
+const PIECE = window.PIECE = { name:'edges', state,
+  model:{ World, kalman, meet, truthField, terrainH, GX, GY, NC, RAD, SIGHT, MU0, P0, SIG0, SIG1, TAU, KAPPA, LENS, SEA, T_END, MAXM },
+  world:()=>W,
+  run(n){ for(let i=0;i<(n||1);i++) if(!stepForward()) break; refresh(); return W.t; },
+  seek(t){ seek(t); refresh(); return W.t; },
+  play(on){ playing=!!on; refresh(); },
+  place(x,y){ return place(x,y,false); }, stranger(x,y){ return bringStranger(x,y); }, move(id,x,y){ moveMaker(id,x,y); },
+  select(id){ select(id); }, single(id,on){ setSingle(id,on); }, mist(v){ setMist(v); }, reset(){ startAgain(); } };
+
+/* ───────────────────────── what the visitor can do ───────────────────────── */
+function freeSpot(want){   // a place whose nearest neighbour is about `want` cells away, on land if it can be
+  let best=null, bs=1e9; for(let y=4;y<GY-3;y+=1.5) for(let x=4;x<GX-3;x+=1.5){ let dn=1e9; for(const m of W.makers) dn=Math.min(dn,Math.hypot(m.hx-x,m.hy-y));
+    const sc=Math.abs(dn-want)+(W.H[Math.floor(y)*GX+Math.floor(x)]<SEA?4:0)+h3(x*2,y*2,W.makers.length)*.6; if(sc<bs){ bs=sc; best=[x,y]; } } return best; }
+function place(x,y,stranger){ if(W.makers.length>=MAXM){ say('The table is full. Drag one of them, or start again.'); refresh(); return -1; }
+  act({type:'add',x,y,stranger:!!stranger}); const id=W.nextId-1; selected=id;
+  say(stranger?'A stranger, sure of a map made on another table. Its seams are the brightest: the most to learn, and the most to get wrong, is at the furthest edge.'
+    :'A new map-maker, with blank paper. It knows nothing of the others until their patches touch.'); refresh(); return id; }
+function bringStranger(x,y){ if(x===undefined){ let best=null, bs=-1; for(let yy=5;yy<GY-4;yy+=1.5) for(let xx=5;xx<GX-4;xx+=1.5){ let near=0, bad=0;
+      for(const m of W.makers){ const d=Math.hypot(m.hx-xx,m.hy-yy); if(d<RAD*.95) bad=1; else if(d<RAD*1.75) near++; }
+      const sc=bad?-1:near+h3(xx*2,yy*2,31)*.5; if(sc>bs){ bs=sc; best=[xx,yy]; } } x=best[0]; y=best[1]; }
+  return place(x,y,true); }
+function moveMaker(id,x,y){ const m=W.byId(id); if(!m) return; act({type:'move',id,x,y}); selected=id;
+  say(Name(m)+' has moved. It carries what it drew, and starts on new ground with blank paper.'); refresh(); }
+function select(id){ selected=W.byId(id)?id:-1; view.focus=null; refresh(); }
+function setSingle(id,on){ const m=W.byId(id); if(!m) return; const base=W.stats().poolOwn; act({type:'single',id,on:!!on,base}); selected=id;
+  say(on?Name(m)+' now holds its map as finished: confidence absolute. At its edges it will not move, and the others bend to it.'
+        :Name(m)+' can be wrong again. But the others have already bent to it, and where maps agree nothing happens.'); refresh(); }
+function setMist(v){ v=clamp(+v||0,0,100); act({type:'mist',s:SIG0+(SIG1-SIG0)*v/100});
+  say(v>0?'Mist. Every reading is noisier, so new ground is drawn badly and takes longer to be sure of.':'The mist has cleared.'); refresh(); }
+function startAgain(){ init(); selected=-1; note=null; $('mist').value=0; refresh(); }
+
+const playBtn=$('play'), scrub=$('scrub'), count=$('count');
+function refresh(){ dirty=true; label(); }
+function label(){ const S=W.stats();
+  count.textContent='step '+String(W.t).padStart(3,'0')+' / '+T_END; scrub.value=W.t; playBtn.textContent=playing&&W.t<T_END?'Pause':'Play';
+  $('cap').textContent=caption(S);
+  $('r1').innerHTML='covers '+pc(S.bestCover)+' <small>error</small> '+f1(S.bestOwn)+' <small>there,</small> '+f1(S.bestErr)+' <small>over the table</small>';
+  $('r2').innerHTML='cover '+pc(S.poolCover)+' <small>error</small> '+f1(S.poolOwn)+' <small>there,</small> '+f1(S.poolErr)+' <small>over the table</small>';
+  $('r3').innerHTML=S.share===null?'nothing yet':S.seam<0?(Math.round(S.share*100)+'% <small>so far the seams have taught more wrong than right</small>'):(Math.round(S.share*100)+'% <small>after first sight ('+(S.shareAll===null?'0':(S.shareAll*100).toFixed(1))+'% counting it)</small>');
+  const sv=W.makers.find(m=>m.single), sel=W.byId(selected);
+  $('single').setAttribute('aria-pressed', !!(sv&&(!sel||sel.id===sv.id)));
+  $('add').disabled=$('stranger').disabled=W.makers.length>=MAXM;
+  $('mist').value=Math.round((W.sigma-SIG0)/(SIG1-SIG0)*100);
+}
+playBtn.onclick=()=>{ if(W.t>=T_END){ seek(0); playing=true; } else playing=!playing; refresh(); };
+scrub.oninput=()=>{ playing=false; seek(+scrub.value); refresh(); };
+$('add').onclick=()=>{ const p=freeSpot(RAD*1.45); place(p[0],p[1],false); };
+$('stranger').onclick=()=>bringStranger();
+$('next').onclick=()=>{ if(!W.makers.length) return; const i=W.makers.findIndex(m=>m.id===selected); select(W.makers[(i+1)%W.makers.length].id); };
+$('single').onclick=()=>{ const sv=W.makers.find(m=>m.single); let m=W.byId(selected)||sv||W.makers[0]; if(!m) return; setSingle(m.id, !(sv&&sv.id===m.id)); };
+$('mist').oninput=()=>setMist(+$('mist').value);
+$('again').onclick=startAgain;
+addEventListener('keydown',e=>{ const tg=e.target, tag=tg&&tg.tagName;
+  if(tag==='INPUT'||aboutEl.classList.contains('open')) return;
+  if(e.code==='Space'&&tag!=='BUTTON'){ e.preventDefault(); playBtn.click(); return; }
+  const dx=e.code==='ArrowRight'?1:e.code==='ArrowLeft'?-1:0, dy=e.code==='ArrowDown'?1:e.code==='ArrowUp'?-1:0;
+  if(tg===canvas){ const m=W.byId(selected);
+    if((dx||dy)&&m){ e.preventDefault(); const k=e.shiftKey?3:1; moveMaker(m.id,m.hx+dx*k,m.hy+dy*k); }
+    else if(dx||dy){ e.preventDefault(); $('next').click(); }
+    else if(e.code==='Enter'){ e.preventDefault(); $('add').click(); }
+    return; }
+  if(dx&&tag!=='BUTTON'){ playing=false; seek(W.t+dx); refresh(); } });
+label();
+
+if (!window.THREE || !canvas.getContext('webgl2')) { $('fail').style.display='grid'; return; }
+const LOW = QS.get('q')==='low';
+
+/* ───────────────────────── renderer ───────────────────────── */
+const renderer = new THREE.WebGLRenderer({canvas, antialias:false, alpha:false, powerPreference:'high-performance', preserveDrawingBuffer:true});
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+const HDR = renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float');
+
+/* Contact-hardening soft shadows (PCSS) patched into three's shadow lookup. */
+(function(){
+  const pcss = `
+  float ignoise(vec2 p){ return fract(52.9829189*fract(dot(p, vec2(0.06711056,0.00583715)))); }
+  float pcssShadow(sampler2D sm, vec3 c, float K){
+    float rot = ignoise(gl_FragCoord.xy)*6.2831853;
+    float search = K*0.05, bsum=0., bn=0.;
+    for(int i=0;i<14;i++){ float fi=float(i)+.5; float r=sqrt(fi/14.); float a=fi*2.39996323+rot;
+      float d = unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*search));
+      if(d < c.z-0.0006){ bsum+=d; bn+=1.; } }
+    if(bn<.5) return 1.;
+    float pen = clamp((c.z-bsum/bn)*K, 0.0006, 0.02);
+    float s=0.;
+    for(int i=0;i<28;i++){ float fi=float(i)+.5; float r=sqrt(fi/28.); float a=fi*2.39996323+rot*1.7;
+      s += step(c.z, unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*pen))); }
+    return s/28.;
+  }`;
+  let ch = THREE.ShaderChunk.shadowmap_pars_fragment;
+  ch = ch.replace('#ifdef USE_SHADOWMAP', '#ifdef USE_SHADOWMAP\n'+pcss);
+  ch = ch.replace('#if defined( SHADOWMAP_TYPE_PCF )', 'return pcssShadow(shadowMap, shadowCoord.xyz, shadowRadius);\n#if defined( SHADOWMAP_TYPE_PCF )');
+  THREE.ShaderChunk.shadowmap_pars_fragment = ch;
+})();
+
+/* ───────────────────────── materials ───────────────────────── */
+const shared = { uSeed:{value:new THREE.Vector3()} };
+const GLSL_NOISE = `
+float hash13(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32); return fract((p.x+p.y)*p.z); }
+float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash13(i),hash13(i+vec3(1,0,0)),f.x),mix(hash13(i+vec3(0,1,0)),hash13(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash13(i+vec3(0,0,1)),hash13(i+vec3(1,0,1)),f.x),mix(hash13(i+vec3(0,1,1)),hash13(i+vec3(1,1,1)),f.x),f.y),f.z); }`;
+const CLAY_PARS = GLSL_NOISE + `
+uniform mat3 normalMatrix;
+uniform vec3 uSeed; uniform float uBoil, uBump, uSmear, uSpeck, uGlow; uniform vec3 uCol2;
+uniform vec4 uBandY; uniform vec3 uBandC[4];
+varying vec3 vObjPos; varying vec3 vObjN;
+float clayH(vec3 p){
+  vec3 q = p + uSeed*uBoil;
+  float h = (vn(q*8.)-.5) + (vn(q*21.+3.)-.5)*.5 + (vn(q*57.+7.)-.5)*.22;
+  vec3 w = q*5.5; float fpMask = smoothstep(.56,.8, vn(w*.8+11.));
+  vec2 cc = fract(w.xy + w.z*.37)-.5;
+  h += sin(length(cc)*52. + vn(q*19.)*7.)*fpMask*.028;
+  h += smoothstep(.8,.95, vn(vec3(q.x*3., q.y*40., q.z*3.)+2.))*-.07;
+  return h;
+}
+vec3 clayNormal(vec3 nView){
+  #ifdef MODE_CLAY
+  vec3 p = vObjPos; float e = .0035;
+  float h0 = clayH(p);
+  vec3 g = vec3(clayH(p+vec3(e,0,0))-h0, clayH(p+vec3(0,e,0))-h0, clayH(p+vec3(0,0,e))-h0)/e;
+  vec3 nO = normalize(vObjN);
+  g -= dot(g,nO)*nO;
+  vec3 nP = normalize(nO - g*uBump*.011);
+  vec3 nV = normalize(normalMatrix*nP);
+  return dot(nV,nView) < 0. ? -nV : nV;
+  #else
+  return nView;
+  #endif
+}
+float clayRough(float r){
+  #ifdef MODE_CLAY
+  float m = vn(vObjPos*6.+uSeed*uBoil+40.);
+  return clamp(r + (m-.5)*.3 - smoothstep(.7,.9,vn(vObjPos*3.+9.))*.14, .2, 1.);
+  #else
+  return r;
+  #endif
+}
+vec3 clayAlbedo(vec3 base){
+  vec3 p = vObjPos; vec3 c = base;
+  #ifdef MODE_CLAY
+    #ifdef BANDS
+      float wob = (vn(p*7.)-.5)*.035 + (vn(p*23.)-.5)*.012;
+      float y = p.y + wob;
+      c = uBandC[0];
+      c = mix(c, uBandC[1], smoothstep(-.004,.004, y-uBandY.x));
+      c = mix(c, uBandC[2], smoothstep(-.004,.004, y-uBandY.y));
+      c = mix(c, uBandC[3], smoothstep(-.004,.004, y-uBandY.z));
+    #endif
+    float m = vn(p*5.+uSeed*uBoil)*.6 + vn(p*17.+4.)*.4;
+    c *= .86 + .28*m;
+    float s = smoothstep(.6,.8, vn(vec3(p.x*3.,p.y*8.,p.z*3.)+31.));
+    c = mix(c, uCol2, s*uSmear);
+    float sp = smoothstep(.9,.95, vn(p*150.+17.))*step(.75, vn(p*9.+70.));
+    c = mix(c, vec3(.82,.78,.7), sp*.35*uSpeck);
+  #endif
+  #ifdef MODE_WOOD
+    vec2 P = p.xz; float pid = floor(P.y/1.15+.5); float py = fract(P.y/1.15+.5);
+    float gw = vn(vec3(P.x*.5+pid*7., P.y*5., pid));
+    float rings = sin(P.y*46. + gw*9. + vn(vec3(P.x*.25,P.y*1.5,pid*3.))*14.);
+    c = mix(vec3(.25,.14,.07), vec3(.47,.29,.15), .5+.5*rings*.7);
+    c *= .8 + .35*vn(vec3(P.x*8., P.y*160., pid));
+    c *= mix(.45,1., smoothstep(0.,.02,py)*smoothstep(1.,.98,py));
+    c *= base;
+  #endif
+  #ifdef MODE_PAPER
+    float y = clamp((p.y+3.55)/2.5,0.,1.);
+    float br = (vn(vec3(p.x*.5,p.y*5.,1.))-.5)*.08 + (vn(vec3(p.x*3.,p.y*30.,4.))-.5)*.03;
+    y += br;
+    c = mix(vec3(.96,.62,.40), vec3(.93,.80,.68), smoothstep(.04,.2,y));
+    c = mix(c, vec3(.36,.62,.86), smoothstep(.14,.46,y));
+    c = mix(c, vec3(.12,.32,.64), smoothstep(.5,1.,y));
+    c *= .93+.14*vn(p*14.);
+  #endif
+  return c;
+}`;
+function lin(hex){ return new THREE.Color(hex); }
+function mat(o){
+  o = o || {};
+  const mode = o.mode || 'CLAY';
+  const m = new THREE.MeshPhysicalMaterial({ color:o.color!==undefined?o.color:0xffffff, roughness:o.rough!==undefined?o.rough:.56, metalness:0,
+    sheen: mode==='CLAY'?.45:0, sheenRoughness:.5, sheenColor:new THREE.Color(o.color!==undefined?o.color:0xffffff).lerp(new THREE.Color(0xffffff),.5),
+    specularIntensity: o.spec!==undefined?o.spec:.75, envMapIntensity:o.env!==undefined?o.env:1, side:o.side||THREE.FrontSide });
+  if(o.emissive){ m.emissive=new THREE.Color(o.emissive); m.emissiveIntensity=o.emissiveIntensity||1; }
+  if(o.vc) m.vertexColors=true;
+  const bands = o.bands||null;
+  const u = { uSeed:shared.uSeed,
+    uBoil:{value:o.boil||0}, uBump:{value:o.bump!==undefined?o.bump:1}, uSmear:{value:o.smear||0}, uSpeck:{value:o.speck!==undefined?o.speck:1}, uCol2:{value:lin(o.color2!==undefined?o.color2:0xffffff)},
+    uGlow:{value:o.glow||0},
+    uBandY:{value:new THREE.Vector4(bands?bands.y[0]:9, bands&&bands.y[1]!==undefined?bands.y[1]:9, bands&&bands.y[2]!==undefined?bands.y[2]:9, 0)},
+    uBandC:{value:[0,1,2,3].map(i=>lin(bands?bands.c[Math.min(i,bands.c.length-1)]:0xffffff))} };
+  m.defines = Object.assign({}, m.defines, {['MODE_'+mode]:''});
+  if(bands) m.defines.BANDS='';
+  if(o.glow) m.defines.GLOW='';
+  m.userData.u = u;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjPos; varying vec3 vObjN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObjPos=position; vObjN=normal;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n'+CLAY_PARS)
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = clayAlbedo(diffuseColor.rgb);')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clayRough(roughnessFactor);')
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal = clayNormal(normal);')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n#ifdef GLOW\n#ifdef USE_COLOR\ntotalEmissiveRadiance += vColor.rgb*vColor.rgb*uGlow;\n#endif\n#endif');
+  };
+  m.customProgramCacheKey = () => 'clay|'+mode+'|'+(bands?1:0)+'|'+(o.glow?1:0)+'|'+(o.vc?1:0);
+  return m;
+}
+
+/* ───────────────────────── geometry helpers ───────────────────────── */
+function weld(geo){
+  const p=geo.attributes.position, n=new Float32Array(p.count*3), map=new Map(), key=new Array(p.count);
+  for(let i=0;i<p.count;i++){ key[i]=Math.round(p.getX(i)*2e4)+'_'+Math.round(p.getY(i)*2e4)+'_'+Math.round(p.getZ(i)*2e4); if(!map.has(key[i])) map.set(key[i],[0,0,0]); }
+  const idx=geo.index, tri=idx?idx.count/3:p.count/3, a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let t=0;t<tri;t++){ const i0=idx?idx.getX(t*3):t*3, i1=idx?idx.getX(t*3+1):t*3+1, i2=idx?idx.getX(t*3+2):t*3+2;
+    a.fromBufferAttribute(p,i0); b.fromBufferAttribute(p,i1); c.fromBufferAttribute(p,i2); b.sub(a); c.sub(a); b.cross(c);
+    for(const i of [i0,i1,i2]){ const m=map.get(key[i]); m[0]+=b.x; m[1]+=b.y; m[2]+=b.z; } }
+  for(let i=0;i<p.count;i++){ const m=map.get(key[i]); const l=Math.hypot(m[0],m[1],m[2])||1; n[i*3]=m[0]/l; n[i*3+1]=m[1]/l; n[i*3+2]=m[2]/l; }
+  geo.setAttribute('normal', new THREE.BufferAttribute(n,3)); return geo;
+}
+let seedC = 1;
+function clayify(geo, amp, freq){
+  const sd = (seedC++)*13.7; weld(geo);
+  const p=geo.attributes.position, n=geo.attributes.normal;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+    const d=(fbm3(x*freq+sd,y*freq+sd*.7,z*freq+sd*.3)-.5)*2*amp;
+    p.setXYZ(i, x+n.getX(i)*d, y+n.getY(i)*d, z+n.getZ(i)*d); }
+  weld(geo); geo.computeBoundingSphere(); return geo;
+}
+function blob(r, sx, sy, sz, amp, freq, det){
+  const g=new THREE.SphereGeometry(r, det||40, Math.round((det||40)*.7)); g.scale(sx||1,sy||1,sz||1);
+  return clayify(g, amp!==undefined?amp:r*.12, freq||(1.6/r));
+}
+function lathe(pts, amp, freq, seg){
+  const g=new THREE.LatheGeometry(pts.map(q=>new THREE.Vector2(q[0],q[1])), seg||44); return clayify(g, amp!==undefined?amp:.01, freq||7);
+}
+function grid(nu,nv,fn){
+  const pos=new Float32Array((nu+1)*(nv+1)*3), idx=[]; let k=0; const o=[0,0,0];
+  for(let i=0;i<=nu;i++) for(let j=0;j<=nv;j++){ fn(i/nu,j/nv,o,i,j); pos[k++]=o[0]; pos[k++]=o[1]; pos[k++]=o[2]; }
+  for(let i=0;i<nu;i++) for(let j=0;j<nv;j++){ const a=i*(nv+1)+j, b=a+1, c=a+nv+1, d=c+1; idx.push(a,b,c, b,d,c); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3)); g.setIndex(idx); return g;
+}
+function mesh(g,m,x,y,z,parent){ const o=new THREE.Mesh(g,m); o.position.set(x||0,y||0,z||0); o.castShadow=true; o.receiveShadow=true; (parent||scene).add(o); return o; }
+
+/* ───────────────────────── scene ───────────────────────── */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x08090b);
+const camera = new THREE.PerspectiveCamera(27, 16/9, .6, 60);
+
+/* studio environment: a softbox, a fill card and the bounce off the set */
+(function(){
+  const es=new THREE.Scene(); const bm=(c,i)=>{ const m=new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(i), side:THREE.DoubleSide}); m.toneMapped=false; return m; };
+  es.add(new THREE.Mesh(new THREE.SphereGeometry(30,24,16), bm(0x2a2622,.22)));
+  const add=(w,h,c,i,x,y,z)=>{ const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h), bm(c,i)); p.position.set(x,y,z); p.lookAt(0,0,0); es.add(p); };
+  add(9,7,0xfff0dc,10,-9,9,3);      // key softbox
+  add(7,9,0xcfe0ff,2.2,11,4,5);      // cool fill card
+  add(16,5,0xffd9b0,3.2,2,9,-10);    // back rim strip
+  add(30,12,0x6f9fcb,.8,0,4,-14);    // painted sky bounce
+  add(30,30,0x4a2f18,.5,0,-6,0);     // bench bounce
+  const pm=new THREE.PMREMGenerator(renderer); scene.environment=pm.fromScene(es,.035).texture; pm.dispose();
+})();
+
+const key = new THREE.DirectionalLight(0xffe7c8, 3.6);
+key.castShadow=true; key.shadow.mapSize.set(LOW?2048:4096,LOW?2048:4096);
+const sc=key.shadow.camera; sc.left=-5.2; sc.right=5.2; sc.top=3.8; sc.bottom=-3.8; sc.near=1; sc.far=24; sc.updateProjectionMatrix();
+key.shadow.bias=-.0006; key.shadow.normalBias=.02;
+key.shadow.radius = .085*(sc.far-sc.near)/(sc.right-sc.left);   // read by the PCSS patch as penumbra scale
+scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0xbfd6ff, 1.25); rim.position.set(5,4.5,-7); scene.add(rim);
+
+/* bench, backdrop */
+const TW=6.6, TD=4.5, SLAB_H=.3, CELL=TW/GX;
+mesh(new THREE.BoxGeometry(30,.4,16,1,1,1), mat({mode:'WOOD', rough:.62, spec:.5, env:.8}), 0,-SLAB_H-.2,0).castShadow=false;
+(function(){ const g=new THREE.PlaneGeometry(30,12,1,1); const b=mesh(g, mat({mode:'PAPER', rough:.95, spec:.2, env:.5}), 0,3.2,-6.4); b.castShadow=false; })();
+
+/* the territory: one slab of clay, pressed into hills, a river and a coast. Its height is the model's h. */
+const Yh=h=>(Math.max(h,SEA)-SEA)*1.2+.07;
+const wx=cx=>(cx/GX-.5)*TW, wz=cy=>(cy/GY-.5)*TD, cxOf=x=>(x/TW+.5)*GX, cyOf=z=>(z/TD+.5)*GY;
+function groundY(cx,cy){ return Yh(terrainH(clamp(cx,0,GX),clamp(cy,0,GY),SEED)); }
+function ramp(stops,v){ if(v<=stops[0][0]) return stops[0][1]; for(let i=1;i<stops.length;i++) if(v<=stops[i][0]){ const a=stops[i-1], b=stops[i], t=(v-a[0])/(b[0]-a[0]);
+    return [a[1][0]+(b[1][0]-a[1][0])*t, a[1][1]+(b[1][1]-a[1][1])*t, a[1][2]+(b[1][2]-a[1][2])*t]; } return stops[stops.length-1][1]; }
+const rgb=h=>[(h>>16&255)/255,(h>>8&255)/255,(h&255)/255];
+const CLAYRAMP=[[SEA-.22,rgb(0x0b3a78)],[SEA-.08,rgb(0x1668b8)],[SEA-.004,rgb(0x2fa3c9)],[SEA+.004,rgb(0xe3cb8c)],[SEA+.03,rgb(0xd6c07c)],[SEA+.06,rgb(0x6fa84f)],[SEA+.2,rgb(0x3f8743)],
+  [SEA+.32,rgb(0x6f8a3a)],[SEA+.42,rgb(0xc2933a)],[SEA+.52,rgb(0x9c5a32)],[SEA+.62,rgb(0x74483a)],[SEA+.72,rgb(0xf2e6cf)]];
+const PAPERRAMP=[[SEA-.22,rgb(0x3f74b5)],[SEA-.06,rgb(0x7fb6dc)],[SEA-.004,rgb(0xa9d3e6)],[SEA+.004,rgb(0xefe0b0)],[SEA+.06,rgb(0xa9d184)],[SEA+.2,rgb(0x6fae62)],
+  [SEA+.32,rgb(0x9db060)],[SEA+.42,rgb(0xe0bd62)],[SEA+.52,rgb(0xc98555)],[SEA+.62,rgb(0x94614f)],[SEA+.72,rgb(0xf7efe2)]];
+let terrain;
+(function(){
+  const NX=LOW?176:264, NZ=LOW?120:180, IN=.95, FIL=.07, col=new Float32Array((NX+1)*(NZ+1)*3), cc=new THREE.Color(); let k=0;
+  const ax=(s,half)=>{ const as=Math.abs(s), sg=Math.sign(s); if(as<=IN) return [s/IN*half,0,0];
+    const q=(as-IN)/(1-IN), qa=.45; if(q<qa){ const th=q/qa*Math.PI/2; return [sg*(half+FIL*Math.sin(th)), FIL*(1-Math.cos(th)), q]; }
+    return [sg*(half+FIL), FIL+(q-qa)/(1-qa)*(SLAB_H-FIL), q]; };
+  const g=grid(NX,NZ,(u,v,o)=>{ const X=ax(u*2-1,TW/2), Z=ax(v*2-1,TD/2), edge=Math.max(X[2],Z[2]), drop=Math.max(X[1],Z[1]);
+    const cx=clamp(cxOf(X[0]),0,GX), cy=clamp(cyOf(Z[0]),0,GY), h=terrainH(cx,cy,SEED), riv=_riv;
+    let y=Yh(h); const nz=fbm3(cx*.9,cy*.9,SEED+5);
+    if(h<SEA) y+= (vn3(cx*1.7,cy*1.7,3)-.5)*.02; else y+=(nz-.5)*.03*sstep(SEA,SEA+.1,h);
+    if(riv&&h>=SEA) y-=.012;
+    const fade=1-clamp(edge*2.4,0,1); o[0]=X[0]; o[2]=Z[0]; o[1]=y*fade*fade-drop;
+    let c=ramp(CLAYRAMP, h+(nz-.5)*.07*(h>SEA+.03?1:.25));
+    if(riv&&h>=SEA) c=rgb(0x2a8fc4);
+    c=[c[0],c[1],c[2]]; if(edge>0){ const e=clamp(edge*1.6,0,1), sd=rgb(0x9a6a45); for(let i=0;i<3;i++) c[i]+=(sd[i]-c[i])*e*.85; }
+    cc.setRGB(c[0],c[1],c[2],THREE.SRGBColorSpace); col[k++]=cc.r; col[k++]=cc.g; col[k++]=cc.b; });
+  g.setAttribute('color', new THREE.BufferAttribute(col,3)); g.computeVertexNormals();
+  terrain=mesh(g, mat({vc:true, bump:1.25, rough:.58, color2:0xffffff, smear:0}));
+})();
+
+/* map-makers: small clay people, each carrying a paper map on a stick. The paper is drawn from the model's own numbers. */
+const WN=15, PXC=12, SHEET=.64, FIG=1.3;
+const figGeo={ body:lathe([[0,0],[.078,0],[.094,.045],[.082,.14],[.05,.205],[0,.215]],.007,9,28), head:blob(.058,1,1,1,.004,9,22),
+  hat:lathe([[0,0],[.066,0],[.06,.02],[.028,.06],[0,.068]],.004,11,22), eye:new THREE.SphereGeometry(.0085,8,6), arm:blob(.022,1,2.1,1,.003,14,12),
+  stick:new THREE.CylinderGeometry(.007,.009,.66,8), halo:clayify(new THREE.TorusGeometry(.075,.012,10,26),.002,18) };
+const sheetGeo=(function(){ const g=new THREE.PlaneGeometry(SHEET,SHEET,10,10), p=g.attributes.position;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i); p.setZ(i, .028*Math.sin(x*4.2+.6)*Math.cos(y*2.1)+.02*(x*x+y*y)/(SHEET*SHEET)*4*(x*y>0?1:-.6)); }
+  g.computeVertexNormals(); return g; })();
+const woodM=mat({mode:'WOOD', color:0xd9b78a, rough:.7}), eyeM=mat({color:0x1c1c20, rough:.35, bump:.3}), skinM=mat({color:0xe8c8a4, color2:0xf3dcc0, smear:.4, boil:1}),
+  goldM=mat({color:0xe0a92a, color2:0xffd24d, smear:.5, rough:.35, emissive:0x6a4a08, emissiveIntensity:.6});
+const css=h=>'#'+h.toString(16).padStart(6,'0');
+const views=new Map();
+function makeView(m){
+  const colr=m.stranger?STRANGER_COL:COLS[m.id%COLS.length], g=new THREE.Group(), fig=new THREE.Group(); g.add(fig);
+  const cm=mat({color:colr, color2:new THREE.Color(colr).lerp(new THREE.Color(0xffffff),.35).getHex(), smear:.45, boil:1, bump:1.1});
+  mesh(figGeo.body,cm,0,0,0,fig); mesh(figGeo.head,skinM,0,.262,0,fig);
+  const hatM=mat({color:new THREE.Color(colr).multiplyScalar(.55).getHex(), boil:1}); mesh(figGeo.hat,hatM,0,.3,0,fig).rotation.z=.12;
+  mesh(figGeo.eye,eyeM,-.022,.27,.052,fig); mesh(figGeo.eye,eyeM,.022,.27,.052,fig);
+  const arm=mesh(figGeo.arm,cm,.088,.15,.01,fig); arm.rotation.z=-.5;
+  const halo=mesh(figGeo.halo,goldM,0,.36,0,fig); halo.rotation.x=Math.PI/2; halo.visible=false;
+  const stick=mesh(figGeo.stick,woodM,.125,.5,-.11,g); stick.rotation.x=-.36; fig.scale.setScalar(FIG);
+  const cv=document.createElement('canvas'); cv.width=cv.height=WN*PXC; const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=4;
+  const sm=new THREE.MeshStandardMaterial({map:tex, roughness:.93, metalness:0, side:THREE.DoubleSide, envMapIntensity:.7});
+  const sheet=mesh(sheetGeo,sm,.125,.84,-.24,g); sheet.rotation.x=-Math.PI/2+.62;
+  scene.add(g); const v={g, fig, halo, sheet, cv, ctx:cv.getContext('2d'), tex, colr, stamp:'', mats:[cm,hatM,sm]}; views.set(m.id,v); return v;
+}
+function dropView(id){ const v=views.get(id); if(!v) return; scene.remove(v.g); v.tex.dispose(); v.mats.forEach(x=>x.dispose()); views.delete(id); }
+function paint(v,m){
+  const g=v.ctx, S=WN*PXC, x0=Math.floor(m.hx)-7, y0=Math.floor(m.hy)-7;
+  g.globalAlpha=1; g.fillStyle=m.stranger?'#dcdfe3':'#f1e8d4'; g.fillRect(0,0,S,S);
+  for(let i=0;i<260;i++){ g.fillStyle=h3(i,m.id,7)<.5?'rgba(120,95,60,.07)':'rgba(255,255,255,.22)'; g.fillRect(h3(i,m.id,8)*S, h3(i,m.id,9)*S, 1+h3(i,3,1)*3, 1); }
+  const val=(i,j)=>{ const cx=x0+i, cy=y0+j; if(cx<0||cy<0||cx>=GX||cy>=GY) return -2; const c=cy*GX+cx; return m.n[c]?m.k[c]+m.s[c]:-1; };
+  for(let j=0;j<WN;j++) for(let i=0;i<WN;i++){ const q=val(i,j), cx=x0+i, cy=y0+j;
+    if(q===-2){ g.globalAlpha=1; g.fillStyle='rgba(60,45,30,.16)'; g.fillRect(i*PXC,j*PXC,PXC,PXC); continue; }
+    if(q===-1) continue;
+    const c=ramp(PAPERRAMP,q), n=m.n[cy*GX+cx]; g.globalAlpha=.42+.58*Math.min(1,n/6);
+    g.fillStyle='rgb('+Math.round(c[0]*255)+','+Math.round(c[1]*255)+','+Math.round(c[2]*255)+')';
+    g.fillRect(i*PXC-1+(h3(cx,cy,3)-.5)*2.4, j*PXC-1+(h3(cx,cy,4)-.5)*2.4, PXC+2, PXC+2); }
+  g.globalAlpha=1; g.strokeStyle='rgba(70,48,30,.6)'; g.lineWidth=1.1; g.lineCap='round'; g.beginPath();        // pencil contours
+  const band=q=>Math.floor((q-SEA)*7.5);
+  for(let j=0;j<WN;j++) for(let i=0;i<WN;i++){ const q=val(i,j); if(q<0) continue; const jx=(h3(x0+i,y0+j,5)-.5)*2;
+    const r=i+1<WN?val(i+1,j):-1; if(r>=0&&band(r)!==band(q)){ g.moveTo((i+1)*PXC+jx,j*PXC-1); g.lineTo((i+1)*PXC-jx,(j+1)*PXC+1); }
+    const d=j+1<WN?val(i,j+1):-1; if(d>=0&&band(d)!==band(q)){ g.moveTo(i*PXC-1,(j+1)*PXC+jx); g.lineTo((i+1)*PXC+1,(j+1)*PXC-jx); } }
+  g.stroke();
+  if(m.single){ g.strokeStyle='rgba(20,18,16,.42)'; g.lineWidth=1; g.beginPath(); for(let i=1;i<WN;i++){ g.moveTo(i*PXC+.5,0); g.lineTo(i*PXC+.5,S); g.moveTo(0,i*PXC+.5); g.lineTo(S,i*PXC+.5); } g.stroke(); }
+  g.strokeStyle=m.single?'#1b1a18':css(v.colr); g.lineWidth=m.single?7:(m.id===selected?6:3.5); g.strokeRect(5,5,S-10,S-10);
+  v.tex.needsUpdate=true;
+}
+
+/* stones marking each patch; pink clay for the seams; a marker over the chosen one; cotton mist */
+const dummy=new THREE.Object3D(), tcol=new THREE.Color();
+const RINGN=34, stones=new THREE.InstancedMesh(blob(.03,1,.62,1,.004,22,10), mat({color:0xffffff, vc:false, bump:1.2, rough:.6}), MAXM*RINGN);
+stones.castShadow=true; stones.receiveShadow=true; stones.frustumCulled=false; stones.setColorAt(0,tcol.set(0xffffff)); scene.add(stones);
+const MAXB=LOW?260:520, beads=new THREE.InstancedMesh(blob(.05,1,.7,1,.006,14,12), mat({color:0xffffff, glow:2.6, boil:1, rough:.42, bump:1.1}), MAXB);
+beads.castShadow=true; beads.receiveShadow=true; beads.frustumCulled=false; beads.setColorAt(0,tcol.set(0xff3d8b)); beads.count=0; scene.add(beads);
+const SEAMC=new THREE.Color(0xff2f86);
+const marker=mesh(lathe([[0,0],[.07,.115],[.046,.145],[0,.15]],.004,12,18), mat({color:0xff7a3c, emissive:0xff5a1c, emissiveIntensity:.5, boil:1}), 0,0,0); marker.visible=false;
+const PUFFS=[]; { const m=mat({color:0xf3f1ec, color2:0xffffff, smear:.3, rough:.8, boil:1, bump:.7, speck:0});
+  for(let i=0;i<9;i++){ const g=new THREE.Group(); scene.add(g);
+    mesh(blob(1,1,.55,1,.13,1.0,22), m, 0,0,0,g);
+    mesh(blob(.72,1,.6,1,.1,1.3,18), m, .62+rnd(i,91)*.3,.1*(rnd(i,92)-.3),.3*(rnd(i,93)-.5),g);
+    mesh(blob(.6,1,.6,1,.09,1.5,18), m, -.55-rnd(i,94)*.25,.15*(rnd(i,95)-.2),.35*(rnd(i,96)-.5),g);
+    g.visible=false; PUFFS.push(g); } }
+
+/* bench clutter: offcuts of the clays used, and a modelling tool */
+(function(){ const cols=[0xd92b22,0x1f8f8a,0xf2e6cf,0xf0b21e,0x2fa3c9,0xff2f86,0x4c8f4a,0x2a62c9];
+  for(let i=0;i<30;i++){ const r=.018+rnd(i,1)*.05, front=rnd(i,5)<.7;
+    const x=(rnd(i,2)-.5)*9.6, z=front? TD/2+.3+rnd(i,3)*1.1 : -TD/2-.3-rnd(i,3)*.8;
+    const b=mesh(blob(r,1,.45+rnd(i,6)*.3,1,r*.2,1.5/r,14), mat({color:cols[i%cols.length]}), x,-SLAB_H+r*.3,z); b.rotation.y=rnd(i,4)*6; }
+  const tool=mesh(lathe([[0,0],[.012,0],[.045,.15],[.05,.9],[.04,1.25],[.016,1.5],[.05,1.62],[.012,1.75],[0,1.75]],0,1,20), mat({mode:'WOOD', color:0xe0bb8c, rough:.5}), 2.3,-SLAB_H+.05,TD/2+.62);
+  tool.rotation.set(0,.35,Math.PI/2);
+  mesh(blob(.2,1,.8,1,.03,6,30), mat({color:0xff2f86, color2:0xff8ab8, smear:.5, bump:1.4}), -3.0,-SLAB_H+.14,TD/2+.75);
+  mesh(blob(.13,1,.85,1,.02,8,26), mat({color:0x4c8f4a, bump:1.4}), -2.66,-SLAB_H+.1,TD/2+.58);
+})();
+
+/* ───────────────────────── pose: the picture is a function of the model's state ───────────────────────── */
+const camTarget=new THREE.Vector3(), tmp=new THREE.Vector3(), tmp2=new THREE.Vector3();
+let focusDist=9, drag=null, camDist=10, pan=.6;
+function pose(){
+  const fi=W.t, live=new Set();
+  shared.uSeed.value.set(rnd(fi,1)*40, rnd(fi,2)*40, rnd(fi,3)*40);
+  let ri=0;
+  for(const m of W.makers){ live.add(m.id); const v=views.get(m.id)||makeView(m);
+    const dr=drag&&drag.id===m.id&&drag.moved?drag:null, hx=dr?dr.x:m.hx, hy=dr?dr.y:m.hy, px=dr?dr.x:m.x, py=dr?dr.y:m.y;
+    const gy=groundY(px,py), hop=(fi&1)?.018:0;
+    v.g.position.set(wx(px)+(rnd(fi,11+m.id)-.5)*.006, gy+(dr?.12:hop), wz(py)+(rnd(fi,13+m.id)-.5)*.006);
+    v.fig.rotation.set((rnd(fi,14+m.id)-.5)*.07, m.hd+(rnd(fi,15+m.id)-.5)*.3, (rnd(fi,16+m.id)-.5)*.07);
+    v.sheet.rotation.z=(rnd(fi,17+m.id)-.5)*.05; v.sheet.rotation.y=(rnd(fi,18+m.id)-.5)*.05;
+    v.halo.visible=m.single;
+    const st=fi+'|'+events.length+'|'+(m.id===selected)+'|'+m.single+'|'+tmax; if(v.stamp!==st){ v.stamp=st; paint(v,m); }
+    const colr=tcol.set(v.colr), big=m.id===selected?1.5:1;
+    for(let i=0;i<RINGN;i++,ri++){ const a=i/RINGN*6.2831853+m.id, cx=hx+RAD*Math.cos(a), cy=hy+RAD*Math.sin(a);
+      const inb=cx>.2&&cy>.2&&cx<GX-.2&&cy<GY-.2, s=inb?(.8+.5*h3(i,m.id,21))*big:0.0001;
+      dummy.position.set(wx(cx), groundY(cx,cy)+.008, wz(cy)); dummy.rotation.set(0,h3(i,m.id,22)*6,0); dummy.scale.setScalar(s); dummy.updateMatrix();
+      stones.setMatrixAt(ri,dummy.matrix); stones.setColorAt(ri,colr); } }
+  stones.count=ri; stones.instanceMatrix.needsUpdate=true; if(stones.instanceColor) stones.instanceColor.needsUpdate=true;
+  for(const id of Array.from(views.keys())) if(!live.has(id)) dropView(id);
+  // seams: one bead of pink clay per cell where two maps disagree, as big and as bright as the gap
+  let bi=0; const dl=W.delta;
+  for(let c=0;c<NC&&bi<MAXB;c++){ const g=dl[c]; if(g<=TAU) continue; const cx=c%GX+.5+(h3(c,1,2)-.5)*.5, cy=Math.floor(c/GX)+.5+(h3(c,3,4)-.5)*.5;
+    const a=clamp((g-TAU)/.22,0,1), s=.5+1.25*Math.sqrt(a)+(rnd(fi,c)-.5)*.12;
+    dummy.position.set(wx(cx), groundY(cx,cy)+.012*s, wz(cy)); dummy.rotation.set(rnd(fi,c+7)*6,rnd(fi,c+9)*6,0); dummy.scale.setScalar(s); dummy.updateMatrix();
+    beads.setMatrixAt(bi,dummy.matrix); tcol.copy(SEAMC).multiplyScalar(.5+.5*Math.sqrt(a)); beads.setColorAt(bi,tcol); bi++; }
+  beads.count=bi; beads.instanceMatrix.needsUpdate=true; if(beads.instanceColor) beads.instanceColor.needsUpdate=true;
+  const sm=W.byId(selected);
+  if(sm){ const v=views.get(sm.id); marker.visible=true; marker.position.set(v.g.position.x+.125, v.g.position.y+1.2+((fi&1)?.02:0), v.g.position.z-.5); marker.rotation.y=rnd(fi,60)*6; } else marker.visible=false;
+  const np=Math.round((W.sigma-SIG0)/(SIG1-SIG0)*PUFFS.length);
+  for(let i=0;i<PUFFS.length;i++){ const P=PUFFS[i]; P.visible=i<np; if(!P.visible) continue; const u=rnd(i,81)+fi*.0011*(1+i*.23);
+    P.position.set(((u-Math.floor(u))-.5)*TW*1.05, .62+rnd(i,83)*.3, (rnd(i,82)-.5)*TD*.95); P.scale.setScalar(.2+.14*rnd(i,84)); P.rotation.set(0,rnd(fi,24+i)*6,(rnd(fi,25+i)-.5)*.2); }
+  // camera on its motion-control rig
+  camTarget.set(0,.2,pan);
+  const base=tmp.set(0, camDist*Math.sin(.84), camDist*Math.cos(.84));
+  const r=base.length()*view.zoom, yaw0=0, pit0=.84;
+  const yaw=yaw0+view.yaw, pit=clamp(pit0+view.pitch,.2,1.45);
+  camera.position.set(camTarget.x+r*Math.sin(yaw)*Math.cos(pit), camTarget.y+r*Math.sin(pit), camTarget.z+r*Math.cos(yaw)*Math.cos(pit));
+  camera.lookAt(camTarget); camera.updateMatrixWorld();
+  const fp=view.focus || (sm?tmp.copy(views.get(sm.id).g.position):tmp.set(0,.25,.35));
+  const dir=camera.getWorldDirection(tmp2);
+  focusDist=Math.max(1, new THREE.Vector3().copy(fp).sub(camera.position).dot(dir));
+  key.target.position.set(0,0,0); key.position.set(-7, 8.2, 2.6); key.target.updateMatrixWorld();
+  key.intensity=3.6*(1+(rnd(fi,40)-.5)*.035);
+  return fi;
+}
+
+/* ───────────────────────── post: ambient occlusion → lens blur → film ───────────────────────── */
+const postScene=new THREE.Scene(), postCam=new THREE.Camera();
+const tri=new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1,-1,0, 3,-1,0, -1,3,0]),3)));
+tri.frustumCulled=false; postScene.add(tri);
+const VS='varying vec2 vUv; void main(){ vUv=position.xy*.5+.5; gl_Position=vec4(position.xy,0.,1.); }';
+const pm=(fs,u)=>new THREE.ShaderMaterial({vertexShader:VS, fragmentShader:fs, uniforms:u, depthTest:false, depthWrite:false});
+const DEPTH=`uniform sampler2D tDepth; uniform float uNear,uFar; uniform vec2 uProj;
+float linZ(vec2 uv){ float d=texture2D(tDepth,uv).x; return (uNear*uFar)/(uFar-d*(uFar-uNear)); }
+vec3 vpos(vec2 uv){ float z=linZ(uv); vec2 n=uv*2.-1.; return vec3(n.x/uProj.x*z, n.y/uProj.y*z, -z); }`;
+const U={ tDepth:{value:null}, uNear:{value:.6}, uFar:{value:60}, uProj:{value:new THREE.Vector2()}, uRes:{value:new THREE.Vector2()} };
+const aoMat=pm(DEPTH+`uniform vec2 uRes; varying vec2 vUv;
+void main(){ vec3 C=vpos(vUv); vec3 n=normalize(cross(dFdx(C),dFdy(C)));
+  float R=.24, ssr=R*uProj.y*.5/(-C.z);
+  float rot=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853, sum=0.;
+  for(int i=0;i<22;i++){ float a=(float(i)+.5)/22.; float ang=a*6.2831853*7.+rot; float r=ssr*a;
+    vec3 v=vpos(vUv+vec2(cos(ang)*uRes.y/uRes.x,sin(ang))*r)-C; float vv=dot(v,v), vn=dot(v,n);
+    float f=max(1.-vv/(R*R),0.); sum+=f*f*f*max((vn+C.z*.0025)/(vv+.0004),0.); }
+  gl_FragColor=vec4(vec3(max(0.,1.-sum*5.*R/22.*1.9)),1.); }`, Object.assign({},U));
+const prepMat=pm(DEPTH+`uniform sampler2D tColor,tAO; uniform vec2 uRes; uniform float uFocus,uAperture; varying vec2 vUv;
+void main(){ float z=linZ(vUv); float ao=0., w=0.;
+  for(int x=-2;x<2;x++) for(int y=-2;y<2;y++){ vec2 o=(vec2(float(x),float(y))+.5)/uRes; float zz=linZ(vUv+o);
+    float k=max(0.,1.-abs(zz-z)/(.03*z)); ao+=texture2D(tAO,vUv+o).r*k; w+=k; }
+  ao = w>0. ? ao/w : 1.;
+  vec3 c=texture2D(tColor,vUv).rgb; c*=mix(vec3(.16,.13,.14), vec3(1.), pow(ao,1.25));
+  gl_FragColor=vec4(c, clamp((1./uFocus-1./z)*uAperture,-1.,1.)); }`, Object.assign({tColor:{value:null}, tAO:{value:null}, uFocus:{value:5}, uAperture:{value:6}},U));
+const dofMat=pm(`uniform sampler2D tPrep; uniform vec2 uRes; uniform float uMaxPx,uStep; varying vec2 vUv;
+void main(){ vec4 c0=texture2D(tPrep,vUv); float cs=abs(c0.a)*uMaxPx; vec3 acc=c0.rgb; float tot=1.; float r=uStep;
+  float ang=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853;
+  for(int i=0;i<260;i++){ if(r>uMaxPx) break; ang+=2.39996323;
+    vec4 s=texture2D(tPrep, vUv+vec2(cos(ang),sin(ang))*r/uRes); float ss=abs(s.a)*uMaxPx;
+    if(s.a>c0.a) ss=clamp(ss,0.,cs*2.);
+    float m=smoothstep(r-.5,r+.5,ss); acc+=mix(acc/tot,s.rgb,m); tot+=1.; r+=uStep/r; }
+  gl_FragColor=vec4(acc/tot,1.); }`, {tPrep:{value:null}, uRes:U.uRes, uMaxPx:{value:20}, uStep:{value:1.3}});
+const finMat=pm(`uniform sampler2D tDof; uniform vec2 uRes; uniform vec3 uFilm; uniform float uExpo,uFlash; varying vec2 vUv;
+float h(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+void main(){ vec2 uv=vUv+uFilm.xy/uRes; vec2 d=uv-.5; float r2=dot(d,d);
+  vec2 ca=d*r2*.012;
+  vec3 c=vec3(texture2D(tDof,uv+ca).r, texture2D(tDof,uv).g, texture2D(tDof,uv-ca).b);
+  vec3 glow=textureLod(tDof,uv,4.).rgb*.5+textureLod(tDof,uv,6.).rgb*.5;
+  c=mix(c,glow,.07)+max(glow-.9,0.)*.12;
+  c*=uExpo*(1.-r2*.95);
+  c+=vec3(1.,.72,.42)*uFlash*(.25+r2*2.);
+  c=aces(c*vec3(1.03,1.,.97));
+  c=pow(c,vec3(1./2.2));
+  c=mix(c, c*c*(3.-2.*c), .22);
+  float g=h(gl_FragCoord.xy+uFilm.z*91.7)-.5; float l=dot(c,vec3(.3,.6,.1));
+  c+=g*.038*(1.-.6*l);
+  gl_FragColor=vec4(c,1.); }`, {tDof:{value:null}, uRes:U.uRes, uFilm:{value:new THREE.Vector3()}, uExpo:{value:1}, uFlash:{value:0}});
+
+let rt=null, budget=TEST&&TEST.budget ? TEST.budget : (LOW?5.5e5:2.1e6), msaa=LOW?0:4;
+function build(){
+  const cw=canvas.clientWidth||window.innerWidth, chh=canvas.clientHeight||window.innerHeight, dpr=Math.min(window.devicePixelRatio||1,2);
+  const scale=Math.min(dpr, Math.sqrt(budget/(cw*chh)));
+  renderer.setPixelRatio(scale); renderer.setSize(cw,chh,false);
+  const w=Math.max(2,Math.floor(cw*scale)), h=Math.max(2,Math.floor(chh*scale));
+  if(rt) for(const k in rt) rt[k].dispose();
+  const T=HDR?THREE.HalfFloatType:THREE.UnsignedByteType;
+  const dt=new THREE.DepthTexture(w,h); dt.type=THREE.UnsignedIntType; dt.minFilter=dt.magFilter=THREE.NearestFilter;
+  rt={ scene:new THREE.WebGLRenderTarget(w,h,{type:T, samples:msaa, depthTexture:dt}),
+       ao:new THREE.WebGLRenderTarget(w,h,{type:THREE.UnsignedByteType}),
+       prep:new THREE.WebGLRenderTarget(w,h,{type:T}),
+       dof:new THREE.WebGLRenderTarget(w,h,{type:T, generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter}) };
+  const asp=cw/chh;
+  U.uRes.value.set(w,h); camera.aspect=asp; camera.fov = asp<1 ? 44 : (asp<1.4 ? 33 : 27); camera.updateProjectionMatrix();
+  // far enough back that the whole table is in the picture, whatever the shape of the window
+  const th=Math.tan(camera.fov*Math.PI/360); const foot=document.querySelector('.foot').offsetHeight+16, headH=asp<1?document.querySelector('.head').offsetHeight+12:0, free=clamp((chh-foot-headH)/chh,.3,1);
+  camDist=Math.max(8.3/(2*th*asp), 5.15/(2*th)/free, 8.5);
+  pan=((foot-headH)/chh)*camDist*th*1.05;        // slide the table up into the part of the window the words leave free
+}
+function draw(){
+  const fi=pose(); drawn++;
+  renderer.setRenderTarget(rt.scene); renderer.render(scene,camera);
+  const P=camera.projectionMatrix.elements;
+  for(const m of [aoMat,prepMat]){ m.uniforms.tDepth.value=rt.scene.depthTexture; m.uniforms.uNear.value=camera.near; m.uniforms.uFar.value=camera.far; m.uniforms.uProj.value.set(P[0],P[5]); m.uniforms.uRes.value.copy(U.uRes.value); }
+  tri.material=aoMat; renderer.setRenderTarget(rt.ao); renderer.render(postScene,postCam);
+  prepMat.uniforms.tColor.value=rt.scene.texture; prepMat.uniforms.tAO.value=rt.ao.texture;
+  prepMat.uniforms.uFocus.value=focusDist; prepMat.uniforms.uAperture.value=13;
+  tri.material=prepMat; renderer.setRenderTarget(rt.prep); renderer.render(postScene,postCam);
+  dofMat.uniforms.tPrep.value=rt.prep.texture; dofMat.uniforms.uMaxPx.value=U.uRes.value.y*.021; dofMat.uniforms.uStep.value=Math.max(1.1, U.uRes.value.y/820);
+  tri.material=dofMat; renderer.setRenderTarget(rt.dof); renderer.render(postScene,postCam);
+  finMat.uniforms.tDof.value=rt.dof.texture;
+  finMat.uniforms.uFilm.value.set((rnd(fi,50)-.5)*1.2,(rnd(fi,51)-.5)*1.2,rnd(fi,52)*100);
+  finMat.uniforms.uExpo.value=1.06*(1+(rnd(fi,53)-.5)*.03);
+  finMat.uniforms.uFlash.value=fi<3?Math.exp(-fi*1.4)*.9:0;
+  tri.material=finMat; renderer.setRenderTarget(null); renderer.render(postScene,postCam);
+}
+
+/* ───────────────────────── pointer: click the table, drag a map-maker, or drag the air to move the camera ───────────────────────── */
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+function cellAt(e){ const b=canvas.getBoundingClientRect(); ndc.set((e.clientX-b.left)/b.width*2-1, -((e.clientY-b.top)/b.height*2-1));
+  ray.setFromCamera(ndc,camera); const hit=ray.intersectObject(terrain,false)[0]; if(!hit) return null;
+  const cx=cxOf(hit.point.x), cy=cyOf(hit.point.z); return (cx<0||cy<0||cx>GX||cy>GY)?null:[cx,cy]; }
+function makerAt(e){ const b=canvas.getBoundingClientRect(); let best=-1, bd=1e9;
+  for(const m of W.makers){ const v=views.get(m.id); if(!v) continue;
+    for(const dy of [.2,.84]){ tmp.copy(v.g.position); tmp.y+=dy; if(dy>.5){ tmp.x+=.125; tmp.z-=.24; } tmp.project(camera);
+      const sx=(tmp.x*.5+.5)*b.width+b.left, sy=(-tmp.y*.5+.5)*b.height+b.top, d=Math.hypot(sx-e.clientX,sy-e.clientY), lim=(dy>.5?.05:.032)*b.height+10;
+      if(d<lim&&d<bd){ bd=d; best=m.id; } } }
+  return best; }
+let down=null, moved=false;
+canvas.addEventListener('pointerdown',e=>{ down={x:e.clientX,y:e.clientY}; moved=false; try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+  const id=makerAt(e); drag=id>=0?{id, x:0, y:0, moved:false}:null; });
+canvas.addEventListener('pointermove',e=>{
+  if(!down){ canvas.classList.toggle('over', makerAt(e)>=0); return; }
+  const dx=e.clientX-down.x, dy=e.clientY-down.y;
+  if(!moved && Math.hypot(dx,dy)<5) return; moved=true; canvas.classList.add('dragging');
+  if(drag){ const c=cellAt(e); if(c){ drag.x=clamp(c[0],1,GX-1); drag.y=clamp(c[1],1,GY-1); drag.moved=true; dirty=true; } return; }
+  view.yaw=clamp(view.yaw-dx*.005,-1.0,1.0); view.pitch=clamp(view.pitch+dy*.004,-.5,.55); down={x:e.clientX,y:e.clientY}; dirty=true; });
+canvas.addEventListener('pointerup',e=>{ canvas.classList.remove('dragging');
+  if(down){ if(drag&&drag.moved){ const d=drag; drag=null; moveMaker(d.id,d.x,d.y); }
+    else if(drag){ select(drag.id===selected?-1:drag.id); }
+    else if(!moved){ const c=cellAt(e); if(c) place(c[0],c[1],false); } }
+  down=null; drag=null; dirty=true; });
+canvas.addEventListener('pointercancel',()=>{ down=null; drag=null; canvas.classList.remove('dragging'); dirty=true; });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); view.zoom=clamp(view.zoom*Math.exp(e.deltaY*.0012),.45,1.5); dirty=true; },{passive:false});
+addEventListener('resize',()=>{ build(); dirty=true; });
+
+build();
+if(REDUCED){ seek(54); }               // start paused on a frame where the seams are showing
+label();
+PIECE.view=view; PIECE.redraw=()=>{ draw(); renderer.getContext().finish(); return true; };
+PIECE.screen=(cx,cy,up)=>{ const b=canvas.getBoundingClientRect(); tmp.set(wx(cx),groundY(cx,cy)+(up||0),wz(cy)).project(camera); return [(tmp.x*.5+.5)*b.width+b.left, (-tmp.y*.5+.5)*b.height+b.top]; };
+if(TEST){ window.__clay={ shot(f,v){ if(v) Object.assign(view,v); seek(f); label(); draw(); renderer.getContext().finish(); return true; } }; return; }
+const STEPS_PER_SEC=12;                // shot on twos: one step of the model for each picture
+let acc=0, last=0, slow=0;
+function tick(t){ requestAnimationFrame(tick);
+  const dt=Math.min(t-last,250); last=t;
+  if(playing){ acc+=dt; const per=1000/STEPS_PER_SEC; if(acc>=per){ acc=acc%per; if(stepForward()){ dirty=true; label(); } else { playing=false; label(); dirty=true; } } }
+  if(dirty){ dirty=false; const t0=performance.now(); draw(); renderer.getContext().finish(); const ms=performance.now()-t0;
+    // if a picture takes longer than its slot, shoot at a lower resolution
+    if(ms>1000/STEPS_PER_SEC*.85){ if(++slow>5 && budget>5e5){ budget*=.72; slow=0; build(); dirty=true; } } else slow=Math.max(0,slow-1); }
+}
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

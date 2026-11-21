@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Newton at the bottom of the sea</title>
+<meta name="description" content="Sit where Blake's Newton sits on the sea floor, work his compasses and his prisms on the scroll, then look up at the sunlit sea he does not see.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --studio:#02080d;
+  --ink:#f3ecdf;
+  --ink-soft:rgba(243,236,223,.72);
+  --panel:rgba(4,12,18,.62);
+  --line:rgba(243,236,223,.22);
+  --accent:#ffb866;
+  --sea:#7fe0ff;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+body{transition:opacity .35s}
+body.leaving{opacity:0}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;outline:none}
+#stage.dragging{cursor:grabbing}
+#stage:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.head{position:fixed;left:20px;top:16px;right:330px;pointer-events:none;text-shadow:0 1px 10px rgba(0,0,0,.85)}
+.head h1{font:600 clamp(21px,3vw,32px)/1.05 var(--display);margin:0 0 6px;letter-spacing:-.01em}
+.head p{font:400 12.5px/1.5 var(--mono);margin:0;color:var(--ink-soft);max-width:46ch}
+button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);
+  border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap;touch-action:manipulation}
+button:hover{border-color:var(--ink-soft)}
+button[aria-pressed="true"]{background:var(--ink);color:#10161a;border-color:var(--ink)}
+button:disabled{opacity:.35;cursor:default}
+button:focus-visible,input:focus-visible,.sheet:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#back{position:fixed;right:20px;top:16px;background:var(--panel);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);z-index:3}
+.bar{position:fixed;left:16px;right:16px;bottom:16px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font:400 12.5px/1 var(--mono)}
+.note{margin:0 0 9px;font:400 13px/1.45 var(--mono);color:var(--ink);min-height:1.45em}
+.note b{font-weight:500;color:var(--accent);margin-right:8px}
+.row{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.row + .row{margin-top:9px}
+.tab[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#1a0f03}
+.gap{flex:1 1 8px}
+.sep{width:1px;height:22px;background:var(--line)}
+.sl{display:inline-flex;align-items:center;gap:8px;color:var(--ink-soft);white-space:nowrap}
+.sl input{width:150px;accent-color:var(--accent);height:22px;margin:0}
+.sl output{color:var(--ink);font-variant-numeric:tabular-nums;min-width:5.5ch}
+.read{position:fixed;right:20px;top:60px;margin:0;display:grid;grid-template-columns:auto auto;gap:5px 14px;padding:12px 14px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  font:400 12.5px/1.25 var(--mono);font-variant-numeric:tabular-nums;pointer-events:none;width:min(300px,calc(100vw - 32px))}
+.read dt{color:var(--ink-soft);margin:0;white-space:nowrap}.read dd{margin:0;text-align:right;white-space:nowrap}
+.read .big{font:600 19px/1.15 var(--display);grid-column:1/-1;text-align:left;margin-bottom:2px;white-space:normal}
+.read .sec{grid-column:1/-1;text-align:left;white-space:normal;line-height:1.3;color:var(--sea);border-top:1px solid var(--line);padding-top:6px;margin-top:2px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.read .wide{grid-column:1/-1;text-align:left;white-space:normal;line-height:1.4}
+.read .left{white-space:normal}.left{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;text-align:center;font-size:10.5px}
+.left i{display:block;height:16px;border-radius:3px;border:1px solid rgba(255,255,255,.18);margin-bottom:3px}
+.left span{display:block;color:var(--ink-soft)}
+.sheet{position:fixed;background:rgba(4,12,18,.92);border:1px solid var(--line);border-radius:14px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  padding:16px 18px;overflow:auto;font:400 12.5px/1.55 var(--mono);z-index:4;max-height:calc(100vh - 80px)}
+.sheet h2{font:600 21px/1.15 var(--display);margin:0 0 8px}
+.sheet h3{font:500 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:14px 0 4px}
+.sheet p{margin:0 0 8px}.sheet ul{margin:0 0 8px;padding-left:18px}.sheet li{margin:0 0 3px}
+.sheet blockquote{margin:6px 0 8px;padding-left:12px;border-left:2px solid var(--accent);font:400 15px/1.4 var(--display);white-space:pre-line}
+.sheet .x{float:right;margin:0 0 8px 12px}
+#about{right:20px;top:60px;width:min(640px,calc(100vw - 32px))}
+@media (max-width:760px){.head p{display:none}.head{left:12px;top:12px;right:176px}.head h1{font-size:16px;line-height:1.15}
+  .read.seated .sea{display:none}.read.seated .sec{border-top:0;padding-top:0;margin-top:0}
+  .read{top:58px;left:10px;right:auto;font-size:10.5px;padding:7px 9px;gap:2px 8px;width:min(210px,calc(100vw - 20px))}.read .big{font-size:15px}
+  .read .opt{display:none}.left{font-size:9px;gap:2px}.left i{height:10px}
+  #back{right:12px;top:12px;padding:8px 10px;font-size:11.5px}
+  .bar{left:8px;right:8px;bottom:8px;padding:8px 9px}.note{font-size:10.5px;line-height:1.36;margin-bottom:6px}
+  .row{gap:6px 6px}.row + .row{margin-top:7px}.gap,.sep{display:none}
+  .sl input{width:92px}button{padding:7px 8px;font-size:11px}.sl{gap:5px;font-size:11px}
+  #about{right:8px;top:50px;width:calc(100vw - 16px)}}
+#fail{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:400 15px/1.5 var(--mono)}
+</style>
+</head>
+<body>
+<canvas id="stage" tabindex="0" aria-label="The bottom of a sunlit sea. A rock crusted with coloured growth has a worn seat on it, and nobody in it: only a faint column of lit specks stands there. Below the seat a glowing scroll lies on a shelf with a pair of brass compasses open on it. Shafts of light come down through the water and a net of light moves on the sand. Drag, or use the arrow keys, to look round. Looking up shows the whole sky pressed into a bright disc overhead."></canvas>
+<div class="head">
+  <h1>Newton at the bottom of the sea</h1>
+  <p>After Blake&rsquo;s colour print <i>Newton</i> (1795, about 1805; Tate). The optics here are Newton&rsquo;s and his heirs&rsquo;. The objection is Blake&rsquo;s. The piece takes no side.</p>
+</div>
+<button id="back" type="button">Back to the museum</button>
+<dl class="read" id="read" aria-label="The numbers"></dl>
+<div class="sheet" id="about" role="dialog" aria-label="About this piece" tabindex="-1" hidden></div>
+<div class="bar" id="bar">
+  <p class="note" id="note" aria-live="polite"></p>
+  <div class="row" id="tabs">
+    <button class="tab" id="v_back" type="button" aria-pressed="true">Stand back</button>
+    <button class="tab" id="v_sit" type="button" aria-pressed="false">Sit where he sits</button>
+    <button class="tab" id="v_up" type="button" aria-pressed="false">Look up</button>
+    <span class="sep"></span>
+    <button id="single" type="button" aria-pressed="false" aria-label="Single vision: hold the view on the diagram">Single vision</button>
+    <button id="twofold" type="button" aria-pressed="true" aria-label="Twofold: the diagram and the sea together">Twofold</button>
+    <span class="gap"></span>
+    <button id="play" type="button">Pause</button>
+    <button id="sound" type="button" aria-pressed="false">Sound</button>
+    <button id="aboutBtn" type="button" aria-expanded="false" aria-controls="about">About</button>
+    <button id="again" type="button">Start again</button>
+  </div>
+  <div class="row" id="seaRow">
+    <label class="sl">Depth <input id="depth" type="range" min="3" max="40" step="0.5" value="6" aria-label="Depth of water over the sea floor, in metres"><output id="odepth"></output></label>
+    <button id="torch" type="button" aria-pressed="false" aria-label="Torch: a white light held in the hand">Torch</button>
+  </div>
+  <div class="row" id="scrollRow" hidden>
+    <button class="tab" id="p_compass" type="button" aria-pressed="true">Compasses</button>
+    <button class="tab" id="p_prism" type="button" aria-pressed="false">Prism</button>
+    <span class="sep"></span>
+    <span class="row" id="compassCtl">
+      <button id="stepBack" type="button" aria-label="Undo one step of the construction">&#9664; Undo</button>
+      <button id="stepNext" type="button" aria-label="Next step of the construction">Next step &#9654;</button>
+      <label class="sl">Opening <input id="opening" type="range" min="0.7" max="1.3" step="0.005" value="1" aria-label="How wide the compasses are opened, as a share of the base line"><output id="oopening"></output></label>
+    </span>
+    <span class="row" id="prismCtl" hidden>
+      <button id="m_spread" type="button" aria-pressed="true">Spread</button>
+      <button id="m_recombine" type="button" aria-pressed="false">Recombine</button>
+      <button id="m_crucial" type="button" aria-pressed="false">One colour</button>
+      <button id="glass" type="button" aria-label="Change the glass of the prisms">Glass</button>
+      <label class="sl">Angle <input id="inc" type="range" min="58" max="85" step="0.1" value="63.2" aria-label="Angle at which the beam meets the first prism, in degrees"><output id="oinc"></output></label>
+      <label class="sl" id="pickL">Colour <input id="pick" type="range" min="400" max="700" step="1" value="480" aria-label="Which colour passes the slit, as a wavelength in nanometres"><output id="opick"></output></label>
+    </span>
+  </div>
+</div>
+<div id="fail">This piece needs WebGL 2, which this browser or device has not made available. The numbers in the panel are still computed.</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+const canvas = document.getElementById('stage');
+const HOME = { blake: 'index.html', jooles: 'jooles.html', park: 'park.html' };
+const QS = new URLSearchParams(location.search);
+const FROM = Object.prototype.hasOwnProperty.call(HOME, QS.get('from')) ? QS.get('from') : 'blake';
+const STOP = /^[a-z0-9_:\-]{1,40}$/.test(QS.get('stop')||'') ? QS.get('stop') : 'newton';
+const BACK = HOME[FROM] + '#' + STOP;
+const LOW = QS.get('q')==='low';
+const STILL = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function goBack(){ document.body.classList.add('leaving'); setTimeout(()=>{ location.href = BACK; }, TEST?0:360); }
+document.getElementById('back').onclick = goBack;
+const $ = id => document.getElementById(id);
+const PI=Math.PI, D2R=PI/180, clamp=(x,a,b)=>x<a?a:x>b?b:x, lerp=(a,b,t)=>a+(b-a)*t, sstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+function rng(seed){ let a=seed>>>0; return function(){ a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
+
+/* ═════════════════════════ THE OPTICS ═════════════════════════
+   Every number on screen comes from the functions in OPT, GEO and PR. Wavelengths in nanometres, lengths in metres. */
+/* Sellmeier form: n^2 = 1 + sum B l^2 / (l^2 - C), l in micrometres. */
+const sellmeier=(B,C)=>nm=>{ const l2=nm*nm*1e-6; let s=1; for(let k=0;k<B.length;k++) s+=B[k]*l2/(l2-C[k]); return Math.sqrt(s); };
+/* Water at 20 C: M. Daimon and A. Masumura, Applied Optics 46, 3811 (2007). Pure water; sea water is about 0.006 higher. */
+const nWater=sellmeier([5.684027565e-1,1.726177391e-1,2.086189578e-2,1.130748688e-1],[5.101829712e-3,1.821153936e-2,2.620722293e-2,1.069792721e1]);
+/* Three modern Schott glasses (Schott optical glass data sheets). Newton's own glass is not known this exactly. */
+const GLASS=[
+  {key:'sf11', name:'dense flint (SF11)', n:sellmeier([1.73759695,0.313747346,1.89878101],[0.013188707,0.0623068142,155.23629])},
+  {key:'f2',   name:'flint (F2)',         n:sellmeier([1.34533359,0.209073176,0.937357162],[0.00997743871,0.0470450767,111.886764])},
+  {key:'bk7',  name:'crown (N-BK7)',      n:sellmeier([1.03961212,0.231792344,1.01046945],[0.00600069867,0.0200179144,103.560653])}];
+/* CIE 1931 two-degree colour matching functions: the analytic fit of C. Wyman, P.-P. Sloan and P. Shirley, JCGT 2(2), 2013. */
+const lobe=(l,mu,s1,s2)=>{ const t=(l-mu)/(l<mu?s1:s2); return Math.exp(-0.5*t*t); };
+const cmf=l=>[1.056*lobe(l,599.8,37.9,31.0)+0.362*lobe(l,442.0,16.0,26.7)-0.065*lobe(l,501.1,20.4,26.2),
+  0.821*lobe(l,568.8,46.9,40.5)+0.286*lobe(l,530.9,16.3,31.1),
+  1.217*lobe(l,437.0,11.8,36.0)+0.681*lobe(l,459.0,26.0,13.8)];
+const xyz2rgb=X=>[3.2404542*X[0]-1.5371385*X[1]-0.4985314*X[2], -0.9692660*X[0]+1.8760108*X[1]+0.0415560*X[2], 0.0556434*X[0]-0.2040259*X[1]+1.0572252*X[2]];
+/* Sunlight: a black body at 5778 K (Planck). The air's own dimming of the light is left out. */
+const planck=nm=>{ const l=nm*1e-9; return 1e-9*3.741771852e-16/(l*l*l*l*l)/(Math.exp(1.438776877e-2/(l*5778))-1); };
+const LAMS=[]; for(let l=380;l<=730;l+=5) LAMS.push(l);
+const WHITE=(()=>{ const X=[0,0,0]; LAMS.forEach(l=>{ const c=cmf(l), p=planck(l); X[0]+=p*c[0]; X[1]+=p*c[1]; X[2]+=p*c[2]; }); const Y=X[1], rgb=xyz2rgb(X.map(v=>v/Y)); return {Y:Y, gain:rgb.map(v=>1/v)}; })();
+/* the screen colour (linear sRGB) of a spectrum fn(wavelength) of sunlight; bare sunlight is white (1,1,1) */
+function spectrumToRgb(fn){ const X=[0,0,0]; for(let i=0;i<LAMS.length;i++){ const l=LAMS[i], c=cmf(l), p=fn(l)*planck(l); X[0]+=p*c[0]; X[1]+=p*c[1]; X[2]+=p*c[2]; } const r=xyz2rgb(X.map(v=>v/WHITE.Y)); return [r[0]*WHITE.gain[0], r[1]*WHITE.gain[1], r[2]*WHITE.gain[2]]; }
+/* Absorption of pure water, per metre, 380 to 720 nm in steps of 10: R. M. Pope and E. S. Fry, Applied Optics 36, 8710 (1997).
+   Above 720 nm the line is carried on through their last point (727.5 nm, 1.678 /m). */
+const PF=[.01137,.00851,.00663,.00473,.00454,.00495,.00635,.00922,.00979,.0106,.0127,.0150,.0204,.0325,.0409,.0434,.0474,.0565,.0619,.0695,.0896,.1351,.2224,.2644,.2755,.2916,.3108,.340,.410,.439,.465,.516,.624,.827,1.231];
+function aWater(l){ if(l>=720) return 1.231+(l-720)*(1.678-1.231)/7.5; const f=(Math.max(380,l)-380)/10, i=Math.min(33,Math.floor(f)); return PF[i]+(PF[i+1]-PF[i])*(f-i); }
+/* Scattering by pure sea water: A. Morel (1974), as tabulated by R. C. Smith and K. S. Baker, Applied Optics 20, 177 (1981). */
+const bWater=l=>0.00288*Math.pow(500/l,4.32);
+/* Particles (the marine snow): a flat scattering of 0.06 /m, chosen as clear coastal water; 1.8% of it comes back (Petzold 1972). */
+const BP=0.06, BBP=0.018*BP;
+/* Dissolved yellow matter, which takes the violet and blue: a_y = 0.02 e^(-0.014 (l - 440)) /m. The slope is that of A. Bricaud, A. Morel
+   and L. Prieur, Limnology and Oceanography 26, 43 (1981); the amount is chosen, for clear water near a coast. */
+const aYellow=l=>0.02*Math.exp(-0.014*(l-440));
+/* One attenuation for light going down and light coming to the eye: K = a + a_y + b_w/2 + b_bp (Gordon's rule of thumb for Kd). */
+const Kd=l=>aWater(l)+aYellow(l)+0.5*bWater(l)+BBP;
+const transmit=(l,L)=>Math.exp(-Kd(l)*L);                      // Beer-Lambert
+const depthFor=(l,frac)=>-Math.log(frac)/Kd(l);
+const BANDS=[['red',650],['orange',600],['yellow',580],['green',530],['blue',470],['violet',420]];
+/* The colour of deep water itself: light scattered back, R = 0.33 b_b / (a + b_b) (Gordon, Brown and Jacobs 1975; Morel and Prieur 1977). */
+const backRefl=l=>{ const bb=0.5*bWater(l)+BBP; return 0.33*bb/(aWater(l)+aYellow(l)+bb); };
+const N_W=nWater(589.3);
+const windowHalf=n=>Math.asin(1/(n||N_W));                    // Snell's window: the critical angle
+/* Snell's law for vectors. d and n unit, n against d. eta = n1/n2. Returns null on total internal reflection. */
+function refract3(d,n,eta){ const c=-(d[0]*n[0]+d[1]*n[1]+d[2]*n[2]), k=1-eta*eta*(1-c*c); if(k<0) return null; const f=eta*c-Math.sqrt(k); return [eta*d[0]+f*n[0], eta*d[1]+f*n[1], eta*d[2]+f*n[2]]; }
+/* Fresnel: the share of unpolarised light let through. ci, ct cosines on the two sides; n = n2/n1. */
+function fresnelT(ci,ct,n){ const rs=(ci-n*ct)/(ci+n*ct), rp=(n*ci-ct)/(n*ci+ct); return 1-0.5*(rs*rs+rp*rp); }
+/* A bubble's note: M. Minnaert, Philosophical Magazine 16, 235 (1933). r in metres, z depth in metres. */
+const minnaert=(r,z)=>Math.sqrt(3*1.4*(101325+1025*9.81*z)/1025)/(2*PI*r);
+
+/* ── the sea surface: a sum of thirteen sine waves that fit an 8 m tile exactly, each moving at the deep-water speed w = sqrt(g k) ── */
+const TILE=8, GRAV=9.81;
+const WV=(()=>{ const R=rng(11); return [[1,1,.052],[2,-1,.048],[-1,3,.044],[3,2,.040],[4,-1,.036],[-2,5,.032],[5,3,.030],[6,-2,.026],[3,7,.022],[9,4,.019],[-7,8,.017],[12,-5,.015],[4,13,.013]].map(q=>{ const kx=2*PI*q[0]/TILE, kz=2*PI*q[1]/TILE, k=Math.hypot(kx,kz); return {kx:kx,kz:kz,k:k,w:Math.sqrt(GRAV*k),a:q[2]/k,ph:R()*2*PI}; }); })();
+function surface(x,z,t,amp){ let h=0,hx=0,hz=0; for(const w of WV){ const p=w.kx*x+w.kz*z-w.w*t+w.ph, s=Math.sin(p), c=Math.cos(p); h+=w.a*s; hx+=w.a*w.kx*c; hz+=w.a*w.kz*c; } amp=amp==null?1:amp; return [h*amp,hx*amp,hz*amp]; }
+/* a long swell (45 m, 0.22 m high each way) that the tile cannot hold: it only pushes the water to and fro. Linear wave theory in
+   water of depth D: w^2 = g k tanh(kD); the to-and-fro at height y above the bed is a cosh(k y) / sinh(kD). */
+const SWELL={a:0.22, k:2*PI/45};
+const swellW=D=>Math.sqrt(GRAV*SWELL.k*Math.tanh(SWELL.k*D));
+const surgeAmp=(D,y)=>SWELL.a*Math.cosh(SWELL.k*(y||0))/Math.sinh(SWELL.k*D);
+/* the Sun: 58 degrees above the horizon, ahead of the first view. sunAir is the way the light travels. */
+const SUN_EL=58*D2R, SUN_AZ=0.6;
+const toSun=[Math.sin(SUN_AZ)*Math.cos(SUN_EL), Math.sin(SUN_EL), Math.cos(SUN_AZ)*Math.cos(SUN_EL)];
+const sunAir=toSun.map(v=>-v);
+const sunW=refract3(sunAir,[0,1,0],1/N_W);
+const N3=[nWater(610),nWater(545),nWater(465)];              // the three wavelengths the caustics are traced at
+
+/* ── caustics: a grid of sun rays refracted through the moving surface (Snell, with Fresnel's loss) and gathered on the sea floor ──
+   NR x NR rays over one tile, three wavelengths each, splatted into an NT x NT image. Each ray is tilted a little, at random
+   within the Sun's disc (0.266 degrees), so the net of light softens with depth as it does in the sea. */
+function makeCaustics(NT,NR){
+  const acc=new Float32Array(NT*NT*3), NW=WV.length, cX=[],sX=[],cZ=[],sZ=[], R=rng(5), jit=new Float32Array(NR*NR*2);
+  for(let i=0;i<NR*NR;i++){ const r=Math.sqrt(R())*0.00465, a=R()*2*PI; jit[2*i]=r*Math.cos(a); jit[2*i+1]=r*Math.sin(a); }
+  for(let w=0;w<NW;w++){ cX.push(new Float32Array(NR)); sX.push(new Float32Array(NR)); cZ.push(new Float32Array(NR)); sZ.push(new Float32Array(NR));
+    for(let i=0;i<NR;i++){ const x=(i+.5)/NR*TILE; cX[w][i]=Math.cos(WV[w].kx*x); sX[w][i]=Math.sin(WV[w].kx*x); } }
+  /* two directions square to the Sun's, to tilt rays within its disc */
+  const e1=[sunAir[1],-sunAir[0],0], l1=Math.hypot(e1[0],e1[1]); e1[0]/=l1; e1[1]/=l1;
+  const e2=[sunAir[1]*e1[2]-sunAir[2]*e1[1], sunAir[2]*e1[0]-sunAir[0]*e1[2], sunAir[0]*e1[1]-sunAir[1]*e1[0]];
+  function run(t,D,opt){ opt=opt||{}; const amp=opt.amp==null?1:opt.amp, useJit=opt.jitter!==false; acc.fill(0); let sumIn=0;
+    for(let w=0;w<NW;w++) for(let j=0;j<NR;j++){ const p=WV[w].kz*((j+.5)/NR*TILE)-WV[w].w*t+WV[w].ph; cZ[w][j]=Math.cos(p); sZ[w][j]=Math.sin(p); }
+    const sc=NT/TILE;
+    for(let j=0;j<NR;j++){ const z=(j+.5)/NR*TILE; for(let i=0;i<NR;i++){ const x=(i+.5)/NR*TILE; let h=0,hx=0,hz=0;
+      for(let w=0;w<NW;w++){ const W=WV[w], s=sX[w][i]*cZ[w][j]+cX[w][i]*sZ[w][j], c=cX[w][i]*cZ[w][j]-sX[w][i]*sZ[w][j]; h+=W.a*s; hx+=W.a*W.kx*c; hz+=W.a*W.kz*c; }
+      h*=amp; hx*=amp; hz*=amp; const inv=1/Math.sqrt(hx*hx+hz*hz+1), nx=-hx*inv, ny=inv, nz=-hz*inv;
+      let dx=sunAir[0], dy=sunAir[1], dz=sunAir[2];
+      if(useJit){ const q=2*(j*NR+i), u=jit[q], v=jit[q+1]; dx+=u*e1[0]+v*e2[0]; dy+=u*e1[1]+v*e2[1]; dz+=u*e1[2]+v*e2[2]; const il=1/Math.sqrt(dx*dx+dy*dy+dz*dz); dx*=il; dy*=il; dz*=il; }
+      const c=-(dx*nx+dy*ny+dz*nz); if(c<=0) continue;
+      for(let ch=0;ch<3;ch++){ const n=N3[ch], eta=1/n, k2=1-eta*eta*(1-c*c), ct=Math.sqrt(k2), f=eta*c-ct, tx=eta*dx+f*nx, ty=eta*dy+f*ny, tz=eta*dz+f*nz;
+        const T=fresnelT(c,ct,n); if(ch===1) sumIn+=T; const tr=(D+h)/(-ty);
+        let X=(x+tx*tr)*sc-.5, Z=(z+tz*tr)*sc-.5; const x0=Math.floor(X), z0=Math.floor(Z), fx=X-x0, fz=Z-z0;
+        const xa=((x0%NT)+NT)%NT, xb=(xa+1)%NT, za=((z0%NT)+NT)%NT, zb=(za+1)%NT;
+        acc[(za*NT+xa)*3+ch]+=T*(1-fx)*(1-fz); acc[(za*NT+xb)*3+ch]+=T*fx*(1-fz); acc[(zb*NT+xa)*3+ch]+=T*(1-fx)*fz; acc[(zb*NT+xb)*3+ch]+=T*fx*fz; } } }
+    const k=NT*NT/(NR*NR); let sum=0, mx=0, s2=0, fr=0; for(let i=0;i<NT*NT;i++){ acc[3*i]*=k; acc[3*i+1]*=k; acc[3*i+2]*=k; const g=acc[3*i+1]; sum+=g; s2+=g*g; if(g>mx) mx=g; fr+=Math.abs(acc[3*i]-acc[3*i+2]); }
+    const mean=sum/(NT*NT); return {mean:mean, sent:sumIn/(NR*NR), max:mx, contrast:Math.sqrt(Math.max(0,s2/(NT*NT)-mean*mean))/mean, fringe:fr/(NT*NT)/mean}; }
+  return {acc:acc, NT:NT, NR:NR, run:run}; }
+
+/* ── growth one: a crust by reaction and diffusion. Gray and Scott's model (P. Gray and S. K. Scott, 1984; patterns: J. E. Pearson,
+   Science 261, 189 (1993)), with the 3 x 3 Laplacian and the "coral" setting of K. Sims's tutorial: Du 1, Dv 0.5, F 0.0545, k 0.062. ── */
+function makeRD(N,seed,par){ par=Object.assign({Du:1,Dv:.5,F:.0545,k:.062,seeds:16},par||{});
+  let U=new Float32Array(N*N), V=new Float32Array(N*N), U2=new Float32Array(N*N), V2=new Float32Array(N*N); const o={N:N, steps:0, par:par};
+  o.reset=function(){ const R=rng(seed); U.fill(1); V.fill(0); o.steps=0;
+    for(let s=0;s<par.seeds;s++){ const cx=Math.floor(R()*N), cy=Math.floor(R()*N); for(let dy=-3;dy<=3;dy++) for(let dx=-3;dx<=3;dx++){ const i=((cy+dy+N)%N)*N+((cx+dx+N)%N); U[i]=.5; V[i]=.25+.5*R(); } } };
+  o.step=function(n){ const Du=par.Du, Dv=par.Dv, F=par.F, kk=par.k;
+    for(let it=0;it<n;it++){ for(let y=0;y<N;y++){ const yu=((y+N-1)%N)*N, yd=((y+1)%N)*N, y0=y*N;
+        for(let x=0;x<N;x++){ const xl=(x+N-1)%N, xr=(x+1)%N, i=y0+x, u=U[i], v=V[i];
+          const lu=.2*(U[y0+xl]+U[y0+xr]+U[yu+x]+U[yd+x])+.05*(U[yu+xl]+U[yu+xr]+U[yd+xl]+U[yd+xr])-u;
+          const lv=.2*(V[y0+xl]+V[y0+xr]+V[yu+x]+V[yd+x])+.05*(V[yu+xl]+V[yu+xr]+V[yd+xl]+V[yd+xr])-v, r=u*v*v;
+          U2[i]=u+Du*lu-r+F*(1-u); V2[i]=v+Dv*lv+r-(F+kk)*v; } }
+      let t=U; U=U2; U2=t; t=V; V=V2; V2=t; } o.steps+=n; };
+  o.cover=function(){ let c=0; for(let i=0;i<N*N;i++) if(V[i]>.15) c++; return c/(N*N); };
+  o.range=function(){ let a=1e9,b=-1e9,c=1e9,d=-1e9; for(let i=0;i<N*N;i++){ if(U[i]<a) a=U[i]; if(U[i]>b) b=U[i]; if(V[i]<c) c=V[i]; if(V[i]>d) d=V[i]; } return {uMin:a,uMax:b,vMin:c,vMax:d}; };
+  o.set=function(u,v){ U.fill(u); V.fill(v); };
+  o.v=function(){ return V; }; o.reset(); return o; }
+
+/* ── growth two: sea fans by diffusion-limited aggregation (T. A. Witten and L. M. Sander, Physical Review Letters 47, 1400 (1981)).
+   Walkers wander on a square lattice above a floor and stick where they first touch the fan. Each grain remembers what it stuck to. ── */
+function growFan(seed,count){ const S=171, half=85, grid=new Int16Array(S*S), R=rng(seed), pts=[{x:0,y:0,parent:-1}]; grid[half]=1; let rmax=1, guard=0;
+  while(pts.length<count && rmax<half-8 && guard++<400000){ const RL=rmax+5, a=R()*PI; let x=Math.round(RL*Math.cos(a)), y=Math.round(RL*Math.sin(a)); const kill=(2*RL+10)*(2*RL+10);
+    for(let s=0;s<200000;s++){ const q=R(); if(q<.25) x++; else if(q<.5) x--; else if(q<.75) y++; else y--; if(y<0) y=0;
+      if(x*x+y*y>kill || x<=-half || x>=half || y>=S-1) break;
+      const i=y*S+x+half, nb=grid[i+1]||grid[i-1]||grid[i+S]||(y>0?grid[i-S]:0);
+      if(nb && !grid[i]){ grid[i]=pts.length+1; pts.push({x:x,y:y,parent:nb-1}); const r=Math.hypot(x,y); if(r>rmax) rmax=r; break; } } }
+  /* how the number of grains grows with distance from the root: N(<r) ~ r^D. For this kind of growth D is near 1.7. */
+  const lx=[], ly=[]; for(let r=4;r<=rmax*.7;r*=1.25){ let c=0; for(const p of pts) if(p.x*p.x+p.y*p.y<=r*r) c++; lx.push(Math.log(r)); ly.push(Math.log(c)); }
+  let mx=0,my=0; for(let i=0;i<lx.length;i++){ mx+=lx[i]; my+=ly[i]; } mx/=lx.length; my/=lx.length; let sxy=0,sxx=0; for(let i=0;i<lx.length;i++){ sxy+=(lx[i]-mx)*(ly[i]-my); sxx+=(lx[i]-mx)*(lx[i]-mx); }
+  return {pts:pts, rmax:rmax, dim:sxy/sxx}; }
+
+/* ── fish: a shoal by C. W. Reynolds's three rules (Computer Graphics 21, 25 (1987)): keep apart, line up, keep together ── */
+function makeBoids(n,seed){ const R=rng(seed), P=new Float32Array(n*3), V=new Float32Array(n*3), o={n:n,P:P,V:V};
+  for(let i=0;i<n;i++){ const a=R()*2*PI, b=R()*2-1, s=Math.sqrt(1-b*b); P[3*i]=1.6+(R()-.5)*5; P[3*i+1]=3+(R()-.5)*1.6; P[3*i+2]=1.8+(R()-.5)*5; V[3*i]=s*Math.cos(a)*.8; V[3*i+1]=b*.3; V[3*i+2]=s*Math.sin(a)*.8; }
+  o.step=function(h,D){ const cy=clamp(D*.55,2.7,Math.max(2.7,D-1.2)), top=D-.6, C=[1.2,cy,2.4];
+    for(let i=0;i<n;i++){ const ix=3*i; let sx=0,sy=0,sz=0, ax=0,ay=0,az=0, cx=0,cyy=0,cz=0, m=0;
+      for(let j=0;j<n;j++){ if(j===i) continue; const jx=3*j, dx=P[jx]-P[ix], dy=P[jx+1]-P[ix+1], dz=P[jx+2]-P[ix+2], d2=dx*dx+dy*dy+dz*dz; if(d2>1.69) continue;
+        m++; ax+=V[jx]; ay+=V[jx+1]; az+=V[jx+2]; cx+=dx; cyy+=dy; cz+=dz; if(d2<.14){ const q=1/(d2+.01); sx-=dx*q; sy-=dy*q; sz-=dz*q; } }
+      let fx=sx*.09, fy=sy*.09, fz=sz*.09; if(m){ fx+=(ax/m-V[ix])*1.1+cx/m*.75; fy+=(ay/m-V[ix+1])*1.1+cyy/m*.75; fz+=(az/m-V[ix+2])*1.1+cz/m*.75; }
+      const ox=P[ix]-C[0], oy=P[ix+1]-C[1], oz=P[ix+2]-C[2], od=Math.hypot(ox,oz); if(od>3.6){ fx-=ox/od*(od-3.6)*1.2; fz-=oz/od*(od-3.6)*1.2; }
+      /* a slow turn about the rock, so the shoal circles */
+      fx+=-oz*.10; fz+=ox*.10; fy+=-oy*.5; if(P[ix+1]>top) fy-=(P[ix+1]-top)*4; if(P[ix+1]<1.9) fy+=(1.9-P[ix+1])*4;
+      V[ix]+=fx*h; V[ix+1]+=fy*h; V[ix+2]+=fz*h; V[ix+1]*=1-.6*h;
+      const sp=Math.hypot(V[ix],V[ix+1],V[ix+2]), want=clamp(sp,.55,1.25), q=want/(sp||1); V[ix]*=q; V[ix+1]*=q; V[ix+2]*=q; }
+    for(let i=0;i<n*3;i++) P[i]+=V[i]*h; };
+  o.polar=function(){ let x=0,y=0,z=0; for(let i=0;i<n;i++){ const s=Math.hypot(V[3*i],V[3*i+1],V[3*i+2])||1; x+=V[3*i]/s; y+=V[3*i+1]/s; z+=V[3*i+2]/s; } return Math.hypot(x,y,z)/n; };
+  return o; }
+
+/* ═════════════════════════ THE SCROLL ═════════════════════════ */
+/* Compasses and straight edge, in exact arithmetic of the plane. Base A(-1,0) B(1,0). The compasses, opened to r, strike arcs about
+   A and about B; they cross at C and C'. The line C C' cuts the base at M. A half circle about M through A and B cuts the sides at P, Q. */
+const GEO={
+  dist:(P,Q)=>Math.hypot(P[0]-Q[0],P[1]-Q[1]),
+  angle:(P,Q,R)=>{ const ax=P[0]-Q[0], ay=P[1]-Q[1], bx=R[0]-Q[0], by=R[1]-Q[1]; return Math.acos(clamp((ax*bx+ay*by)/(Math.hypot(ax,ay)*Math.hypot(bx,by)),-1,1)); },
+  circles:(A,B,r)=>{ const dx=B[0]-A[0], dy=B[1]-A[1], d=Math.hypot(dx,dy), h2=r*r-d*d/4; if(h2<0) return null; const h=Math.sqrt(h2), mx=(A[0]+B[0])/2, my=(A[1]+B[1])/2, ux=-dy/d, uy=dx/d; return [[mx+ux*h,my+uy*h],[mx-ux*h,my-uy*h]]; },
+  lineLine:(P,Q,R,S)=>{ const a=Q[0]-P[0], b=Q[1]-P[1], c=S[0]-R[0], d=S[1]-R[1], det=a*d-b*c, t=((R[0]-P[0])*d-(R[1]-P[1])*c)/det; return [P[0]+a*t,P[1]+b*t]; },
+  /* where the line from P to Q meets the circle (M, r) a second time, P being on the circle */
+  second:(P,Q,M,r)=>{ const dx=Q[0]-P[0], dy=Q[1]-P[1], t=-2*((P[0]-M[0])*dx+(P[1]-M[1])*dy)/(dx*dx+dy*dy); return [P[0]+dx*t,P[1]+dy*t]; },
+  construct:function(opening){ const A=[-1,0], B=[1,0], r=opening*2, cc=GEO.circles(A,B,r), C=cc[0], C2=cc[1], M=GEO.lineLine(A,B,C,C2), R=GEO.dist(M,A);
+    const P=GEO.second(A,C,M,R), Q=GEO.second(B,C,M,R), mid=(X,Y)=>[(X[0]+Y[0])/2,(X[1]+Y[1])/2], s=[GEO.dist(A,B),GEO.dist(B,C),GEO.dist(C,A)];
+    return {A:A,B:B,C:C,C2:C2,M:M,P:P,Q:Q,r:r,R:R, sides:s, angles:[GEO.angle(B,A,C),GEO.angle(A,B,C),GEO.angle(A,C,B)].map(a=>a/D2R),
+      unequal:Math.max(Math.abs(s[0]-s[1]),Math.abs(s[1]-s[2]),Math.abs(s[2]-s[0])), mErr:Math.hypot(M[0],M[1]), mb:GEO.dist(M,B),
+      thales:[GEO.angle(A,P,B)/D2R, GEO.angle(A,Q,B)/D2R], pMid:GEO.dist(P,mid(A,C)), qMid:GEO.dist(Q,mid(B,C))}; } };
+/* The prism. A the angle at its top edge, i the angle the beam makes with the first face's normal:
+   sin i = n sin r1; r2 = A - r1; n sin r2 = sin e; the beam is turned through i + e - A. */
+const PR={ A:60*D2R,
+  dev:function(i,n,A){ A=A||PR.A; const r1=Math.asin(Math.sin(i)/n), r2=A-r1, s=n*Math.sin(r2); if(s>=1) return {tir:true,r1:r1,r2:r2}; const e=Math.asin(s); return {r1:r1,r2:r2,e:e,dev:i+e-A}; },
+  iMin:(n,A)=>Math.asin(n*Math.sin((A||PR.A)/2)),
+  minDev:(n,A)=>2*Math.asin(n*Math.sin((A||PR.A)/2))-(A||PR.A),
+  /* the smallest angle at which violet (400 nm) still leaves the second face */
+  iLow:function(g){ const n=g.n(400), r=PR.A-Math.asin(1/n); return Math.asin(clamp(n*Math.sin(r),-1,1)); },
+  /* trace one ray through glass polygons in the plane, by Snell's law at every edge it meets. stops are screens: {p,q,slit:[s0,s1]} */
+  trace:function(o,d,polys,n,stops){ const pts=[o.slice()]; let inside=false, hit=null; o=o.slice(); d=d.slice();
+    for(let b=0;b<12;b++){ let best=1e9, bn=null, bs=null, bq=0;
+      for(const poly of polys) for(let e=0;e<poly.length;e++){ const p=poly[e], q=poly[(e+1)%poly.length], ex=q[0]-p[0], ey=q[1]-p[1], det=ex*d[1]-ey*d[0]; if(Math.abs(det)<1e-12) continue;
+        const t=(ex*(o[1]-p[1])-ey*(o[0]-p[0]))/det*-1, s=(d[0]*(p[1]-o[1])-d[1]*(p[0]-o[0]))/(-det)*-1;
+        if(t>1e-7 && s>=0 && s<=1 && t<best){ best=t; const l=Math.hypot(ex,ey); bn=[ey/l,-ex/l]; bs=null; } }
+      if(stops) for(let k=0;k<stops.length;k++){ const st=stops[k], p=st.p, q=st.q, ex=q[0]-p[0], ey=q[1]-p[1], det=ex*d[1]-ey*d[0]; if(Math.abs(det)<1e-12) continue;
+        const t=(ex*(o[1]-p[1])-ey*(o[0]-p[0]))/det*-1, s=(d[0]*(p[1]-o[1])-d[1]*(p[0]-o[0]))/(-det)*-1;
+        if(t>1e-7 && s>=0 && s<=1 && t<best && !(st.slit && s>st.slit[0] && s<st.slit[1])){ best=t; bn=null; bs=k; bq=s; } }
+      if(best>=1e9){ pts.push([o[0]+d[0]*400,o[1]+d[1]*400]); break; } o=[o[0]+d[0]*best,o[1]+d[1]*best]; pts.push(o.slice());
+      if(bs!==null){ hit={stop:bs,s:bq}; break; }
+      if(bn[0]*d[0]+bn[1]*d[1]>0){ bn[0]=-bn[0]; bn[1]=-bn[1]; }
+      const eta=inside?n:1/n, c=-(d[0]*bn[0]+d[1]*bn[1]), k=1-eta*eta*(1-c*c);
+      if(k<0){ d=[d[0]+2*c*bn[0], d[1]+2*c*bn[1]]; } else { const f=eta*c-Math.sqrt(k); d=[eta*d[0]+f*bn[0], eta*d[1]+f*bn[1]]; inside=!inside; } }
+    return {pts:pts, dir:d, hit:hit, inside:inside}; } };
+/* the wavelengths drawn on the scroll, and each one's share of white: their colours add up to exactly (1,1,1) */
+const RAYS=(()=>{ const ls=[]; for(let l=400;l<=700;l+=5) ls.push(l); const raw=ls.map(l=>{ const c=cmf(l), p=planck(l); return xyz2rgb([c[0]*p,c[1]*p,c[2]*p]); }), sum=[0,0,0]; raw.forEach(r=>{ sum[0]+=r[0]; sum[1]+=r[1]; sum[2]+=r[2]; });
+  const lin=raw.map(r=>[r[0]/sum[0],r[1]/sum[1],r[2]/sum[2]]); let mx=0; const show=lin.map(r=>{ const m=Math.min(r[0],r[1],r[2],0), q=[r[0]-m,r[1]-m,r[2]-m]; mx=Math.max(mx,q[0],q[1],q[2]); return q; });
+  return ls.map((l,i)=>({l:l, lin:lin[i], show:show[i].map(v=>v/mx)})); })();
+const enc=v=>{ v=clamp(v,0,1); return Math.round(255*(v<=.0031308?12.92*v:1.055*Math.pow(v,1/2.4)-.055)); };
+const css=(c,k)=>'rgb('+enc(c[0]*(k||1))+','+enc(c[1]*(k||1))+','+enc(c[2]*(k||1))+')';
+function lamShow(l){ const f=clamp((l-400)/5,0,RAYS.length-1), i=Math.min(RAYS.length-2,Math.floor(f)), a=RAYS[i].show, b=RAYS[i+1].show, t=f-i; return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]; }
+/* the bench: prisms, beam and screens laid out in the plane for one setting, with every colour traced. Lengths in millimetres. */
+function bench(mode,incDeg,glassIx,pickNm){ const g=GLASS[glassIx], S=60, hw=mode==='crucial'?.7:4, i=incDeg*D2R, r3=Math.sqrt(3);
+  const P1=[[-S/2,-S/(2*r3)],[S/2,-S/(2*r3)],[0,S/r3]], E=[(P1[0][0]+P1[2][0])/2-1.5,(P1[0][1]+P1[2][1])/2-2.6], ang=-30*D2R+i, d0=[Math.cos(ang),Math.sin(ang)], pd=[-d0[1],d0[0]];
+  const o0=[E[0]-d0[0]*70,E[1]-d0[1]*70], polys=[P1], stops=[], out={mode:mode, glass:g.key, polys:polys, stops:stops, d0:d0, o0:o0, hw:hw, rays:[]};
+  const mid=PR.trace(o0,d0,[P1],g.n(550),null), xd=mid.dir, xp=mid.pts[mid.pts.length-2];
+  const screenAt=(p,dir,dist,half)=>{ const c=[p[0]+dir[0]*dist,p[1]+dir[1]*dist], q=[-dir[1],dir[0]]; return {p:[c[0]-q[0]*half,c[1]-q[1]*half], q:[c[0]+q[0]*half,c[1]+q[1]*half]}; };
+  if(mode==='recombine'){ /* the second prism is the first turned half round about a point on the green ray, just beyond the second face */
+    const X=[xp[0]+xd[0]*5, xp[1]+xd[1]*5]; polys.push(P1.map(p=>[2*X[0]-p[0],2*X[1]-p[1]]));
+    const m2=PR.trace(o0,d0,polys,g.n(550),null); stops.push(screenAt(m2.pts[m2.pts.length-2],d0,62,26)); }
+  else if(mode==='crucial'){ const board=screenAt(xp,xd,95,44), pk=PR.trace(o0,d0,[P1],g.n(pickNm),[board]), s=pk.hit?pk.hit.s:.5; board.slit=[s-.011,s+.011]; stops.push(board);
+    /* the second prism is turned so the chosen colour meets it at the same angle i as the first */
+    const pdir=pk.dir, pp=pk.pts[pk.pts.length-1], pa=Math.atan2(pdir[1],pdir[0]), rho=pa-i+30*D2R, c=Math.cos(rho), sn=Math.sin(rho), rot=P1.map(p=>[p[0]*c-p[1]*sn,p[0]*sn+p[1]*c]);
+    const fm=[(rot[0][0]+rot[2][0])/2,(rot[0][1]+rot[2][1])/2], at=[pp[0]+pdir[0]*40,pp[1]+pdir[1]*40], P2=rot.map(p=>[p[0]-fm[0]+at[0],p[1]-fm[1]+at[1]]); polys.push(P2);
+    const m2=PR.trace(o0,d0,polys,g.n(pickNm),null); stops.push(screenAt(m2.pts[m2.pts.length-2],m2.dir,55,22)); out.pickDir=pdir; out.pickOut=m2.dir; out.band=[0,0]; }
+  else stops.push(screenAt(xp,xd,120,46));
+  out.exitDir=xd;
+  const last=stops.length-1; let lo=1e9,hi=-1e9,ilo=-1e9,ihi=1e9, maxAng=0;
+  for(const ry of RAYS){ const n=g.n(ry.l), a=PR.trace([o0[0]+pd[0]*hw,o0[1]+pd[1]*hw],d0,polys,n,stops), b=PR.trace([o0[0]-pd[0]*hw,o0[1]-pd[1]*hw],d0,polys,n,stops), c=PR.trace(o0,d0,polys,n,stops);
+    const r={l:ry.l, a:a.pts, b:b.pts, dir:c.dir, on:null};
+    if(a.hit && b.hit && a.hit.stop===last && b.hit.stop===last){ const s0=Math.min(a.hit.s,b.hit.s), s1=Math.max(a.hit.s,b.hit.s); r.on=[s0,s1]; lo=Math.min(lo,s0); hi=Math.max(hi,s1); ilo=Math.max(ilo,s0); ihi=Math.min(ihi,s1);
+      maxAng=Math.max(maxAng,Math.abs(Math.asin(clamp(c.dir[0]*d0[1]-c.dir[1]*d0[0],-1,1)))); }
+    out.rays.push(r); }
+  if(mode==='crucial'){ const on=out.rays.filter(r=>r.on).map(r=>r.l); out.band=on.length?[on[0],on[on.length-1]]:null; }
+  /* the colour along the last screen, by adding the linear colours of every wavelength that lands on each part of it */
+  const NS=120, strip=[]; for(let k=0;k<NS;k++){ const s=(k+.5)/NS, c=[0,0,0]; let any=false; for(let q=0;q<RAYS.length;q++){ const on=out.rays[q].on; if(on && s>=on[0] && s<=on[1]){ const L=RAYS[q].lin; c[0]+=L[0]; c[1]+=L[1]; c[2]+=L[2]; any=true; } } strip.push(any?c:null); }
+  out.strip=strip; const len=Math.hypot(stops[last].q[0]-stops[last].p[0],stops[last].q[1]-stops[last].p[1]);
+  const centre=[0,0,0]; if(ihi>ilo){ const s=(ilo+ihi)/2; for(let q=0;q<RAYS.length;q++){ const on=out.rays[q].on; if(on && s>=on[0] && s<=on[1]){ centre[0]+=RAYS[q].lin[0]; centre[1]+=RAYS[q].lin[1]; centre[2]+=RAYS[q].lin[2]; } } }
+  out.screen={band:out.band||null, litMm:hi>lo?(hi-lo)*len:0, whiteMm:Math.max(0,ihi-ilo)*len, whiteShare:hi>lo?Math.max(0,ihi-ilo)/(hi-lo):0, centre:centre, parallelErr:maxAng};
+  return out; }
+/* the numbers of the prism page, from the formulas (the drawing is traced separately, edge by edge; the tests compare the two) */
+function prismNumbers(incDeg,glassIx,pickNm){ const g=GLASS[glassIx], i=incDeg*D2R, f=l=>{ const d=PR.dev(i,g.n(l)); return d.tir?null:d.dev/D2R; };
+  return {glass:g.name, n:{red:g.n(700),yellow:g.n(587.56),violet:g.n(400)}, dev:{red:f(700),yellow:f(587.56),violet:f(400)}, spread:f(400)===null?null:f(400)-f(700),
+    minDev:PR.minDev(g.n(587.56))/D2R, iMin:PR.iMin(g.n(587.56))/D2R, pick:pickNm, pickDev:f(pickNm)}; }
+
+/* ═════════════════════════ STATE AND THE VIRTUAL CLOCK ═════════════════════════ */
+const HSTEP=1/60;
+const EYE=[0,1.72,0.72], SCROLL={c:[0,1.08,1.15], W:1.5, H:0.62, tilt:10*D2R};
+const PAGE_U={compass:390/1536, prism:1150/1536};
+function pagePoint(u,v){ const s=Math.sin(SCROLL.tilt), c=Math.cos(SCROLL.tilt); return [SCROLL.c[0]-(u-.5)*SCROLL.W, SCROLL.c[1]+(v-.5)*SCROLL.H*s, SCROLL.c[2]+(v-.5)*SCROLL.H*c]; }
+let T=0, vt=0, frame=0, playing=!STILL, dirty=true, soundOn=false;
+let view='back', vision='twofold', depth=6, torch=false, page='compass', cstep=0, sweep=1, opening=1, pmode='spread', glassIx=0, incidence=63.2, pick=480;
+const gaze={yaw:0, pitch:-60*D2R, auto:null}, orbit={az:0, el:0};
+const VIEW0=Object.assign({az:-2.5, el:.40, R:3.1, lift:.4}, TEST&&TEST.view0||{});
+const camS={pos:[-2.5,2.3,-3.6], yaw:0.5, pitch:-0.15, single:0, up:0, seat:0};
+let pageDirty=true, benchNow=null, compassNow=GEO.construct(1), prismNow=null, causNow={mean:1,max:1,contrast:0,fringe:0,sent:1};
+const rd=makeRD(LOW?96:128, 3, {seeds:7}), fans=[], NFISH=LOW?36:72, boids=makeBoids(NFISH,21);
+const FAN_N=LOW?420:760;
+let rdAcc=0, rdDirty=true, fanGrown=STILL?1:.3;
+const bubbles=[]; let bubR=rng(77), bubNext=3, lastBubble=null, bubCount=0;
+function eyeNow(){ return [pagePoint(PAGE_U[page],.5)[0], EYE[1], EYE[2]]; }
+function pageDir(){ const p=pagePoint(PAGE_U[page],.5), dy=p[1]-EYE[1], dz=p[2]-EYE[2]; return {yaw:0, pitch:Math.atan2(dy,dz)}; }
+function camTarget(){ if(view==='back'){ const piv=[0.1,1.3,0.5], az=VIEW0.az+orbit.az, el=VIEW0.el+orbit.el, R=VIEW0.R; const pos=[piv[0]+R*Math.cos(el)*Math.sin(az), piv[1]+R*Math.sin(el), piv[2]+R*Math.cos(el)*Math.cos(az)];
+    pos[1]=Math.max(.35,pos[1]); const dx=piv[0]-pos[0], dy=piv[1]+VIEW0.lift-pos[1], dz=piv[2]-pos[2], l=Math.hypot(dx,dy,dz); return {pos:pos, yaw:Math.atan2(dx,dz), pitch:Math.asin(dy/l)}; }
+  return {pos:eyeNow(), yaw:gaze.yaw, pitch:gaze.pitch}; }
+function angLerp(a,b,k){ let d=b-a; while(d>PI) d-=2*PI; while(d<-PI) d+=2*PI; return a+d*k; }
+function tick(h){ T+=h;
+  if(vision==='single'){ const d=pageDir(); gaze.yaw=angLerp(gaze.yaw,d.yaw,1-Math.exp(-h*4)); gaze.pitch=lerp(gaze.pitch,d.pitch,1-Math.exp(-h*4)); }
+  else if(gaze.auto){ gaze.yaw=angLerp(gaze.yaw,gaze.auto.yaw,1-Math.exp(-h*1.6)); gaze.pitch=lerp(gaze.pitch,gaze.auto.pitch,1-Math.exp(-h*1.6)); if(Math.abs(gaze.pitch-gaze.auto.pitch)<.004 && Math.abs(angLerp(gaze.yaw,gaze.auto.yaw,1)-gaze.yaw)<.004) gaze.auto=null; }
+  const tg=camTarget(), k=1-Math.exp(-h*2.6); for(let i=0;i<3;i++) camS.pos[i]=lerp(camS.pos[i],tg.pos[i],k); camS.yaw=angLerp(camS.yaw,tg.yaw,k); camS.pitch=lerp(camS.pitch,tg.pitch,k);
+  camS.single=clamp(camS.single+(vision==='single'?1:-1)*h*1.4,0,1); camS.seat=clamp(camS.seat+(view==='sit'?1:-1)*h*1.2,0,1);
+  boids.step(h,depth);
+  rdAcc+=h*(LOW?30:45); if(rdAcc>=1){ const n=Math.floor(rdAcc); rdAcc-=n; rd.step(n); rdDirty=true; }
+  if(fanGrown<1) fanGrown=Math.min(1,fanGrown+h/50);
+  if(sweep<1){ sweep=Math.min(1,sweep+h/1.2); pageDirty=true; }
+  /* bubbles leave the rock now and then; each has a size, and so a note */
+  if(T>=bubNext){ bubNext=T+1.5+bubR()*6; const r=.0012+bubR()*.0028, b={x:(bubR()-.5)*1.6, y:1.0+bubR()*.3, z:-.4+(bubR()-.5)*1.2, r:r, born:T, f:minnaert(r,depth-1.1)}; bubbles.push(b); if(bubbles.length>14) bubbles.shift(); lastBubble={r:r,f:b.f,t:T}; bubCount++; if(onBubble) onBubble(b); }
+  for(const b of bubbles){ b.y+=h*(.22+b.r*30); b.x+=Math.sin(T*3+b.born)*h*.05; } }
+let onBubble=null;
+function advance(sec){ const n=Math.max(1,Math.round(sec/HSTEP)); for(let i=0;i<n;i++) tick(HSTEP); dirty=true; }
+
+/* ═════════════════════════ CONTROLS ═════════════════════════ */
+const NOTE={ back:'<b>Stand back</b>The seat is empty. Sit where he sits.',
+  single:'<b>Single vision</b>The view is held on the diagram and the sea has gone to a faint grey measure. Nothing in the physics has changed. Work the compasses, or look up.',
+  down:'<b>Twofold</b>The same diagram and the same numbers, and the sea as well. Drag to look round, or look up.',
+  up:'<b>Look up</b>Snell&rsquo;s window: the whole sky, horizon to horizon, pressed into a cone 97 degrees wide. Outside it the surface is a mirror.' };
+function noteKey(){ return view==='back'?'back':vision==='single'?'single':gaze.pitch>.2||(gaze.auto&&gaze.auto.pitch>.2)?'up':'down'; }
+let noteShown='';
+function setNote(){ const k=noteKey(); if(k!==noteShown){ noteShown=k; $('note').innerHTML=NOTE[k]; } }
+function press(id,v){ $(id).setAttribute('aria-pressed',v?'true':'false'); }
+function syncUI(){ const up=view==='sit'&&vision==='twofold'&&(gaze.auto?gaze.auto.pitch>.2:gaze.pitch>.2);
+  press('v_back',view==='back'); press('v_sit',view==='sit'&&!up); press('v_up',up); press('single',vision==='single'); press('twofold',vision==='twofold'); press('torch',torch);
+  $('scrollRow').hidden=view!=='sit'; $('read').classList.toggle('seated',view==='sit'&&!up); press('p_compass',page==='compass'); press('p_prism',page==='prism'); $('compassCtl').hidden=page!=='compass'; $('prismCtl').hidden=page!=='prism';
+  press('m_spread',pmode==='spread'); press('m_recombine',pmode==='recombine'); press('m_crucial',pmode==='crucial'); $('pickL').hidden=pmode!=='crucial';
+  $('stepBack').disabled=cstep<=0; $('stepNext').disabled=cstep>=5; $('glass').textContent='Glass: '+GLASS[glassIx].key.toUpperCase();
+  $('odepth').textContent=depth.toFixed(1)+' m'; $('oopening').textContent=opening.toFixed(3); $('oinc').textContent=incidence.toFixed(1)+'°'; $('opick').textContent=pick+' nm';
+  setNote(); if(onLayout) onLayout(); dirty=true; }
+let onLayout=null;
+function setView(v){ if(v==='back'){ view='back'; vision='twofold'; gaze.auto=null; } else { if(view!=='sit'){ const d=pageDir(); gaze.yaw=d.yaw; gaze.pitch=d.pitch; } view='sit'; } syncUI(); }
+function setVision(v){ vision=v; if(v==='single'){ view='sit'; gaze.auto=null; } syncUI(); }
+function sit(){ setView('sit'); vision='single'; gaze.auto=null; const d=pageDir(); gaze.yaw=d.yaw; gaze.pitch=d.pitch; syncUI(); }
+function lookUp(){ if(view!=='sit'){ const d=pageDir(); gaze.yaw=d.yaw; gaze.pitch=d.pitch; } view='sit'; vision='twofold'; gaze.auto={yaw:0, pitch:84*D2R}; syncUI(); }
+function lookDown(){ view='sit'; gaze.auto=pageDir(); syncUI(); }
+function setDepth(v){ depth=clamp(+v,3,40); $('depth').value=depth; syncUI(); }
+function setTorch(v){ torch=!!v; syncUI(); }
+function setPage(p){ page=p; pageDirty=true; if(view==='sit'&&vision==='twofold'&&gaze.pitch<.2) gaze.auto=pageDir(); syncUI(); }
+function setStep(n){ n=clamp(n,0,5); if(n>cstep) sweep=STILL?1:0; cstep=n; pageDirty=true; syncUI(); }
+function setOpening(v){ opening=clamp(+v,.7,1.3); if(Math.abs(opening-1)<.012) opening=1; compassNow=GEO.construct(opening); $('opening').value=opening; pageDirty=true; syncUI(); }
+function incRange(){ const lo=Math.ceil((PR.iLow(GLASS[glassIx])/D2R+1)*10)/10; $('inc').min=lo; $('inc').max=85; return lo; }
+function setInc(v){ incidence=clamp(+v,incRange(),85); $('inc').value=incidence; pageDirty=true; syncUI(); }
+function setMode(m){ pmode=m; pageDirty=true; syncUI(); }
+function setGlass(ix){ glassIx=((ix%GLASS.length)+GLASS.length)%GLASS.length; incRange(); setInc(Math.round(PR.iMin(GLASS[glassIx].n(587.56))/D2R*10)/10); }
+function setPick(v){ pick=clamp(Math.round(+v),400,700); $('pick').value=pick; pageDirty=true; syncUI(); }
+function setPlay(v){ playing=v; $('play').textContent=playing?'Pause':'Play'; dirty=true; }
+$('v_back').onclick=()=>setView('back'); $('v_sit').onclick=sit; $('v_up').onclick=lookUp;
+$('single').onclick=()=>setVision('single'); $('twofold').onclick=()=>setVision('twofold');
+$('depth').oninput=e=>{ setDepth(e.target.value); hud(true); }; $('torch').onclick=()=>setTorch(!torch);
+$('p_compass').onclick=()=>setPage('compass'); $('p_prism').onclick=()=>setPage('prism');
+$('stepNext').onclick=()=>setStep(cstep+1); $('stepBack').onclick=()=>setStep(cstep-1);
+$('opening').oninput=e=>{ setOpening(e.target.value); hud(true); };
+$('m_spread').onclick=()=>setMode('spread'); $('m_recombine').onclick=()=>setMode('recombine'); $('m_crucial').onclick=()=>setMode('crucial');
+$('glass').onclick=()=>{ setGlass(glassIx+1); hud(true); }; $('inc').oninput=e=>{ setInc(e.target.value); hud(true); }; $('pick').oninput=e=>{ setPick(e.target.value); hud(true); };
+$('play').onclick=()=>setPlay(!playing);
+function startAgain(){ T=0; rd.reset(); rd.step(LOW?650:900); rdDirty=true; fanGrown=STILL?1:.3; bubbles.length=0; bubR=rng(77); bubNext=3; bubCount=0; lastBubble=null; orbit.az=0; orbit.el=0;
+  page='compass'; cstep=0; sweep=1; pmode='spread'; glassIx=0; pick=480; $('pick').value=480; incRange(); incidence=63.2; $('inc').value=63.2; setOpening(1); setTorch(false); setDepth(6); setView('back'); pageDirty=true; hud(true); }
+$('again').onclick=startAgain;
+
+function curBench(){ if(pageDirty||!benchNow){ benchNow=bench(pmode,incidence,glassIx,pick); prismNow=prismNumbers(incidence,glassIx,pick); } return benchNow; }
+/* the panel of numbers */
+function swatch(l){ const t=transmit(l,depth), c=lamShow(clamp(l,400,700)); return css(c,Math.pow(t,.6)); }
+function buildRead(){ $('read').innerHTML='<dd class="big sea" id="r_depth"></dd>'+
+  '<dd class="left sea" id="r_left">'+BANDS.map(b=>'<div><i id="sw_'+b[0]+'"></i><b id="pc_'+b[0]+'"></b><span>'+b[0]+'</span></div>').join('')+'</dd>'+
+  '<dt class="sea">Under 1% left</dt><dd class="sea" id="r_gone"></dd>'+
+  '<dt class="sea">Snell&rsquo;s window</dt><dd class="sea" id="r_win"></dd>'+
+  '<dt class="opt">Surge on the bed</dt><dd class="opt" id="r_surge"></dd>'+
+  '<dt class="opt">Net of light</dt><dd class="opt" id="r_caus"></dd>'+
+  '<dd class="sec" id="r_sec"></dd><dd class="wide" id="r_scroll"></dd><dd class="wide opt" id="r_vis"></dd>'; }
+let readT=-9;
+function fmtPc(t){ return t>=.1?Math.round(t*100)+'%':t>=.001?(t*100).toFixed(1)+'%':'gone'; }
+function hud(force){ if(!force && vt-readT<.15) return; readT=vt;
+  $('r_depth').textContent=depth.toFixed(1)+' m of water overhead';
+  for(const b of BANDS){ const t=transmit(b[1],depth); $('sw_'+b[0]).style.background=swatch(b[1]); $('pc_'+b[0]).textContent=fmtPc(t); }
+  const gone=BANDS.filter(b=>transmit(b[1],depth)<.01).map(b=>b[0]); $('r_gone').textContent=gone.length?gone.join(', '):'none yet';
+  $('r_win').textContent=(2*windowHalf()/D2R).toFixed(1)+'° across';
+  $('r_surge').textContent='± '+(surgeAmp(depth,0)*100).toFixed(1)+' cm / '+(2*PI/swellW(depth)).toFixed(1)+' s';
+  $('r_caus').textContent='contrast '+causNow.contrast.toFixed(2);
+  if(page==='compass'){ const c=compassNow; $('r_sec').textContent='On the scroll: the compasses';
+    $('r_scroll').innerHTML='Sides '+c.sides.map(s=>(s/2).toFixed(4)).join(', ')+'<br>Angles '+c.angles.map(a=>a.toFixed(3)+'°').join(', ')+'<br>'+(c.unequal<1e-12?'Equilateral, exactly.':'Two sides equal, the base not.')+(cstep>=5?' Angle in the half circle: '+c.thales[0].toFixed(3)+'°.':''); }
+  else { const s=curBench().screen, p=prismNow; $('r_sec').textContent='On the scroll: the prism, '+p.glass;
+    let h='Turned: red '+(p.dev.red===null?'kept in':p.dev.red.toFixed(2)+'°')+', violet '+(p.dev.violet===null?'kept in':p.dev.violet.toFixed(2)+'°')+'<br>Spread '+(p.spread===null?'none':p.spread.toFixed(2)+'°')+'; least turning '+p.minDev.toFixed(2)+'° at '+p.iMin.toFixed(1)+'°';
+    if(pmode==='recombine'&&s) h+='<br>Recombined: '+Math.round(s.whiteShare*100)+'% of the beam is white again; the colours leave parallel.';
+    if(pmode==='crucial') h+='<br>The slit passes '+(s&&s.band?(s.band[0]===s.band[1]?'only light near '+s.band[0]+' nm':s.band[0]+' to '+s.band[1]+' nm'):'nothing')+'. '+pick+' nm is turned '+(p.pickDev===null?'not at all':p.pickDev.toFixed(2)+'°')+' again, and is still '+pick+' nm.';
+    $('r_scroll').innerHTML=h; }
+  $('r_vis').textContent=vision==='single'?'Single vision: the eye is held. The numbers are the same.':'Twofold: the eye is free. The numbers are the same.'; }
+/* the About sheet */
+$('about').innerHTML='<button class="x" type="button" data-close="about">Close</button><h2>About this piece</h2>'+
+ '<p>William Blake&rsquo;s colour print <i>Newton</i> (1795, reworked about 1805; Tate, London) shows him naked on a rock crusted with growth, at what looks like the bottom of the sea, bent over a scroll with a pair of compasses. The print shows a seated figure. This piece leaves his seat empty, for you: the one who bends over the diagram is the visitor. Nothing is copied or traced from the print. The rock, the seat and the scroll are made new.</p>'+
+ '<blockquote>May God us keep\nFrom Single vision &amp; Newtons sleep</blockquote><p>Blake, in a letter to Thomas Butts, 22 November 1802. The spelling is his.</p>'+
+ '<blockquote>The Light of the Sun consists of Rays differently Refrangible.</blockquote><p>Newton, <i>Opticks</i> (1704), Book One, Part I, Proposition II.</p>'+
+ '<p>Read twice. The geometry on the scroll is exact, and the light in the sea obeys it. Blake did not say the diagram was wrong. He said it was not everything. The switch between single vision and twofold changes no number: only where the eye may go.</p>'+
+ '<h3>What is computed</h3><ul>'+
+ '<li><b>Colour with depth.</b> Sunlight (a 5778 K black body) is dimmed colour by colour, I = I<sub>0</sub> e<sup>&minus;K z</sup>, with K = a + a<sub>y</sub> + b/2 + b<sub>bp</sub>: absorption of pure water a from Pope and Fry (1997), a little dissolved yellow matter a<sub>y</sub> (the shape from Bricaud, Morel and Prieur 1981, the amount chosen), scattering b from Morel (1974), and a small flat term for particles. Seventy-one wavelengths go through the CIE 1931 observer to the screen. Each painted thing has its own reflectance curve, so red growth turns brown and then black as you go down, and the torch, whose light has only a metre or two of water to cross, brings it back.</li>'+
+ '<li><b>Snell&rsquo;s window.</b> Every pixel of the surface is refracted by Snell&rsquo;s law through the same moving waves, with Fresnel&rsquo;s loss. For water of index '+N_W.toFixed(4)+' the window is '+(2*windowHalf()/D2R).toFixed(1)+' degrees across. Outside it the light is turned back.</li>'+
+ '<li><b>The net of light.</b> A grid of sun rays is refracted through thirteen sine waves at three wavelengths and gathered on the sea floor, afresh each frame. The shafts in the water are the same rays seen from the side. Red, green and blue bend by slightly different amounts, so the bright lines carry a thin fringe of colour: Newton&rsquo;s spectrum, lying across the sand.</li>'+
+ '<li><b>The crust.</b> Gray and Scott&rsquo;s reaction and diffusion model, still growing while you watch. <b>The sea fans:</b> diffusion-limited aggregation (Witten and Sander 1981), replayed in the order the grains stuck. They lean with the surge of a long swell, which linear wave theory makes weaker the deeper you go.</li>'+
+ '<li><b>The fish</b> shoal by Reynolds&rsquo;s three rules. <b>The scroll:</b> Euclid&rsquo;s first proposition and Thales&rsquo;s half circle with exact arithmetic; the prisms by Snell&rsquo;s law at every face, with the glass maker&rsquo;s dispersion formula (Sellmeier) for three modern glasses.</li>'+
+ '<li><b>Sound.</b> Made in the browser: filtered noise for the sea, and each bubble sings at Minnaert&rsquo;s pitch for its size and depth.</li></ul>'+
+ '<h3>What this leaves out</h3><ul>'+
+ '<li>The water is clear sea water with a little yellow matter and haze, both chosen. Real coastal water is often greener and murkier; plankton is not modelled.</li>'+
+ '<li>The sky seen through the window is a plain painted gradient with a sun, not a computed atmosphere. How bright the open water looks in each direction is set by eye; only its colour is computed. The picture&rsquo;s exposure opens as it gets darker, as an eye would; the numbers do not.</li>'+
+ '<li>One attenuation K is used for light going down and for light coming to the eye. The net of light is worked out for the flat sea floor and laid along the sunbeams onto everything else. Light scattered more than once is not followed.</li>'+
+ '<li>The scroll is drawn bright at any depth so that it can be read, and the faint column of lit specks over the empty seat, with the extra light on the seat itself, is put there to mark his place. Those are the things here that do not obey the water.</li>'+
+ '<li>Newton&rsquo;s own glass is not known well enough to model. The dense flint is chosen because its spectrum is wide enough to see on a small page; the crown glass is nearer to what he had. Newton brought the colours back together with a lens, and noted that a second prism turned the other way undoes the first; the scroll uses the second prism. What he called the <i>experimentum crucis</i> is the other test, &ldquo;One colour&rdquo;. In this model a colour stays the same colour by construction, so that page shows his result and does not prove it.</li>'+
+ '<li>The growth colours and the fishes&rsquo; rules are chosen, not measured. Nobody has seen this piece on a real graphics card.</li></ul>'+
+ '<h3>Sources</h3><p>R. M. Pope and E. S. Fry, Applied Optics 36 (1997). A. Morel (1974) in R. C. Smith and K. S. Baker, Applied Optics 20 (1981). A. Bricaud, A. Morel and L. Prieur, Limnology and Oceanography 26 (1981). M. Daimon and A. Masumura, Applied Optics 46 (2007). Schott optical glass data sheets. C. Wyman, P.-P. Sloan and P. Shirley, JCGT 2 (2013). J. E. Pearson, Science 261 (1993). T. A. Witten and L. M. Sander, Physical Review Letters 47 (1981). C. W. Reynolds, Computer Graphics 21 (1987). M. Minnaert, Philosophical Magazine 16 (1933). I. Newton, <i>Opticks</i> (1704). D. V. Erdman (ed.), <i>The Complete Poetry and Prose of William Blake</i> (1988).</p>';
+function sheet(on){ $('about').hidden=!on; $('aboutBtn').setAttribute('aria-expanded',on?'true':'false'); if(on) $('about').focus(); else $('aboutBtn').focus(); }
+$('aboutBtn').onclick=()=>sheet($('about').hidden); $('about').addEventListener('click',e=>{ if(e.target.getAttribute('data-close')) sheet(false); });
+
+/* ── sound: WebAudio only, made on the first press of Sound. Brown noise through a low filter for the sea, swelling with the surge;
+   a thin steady tone that is all single vision lets through; bubbles at Minnaert's pitch. ── */
+const AU={ctx:null};
+function audioStart(){ if(AU.ctx||TEST) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+  try{ const c=new AC(); AU.ctx=c; AU.master=c.createGain(); AU.master.gain.value=0; AU.master.connect(c.destination);
+    const len=c.sampleRate*4, buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0), R=rng(9); let b=0; for(let i=0;i<len;i++){ b=(b+.02*(R()*2-1))/1.02; d[i]=b*3.2; } for(let i=0;i<2000;i++){ const f=i/2000; d[i]=d[i]*f+d[len-2000+i]*(1-f); }
+    const src=c.createBufferSource(); src.buffer=buf; src.loop=true; const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=260; lp.Q.value=.6; AU.sea=c.createGain(); AU.sea.gain.value=.5; src.connect(lp); lp.connect(AU.sea); AU.sea.connect(AU.master); src.start();
+    const hp=c.createBiquadFilter(); hp.type='bandpass'; hp.frequency.value=1800; hp.Q.value=.4; AU.hiss=c.createGain(); AU.hiss.gain.value=.02; src.connect(hp); hp.connect(AU.hiss); AU.hiss.connect(AU.master);
+    const o=c.createOscillator(); o.type='sine'; o.frequency.value=440; AU.tone=c.createGain(); AU.tone.gain.value=0; o.connect(AU.tone); AU.tone.connect(AU.master); o.start();
+  }catch(e){ AU.ctx=null; } }
+function sTone(){ if(!AU.ctx) return; const t=AU.ctx.currentTime, sg=Math.sin(swellW(depth)*T), s=camS.single;
+  AU.master.gain.setTargetAtTime(soundOn&&playing?.5:0,t,.2); AU.sea.gain.setTargetAtTime((.42+.2*sg*sg)*(1-.9*s),t,.15); AU.hiss.gain.setTargetAtTime(.02*(1-s),t,.2); AU.tone.gain.setTargetAtTime(.018*s,t,.3); }
+onBubble=function(b){ if(!AU.ctx||!soundOn||!playing) return; const c=AU.ctx, t=c.currentTime, o=c.createOscillator(), g=c.createGain(), f=clamp(b.f,300,6000);
+  o.type='sine'; o.frequency.setValueAtTime(f,t); o.frequency.exponentialRampToValueAtTime(f*1.25,t+.09); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.09*(1-.9*camS.single),t+.004); g.gain.exponentialRampToValueAtTime(.0005,t+.12); o.connect(g); g.connect(AU.master); o.start(t); o.stop(t+.14); };
+$('sound').onclick=()=>{ soundOn=!soundOn; if(soundOn) audioStart(); if(AU.ctx&&AU.ctx.state==='suspended') AU.ctx.resume(); press('sound',soundOn); sTone(); };
+
+/* looking round: drag, arrow keys */
+let drag=null, held={l:0,r:0,u:0,d:0};
+function look(dyaw,dpitch){ if(view==='back'){ orbit.az=clamp(orbit.az+dyaw,-1.5,1.5); orbit.el=clamp(orbit.el-dpitch,-.2,.7); } else if(vision==='single'){ if(noteShown!=='held'){ noteShown='held'; $('note').innerHTML='<b>Single vision</b>The eye is held on the diagram. Choose Twofold, or Look up, to free it.'; } }
+  else { gaze.auto=null; gaze.yaw+=dyaw; gaze.pitch=clamp(gaze.pitch+dpitch,-80*D2R,88*D2R); setNote(); press('v_up',gaze.pitch>.2); press('v_sit',gaze.pitch<=.2); } dirty=true; }
+canvas.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY}; canvas.classList.add('dragging'); try{ canvas.setPointerCapture(e.pointerId); }catch(_){} canvas.focus(); });
+canvas.addEventListener('pointermove',e=>{ if(!drag) return; const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY; look(view==='back'?-dx*.006:dx*.004, dy*.004*(view==='back'?-1:1)); });
+function dragEnd(){ drag=null; canvas.classList.remove('dragging'); }
+canvas.addEventListener('pointerup',dragEnd); canvas.addEventListener('pointercancel',dragEnd); canvas.addEventListener('lostpointercapture',dragEnd);
+function free(){ const a=document.activeElement; return !a || a===document.body || a===canvas; }
+window.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ if(!$('about').hidden){ sheet(false); return; } if(free()) goBack(); return; }
+  if(!free() || e.ctrlKey || e.metaKey || e.altKey) return; const k=e.key.toLowerCase(); let used=true;
+  if(k==='arrowleft'||k==='a') held.l=1; else if(k==='arrowright'||k==='d') held.r=1; else if(k==='arrowup'||k==='w') held.u=1; else if(k==='arrowdown'||k==='s') held.d=1;
+  else if(k===' ') $('play').click(); else if(k==='1') setView('back'); else if(k==='2') sit(); else if(k==='3') lookUp(); else if(k==='v') setVision(vision==='single'?'twofold':'single');
+  else if(k==='t') setTorch(!torch); else if(k==='n') setStep(cstep+1); else if(k==='b') setStep(cstep-1); else if(k==='p') setPage(page==='compass'?'prism':'compass');
+  else if(k==='['||k==='-') { setDepth(depth-1); hud(true); } else if(k===']'||k==='='||k==='+') { setDepth(depth+1); hud(true); } else used=false;
+  if(used){ e.preventDefault(); if(held.l||held.r||held.u||held.d){ look((held.r-held.l)*(view==='back'?-.06:.05),(held.u-held.d)*.05); } } });
+window.addEventListener('keyup',e=>{ const k=e.key.toLowerCase(); if(k==='arrowleft'||k==='a') held.l=0; if(k==='arrowright'||k==='d') held.r=0; if(k==='arrowup'||k==='w') held.u=0; if(k==='arrowdown'||k==='s') held.d=0; });
+window.addEventListener('blur',()=>{ held.l=held.r=held.u=held.d=0; });
+
+/* ═════════════════════════ THE SCROLL'S PICTURE (a 2-D canvas, drawn from GEO and bench) ═════════════════════════ */
+const PG=document.createElement('canvas'); PG.width=1536; PG.height=640; const g2=PG.getContext('2d');
+const INK='#2a1a10', FAINT='rgba(42,26,16,.42)', BRASS='#b98a2e';
+function drawPaper(){ const gr=g2.createLinearGradient(0,0,0,640); gr.addColorStop(0,'#eadfc4'); gr.addColorStop(.5,'#f1e7cf'); gr.addColorStop(1,'#e2d4b4'); g2.globalCompositeOperation='source-over'; g2.fillStyle=gr; g2.fillRect(0,0,1536,640);
+  const R=rng(4); g2.strokeStyle='rgba(120,92,50,.08)'; g2.lineWidth=1; for(let i=0;i<220;i++){ const x=R()*1536, y=R()*640, l=20+R()*90; g2.beginPath(); g2.moveTo(x,y); g2.lineTo(x+l,y+(R()-.5)*6); g2.stroke(); }
+  g2.strokeStyle='rgba(42,26,16,.35)'; g2.lineWidth=2; g2.strokeRect(22,22,1492,596); g2.beginPath(); g2.moveTo(770,40); g2.lineTo(770,600); g2.stroke(); }
+function drawCompass(){ const c=compassNow, X=p=>390+p[0]*120, Y=p=>330-p[1]*120, ctx=g2, th=Math.acos(clamp(1/c.r,-1,1));
+  const seg=(P,Q,w,col,dash)=>{ ctx.beginPath(); ctx.setLineDash(dash||[]); ctx.moveTo(X(P),Y(P)); ctx.lineTo(X(Q),Y(Q)); ctx.lineWidth=w; ctx.strokeStyle=col; ctx.stroke(); ctx.setLineDash([]); };
+  const arc=(O,r,a0,a1,w,col)=>{ ctx.beginPath(); const n=64; for(let i=0;i<=n;i++){ const a=a0+(a1-a0)*i/n, p=[O[0]+r*Math.cos(a),O[1]+r*Math.sin(a)]; if(i) ctx.lineTo(X(p),Y(p)); else ctx.moveTo(X(p),Y(p)); } ctx.lineWidth=w; ctx.strokeStyle=col; ctx.stroke(); };
+  const dot=(P,name,dx,dy)=>{ ctx.beginPath(); ctx.arc(X(P),Y(P),4.5,0,2*PI); ctx.fillStyle=INK; ctx.fill(); if(name){ ctx.font='italic 24px Georgia,serif'; ctx.fillStyle=INK; ctx.fillText(name,X(P)+dx,Y(P)+dy); } };
+  ctx.globalCompositeOperation='source-over'; ctx.font='500 24px Georgia,serif'; ctx.fillStyle=FAINT; ctx.fillText('I.  To make a triangle with three equal sides,',52,66); ctx.fillText('and to set a half circle on its base.',88,96);
+  seg(c.A,c.B,3,INK); const sp=th+.32, s1=cstep===1?sweep:1, s2=cstep===2?sweep:1;
+  if(cstep>=1){ const a1=-sp+2*sp*s1; arc(c.A,c.r,-sp,a1,1.6,FAINT); }
+  if(cstep>=2){ const a1=PI+sp-2*sp*s2; arc(c.B,c.r,PI+sp,a1,1.6,FAINT); }
+  if(cstep>=3){ const s=cstep===3?sweep:1, L=(P,Q,t)=>[P[0]+(Q[0]-P[0])*t,P[1]+(Q[1]-P[1])*t]; seg(c.A,L(c.A,c.C,clamp(s*2,0,1)),3,INK); if(s>.5) seg(c.B,L(c.B,c.C,clamp(s*2-1,0,1)),3,INK); }
+  if(cstep>=4){ const s=cstep===4?sweep:1; seg(c.C,[c.C[0]+(c.C2[0]-c.C[0])*s,c.C[1]+(c.C2[1]-c.C[1])*s],1.6,FAINT,[9,7]); if(s>=1) dot(c.M,'M',10,26); }
+  if(cstep>=5){ const s=sweep; arc(c.M,c.R,0,PI*s,2.4,'#7a2b1c');
+    if(s>=1){ dot(c.P,'P',-30,-6); dot(c.Q,'Q',12,-6); seg(c.B,c.P,1.2,FAINT,[4,5]); seg(c.A,c.Q,1.2,FAINT,[4,5]); } }
+  dot(c.A,'A',-28,10); dot(c.B,'B',12,10); if(cstep>=2&&(cstep>2||sweep>=1)){ dot(c.C,'C',10,-10); dot(c.C2,'C′',10,24); }
+  ctx.font='500 24px Georgia,serif'; ctx.fillStyle=INK;
+  const cap=['Draw the base A B.','Set the point on A. Strike an arc.','The same opening, about B. The arcs cross at C.',c.unequal<1e-12?'Join them. A B = B C = C A.':'Join them. B C = C A, but not A B: open to the base.','The line C C′ cuts the base in half at M.','A half circle about M. From P, the base is a right angle.'][cstep];
+  ctx.fillText(cap,54,598); }
+function drawPrism(){ const ctx=g2, x0=800, y0=58, w=700, h=524; ctx.globalCompositeOperation='source-over'; ctx.fillStyle='#0b0a0c'; ctx.fillRect(x0,y0,w,h); ctx.strokeStyle='rgba(42,26,16,.6)'; ctx.lineWidth=2; ctx.strokeRect(x0,y0,w,h);
+  const B=benchNow=bench(pmode,incidence,glassIx,pick); prismNow=prismNumbers(incidence,glassIx,pick);
+  let a=1e9,b=-1e9,c=1e9,d=-1e9; const ext=p=>{ if(p[0]<a) a=p[0]; if(p[0]>b) b=p[0]; if(p[1]<c) c=p[1]; if(p[1]>d) d=p[1]; }; B.polys.forEach(P=>P.forEach(ext)); B.stops.forEach(s=>{ ext(s.p); ext(s.q); }); ext(B.o0);
+  const sc=Math.min((w-70)/(b-a),(h-110)/(d-c)), ox=x0+w/2-(a+b)/2*sc, oy=y0+h/2+18+(c+d)/2*sc, X=p=>ox+p[0]*sc, Y=p=>oy-p[1]*sc;
+  ctx.save(); ctx.beginPath(); ctx.rect(x0+1,y0+1,w-2,h-2); ctx.clip(); ctx.globalCompositeOperation='lighter';
+  for(let q=0;q<B.rays.length;q++){ const r=B.rays[q], n=Math.min(r.a.length,r.b.length); ctx.fillStyle=css(RAYS[q].show,.5);
+    for(let k=0;k+1<n;k++){ ctx.beginPath(); ctx.moveTo(X(r.a[k]),Y(r.a[k])); ctx.lineTo(X(r.a[k+1]),Y(r.a[k+1])); ctx.lineTo(X(r.b[k+1]),Y(r.b[k+1])); ctx.lineTo(X(r.b[k]),Y(r.b[k])); ctx.closePath(); ctx.fill(); } }
+  ctx.globalCompositeOperation='source-over';
+  for(const P of B.polys){ ctx.beginPath(); P.forEach((p,i)=>i?ctx.lineTo(X(p),Y(p)):ctx.moveTo(X(p),Y(p))); ctx.closePath(); ctx.fillStyle='rgba(170,215,235,.10)'; ctx.fill(); ctx.strokeStyle='rgba(215,238,250,.85)'; ctx.lineWidth=2; ctx.stroke(); }
+  B.stops.forEach((s,k)=>{ const ex=s.q[0]-s.p[0], ey=s.q[1]-s.p[1], at=t=>[s.p[0]+ex*t,s.p[1]+ey*t]; ctx.strokeStyle='rgba(235,225,200,.8)'; ctx.lineWidth=4;
+    const parts=s.slit?[[0,s.slit[0]],[s.slit[1],1]]:[[0,1]]; for(const pr of parts){ const P=at(pr[0]), Q=at(pr[1]); ctx.beginPath(); ctx.moveTo(X(P),Y(P)); ctx.lineTo(X(Q),Y(Q)); ctx.stroke(); }
+    if(k===B.stops.length-1){ /* the colours that fall on the last screen, drawn just behind it */
+      const l=Math.hypot(ex,ey), nx=-ey/l, ny=ex/l, sgn=(nx*B.d0[0]+ny*B.d0[1])>0?1:-1, NS=B.strip.length; let top=0; for(const c of B.strip) if(c) top=Math.max(top,c[0],c[1],c[2]);
+      for(let i=0;i<NS;i++){ const c=B.strip[i]; if(!c) continue; const P=at(i/NS), Q=at((i+1)/NS), o1=2.2*sgn, o2=9*sgn; ctx.fillStyle=css([Math.max(0,c[0])/top,Math.max(0,c[1])/top,Math.max(0,c[2])/top]);
+        ctx.beginPath(); ctx.moveTo(X(P)+nx*o1*sc,Y(P)-ny*o1*sc); ctx.lineTo(X(Q)+nx*o1*sc,Y(Q)-ny*o1*sc); ctx.lineTo(X(Q)+nx*o2*sc,Y(Q)-ny*o2*sc); ctx.lineTo(X(P)+nx*o2*sc,Y(P)-ny*o2*sc); ctx.closePath(); ctx.fill(); } } });
+  ctx.restore(); ctx.font='500 24px Georgia,serif'; ctx.fillStyle='rgba(240,230,205,.9)';
+  ctx.fillText(pmode==='spread'?'II.  A beam of the Sun, spread by a prism.':pmode==='recombine'?'III.  A second prism, turned about: white again.':'IV.  A slit lets one colour by, to a second prism.',x0+18,y0+30);
+  const p=prismNow; ctx.font='400 22px Georgia,serif'; ctx.fillStyle='rgba(240,230,205,.7)';
+  ctx.fillText(pmode==='crucial'?('Light near '+pick+' nm is turned '+(p.pickDev===null?'not at all':p.pickDev.toFixed(2)+'°')+' again. No new colours.'):pmode==='recombine'?('All colours leave parallel to the way they came in.'):('Red is turned '+(p.dev.red===null?'-':p.dev.red.toFixed(2))+'°, violet '+(p.dev.violet===null?'-':p.dev.violet.toFixed(2))+'°.'),x0+18,y0+h-16); }
+function compassFeet(){ const c=compassNow, th=Math.acos(clamp(1/c.r,-1,1)), sp=th+.32, on=(O,r,a)=>[O,[O[0]+r*Math.cos(a),O[1]+r*Math.sin(a)]];
+  if(cstep===1) return on(c.A,c.r,-sp+2*sp*sweep); if(cstep===2) return on(c.B,c.r,PI+sp-2*sp*sweep); if(cstep===3) return [c.B,c.C]; if(cstep===4) return [c.C,c.C2]; if(cstep===5) return on(c.M,c.R,PI*sweep); return [c.A,c.B]; }
+function drawPage(){ drawPaper(); drawCompass(); drawPrism(); pageDirty=false; }
+
+/* ═════════════════════════ THE PIECE'S FACE TO THE TESTS ═════════════════════════ */
+function leftNow(){ const o={}; for(const b of BANDS) o[b[0]]=transmit(b[1],depth); return o; }
+function baseState(){ if(pageDirty&&!prismNow) prismNow=prismNumbers(incidence,glassIx,pick); const c=compassNow;
+  return { name:'newton-deep', frame:frame, playing:playing, t:T, low:LOW, still:STILL, back:BACK, sound:soundOn, view:view, vision:vision, depth:depth, torch:torch,
+    gaze:{yaw:gaze.yaw, pitchDeg:gaze.pitch/D2R, auto:!!gaze.auto}, cam:{pos:camS.pos.slice(), yaw:camS.yaw, pitchDeg:camS.pitch/D2R, single:camS.single},
+    optics:{ nWater:N_W, windowHalfDeg:windowHalf()/D2R, windowDeg:2*windowHalf()/D2R, left:leftNow(), order:BANDS.map(b=>[b[0],depthFor(b[1],.01)]).sort((a,b)=>a[1]-b[1]).map(b=>b[0]),
+      white:spectrumToRgb(l=>transmit(l,depth)), surgeCm:surgeAmp(depth,0)*100, swellPeriod:2*PI/swellW(depth), sunInWaterDeg:Math.acos(-sunW[1])/D2R, caustics:causNow },
+    growth:{ rdSteps:rd.steps, rdCover:rd.cover(), fanGrown:fanGrown, fans:fans.length, fanGrains:fans.reduce((s,f)=>s+f.pts.length,0), fanDim:fans.map(f=>f.dim) },
+    fish:{ n:boids.n, polar:boids.polar() }, bubbles:{ n:bubCount, last:lastBubble },
+    scroll:{ page:page, step:cstep, sweep:sweep, opening:opening, sides:c.sides.slice(), angles:c.angles.slice(), unequal:c.unequal, thales:c.thales.slice(),
+      mode:pmode, glass:GLASS[glassIx].key, incidence:incidence, pick:pick, prism:prismNumbers(incidence,glassIx,pick), screen:curBench().screen } }; }
+/* everything the physics rests on, in one string: the vision switch must not change a character of it */
+function physics(){ const o=baseState(), q=makeCaustics(32,64).run(T,depth); return JSON.stringify([o.optics.nWater,o.optics.windowHalfDeg,o.optics.left,o.optics.white,o.optics.surgeCm,o.optics.swellPeriod,q.mean,q.max,q.contrast,o.scroll.sides,o.scroll.angles,o.scroll.prism,bench(pmode,incidence,glassIx,pick).screen,o.growth.rdSteps,o.growth.rdCover]); }
+const MODEL={ nWater:nWater, GLASS:GLASS, aWater:aWater, aYellow:aYellow, bWater:bWater, Kd:Kd, transmit:transmit, depthFor:depthFor, BANDS:BANDS, BP:BP, BBP:BBP, backRefl:backRefl, spectrumToRgb:spectrumToRgb, cmf:cmf, LAMS:LAMS,
+  windowHalf:windowHalf, refract3:refract3, fresnelT:fresnelT, minnaert:minnaert, WV:WV, TILE:TILE, surface:surface, SWELL:SWELL, swellW:swellW, surgeAmp:surgeAmp, sunAir:sunAir, sunW:sunW, toSun:toSun, N3:N3,
+  makeCaustics:makeCaustics, makeRD:makeRD, growFan:growFan, makeBoids:makeBoids, GEO:GEO, PR:PR, RAYS:RAYS, bench:bench, prismNumbers:prismNumbers, rng:rng };
+const API={ name:'newton-deep', webgl:false, model:MODEL, state:baseState, physics:physics, advance:function(sec){ advance(sec); if(pageDirty) drawPage(); hud(true); },
+  set:function(o){ if('depth' in o) setDepth(o.depth); if('torch' in o) setTorch(o.torch); if(o.view==='back') setView('back'); if(o.view==='sit') sit(); if(o.view==='up') lookUp(); if(o.vision) setVision(o.vision);
+    if(o.page) setPage(o.page); if('step' in o) setStep(o.step); if('opening' in o) setOpening(o.opening); if(o.mode) setMode(o.mode); if('glass' in o) setGlass(o.glass); if('incidence' in o) setInc(o.incidence); if('pick' in o) setPick(o.pick);
+    if('gaze' in o){ gaze.auto=null; gaze.yaw=o.gaze.yaw||0; gaze.pitch=(o.gaze.pitchDeg||0)*D2R; } if('orbit' in o){ orbit.az=o.orbit.az||0; orbit.el=o.orbit.el||0; } if('playing' in o) setPlay(!!o.playing); if(pageDirty) drawPage(); hud(true); } };
+
+/* start: grow the crust and the fans, then settle */
+rd.step(STILL?5200:(LOW?650:900));
+buildRead(); incRange(); setPlay(playing); syncUI(); drawPage();
+if(STILL && !TEST){ for(let i=0;i<Math.round(7/HSTEP);i++) tick(HSTEP); }
+hud(true);
+
+/* ═════════════════════════ DRAWING ═════════════════════════ */
+let gl2=false; try{ gl2=!!document.createElement('canvas').getContext('webgl2'); }catch(e){}
+if(!gl2 || !window.THREE){ $('fail').style.display='grid'; canvas.style.display='none'; window.PIECE=API;
+  if(!TEST){ let lt=0; (function lp(now){ requestAnimationFrame(lp); const dt=Math.min(.1,Math.max(0,(now-lt)/1000)); lt=now; if(playing&&dt>0){ vt+=dt; advance(dt); if(pageDirty) drawPage(); hud(); } })(0); }
+  return; }
+const THREE=window.THREE;
+const renderer=new THREE.WebGLRenderer({canvas:canvas, antialias:false, alpha:false, powerPreference:'high-performance'});
+renderer.setClearColor(0x000000,0); renderer.autoClear=true; renderer.outputColorSpace=THREE.LinearSRGBColorSpace;
+const HDR=!!renderer.getContext().getExtension('EXT_color_buffer_float')||!!renderer.getContext().getExtension('EXT_color_buffer_half_float');
+const V3=THREE.Vector3;
+
+/* the colour table: one row for each painted thing, one column for each length of water the light has crossed (0 to 120 m).
+   Every entry is a full spectrum, reflectance x sunlight x e^(-K L), taken through the CIE observer. The reflectance curves are chosen. */
+const sig=(l,c,w)=>1/(1+Math.exp(-(l-c)/w)), gau=(l,c,w)=>Math.exp(-.5*(l-c)*(l-c)/(w*w));
+const ROWS=[ l=>.92, l=>.30+.32*sig(l,520,55), l=>.13+.07*sig(l,560,60), l=>.035+.80*sig(l,605,12), l=>.05+.82*sig(l,572,14), l=>.05+.80*sig(l,512,16),
+  l=>.04+.50*gau(l,545,34), l=>.05+.42*gau(l,440,30)+.50*sig(l,645,14), l=>.22+.58*sig(l,592,16), l=>.80, l=>.9, l=>backRefl(l) ];
+const LMAX=120, NCOL=64, NROW=ROWS.length;
+const lutTex=(()=>{ const d=new Uint16Array(NCOL*NROW*4); for(let r=0;r<NROW;r++) for(let j=0;j<NCOL;j++){ const L=LMAX*(j/(NCOL-1))*(j/(NCOL-1)), c=spectrumToRgb(l=>ROWS[r](l)*Math.exp(-Kd(l)*L)), o=(r*NCOL+j)*4; for(let k=0;k<3;k++) d[o+k]=THREE.DataUtils.toHalfFloat(Math.max(0,c[k])); d[o+3]=THREE.DataUtils.toHalfFloat(1); }
+  const t=new THREE.DataTexture(d,NCOL,NROW,THREE.RGBAFormat,THREE.HalfFloatType); t.minFilter=t.magFilter=THREE.LinearFilter; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; t.needsUpdate=true; return t; })();
+const lumOf=c=>.2126*c[0]+.7152*c[1]+.0722*c[2];
+const CA=makeCaustics(LOW?96:128, LOW?144:224);
+const causData=new Uint8Array(CA.NT*CA.NT*4), causTex=new THREE.DataTexture(causData,CA.NT,CA.NT,THREE.RGBAFormat,THREE.UnsignedByteType); causTex.minFilter=causTex.magFilter=THREE.LinearFilter; causTex.wrapS=causTex.wrapT=THREE.RepeatWrapping;
+let causKey='';
+function updateCaustics(){ const key=T.toFixed(4)+'|'+depth; if(key===causKey) return; causKey=key; causNow=CA.run(T,depth); const a=CA.acc, n=CA.NT*CA.NT; for(let i=0;i<n;i++){ causData[4*i]=255*Math.sqrt(Math.min(a[3*i],8)/8); causData[4*i+1]=255*Math.sqrt(Math.min(a[3*i+1],8)/8); causData[4*i+2]=255*Math.sqrt(Math.min(a[3*i+2],8)/8); causData[4*i+3]=255; } causTex.needsUpdate=true; }
+const rdData=new Uint8Array(rd.N*rd.N), rdTex=new THREE.DataTexture(rdData,rd.N,rd.N,THREE.RedFormat,THREE.UnsignedByteType); rdTex.minFilter=rdTex.magFilter=THREE.LinearFilter; rdTex.wrapS=rdTex.wrapT=THREE.RepeatWrapping;
+function updateRD(){ if(!rdDirty) return; rdDirty=false; const v=rd.v(); for(let i=0;i<v.length;i++) rdData[i]=Math.min(255,v[i]*640); rdTex.needsUpdate=true; }
+const pageTex=new THREE.CanvasTexture(PG); pageTex.colorSpace=THREE.SRGBColorSpace; pageTex.anisotropy=4; pageTex.minFilter=THREE.LinearMipmapLinearFilter;
+
+const U={ tLUT:{value:lutTex}, tCaus:{value:causTex}, uSunW:{value:new V3(sunW[0],sunW[1],sunW[2])}, uToSun:{value:new V3(toSun[0],toSun[1],toSun[2])}, uCamPos:{value:new V3()}, uTorchDir:{value:new V3(0,0,1)}, uCamR:{value:new V3(1,0,0)}, uCamU:{value:new V3(0,1,0)},
+  uSurf:{value:9}, uTime:{value:0}, uTorch:{value:0}, uSingle:{value:0}, uBp:{value:BP}, uInvExpo:{value:1}, uSurge:{value:0}, uPx:{value:600}, uSeat:{value:0}, uWaterGain:{value:TEST&&TEST.waterGain||2.0},
+  uW:{value:WV.map(w=>new THREE.Vector4(w.kx,w.kz,w.a,0))}, uWp:{value:WV.map(()=>0)}, uNW:{value:new V3(N3[0],N3[1],N3[2])} };
+const COMMON=`
+uniform sampler2D tLUT, tCaus; uniform vec3 uSunW, uToSun, uCamPos, uTorchDir, uCamR, uCamU; uniform float uSurf, uTime, uTorch, uSingle, uBp, uInvExpo, uSurge, uPx, uWaterGain, uSeat;
+const float LMAX=120., NROW=${NROW}., TILE=8.;
+vec3 lut(float row,float L){ return texture2D(tLUT, vec2(sqrt(clamp(L/LMAX,0.,1.))*(63./64.)+.5/64., (row+.5)/NROW)).rgb; }
+vec3 caus(vec3 p){ vec2 q=(p.xz+uSunW.xz*(p.y/(-uSunW.y)))/TILE; vec3 e=texture2D(tCaus,q).rgb; return 8.*e*e; }
+/* open water in direction d: its colour from the table (row 11: light scattered back), its brightness by eye */
+vec3 water(vec3 d){ float ze=max(uSurf-uCamPos.y-d.y*4.5,.4); float g=mix(.35,2.0,smoothstep(-.9,.15,d.y))+.9*max(d.y,0.)+1.6*pow(max(dot(d,-uSunW),0.),10.); return lut(11.,ze)*g*uWaterGain; }
+vec3 lit(float row, vec3 p, vec3 N){ float z=max(uSurf-p.y,0.); vec3 v=p-uCamPos; float d=length(v); v/=d;
+  vec3 c=lut(row,z/(-uSunW.y)+d)*caus(p)*max(dot(N,-uSunW),0.)*.85 + lut(row,z+d)*(.10+.42*(N.y*.5+.5)*(N.y*.5+.5)+.06*max(-N.y,0.));
+  c*=exp(-uBp*d);
+  float cone=smoothstep(.80,.96,dot(v,uTorchDir)); c+=uTorch*cone*lut(row,2.*d)*(.25+.75*max(dot(N,-v),0.))*exp(-2.*uBp*d)*2.6/(1.+.45*d*d);
+  return c; }
+vec3 fogged(vec3 c, vec3 p){ vec3 v=p-uCamPos; float d=length(v); return c+water(v/d)*(1.-exp(-uBp*d)); }
+float measure(vec3 p){ vec2 g=abs(fract(p.xz-.5)-.5); return (1.-smoothstep(0.,.018,min(g.x,g.y)))*uSingle; }
+float hash1(vec3 p){ p=fract(p*.3183099+.1); p*=17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float noise3(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash1(i),hash1(i+vec3(1,0,0)),f.x),mix(hash1(i+vec3(0,1,0)),hash1(i+vec3(1,1,0)),f.x),f.y), mix(mix(hash1(i+vec3(0,0,1)),hash1(i+vec3(1,0,1)),f.x),mix(hash1(i+vec3(0,1,1)),hash1(i+vec3(1,1,1)),f.x),f.y),f.z); }
+`;
+const VS_STD=`varying vec3 vP, vN; void main(){ vec4 w=modelMatrix*vec4(position,1.); vP=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }`;
+const VS_PRE='uniform float uSurf, uTime, uSurge, uPx, uSeat; uniform vec3 uCamPos;\n';
+function mat(fs,extra,vs,opt){ return new THREE.ShaderMaterial(Object.assign({uniforms:Object.assign({},U,extra||{}), vertexShader:vs?VS_PRE+vs:VS_STD, fragmentShader:'precision highp float;\n'+COMMON+fs}, opt||{})); }
+const ADD={blending:THREE.CustomBlending, blendEquation:THREE.AddEquation, blendSrc:THREE.OneFactor, blendDst:THREE.OneFactor, blendSrcAlpha:THREE.ZeroFactor, blendDstAlpha:THREE.OneFactor, depthWrite:false, transparent:true};
+
+const scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(42,1,.05,400);
+/* the sea and the sky through it */
+const sky=new THREE.Mesh(new THREE.SphereGeometry(200,24,16), mat(`
+uniform vec4 uW[13]; uniform float uWp[13]; uniform vec3 uNW; varying vec3 vDir;
+vec2 waveGrad(vec2 p){ vec2 g=vec2(0.); for(int i=0;i<13;i++){ g+=cos(uW[i].x*p.x+uW[i].y*p.y+uWp[i])*uW[i].z*uW[i].xy; } return g; }
+vec3 skyc(vec3 r){ float h=clamp(r.y,0.,1.); vec3 c=mix(vec3(.86,.92,1.0),vec3(.22,.45,.98),pow(h,.6))*1.45; float m=max(dot(r,uToSun),0.);
+  c+=vec3(1.,.96,.88)*(smoothstep(.99985,.99996,m)*260.+pow(m,900.)*14.+pow(m,60.)*1.1+pow(m,8.)*.35); return c; }
+void main(){ vec3 d=normalize(vDir); vec3 col=water(d);
+  if(d.y>.004){ float tS=(uSurf-uCamPos.y)/d.y; vec3 P=uCamPos+d*tS; vec2 g=waveGrad(P.xz)*(1./(1.+tS*.03)); vec3 n=normalize(vec3(-g.x,1.,-g.y));
+    float ci=dot(d,n); vec3 mirror=water(reflect(d,-n))*.5; vec3 acc=vec3(0.);
+    for(int k=0;k<3;k++){ float nw=k==0?uNW.x:k==1?uNW.y:uNW.z; float s2=nw*nw*(1.-ci*ci); float a;
+      if(s2>=1.||ci<=0.) a=k==0?mirror.r:k==1?mirror.g:mirror.b;
+      else { float ct=sqrt(1.-s2); vec3 r=nw*d+(ct-nw*ci)*n; float rs=(nw*ci-ct)/(nw*ci+ct), rp=(ci-nw*ct)/(ci+nw*ct), T=1.-.5*(rs*rs+rp*rp); vec3 s=skyc(normalize(r)); float sv=k==0?s.r:k==1?s.g:s.b; float mv=k==0?mirror.r:k==1?mirror.g:mirror.b; a=sv*T+mv*(1.-T); }
+      if(k==0) acc.r=a; else if(k==1) acc.g=a; else acc.b=a; }
+    float tr=exp(-uBp*tS); col=acc*lut(0.,tS)/.92*tr+col*(1.-tr); }
+  gl_FragColor=vec4(col,0.); }`, null, `varying vec3 vDir; void main(){ vDir=position; vec4 p=projectionMatrix*viewMatrix*vec4(position+cameraPosition,1.); gl_Position=p.xyww; }`, {side:THREE.BackSide, depthWrite:false, depthTest:false}));
+sky.frustumCulled=false; sky.renderOrder=-10; scene.add(sky);
+/* the sand */
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(400,400,1,1).rotateX(-PI/2), mat(`varying vec3 vP, vN;
+void main(){ float d=length(vP-uCamPos), f=1./(1.+d*.25); float a=vP.x*13.+sin(vP.z*1.7)*2.2+noise3(vP*1.3)*4.;
+  vec3 N=normalize(vec3(-cos(a)*.22*f+ (noise3(vP*9.)-.5)*.25*f,1.,(noise3(vP*9.+7.)-.5)*.25*f));
+  float tone=.82+.3*noise3(vP*.7)+.12*sin(a)*f; vec3 c=lit(1.,vP,N)*tone; c=fogged(c,vP)+measure(vP)*.5*uInvExpo; gl_FragColor=vec4(c,0.); }`));
+scene.add(floor);
+
+/* noise for the rock */
+function hsh(x,y,z){ let h=Math.imul(x,374761393)^Math.imul(y,668265263)^Math.imul(z,1274126177); h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967296; }
+function vn(x,y,z){ const xi=Math.floor(x), yi=Math.floor(y), zi=Math.floor(z); let fx=x-xi, fy=y-yi, fz=z-zi; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); fz=fz*fz*(3-2*fz);
+  const L=(a,b,t)=>a+(b-a)*t; return L(L(L(hsh(xi,yi,zi),hsh(xi+1,yi,zi),fx),L(hsh(xi,yi+1,zi),hsh(xi+1,yi+1,zi),fx),fy), L(L(hsh(xi,yi,zi+1),hsh(xi+1,yi,zi+1),fx),L(hsh(xi,yi+1,zi+1),hsh(xi+1,yi+1,zi+1),fx),fy),fz); }
+function fbm(x,y,z){ return .5*vn(x,y,z)+.25*vn(x*2.1+5,y*2.1,z*2.1)+.125*vn(x*4.3,y*4.3+3,z*4.3)+.0625*vn(x*8.7,y*8.7,z*8.7+1); }
+/* a shape given as a distance field is skinned by "surface nets" (S. F. F. Gibson, 1998). ao(x,y,z,nx,ny,nz) gives each point its shade. */
+function surfaceNets(f,mn,mx,h,ao){ const nx=Math.ceil((mx[0]-mn[0])/h)+1, ny=Math.ceil((mx[1]-mn[1])/h)+1, nz=Math.ceil((mx[2]-mn[2])/h)+1, F=new Float32Array(nx*ny*nz);
+  for(let k=0;k<nz;k++) for(let j=0;j<ny;j++) for(let i=0;i<nx;i++) F[i+nx*(j+ny*k)]=f(mn[0]+i*h,mn[1]+j*h,mn[2]+k*h);
+  const cell=new Int32Array(nx*ny*nz).fill(-1), pos=[], idx=[], E=[[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]], v=new Float32Array(8);
+  for(let k=0;k<nz-1;k++) for(let j=0;j<ny-1;j++) for(let i=0;i<nx-1;i++){ let neg=0; for(let c=0;c<8;c++){ v[c]=F[(i+(c&1))+nx*((j+((c>>1)&1))+ny*(k+((c>>2)&1)))]; if(v[c]<0) neg++; } if(neg===0||neg===8) continue;
+    let sx=0,sy=0,sz=0,n=0; for(const e of E){ const a=v[e[0]], b=v[e[1]]; if((a<0)!==(b<0)){ const t=a/(a-b); sx+=(e[0]&1)+t*((e[1]&1)-(e[0]&1)); sy+=((e[0]>>1)&1)+t*(((e[1]>>1)&1)-((e[0]>>1)&1)); sz+=((e[0]>>2)&1)+t*(((e[1]>>2)&1)-((e[0]>>2)&1)); n++; } }
+    cell[i+nx*(j+ny*k)]=pos.length/3; pos.push(mn[0]+(i+sx/n)*h,mn[1]+(j+sy/n)*h,mn[2]+(k+sz/n)*h); }
+  const C=(i,j,k)=>cell[i+nx*(j+ny*k)], quad=(a,b,c,d)=>{ if(a<0||b<0||c<0||d<0) return; idx.push(a,b,c,a,c,d); };
+  for(let k=0;k<nz;k++) for(let j=0;j<ny;j++) for(let i=0;i<nx;i++){ const p=i+nx*(j+ny*k), a=F[p]<0;
+    if(i<nx-1&&j>0&&k>0&&a!==(F[p+1]<0)) quad(C(i,j-1,k-1),C(i,j,k-1),C(i,j,k),C(i,j-1,k));
+    if(j<ny-1&&i>0&&k>0&&a!==(F[p+nx]<0)) quad(C(i-1,j,k-1),C(i-1,j,k),C(i,j,k),C(i,j,k-1));
+    if(k<nz-1&&i>0&&j>0&&a!==(F[p+nx*ny]<0)) quad(C(i-1,j-1,k),C(i,j-1,k),C(i,j,k),C(i-1,j,k)); }
+  const nrm=[], aos=[], e=h*.5; for(let q=0;q<pos.length;q+=3){ const x=pos[q], y=pos[q+1], z=pos[q+2], gx=f(x+e,y,z)-f(x-e,y,z), gy=f(x,y+e,z)-f(x,y-e,z), gz=f(x,y,z+e)-f(x,y,z-e), l=Math.hypot(gx,gy,gz)||1; nrm.push(gx/l,gy/l,gz/l); aos.push(ao?ao(x,y,z,gx/l,gy/l,gz/l):1); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3)); g.setAttribute('aAO',new THREE.Float32BufferAttribute(aos,1)); g.setIndex(idx); return g; }
+/* the rock: blocks joined softly, then bedded in layers, weathered by noise, split by cracks, and cut for a seat, a ledge for the feet
+   and a shelf for the scroll. All of it is one distance field, so there are true overhangs. */
+const sdBox=(x,y,z,cx,cy,cz,hx,hy,hz,r)=>{ const qx=Math.abs(x-cx)-hx+r, qy=Math.abs(y-cy)-hy+r, qz=Math.abs(z-cz)-hz+r; return Math.hypot(Math.max(qx,0),Math.max(qy,0),Math.max(qz,0))+Math.min(Math.max(qx,qy,qz),0)-r; };
+const smin=(a,b,k)=>{ const h=Math.max(k-Math.abs(a-b),0)/k; return Math.min(a,b)-h*h*k*.25; };
+function rockBase(x,y,z){ let d=sdBox(x,y,z, 0,.5,-.3, 1.15,.82,.85,.3);
+  d=smin(d,sdBox(x,y,z, 1.15,.95,-.6, .6,1.2,.62,.3),.25); d=smin(d,sdBox(x,y,z, .98,1.86,-.25, .5,.26,.6,.18),.14);
+  d=smin(d,sdBox(x,y,z, 0,.66,.5, .82,.5,.28,.12),.12); d=smin(d,sdBox(x,y,z, 0,.6,1.25, 1.05,.6,.55,.14),.14);
+  d=smin(d,sdBox(x,y,z, -1.25,.3,.35, .5,.5,.6,.3),.3); d=smin(d,sdBox(x,y,z, -.5,.3,-1.35, .8,.45,.4,.3),.3); return d; }
+const CRACKS=[[.8,.1,.59,.3,1],[-.5,.2,.84,-.62,4],[.2,.05,-.98,.75,7]];
+const SCT=Math.cos(SCROLL.tilt), SST=Math.sin(SCROLL.tilt);
+function rockField(x,y,z){ let d=rockBase(x,y,z); if(d>.4||d<-.4) return d;
+  const n1=fbm(x*1.3+3,y*1.3,z*1.3)-.47, w=vn(x*.9+7,y*.9,z*.9+2), yy=(y+.2*w+.07*x)/.19, fl=Math.floor(yy), tri=Math.abs(yy-fl-.5)*2, lay=vn(1.5,fl*3.7,2.5);
+  d+=-.2*n1-.07*(1-tri*tri)*(.25+lay)-.06*(.5-Math.abs(2*vn(x*3.1,y*3.1+5,z*3.1)-1))-.022*(vn(x*9,y*9,z*9)-.5);
+  for(const c of CRACKS){ const q=x*c[0]+y*c[1]+z*c[2]-c[3]+.1*(vn(x*2+c[4],y*2,z*2)-.5); d=Math.max(d,Math.min(.05-Math.abs(q),d+.16)); }
+  const bump=.014*(vn(x*7,3,z*7)-.5);
+  d=Math.max(d,-sdBox(x,y,z, 0,1.27+.5+bump,-.1, .5,.5,.42,.04)); d=Math.max(d,-sdBox(x,y,z, 0,1.12+.5+bump,.53, .56,.5,.27,.04));
+  const s=(y-SCROLL.c[1])*SCT-(z-SCROLL.c[2])*SST; d=Math.max(d,Math.min(s+.006,-Math.max(Math.abs(x)-.95,Math.abs(z-1.24)-.44)));
+  return d; }
+const rockAO=(x,y,z,nx,ny,nz)=>clamp(.5*rockField(x+nx*.1,y+ny*.1,z+nz*.1)/.1+.5*rockField(x+nx*.32,y+ny*.32,z+nz*.32)/.32,0,1);
+const VS_AO=`attribute float aAO; varying vec3 vP, vN; varying float vAO; void main(){ vec4 w=modelMatrix*vec4(position,1.); vP=w.xyz; vN=normalize(mat3(modelMatrix)*normal); vAO=aAO; gl_Position=projectionMatrix*viewMatrix*w; }`;
+/* the growth on it: the same reaction-diffusion field read at three scales. Broad colonies, smaller encrusters between them, and a fine
+   turf over both; each has relief and a dark edge where it meets the stone. */
+const ROCK_FS=`uniform sampler2D tRD; varying vec3 vP, vN; varying float vAO;
+float rdv(vec3 q, vec3 w){ return dot(w, vec3(texture2D(tRD,q.yz).r, texture2D(tRD,q.zx).r, texture2D(tRD,q.xy).r)); }
+void main(){ vec3 N=normalize(vN); vec3 w=pow(abs(N),vec3(4.)); w/=w.x+w.y+w.z;
+  float v1=rdv(vP*1.5,w), v2=rdv(vP*4.3+.37,w), v3=rdv(vP*11.+.11,w); float reg=noise3(vP*.75+3.), reg2=noise3(vP*2.3+11.);
+  float dd=length(vP-uCamPos), f3=clamp(1.5-dd*.5,0.,1.), f2=clamp(2.2-dd*.3,0.,1.);
+  vec2 sq=(vP.xz-vec2(0.,.0))/vec2(.42,.36); float seat=exp(-dot(sq,sq)*1.4)*smoothstep(1.05,1.22,vP.y)*smoothstep(.5,.85,N.y), worn=1.-.92*seat;
+  float m1=smoothstep(.15,.38,v1)*smoothstep(.2,.45,reg+.25)*worn; float m2=smoothstep(.16,.40,v2)*smoothstep(.3,.55,reg2+.2)*(1.-m1)*f2*worn; float m3=mix(.5,smoothstep(.18,.42,v3),f3);
+  float grain=mix(.5,noise3(vP*31.),f3); float h=m1*(.022+.012*m3)+m2*(.010+.006*m3)+(1.-m1-m2)*grain*.005;
+  vec3 dp1=dFdx(vP), dp2=dFdy(vP); float dh1=dFdx(h), dh2=dFdy(h); vec3 r1=cross(dp2,N), r2=cross(N,dp1); float det=dot(dp1,r1);
+  N=normalize(abs(det)*N-sign(det)*(dh1*r1+dh2*r2));
+  float pa=noise3(vP*.9+5.); float rowA=pa<.38?4.:pa<.55?8.:pa<.68?3.:pa<.8?7.:5.; float pb=noise3(vP*1.7+9.); float rowB=pb<.5?8.:pb<.75?4.:(N.y>.5?6.:7.);
+  float band=noise3(vec3(vP.x*.6,vP.y*11.,vP.z*.6)); vec3 rock=lit(2.,vP,N)*(.45+.55*band+.5*grain);
+  vec3 cA=lit(rowA,vP,N)*(.5+1.0*v1)*(.65+.6*m3); vec3 cB=lit(rowB,vP,N)*(.6+.7*m3);
+  rock=mix(rock,lit(1.,vP,N)*.8,seat*.7);
+  vec3 c=mix(rock,cB,m2); c=mix(c,cA,m1); c+=seat*(1.-uSeat)*lut(0.,max(uSurf-vP.y,0.)/(-uSunW.y)+dd)*caus(vP)*caus(vP)*.22*exp(-uBp*dd); float edge=m1*(1.-m1)*4.; c*=1.-.35*edge; c=mix(c,lit(8.,vP,N)*.8,(1.-m1)*(1.-m2)*m3*.35*f3);
+  vec3 V=normalize(vP-uCamPos); float sp=pow(max(dot(reflect(V,N),-uSunW),0.),28.); c+=sp*caus(vP)*lut(0.,max(uSurf-vP.y,0.)+length(vP-uCamPos))*.10*(m1+m2);
+  c*=mix(.3,1.,vAO); c=fogged(c,vP)+measure(vP)*.4*uInvExpo; gl_FragColor=vec4(c,0.); }`;
+function blob(fn,nu,nv){ const g=new THREE.SphereGeometry(1,nu,nv), p=g.attributes.position; for(let i=0;i<p.count;i++){ const q=fn(p.getX(i),p.getY(i),p.getZ(i)); p.setXYZ(i,q[0],q[1],q[2]); } g.computeVertexNormals(); const ao=new Float32Array(p.count); for(let i=0;i<p.count;i++) ao[i]=clamp(.35+p.getY(i)*1.2,0,1); g.setAttribute('aAO',new THREE.BufferAttribute(ao,1)); return g; }
+const rockMat=mat(ROCK_FS,{tRD:{value:rdTex}},VS_AO,{side:THREE.DoubleSide});
+const rock=new THREE.Mesh(surfaceNets(rockField,[-2.1,-.12,-2.1],[2.1,2.4,2.2],LOW?.055:.036,rockAO), rockMat); scene.add(rock);
+const stones=[[2.9,-.1,2.6,.7],[-3.1,-.15,1.6,.55],[1.7,-.1,-3.0,.5],[-1.9,-.2,3.6,.8],[4.3,-.3,5.2,1.1],[-4.6,-.3,6.5,1.3]];
+stones.forEach((s,i)=>{ const m=new THREE.Mesh(blob((x,y,z)=>{ const r=1+.5*(fbm(x*1.8+i*7,y*1.8,z*1.8)-.5); return [s[0]+x*r*s[3]*1.3, s[1]+y*r*s[3]*.8, s[2]+z*r*s[3]]; },36,24), rockMat); scene.add(m); });
+
+/* the sea fans, grain by grain */
+(function(){ const rows=[3,5,7,4,3,8,5], pos=[], aH=[], aO=[], aRow=[], aPh=[], R=rng(41), cand=[];
+  /* look for crevices: walk in to the rock from all round, and keep the most sheltered places that are not the seat or the scroll's shelf */
+  for(let t=0;t<220;t++){ const th=R()*2*PI, y0=.2+R()*1.5, o=[Math.cos(th)*3.2, y0, -.2+Math.sin(th)*3.2], dir=[-Math.cos(th),0,-Math.sin(th)]; let q=0, hit=false;
+    for(let k=0;k<90;k++){ const d=rockField(o[0]+dir[0]*q,o[1],o[2]+dir[2]*q); if(d<.006){ hit=true; break; } q+=Math.max(.01,d*.6); if(q>3.4) break; } if(!hit) continue;
+    const x=o[0]+dir[0]*q, y=o[1], z=o[2]+dir[2]*q, e=.02, gx=rockField(x+e,y,z)-rockField(x-e,y,z), gy=rockField(x,y+e,z)-rockField(x,y-e,z), gz=rockField(x,y,z+e)-rockField(x,y,z-e), l=Math.hypot(gx,gy,gz)||1;
+    if(Math.abs(x)<.75&&z>-.2&&y>.7) continue; if(Math.abs(x)<1.1&&z>.75) continue; cand.push({p:[x,y,z], n:[gx/l,gy/l,gz/l], ao:rockAO(x,y,z,gx/l,gy/l,gz/l)}); }
+  cand.sort((a,b)=>a.ao-b.ao); const roots=[]; for(const c of cand){ if(roots.length>=7) break; if(c.ao<.12) continue; if(roots.every(r=>Math.hypot(r.p[0]-c.p[0],r.p[1]-c.p[1],r.p[2]-c.p[2])>.75)) roots.push(c); }
+  roots.forEach((c,i)=>{ const b=c.p, f=growFan(100+i*13,FAN_N), cell=(.46+.1*(i%3))/f.rmax, ang=Math.atan2(c.n[2],c.n[0])+PI/2+(R()-.5)*.8, ca=Math.cos(ang), sa=Math.sin(ang); fans.push(f);
+    const lean=[c.n[0]*.55,1,c.n[2]*.55], ll=Math.hypot(lean[0],lean[1],lean[2]); const n=f.pts.length;
+    f.pts.forEach((p,k)=>{ const x=p.x*cell, y=p.y*cell; pos.push(b[0]-c.n[0]*.02+ca*x+lean[0]/ll*y, b[1]-.02+lean[1]/ll*y, b[2]-c.n[2]*.02+sa*x+lean[2]/ll*y); aH.push(y); aO.push(k/n); aRow.push(rows[i]); aPh.push(i*1.7+x*6); }); });
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('aH',new THREE.Float32BufferAttribute(aH,1)); g.setAttribute('aO',new THREE.Float32BufferAttribute(aO,1)); g.setAttribute('aRow',new THREE.Float32BufferAttribute(aRow,1)); g.setAttribute('aPh',new THREE.Float32BufferAttribute(aPh,1));
+  const m=mat(`varying vec3 vP; varying float vRow, vS; void main(){ vec2 q=gl_PointCoord*2.-1.; float r2=dot(q,q); if(r2>1.) discard; float z=sqrt(1.-r2); vec3 N=normalize(uCamR*q.x-uCamU*q.y+cross(uCamR,uCamU)*z);
+    vec3 c=lit(vRow,vP,N)*(1.15+.5*vS); c=fogged(c,vP); gl_FragColor=vec4(c,0.); }`, {uGrown:U_grown()},
+   `attribute float aH, aO, aRow, aPh; uniform float uGrown; varying vec3 vP; varying float vRow, vS;
+    void main(){ vec3 p=position; float f=aH*aH*2.6; p.x+=uSurge*f; p.y-=abs(uSurge)*f*aH*.6; p.z+=sin(uTime*1.1+aPh)*.02*aH; vP=p; vRow=aRow; vS=fract(aPh*7.3);
+      vec4 mv=viewMatrix*vec4(p,1.); gl_Position=projectionMatrix*mv; gl_PointSize=clamp(uPx*.024/max(-mv.z,.05),1.8,26.); if(aO>uGrown) gl_Position=vec4(2.,2.,2.,1.); }`);
+  const pts=new THREE.Points(g,m); pts.frustumCulled=false; scene.add(pts); })();
+function U_grown(){ return U.uGrown||(U.uGrown={value:1}); }
+
+/* the visitor's own forearm, seen only when seated. Pale stone: light wraps round past the shadow's edge and comes a little way through thin parts; faint veins; the net of light plays over it */
+const figMat=mat(`varying vec3 vP, vN; varying float vAO; void main(){ vec3 N=normalize(vN); N=normalize(N+.07*(vec3(noise3(vP*70.),noise3(vP*70.+5.),noise3(vP*70.+9.))-.5));
+  vec3 V=normalize(uCamPos-vP); float z=max(uSurf-vP.y,0.), d=length(vP-uCamPos); vec3 cz=caus(vP);
+  vec3 c=lit(9.,vP,N)*1.75; float wrap=pow(clamp(dot(N,-uSunW)*.5+.5,0.,1.),1.6), thru=pow(clamp(dot(V,uSunW)*.5+.5,0.,1.),3.)*(1.-abs(dot(N,V)));
+  c+=lut(9.,z/(-uSunW.y)+d)*(cz*.6+.4)*(wrap*.42+thru*.7)*vec3(1.,.97,.9)*exp(-uBp*d);
+  float vq=noise3(vP*vec3(6.,2.5,6.)+2.*noise3(vP*2.7)); float vein=smoothstep(.03,.0,abs(vq-.5)); c*=1.-.22*vein;
+  c*=mix(.42,1.,vAO); float rim=pow(1.-abs(dot(N,V)),3.); c+=rim*.35*lut(9.,z+d)*exp(-uBp*d);
+  c=fogged(c,vP); gl_FragColor=vec4(c,0.); }`, null, VS_AO, {side:THREE.DoubleSide});
+/* the compasses: two brass legs that stand on the page where the construction has them, and (when you sit) the hand that holds them */
+const brass=mat(`varying vec3 vP, vN; void main(){ vec3 N=normalize(vN), V=normalize(vP-uCamPos); vec3 c=lit(5.,vP,N)*.9; c+=pow(max(dot(reflect(V,N),-uSunW),0.),40.)*caus(vP)*lut(5.,max(uSurf-vP.y,0.))*1.2;
+  c+=vec3(.80,.52,.14)*.5*uInvExpo*(.35+.65*abs(dot(N,V))); c=fogged(c,vP); gl_FragColor=vec4(c,1.); }`);
+const LEGL=.36, legGeo=new THREE.CylinderGeometry(.0085,.0018,1,10).translate(0,.5,0), legs=[new THREE.Mesh(legGeo,brass),new THREE.Mesh(legGeo,brass)], hingeM=new THREE.Mesh(new THREE.SphereGeometry(.016,14,10),brass), knob=new THREE.Mesh(new THREE.CylinderGeometry(.006,.008,.05,10).translate(0,.035,0),brass);
+legs.forEach(l=>{ l.frustumCulled=false; scene.add(l); }); scene.add(hingeM); hingeM.add(knob);
+const HAND=(function(){ const P=[]; const cap=(a,b,r1,r2)=>P.push([a[0],a[1],a[2],b[0]-a[0],b[1]-a[1],b[2]-a[2],r1,r2==null?r1:r2]);
+  cap([-.005,.085,-.035],[-.03,.10,-.10],.036,.034); cap([-.03,.10,-.10],[-.05,.115,-.17],.034,.03);
+  for(let i=0;i<4;i++){ const x=(i-1.5)*.021; cap([x-.004,.092,-.012],[x*.9,.062,.032],.0115); cap([x*.9,.062,.032],[x*.55,.022,.022],.0105,.009); }
+  cap([.03,.075,-.06],[.034,.045,-.022],.014,.012); cap([.034,.045,-.022],[.016,.02,-.012],.012,.01); return P; })();
+function handField(x,y,z){ let acc=0; const k=110; for(let i=0;i<HAND.length;i++){ const c=HAND[i], px=x-c[0], py=y-c[1], pz=z-c[2], t=clamp((px*c[3]+py*c[4]+pz*c[5])/(c[3]*c[3]+c[4]*c[4]+c[5]*c[5]),0,1), dx=px-c[3]*t, dy=py-c[4]*t, dz=pz-c[5]*t;
+    acc+=Math.exp(-k*(Math.sqrt(dx*dx+dy*dy+dz*dz)-(c[6]+(c[7]-c[6])*t))); } return -Math.log(acc)/k; }
+const handRig=new THREE.Group(); handRig.scale.x=-1; scene.add(handRig);
+handRig.add(new THREE.Mesh(surfaceNets(handField,[-.11,-.01,-.22],[.08,.17,.07],.0055,(x,y,z,nx,ny,nz)=>clamp(.3+.7*handField(x+nx*.02,y+ny*.02,z+nz*.02)/.02,0,1)), figMat));
+(function(){ const A=new V3(-.05,.115,-.17), B=new V3(-.36,.06,-.42), d=B.clone().sub(A), l=d.length(), g=new THREE.CylinderGeometry(.044,.029,l,16); g.setAttribute('aAO',new THREE.BufferAttribute(new Float32Array(g.attributes.position.count).fill(1),1));
+  const me=new THREE.Mesh(g,figMat); me.position.copy(A).addScaledVector(d,.5); me.quaternion.setFromUnitVectors(new V3(0,1,0),d.normalize()); handRig.add(me); })();
+const _h=new V3(), _a=new V3(), _b=new V3(), _y=new V3(0,1,0), _t=new V3();
+function updateCompasses(){ const f=compassFeet(), W=q=>{ const p=pagePoint((390+q[0]*120)/1536, 1-(330-q[1]*120)/640); return [p[0], p[1]+.016*SCT, p[2]-.016*SST]; }, a=W(f[0]), b=W(f[1]);
+  _a.set(a[0],a[1],a[2]); _b.set(b[0],b[1],b[2]); const half=_a.distanceTo(_b)/2, up=Math.sqrt(Math.max(.0004,LEGL*LEGL-half*half)); _h.addVectors(_a,_b).multiplyScalar(.5); _h.y+=up*SCT; _h.z-=up*SST;
+  if(camS.seat<.5){ const h=pagePoint(PAGE_U.compass+.17,.86), put=(v,du,dv)=>v.set(h[0]-du, h[1]+dv*SST+.016*SCT, h[2]+dv*SCT-.016*SST); put(_h,0,0); put(_a,.13,-.335); put(_b,-.11,-.343); }
+  [[legs[0],_a],[legs[1],_b]].forEach(q=>{ _t.subVectors(q[1],_h); const l=_t.length(); q[0].position.copy(_h); q[0].quaternion.setFromUnitVectors(_y,_t.normalize()); q[0].scale.set(1,l,1); });
+  hingeM.position.copy(_h); handRig.position.copy(_h); }
+/* the scroll: a sheet with rolled ends, lit from within so it can be read */
+const scrollMesh=(function(){ const NU=96, NV=2, W=SCROLL.W, H=SCROLL.H, roll=.34, pos=[], uv=[], idx=[], st=Math.sin(SCROLL.tilt), ct=Math.cos(SCROLL.tilt), nrm=[0,ct,-st];
+  for(let j=0;j<=NV;j++) for(let i=0;i<=NU;i++){ const s=(i/NU-.5)*(W+2*roll), v=j/NV, e=Math.abs(s)-W/2; let sx=s, sy=0; if(e>0){ const th=e/.042, r=.042-.0035*th; sx=Math.sign(s)*(W/2+r*Math.sin(th)); sy=.042-r*Math.cos(th); }
+    const vv=(v-.5)*H; pos.push(SCROLL.c[0]-sx+nrm[0]*sy, SCROLL.c[1]+vv*st+nrm[1]*sy+.012, SCROLL.c[2]+vv*ct+nrm[2]*sy); uv.push(s/W+.5,v); }
+  for(let j=0;j<NV;j++) for(let i=0;i<NU;i++){ const a=j*(NU+1)+i, b=a+1, c=a+NU+1, d=c+1; idx.push(a,b,c,b,d,c); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals();
+  return new THREE.Mesh(g, mat(`uniform sampler2D tPage; varying vec3 vP; varying vec2 vUv; void main(){ vec3 cz=caus(vP); float l=dot(cz,vec3(.3,.5,.2));
+    vec3 t=(vUv.x<0.||vUv.x>1.)?vec3(.62,.54,.40):texture2D(tPage,vUv).rgb; vec3 c=t*(.80+.16*min(l,2.))*.92*uInvExpo; gl_FragColor=vec4(c,1.); }`,{tPage:{value:pageTex}},
+    `varying vec3 vP; varying vec2 vUv; void main(){ vUv=uv; vec4 w=modelMatrix*vec4(position,1.); vP=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,{side:THREE.DoubleSide})); })();
+scene.add(scrollMesh);
+
+/* the fish: small silver bodies that mostly show as light thrown back from their sides */
+const fishGeo=new THREE.SphereGeometry(1,8,6); fishGeo.scale(.014,.032,.095);
+const fish=new THREE.InstancedMesh(fishGeo, mat(`varying vec3 vP, vN; void main(){ vec3 N=normalize(vN), V=normalize(vP-uCamPos); vec3 R=reflect(V,N); float z=max(uSurf-vP.y,0.);
+  vec3 c=lit(10.,vP,N)*.35; float up=smoothstep(.55,.9,R.y); float sp=pow(max(dot(R,-uSunW),0.),24.);
+  c+=lut(0.,z+length(vP-uCamPos))*(up*1.6+sp*9.)*exp(-uBp*length(vP-uCamPos)); c=fogged(c,vP); gl_FragColor=vec4(c,0.); }`, null,
+ `varying vec3 vP, vN; void main(){ vec3 p=position; float ph=instanceMatrix[3].x*3.+instanceMatrix[3].z*2.; p.x+=sin(uTime*11.+ph+p.z*9.)*.035*smoothstep(.02,-.15,p.z);
+   vec4 w=modelMatrix*instanceMatrix*vec4(p,1.); vP=w.xyz; vN=normalize(mat3(modelMatrix)*mat3(instanceMatrix)*(normal/vec3(.014,.032,.095))); gl_Position=projectionMatrix*viewMatrix*w; }`), NFISH);
+fish.frustumCulled=false; scene.add(fish);
+const _m=new THREE.Matrix4(), _f=new V3(), _r=new V3(), _u=new V3(), _up=new V3(0,1,0);
+function updateFish(){ for(let i=0;i<NFISH;i++){ _f.set(boids.V[3*i],boids.V[3*i+1],boids.V[3*i+2]).normalize(); _r.crossVectors(_up,_f).normalize(); _u.crossVectors(_f,_r); _m.makeBasis(_r,_u,_f); _m.setPosition(boids.P[3*i],boids.P[3*i+1],boids.P[3*i+2]); fish.setMatrixAt(i,_m); } fish.instanceMatrix.needsUpdate=true; }
+
+/* marine snow: specks adrift, carried to and fro by the surge */
+const NSNOW=LOW?500:1500;
+const snow=(function(){ const R=rng(31), p=new Float32Array(NSNOW*3), s=new Float32Array(NSNOW); for(let i=0;i<NSNOW;i++){ p[3*i]=R(); p[3*i+1]=R(); p[3*i+2]=R(); s[i]=R(); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(p,3)); g.setAttribute('aS',new THREE.BufferAttribute(s,1));
+  const pts=new THREE.Points(g, mat(`varying vec3 vP; varying float vA; void main(){ vec2 q=gl_PointCoord*2.-1.; float r2=dot(q,q); if(r2>1.) discard; float z=max(uSurf-vP.y,0.); vec3 v=vP-uCamPos; float d=length(v); v/=d;
+     vec3 c=lut(0.,z+d)*(.25+.6*dot(caus(vP),vec3(.33)))*(.5+2.5*pow(max(dot(v,-uSunW),0.),6.)); float cone=smoothstep(.80,.96,dot(v,uTorchDir)); c+=uTorch*cone*lut(0.,2.*d)*5./(1.+.45*d*d);
+     gl_FragColor=vec4(c*vA*(1.-r2)*exp(-uBp*d)*(1.-uSingle*.7),0.); }`, null,
+   `attribute float aS; varying vec3 vP; varying float vA; const float BOX=9.; void main(){ vec3 q=position*BOX; q.y-=uTime*.018*(.4+aS); q.x+=uSurge*1.6+sin(uTime*.3+aS*40.)*.08; q.z+=cos(uTime*.23+aS*31.)*.08;
+     q=mod(q-uCamPos+BOX*.5,BOX)-BOX*.5+uCamPos; vP=q; vec4 mv=viewMatrix*vec4(q,1.); gl_Position=projectionMatrix*mv; float sz=uPx*(.006+.012*aS)/max(-mv.z,.08); vA=min(1.,sz)*.55*step(0.,q.y)*step(q.y,uSurf); gl_PointSize=clamp(sz,1.,9.); }`, ADD));
+  pts.frustumCulled=false; pts.renderOrder=5; scene.add(pts); return pts; })();
+/* nobody sits there. Where a sitter would be, the drifting specks catch a little more light: a standing column, shaped like no one */
+(function(){ const N=LOW?160:340, R=rng(57), p=new Float32Array(N*3), sd=new Float32Array(N); for(let i=0;i<N;i++){ const a=R()*2*PI, r=.34*Math.sqrt(-Math.log(1-R()*.93))*.6, y=R(); p[3*i]=Math.cos(a)*r*(1.15-.5*y); p[3*i+1]=y; p[3*i+2]=.12+Math.sin(a)*r*(1.15-.5*y)+.22*y*y; sd[i]=R(); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(p,3)); g.setAttribute('aS',new THREE.BufferAttribute(sd,1));
+  const pts=new THREE.Points(g, mat(`varying vec3 vP; varying float vA; void main(){ vec2 q=gl_PointCoord*2.-1.; float r2=dot(q,q); if(r2>1.) discard; float z=max(uSurf-vP.y,0.), d=length(vP-uCamPos);
+     vec3 c=lut(0.,z/(-uSunW.y)+d)*(.35+1.3*dot(caus(vP),vec3(.33))); gl_FragColor=vec4(c*vA*(1.-r2)*(1.-r2)*exp(-uBp*d),0.); }`, null,
+   `attribute float aS; varying vec3 vP; varying float vA; void main(){ float yy=fract(position.y+uTime*.012*(.5+aS)); vec3 q=vec3(position.x,1.28+yy*1.0,position.z); q.x+=uSurge*.5*yy+sin(uTime*.4+aS*40.)*.03; q.z+=cos(uTime*.31+aS*31.)*.03; vP=q;
+     vec4 mv=viewMatrix*vec4(q,1.); gl_Position=projectionMatrix*mv; float sz=uPx*(.011+.014*aS)/max(-mv.z,.08); vA=.55*(1.-uSeat)*sin(yy*3.1416)*min(1.,sz*.6); gl_PointSize=clamp(sz,1.5,10.); }`, ADD));
+  pts.frustumCulled=false; pts.renderOrder=5; scene.add(pts); })();
+/* bubbles */
+const bubGeo=new THREE.BufferGeometry(); bubGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(14*3),3)); bubGeo.setAttribute('aS',new THREE.BufferAttribute(new Float32Array(14),1));
+const bubPts=new THREE.Points(bubGeo, mat(`varying float vA; void main(){ vec2 q=gl_PointCoord*2.-1.; float r=length(q); if(r>1.) discard; float ring=smoothstep(.55,.95,r)+.9*smoothstep(.35,0.,length(q-vec2(-.3,-.35)));
+   gl_FragColor=vec4(water(vec3(0.,1.,0.))*ring*vA*1.5,0.); }`, null, `attribute float aS; varying float vA; void main(){ vec4 mv=viewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv; vA=step(position.y,uSurf)*step(.001,aS); gl_PointSize=clamp(uPx*aS*6./max(-mv.z,.08),2.,16.); }`, ADD));
+bubPts.frustumCulled=false; bubPts.renderOrder=6; scene.add(bubPts);
+function updateBubbles(){ const p=bubGeo.attributes.position, s=bubGeo.attributes.aS; for(let i=0;i<14;i++){ const b=bubbles[i]; if(b){ p.setXYZ(i,b.x,b.y,b.z); s.setX(i,b.r); } else s.setX(i,0); } p.needsUpdate=true; s.needsUpdate=true; }
+
+/* ── after the scene: shafts of light, glow, tone and grain ── */
+const pScene=new THREE.Scene(), pCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1), pQuad=new THREE.Mesh(new THREE.PlaneGeometry(2,2)); pQuad.frustumCulled=false; pScene.add(pQuad);
+function mkP(u,fs,common){ return new THREE.ShaderMaterial({uniforms:u, vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }', fragmentShader:'precision highp float;\n'+(common?COMMON:'')+fs, depthTest:false, depthWrite:false}); }
+function pass(m,target){ pQuad.material=m; renderer.setRenderTarget(target); renderer.render(pScene,pCam); }
+const NSTEP=LOW?9:16;
+/* the shafts: march each line of sight through the water and add up the sunlight it crosses, which is the net of light carried
+   along the sunbeams. Only the part that differs from the even glow is added, so shadowed shafts darken and bright ones blaze. */
+const pGod=mkP(Object.assign({},U,{tDepth:{value:null},uInvVP:{value:new THREE.Matrix4()}}),`uniform sampler2D tDepth; uniform mat4 uInvVP; varying vec2 vUv;
+ float hh(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+ void main(){ float z=texture2D(tDepth,vUv).x; vec4 h=uInvVP*vec4(vUv*2.-1.,z*2.-1.,1.); vec3 wp=h.xyz/h.w; vec3 rd=wp-uCamPos; float dist=length(rd); rd/=dist; if(z>=.99999) dist=16.; dist=min(dist,16.);
+   if(rd.y>.0001) dist=min(dist,(uSurf-uCamPos.y)/rd.y); if(rd.y<-.0001) dist=min(dist,uCamPos.y/(-rd.y));
+   float mu=dot(uSunW,-rd), g=.82, ph=.55+min((1.-g*g)/pow(1.+g*g-2.*g*mu,1.5)*.35,2.2); float j=hh(gl_FragCoord.xy+uTime*13.); vec3 acc=vec3(0.);
+   for(int i=0;i<${NSTEP};i++){ float a=(float(i)+j)/${NSTEP}., s=dist*a*a, ds=dist*2.*a/${NSTEP}.; vec3 p=uCamPos+rd*s; float zz=max(uSurf-p.y,0.);
+     acc+=(caus(p)-.95)*lut(0.,zz/(-uSunW.y)+s)*exp(-uBp*s)*ds; }
+   gl_FragColor=vec4(acc*uBp*ph*4.,1.); }`,true);
+const pBlur=mkP({tC:{value:null},uD:{value:new THREE.Vector2()}},`uniform sampler2D tC; uniform vec2 uD; varying vec2 vUv; void main(){ vec3 c=texture2D(tC,vUv).rgb*.227; c+=(texture2D(tC,vUv+uD*1.385).rgb+texture2D(tC,vUv-uD*1.385).rgb)*.316; c+=(texture2D(tC,vUv+uD*3.231).rgb+texture2D(tC,vUv-uD*3.231).rgb)*.0703; gl_FragColor=vec4(c,1.); }`);
+const pBright=mkP({tC:{value:null},uExpo:{value:1}},`uniform sampler2D tC; uniform float uExpo; varying vec2 vUv; void main(){ vec3 c=texture2D(tC,vUv).rgb*uExpo; gl_FragColor=vec4(min(max(c-1.,0.),vec3(12.)),1.); }`);
+const pFinal=mkP({tC:{value:null},tG:{value:null},tB1:{value:null},tB2:{value:null},uTime:{value:0},uExpo:{value:1},uSingle:{value:0}},`uniform sampler2D tC,tG,tB1,tB2; uniform float uTime,uExpo,uSingle; varying vec2 vUv;
+  vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+  float hh(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+  void main(){ vec4 s=texture2D(tC,vUv); vec3 c=max(s.rgb+texture2D(tG,vUv).rgb*(1.-s.a),s.rgb*.45)*uExpo; c+=texture2D(tB1,vUv).rgb*.22+texture2D(tB2,vUv).rgb*.30;
+    float l=dot(c,vec3(.2126,.7152,.0722)); c=mix(c,vec3(l)*.26,uSingle*(1.-s.a)); vec2 q=vUv-.5; c*=1.-dot(q,q)*.75;
+    c=aces(c*.8); c=pow(c,vec3(1./2.2)); c+=(hh(gl_FragCoord.xy+uTime*61.)-.5)*.016; gl_FragColor=vec4(c,1.); }`);
+
+let rt=null, rg=[], rb=[], budget=TEST&&TEST.budget?TEST.budget:(LOW?3.0e5:1.6e6), scaleNow=1, pxH=700, barShift=0; const BMAX=LOW?4.4e5:2.6e6, BMIN=1.1e5;
+function resize(){ const cw=canvas.clientWidth||window.innerWidth, ch=canvas.clientHeight||window.innerHeight, dpr=Math.min(window.devicePixelRatio||1,2);
+  const scale=Math.min(dpr,Math.sqrt(budget/(cw*ch))); scaleNow=scale; renderer.setPixelRatio(scale); renderer.setSize(cw,ch,false);
+  const w=Math.max(2,Math.floor(cw*scale)), h=Math.max(2,Math.floor(ch*scale)), ty=HDR?THREE.HalfFloatType:THREE.UnsignedByteType; pxH=h;
+  if(rt){ rt.depthTexture.dispose(); rt.dispose(); } for(const r of rg) r.dispose(); for(const r of rb) r.dispose();
+  rt=new THREE.WebGLRenderTarget(w,h,{type:ty, depthBuffer:true, minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter}); rt.depthTexture=new THREE.DepthTexture(w,h); rt.depthTexture.type=THREE.UnsignedIntType;
+  const mk=d=>new THREE.WebGLRenderTarget(Math.max(2,w>>d),Math.max(2,h>>d),{type:ty, depthBuffer:false, minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter});
+  rg=[mk(2),mk(2)]; rb=[mk(2),mk(2),mk(3),mk(3)]; camera.aspect=cw/ch; layout(); dirty=true; }
+let topH=56;
+function layout(){ const cw=canvas.clientWidth||window.innerWidth, ch=canvas.clientHeight||window.innerHeight, b=$('bar').getBoundingClientRect(); topH=cw<=760?$('read').getBoundingClientRect().bottom+6:56; barShift=((ch-b.top)-topH)/2; }
+onLayout=layout;
+window.addEventListener('resize',resize);
+const _d=new V3(), _cu=new V3(), _vp=new THREE.Matrix4();
+function draw(){ if(pageDirty) drawPage();
+  const cw=canvas.clientWidth||window.innerWidth, ch=canvas.clientHeight||window.innerHeight, narrow=cw/ch<1;
+  /* the camera */
+  const cp=Math.cos(camS.pitch), sp=Math.sin(camS.pitch), sy=Math.sin(camS.yaw), cy=Math.cos(camS.yaw); _d.set(sy*cp,sp,cy*cp); _cu.set(-sy*sp,cp,-cy*sp);
+  camera.position.set(camS.pos[0],camS.pos[1],camS.pos[2]); camera.up.copy(_cu); camera.lookAt(camS.pos[0]+_d.x,camS.pos[1]+_d.y,camS.pos[2]+_d.z);
+  const seat=sstep(.4,1,camS.seat), visH=Math.max(.3,1-(2*barShift+2*topH+24)/ch), fovDown=Math.max(2*Math.atan(Math.tan(23*D2R)/visH)/D2R, 2*Math.atan(Math.tan((cw>760?31:25)*D2R)/(cw/ch))/D2R), upness=sstep(-.3,1.0,camS.pitch), fovSit=lerp(fovDown,narrow?104:92,upness);
+  camera.fov=lerp(narrow?62:42,fovSit,seat); const shift=barShift*(1-upness*seat*.8); camera.setViewOffset(cw,ch,(cw>760?150:0)*seat*(1-upness),shift,cw,ch); camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
+  handRig.visible=camS.seat>.5; updateCompasses(); U.uSeat.value=camS.seat;/* the numbers the shaders share */
+  U.uCamPos.value.copy(camera.position); U.uTorchDir.value.copy(_d); U.uCamR.value.setFromMatrixColumn(camera.matrixWorld,0); U.uCamU.value.setFromMatrixColumn(camera.matrixWorld,1);
+  U.uSurf.value=depth; U.uTime.value=T; U.uTorch.value=torch?1:0; U.uSingle.value=camS.single; U.uSurge.value=surgeAmp(depth,0)*Math.sin(swellW(depth)*T); U.uGrown.value=fanGrown;
+  U.uPx.value=pxH/(2*Math.tan(camera.fov*D2R/2)); for(let i=0;i<WV.length;i++) U.uWp.value[i]=WV[i].ph-WV[i].w*T;
+  const expo=(TEST&&TEST.expo||1.0)/Math.pow(Math.max(.004,lumOf(spectrumToRgb(l=>transmit(l,depth)))),.8); U.uInvExpo.value=1/expo;
+  updateCaustics(); updateRD(); updateFish(); updateBubbles(); if(pagePending){ pageTex.needsUpdate=true; pagePending=false; }
+  renderer.setRenderTarget(rt); renderer.clear(); renderer.render(scene,camera);
+  _vp.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse); pGod.uniforms.uInvVP.value.copy(_vp).invert(); pGod.uniforms.tDepth.value=rt.depthTexture; pass(pGod,rg[0]);
+  pBlur.uniforms.tC.value=rg[0].texture; pBlur.uniforms.uD.value.set(1/rg[0].width,0); pass(pBlur,rg[1]); pBlur.uniforms.tC.value=rg[1].texture; pBlur.uniforms.uD.value.set(0,1/rg[0].height); pass(pBlur,rg[0]);
+  pBright.uniforms.tC.value=rt.texture; pBright.uniforms.uExpo.value=expo; pass(pBright,rb[0]);
+  pBlur.uniforms.tC.value=rb[0].texture; pBlur.uniforms.uD.value.set(1/rb[0].width,0); pass(pBlur,rb[1]); pBlur.uniforms.tC.value=rb[1].texture; pBlur.uniforms.uD.value.set(0,1/rb[0].height); pass(pBlur,rb[0]);
+  pBlur.uniforms.tC.value=rb[0].texture; pBlur.uniforms.uD.value.set(1.6/rb[2].width,0); pass(pBlur,rb[2]); pBlur.uniforms.tC.value=rb[2].texture; pBlur.uniforms.uD.value.set(0,1.6/rb[2].height); pass(pBlur,rb[3]);
+  pFinal.uniforms.tC.value=rt.texture; pFinal.uniforms.tG.value=rg[0].texture; pFinal.uniforms.tB1.value=rb[0].texture; pFinal.uniforms.tB2.value=rb[3].texture; pFinal.uniforms.uTime.value=STILL?0:vt; pFinal.uniforms.uExpo.value=expo; pFinal.uniforms.uSingle.value=camS.single; pass(pFinal,null);
+  frame++; }
+let pagePending=true; const _drawPage=drawPage; drawPage=function(){ _drawPage(); pagePending=true; };
+
+resize(); hud(true);
+if(STILL||TEST){ const tg=camTarget(); camS.pos=tg.pos.slice(); camS.yaw=tg.yaw; camS.pitch=tg.pitch; }
+let lastT=0, slowN=0;
+function loop(now){ requestAnimationFrame(loop); const dt=Math.min(.1,Math.max(0,(now-lastT)/1000)); lastT=now; if(dt<=0) return;
+  if(playing){ vt+=dt; advance(dt); sTone(); } else if(AU.ctx) sTone();
+  if(!playing && !dirty) return; dirty=false;
+  draw(); hud();
+  if(!TEST){ slowN++; if(slowN>24){ slowN=0; const ms=dt*1000; if(ms>42 && budget>BMIN){ budget=Math.max(BMIN,budget*.8); resize(); } else if(ms<19 && budget<BMAX && scaleNow<Math.min(window.devicePixelRatio||1,2)){ budget=Math.min(BMAX,budget*1.12); resize(); } } } }
+API.webgl=true;
+API.state=function(){ const s=baseState(); s.webgl=true; s.scale=scaleNow; s.hdr=HDR; s.fov=camera.fov; return s; };
+API.shot=function(){ draw(); renderer.getContext().finish(); hud(true); return true; };
+/* jump the camera to where it is heading (for stills and tests) */
+API.settle=function(){ if(gaze.auto){ gaze.yaw=gaze.auto.yaw; gaze.pitch=gaze.auto.pitch; gaze.auto=null; } if(vision==='single'){ const d=pageDir(); gaze.yaw=d.yaw; gaze.pitch=d.pitch; } const tg=camTarget(); camS.pos=tg.pos.slice(); camS.yaw=tg.yaw; camS.pitch=tg.pitch; camS.single=vision==='single'?1:0; camS.seat=view==='sit'?1:0; syncUI(); dirty=true; };
+window.PIECE=API;
+if(TEST){ draw(); return; }
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

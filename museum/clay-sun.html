@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clay Sun</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: full-bleed stage, quiet film-slate controls pinned to the corners */
+  --studio:#0c0d10;
+  --ink:#f3ecdf;
+  --ink-soft:rgba(243,236,223,.72);
+  --panel:rgba(14,15,19,.58);
+  --line:rgba(243,236,223,.22);
+  --accent:#ff7a3c;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#stage.dragging{cursor:grabbing}
+.head{position:fixed;left:20px;top:16px;right:356px;pointer-events:none;text-shadow:0 1px 10px rgba(0,0,0,.55)}
+.head h1{font:600 clamp(22px,3.2vw,34px)/1.05 var(--display);margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.head p{font:400 13px/1.45 var(--mono);margin:0;color:var(--ink-soft);max-width:50ch}
+.bar{position:fixed;left:16px;right:16px;bottom:16px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;
+  padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font:400 12.5px/1 var(--mono)}
+.bar button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);
+  border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+.bar button:hover{border-color:var(--ink-soft)}
+.bar button[aria-pressed="true"]{background:var(--ink);color:#15161a;border-color:var(--ink)}
+.bar button:focus-visible,.bar input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#play{min-width:74px;background:var(--accent);border-color:var(--accent);color:#1a0d05}
+#scrub{flex:1 1 180px;min-width:120px;accent-color:var(--accent);height:22px}
+#count{font-variant-numeric:tabular-nums;color:var(--ink-soft);white-space:nowrap}
+.side{position:fixed;right:20px;top:60px;width:318px;max-width:calc(100vw - 32px);display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.read{margin:0;display:grid;grid-template-columns:auto auto;gap:5px 14px;padding:12px 14px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  font:400 12.5px/1.25 var(--mono);font-variant-numeric:tabular-nums;pointer-events:none;max-width:calc(100vw - 40px)}
+.read dt{color:var(--ink-soft);margin:0;white-space:nowrap}.read dd{margin:0;text-align:right;white-space:nowrap}
+.read .big{font:600 22px/1 var(--display);grid-column:1/-1;text-align:left;margin-bottom:2px}
+.read .note{grid-column:1/-1;color:var(--accent);text-align:left;white-space:normal}
+.fold{background:var(--panel);border:1px solid var(--line);border-radius:12px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  font:400 12.5px/1.4 var(--mono);pointer-events:auto;text-shadow:none}
+.fold summary{cursor:pointer;padding:9px 12px;list-style:none;display:flex;gap:8px;justify-content:space-between;align-items:baseline;border-radius:12px;white-space:nowrap}
+.fold summary::-webkit-details-marker{display:none}
+.fold summary::after{content:"+";color:var(--ink-soft)}
+.fold[open] summary::after{content:"\2212"}
+.fold summary b{font-weight:500;color:var(--accent)}
+.fold .in{padding:0 12px 11px}
+.fold dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-variant-numeric:tabular-nums}
+.fold dt{color:var(--ink-soft)}.fold dd{margin:0;text-align:right}
+.fold p{margin:8px 0 0;color:var(--ink-soft)}
+.fold .win{color:var(--accent)}
+.moves{margin:9px 0 0;display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font:400 12.5px/1.4 var(--mono);color:var(--ink-soft);max-width:54ch}
+.moves dt{color:var(--ink);font-weight:500}.moves dd{margin:0}
+.moves i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+.key{margin:0}
+.key ul{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.key li{color:var(--ink-soft)}
+.key li b{font-weight:500;color:var(--ink)}
+.key i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:baseline}
+.back{position:fixed;right:20px;top:16px;font:500 12.5px/1 var(--mono);color:var(--ink);text-decoration:none;background:var(--panel);border:1px solid var(--line);
+  border-radius:999px;padding:9px 13px;white-space:nowrap;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.back:hover{border-color:var(--ink-soft)}
+.back:focus-visible,.fold summary:focus-visible,#stage:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#stage:focus-visible{outline-offset:-3px}
+.about:focus{outline:none;border-color:var(--ink-soft)}
+.about{position:fixed;left:16px;bottom:84px;width:min(600px,calc(100vw - 32px));max-height:min(64vh,560px);overflow:auto;display:none;padding:14px 16px 16px;
+  background:rgba(14,15,19,.9);border:1px solid var(--line);border-radius:14px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);font:400 12.5px/1.55 var(--mono);color:var(--ink-soft)}
+.about.on{display:block}
+.about h2{font:600 19px/1.15 var(--display);color:var(--ink);margin:0 0 8px}
+.about h3{font:500 12.5px/1.3 var(--mono);color:var(--ink);margin:13px 0 3px}
+.about p{margin:0 0 6px}
+body{transition:opacity .35s}
+body.leaving{opacity:0}
+@media (max-width:760px){.head p,.moves,.read .w{display:none}.head{right:150px}.side{top:52px;left:12px;right:12px;width:auto;max-width:none}.read{font-size:11.5px;padding:9px 11px;gap:3px 10px;grid-template-columns:auto auto auto auto}.read dd{margin-right:6px}
+  .read .big{font-size:18px}.back{right:12px;top:12px;padding:8px 11px;font-size:11.5px}.fold{font-size:11.5px}
+  .bar{left:8px;right:8px;bottom:8px;gap:8px;padding:8px 10px}.bar button{padding:8px 10px}#refocus{display:none}}
+@media (min-width:761px){.key{display:none}}
+@media (prefers-reduced-motion:reduce){body{transition:none}}
+#fail{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:400 15px/1.5 var(--mono)}
+</style>
+</head>
+<body>
+<canvas id="stage" tabindex="0" aria-label="A clay sun turning through its sunspot cycles since 1755, animated in stop motion. Space plays or pauses, the left and right arrows step through the years, Escape goes back to the museum."></canvas>
+<div class="head">
+  <h1>Clay Sun</h1>
+  <p>The sunspot record since 1755, run on four moves. Drag to look around.</p>
+  <dl class="moves" aria-label="The four moves">
+    <dt><i style="background:#ffc21a"></i>Loop</dt><dd>the ring: half a turn for each sunspot cycle</dd>
+    <dt><i style="background:#ff7a3c"></i>Count</dt><dd>how far the sunspot number has travelled</dd>
+    <dt><i style="background:#fff3d6"></i>Cut</dt><dd>the flash at each minimum: a ball is settled</dd>
+    <dt><i style="box-shadow:0 0 0 2px #f2e6cf inset"></i>Seed</dt><dd>the cream ring: the size expected beforehand</dd>
+  </dl>
+</div>
+<a class="back" id="back" href="index.html#clocks">&larr; Back to the museum</a>
+<div class="side">
+  <dl class="read" id="read"></dl>
+  <details class="fold" id="score">
+    <summary><span>How did the seed do?</span><b id="verdict"></b></summary>
+    <div class="in" id="scoreIn"></div>
+  </details>
+  <details class="fold key" data-key>
+    <summary>The four moves</summary>
+    <div class="in"><ul>
+      <li><i style="background:#ffc21a"></i><b>Loop.</b> The ring on the left. The bead goes half-way round in one sunspot cycle; the sun&rsquo;s magnetism flips each time, so the whole ring takes two.</li>
+      <li><i style="background:#ff7a3c"></i><b>Count.</b> How far the sunspot number has travelled this cycle, up and down again.</li>
+      <li><i style="background:#fff3d6"></i><b>Cut.</b> The flash at each minimum. The cycle is over, and its ball stays on the bench for good.</li>
+      <li><i style="background:transparent;box-shadow:0 0 0 2px #f2e6cf inset"></i><b>Seed.</b> The cream ring round each ball: the size expected before that cycle was lived. Ball inside the ring, the seed guessed too high.</li>
+    </ul></div>
+  </details>
+</div>
+<div class="about" id="about" role="region" aria-label="About this piece" tabindex="-1"></div>
+<div class="bar">
+  <button id="play" type="button">Pause</button>
+  <input id="scrub" type="range" min="0" max="3441" step="2" value="0" aria-label="Year">
+  <span id="count">1755</span>
+  <button id="twos" type="button" aria-pressed="true" title="12 pictures a second">On twos</button>
+  <button id="ones" type="button" aria-pressed="false" title="24 pictures a second">On ones</button>
+  <button id="refocus" type="button">Focus on the sun</button>
+  <button id="aboutBtn" type="button" aria-expanded="false" aria-controls="about">About</button>
+</div>
+<div id="fail">This piece needs WebGL 2, which this browser or device has not made available.</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+const canvas = document.getElementById('stage');
+/* The way back. Nothing from the address bar is ever navigated to: it only picks a key of HOME and a checked anchor. */
+const HOME = { blake: 'index.html', jooles: 'jooles.html', park: 'park.html' };
+const QS = new URLSearchParams(location.search);
+const FROM = Object.prototype.hasOwnProperty.call(HOME, QS.get('from')) ? QS.get('from') : 'blake';
+const STOP = /^[a-z0-9_:\-]{1,40}$/.test(QS.get('stop') || '') ? QS.get('stop') : 'clocks';
+const BACK = HOME[FROM] + '#' + STOP;
+const LOW = QS.get('q') === 'low';
+const backEl = document.getElementById('back'); backEl.setAttribute('href', BACK);
+function goBack(){ document.body.classList.add('leaving'); setTimeout(()=>{ location.href = BACK; }, 380); }
+backEl.addEventListener('click', e=>{ e.preventDefault(); goBack(); });
+if (!window.THREE || !canvas.getContext('webgl2')) { document.getElementById('fail').style.display='grid'; return; }
+
+/* ───────────────────────── noise (CPU) ───────────────────────── */
+function h3(x,y,z){ let n = Math.imul(x|0,374761393) ^ Math.imul(y|0,668265263) ^ Math.imul(z|0,1440662683);
+  n = Math.imul(n ^ (n>>>13), 1274126177); return ((n ^ (n>>>16))>>>0)/4294967296; }
+function vn3(x,y,z){ const xi=Math.floor(x), yi=Math.floor(y), zi=Math.floor(z);
+  let fx=x-xi, fy=y-yi, fz=z-zi; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); fz=fz*fz*(3-2*fz);
+  const a=h3(xi,yi,zi), b=h3(xi+1,yi,zi), c=h3(xi,yi+1,zi), d=h3(xi+1,yi+1,zi),
+        e=h3(xi,yi,zi+1), f=h3(xi+1,yi,zi+1), g=h3(xi,yi+1,zi+1), h=h3(xi+1,yi+1,zi+1);
+  const ab=a+(b-a)*fx, cd=c+(d-c)*fx, ef=e+(f-e)*fx, gh=g+(h-g)*fx;
+  const p=ab+(cd-ab)*fy, q=ef+(gh-ef)*fy; return p+(q-p)*fz; }
+function fbm3(x,y,z){ return vn3(x,y,z)*.55 + vn3(x*2.1+5,y*2.1+3,z*2.1+1)*.3 + vn3(x*4.3+9,y*4.3+7,z*4.3+2)*.15; }
+const rnd=(i,j)=>h3(i,j,77);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const sstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+
+/* ───────────────────────── renderer ───────────────────────── */
+const renderer = new THREE.WebGLRenderer({canvas, antialias:false, alpha:false, powerPreference:'high-performance', preserveDrawingBuffer:true});
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+const HDR = renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float');
+
+/* Contact-hardening soft shadows (PCSS) patched into three's shadow lookup. */
+(function(){
+  const pcss = `
+  float ignoise(vec2 p){ return fract(52.9829189*fract(dot(p, vec2(0.06711056,0.00583715)))); }
+  float pcssShadow(sampler2D sm, vec3 c, float K){
+    float rot = ignoise(gl_FragCoord.xy)*6.2831853;
+    float search = K*0.05, bsum=0., bn=0.;
+    for(int i=0;i<14;i++){ float fi=float(i)+.5; float r=sqrt(fi/14.); float a=fi*2.39996323+rot;
+      float d = unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*search));
+      if(d < c.z-0.0006){ bsum+=d; bn+=1.; } }
+    if(bn<.5) return 1.;
+    float pen = clamp((c.z-bsum/bn)*K, 0.0006, 0.02);
+    float s=0.;
+    for(int i=0;i<28;i++){ float fi=float(i)+.5; float r=sqrt(fi/28.); float a=fi*2.39996323+rot*1.7;
+      s += step(c.z, unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*pen))); }
+    return s/28.;
+  }`;
+  let ch = THREE.ShaderChunk.shadowmap_pars_fragment;
+  ch = ch.replace('#ifdef USE_SHADOWMAP', '#ifdef USE_SHADOWMAP\n'+pcss);
+  ch = ch.replace('#if defined( SHADOWMAP_TYPE_PCF )', 'return pcssShadow(shadowMap, shadowCoord.xyz, shadowRadius);\n#if defined( SHADOWMAP_TYPE_PCF )');
+  THREE.ShaderChunk.shadowmap_pars_fragment = ch;
+})();
+
+/* ───────────────────────── materials ───────────────────────── */
+const shared = { uPolar:{value:0}, uSeed:{value:new THREE.Vector3()}, uShip:{value:new THREE.Vector4()}, uSeaT:{value:0} };
+const GLSL_NOISE = `
+float hash13(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32); return fract((p.x+p.y)*p.z); }
+float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash13(i),hash13(i+vec3(1,0,0)),f.x),mix(hash13(i+vec3(0,1,0)),hash13(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash13(i+vec3(0,0,1)),hash13(i+vec3(1,0,1)),f.x),mix(hash13(i+vec3(0,1,1)),hash13(i+vec3(1,1,1)),f.x),f.y),f.z); }`;
+const CLAY_PARS = GLSL_NOISE + `
+uniform mat3 normalMatrix;
+uniform vec3 uSeed; uniform float uBoil, uBump, uSmear, uSpeck, uGlow, uPolar; uniform vec3 uCol2;
+uniform vec4 uBandY; uniform vec3 uBandC[4];
+uniform vec4 uShip; uniform float uSeaT; uniform vec3 uDeep, uMid, uLight, uFoam;
+varying vec3 vObjPos; varying vec3 vObjN;
+#ifdef SEA
+varying vec2 vSea;
+#endif
+float clayH(vec3 p){
+  vec3 q = p + uSeed*uBoil;
+  float h = (vn(q*8.)-.5) + (vn(q*21.+3.)-.5)*.5 + (vn(q*57.+7.)-.5)*.22;
+  vec3 w = q*5.5; float fpMask = smoothstep(.56,.8, vn(w*.8+11.));
+  vec2 cc = fract(w.xy + w.z*.37)-.5;
+  h += sin(length(cc)*52. + vn(q*19.)*7.)*fpMask*.028;
+  h += smoothstep(.8,.95, vn(vec3(q.x*3., q.y*40., q.z*3.)+2.))*-.07;
+  return h;
+}
+vec3 clayNormal(vec3 nView){
+  #ifdef MODE_CLAY
+  vec3 p = vObjPos; float e = .0035;
+  float h0 = clayH(p);
+  vec3 g = vec3(clayH(p+vec3(e,0,0))-h0, clayH(p+vec3(0,e,0))-h0, clayH(p+vec3(0,0,e))-h0)/e;
+  vec3 nO = normalize(vObjN);
+  g -= dot(g,nO)*nO;
+  vec3 nP = normalize(nO - g*uBump*.011);
+  vec3 nV = normalize(normalMatrix*nP);
+  return dot(nV,nView) < 0. ? -nV : nV;
+  #else
+  return nView;
+  #endif
+}
+float clayRough(float r){
+  #ifdef MODE_CLAY
+  float m = vn(vObjPos*6.+uSeed*uBoil+40.);
+  return clamp(r + (m-.5)*.3 - smoothstep(.7,.9,vn(vObjPos*3.+9.))*.14, .2, 1.);
+  #else
+  return r;
+  #endif
+}
+vec3 clayAlbedo(vec3 base){
+  vec3 p = vObjPos; vec3 c = base;
+  #ifdef MODE_CLAY
+    #ifdef BANDS
+      float wob = (vn(p*7.)-.5)*.035 + (vn(p*23.)-.5)*.012;
+      float y = p.y + wob;
+      c = uBandC[0];
+      c = mix(c, uBandC[1], smoothstep(-.004,.004, y-uBandY.x));
+      c = mix(c, uBandC[2], smoothstep(-.004,.004, y-uBandY.y));
+      c = mix(c, uBandC[3], smoothstep(-.004,.004, y-uBandY.z));
+    #endif
+    #ifdef SEA
+      vec2 P = p.xz; vec2 d1 = vec2(.5,.866);
+      float along = dot(P, vec2(d1.y,-d1.x)), across = dot(P,d1);
+      float st  = vn(vec3(along*.9, across*3.6 - uSeaT*.55, 3.+uSeed.x*.2));
+      float st2 = vn(vec3(along*2.3+5., across*8. - uSeaT*.9, 9.+uSeed.y*.2));
+      c = mix(uDeep, uMid, smoothstep(.22,.7,st));
+      c = mix(c, uLight, smoothstep(.5,.82,st2)*.75);
+      float hN = vSea.x;
+      c = mix(c, uDeep*.75, smoothstep(.42,.05,hN)*.55);
+      float nz = vn(vec3(P*6.5, uSeed.y*3.))-.5;
+      float crest = smoothstep(.86,.98, hN + nz*.3);
+      vec2 L = P - uShip.xy;
+      float e = length(vec2(L.x/.98, L.y/.36));
+      float ring = smoothstep(1.42,1.08,e);
+      float b = -L.x - .55; float wake = 0.;
+      if(b>0.){ float arm = exp(-pow((abs(L.y)-(.2+.3*b))/.075,2.))*exp(-b*.5);
+        float churn = exp(-pow(L.y/(.13+.06*b),2.))*exp(-b*.75); wake = max(arm, churn); }
+      float foam = smoothstep(.34,.56, max(ring,wake) + (vn(vec3(P*10., uSeed.z*3.))-.5)*.55);
+      c = mix(c, uFoam, max(crest*.92, foam*.95)*(1.-vSea.y));
+      c = mix(c, uDeep*.9, vSea.y*.6);
+    #endif
+    #ifdef SUN
+      vec3 dn = normalize(p);
+      float gr = vn(p*5.+uSeed*.5)*.6+vn(p*11.+uSeed.yzx*.5)*.4, gr2 = vn(p*13.+uSeed.zxy*.7)*.55+vn(p*29.+3.)*.45;
+      c = mix(vec3(.80,.20,.015), vec3(.95,.45,.03), smoothstep(.3,.7,gr));
+      c = mix(c, vec3(1.,.70,.12), smoothstep(.42,.72,gr2)*.7);
+      float capT = mix(1.03,.74, clamp(abs(uPolar),0.,1.));
+      float cap = smoothstep(capT, capT+.035, abs(dn.y)+(vn(p*5.)-.5)*.1+(vn(p*14.)-.5)*.03);
+      c = mix(c, sign(dn.y)*sign(uPolar)>0. ? vec3(.05,.17,.72) : vec3(.70,.04,.10), cap);
+    #endif
+    float m = vn(p*5.+uSeed*uBoil)*.6 + vn(p*17.+4.)*.4;
+    c *= .86 + .28*m;
+    float s = smoothstep(.6,.8, vn(vec3(p.x*3.,p.y*8.,p.z*3.)+31.));
+    c = mix(c, uCol2, s*uSmear);
+    float sp = smoothstep(.9,.95, vn(p*150.+17.))*step(.75, vn(p*9.+70.));
+    c = mix(c, vec3(.82,.78,.7), sp*.35*uSpeck);
+  #endif
+  #ifdef MODE_WOOD
+    vec2 P = p.xz; float pid = floor(P.y/1.15+.5); float py = fract(P.y/1.15+.5);
+    float gw = vn(vec3(P.x*.5+pid*7., P.y*5., pid));
+    float rings = sin(P.y*46. + gw*9. + vn(vec3(P.x*.25,P.y*1.5,pid*3.))*14.);
+    c = mix(vec3(.25,.14,.07), vec3(.47,.29,.15), .5+.5*rings*.7);
+    c *= .8 + .35*vn(vec3(P.x*8., P.y*160., pid));
+    c *= mix(.45,1., smoothstep(0.,.02,py)*smoothstep(1.,.98,py));
+    c *= base;
+  #endif
+  #ifdef MODE_PAPER
+    float y = clamp((p.y+3.55)/2.5,0.,1.);
+    float br = (vn(vec3(p.x*.5,p.y*5.,1.))-.5)*.08 + (vn(vec3(p.x*3.,p.y*30.,4.))-.5)*.03;
+    y += br;
+    c = mix(vec3(.96,.62,.40), vec3(.93,.80,.68), smoothstep(.04,.2,y));
+    c = mix(c, vec3(.36,.62,.86), smoothstep(.14,.46,y));
+    c = mix(c, vec3(.12,.32,.64), smoothstep(.5,1.,y));
+    c *= .93+.14*vn(p*14.);
+    #ifdef NIGHT
+      float yn = clamp((p.y+8.)/16.,0.,1.) + br;
+      c = mix(vec3(.035,.05,.13), vec3(.012,.018,.06), smoothstep(.1,.9,yn));
+      c *= .85+.3*vn(vec3(p.x*.6,p.y*6.,2.));
+      vec2 hd = p.xy - vec2(0.,-3.1);
+      c += vec3(.55,.2,.03)*exp(-dot(hd,hd)/7.)*.55;
+      float stc = vn(vec3(p.xy*7.,3.));
+      c += vec3(.9,.88,.75)*smoothstep(.9,.95,stc)*step(.5,vn(vec3(p.xy*1.3,8.)))*.9;
+    #endif
+  #endif
+  return c;
+}`;
+function lin(hex){ return new THREE.Color(hex); }
+function mat(o){
+  o = o || {};
+  const mode = o.mode || 'CLAY';
+  const m = new THREE.MeshPhysicalMaterial({ color:o.color!==undefined?o.color:0xffffff, roughness:o.rough!==undefined?o.rough:.56, metalness:0,
+    sheen: mode==='CLAY'?.45:0, sheenRoughness:.5, sheenColor:new THREE.Color(o.color!==undefined?o.color:0xffffff).lerp(new THREE.Color(0xffffff),.5),
+    specularIntensity: o.spec!==undefined?o.spec:.75, envMapIntensity:o.env!==undefined?o.env:1, side:o.side||THREE.FrontSide });
+  if(o.emissive){ m.emissive=new THREE.Color(o.emissive); m.emissiveIntensity=o.emissiveIntensity||1; }
+  const bands = o.bands||null;
+  const u = { uSeed:shared.uSeed, uShip:shared.uShip, uSeaT:shared.uSeaT,
+    uBoil:{value:o.boil||0}, uBump:{value:o.bump!==undefined?o.bump:1}, uSmear:{value:o.smear||0}, uSpeck:{value:o.speck!==undefined?o.speck:1}, uGlow:{value:o.glow||0}, uPolar:shared.uPolar, uCol2:{value:lin(o.color2!==undefined?o.color2:0xffffff)},
+    uBandY:{value:new THREE.Vector4(bands?bands.y[0]:9, bands&&bands.y[1]!==undefined?bands.y[1]:9, bands&&bands.y[2]!==undefined?bands.y[2]:9, 0)},
+    uBandC:{value:[0,1,2,3].map(i=>lin(bands?bands.c[Math.min(i,bands.c.length-1)]:0xffffff))},
+    uDeep:{value:lin(0x0b3a78)}, uMid:{value:lin(0x1668b8)}, uLight:{value:lin(0x2fa3c9)}, uFoam:{value:lin(0xf1eee2)} };
+  m.defines = Object.assign({}, m.defines, {['MODE_'+mode]:''});
+  if(bands) m.defines.BANDS='';
+  if(o.sea) m.defines.SEA='';
+  if(o.sun) m.defines.SUN='';
+  if(o.night) m.defines.NIGHT='';
+  m.userData.u = u;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjPos; varying vec3 vObjN;\n#ifdef SEA\nattribute vec2 aSea; varying vec2 vSea;\n#endif')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObjPos=position; vObjN=normal;\n#ifdef SEA\nvSea=aSea;\n#endif');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n'+CLAY_PARS)
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = clayAlbedo(diffuseColor.rgb);')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clayRough(roughnessFactor);')
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal = clayNormal(normal);')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb*uGlow;');
+  };
+  m.customProgramCacheKey = () => 'clay|'+mode+'|'+(bands?1:0)+'|'+(o.sea?1:0)+(o.sun?1:0)+(o.night?1:0);
+  return m;
+}
+
+/* ───────────────────────── geometry helpers ───────────────────────── */
+function weld(geo){
+  const p=geo.attributes.position, n=new Float32Array(p.count*3), map=new Map(), key=new Array(p.count);
+  for(let i=0;i<p.count;i++){ key[i]=Math.round(p.getX(i)*2e4)+'_'+Math.round(p.getY(i)*2e4)+'_'+Math.round(p.getZ(i)*2e4); if(!map.has(key[i])) map.set(key[i],[0,0,0]); }
+  const idx=geo.index, tri=idx?idx.count/3:p.count/3, a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let t=0;t<tri;t++){ const i0=idx?idx.getX(t*3):t*3, i1=idx?idx.getX(t*3+1):t*3+1, i2=idx?idx.getX(t*3+2):t*3+2;
+    a.fromBufferAttribute(p,i0); b.fromBufferAttribute(p,i1); c.fromBufferAttribute(p,i2); b.sub(a); c.sub(a); b.cross(c);
+    for(const i of [i0,i1,i2]){ const m=map.get(key[i]); m[0]+=b.x; m[1]+=b.y; m[2]+=b.z; } }
+  for(let i=0;i<p.count;i++){ const m=map.get(key[i]); const l=Math.hypot(m[0],m[1],m[2])||1; n[i*3]=m[0]/l; n[i*3+1]=m[1]/l; n[i*3+2]=m[2]/l; }
+  geo.setAttribute('normal', new THREE.BufferAttribute(n,3)); return geo;
+}
+let seedC = 1;
+function clayify(geo, amp, freq){
+  const sd = (seedC++)*13.7; weld(geo);
+  const p=geo.attributes.position, n=geo.attributes.normal;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+    const d=(fbm3(x*freq+sd,y*freq+sd*.7,z*freq+sd*.3)-.5)*2*amp;
+    p.setXYZ(i, x+n.getX(i)*d, y+n.getY(i)*d, z+n.getZ(i)*d); }
+  weld(geo); geo.computeBoundingSphere(); return geo;
+}
+function blob(r, sx, sy, sz, amp, freq, det){
+  const g=new THREE.SphereGeometry(r, det||40, Math.round((det||40)*.7)); g.scale(sx||1,sy||1,sz||1);
+  return clayify(g, amp!==undefined?amp:r*.12, freq||(1.6/r));
+}
+function rbox(w,h,d,r,amp,freq){
+  const s=14, g=new THREE.BoxGeometry(w,h,d,s,s,s), p=g.attributes.position, hx=w/2-r, hy=h/2-r, hz=d/2-r, v=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); c.set(clamp(v.x,-hx,hx),clamp(v.y,-hy,hy),clamp(v.z,-hz,hz)); v.sub(c);
+    if(v.lengthSq()>1e-12){ v.normalize().multiplyScalar(r).add(c); p.setXYZ(i,v.x,v.y,v.z); } }
+  return clayify(g, amp!==undefined?amp:.012, freq||7);
+}
+function lathe(pts, amp, freq, seg){
+  const g=new THREE.LatheGeometry(pts.map(q=>new THREE.Vector2(q[0],q[1])), seg||44); return clayify(g, amp!==undefined?amp:.01, freq||7);
+}
+function grid(nu,nv,fn){
+  const pos=new Float32Array((nu+1)*(nv+1)*3), idx=[]; let k=0; const o=[0,0,0];
+  for(let i=0;i<=nu;i++) for(let j=0;j<=nv;j++){ fn(i/nu,j/nv,o); pos[k++]=o[0]; pos[k++]=o[1]; pos[k++]=o[2]; }
+  for(let i=0;i<nu;i++) for(let j=0;j<nv;j++){ const a=i*(nv+1)+j, b=a+1, c=a+nv+1, d=c+1; idx.push(a,b,c, b,d,c); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3)); g.setIndex(idx); return g;
+}
+function flip(g){ const ix=g.index.array; for(let i=0;i<ix.length;i+=3){ const t=ix[i+1]; ix[i+1]=ix[i+2]; ix[i+2]=t; } return g; }
+function mesh(g,m,x,y,z,parent){ const o=new THREE.Mesh(g,m); o.position.set(x||0,y||0,z||0); o.castShadow=true; o.receiveShadow=true; (parent||scene).add(o); return o; }
+
+/* ───────────────────────── the record, and CRR's moves on it ───────────────────────── */
+/* THE MODEL, its parameters and its source.
+   Data: SILSO (Royal Observatory of Belgium) table of cycle minima and maxima, 13-month smoothed sunspot number v2.0, read 18 Nov 2026.
+         Columns: cycle, year and month of minimum, value at minimum, year and month of maximum, value at maximum. Cycle 25's maximum is provisional.
+         The table below is the one in reference/crr_sun.py, character for character, and every number on screen is worked out from it here.
+   Loop:  phase = (cycle index + fraction of the cycle elapsed) half-turns. The cuts are SILSO's dated minima, not a first passage computed from data.
+   Count: C = path length of the sunspot number with the ruler d(a,b) = 2|sqrt(a) - sqrt(b)| (Fisher-Rao distance between two count rates, sigma = 1).
+          C* = d(now, start of the cycle).  S = C - C*.   (Phoenix_Egg/CORE/MATHEMATICS.md, section III: S = 2B, twice the way walked back.)
+   Seed:  m[n+1] = q m[n] + (1 - q) Phi[n],  Phi = the maximum just lived,  q = 1/phi = 0.618..., m[1] = Phi[1].  No universal q: this one was fixed before the run.
+   The bet (stated before the first run of crr_sun.py): the seed predicts the next maximum with lower RMSE than BOTH persistence and the running mean.
+   Borrowed, not derived: the shape of a cycle (Hathaway, Wilson and Reichmann, Solar Physics 151, 177, 1994), the butterfly drift (Sporer),
+   the tilt of spot pairs (Joy), the polarity flip (Hale), and the rise-time fit (Waldmeier). Individual spots are placed by a seeded hash. */
+const TABLE=`1 1755 2 14.0 1761 6 144.1
+2 1766 6 18.6 1769 9 193.0
+3 1775 6 12.0 1778 5 264.2
+4 1784 9 15.9 1788 2 235.3
+5 1798 4 5.3 1805 2 82.0
+6 1810 7 0.0 1816 5 81.2
+7 1823 5 0.1 1829 11 119.2
+8 1833 11 12.2 1837 3 244.9
+9 1843 7 17.6 1848 2 219.9
+10 1855 12 6.0 1860 2 186.2
+11 1867 3 9.9 1870 8 234.0
+12 1878 12 3.7 1883 12 124.4
+13 1890 3 8.3 1894 1 146.5
+14 1902 1 4.5 1906 2 107.1
+15 1913 7 2.5 1917 8 175.7
+16 1923 8 9.3 1928 4 130.2
+17 1933 9 5.8 1937 4 198.6
+18 1944 2 12.9 1947 5 218.7
+19 1954 4 5.1 1958 3 285.0
+20 1964 10 14.3 1968 11 156.6
+21 1976 3 17.8 1979 12 232.9
+22 1986 9 13.5 1989 11 212.5
+23 1996 8 11.2 2001 11 180.3
+24 2008 12 2.2 2014 4 116.4
+25 2019 12 1.8 2024 10 160.9`;
+const REC=TABLE.split('\n').map(l=>{ const a=l.trim().split(/\s+/).map(Number);
+  return {n:a[0], t0:a[1]+(a[2]-.5)/12, rmin:a[3], tmax:a[4]+(a[5]-.5)/12, A:a[6]}; });
+const NC=REC.length, TODAY=2026.88;                 // the day the table was read
+const PHI=(1+Math.sqrt(5))/2, Q=1/PHI;
+const PHI_N=REC.map(c=>c.A);                        // what each cycle lived: its maximum
+function seeds(q){ const m=[PHI_N[0]];              // no earlier past: the first seed is the first cycle itself
+  for(let n=0;n<NC;n++) m.push(q*m[n]+(1-q)*PHI_N[n]);            // SEED  m[n+1] = q m[n] + (1-q) Phi[n];  m[i] is the seed for cycle i+1
+  return m; }
+const rmse=(p,a)=>Math.sqrt(p.reduce((t,x,i)=>t+(x-a[i])*(x-a[i]),0)/a.length);
+const sum=a=>a.reduce((t,x)=>t+x,0);
+const SEEDS=seeds(Q);
+/* the bet, scored exactly as crr_sun.py scores it: cycles 2..25, each predicted from what came before it */
+const SCORE=(function(){
+  const act=PHI_N.slice(1), pSeed=SEEDS.slice(1,NC), pPers=PHI_N.slice(0,-1), pMean=act.map((_,k)=>sum(PHI_N.slice(0,k+1))/(k+1));
+  const seed=rmse(pSeed,act), pers=rmse(pPers,act), mean=rmse(pMean,act), pass=seed<pers&&seed<mean;
+  let best={q:0,rmse:Infinity}; for(let k=0;k<=100;k++){ const r=rmse(seeds(k/100).slice(1,NC),act); if(r<best.rmse) best={q:k/100,rmse:r}; }
+  let flips=0; for(let d=0;d<act.length;d++){ const cut=p=>p.filter((_,i)=>i!==d), a=cut(act), rs=rmse(cut(pSeed),a);
+    if((rs<rmse(cut(pPers),a)&&rs<rmse(cut(pMean),a))!==pass) flips++; }
+  return {n:act.length, seed, pers, mean, pass, beatsPers:seed<pers, beatsMean:seed<mean, best, flips};
+})();
+const MEAN_DUR=(REC[NC-1].t0-REC[0].t0)/(NC-1);     // mean time from minimum to minimum
+const MEAN_MIN=sum(REC.map(c=>c.rmin))/NC;           // stands in for the two minima nobody has seen yet
+const WALD=(function(){ const xs=PHI_N, ys=REC.map(c=>c.tmax-c.t0), mx=sum(xs)/NC, my=sum(ys)/NC;   // rise time against maximum, least squares
+  const sxy=sum(xs.map((x,i)=>(x-mx)*(ys[i]-my))), sxx=sum(xs.map(x=>(x-mx)*(x-mx))), syy=sum(ys.map(y=>(y-my)*(y-my)));
+  const b=sxy/sxx; return {a:my-b*mx, b, r:sxy/Math.sqrt(sxx*syy)}; })();
+const CY=[];
+(function(){
+  for(let i=0;i<NC;i++) CY.push({n:REC[i].n, t0:REC[i].t0, tmax:REC[i].tmax, A:REC[i].A, m:SEEDS[i], rmin:REC[i].rmin, rminNext:i+1<NC?REC[i+1].rmin:MEAN_MIN});
+  const m=SEEDS[NC], t0=REC[NC-1].t0+MEAN_DUR;       // cycle 26 has not been lived: it is the seed and nothing else
+  CY.push({n:NC+1, t0, tmax:t0+(WALD.a+WALD.b*m), A:m, m, rmin:MEAN_MIN, rminNext:MEAN_MIN, forecast:true});
+  for(let i=0;i<CY.length;i++) CY[i].t1 = i+1<CY.length ? CY[i+1].t0 : CY[i].t0+MEAN_DUR;
+})();
+const Y0=CY[0].t0, Y1=CY[CY.length-1].t1, YPT=1/12, TPS=24, TICKS=Math.floor((Y1-Y0)/YPT/2)*2;
+const yearOf=f=>Y0+f*YPT;
+/* Inside an occasion CRR has no law of motion. The shape of a cycle is borrowed from solar physics (Hathaway's curve). */
+const gS=x=>x<=0?0:x*x*x/(Math.exp(x*x)-.71);
+let XP=1; for(let x=.8;x<1.4;x+=.001) if(gS(x)>gS(XP)) XP=x; const GP=gS(XP), XE=2.9;
+const GE=gS(XE);
+/* the smoothed number inside one occasion: from this cycle's recorded minimum, up Hathaway's curve to its recorded maximum, down to the next recorded minimum */
+function Rin(c,t){ t=clamp(t,c.t0,c.t1);
+  if(t<=c.tmax) return c.rmin+(c.A-c.rmin)*gS((t-c.t0)/(c.tmax-c.t0)*XP)/GP;
+  return c.rminNext+(c.A-c.rminNext)*(gS(XP+(t-c.tmax)/(c.t1-c.tmax)*(XE-XP))-GE)/(GP-GE); }
+/* the same shape from zero, with a tail past the cut: used only to decide how many clay spots to press on, since old and new cycles overlap */
+function Rof(c,t){ if(t<=c.t0) return 0; let x;
+  if(t<=c.tmax) x=(t-c.t0)/(c.tmax-c.t0)*XP; else if(t<=c.t1) x=XP+(t-c.tmax)/(c.t1-c.tmax)*(XE-XP); else x=XE+(t-c.t1)/1.2;
+  return c.A*gS(x)/GP; }
+function occasion(t){
+  let k=0; while(k<CY.length-1 && t>=CY[k].t1) k++;
+  const c=CY[k], R=Rin(c,t), peak=t<c.tmax?R:c.A, r0=Math.sqrt(c.rmin);
+  const u=clamp((t-c.t0)/(c.t1-c.t0),0,1);                          // LOOP   s = (k + u) half-turns
+  const C=2*(Math.sqrt(peak)-r0)+(t>c.tmax?2*(Math.sqrt(c.A)-Math.sqrt(R)):0);   // COUNT  Fisher-Rao length of a count rate: 2|d sqrt(R)|
+  const Cstar=2*Math.abs(Math.sqrt(R)-r0), S=C-Cstar;                // SURPLUS S = C - C*  (= 2B: zero on the climb, grows on the way down)
+  const seedNext=Q*c.m+(1-Q)*peak;
+  const tr=Math.min(c.tmax+.6,c.t1-1), up=t<tr?.5*(t-c.t0)/(tr-c.t0):.5+.5*(t-tr)/(c.t1-tr);
+  const sgn=c.n%2?1:-1;
+  const polar=sgn*Math.cos(Math.PI*up)*Math.min((c.m+(seedNext-c.m)*up)/235,1);
+  return {k,c,R,peak,u,C,Cstar,S,seedNext,sgn,polar};
+}
+
+/* ───────────────────────── scene ───────────────────────── */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x040507);
+const camera = new THREE.PerspectiveCamera(30, 16/9, .6, 60);
+(function(){
+  const es=new THREE.Scene(); const bm=(c,i)=>{ const m=new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(i), side:THREE.DoubleSide}); m.toneMapped=false; return m; };
+  es.add(new THREE.Mesh(new THREE.SphereGeometry(30,24,16), bm(0x1c1d26,.2)));
+  const add=(w,h,c,i,x,y,z)=>{ const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h), bm(c,i)); p.position.set(x,y,z); p.lookAt(0,0,0); es.add(p); };
+  add(9,7,0xfff0dc,9,-9,9,5); add(7,9,0xbcd0ff,1.6,11,4,6); add(16,5,0xffc890,2.4,2,9,-10); add(30,30,0x4a2f18,.45,0,-6,0);
+  const pm=new THREE.PMREMGenerator(renderer); scene.environment=pm.fromScene(es,.035).texture; pm.dispose();
+})();
+const key = new THREE.DirectionalLight(0xffe7c8, 2.3);
+key.castShadow=true; key.shadow.mapSize.set(LOW?2048:4096,LOW?2048:4096);
+const sc=key.shadow.camera; sc.left=-5.2; sc.right=5.2; sc.top=4.6; sc.bottom=-3.4; sc.near=1; sc.far=26; sc.updateProjectionMatrix();
+key.shadow.bias=-.0006; key.shadow.normalBias=.02; key.shadow.radius=.085*(sc.far-sc.near)/(sc.right-sc.left);
+key.position.set(-7,8.2,5.2); key.target.position.set(0,.9,0); scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0x9db8ff, 1.0); rim.position.set(5,4.5,-7); scene.add(rim);
+const RS=1.2, SUNY=1.8;
+const glowLight=new THREE.PointLight(0xff9a3d, 14, 0, 2); glowLight.position.set(0,SUNY,0); scene.add(glowLight);
+
+mesh(new THREE.BoxGeometry(34,.4,18,1,1,1), mat({mode:'WOOD', rough:.62, spec:.5, env:.8}), 0,-.2,0).castShadow=false;
+mesh(new THREE.PlaneGeometry(36,16,1,1), mat({mode:'PAPER', night:true, rough:.95, spec:.15, env:.4}), 0,5,-7).castShadow=false;
+
+const C={ blue:0x1f4fd6, red:0xc8202f, cream:0xf2e6cf, teal:0x1f8f8a };
+const SUN=new THREE.Group(); SUN.position.set(0,SUNY,0); SUN.rotation.set(.13,0,.1); scene.add(SUN);
+const SPIN=new THREE.Group(); SUN.add(SPIN);
+mesh(blob(RS,1,1,1,.028,1.5,110), mat({sun:true, boil:.55, bump:1.5, rough:.6, glow:.3, speck:0}), 0,0,0,SPIN);
+const stick=mat({mode:'WOOD', color:0xd9b78a, rough:.7});
+mesh(new THREE.CylinderGeometry(.04,.05,SUNY-RS+.12,14), stick, 0,(SUNY-RS+.12)/2,0);
+mesh(blob(.36,1,.42,1,.03,4,34), mat({color:C.teal, color2:0x35b5a8, smear:.5, bump:1.4}), 0,.1,0);
+
+/* active regions: a leading and a following spot, a pip for each polarity, sometimes the loop between them */
+const pipP=mat({color:C.blue, rough:.45}), pipN=mat({color:C.red, rough:.45});
+const REG=[]; (function(){
+  const um=mat({color:0x140b07, rough:.5, bump:1.2, speck:0}), pen=mat({color:0x7a2a0c, color2:0xb04a14, smear:.6, speck:0}), arch=mat({color:0xff4a14, color2:0xffa040, smear:.5, glow:.45, speck:0});
+  const gp=[0,1,2].map(()=>blob(1,1,.2,1,.13,1.2,18)), gu=[0,1,2].map(()=>blob(.6,1,.4,1,.07,1.6,16)), gpip=blob(.3,1,.7,1,.03,4,12);
+  const ga=clayify(new THREE.TorusGeometry(1,.13,10,26,Math.PI),.04,2);
+  for(let i=0;i<48;i++){ const G=new THREE.Group(); SPIN.add(G); const mk=s=>{ const S=new THREE.Group(); G.add(S);
+      mesh(gp[(i+s)%3],pen,0,0,0,S); mesh(gu[(i+s)%3],um,0,.1,0,S); S.userData.pip=mesh(gpip,pipP,0,.3,0,S); S.rotation.y=i*1.7+s; return S; };
+    const L=mk(0), F=mk(1), A=mesh(ga,arch,0,0,0,G); A.receiveShadow=false; REG.push({G,L,F,A}); } })();
+
+/* the loop itself: a ring with a bead on it; the two notches are the half-turns */
+const DIAL=new THREE.Group(); DIAL.position.set(-2.75,1.5,.15); DIAL.rotation.y=.22; scene.add(DIAL);
+const DR=.52; (function(){
+  const h=()=>clayify(new THREE.TorusGeometry(DR,.05,12,48,Math.PI),.008,7);
+  mesh(h(), mat({color:C.blue, color2:0x4a7cff, smear:.4}), 0,0,0,DIAL).rotation.z=-Math.PI/2;
+  mesh(h(), mat({color:C.red, color2:0xf0505a, smear:.4}), 0,0,0,DIAL).rotation.z=Math.PI/2;
+  for(const y of [DR,-DR]) mesh(blob(.085,1,1,.8,.008,10,18), mat({color:C.cream}), 0,y,0,DIAL);
+  mesh(new THREE.CylinderGeometry(.03,.04,1.5-DR+.05,12), stick, -2.75,(1.5-DR+.05)/2,.15);
+  mesh(blob(.24,1,.42,1,.02,5,26), mat({color:C.cream, color2:0xd9c9a8, smear:.5}), -2.75,.07,.15);
+})();
+const BEAD=mesh(blob(.1,1,1,1,.01,9,22), mat({color:0xffc21a, glow:.35}), 0,0,.07,DIAL);
+
+/* the settled past, laid out on the bench: one ball per cycle (what was lived), one ring per cycle (what the seed expected) */
+const SLOT=[]; const rad=a=>.028+.074*a/285; (function(){
+  const gb=[0,1,2,3].map(()=>blob(1,1,.92,1,.09,1.3,22)), gr=[0,1].map(()=>clayify(new THREE.TorusGeometry(1,.1,8,44),.02,3));
+  const bP=mat({color:C.blue, color2:0x4a7cff, smear:.4}), bN=mat({color:C.red, color2:0xf0505a, smear:.4}), rm=mat({color:C.cream}), fm=mat({color:0xffc21a});
+  for(let i=0;i<CY.length;i++){ const x=-2.7+i*(5.4/(CY.length-1)), z=1.05+(rnd(i,81)-.5)*.05;
+    const ball=mesh(gb[i%4], CY[i].forecast?fm:(CY[i].n%2?bP:bN), x,0,z); const ring=mesh(gr[i%2], rm, x,.012,z); ring.rotation.x=Math.PI/2; ring.castShadow=false;
+    ball.rotation.y=i*2.1; SLOT.push({ball,ring}); } })();
+
+/* ───────────────────────── animation: everything is a function of the frame ───────────────────────── */
+const view={yaw:0, pitch:0, zoom:1, focus:null};
+const camTarget=new THREE.Vector3(), tmp=new THREE.Vector3();
+let focusDist=7.6, flash=0, lastRead=-1;
+const vE=new THREE.Vector3(), vN=new THREE.Vector3(), vZ=new THREE.Vector3(), mB=new THREE.Matrix4();
+const readEl=document.getElementById('read');
+function readout(f,t,o){
+  if(lastRead===f) return; lastRead=f; const c=o.c, live=t>TODAY;
+  readEl.innerHTML='<dd class="big">'+Math.floor(t)+' · cycle '+c.n+'</dd>'
+   +'<dt>Loop</dt><dd>'+Math.round(o.u*100)+'%<span class="w"> of a half-turn</span></dd>'
+   +'<dt>Count<span class="w"> C</span></dt><dd>'+o.C.toFixed(1)+'</dd>'
+   +'<dt>Shortest<span class="w"> C*</span></dt><dd>'+o.Cstar.toFixed(1)+'</dd>'
+   +'<dt>Surplus<span class="w"> S</span></dt><dd>'+o.S.toFixed(1)+'</dd>'
+   +'<dt>Seed<span class="w"> m, expected</span></dt><dd>'+c.m.toFixed(0)+'</dd>'
+   +'<dt>'+(c.forecast?'Lived':'Lived so far')+'</dt><dd>'+(c.forecast?'nothing yet':o.peak.toFixed(0))+'</dd>'
+   +(live?'<dd class="note">Past November 2026: not yet lived. This is the seed and borrowed averages.</dd>':'');
+}
+function pose(f){
+  const fi=Math.round(f), t=yearOf(f), o=occasion(t);
+  shared.uSeed.value.set(rnd(fi,1)*40, rnd(fi,2)*40, rnd(fi,3)*40);
+  shared.uPolar.value=o.polar;
+  SPIN.rotation.y=f/160*Math.PI*2;
+  flash = Math.exp(-(t-o.c.t0)/YPT*.9)*(o.k>0?.6:.35);            // CUT: the Now has no duration, so it gets one overexposed picture
+  if(flash<.02) flash=0;
+  // active regions
+  const p=Math.floor(f/2); let used=0;
+  for(let pp=p-7; pp<=p && used<REG.length; pp++){ const tp=yearOf(pp*2);
+    for(let kk=Math.max(0,o.k-1); kk<=Math.min(CY.length-1,o.k+1); kk++){ const c=CY[kk], Rc=Rof(c,tp); if(Rc<=0) continue;
+      const cnt=Math.min(8, Math.floor(Rc/44+rnd(pp*31+kk,5)));
+      for(let i=0;i<cnt && used<REG.length;i++){ const h=a=>rnd(pp*7+i*131+a, kk*13+a);
+        const life=4+Math.floor(h(1)*4), age=(f/2-pp)/life; if(age>=1) continue;
+        const tau=(tp-c.t0)/(c.t1-c.t0), hemi=h(3)<.5?1:-1;
+        const lat=hemi*(30*Math.exp(-2.2*tau)+4+(h(2)-.5)*12*(1-.4*Math.min(tau,1)))*Math.PI/180, lon=h(4)*Math.PI*2;   // Spörer: the butterfly
+        const size=(.05+.085*h(5)*h(5))*(.75+.5*c.A/285), env=Math.pow(Math.sin(Math.PI*clamp(age+.08,0,1)),.6)*(.96+.08*rnd(fi,used));
+        const r=REG[used++], sep=size*2.5, tl=sep*.2;
+        vN.set(Math.cos(lat)*Math.sin(lon), Math.sin(lat), Math.cos(lat)*Math.cos(lon)); vE.set(Math.cos(lon),0,-Math.sin(lon)); vZ.crossVectors(vE,vN);
+        vE.crossVectors(vN,vZ); mB.makeBasis(vE,vN,vZ); r.G.quaternion.setFromRotationMatrix(mB); r.G.position.copy(vN).multiplyScalar(RS+.006); r.G.visible=true;
+        r.L.position.set(sep/2,0,hemi*tl); r.F.position.set(-sep/2,0,-hemi*tl);                                         // Joy: the leader sits nearer the equator
+        r.L.scale.setScalar(Math.max(size*env,.001)); r.F.scale.setScalar(Math.max(size*.78*env,.001));
+        const lead=(c.n%2?1:-1)*hemi;                                                                                   // Hale: polarity flips each cut, and across the equator
+        r.L.userData.pip.material=lead>0?pipP:pipN; r.F.userData.pip.material=lead>0?pipN:pipP;
+        r.A.visible = size>.082 && age>.12 && age<.88; r.A.scale.set(sep/2, sep*.62*env, sep/2); r.A.rotation.y=-Math.atan2(2*hemi*tl,sep);
+      } } }
+  for(let i=used;i<REG.length;i++) REG[i].G.visible=false;
+  // loop dial
+  const a=Math.PI/2-Math.PI*(o.k+o.u); BEAD.position.set(DR*Math.cos(a), DR*Math.sin(a), .07);
+  // the bench: only the past has content
+  for(let i=0;i<SLOT.length;i++){ const s=SLOT[i], c=CY[i];
+    if(i>o.k){ s.ball.visible=s.ring.visible=false; continue; }
+    s.ring.visible=true; s.ring.scale.setScalar(rad(c.m)+.014);
+    const lived = i<o.k ? c.A : (c.forecast ? 0 : o.peak);
+    s.ball.visible = lived>1; const r=rad(lived)*(i===o.k?(.97+.06*rnd(fi,60)):1); s.ball.scale.setScalar(r); s.ball.position.y=r*.86; }
+  readout(f,t,o);
+  // camera
+  camTarget.set(0,1.28,0);
+  const base=tmp.set(0,2.05,8.8).sub(camTarget);
+  const r=base.length()*view.zoom*(camera.aspect<.7?1.5:1), pit0=Math.asin(base.y/base.length());   // on a phone, step back so the ring and the bench stay in the picture
+  const yaw=view.yaw, pit=clamp(pit0+view.pitch,.02,1.2);
+  if(camera.aspect<.7) camTarget.y+=1.15;                           // and look a little higher, so the scene sits below the readouts
+  camera.position.set(camTarget.x+r*Math.sin(yaw)*Math.cos(pit), camTarget.y+r*Math.sin(pit), camTarget.z+r*Math.cos(yaw)*Math.cos(pit));
+  camera.lookAt(camTarget); camera.updateMatrixWorld();
+  const fp=view.focus || tmp.set(0,SUNY,RS*.8);
+  const dir=camera.getWorldDirection(new THREE.Vector3());
+  focusDist=Math.max(1, new THREE.Vector3().copy(fp).sub(camera.position).dot(dir));
+  key.intensity=2.3*(1+(rnd(fi,40)-.5)*.035);
+  glowLight.intensity=14*(.8+.4*o.R/285)*(1+(rnd(fi,41)-.5)*.06);
+  return fi;
+}
+
+
+/* ───────────────────────── post: ambient occlusion → lens blur → film ───────────────────────── */
+const postScene=new THREE.Scene(), postCam=new THREE.Camera();
+const tri=new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1,-1,0, 3,-1,0, -1,3,0]),3)));
+tri.frustumCulled=false; postScene.add(tri);
+const VS='varying vec2 vUv; void main(){ vUv=position.xy*.5+.5; gl_Position=vec4(position.xy,0.,1.); }';
+const pm=(fs,u)=>new THREE.ShaderMaterial({vertexShader:VS, fragmentShader:fs, uniforms:u, depthTest:false, depthWrite:false});
+const DEPTH=`uniform sampler2D tDepth; uniform float uNear,uFar; uniform vec2 uProj;
+float linZ(vec2 uv){ float d=texture2D(tDepth,uv).x; return (uNear*uFar)/(uFar-d*(uFar-uNear)); }
+vec3 vpos(vec2 uv){ float z=linZ(uv); vec2 n=uv*2.-1.; return vec3(n.x/uProj.x*z, n.y/uProj.y*z, -z); }`;
+const U={ tDepth:{value:null}, uNear:{value:.6}, uFar:{value:40}, uProj:{value:new THREE.Vector2()}, uRes:{value:new THREE.Vector2()} };
+const aoMat=pm(DEPTH+`uniform vec2 uRes; varying vec2 vUv;
+void main(){ vec3 C=vpos(vUv); vec3 n=normalize(cross(dFdx(C),dFdy(C)));
+  float R=.24, ssr=R*uProj.y*.5/(-C.z);
+  float rot=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853, sum=0.;
+  for(int i=0;i<22;i++){ float a=(float(i)+.5)/22.; float ang=a*6.2831853*7.+rot; float r=ssr*a;
+    vec3 v=vpos(vUv+vec2(cos(ang)*uRes.y/uRes.x,sin(ang))*r)-C; float vv=dot(v,v), vn=dot(v,n);
+    float f=max(1.-vv/(R*R),0.); sum+=f*f*f*max((vn+C.z*.0025)/(vv+.0004),0.); }
+  gl_FragColor=vec4(vec3(max(0.,1.-sum*5.*R/22.*1.9)),1.); }`, Object.assign({},U));
+const prepMat=pm(DEPTH+`uniform sampler2D tColor,tAO; uniform vec2 uRes; uniform float uFocus,uAperture; varying vec2 vUv;
+void main(){ float z=linZ(vUv); float ao=0., w=0.;
+  for(int x=-2;x<2;x++) for(int y=-2;y<2;y++){ vec2 o=(vec2(float(x),float(y))+.5)/uRes; float zz=linZ(vUv+o);
+    float k=max(0.,1.-abs(zz-z)/(.03*z)); ao+=texture2D(tAO,vUv+o).r*k; w+=k; }
+  ao = w>0. ? ao/w : 1.;
+  vec3 c=texture2D(tColor,vUv).rgb; c*=mix(vec3(.16,.13,.14), vec3(1.), pow(ao,1.25));
+  gl_FragColor=vec4(c, clamp((1./uFocus-1./z)*uAperture,-1.,1.)); }`, Object.assign({tColor:{value:null}, tAO:{value:null}, uFocus:{value:5}, uAperture:{value:6}},U));
+const dofMat=pm(`uniform sampler2D tPrep; uniform vec2 uRes; uniform float uMaxPx,uStep; varying vec2 vUv;
+void main(){ vec4 c0=texture2D(tPrep,vUv); float cs=abs(c0.a)*uMaxPx; vec3 acc=c0.rgb; float tot=1.; float r=uStep;
+  float ang=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853;
+  for(int i=0;i<260;i++){ if(r>uMaxPx) break; ang+=2.39996323;
+    vec4 s=texture2D(tPrep, vUv+vec2(cos(ang),sin(ang))*r/uRes); float ss=abs(s.a)*uMaxPx;
+    if(s.a>c0.a) ss=clamp(ss,0.,cs*2.);
+    float m=smoothstep(r-.5,r+.5,ss); acc+=mix(acc/tot,s.rgb,m); tot+=1.; r+=uStep/r; }
+  gl_FragColor=vec4(acc/tot,1.); }`, {tPrep:{value:null}, uRes:U.uRes, uMaxPx:{value:20}, uStep:{value:1.3}});
+const finMat=pm(`uniform sampler2D tDof; uniform vec2 uRes; uniform vec3 uFilm; uniform float uExpo,uFlash; varying vec2 vUv;
+float h(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+void main(){ vec2 uv=vUv+uFilm.xy/uRes; vec2 d=uv-.5; float r2=dot(d,d);
+  vec2 ca=d*r2*.012;
+  vec3 c=vec3(texture2D(tDof,uv+ca).r, texture2D(tDof,uv).g, texture2D(tDof,uv-ca).b);
+  vec3 glow=textureLod(tDof,uv,4.).rgb*.5+textureLod(tDof,uv,6.).rgb*.5;
+  c=mix(c,glow,.07)+max(glow-.9,0.)*.12;
+  c*=uExpo*(1.-r2*.95);
+  c+=vec3(1.,.72,.42)*uFlash*(.25+r2*2.);
+  c=aces(c*vec3(1.03,1.,.97));
+  c=pow(c,vec3(1./2.2));
+  c=mix(c, c*c*(3.-2.*c), .22);
+  float g=h(gl_FragCoord.xy+uFilm.z*91.7)-.5; float l=dot(c,vec3(.3,.6,.1));
+  c+=g*.038*(1.-.6*l);
+  gl_FragColor=vec4(c,1.); }`, {tDof:{value:null}, uRes:U.uRes, uFilm:{value:new THREE.Vector3()}, uExpo:{value:1}, uFlash:{value:0}});
+
+let rt=null, budget=TEST&&TEST.budget ? TEST.budget : (LOW ? 3.2e5 : 2.1e6), msaa=LOW?0:4;
+function build(){
+  const cw=canvas.clientWidth||window.innerWidth, chh=canvas.clientHeight||window.innerHeight, dpr=Math.min(window.devicePixelRatio||1,2);
+  const scale=Math.min(dpr, Math.sqrt(budget/(cw*chh)));
+  renderer.setPixelRatio(scale); renderer.setSize(cw,chh,false);
+  const w=Math.max(2,Math.floor(cw*scale)), h=Math.max(2,Math.floor(chh*scale));
+  if(rt) for(const k in rt) rt[k].dispose();
+  const T=HDR?THREE.HalfFloatType:THREE.UnsignedByteType;
+  const dt=new THREE.DepthTexture(w,h); dt.type=THREE.UnsignedIntType; dt.minFilter=dt.magFilter=THREE.NearestFilter;
+  rt={ scene:new THREE.WebGLRenderTarget(w,h,{type:T, samples:msaa, depthTexture:dt}),
+       ao:new THREE.WebGLRenderTarget(w,h,{type:THREE.UnsignedByteType}),
+       prep:new THREE.WebGLRenderTarget(w,h,{type:T}),
+       dof:new THREE.WebGLRenderTarget(w,h,{type:T, generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter}) };
+  U.uRes.value.set(w,h); camera.aspect=cw/chh; camera.fov = cw/chh<1 ? 52 : (cw/chh<1.4 ? 38 : 30); camera.updateProjectionMatrix();
+}
+function draw(f){
+  const fi=pose(f);
+  renderer.setRenderTarget(rt.scene); renderer.render(scene,camera);
+  const P=camera.projectionMatrix.elements;
+  for(const m of [aoMat,prepMat]){ m.uniforms.tDepth.value=rt.scene.depthTexture; m.uniforms.uNear.value=camera.near; m.uniforms.uFar.value=camera.far; m.uniforms.uProj.value.set(P[0],P[5]); m.uniforms.uRes.value.copy(U.uRes.value); }
+  tri.material=aoMat; renderer.setRenderTarget(rt.ao); renderer.render(postScene,postCam);
+  prepMat.uniforms.tColor.value=rt.scene.texture; prepMat.uniforms.tAO.value=rt.ao.texture;
+  prepMat.uniforms.uFocus.value=focusDist; prepMat.uniforms.uAperture.value=3.4;
+  tri.material=prepMat; renderer.setRenderTarget(rt.prep); renderer.render(postScene,postCam);
+  dofMat.uniforms.tPrep.value=rt.prep.texture; dofMat.uniforms.uMaxPx.value=U.uRes.value.y*.021; dofMat.uniforms.uStep.value=Math.max(1.1, U.uRes.value.y/820);
+  tri.material=dofMat; renderer.setRenderTarget(rt.dof); renderer.render(postScene,postCam);
+  finMat.uniforms.tDof.value=rt.dof.texture;
+  finMat.uniforms.uFilm.value.set((rnd(fi,50)-.5)*1.2,(rnd(fi,51)-.5)*1.2,rnd(fi,52)*100);
+  finMat.uniforms.uExpo.value=1.06*(1+(rnd(fi,53)-.5)*.03);
+  finMat.uniforms.uFlash.value=flash;
+  tri.material=finMat; renderer.setRenderTarget(null); renderer.render(postScene,postCam);
+}
+
+/* ───────────────────────── playback and controls ───────────────────────── */
+const $=id=>document.getElementById(id), playBtn=$('play'), scrub=$('scrub'), count=$('count'), twos=$('twos'), ones=$('ones');
+const REDUCED=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+/* with reduced motion the film waits, paused, in 1960: cycle 19, the largest on record, coming down, with eighteen settled cycles on the bench */
+let frame=REDUCED?Math.round((1960-Y0)/YPT/2)*2:0, step=2, playing=!REDUCED, dirty=true, acc=0, last=0, slow=0;
+function label(){ count.textContent=String(Math.floor(yearOf(frame))); scrub.value=frame; playBtn.textContent=playing?'Pause':'Play'; }
+function setStep(s){ step=s; frame-=frame%s; scrub.step=s; twos.setAttribute('aria-pressed',s===2); ones.setAttribute('aria-pressed',s===1); dirty=true; label(); }
+playBtn.onclick=()=>{ playing=!playing; label(); };
+twos.onclick=()=>setStep(2); ones.onclick=()=>setStep(1);
+scrub.oninput=()=>{ frame=+scrub.value; playing=false; dirty=true; label(); };
+$('refocus').onclick=()=>{ view.focus=null; dirty=true; };
+const aboutEl=$('about'), aboutBtn=$('aboutBtn'), barEl=document.querySelector('.bar');
+function setAbout(on){ aboutEl.classList.toggle('on',on); aboutBtn.setAttribute('aria-expanded',on); aboutEl.style.bottom=(barEl.offsetHeight+24)+'px'; if(on) aboutEl.focus({preventScroll:true}); else if(document.activeElement===aboutEl) aboutBtn.focus(); }
+aboutBtn.onclick=()=>setAbout(!aboutEl.classList.contains('on'));
+const f1=x=>x.toFixed(1);
+(function(){ const s=SCORE, w=(x,o)=>'<dd'+(x<=o?' class="win"':'')+'>'+f1(x)+'</dd>', low=Math.min(s.seed,s.pers,s.mean);
+  $('verdict').textContent=s.pass?'The bet held':'The bet failed';
+  $('scoreIn').innerHTML='<dl><dt>Seed rule, q = '+Q.toFixed(3)+'</dt>'+w(s.seed,low)+'<dt>Repeat the last cycle</dt>'+w(s.pers,low)+'<dt>Average of all so far</dt>'+w(s.mean,low)+'</dl>'
+   +'<p>Typical miss (RMSE) guessing the next maximum, cycles 2 to '+NC+'. The bet, made before running: the seed beats both others. It '
+   +(s.beatsPers?'beat':'lost to')+' repetition and '+(s.beatsMean?'beat':'lost to')+' the plain average.</p>';
+  aboutEl.innerHTML='<h2>About Clay Sun</h2>'
+   +'<p>The sun&rsquo;s spots come and go about every eleven years. This is the record of the '+NC+' cycles since 1755, pressed in clay and run on the four moves of Coherence, Rupture, Regeneration (CRR), the framework of this museum&rsquo;s owner: loop, count, cut and seed. Very little of CRR is new mathematics. Its record as a predictor is thin; its record as a source of questions is better. This piece shows one of its bets failing.</p>'
+   +'<h3>The four moves</h3><p>Loop: the ring on the left. The bead goes half-way round in one sunspot cycle; the sun&rsquo;s magnetism flips each time, so the whole ring takes two. Count: how far the sunspot number has travelled this cycle, up and down again. Cut: the flash at each minimum; the cycle is over and its ball stays on the bench for good. Seed: the cream ring round each ball, the size expected before that cycle was lived. A ball smaller than its ring means the seed guessed too high.</p>'
+   +'<h3>The data</h3><p>Dates and heights of each minimum and maximum of the 13-month smoothed sunspot number, version 2.0, from SILSO at the Royal Observatory of Belgium, read on 18 November 2026. Cycle 25&rsquo;s maximum ('+f1(REC[NC-1].A)+', October 2024) is provisional.</p>'
+   +'<h3>The model</h3><p>Seed: m&prime; = q m + (1 &minus; q) &Phi;, where &Phi; is the maximum just lived and q = 1/&phi; = '+Q.toFixed(3)+'. There is no universal q; this one was fixed before the run. The first seed is the first cycle itself. Count measures how far the sunspot number has moved with the ruler 2|&radic;a &minus; &radic;b|, the usual distance between two count rates. Shortest is the direct distance from where the cycle began. Surplus is the difference.</p>'
+   +'<h3>How the seed did</h3><p>The bet, stated before running: the seed predicts the next maximum better than both repeating the last cycle and the average of all cycles so far. Typical miss over cycles 2 to '+NC+': seed '+f1(s.seed)+', repeat '+f1(s.pers)+', average '+f1(s.mean)+'. '
+   +(s.pass?'The bet held.':'The bet failed: the seed '+(s.beatsPers?'beat':'lost to')+' repetition and '+(s.beatsMean?'beat':'lost to')+' the plain average.')+' Leaving out any one cycle changes the verdict in '+s.flips+' of '+s.n+' cases. The best fixed q on this record is '+s.best.q.toFixed(2)+' (miss '+f1(s.best.rmse)+'), found afterwards, so it proves nothing. A q that high is a long memory, of about '+Math.round(1/(1-s.best.q))+' cycles, which is most of the way to the plain average. The seed rule is an exponential filter, a forecasting method in ordinary use since the 1950s.</p>'
+   +'<h3>What is borrowed</h3><p>Inside a cycle CRR has no law of motion. The rise and fall drawn here is not derived from it: it is Hathaway&rsquo;s curve from solar physics (Hathaway, Wilson and Reichmann, Solar Physics 151, 1994), stretched to each cycle&rsquo;s recorded dates and heights. So are the spots&rsquo; drift towards the equator (Sp&ouml;rer), the tilt of each pair (Joy) and the swap of polarity every cycle (Hale, the blue and red pips and caps). Single spots are placed by chance. Cycle 26 has not happened: its height is the seed ('+f1(SEEDS[NC])+'), its start is the average cycle length on from the last minimum ('+MEAN_DUR.toFixed(2)+' years, so about '+f1(CY[NC].t0)+'), its rise time is a straight-line fit of rise against height (the Waldmeier effect, r = '+WALD.r.toFixed(2)+'), and the two minima not yet seen are taken as the average of those on record ('+f1(MEAN_MIN)+').</p>'
+   +'<h3>What this leaves out</h3><p>Any physics of the solar dynamo. Monthly and daily data: only two dated points per cycle are real, and the curve between them is the borrowed shape. The cut is the recorded date of each minimum, not a first passage worked out from the data. Count depends on the ruler, and by this ruler nearly all of every cycle&rsquo;s Count is Surplus simply because the number comes back down; that is arithmetic, not a finding. Sunspot numbers before about 1850 are less certain. Twenty-five cycles is a small sample, and nothing here was pre-registered.</p>'
+   +'<h3>Keys</h3><p>Space plays and pauses. Left and right arrows step through the months. Drag to look around, scroll to zoom, click to pull focus. Escape goes back to the museum.</p>';
+  if(innerWidth>760) document.querySelectorAll('details.fold').forEach(d=>d.open=true);
+})();
+addEventListener('keydown',e=>{
+  if(e.code==='Escape'){ if(aboutEl.classList.contains('on')){ setAbout(false); return; }
+    const a=document.activeElement; if(!a||a===document.body||a===canvas) goBack(); return; }
+  if(e.target===scrub||e.target.tagName==='SUMMARY') return;
+  if(e.code==='Space'){ if(e.target.tagName==='BUTTON'||e.target.tagName==='A') return; e.preventDefault(); playBtn.click(); }
+  if(e.code==='ArrowRight'||e.code==='ArrowLeft'){ playing=false; frame=(frame+(e.code==='ArrowRight'?step:-step)+TICKS)%TICKS; dirty=true; label(); } });
+let down=null, moved=false;
+canvas.addEventListener('pointerdown',e=>{ down={x:e.clientX,y:e.clientY}; moved=false; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove',e=>{ if(!down) return; const dx=e.clientX-down.x, dy=e.clientY-down.y;
+  if(!moved && Math.hypot(dx,dy)<5) return; moved=true; canvas.classList.add('dragging');
+  view.yaw=clamp(view.yaw-dx*.005,-1.0,1.0); view.pitch=clamp(view.pitch+dy*.004,-.12,.75); down={x:e.clientX,y:e.clientY}; dirty=true; });
+const ray=new THREE.Raycaster();
+canvas.addEventListener('pointerup',e=>{ canvas.classList.remove('dragging'); if(down&&!moved){ const b=canvas.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2((e.clientX-b.left)/b.width*2-1, -((e.clientY-b.top)/b.height*2-1)), camera);
+    const hit=ray.intersectObjects(scene.children,true)[0]; if(hit){ view.focus=hit.point.clone(); dirty=true; } } down=null; });
+canvas.addEventListener('pointercancel',()=>{ down=null; canvas.classList.remove('dragging'); });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); view.zoom=clamp(view.zoom*Math.exp(e.deltaY*.0012),.5,1.7); dirty=true; },{passive:false});
+addEventListener('resize',()=>{ build(); dirty=true; });
+
+scrub.max=TICKS-1; build(); label();
+/* test hook: the numbers that matter, and the model itself so that it can be checked from outside */
+window.PIECE={ name:'clay-sun',
+  state(){ const t=yearOf(frame), o=occasion(t);
+    return { frame, step, playing, ticks:TICKS, year:t, cycle:o.c.n, forecast:!!o.c.forecast, pastRecord:t>TODAY, loop:o.u, halfTurns:o.k+o.u,
+      R:o.R, count:o.C, shortest:o.Cstar, surplus:o.S, seed:o.c.m, lived:o.c.forecast?0:o.peak, settled:o.k,
+      rmseSeed:SCORE.seed, rmsePersistence:SCORE.pers, rmseMean:SCORE.mean, betPassed:SCORE.pass,
+      about:aboutEl.classList.contains('on'), back:BACK, from:FROM, stop:STOP, low:LOW, reduced:REDUCED, focus:view.focus?'point':'sun', yaw:view.yaw, pitch:view.pitch, zoom:view.zoom }; },
+  model:{ q:Q, table:TABLE, cycles:CY.map(c=>Object.assign({},c)), seeds, score:SCORE, meanDuration:MEAN_DUR, meanMinimum:MEAN_MIN, waldmeier:WALD, today:TODAY,
+    occasion(t){ const o=occasion(t); return {cycle:o.c.n, R:o.R, peak:o.peak, loop:o.u, count:o.C, shortest:o.Cstar, surplus:o.S, seedNext:o.seedNext}; }, R:(n,t)=>Rin(CY[n-1],t) },
+  frameOfYear:y=>Math.round((y-Y0)/YPT/step)*step,
+  set(f){ frame=clamp(Math.round(f/step)*step,0,TICKS-step); playing=false; dirty=true; label(); return frame; },
+  play(on){ playing=!!on; label(); } };
+if(TEST){ window.__clay={ shot(f,v){ if(v) Object.assign(view,v); frame=f; draw(f); renderer.getContext().finish(); return true; } }; return; }
+function tick(t){ requestAnimationFrame(tick);
+  const dt=Math.min(t-last,250); last=t;
+  if(playing){ acc+=dt; const per=1000/TPS*step; if(acc>=per){ acc=acc%per; frame=(frame+step)%TICKS; dirty=true; label(); } }
+  if(dirty){ dirty=false; const t0=performance.now(); draw(frame); renderer.getContext().finish(); const ms=performance.now()-t0;
+    // if a picture takes longer than its slot, shoot at a lower resolution
+    if(ms>1000/TPS*step*.85){ if(++slow>5 && budget>(LOW?2e5:5e5)){ budget*=.72; slow=0; build(); dirty=true; } } else slow=Math.max(0,slow-1); }
+}
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

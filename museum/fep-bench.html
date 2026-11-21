@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Guessing Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: full-bleed stage, quiet film-slate controls pinned to the corners */
+  --studio:#0c0d10;
+  --ink:#f3ecdf;
+  --ink-soft:rgba(243,236,223,.72);
+  --panel:rgba(14,15,19,.58);
+  --line:rgba(243,236,223,.22);
+  --accent:#ff7a3c;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+body{transition:opacity .45s ease}
+body.leaving{opacity:0}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#stage.dragging{cursor:grabbing}
+#stage:focus-visible{outline:2px solid var(--accent);outline-offset:-4px}
+.head{position:fixed;left:20px;top:16px;max-width:min(470px,calc(100vw - 40px));pointer-events:none;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.head h1{font:600 clamp(22px,3.2vw,34px)/1.05 var(--display);margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.head p{font:400 13px/1.45 var(--mono);margin:0;color:var(--ink-soft);max-width:48ch;text-wrap:pretty}
+.head .do{margin-top:8px;color:var(--ink)}
+.head .do b{font-weight:500;color:var(--accent)}
+.eyebrow{font:400 12px/1.3 var(--mono);color:var(--ink-soft);margin-bottom:8px;letter-spacing:.02em}
+.bar{position:fixed;left:16px;right:16px;bottom:16px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;
+  padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font:400 12.5px/1 var(--mono)}
+.bar button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);
+  border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+.bar button:hover{border-color:var(--ink-soft)}
+.bar button[aria-pressed="true"]{background:var(--ink);color:#15161a;border-color:var(--ink)}
+.bar button:focus-visible,.bar input:focus-visible,#about button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#play{min-width:74px;background:var(--accent);border-color:var(--accent);color:#1a0d05}
+.bar input[type=range]{flex:1 1 150px;min-width:110px;max-width:260px;accent-color:var(--accent);height:22px}
+.grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ctl{flex:1 1 auto;gap:10px}
+.ctl[hidden]{display:none}
+.ctl label{color:var(--ink-soft);white-space:nowrap}
+.ctl output{font-variant-numeric:tabular-nums;color:var(--ink-soft);white-space:nowrap;min-width:5ch}
+.read{position:fixed;right:20px;top:16px;margin:0;display:grid;grid-template-columns:auto auto;gap:5px 14px;padding:12px 14px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  font:400 12.5px/1.25 var(--mono);font-variant-numeric:tabular-nums;pointer-events:none;max-width:calc(100vw - 40px)}
+.read dt{color:var(--ink-soft);margin:0}.read dd{margin:0;text-align:right;white-space:nowrap}
+.read .big{font:600 22px/1 var(--display);grid-column:1/-1;text-align:left;margin-bottom:2px}
+.read .note{grid-column:1/-1;color:var(--accent);text-align:left;white-space:normal;max-width:30ch}
+.read i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
+#tags{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.tag{position:absolute;left:0;top:0;font:500 11.5px/1.15 var(--mono);color:var(--ink);white-space:nowrap;padding:3px 7px;border-radius:999px;
+  background:rgba(14,15,19,.5);border:1px solid var(--line);will-change:transform}
+.tag[hidden]{display:none}
+#about{position:fixed;right:16px;top:16px;bottom:84px;width:min(680px,calc(100vw - 32px));overflow:auto;padding:18px 20px 22px;
+  background:rgba(14,15,19,.93);border:1px solid var(--line);border-radius:14px;font:400 13px/1.55 var(--mono);color:var(--ink-soft);z-index:5}
+#about[hidden]{display:none}
+#about h2{font:600 22px/1.1 var(--display);color:var(--ink);margin:0 0 10px}
+#about h3{font:600 16px/1.2 var(--display);color:var(--ink);margin:18px 0 6px}
+#about p{margin:0 0 9px;text-wrap:pretty}
+#about .eq{color:var(--ink);margin:0 0 9px;padding:0 0 4px 12px;border-left:2px solid var(--line);white-space:pre;overflow-x:auto;font-size:12px;line-height:1.6}
+#about button{float:right;font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:8px 12px;cursor:pointer;margin-left:10px}
+@media (max-width:760px){
+  .head{left:10px;top:10px;padding:10px 12px;max-width:calc(100vw - 20px)}
+  .head p{font-size:12px}.eyebrow{margin-bottom:5px}
+  .read{right:auto;left:10px;top:auto;bottom:var(--barh,150px);font-size:11.5px;padding:8px 10px;gap:3px 12px}
+  .read .big{font-size:18px}.read .opt{display:none}
+  .bar{left:10px;right:10px;bottom:10px;gap:8px 10px;padding:8px 10px}
+  .tag{font-size:10.5px;padding:2px 5px}
+  #about{bottom:10px;top:10px;right:10px;width:calc(100vw - 20px)}
+}
+#fail{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:400 15px/1.5 var(--mono)}
+</style>
+</head>
+<body>
+<canvas id="stage" tabindex="0" aria-label="A clay creature in a shuttered wooden box guessing how far away a lamp is. Left and right arrow keys move the lamp."></canvas>
+<div id="tags" aria-hidden="true"></div>
+<div class="head">
+  <div class="eyebrow">The free energy principle &middot; <span id="step">Scene 1 of 4</span></div>
+  <h1 id="h">Guessing in the dark</h1>
+  <p id="p"></p>
+  <p class="do" id="do"></p>
+</div>
+<dl class="read" id="read" aria-live="off"></dl>
+<div class="bar">
+  <button id="play" type="button">Pause</button>
+  <span class="grp" role="group" aria-label="Jump to a scene">
+    <button type="button" data-step="1" aria-pressed="true" aria-label="Scene 1, guessing">1</button>
+    <button type="button" data-step="2" aria-pressed="false" aria-label="Scene 2, acting">2</button>
+    <button type="button" data-step="3" aria-pressed="false" aria-label="Scene 3, surprise">3</button>
+    <button type="button" data-step="4" aria-pressed="false" aria-label="Scene 4, planning">4</button>
+  </span>
+  <span class="grp ctl" id="c1">
+    <label for="trust">Trust in the feeling</label>
+    <input id="trust" type="range" min="0" max="100" step="1" value="70">
+    <output id="trustv" for="trust">1.00</output>
+  </span>
+  <span class="grp ctl" id="c2" role="group" aria-label="What the creature may do" hidden>
+    <button type="button" data-mode="think" aria-pressed="true">Think only</button>
+    <button type="button" data-mode="move" aria-pressed="false">Move only</button>
+    <button type="button" data-mode="both" aria-pressed="false">Both</button>
+  </span>
+  <span class="grp ctl" id="c3" hidden>
+    <button id="kick" type="button">Kick the lamp</button>
+  </span>
+  <span class="grp ctl" id="c4" hidden>
+    <label for="peeps">Glimpses of the dark room</label>
+    <input id="peeps" type="range" min="0" max="12" step="1" value="0">
+    <output id="peepv" for="peeps">0</output>
+  </span>
+  <button id="aboutb" type="button" aria-expanded="false" aria-controls="about">About</button>
+  <button id="back" type="button">Back to the museum</button>
+</div>
+<div id="about" role="dialog" aria-label="About this piece" hidden>
+  <button id="aboutx" type="button">Close</button>
+  <h2>About this bench</h2>
+  <p>One small creature and one hidden thing. Nothing here is a loop of drawings: every hill, spring, pile and number is worked out afresh for each picture from the small model below. Free energy is measured in nats, the natural unit of information; one nat is about 1.44 bits.</p>
+
+  <h3>The model</h3>
+  <p>The hidden thing is x, the distance from the creature's skin to the lamp, in hands. The creature never touches x. It touches only its skin (the feeling) and its feet (the rail). That pair is what the theory calls a Markov blanket: everything between inside and outside passes through it.</p>
+  <p class="eq">What it expected (prior):   p(x) = N(m&#8320;, s&#8320;&#178;),  m&#8320; = 4,  s&#8320;&#178; = 4
+What it feels:   o = 10 &#8722; x + noise.
+   The pin is drawn at y = 10 &#8722; o, the distance the warmth suggests.
+It assumes noise of variance &#963;&#178; = 1/&#964;.  &#964; is the precision: the Trust
+   slider, 0.01 to 7.2, and 1 unless you move it.
+The real noise has standard deviation 0.5, redrawn every 8 pictures.
+Its guess (belief):   q(x) = N(&#956;, s&#178;)</p>
+  <p class="eq">F = E_q[ ln q(x) &#8722; ln p(o, x) ]
+  = &#189;[ ln(s&#8320;&#178;/s&#178;) + (s&#178; + (&#956; &#8722; m&#8320;)&#178;)/s&#8320;&#178; &#8722; 1 ]      complexity
+  + &#189;[ ln(2&#960;&#963;&#178;) + ((y &#8722; &#956;)&#178; + s&#178;)/&#963;&#178; ]             minus accuracy
+  = surprise + gap
+surprise = &#8722;ln p(o) = &#189; ln(2&#960;(s&#8320;&#178; + &#963;&#178;)) + (y &#8722; m&#8320;)&#178; / (2(s&#8320;&#178; + &#963;&#178;))
+gap = KL[ q || the exact answer ] &#8805; 0,  so F &#8805; surprise, always.</p>
+  <p>The two springs are the two squared terms: the blue one has stiffness 1/s&#8320;&#178; and pulls &#956; to m&#8320;, the copper one has stiffness &#964; and pulls &#956; to y. Their stored stretch is exactly those terms of F. The rest of F depends only on the widths of the hills, which is why the pile never reaches zero.</p>
+  <p class="eq">Thinking:  d&#956;/dt = &#8722;0.4 &#8706;F/&#8706;&#956; = &#8722;0.4 [ (&#956; &#8722; m&#8320;)/s&#8320;&#178; + &#964;(&#956; &#8722; y) ]
+           d ln s&#178;/dt = &#8722;0.8 &#8706;F/&#8706;ln s&#178; = &#8722;0.4 [ s&#178;(1/s&#8320;&#178; + &#964;) &#8722; 1 ]
+Moving:    the creature stands at c on the rail, so x = lamp &#8722; c, and
+           dc/dt = &#8722;0.6 &#8706;F/&#8706;c = 0.6 &#964;(y &#8722; &#956;)</p>
+  <p>Time is counted in pictures, twelve a second. Scene 3 is filmed at quarter speed so the gap can be seen closing. Both rules are plain gradient descent on the one quantity F. Left alone, thinking arrives at the textbook answer: &#956; = (m&#8320;/s&#8320;&#178; + &#964;y)/(1/s&#8320;&#178; + &#964;), s&#178; = 1/(1/s&#8320;&#178; + &#964;). With trust near zero that is the prior; with very high trust it is the pin.</p>
+  <p>In scene 2 each button restarts from the same cold moment: lamp at 7.5 hands, the creature having already worked out that it is cold (&#956; = 6.8). "Move only" then makes the feeling match that stale guess and stops. Had its guess been frozen exactly at 4, moving alone would have brought it home in this small model; what goes wrong is acting on a guess that is never checked.</p>
+
+  <h3>The two doors</h3>
+  <p class="eq">Behind a door the lamp is at distance d.  Belief: d ~ N(m, v).
+Known room: m = 6, v = 0.05.   Dark room: m = 6.5, v = 4 before any glimpse.
+A glimpse is a reading with noise variance 2:  v after n glimpses = 1/(1/4 + n/2).
+Inside a room it feels with &#963;&#178; = 0.25, so it expects to feel N(m, V), V = v + 0.25.
+It likes to feel what it always expected:  N(4, v*),  v* = 4 + 0.25.
+
+risk      = KL[ N(m, V) || N(4, v*) ] = &#189;[ ln(v*/V) + (V + (m &#8722; 4)&#178;)/v* &#8722; 1 ]
+ambiguity = &#189; ln(2&#960;e &#963;&#178;) = 0.73 for both doors
+G = risk + ambiguity      (expected free energy; the lower pile wins)
+
+The same G, cut the other way:
+G = expected miss &#8722; expected learning
+expected miss     = &#189; ln(2&#960;v*) + (V + (m &#8722; 4)&#178;)/(2v*)
+expected learning = &#189; ln(V/&#963;&#178;)       (the empty crate on top of each pile)</p>
+  <p>The creature takes the door with the lower G. With these numbers the choice flips between the sixth and seventh glimpse (the formula gives 6.4). The slider assumes each glimpse shows what was expected, so only the width of the belief changes, not its middle. Ambiguity is the same for both doors because its skin is equally noisy in both rooms; in a room where the feeling said little about the place, that block would be taller and the creature would keep away.</p>
+
+  <h3>What this leaves out</h3>
+  <p>Nearly everything about real creatures. One hidden number, a straight-line lamp (real warmth falls with the square of distance), bell-shaped beliefs that happen to be exactly right for this problem, no learning of the model itself (the third way to lower free energy: here m&#8320;, s&#8320;&#178; and the rule linking warmth to distance never change), no body to keep alive, plans only one step deep, and a creature that always takes the lower pile rather than choosing with some randomness.</p>
+
+  <h3>What is disputed</h3>
+  <p>The free energy principle is a principle and a way of building models, not a finding that one experiment could refute; Karl Friston, its author, says so himself. Treating what a creature wants as what it expects (scene 2) is a choice the theory makes, and critics ask whether it explains wanting or only renames it. How far the Markov blankets drawn in models match real boundaries in the world is argued over, and whether brains actually do sums like these is an open question. The name free energy is borrowed from physics, where the same sum appears; the creature cannot work out its surprise directly, but it can always push free energy down, and free energy is a lid on surprise.</p>
+
+  <h3>Sources</h3>
+  <p>K. Friston, "The free-energy principle: a unified brain theory?", Nature Reviews Neuroscience 11 (2010). T. Parr, G. Pezzulo and K. Friston, <i>Active Inference</i> (MIT Press, 2022), chapters 2 to 4 for free energy, chapter 7 for risk and ambiguity. R. Bogacz, "A tutorial on the free-energy framework for modelling perception and learning", Journal of Mathematical Psychology 76 (2017), for the one-number Gaussian case used here. M. Kirchhoff and colleagues, J. R. Soc. Interface 15 (2018). For the doubts: J. Bruineberg and colleagues, "The Emperor's New Markov Blankets", Behavioral and Brain Sciences 45 (2022); M. Aguilera and colleagues, Physics of Life Reviews 40 (2022).</p>
+</div>
+<div id="fail">This piece needs WebGL 2, which this browser or device has not made available.</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+const canvas = document.getElementById('stage');
+const $=id=>document.getElementById(id);
+
+/* ───────────────────────── the way back ───────────────────────── */
+const HOME = { blake: 'index.html', jooles: 'jooles.html', park: 'park.html' };
+const QS = new URLSearchParams(location.search);
+const FROM = Object.prototype.hasOwnProperty.call(HOME, QS.get('from')||'') ? QS.get('from') : 'blake';
+const STOP = /^[a-z0-9_:\-]{1,40}$/.test(QS.get('stop')||'') ? QS.get('stop') : 'tree';
+const BACK = HOME[FROM] + '#' + STOP;
+let leaving=false;
+function goBack(){ if(leaving) return; leaving=true; document.body.classList.add('leaving'); setTimeout(()=>{ location.href = BACK; }, TEST?0:460); }
+$('back').onclick=goBack;
+const LOW = QS.get('q')==='low';
+
+/* ───────────────────────── noise (CPU) ───────────────────────── */
+function h3(x,y,z){ let n = Math.imul(x|0,374761393) ^ Math.imul(y|0,668265263) ^ Math.imul(z|0,1440662683);
+  n = Math.imul(n ^ (n>>>13), 1274126177); return ((n ^ (n>>>16))>>>0)/4294967296; }
+function vn3(x,y,z){ const xi=Math.floor(x), yi=Math.floor(y), zi=Math.floor(z);
+  let fx=x-xi, fy=y-yi, fz=z-zi; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); fz=fz*fz*(3-2*fz);
+  const a=h3(xi,yi,zi), b=h3(xi+1,yi,zi), c=h3(xi,yi+1,zi), d=h3(xi+1,yi+1,zi),
+        e=h3(xi,yi,zi+1), f=h3(xi+1,yi,zi+1), g=h3(xi,yi+1,zi+1), h=h3(xi+1,yi+1,zi+1);
+  const ab=a+(b-a)*fx, cd=c+(d-c)*fx, ef=e+(f-e)*fx, gh=g+(h-g)*fx;
+  const p=ab+(cd-ab)*fy, q=ef+(gh-ef)*fy; return p+(q-p)*fz; }
+function fbm3(x,y,z){ return vn3(x,y,z)*.55 + vn3(x*2.1+5,y*2.1+3,z*2.1+1)*.3 + vn3(x*4.3+9,y*4.3+7,z*4.3+2)*.15; }
+const rnd=(i,j)=>h3(i,j,77);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+/* ═════════════════════════ THE MODEL ═════════════════════════
+   A one-dimensional Gaussian generative model, after R. Bogacz, J. Math. Psychol. 76 (2017), and
+   T. Parr, G. Pezzulo and K. Friston, Active Inference (MIT Press, 2022), chapters 2 to 4 and 7.
+     hidden state   x   distance from skin to lamp, in hands;  x = lamp - c  (c: the creature's place on the rail)
+     prior          p(x) = N(m0, v0)                                 m0 = 4, v0 = 4   (also what it prefers)
+     observation    o = W - x + noise, drawn on the ruler as y = W - o = x + eps
+     assumed noise  variance 1/pi (pi: sensory precision, the slider); real noise sd = 0.5, redrawn every 8 pictures
+     belief         q(x) = N(mu, s2)
+     F  = complexity - accuracy = surprise + KL[q || posterior]     (closed form below)
+     perception     d mu/dt = -kMu dF/dmu,   d ln s2/dt = -kS dF/dln s2
+     action         dc/dt   = -kA dF/dc = kA pi (y - mu)            (through the observation only)
+     planning       G(door) = risk + ambiguity = expected miss - expected information gain
+   Left out: learning of the model, nonlinear warmth, deeper plans, noisy choice. See the About panel. */
+const P = { m0:4, v0:4, W:10, noiseSd:.5, noiseHold:8, kMu:.4, kS:.8, kA:.6, piDef:1,
+            mK:6, vK:.05, mD:6.5, vD0:4, piRoom:4, glimpseVar:2, cMin:-.5, cMax:4 };
+const M = { P,
+  complexity(mu,s2){ return .5*(Math.log(P.v0/s2) + (s2+(mu-P.m0)*(mu-P.m0))/P.v0 - 1); },          // KL[q || prior]
+  accuracy(mu,s2,y,pi){ return -.5*(Math.log(2*Math.PI/pi) + ((y-mu)*(y-mu)+s2)*pi); },             // E_q[ln p(o|x)]
+  F(mu,s2,y,pi){ return M.complexity(mu,s2) - M.accuracy(mu,s2,y,pi); },
+  surprise(y,pi){ const V=P.v0+1/pi; return .5*Math.log(2*Math.PI*V) + (y-P.m0)*(y-P.m0)/(2*V); },  // -ln p(o)
+  posterior(y,pi){ const Pi=1/P.v0+pi; return { mu:(P.m0/P.v0+pi*y)/Pi, s2:1/Pi }; },
+  gap(mu,s2,y,pi){ const q=M.posterior(y,pi); return .5*(Math.log(q.s2/s2) + (s2+(mu-q.mu)*(mu-q.mu))/q.s2 - 1); },  // KL[q || posterior]
+  stretch(mu,y,pi){ return { prior:.5*(mu-P.m0)*(mu-P.m0)/P.v0, sense:.5*pi*(y-mu)*(y-mu) }; },
+  dFdmu(mu,y,pi){ return (mu-P.m0)/P.v0 + pi*(mu-y); },
+  dFdlns(s2,pi){ return .5*(s2*(1/P.v0+pi) - 1); },
+  dFdc(mu,y,pi){ return pi*(mu-y); },                                                               // dF/dy * dy/dc, with dy/dc = -1
+  /* one stretch of time dt, by Euler steps small enough to be stable. st: {mu,s2,c,lamp,eps,pi,think,move} */
+  step(st,dt){ const Pi=1/P.v0+st.pi;
+    const n=clamp(Math.ceil(dt*Math.max(P.kMu*Pi, P.kA*st.pi, P.kS*.5*Math.max(st.s2*Pi,1))/.15),1,20000), h=dt/n;
+    for(let k=0;k<n;k++){ const y=st.lamp-st.c+st.eps, gm=M.dFdmu(st.mu,y,st.pi), gs=M.dFdlns(st.s2,st.pi), gc=M.dFdc(st.mu,y,st.pi);
+      if(st.think){ st.mu-=h*P.kMu*gm; st.s2*=Math.exp(-h*P.kS*gs); }
+      if(st.move){ st.c=clamp(st.c-h*P.kA*gc, P.cMin, P.cMax); } }
+    st.y=st.lamp-st.c+st.eps; return st; },
+  /* planning: two doors */
+  vStar(){ return P.v0+1/P.piRoom; },
+  vDark(n){ return 1/(1/P.vD0 + n/P.glimpseVar); },
+  risk(m,v){ const V=v+1/P.piRoom, vs=M.vStar(); return .5*(Math.log(vs/V) + (V+(m-P.m0)*(m-P.m0))/vs - 1); },
+  ambiguity(){ return .5*Math.log(2*Math.PI*Math.E/P.piRoom); },
+  G(m,v){ return M.risk(m,v)+M.ambiguity(); },
+  infoGain(v){ return .5*Math.log(1+v*P.piRoom); },
+  miss(m,v){ const V=v+1/P.piRoom, vs=M.vStar(); return .5*Math.log(2*Math.PI*vs) + (V+(m-P.m0)*(m-P.m0))/(2*vs); },
+  flipN(){ const gK=M.G(P.mK,P.vK), f=n=>M.G(P.mD,M.vDark(n))-gK; if(f(0)>=0) return 0; let a=0,b=400; if(f(b)<0) return Infinity;
+    for(let i=0;i<80;i++){ const c=(a+b)/2; if(f(c)<0) a=c; else b=c; } return (a+b)/2; }
+};
+function gauss(i){ const u=Math.max(h3(i,11,5),1e-9), v=h3(i,23,5); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+/* the state of the bench */
+const S = { scene:1, tick:0, t:0, lamp:6.5, c:0, mu:P.m0, s2:P.v0, pi:P.piDef, eps:0, y:6.5, think:true, move:false, mode:'think',
+            glimpses:0, kicks:0, kickTick:-99, cx:0, dc:0, hist:[] };
+const trustToPi=v=>Math.pow(10,(v-70)/35), piToTrust=p=>70+35*Math.log10(p);
+function lampRange(){ return S.scene===2 ? [3.5,8] : (S.scene===3 ? [2,8.5] : [1.5,8.5]); }
+function stage(n){
+  S.scene=n; S.pi=P.piDef; S.c=0; S.kickTick=-99; S.dc=0; S.eps=P.noiseSd*gauss(Math.floor(S.t/P.noiseHold));
+  if(n===1){ S.lamp=6.5; S.mu=P.m0; S.s2=P.v0; S.think=true; S.move=false; }
+  if(n===2){ restage2(S.mode); }
+  if(n===3){ S.lamp=4; const q=M.posterior(4,S.pi); S.mu=q.mu; S.s2=q.s2; S.think=true; S.move=false; S.eps=0; }
+  if(n===4){ S.think=false; S.move=false; S.cx=0; }
+  S.y=S.lamp-S.c+S.eps; S.hist.length=0; record();
+}
+function restage2(mode){ S.mode=mode; S.think=mode!=='move'; S.move=mode!=='think'; S.lamp=7.5; S.c=0; S.eps=0;
+  const q=M.posterior(7.5,S.pi); S.mu=q.mu; S.s2=q.s2; S.y=7.5; S.dc=0; }
+function quantities(){ const F=M.F(S.mu,S.s2,S.y,S.pi), sur=M.surprise(S.y,S.pi); return { F, sur, gap:F-sur }; }
+function record(){ const q=quantities(); S.hist.push(q.F, q.sur); if(S.hist.length>96) S.hist.splice(0,2); }
+function doors(){ const vD=M.vDark(S.glimpses), amb=M.ambiguity();
+  const K={ risk:M.risk(P.mK,P.vK), amb, learn:M.infoGain(P.vK), miss:M.miss(P.mK,P.vK) }, D={ risk:M.risk(P.mD,vD), amb, learn:M.infoGain(vD), miss:M.miss(P.mD,vD) };
+  K.G=K.risk+amb; D.G=D.risk+amb; return { K, D, vD, choice: D.G<K.G ? 'dark' : 'known' }; }
+function tickSim(){
+  S.tick++; const dt = S.scene===3 ? .25 : 1; S.t+=dt;
+  if(S.scene!==4){ S.eps=P.noiseSd*gauss(Math.floor(S.t/P.noiseHold)); const c0=S.c; M.step(S,dt); S.dc=S.c-c0; record(); }
+  else { const want = doors().choice==='dark' ? 1 : -1; S.dc=(want*.3-S.cx)*.22; S.cx+=S.dc; if(Math.abs(S.dc)<.004) S.dc=0; }
+}
+function kick(){ S.kicks++; const d=(1.6+1.3*h3(S.kicks,3,9))*(h3(S.kicks,4,9)<.5?-1:1); let L=S.lamp+d; if(L<2||L>8.5) L=S.lamp-d;
+  S.lamp=clamp(L,2,8.5); S.kickTick=S.tick; S.y=S.lamp-S.c+S.eps; }
+stage(1);
+
+/* the test hook: the numbers that matter, and the model itself */
+window.PIECE = { name:'fep-bench', model:M,
+  state(){ const q=quantities(), d=doors(), st=M.stretch(S.mu,S.y,S.pi);
+    return { frame:S.tick, step:S.scene, playing, lamp:S.lamp, position:S.c, distance:S.lamp-S.c, noise:S.eps, reading:S.y,
+      prior:{ mean:P.m0, variance:P.v0 }, belief:{ mean:S.mu, variance:S.s2 }, precision:S.pi,
+      F:q.F, complexity:M.complexity(S.mu,S.s2), accuracy:M.accuracy(S.mu,S.s2,S.y,S.pi), surprise:q.sur, gap:q.gap, stretch:st,
+      think:S.think, move:S.move, mode:S.mode, kicks:S.kicks,
+      glimpses:S.glimpses, darkVariance:d.vD, known:d.K, dark:d.D, choice:d.choice, flipAt:M.flipN(),
+      from:FROM, stop:STOP, back:BACK, about:!$('about').hidden, low:LOW }; },
+  advance(n){ for(let i=0;i<(n||1);i++) tickSim(); dirty=true; label(); return S.tick; },
+  go(n){ setScene(n); return S.scene; } };
+let playing=!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches), dirty=true;
+
+if (!window.THREE || !canvas.getContext('webgl2')) { $('fail').style.display='grid'; wireControls(); return; }
+
+/* ───────────────────────── renderer ───────────────────────── */
+const renderer = new THREE.WebGLRenderer({canvas, antialias:false, alpha:false, powerPreference:'high-performance', preserveDrawingBuffer:true});
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+const HDR = renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float');
+
+/* Contact-hardening soft shadows (PCSS) patched into three's shadow lookup. */
+(function(){
+  const pcss = `
+  float ignoise(vec2 p){ return fract(52.9829189*fract(dot(p, vec2(0.06711056,0.00583715)))); }
+  float pcssShadow(sampler2D sm, vec3 c, float K){
+    float rot = ignoise(gl_FragCoord.xy)*6.2831853;
+    float search = K*0.05, bsum=0., bn=0.;
+    for(int i=0;i<14;i++){ float fi=float(i)+.5; float r=sqrt(fi/14.); float a=fi*2.39996323+rot;
+      float d = unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*search));
+      if(d < c.z-0.0006){ bsum+=d; bn+=1.; } }
+    if(bn<.5) return 1.;
+    float pen = clamp((c.z-bsum/bn)*K, 0.0006, 0.02);
+    float s=0.;
+    for(int i=0;i<28;i++){ float fi=float(i)+.5; float r=sqrt(fi/28.); float a=fi*2.39996323+rot*1.7;
+      s += step(c.z, unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*pen))); }
+    return s/28.;
+  }`;
+  let ch = THREE.ShaderChunk.shadowmap_pars_fragment;
+  ch = ch.replace('#ifdef USE_SHADOWMAP', '#ifdef USE_SHADOWMAP\n'+pcss);
+  ch = ch.replace('#if defined( SHADOWMAP_TYPE_PCF )', 'return pcssShadow(shadowMap, shadowCoord.xyz, shadowRadius);\n#if defined( SHADOWMAP_TYPE_PCF )');
+  THREE.ShaderChunk.shadowmap_pars_fragment = ch;
+})();
+
+/* ───────────────────────── materials ───────────────────────── */
+const shared = { uSeed:{value:new THREE.Vector3()} };
+const GLSL_NOISE = `
+float hash13(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32); return fract((p.x+p.y)*p.z); }
+float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash13(i),hash13(i+vec3(1,0,0)),f.x),mix(hash13(i+vec3(0,1,0)),hash13(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash13(i+vec3(0,0,1)),hash13(i+vec3(1,0,1)),f.x),mix(hash13(i+vec3(0,1,1)),hash13(i+vec3(1,1,1)),f.x),f.y),f.z); }`;
+const CLAY_PARS = GLSL_NOISE + `
+uniform mat3 normalMatrix;
+uniform vec3 uSeed; uniform float uBoil, uBump, uSmear, uSpeck, uGlow; uniform vec3 uCol2;
+varying vec3 vObjPos; varying vec3 vObjN;
+float clayH(vec3 p){
+  vec3 q = p + uSeed*uBoil;
+  float h = (vn(q*8.)-.5) + (vn(q*21.+3.)-.5)*.5 + (vn(q*57.+7.)-.5)*.22;
+  vec3 w = q*5.5; float fpMask = smoothstep(.56,.8, vn(w*.8+11.));
+  vec2 cc = fract(w.xy + w.z*.37)-.5;
+  h += sin(length(cc)*52. + vn(q*19.)*7.)*fpMask*.028;
+  h += smoothstep(.8,.95, vn(vec3(q.x*3., q.y*40., q.z*3.)+2.))*-.07;
+  return h;
+}
+vec3 clayNormal(vec3 nView){
+  #ifdef MODE_CLAY
+  vec3 p = vObjPos; float e = .0035;
+  float h0 = clayH(p);
+  vec3 g = vec3(clayH(p+vec3(e,0,0))-h0, clayH(p+vec3(0,e,0))-h0, clayH(p+vec3(0,0,e))-h0)/e;
+  vec3 nO = normalize(vObjN);
+  g -= dot(g,nO)*nO;
+  vec3 nP = normalize(nO - g*uBump*.011);
+  vec3 nV = normalize(normalMatrix*nP);
+  return dot(nV,nView) < 0. ? -nV : nV;
+  #else
+  return nView;
+  #endif
+}
+float clayRough(float r){
+  #ifdef MODE_CLAY
+  float m = vn(vObjPos*6.+uSeed*uBoil+40.);
+  return clamp(r + (m-.5)*.3 - smoothstep(.7,.9,vn(vObjPos*3.+9.))*.14, .2, 1.);
+  #else
+  return r;
+  #endif
+}
+vec3 clayAlbedo(vec3 base){
+  vec3 p = vObjPos; vec3 c = base;
+  #ifdef MODE_CLAY
+    float m = vn(p*5.+uSeed*uBoil)*.6 + vn(p*17.+4.)*.4;
+    c *= .86 + .28*m;
+    float s = smoothstep(.6,.8, vn(vec3(p.x*3.,p.y*8.,p.z*3.)+31.));
+    c = mix(c, uCol2, s*uSmear);
+    float sp = smoothstep(.9,.95, vn(p*150.+17.))*step(.75, vn(p*9.+70.));
+    c = mix(c, vec3(.82,.78,.7), sp*.35*uSpeck);
+  #endif
+  #ifdef MODE_WOOD
+    vec2 P = p.xz; float pid = floor(P.y/1.15+.5); float py = fract(P.y/1.15+.5);
+    float gw = vn(vec3(P.x*.5+pid*7., P.y*5., pid));
+    float rings = sin(P.y*46. + gw*9. + vn(vec3(P.x*.25,P.y*1.5,pid*3.))*14.);
+    c = mix(vec3(.25,.14,.07), vec3(.47,.29,.15), .5+.5*rings*.7);
+    c *= .8 + .35*vn(vec3(P.x*8., P.y*160., pid));
+    c *= mix(.45,1., smoothstep(0.,.02,py)*smoothstep(1.,.98,py));
+    c *= base;
+  #endif
+  #ifdef MODE_PAPER
+    float br = (vn(vec3(p.x*.5,p.y*5.,1.))-.5)*.08 + (vn(vec3(p.x*3.,p.y*30.,4.))-.5)*.03;
+    #ifdef DUSK
+      float y = clamp((p.y+4.6)/4.2,0.,1.) + br;
+      c = mix(vec3(.50,.25,.13), vec3(.30,.20,.24), smoothstep(.0,.3,y));
+      c = mix(c, vec3(.075,.10,.21), smoothstep(.2,.62,y));
+      c = mix(c, vec3(.022,.03,.085), smoothstep(.55,1.,y));
+      c *= .88+.24*vn(vec3(p.x*.6,p.y*6.,2.));
+    #else
+      c = base*(.9+.14*vn(p*14.)+br);
+    #endif
+  #endif
+  return c;
+}`;
+function lin(hex){ return new THREE.Color(hex); }
+function mat(o){
+  o = o || {};
+  const mode = o.mode || 'CLAY';
+  const m = new THREE.MeshPhysicalMaterial({ color:o.color!==undefined?o.color:0xffffff, roughness:o.rough!==undefined?o.rough:.56, metalness:o.metal||0,
+    sheen: mode==='CLAY'&&!o.metal?.45:0, sheenRoughness:.5, sheenColor:new THREE.Color(o.color!==undefined?o.color:0xffffff).lerp(new THREE.Color(0xffffff),.5),
+    specularIntensity: o.spec!==undefined?o.spec:.75, envMapIntensity:o.env!==undefined?o.env:1, side:o.side||THREE.FrontSide });
+  if(o.map){ m.map=o.map; }
+  const u = { uSeed:shared.uSeed, uBoil:{value:o.boil||0}, uBump:{value:o.bump!==undefined?o.bump:1}, uSmear:{value:o.smear||0}, uSpeck:{value:o.speck!==undefined?o.speck:1},
+    uGlow:{value:o.glow||0}, uCol2:{value:lin(o.color2!==undefined?o.color2:0xffffff)} };
+  m.defines = Object.assign({}, m.defines, {['MODE_'+mode]:''});
+  if(o.dusk) m.defines.DUSK='';
+  m.userData.u = u;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjPos; varying vec3 vObjN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObjPos=position; vObjN=normal;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n'+CLAY_PARS)
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = clayAlbedo(diffuseColor.rgb);')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clayRough(roughnessFactor);')
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal = clayNormal(normal);')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb*uGlow;');
+  };
+  m.customProgramCacheKey = () => 'clay|'+mode+'|'+(o.dusk?1:0)+(o.map?1:0);
+  return m;
+}
+
+/* ───────────────────────── geometry helpers ───────────────────────── */
+function weld(geo){
+  const p=geo.attributes.position, n=new Float32Array(p.count*3), map=new Map(), key=new Array(p.count);
+  for(let i=0;i<p.count;i++){ key[i]=Math.round(p.getX(i)*2e4)+'_'+Math.round(p.getY(i)*2e4)+'_'+Math.round(p.getZ(i)*2e4); if(!map.has(key[i])) map.set(key[i],[0,0,0]); }
+  const idx=geo.index, tri=idx?idx.count/3:p.count/3, a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let t=0;t<tri;t++){ const i0=idx?idx.getX(t*3):t*3, i1=idx?idx.getX(t*3+1):t*3+1, i2=idx?idx.getX(t*3+2):t*3+2;
+    a.fromBufferAttribute(p,i0); b.fromBufferAttribute(p,i1); c.fromBufferAttribute(p,i2); b.sub(a); c.sub(a); b.cross(c);
+    for(const i of [i0,i1,i2]){ const m=map.get(key[i]); m[0]+=b.x; m[1]+=b.y; m[2]+=b.z; } }
+  for(let i=0;i<p.count;i++){ const m=map.get(key[i]); const l=Math.hypot(m[0],m[1],m[2])||1; n[i*3]=m[0]/l; n[i*3+1]=m[1]/l; n[i*3+2]=m[2]/l; }
+  geo.setAttribute('normal', new THREE.BufferAttribute(n,3)); return geo;
+}
+let seedC = 1;
+function clayify(geo, amp, freq){
+  const sd = (seedC++)*13.7; weld(geo);
+  const p=geo.attributes.position, n=geo.attributes.normal;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+    const d=(fbm3(x*freq+sd,y*freq+sd*.7,z*freq+sd*.3)-.5)*2*amp;
+    p.setXYZ(i, x+n.getX(i)*d, y+n.getY(i)*d, z+n.getZ(i)*d); }
+  weld(geo); geo.computeBoundingSphere(); return geo;
+}
+function blob(r, sx, sy, sz, amp, freq, det){
+  const g=new THREE.SphereGeometry(r, det||40, Math.round((det||40)*.7)); g.scale(sx||1,sy||1,sz||1);
+  return clayify(g, amp!==undefined?amp:r*.12, freq||(1.6/r));
+}
+function rbox(w,h,d,r,amp,freq,s){
+  s=s||14; const g=new THREE.BoxGeometry(w,h,d,s,Math.max(3,Math.round(s/3)),s), p=g.attributes.position, hx=w/2-r, hy=h/2-r, hz=d/2-r, v=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); c.set(clamp(v.x,-hx,hx),clamp(v.y,-hy,hy),clamp(v.z,-hz,hz)); v.sub(c);
+    if(v.lengthSq()>1e-12){ v.normalize().multiplyScalar(r).add(c); p.setXYZ(i,v.x,v.y,v.z); } }
+  return clayify(g, amp!==undefined?amp:.012, freq||7);
+}
+function grid(nu,nv,fn){
+  const pos=new Float32Array((nu+1)*(nv+1)*3), idx=[]; let k=0; const o=[0,0,0];
+  for(let i=0;i<=nu;i++) for(let j=0;j<=nv;j++){ fn(i/nu,j/nv,o); pos[k++]=o[0]; pos[k++]=o[1]; pos[k++]=o[2]; }
+  for(let i=0;i<nu;i++) for(let j=0;j<nv;j++){ const a=i*(nv+1)+j, b=a+1, c=a+nv+1, d=c+1; idx.push(a,b,c, b,d,c); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3)); g.setIndex(idx); return g;
+}
+function mesh(g,m,x,y,z,parent){ const o=new THREE.Mesh(g,m); o.position.set(x||0,y||0,z||0); o.castShadow=true; o.receiveShadow=true; (parent||scene).add(o); return o; }
+/* a plank lying flat is wood-grained on its big face; stand it up by turning the mesh, not the geometry */
+function plank(w,h,t,m,x,y,z,parent,facing){ const o=mesh(new THREE.BoxGeometry(w,t,h),m,x,y,z,parent);
+  if(facing==='z') o.rotation.set(Math.PI/2,0,0); else if(facing==='x') o.rotation.set(Math.PI/2,0,Math.PI/2); return o; }
+function paperTex(w,h,draw){ const c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d'); draw(g,w,h);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; }
+
+/* ───────────────────────── scene ───────────────────────── */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x040507);
+const camera = new THREE.PerspectiveCamera(30, 16/9, .6, 60);
+(function(){
+  const es=new THREE.Scene(); const bm=(c,i)=>{ const m=new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(i), side:THREE.DoubleSide}); m.toneMapped=false; return m; };
+  es.add(new THREE.Mesh(new THREE.SphereGeometry(30,24,16), bm(0x1c1d26,.2)));
+  const add=(w,h,c,i,x,y,z)=>{ const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h), bm(c,i)); p.position.set(x,y,z); p.lookAt(0,0,0); es.add(p); };
+  add(9,7,0xfff0dc,9,-9,9,5); add(7,9,0xbcd0ff,1.6,11,4,6); add(16,5,0xffc890,2.4,2,9,-10); add(30,30,0x4a2f18,.45,0,-6,0);
+  const pm=new THREE.PMREMGenerator(renderer); scene.environment=pm.fromScene(es,.035).texture; pm.dispose();
+})();
+const key = new THREE.DirectionalLight(0xffe7c8, 2.3);
+key.castShadow=true; key.shadow.mapSize.set(LOW?2048:4096,LOW?2048:4096);
+const sc=key.shadow.camera; sc.left=-5.9; sc.right=5.9; sc.top=4.6; sc.bottom=-3.4; sc.near=1; sc.far=26; sc.updateProjectionMatrix();
+key.shadow.bias=-.0006; key.shadow.normalBias=.02; key.shadow.radius=.085*(sc.far-sc.near)/(sc.right-sc.left);
+key.position.set(-7,8.2,5.2); key.target.position.set(0,.9,0); scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0x9db8ff, 1.0); rim.position.set(5,4.5,-7); scene.add(rim);
+
+mesh(new THREE.BoxGeometry(40,.4,18,1,1,1), mat({mode:'WOOD', rough:.62, spec:.5, env:.8}), 0,-.2,0).castShadow=false;
+mesh(new THREE.PlaneGeometry(44,16,1,1), mat({mode:'PAPER', dusk:true, rough:.95, spec:.15, env:.4}), 0,5,-7).castShadow=false;
+
+const C={ blue:0x1f4fd6, red:0xc8202f, cream:0xf2e6cf, teal:0x1f8f8a, yellow:0xffc21a, orange:0xff7a3c, pale:0x8fa9e6, copper:0xc86a2c };
+const woodLight=mat({mode:'WOOD', color:0xd9b78a, rough:.7}), woodMid=mat({mode:'WOOD', color:0xb9966a, rough:.66}), woodBox=mat({mode:'WOOD', color:0xa9c0c8, rough:.7});
+const HS=.5, X0=-2.5, TOP=.2, LINE=TOP+.22;           // half a bench unit per hand; hand 0 sits at the shutter
+const hx=h=>X0+h*HS;
+
+/* ── a creature: teal clay, two feelers that take the warmth ── */
+function makeCreature(parent){
+  const G=new THREE.Group(); parent.add(G); const B=new THREE.Group(); G.add(B);
+  const skin=mat({color:C.teal, color2:0x35b5a8, smear:.5, bump:1.3, boil:.35});
+  mesh(blob(.29,1,1.12,.96,.03,3.2,44), skin, 0,.37,0,B);
+  mesh(blob(.19,1,1.05,.5,.012,5,26), mat({color:C.cream, color2:0xd9c9a8, smear:.4, boil:.3}), 0,.31,.19,B);
+  const white=mat({color:0xf6f1e6, rough:.35, bump:.4, speck:0}), black=mat({color:0x101014, rough:.3, bump:.3, speck:0});
+  const eyes=[], pupils=[];
+  for(const s of [-1,1]){ const e=mesh(blob(.07,1,1,1,.003,9,20), white, s*.105,.52,.235,B); eyes.push(e);
+    pupils.push(mesh(blob(.033,1,1,1,.001,9,14), black, s*.105,.52,.297,B)); }
+  const footM=mat({color:C.orange, color2:0xffa25e, smear:.4, boil:.3}), feet=[];
+  for(const s of [-1,1]) feet.push(mesh(blob(.09,1.15,.5,1.5,.01,6,20), footM, s*.13,.045,.1,G));
+  const tipM=mat({color:C.blue, glow:.2, boil:.3, speck:0}), tips=[];
+  for(const s of [-1,1]){ const st=mesh(new THREE.CylinderGeometry(.012,.016,.24,8), woodLight, s*.1,.76,0,B); st.rotation.z=-s*.28;
+    tips.push(mesh(blob(.05,1,1,1,.005,9,16), tipM, s*.135,.885,0,B)); }
+  return { G, B, eyes, pupils, feet, tipM };
+}
+const darkC=new THREE.Color(0x10141f), lightC=new THREE.Color(0xf0dcb4), coolC=new THREE.Color(0x2450d0), warmC=new THREE.Color(0xff5a1e);
+function poseCreature(cr, fi, warmth, walk, lookX){
+  const sq=1+(rnd(fi,90)-.5)*.035; cr.B.scale.set(1/Math.sqrt(sq), sq, 1/Math.sqrt(sq));
+  const stepping=Math.abs(walk)>.012, ph=fi%2;
+  cr.B.position.y = stepping ? (ph?.03:0) : 0; cr.B.rotation.z = stepping ? (ph?.07:-.07)*Math.sign(walk) : (rnd(fi,91)-.5)*.02;
+  cr.feet[0].position.y=.045+(stepping&&ph?.06:0); cr.feet[1].position.y=.045+(stepping&&!ph?.06:0);
+  const blink = h3(Math.floor(fi/2),7,3)<.045;
+  for(let i=0;i<2;i++){ cr.eyes[i].scale.y=blink?.12:1; cr.pupils[i].visible=!blink; cr.pupils[i].position.x=(i?1:-1)*.105+clamp(lookX,-1,1)*.03; }
+  const t=clamp((warmth-1)/7.5,0,1); cr.tipM.color.copy(coolC).lerp(warmC,t); cr.tipM.userData.u.uGlow.value=.15+.9*t;
+}
+
+/* ── a clay hill: a bell curve with the same lump of clay however it is squeezed ── */
+function makeHill(material, depth, parent, z, y0, hs, scale, x0, lo, hi){
+  const NX=72, NZ=8, g=grid(NX,NZ,(u,v,o)=>{ o[0]=u; o[1]=0; o[2]=v; }), m=mesh(g,material,0,y0,z,parent); m.frustumCulled=false;
+  const prof=[], lump=[]; for(let j=0;j<=NZ;j++){ const t=2*j/NZ-1; prof.push(Math.pow(Math.max(0,1-t*t),.5)); }
+  for(let i=0;i<=NX;i++) lump.push(1+(fbm3(i*.31,seedC*3.1,2)-.5)*.16); seedC++;
+  const pos=g.attributes.position, K=3.3, base=Math.exp(-.5*K*K);
+  m.userData.set=(mu,s,fi)=>{ let k=0; const pk=1/(s*Math.sqrt(2*Math.PI));
+    for(let i=0;i<=NX;i++){ const u=2*i/NX-1, xr=mu+K*s*u, xh=clamp(xr,lo,hi), out=Math.abs(xr-xh)>1e-9, d=out?0:pk*(Math.exp(-.5*K*K*u*u)-base), wob=lump[i]*(1+(rnd(fi,i)-.5)*.03);
+      const wz=depth*(.14+.86*Math.pow(clamp(d/(pk*(1-base)),0,1),.3))*(out?0:1);
+      for(let j=0;j<=NZ;j++){ pos.array[k++]=x0+xh*hs; pos.array[k++]=d*scale*prof[j]*wob; pos.array[k++]=(j/NZ-.5)*wz*(1+(lump[(i+j*5)%NX]-1)*.5); } }
+    pos.needsUpdate=true; g.computeVertexNormals(); return pk*(1-base)*scale; };
+  return m;
+}
+/* ── a coil spring of length one along x; stretch it by scaling x ── */
+function makeSpring(coils, R, r, material, parent){
+  class Helix extends THREE.Curve{ getPoint(t,o){ o=o||new THREE.Vector3(); const a=t*Math.PI*2*coils; return o.set(t, R*Math.cos(a), R*Math.sin(a)); } }
+  const m=mesh(new THREE.TubeGeometry(new Helix(), coils*22, r, 7, false), material, 0,0,0, parent); m.frustumCulled=false; m.receiveShadow=false;
+  m.userData.span=(a,b,k)=>{ let L=b-a; if(Math.abs(L)<.03) L=L<0?-.03:.03; m.position.x=a; m.scale.set(L,k,k); };
+  return m;
+}
+/* ── a pile of clay slabs, each worth one unit ── */
+const SLABG=[0,1,2].map(()=>rbox(.44,.05,.34,.02,.006,9,12)), SLABH=.05;
+function makePile(n, parent, x, z){ const a=[]; for(let i=0;i<n;i++){ const s=mesh(SLABG[i%3], null, x+(rnd(i,3)-.5)*.022, 0, z+(rnd(i,4)-.5)*.022, parent); s.rotation.y=(rnd(i,5)-.5)*.14+(i%2?Math.PI:0); a.push(s); } return a; }
+/* stack `units` slabs from y0; cuts = [[upTo, material], ...]; returns the height of the top */
+function setPile(pile, units, cuts, y0, hSlab, fi){
+  let y=y0; for(let i=0;i<pile.length;i++){ const s=pile[i], part=clamp(units-i,0,1);
+    if(part<.04){ s.visible=false; continue; }
+    s.visible=true; let k=0; while(k<cuts.length-1 && i+.5>cuts[k][0]) k++; s.material=cuts[k][1];
+    s.scale.y=part*hSlab/SLABH; s.position.y=y+part*hSlab/2; y+=part*hSlab; }
+  return y;
+}
+
+/* ═══════════ set A: the bench for scenes 1 to 3 ═══════════ */
+const SETA=new THREE.Group(), SETB=new THREE.Group(); scene.add(SETA, SETB);
+const RIG=new THREE.Group(); SETA.add(RIG);
+/* rails, cart and wheels */
+for(const z of [-.58,.73]) plank(11.4,.07,.05, woodMid, .4,.025,z, SETA).castShadow=false;
+mesh(new THREE.BoxGeometry(6.04,.1,1.15), woodLight, -.8,TOP-.05,.075, RIG);
+(function(){ const wg=clayify(new THREE.CylinderGeometry(.075,.075,.06,20),.004,9), wm=mat({color:C.red, color2:0xf0505a, smear:.4});
+  for(const x of [-3.5,-1.7,.2,1.95]) for(const z of [-.58,.73]){ const w=mesh(wg,wm,x,.125,z,RIG); w.rotation.x=Math.PI/2; } })();
+/* the box: back, far side, roof, and a shuttered side facing the lamp */
+(function(){ const bx=-3.24, w=1.06, h=1.16, d=1.0, zc=.05;
+  plank(w,h,.05, woodBox, bx,TOP+h/2,zc-d/2, RIG,'z');
+  plank(d,h,.05, woodBox, bx-w/2,TOP+h/2,zc, RIG,'x');
+  plank(w+.16,d+.12,.05, woodBox, bx,TOP+h+.025,zc+.02, RIG);
+  for(const z of [zc-d/2+.03, zc+d/2-.03]) mesh(new THREE.BoxGeometry(.05,h,.06), woodMid, bx+w/2,TOP+h/2,z, RIG);
+  for(let i=0;i<7;i++){ const s=plank(d-.1,.15,.022, woodMid, bx+w/2,TOP+.12+i*.155,zc, RIG,'x'); s.rotation.y=0; s.rotation.set(Math.PI/2-.0,0,Math.PI/2+.5); }
+})();
+const CR=makeCreature(RIG); CR.G.position.set(-3.27,TOP,.12); CR.G.rotation.y=.42;
+/* the ruler: a strip of paper along the front of the cart */
+(function(){ const t=paperTex(1920,128,(g,w,h)=>{ g.fillStyle='#efe4cc'; g.fillRect(0,0,w,h); g.fillStyle='#2a2018'; g.textAlign='center'; g.textBaseline='alphabetic';
+    for(let k=0;k<=18;k++){ const x=60+k*100; g.fillRect(x-(k%2?2:3.5),0,k%2?4:7,k%2?26:44); }
+    g.font='600 74px Georgia, "Times New Roman", serif'; for(let k=0;k<=9;k++) g.fillText(String(k),60+k*200,122); });
+  const m=mat({mode:'PAPER', color:0xffffff, rough:.92, spec:.2, map:t});
+  const p=mesh(new THREE.PlaneGeometry(4.8,.32), m, hx(4.5),TOP+.004,.47, RIG); p.rotation.x=-Math.PI/2; p.castShadow=false; })();
+const hillPrior=makeHill(mat({color:C.pale, color2:0xb9c8f0, smear:.5, boil:.2, bump:1.2}), .3, RIG, -.3, TOP, HS, 1.4, X0, .05, 9.3);
+const hillBelief=makeHill(mat({color:C.yellow, color2:0xffd95e, smear:.4, boil:.5, bump:1.3}), .3, RIG, .04, TOP, HS, 1.4, X0, .05, 9.3);
+/* the spring line: a peg where it expected, a bead for its guess, a pin for what it feels */
+const PEG=new THREE.Group(); RIG.add(PEG); mesh(new THREE.CylinderGeometry(.022,.026,LINE-TOP,10), woodLight, 0,(LINE-TOP)/2,0,PEG); mesh(blob(.06,1,1,1,.006,9,18), mat({color:C.pale}), 0,LINE-TOP,0,PEG);
+PEG.position.set(hx(P.m0),TOP,.3);
+const BEAD=mesh(blob(.085,1,1,1,.008,8,22), mat({color:C.yellow, color2:0xffd95e, smear:.4, boil:.4}), 0,LINE,.3, RIG);
+const PIN=new THREE.Group(); RIG.add(PIN);
+(function(){ const n=mesh(new THREE.CylinderGeometry(.008,.004,.5,8), mat({color:0xcfd3d8, rough:.25, metal:.9, bump:0, speck:0}), 0,.03,0,PIN); n.receiveShadow=false;
+  mesh(blob(.075,1,1,1,.006,9,20), mat({color:C.red, color2:0xf0505a, smear:.4, rough:.4}), 0,.26,0,PIN); PIN.rotation.x=.0; })();
+const springPrior=makeSpring(7,.085,.02, mat({color:C.blue, color2:0x4a7cff, smear:.3, rough:.5, bump:.5, speck:0}), RIG);
+const springSense=makeSpring(13,.055,.011, mat({color:C.copper, rough:.3, metal:.85, bump:.2, speck:0}), RIG);
+springPrior.position.set(0,LINE,.3); springSense.position.set(0,LINE,.3);
+
+/* the lamp: outside the box, on the bench behind the cart */
+const LAMP=new THREE.Group(); SETA.add(LAMP); LAMP.position.set(hx(S.lamp),0,-.92);
+const LSW=new THREE.Group(); LAMP.add(LSW);
+mesh(blob(.24,1,.4,1,.02,5,26), mat({color:C.cream, color2:0xd9c9a8, smear:.5}), 0,.07,0,LAMP);
+mesh(new THREE.CylinderGeometry(.028,.036,1.0,12), woodLight, 0,.55,0,LSW);
+const bulbM=mat({color:0xff9d2e, glow:.55, boil:.4, speck:0, bump:1.2});
+mesh(blob(.2,1,1.08,1,.012,5,30), bulbM, 0,1.2,0,LSW);
+mesh(clayify(new THREE.CylinderGeometry(.09,.11,.1,16),.004,9), mat({color:C.red}), 0,1.0,0,LSW);
+mesh(clayify(new THREE.CylinderGeometry(.1,.3,.2,28,3,true),.006,6), mat({color:C.red, color2:0xf0505a, smear:.4, side:THREE.DoubleSide}), 0,1.37,0,LSW);
+const lampLight=new THREE.PointLight(0xffa24a, 9, 0, 2); lampLight.position.set(0,1.2,.1); LAMP.add(lampLight);
+const lampHit=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,1.7,8), new THREE.MeshBasicMaterial({visible:false})); lampHit.position.y=.8; LAMP.add(lampHit);
+
+/* the free energy pile, its measuring board, and (scene 3) the paper tape */
+const GX=-4.4, NAT=.25, UNIT=.2, GMAX=7, BH=GMAX+.25;
+const slabSur=mat({color:C.cream, color2:0xd9c9a8, smear:.5, boil:.25}), slabGap=mat({color:C.orange, color2:0xffa25e, smear:.4, boil:.35});
+const PILE=makePile(GMAX/UNIT, SETA, GX, .12);
+(function(){ const t=paperTex(128,600,(g,w,h)=>{ g.fillStyle='#efe4cc'; g.fillRect(0,0,w,h); g.fillStyle='#2a2018'; g.font='600 40px Georgia, serif'; g.textAlign='right'; g.textBaseline='middle';
+    for(let k=0;k<=GMAX;k++){ const y=h-k*h/BH; g.fillRect(0,y-3,k%2?30:46,6); if(k) g.fillText(String(k),w-10,y); } });
+  const m=mat({mode:'PAPER', color:0xffffff, rough:.92, spec:.2, map:t});
+  plank(.24,NAT*BH+.06,.04, woodLight, GX-.36,(NAT*BH+.06)/2,.0, SETA,'z');
+  const p=mesh(new THREE.PlaneGeometry(.2,NAT*BH), m, GX-.36,NAT*BH/2,.022, SETA); p.castShadow=false; })();
+const FLOORM=mesh(clayify(new THREE.ConeGeometry(.05,.14,10),.004,9), mat({color:C.teal}), GX+.33,0,.2, SETA); FLOORM.rotation.z=Math.PI/2;
+const TAPE=new THREE.Group(); SETA.add(TAPE);
+const NB=36, BSP=.042, TX=GX-.6;
+(function(){ const t=paperTex(512,600,(g,w,h)=>{ g.fillStyle='#efe4cc'; g.fillRect(0,0,w,h); g.fillStyle='rgba(42,32,24,.28)'; for(let k=0;k<=GMAX;k++){ const y=h-k*h/BH; g.fillRect(0,y-1.5,w,3); } });
+  const p=mesh(new THREE.PlaneGeometry(NB*BSP+.14,NAT*BH), mat({mode:'PAPER', color:0xffffff, rough:.95, spec:.15, map:t}), TX-NB*BSP/2,NAT*BH/2,-.03, TAPE); p.castShadow=false;
+  for(const x of [TX+.05, TX-NB*BSP-.05]) mesh(new THREE.CylinderGeometry(.03,.03,NAT*BH+.12,10), woodLight, x,(NAT*BH+.12)/2,-.05, TAPE); })();
+const beadF=new THREE.InstancedMesh(blob(.03,1,1,1,.003,9,12), mat({color:C.orange, boil:.3}), NB), beadS=new THREE.InstancedMesh(blob(.024,1,1,1,.002,9,12), mat({color:C.cream, boil:.3}), NB);
+for(const b of [beadF,beadS]){ b.castShadow=true; b.frustumCulled=false; TAPE.add(b); }
+
+/* ═══════════ set B: two doors, for scene 4 ═══════════ */
+const NAT4=.5, U4=.1;
+const slabAmb=mat({color:C.teal, color2:0x35b5a8, smear:.5, boil:.25}), slabRisk=mat({color:C.red, color2:0xf0505a, smear:.4, boil:.35});
+function makeRoom(x, dark){
+  const R=new THREE.Group(); R.position.set(x,0,-1.0); SETB.add(R);
+  const w=1.5, h=1.5, d=1.0, dw=.66, dh=1.12, wm=dark?mat({mode:'WOOD', color:0x7f8aa6, rough:.72}):mat({mode:'WOOD', color:0xe2c79a, rough:.7});
+  plank(w,h,.05, wm, 0,h/2,-d/2, R,'z'); plank(d,h,.05, wm, -w/2,h/2,0, R,'x'); plank(d,h,.05, wm, w/2,h/2,0, R,'x'); plank(w+.12,d+.12,.05, wm, 0,h+.025,0, R);
+  const sw=(w-dw)/2; plank(sw,h,.05, wm, -(dw+sw)/2,h/2,d/2, R,'z'); plank(sw,h,.05, wm, (dw+sw)/2,h/2,d/2, R,'z'); plank(dw,h-dh,.05, wm, 0,dh+(h-dh)/2,d/2, R,'z');
+  const lm=mat({mode:'PAPER', color:dark?0x10141f:0xf0dcb4, rough:.95, spec:.1}), lining=mesh(new THREE.PlaneGeometry(w-.1,h-.06), lm, 0,h/2,-d/2+.035, R); lining.castShadow=false;
+  const hinge=new THREE.Group(); hinge.position.set(-dw/2,0,d/2+.03); R.add(hinge);
+  const leaf=plank(dw,dh,.045, dark?mat({mode:'WOOD', color:0x5d6a8c, rough:.6}):mat({mode:'WOOD', color:0xd6a868, rough:.6}), dw/2,dh/2,0, hinge,'z');
+  mesh(blob(.04,1,1,1,.004,9,14), mat({color:C.yellow}), dw-.1,dh*.48,.05, hinge);
+  const bm=mat({color:0xffc04a, glow:1.2, boil:.4, speck:0}); mesh(blob(.12,1,1.08,1,.008,6,22), bm, 0,.62,-.12, R);
+  mesh(new THREE.CylinderGeometry(.02,.026,.5,10), woodLight, 0,.25,-.12, R); mesh(blob(.14,1,.4,1,.012,6,20), mat({color:C.cream}), 0,.05,-.12, R);
+  const light=new THREE.PointLight(0xffa24a, 0, 0, 2); light.position.set(0,.7,.05); R.add(light);
+  /* the sign on the roof: what it likes to feel (pale) and what it expects to feel behind this door (yellow) */
+  const sign=new THREE.Group(); sign.position.set(-.7,h+.05,.2); R.add(sign);
+  const likes=makeHill(mat({color:C.pale, color2:0xb9c8f0, smear:.5, boil:.2}), .2, sign, -.14, 0, .14, .5, 0, 0, 10);
+  const expects=makeHill(mat({color:C.yellow, color2:0xffd95e, smear:.4, boil:.45}), .2, sign, .1, 0, .14, .5, 0, 0, 10);
+  return { R, hinge, bm, light, likes, expects, leaf, lm };
+}
+const ROOMK=makeRoom(-2.05,false), ROOMD=makeRoom(2.05,true);
+function makeStack(x){ const pile=makePile(34, SETB, x, -.1), crate=new THREE.Group(); SETB.add(crate); crate.position.set(x,0,-.1);
+  const cm=woodLight, v=[], t=[], W=.5, D=.4, r=.014;
+  for(const sx of [-1,1]) for(const sz of [-1,1]) v.push(mesh(new THREE.CylinderGeometry(r,r,1,6), cm, sx*W/2,0,sz*D/2, crate));
+  for(const sz of [-1,1]){ const b=mesh(new THREE.CylinderGeometry(r,r,W+2*r,6), cm, 0,0,sz*D/2, crate); b.rotation.z=Math.PI/2; t.push(b); }
+  for(const sx of [-1,1]){ const b=mesh(new THREE.CylinderGeometry(r,r,D+2*r,6), cm, sx*W/2,0,0, crate); b.rotation.x=Math.PI/2; t.push(b); }
+  return { pile, crate, v, t, x, top:0, gTop:0, ambTop:0 }; }
+const STK={ K:makeStack(-.92), D:makeStack(.92) };
+const CR4=makeCreature(SETB); CR4.G.position.set(0,0,.5);
+const roomLights=[ROOMK.light, ROOMD.light];
+
+/* ───────────────────────── labels pinned to the clay ───────────────────────── */
+const tagsEl=$('tags'), TAGS=[];
+function tag(scenes, text, at, dy){ const el=document.createElement('div'); el.className='tag'; el.hidden=true; tagsEl.appendChild(el); TAGS.push({el, scenes, text, at, dy:dy||0, last:''}); }
+const tv=new THREE.Vector3(); let hPrior=.3, hBelief=.5, pileTop=0, surTop=0;
+tag([1,2,3], 'what it expected', ()=>[RIG.position.x+hx(P.m0)-.25, TOP+hPrior+.06, -.3]);
+tag([1,2,3], 'its guess', ()=>[RIG.position.x+hx(S.mu), TOP+hBelief+.06, .04]);
+tag([1,2,3], 'what it feels', ()=>[RIG.position.x+hx(S.y), TOP-.02, .62], 26);
+tag([1,2], 'free energy', ()=>[GX, pileTop+.05, .12]);
+tag([2], 'lowest it can go', ()=>[GX+.36, FLOORM.position.y, .2], 30);
+tag([3], 'surprise', ()=>[GX+.1, surTop*.5, .32], 10);
+tag([3], ()=>(quantities().gap>.12?'gap: how wrong the guess still is':'gap closed'), ()=>[GX, pileTop+.05, .12]);
+tag([4], 'the room it knows', ()=>[-2.05, .0, -.3], 24);
+tag([4], 'the dark room', ()=>[2.05, .0, -.3], 24);
+tag([4], 'what it likes to feel', ()=>[-2.75+.2, 1.62, -.94], -2);
+tag([4], 'what it expects to feel', ()=>[-2.75+P.mK*.14, 1.58+ROOMK.hE, -.7]);
+tag([4], 'what it expects to feel', ()=>[1.35+P.mD*.14, 1.58+ROOMD.hE, -.7]);
+for(const k of ['K','D']){ const s=STK[k];
+  tag([4], 'ambiguity', ()=>[s.x, s.ambTop*.5+.05, .12], 8);
+  tag([4], 'risk', ()=>[s.x, (s.ambTop+s.gTop)*.5+.05, .12], 8);
+  tag([4], ()=>(s.top-s.gTop>.09?'to learn':''), ()=>[s.x, s.top+.03, -.1]); }
+function placeTags(){ const w=canvas.clientWidth, h=canvas.clientHeight;
+  for(const t of TAGS){ const on=t.scenes.indexOf(S.scene)>=0; const txt=on ? (typeof t.text==='function'?t.text():t.text) : '';
+    if(!txt){ if(!t.el.hidden) t.el.hidden=true; continue; }
+    if(txt!==t.last){ t.el.textContent=txt; t.last=txt; }
+    const p=t.at(); tv.set(p[0],p[1],p[2]).project(camera);
+    const x=(tv.x*.5+.5)*w, y=(-tv.y*.5+.5)*h+t.dy;
+    t.el.hidden=false; t.el.style.transform='translate('+Math.round(x)+'px,'+Math.round(y)+'px) translate(-50%,-100%)'; } }
+
+/* ───────────────────────── the read-out: the model's own numbers ───────────────────────── */
+const readEl=$('read'); let lastRead='';
+const dot=c=>'<i style="background:'+c+'"></i>';
+function readout(){
+  let s; const f=(v,n)=>v.toFixed(n===undefined?2:n);
+  if(S.scene===4){ const d=doors();
+    s='<dd class="big">'+(d.choice==='dark'?'It picks the dark door':'It picks the door it knows')+'</dd>'
+     +'<dt>Score</dt><dd>known '+f(d.K.G)+' &middot; dark '+f(d.D.G)+'</dd>'
+     +'<dt class="opt">'+dot('#c8202f')+'risk</dt><dd class="opt">'+f(d.K.risk)+' &middot; '+f(d.D.risk)+'</dd>'
+     +'<dt class="opt">'+dot('#1f8f8a')+'ambiguity</dt><dd class="opt">'+f(d.K.amb)+' &middot; '+f(d.D.amb)+'</dd>'
+     +'<dt class="opt">to learn (crate)</dt><dd class="opt">'+f(d.K.learn)+' &middot; '+f(d.D.learn)+'</dd>'
+     +'<dd class="note">Lower score wins. Score = risk + ambiguity (expected free energy).</dd>';
+  } else { const q=quantities(), st=M.stretch(S.mu,S.y,S.pi);
+    s='<dd class="big">Free energy '+f(q.F)+'</dd>';
+    if(S.scene===3) s+='<dt>'+dot('#f2e6cf')+'Surprise</dt><dd>'+f(q.sur)+'</dd><dt>'+dot('#ff7a3c')+'Gap</dt><dd>'+f(Math.max(q.gap,0))+'</dd>'
+      +'<dd class="note">Free energy = surprise + gap. Filmed at quarter speed.</dd>';
+    else s+='<dt>'+dot('#8fa9e6')+'Expected (prior)</dt><dd>'+f(P.m0,1)+' hands</dd>'
+      +'<dt>'+dot('#ffc21a')+'Guess (belief)</dt><dd>'+f(S.mu,1)+' hands</dd>'
+      +'<dt>'+dot('#c8202f')+'Feels (reading)</dt><dd>'+f(S.y,1)+' hands</dd>'
+      +'<dt class="opt">'+dot('#1f4fd6')+'Blue spring stretch</dt><dd class="opt">'+f(st.prior)+'</dd>'
+      +'<dt class="opt">'+dot('#c86a2c')+'Copper spring stretch</dt><dd class="opt">'+f(st.sense)+'</dd>'
+      +(S.scene===1?'<dt class="opt">Trust (precision)</dt><dd class="opt">'+f(S.pi)+'</dd>'
+        :'<dt>Really from the lamp</dt><dd>'+f(S.lamp-S.c,1)+' hands</dd>');
+  }
+  if(s!==lastRead){ readEl.innerHTML=s; lastRead=s; }
+}
+
+/* ───────────────────────── every picture is posed from the state ───────────────────────── */
+const view={yaw:0, pitch:0, zoom:1, focus:null};
+const CAMS={ 1:{cx:-1.3,cy:1.3,hw:3.8,fx:-.8,fy:.5,fz:.2}, 2:{cx:-1.15,cy:1.3,hw:3.95,fx:-.8,fy:.5,fz:.2}, 3:{cx:-2.25,cy:1.42,hw:4.5,fx:-3.4,fy:.7,fz:.15}, 4:{cx:0,cy:1.38,hw:3.75,fx:0,fy:.6,fz:0} };
+const cam={cx:CAMS[1].cx, cy:CAMS[1].cy, d:9, fx:CAMS[1].fx, fy:.5, fz:.2, init:false};
+const camTarget=new THREE.Vector3(), tmp=new THREE.Vector3(), tmp2=new THREE.Vector3();
+let focusDist=8; const mI=new THREE.Matrix4();
+function pose(){
+  const fi=S.tick, A=S.scene!==4;
+  shared.uSeed.value.set(rnd(fi,1)*40, rnd(fi,2)*40, rnd(fi,3)*40);
+  SETA.visible=A; SETB.visible=!A;
+  if(A){
+    RIG.position.x=S.c*HS; TAPE.visible=S.scene===3; FLOORM.visible=S.scene===2;
+    const since=S.tick-S.kickTick, wob=since<14 ? Math.sin(since*1.9)*Math.exp(-since*.28)*.34 : 0;
+    LAMP.position.x=hx(S.lamp); LSW.rotation.z=wob;
+    const warmth=P.W-S.y;
+    lampLight.intensity=9*(1+(rnd(fi,41)-.5)*.08); bulbM.userData.u.uGlow.value=.55*(1+(rnd(fi,42)-.5)*.1);
+    hPrior=hillPrior.userData.set(P.m0, Math.sqrt(P.v0), 0);
+    hBelief=hillBelief.userData.set(S.mu, Math.sqrt(S.s2), fi);
+    BEAD.position.x=hx(S.mu); PIN.position.set(hx(S.y),TOP+.1,.3); PIN.rotation.z=(rnd(Math.floor(S.t/P.noiseHold),8)-.5)*.2;
+    springPrior.userData.span(hx(P.m0), hx(S.mu), 1);
+    springSense.userData.span(hx(S.mu), hx(S.y), clamp(Math.pow(S.pi,.22),.5,1.7));
+    poseCreature(CR, fi, warmth, S.dc, (S.mu-4)/4);
+    /* the pile: cream slabs are surprise, orange slabs are the gap; together they are F */
+    const q=quantities(), uS=clamp(q.sur,0,GMAX)/UNIT, uF=clamp(q.F,0,GMAX)/UNIT;
+    surTop=setPile(PILE, uS, [[1e9,slabSur]], 0, NAT*UNIT, fi);
+    pileTop=setPile(PILE, uF, [[uS,slabSur],[1e9,slabGap]], 0, NAT*UNIT, fi);
+    FLOORM.position.y=NAT*M.surprise(P.m0,S.pi);
+    if(S.scene===3){ const n=S.hist.length/2;
+      for(let k=0;k<NB;k++){ const j=n-1-k, x=TX-.02-k*BSP;
+        if(j<0){ mI.makeScale(0,0,0); beadF.setMatrixAt(k,mI); beadS.setMatrixAt(k,mI); continue; }
+        mI.makeTranslation(x, clamp(S.hist[j*2],0,GMAX)*NAT, .0); beadF.setMatrixAt(k,mI);
+        mI.makeTranslation(x, clamp(S.hist[j*2+1],0,GMAX)*NAT, .045); beadS.setMatrixAt(k,mI); }
+      beadF.instanceMatrix.needsUpdate=true; beadS.instanceMatrix.needsUpdate=true; }
+    roomLights[0].intensity=0; roomLights[1].intensity=0;
+  } else {
+    const d=doors(), know=1-d.vD/P.vD0; lampLight.intensity=0;
+    ROOMK.hinge.rotation.y=-1.75; ROOMD.hinge.rotation.y=-(.06+1.25*know);
+    ROOMK.light.intensity=5*(1+(rnd(fi,43)-.5)*.08); ROOMD.light.intensity=4.2*know*(1+(rnd(fi,44)-.5)*.08);
+    ROOMD.bm.userData.u.uGlow.value=.05+1.15*know; ROOMD.lm.color.copy(darkC).lerp(lightC,know*know);
+    const vs=Math.sqrt(M.vStar());
+    ROOMK.likes.userData.set(P.m0, vs, 0); ROOMD.likes.userData.set(P.m0, vs, 0);
+    ROOMK.hE=ROOMK.expects.userData.set(P.mK, Math.sqrt(P.vK+1/P.piRoom), fi); ROOMD.hE=ROOMD.expects.userData.set(P.mD, Math.sqrt(d.vD+1/P.piRoom), fi);
+    for(const k of ['K','D']){ const s=STK[k], q=d[k], uA=q.amb/U4, uG=q.G/U4;
+      s.ambTop=NAT4*q.amb; s.gTop=setPile(s.pile, uG, [[uA,slabAmb],[1e9,slabRisk]], 0, NAT4*U4, fi);
+      const ch=Math.max(NAT4*q.learn,.001); s.top=s.gTop+ch; s.crate.visible=ch>.07;
+      for(const m of s.v){ m.scale.y=ch; m.position.y=s.gTop+ch/2; } for(const m of s.t) m.position.y=s.top; }
+    CR4.G.position.x=S.cx; CR4.G.rotation.y=S.cx*1.8;
+    poseCreature(CR4, fi, 4, S.dc*6, S.cx*3);
+  }
+  /* camera: each scene has its own framing; the lens is pulled between them over a few pictures */
+  const cs=CAMS[S.scene], tf=Math.tan(camera.fov*Math.PI/360), dWant=Math.max(cs.hw/(tf*camera.aspect), 5.6/(tf*3.73)*1.0);
+  const k = cam.init && playing ? .34 : 1; cam.init=true;
+  cam.cx=lerp(cam.cx,cs.cx,k); cam.cy=lerp(cam.cy,cs.cy,k); cam.d=lerp(cam.d,dWant,k); cam.fx=lerp(cam.fx,cs.fx,k); cam.fy=lerp(cam.fy,cs.fy,k); cam.fz=lerp(cam.fz,cs.fz,k);
+  const moving=Math.abs(cam.cx-cs.cx)>.01||Math.abs(cam.d-dWant)>.02; if(!moving){ cam.cx=cs.cx; cam.d=dWant; }
+  camTarget.set(cam.cx, cam.cy, 0);
+  const r=cam.d*view.zoom, yaw=view.yaw, pit=clamp(.2+view.pitch,.02,1.2);
+  camera.position.set(camTarget.x+r*Math.sin(yaw)*Math.cos(pit), camTarget.y+r*Math.sin(pit), camTarget.z+r*Math.cos(yaw)*Math.cos(pit));
+  camera.lookAt(camTarget); camera.updateMatrixWorld();
+  key.target.position.set(cam.cx,.9,0); key.position.set(cam.cx-7,8.2,5.2); key.target.updateMatrixWorld();
+  const fp=view.focus || tmp.set(cam.fx+(A?RIG.position.x*.5:0), cam.fy, cam.fz);
+  focusDist=Math.max(1, tmp2.copy(fp).sub(camera.position).dot(camera.getWorldDirection(new THREE.Vector3())));
+  key.intensity=2.3*(1+(rnd(fi,40)-.5)*.035);
+  placeTags(); readout();
+  return moving;
+}
+
+/* ───────────────────────── post: ambient occlusion → lens blur → film ───────────────────────── */
+const postScene=new THREE.Scene(), postCam=new THREE.Camera();
+const tri=new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1,-1,0, 3,-1,0, -1,3,0]),3)));
+tri.frustumCulled=false; postScene.add(tri);
+const VS='varying vec2 vUv; void main(){ vUv=position.xy*.5+.5; gl_Position=vec4(position.xy,0.,1.); }';
+const pm=(fs,u)=>new THREE.ShaderMaterial({vertexShader:VS, fragmentShader:fs, uniforms:u, depthTest:false, depthWrite:false});
+const DEPTH=`uniform sampler2D tDepth; uniform float uNear,uFar; uniform vec2 uProj;
+float linZ(vec2 uv){ float d=texture2D(tDepth,uv).x; return (uNear*uFar)/(uFar-d*(uFar-uNear)); }
+vec3 vpos(vec2 uv){ float z=linZ(uv); vec2 n=uv*2.-1.; return vec3(n.x/uProj.x*z, n.y/uProj.y*z, -z); }`;
+const U={ tDepth:{value:null}, uNear:{value:.6}, uFar:{value:40}, uProj:{value:new THREE.Vector2()}, uRes:{value:new THREE.Vector2()} };
+const aoMat=pm(DEPTH+`uniform vec2 uRes; varying vec2 vUv;
+void main(){ vec3 C=vpos(vUv); vec3 n=normalize(cross(dFdx(C),dFdy(C)));
+  float R=.24, ssr=R*uProj.y*.5/(-C.z);
+  float rot=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853, sum=0.;
+  for(int i=0;i<22;i++){ float a=(float(i)+.5)/22.; float ang=a*6.2831853*7.+rot; float r=ssr*a;
+    vec3 v=vpos(vUv+vec2(cos(ang)*uRes.y/uRes.x,sin(ang))*r)-C; float vv=dot(v,v), vn=dot(v,n);
+    float f=max(1.-vv/(R*R),0.); sum+=f*f*f*max((vn+C.z*.0025)/(vv+.0004),0.); }
+  gl_FragColor=vec4(vec3(max(0.,1.-sum*5.*R/22.*1.9)),1.); }`, Object.assign({},U));
+const prepMat=pm(DEPTH+`uniform sampler2D tColor,tAO; uniform vec2 uRes; uniform float uFocus,uAperture; varying vec2 vUv;
+void main(){ float z=linZ(vUv); float ao=0., w=0.;
+  for(int x=-2;x<2;x++) for(int y=-2;y<2;y++){ vec2 o=(vec2(float(x),float(y))+.5)/uRes; float zz=linZ(vUv+o);
+    float k=max(0.,1.-abs(zz-z)/(.03*z)); ao+=texture2D(tAO,vUv+o).r*k; w+=k; }
+  ao = w>0. ? ao/w : 1.;
+  vec3 c=texture2D(tColor,vUv).rgb; c*=mix(vec3(.16,.13,.14), vec3(1.), pow(ao,1.25));
+  gl_FragColor=vec4(c, clamp((1./uFocus-1./z)*uAperture,-1.,1.)); }`, Object.assign({tColor:{value:null}, tAO:{value:null}, uFocus:{value:5}, uAperture:{value:6}},U));
+const dofMat=pm(`uniform sampler2D tPrep; uniform vec2 uRes; uniform float uMaxPx,uStep; varying vec2 vUv;
+void main(){ vec4 c0=texture2D(tPrep,vUv); float cs=abs(c0.a)*uMaxPx; vec3 acc=c0.rgb; float tot=1.; float r=uStep;
+  float ang=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853;
+  for(int i=0;i<260;i++){ if(r>uMaxPx) break; ang+=2.39996323;
+    vec4 s=texture2D(tPrep, vUv+vec2(cos(ang),sin(ang))*r/uRes); float ss=abs(s.a)*uMaxPx;
+    if(s.a>c0.a) ss=clamp(ss,0.,cs*2.);
+    float m=smoothstep(r-.5,r+.5,ss); acc+=mix(acc/tot,s.rgb,m); tot+=1.; r+=uStep/r; }
+  gl_FragColor=vec4(acc/tot,1.); }`, {tPrep:{value:null}, uRes:U.uRes, uMaxPx:{value:20}, uStep:{value:1.3}});
+const finMat=pm(`uniform sampler2D tDof; uniform vec2 uRes; uniform vec3 uFilm; uniform float uExpo,uFlash; varying vec2 vUv;
+float h(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+void main(){ vec2 uv=vUv+uFilm.xy/uRes; vec2 d=uv-.5; float r2=dot(d,d);
+  vec2 ca=d*r2*.012;
+  vec3 c=vec3(texture2D(tDof,uv+ca).r, texture2D(tDof,uv).g, texture2D(tDof,uv-ca).b);
+  vec3 glow=textureLod(tDof,uv,4.).rgb*.5+textureLod(tDof,uv,6.).rgb*.5;
+  c=mix(c,glow,.07)+max(glow-.9,0.)*.12;
+  c*=uExpo*(1.-r2*.95);
+  c+=vec3(1.,.72,.42)*uFlash*(.25+r2*2.);
+  c=aces(c*vec3(1.03,1.,.97));
+  c=pow(c,vec3(1./2.2));
+  c=mix(c, c*c*(3.-2.*c), .22);
+  float g=h(gl_FragCoord.xy+uFilm.z*91.7)-.5; float l=dot(c,vec3(.3,.6,.1));
+  c+=g*.038*(1.-.6*l);
+  gl_FragColor=vec4(c,1.); }`, {tDof:{value:null}, uRes:U.uRes, uFilm:{value:new THREE.Vector3()}, uExpo:{value:1}, uFlash:{value:0}});
+
+let rt=null, budget=TEST&&TEST.budget ? TEST.budget : (LOW ? 3.4e5 : 2.1e6), msaa=LOW?0:4;
+function build(){
+  const cw=canvas.clientWidth||window.innerWidth, chh=canvas.clientHeight||window.innerHeight, dpr=Math.min(window.devicePixelRatio||1,2);
+  const scale=Math.min(dpr, Math.sqrt(budget/(cw*chh)));
+  renderer.setPixelRatio(scale); renderer.setSize(cw,chh,false);
+  const w=Math.max(2,Math.floor(cw*scale)), h=Math.max(2,Math.floor(chh*scale));
+  if(rt) for(const k in rt) rt[k].dispose();
+  const T=HDR?THREE.HalfFloatType:THREE.UnsignedByteType;
+  const dt=new THREE.DepthTexture(w,h); dt.type=THREE.UnsignedIntType; dt.minFilter=dt.magFilter=THREE.NearestFilter;
+  rt={ scene:new THREE.WebGLRenderTarget(w,h,{type:T, samples:msaa, depthTexture:dt}),
+       ao:new THREE.WebGLRenderTarget(w,h,{type:THREE.UnsignedByteType}),
+       prep:new THREE.WebGLRenderTarget(w,h,{type:T}),
+       dof:new THREE.WebGLRenderTarget(w,h,{type:T, generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter}) };
+  U.uRes.value.set(w,h); camera.aspect=cw/chh; camera.fov = cw/chh<1 ? 52 : (cw/chh<1.4 ? 38 : 30); camera.updateProjectionMatrix();
+  barH();
+}
+function draw(){
+  const moving=pose(), fi=S.tick;
+  renderer.setRenderTarget(rt.scene); renderer.render(scene,camera);
+  const Pm=camera.projectionMatrix.elements;
+  for(const m of [aoMat,prepMat]){ m.uniforms.tDepth.value=rt.scene.depthTexture; m.uniforms.uNear.value=camera.near; m.uniforms.uFar.value=camera.far; m.uniforms.uProj.value.set(Pm[0],Pm[5]); m.uniforms.uRes.value.copy(U.uRes.value); }
+  tri.material=aoMat; renderer.setRenderTarget(rt.ao); renderer.render(postScene,postCam);
+  prepMat.uniforms.tColor.value=rt.scene.texture; prepMat.uniforms.tAO.value=rt.ao.texture;
+  prepMat.uniforms.uFocus.value=focusDist; prepMat.uniforms.uAperture.value=2.6;
+  tri.material=prepMat; renderer.setRenderTarget(rt.prep); renderer.render(postScene,postCam);
+  dofMat.uniforms.tPrep.value=rt.prep.texture; dofMat.uniforms.uMaxPx.value=U.uRes.value.y*.019; dofMat.uniforms.uStep.value=Math.max(1.1, U.uRes.value.y/820);
+  tri.material=dofMat; renderer.setRenderTarget(rt.dof); renderer.render(postScene,postCam);
+  finMat.uniforms.tDof.value=rt.dof.texture;
+  finMat.uniforms.uFilm.value.set((rnd(fi,50)-.5)*1.2,(rnd(fi,51)-.5)*1.2,rnd(fi,52)*100);
+  finMat.uniforms.uExpo.value=1.06*(1+(rnd(fi,53)-.5)*.03);
+  finMat.uniforms.uFlash.value=0;
+  tri.material=finMat; renderer.setRenderTarget(null); renderer.render(postScene,postCam);
+  return moving;
+}
+
+/* ───────────────────────── words ───────────────────────── */
+const WORDS={
+ 1:{ h:'Guessing in the dark', p:'The creature cannot see the lamp, only feel its warmth, so it guesses how far away the lamp is. Two springs pull the guess, one towards what it expected and one towards what it feels.',
+     d:'<b>Do</b> slide Trust down, then up (and drag the lamp). <b>Watch</b> free energy: it rises as the springs stretch.' },
+ 2:{ h:'Two ways down', p:'It expects to be cosy, four hands from the lamp, and it is not. It can lower the same pile by changing its guess or by shuffling along the rail, and only both together bring it home.',
+     d:'<b>Do</b> choose Think only, Move only or Both. <b>Watch</b> the free energy pile reach its lowest mark.' },
+ 3:{ h:'A lid on surprise', p:'Surprise is how unlikely this feeling is for a creature that expects what this one does. Free energy can never be less, and the gap between them is how wrong the guess still is.',
+     d:'<b>Do</b> kick the lamp. <b>Watch</b> the orange gap close as the guess catches up.' },
+ 4:{ h:'Two doors', p:'Before it moves it scores each door: how far from cosy it expects to feel (risk), plus how muddled the feeling would be (ambiguity). The dark room scores lower while there is something to learn there, so let it peep and watch that fade.',
+     d:'<b>Do</b> give it glimpses of the dark room. <b>Watch</b> the two scores: the lower pile wins.' } };
+
+/* ───────────────────────── playback and controls ───────────────────────── */
+const TPS=12, playBtn=$('play');
+let acc=0, last=0, slow=0;
+function label(){
+  playBtn.textContent=playing?'Pause':'Play';
+  const w=WORDS[S.scene]; $('step').textContent='Scene '+S.scene+' of 4'; $('h').textContent=w.h; $('p').textContent=w.p; $('do').innerHTML=w.d;
+  document.querySelectorAll('[data-step]').forEach(b=>b.setAttribute('aria-pressed', String(+b.dataset.step===S.scene)));
+  for(let i=1;i<=4;i++) $('c'+i).hidden = i!==S.scene;
+  document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.mode===S.mode)));
+  const tr=$('trust'); tr.value=Math.round(piToTrust(S.pi)); $('trustv').textContent=S.pi.toFixed(2); tr.setAttribute('aria-valuetext','precision '+S.pi.toFixed(2));
+  $('peeps').value=S.glimpses; $('peepv').textContent=String(S.glimpses);
+}
+/* when the film is paused (or motion is reduced) a control still answers: run on to where things settle */
+function settle(n){ if(!playing){ for(let i=0;i<n;i++) tickSim(); } dirty=true; label(); }
+function barH(){ const bar=document.querySelector('.bar'); document.documentElement.style.setProperty('--barh', (bar.offsetHeight+20)+'px'); }
+function setScene(n){ n=clamp(Math.round(+n)||1,1,4); view.focus=null; stage(n); settle(n===1||n===2?90:1); barH(); }
+function setLamp(h){ const r=lampRange(); S.lamp=clamp(h,r[0],r[1]); S.y=S.lamp-S.c+S.eps; settle(90); }
+function wireControls(){
+  playBtn.onclick=()=>{ playing=!playing; label(); };
+  document.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>setScene(+b.dataset.step));
+  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{ restage2(b.dataset.mode); S.hist.length=0; record(); settle(140); });
+  $('trust').oninput=()=>{ S.pi=trustToPi(+$('trust').value); settle(90); };
+  $('kick').onclick=()=>{ kick(); settle(1); };
+  $('peeps').oninput=()=>{ S.glimpses=clamp(Math.round(+$('peeps').value),0,12); settle(30); };
+  const about=$('about'), ab=$('aboutb');
+  const setAbout=on=>{ about.hidden=!on; $('tags').style.visibility=on?'hidden':''; ab.setAttribute('aria-expanded', String(on)); if(on) $('aboutx').focus(); else ab.focus(); };
+  ab.onclick=()=>setAbout(about.hidden); $('aboutx').onclick=()=>setAbout(false);
+  addEventListener('keydown',e=>{ const t=e.target, tn=t&&t.tagName;
+    if(e.key==='Escape'){ if(!about.hidden){ setAbout(false); return; }
+      if(!t || t===document.body || t===canvas || t===document.documentElement) goBack(); else if(t.blur) t.blur(); return; }
+    if(tn==='INPUT'||tn==='BUTTON'||!about.hidden) return;
+    if(e.code==='Space'){ e.preventDefault(); playBtn.click(); }
+    if((e.code==='ArrowRight'||e.code==='ArrowLeft') && S.scene!==4){ e.preventDefault(); setLamp(S.lamp+(e.code==='ArrowRight'?.25:-.25)); }
+    if(e.key>='1'&&e.key<='4') setScene(+e.key); });
+  label();
+}
+wireControls();
+
+/* pointer: drag the lamp if you take hold of it, otherwise look around; a tap pulls focus */
+let down=null, moved=false, grab=false; const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(), plane=new THREE.Plane(new THREE.Vector3(0,0,1), .92), hitP=new THREE.Vector3();
+function aim(e){ const b=canvas.getBoundingClientRect(); ndc.set((e.clientX-b.left)/b.width*2-1, -((e.clientY-b.top)/b.height*2-1)); ray.setFromCamera(ndc,camera); }
+canvas.addEventListener('pointerdown',e=>{ down={x:e.clientX,y:e.clientY}; moved=false; canvas.setPointerCapture(e.pointerId);
+  aim(e); grab = S.scene!==4 && ray.intersectObject(lampHit,false).length>0; });
+canvas.addEventListener('pointermove',e=>{ if(!down) return; const dx=e.clientX-down.x, dy=e.clientY-down.y;
+  if(!moved && Math.hypot(dx,dy)<5) return; moved=true; canvas.classList.add('dragging');
+  if(grab){ aim(e); if(ray.ray.intersectPlane(plane,hitP)) setLamp((hitP.x-X0)/HS); return; }
+  view.yaw=clamp(view.yaw-dx*.005,-.8,.8); view.pitch=clamp(view.pitch+dy*.004,-.1,.7); down={x:e.clientX,y:e.clientY}; dirty=true; });
+canvas.addEventListener('pointerup',e=>{ canvas.classList.remove('dragging'); if(down&&!moved){ aim(e);
+    const hit=ray.intersectObjects(scene.children,true).find(h=>h.object.visible&&h.object!==lampHit&&(h.object.parent?isShown(h.object):true)); if(hit){ view.focus=hit.point.clone(); dirty=true; } } down=null; grab=false; });
+function isShown(o){ while(o){ if(!o.visible) return false; o=o.parent; } return true; }
+canvas.addEventListener('pointercancel',()=>{ down=null; grab=false; canvas.classList.remove('dragging'); });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); view.zoom=clamp(view.zoom*Math.exp(e.deltaY*.0012),.55,1.5); dirty=true; },{passive:false});
+addEventListener('resize',()=>{ build(); dirty=true; });
+
+/* start: an optional ?scene=1..4, and for reduced motion a settled picture with Play to hand */
+(function(){ const n=parseInt(QS.get('scene')||'1',10); stage(n>=1&&n<=4?n:1); if(!playing){ for(let i=0;i<90;i++) tickSim(); } })();
+build(); label();
+if(TEST){ window.__clay={ shot(f,v){ if(v) Object.assign(view,v); while(S.tick<f) tickSim(); cam.init=false; draw(); renderer.getContext().finish(); return true; } }; return; }
+function tick(t){ requestAnimationFrame(tick);
+  const dt=Math.min(t-last,250); last=t;
+  if(playing){ acc+=dt; const per=1000/TPS; if(acc>=per){ acc=acc%per; tickSim(); dirty=true; } }
+  if(dirty){ dirty=false; const t0=performance.now(); const moving=draw(); renderer.getContext().finish(); const ms=performance.now()-t0;
+    if(moving) dirty=true;
+    // if a picture takes longer than its slot, shoot at a lower resolution
+    if(ms>1000/TPS*.85){ if(++slow>5 && budget>5e5){ budget*=.72; slow=0; build(); dirty=true; } } else slow=Math.max(0,slow-1); }
+}
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

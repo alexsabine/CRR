@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The golden compasses</title>
+<meta name="description" content="Hold the golden compasses over a storm of real fluid: draw a bound on the deep, and see both what it makes and what it stops.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --studio:#05060a;
+  --ink:#f3ecdf;
+  --ink-soft:rgba(243,236,223,.72);
+  --panel:rgba(10,10,14,.60);
+  --line:rgba(243,236,223,.22);
+  --accent:#f0b441;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+body{transition:opacity .35s}
+body.leaving{opacity:0}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;outline:none}
+#stage:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.head{position:fixed;left:20px;top:16px;right:320px;pointer-events:none;text-shadow:0 1px 10px rgba(0,0,0,.8)}
+.head h1{font:600 clamp(22px,3.2vw,34px)/1.05 var(--display);margin:0 0 6px;letter-spacing:-.01em}
+.head p{font:400 13px/1.45 var(--mono);margin:0;color:var(--ink-soft);max-width:46ch}
+button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);
+  border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap;touch-action:manipulation}
+button:hover{border-color:var(--ink-soft)}
+button[aria-pressed="true"]{background:var(--ink);color:#15161a;border-color:var(--ink)}
+button:focus-visible,input:focus-visible,.sheet:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#back{position:fixed;right:20px;top:16px;background:var(--panel);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);z-index:3}
+.bar{position:fixed;left:16px;right:16px;bottom:16px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font:400 12.5px/1 var(--mono)}
+.note{margin:0 0 9px;font:400 13px/1.45 var(--mono);color:var(--ink);min-height:1.45em}
+.note q{font:400 14.5px/1.4 var(--display);font-style:italic;quotes:none;color:#ffe3ad}
+.note cite{font-style:normal;color:var(--ink-soft)}
+.row{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+#turn{background:var(--accent);border-color:var(--accent);color:#1a1205}
+.sl{display:inline-flex;align-items:center;gap:8px;color:var(--ink-soft);white-space:nowrap}
+.sl input{width:110px;accent-color:var(--accent);height:22px;margin:0}
+.read{position:fixed;right:20px;top:60px;margin:0;display:grid;grid-template-columns:auto auto;gap:5px 14px;padding:12px 14px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  font:400 12.5px/1.25 var(--mono);font-variant-numeric:tabular-nums;pointer-events:none;width:min(286px,calc(100vw - 32px))}
+.read dt{color:var(--ink-soft);margin:0}.read dd{margin:0;text-align:right;white-space:nowrap}
+.read dt small,.read dd small{display:block;font-size:10.5px;opacity:.75}
+.read .big{font:600 20px/1.1 var(--display);grid-column:1/-1;text-align:left;margin-bottom:2px}
+.read .sec{grid-column:1/-1;text-align:left;color:var(--accent);border-top:1px solid var(--line);padding-top:6px;margin-top:2px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.read .wide{grid-column:1/-1;text-align:left;white-space:normal;color:var(--ink-soft)}
+.meter{position:relative;height:7px;border-radius:4px;background:rgba(243,236,223,.12);margin:3px 0 2px;grid-column:1/-1}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,#f0b441,#fff1cf)}
+.sheet{position:fixed;background:rgba(10,10,14,.90);border:1px solid var(--line);border-radius:14px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  padding:16px 18px;overflow:auto;font:400 12.5px/1.55 var(--mono);z-index:4}
+.sheet h2{font:600 21px/1.15 var(--display);margin:0 0 8px}
+.sheet h3{font:500 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:14px 0 4px}
+.sheet p{margin:0 0 8px}.sheet ul{margin:0 0 8px;padding-left:18px}.sheet li{margin:0 0 3px}
+.sheet blockquote{margin:0 0 8px;padding:2px 0 2px 12px;border-left:2px solid var(--accent);font:400 14.5px/1.45 var(--display);font-style:italic;white-space:pre-line;color:#ffe9c2}
+.sheet blockquote cite{display:block;font:400 11.5px/1.4 var(--mono);font-style:normal;color:var(--ink-soft);margin-top:3px;white-space:normal}
+.sheet .two{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}
+.sheet .x{float:right;margin:0 0 8px 12px}
+.sheet code{font:inherit;color:#ffd9a8}
+#about{right:20px;top:60px;bottom:16px;width:min(640px,calc(100vw - 32px))}
+@media (max-width:760px){.head p{display:none}.head{right:150px}.head h1{font-size:20px}
+  .read{top:48px;left:8px;right:auto;font-size:10.5px;padding:7px 9px;gap:2px 10px;width:min(214px,calc(100vw - 16px))}.read dt small,.read dd small{display:none}.read .big{font-size:15px}
+  .read .opt{display:none}
+  #back{right:12px;top:12px;padding:8px 10px;font-size:11.5px}
+  .bar{left:8px;right:8px;bottom:8px;padding:8px 9px}.note{font-size:11.5px;line-height:1.4;margin-bottom:7px}.note q{font-size:13px}
+  .row{gap:6px 6px}.sl input{width:84px}button{padding:8px 9px;font-size:11px}
+  #about{right:8px;top:48px;bottom:8px;width:calc(100vw - 16px)}.sheet .two{grid-template-columns:1fr}}
+#fail{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:400 15px/1.5 var(--mono)}
+</style>
+</head>
+<body>
+<canvas id="stage" tabindex="0" aria-label="You look straight down from a burning disc, through torn cloud, onto a dark storm of water. Two beams of gold light reach down from your hand: the compasses. Press on the water to set one foot, and move round it to turn the other and draw a bound. Keys: arrows move the compasses, Space sets or frees the fixed foot, left and right turn the drawing foot once it is set, square brackets open and close them, M changes between circle and line, T turns a full circle for you, L lifts them away."></canvas>
+<div class="head">
+  <h1>The golden compasses</h1>
+  <p>You hold them. Draw a bound on the deep, and see what it makes and what it stops.</p>
+</div>
+<button id="back" type="button">Back to the museum</button>
+<dl class="read" id="read" aria-label="The measure: what the bounds gained and what they cost"></dl>
+<div class="sheet" id="about" role="dialog" aria-label="About this piece" tabindex="-1" hidden></div>
+<div class="bar" id="bar">
+  <p class="note" id="note" aria-live="polite"></p>
+  <div class="row">
+    <button id="mCircle" type="button" aria-pressed="true">Circle</button>
+    <button id="mLine" type="button" aria-pressed="false">Line</button>
+    <label class="sl">Open <input id="open" type="range" min="0.03" max="0.2" step="0.005" value="0.1" aria-label="How wide the compasses are open"></label>
+    <button id="turn" type="button">Turn for me</button>
+    <button id="lift" type="button" aria-pressed="false">Lift the compasses</button>
+    <button id="look" type="button" aria-pressed="false">Look back</button>
+    <button id="play" type="button">Pause</button>
+    <button id="sound" type="button" aria-pressed="false">Sound</button>
+    <button id="aboutBtn" type="button" aria-expanded="false" aria-controls="about">About</button>
+  </div>
+</div>
+<div id="fail">This piece needs WebGL 2 with floating-point textures, which this browser or device has not made available.</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+const canvas = document.getElementById('stage');
+const HOME = { blake: 'index.html', jooles: 'jooles.html', park: 'park.html' };
+const QS = new URLSearchParams(location.search);
+const FROM = Object.prototype.hasOwnProperty.call(HOME, QS.get('from')) ? QS.get('from') : 'blake';
+const STOP = /^[a-z0-9_:\-]{1,40}$/.test(QS.get('stop')||'') ? QS.get('stop') : 'ancient';
+const BACK = HOME[FROM] + '#' + STOP;
+const LOW = QS.get('q')==='low';
+const STILL = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const $ = id => document.getElementById(id);
+function goBack(){ document.body.classList.add('leaving'); setTimeout(()=>{ location.href = BACK; }, 360); }
+$('back').onclick = goBack;
+const TAU = Math.PI*2, clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+
+const gl0 = window.THREE && canvas.getContext('webgl2', { antialias:false, alpha:false, powerPreference:'high-performance' });
+if(!gl0 || !gl0.getExtension('EXT_color_buffer_float')){ $('fail').style.display='grid'; canvas.style.display='none';
+  window.PIECE={ name:'golden-compasses', back:BACK, state(){ return { failed:true, webgl:false, back:BACK, from:FROM, stop:STOP }; } }; return; }
+const LIN = !!gl0.getExtension('OES_texture_float_linear');
+const THREE = window.THREE;
+
+/* ═════════════════════════ THE MODEL ═════════════════════════
+   The deep is a real two-dimensional incompressible fluid on an N x N grid with periodic edges, solved on the graphics card.
+   Method: "stable fluids" (J. Stam, SIGGRAPH 1999) on a staggered (MAC) grid (F. Harlow and J. Welch, Physics of Fluids 8, 1965):
+   each cell keeps u on its left face and v on its bottom face, in cells per step. One step, dt = 1/60 s:
+     1. vorticity w = dv/dx - du/dy at the cell corners;
+     2. carry each face velocity back along the flow (semi-Lagrangian); add the stirring force (the curl of six slow
+        waves, so it has no divergence; it acts only out at the rim of the square, under the cloud), a steady uniform
+        side wind, and a linear drag KAPPA (Rayleigh friction). Nothing else puts energy in: no vorticity confinement;
+     3. make it divergence-free: solve for a pressure by red-black successive over-relaxation and subtract its gradient.
+   A drawn bound is an immersed boundary by the area-fraction (cut-cell) method: every face has an openness a in [0,1],
+   a = 1 - (strength of the wall there). The pressure equation is  sum_faces a (p_n - p_c) = sum_faces a u, so the flux
+   a.u is divergence-free and a face with a = 0 carries exactly nothing. A bound at full strength is a sealed wall two
+   cells thick. A lifted bound loses strength as 2^(-t/HALF): its faces open by degrees and the fluid comes back through.
+   The storm in the open deep is not forced where you see it: it is stirred at the rim and carried in by the flow. The
+   uniform wind force acts everywhere, inside a bound too, where pressure against the wall cancels it exactly (a force
+   with no curl cannot move enclosed water). So a closed wall cuts the water inside off from its supply of motion: the
+   through-flow stops at once, and what is left runs down by drag.
+   Scalars carried by the flow: vapour r (made where the water swirls, r' = SRC w^2 (1 - r) - r/TAUV), a passive tracer,
+   and the two reagents of the Gray-Scott reaction-diffusion model (P. Gray and S. Scott 1984; J. Pearson, Science 261,
+   1993): U' = Du lap U - U V^2 + F (1 - U),  V' = Dv lap V + U V^2 - (F + k + SHEAR a^2) V.  The last term is a rule of
+   this piece, not chemistry: agitation a (swirl and speed) kills the pattern, so it lives only in still water.
+   What this leaves out: the third dimension, a free surface, real viscosity (the scheme's own smoothing stands in for
+   it), and any truth to the chemistry beyond the equations above. */
+const N = (TEST && TEST.N) || (LOW ? 128 : 256);
+const DT = 1/60;
+const KAPPA = 0.18;                  /* drag, per second: kinetic energy with no forcing falls as exp(-2 KAPPA t) or faster */
+const HALF = 8;                      /* seconds for a lifted bound to lose half its strength */
+const UREF = 0.0030*N;               /* reference speed, cells per step (0.18 of the domain a second) */
+const WIND = ((TEST&&TEST.wind)||0.8)*UREF;              /* the side wind the wind force alone would hold */
+const STIR = ((TEST&&TEST.stir)||0.012)*UREF;
+const RIM0 = 0.37, RIM1 = 0.46;      /* the stirring force acts only beyond this distance from the centre of the square (out under the cloud) */
+const VISR = 0.36;                   /* the open deep: the storm's own figures are taken inside this radius */            /* stirring acceleration per mode, cells per step^2 */
+const SOR_W = 1.8;
+let ITERS = (TEST && TEST.iters) || (N>=256 ? 26 : 22);
+const GS = { F:0.037, k:0.060, Du:N>=256?0.20:0.12, Dv:N>=256?0.10:0.06, shear:0.02, sub:4 };
+const SRC = 1.3, TAUV = 3.5;         /* vapour: source strength and lifetime (seconds) */
+const WALL_IN = 1.05, WALL_OUT = 1.75;   /* wall profile in cells: full strength within WALL_IN of the drawn curve, none beyond WALL_OUT */
+const NB = 12;                       /* most bounds held at once */
+const SHALF = 1.5;                   /* world half-width of the simulated square */
+const RMIN = 0.03, RMAX = 0.2;       /* opening, as a fraction of the square */
+
+function mulberry(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const rnd = mulberry(1794);
+
+const renderer = new THREE.WebGLRenderer({ canvas, context: gl0, antialias:false });
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace; renderer.autoClear = false;
+const fsCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1), QUAD = new THREE.PlaneGeometry(2,2);
+const fsScene = new THREE.Scene(), fsMesh = new THREE.Mesh(QUAD, null); fsMesh.frustumCulled=false; fsScene.add(fsMesh);
+const VS = 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }';
+const SIMH = 'precision highp float; varying vec2 vUv; uniform float uN;\n' + (LIN ? 'vec4 bl(sampler2D t,vec2 p){ return texture2D(t,p/uN); }\n'
+  : 'vec4 bl(sampler2D t,vec2 p){ vec2 f=fract(p-.5), i=(floor(p-.5)+.5)/uN; float e=1./uN; return mix(mix(texture2D(t,i),texture2D(t,i+vec2(e,0.)),f.x),mix(texture2D(t,i+vec2(0.,e)),texture2D(t,i+vec2(e)),f.x),f.y); }\n')
+  + '#define TX(t,dx,dy) texture2D(t,vUv+vec2(dx,dy)/uN)\n';
+function simMat(frag, uniforms){ uniforms.uN={value:N}; return new THREE.ShaderMaterial({ vertexShader:VS, fragmentShader:SIMH+frag, uniforms, depthTest:false, depthWrite:false }); }
+function pass(mat, target){ fsMesh.material=mat; renderer.setRenderTarget(target); renderer.render(fsScene, fsCam); }
+function simRT(){ const t=new THREE.WebGLRenderTarget(N,N,{ type:THREE.FloatType, format:THREE.RGBAFormat, depthBuffer:false, minFilter:LIN?THREE.LinearFilter:THREE.NearestFilter, magFilter:LIN?THREE.LinearFilter:THREE.NearestFilter });
+  t.texture.wrapS=t.texture.wrapT=THREE.RepeatWrapping; t.texture.generateMipmaps=false; return t; }
+let V=[simRT(),simRT()], S=[simRT(),simRT()], P=[simRT(),simRT()]; const D=simRT(), W=simRT();
+/* the mask the bounds are written into: r wall strength, g pinning, b openness of the left face, a openness of the bottom face */
+const MK = new Float32Array(N*N*4);
+const maskTex = new THREE.DataTexture(MK,N,N,THREE.RGBAFormat,THREE.FloatType); maskTex.minFilter=maskTex.magFilter=THREE.NearestFilter; maskTex.wrapS=maskTex.wrapT=THREE.RepeatWrapping;
+
+const INIT_K = []; for(let m=0;m<20;m++){ let kx=0, ky=0; while(kx===0&&ky===0){ kx=Math.round((rnd()*2-1)*7); ky=Math.round((rnd()*2-1)*7); } const k=Math.hypot(kx,ky); INIT_K.push(new THREE.Vector4(kx,ky,rnd()*TAU,Math.pow(k,-1.6))); }
+const STIR_K = [[1,2],[2,-1],[3,2],[-3,1],[2,4],[5,-2]].map(k=>new THREE.Vector4(k[0],k[1],rnd()*TAU,1/Math.hypot(k[0],k[1])));
+const STIR_W = STIR_K.map(()=> (rnd()-.5)*0.02 );
+const mInit = simMat(`uniform vec4 uK[20]; uniform float uAmp;
+  float psi(vec2 x){ float s=0.; for(int i=0;i<20;i++) s+=uK[i].w*cos(dot(uK[i].xy,x)*6.2831853+uK[i].z); return s*uAmp; }
+  void main(){ vec2 c=vUv-.5/uN; float e=1./uN; float p0=psi(c); gl_FragColor=vec4(psi(c+vec2(0.,e))-p0, -(psi(c+vec2(e,0.))-p0), 0., 1.); }`, { uK:{value:INIT_K}, uAmp:{value:1} });
+const mInitS = simMat(`void main(){ gl_FragColor=vec4(.25,1.,0.,0.); }`, {});
+const mCurl = simMat(`uniform sampler2D uV; void main(){ vec2 c=TX(uV,0.,0.).xy; gl_FragColor=vec4((c.y-TX(uV,-1.,0.).y)-(c.x-TX(uV,0.,-1.).x),0.,0.,1.); }`, { uV:{value:null} });
+const mAdv = simMat(`uniform sampler2D uV,uM; uniform vec4 uK[6]; uniform vec3 uPin; uniform float uDrag,uWind,uStir,uMax; uniform vec2 uRim;
+  float uAt(vec2 p){ return bl(uV,p+vec2(.5,0.)).x; } float vAt(vec2 p){ return bl(uV,p+vec2(0.,.5)).y; }
+  vec2 force(vec2 p){ vec2 x=p/uN, f=vec2(0.); for(int i=0;i<6;i++) f+=uK[i].w*vec2(uK[i].y,-uK[i].x)*cos(dot(uK[i].xy,x)*6.2831853+uK[i].z); return vec2(uWind,0.)+f*uStir*smoothstep(uRim.x,uRim.y,length(x-.5)); }
+  float pin(vec2 p){ vec2 d=p-uPin.xy*uN; return 1.-uPin.z*exp(-dot(d,d)/6.); }
+  void main(){ vec2 c=vUv*uN, pu=c-vec2(.5,0.), pv=c-vec2(0.,.5); vec2 me=texture2D(uV,vUv).xy; vec4 m=texture2D(uM,vUv);
+    float u=uAt(pu-vec2(me.x,vAt(pu))), v=vAt(pv-vec2(uAt(pv),me.y));
+    u=(u+force(pu).x)/(1.+uDrag)*pin(pu)*step(1e-4,m.b); v=(v+force(pv).y)/(1.+uDrag)*pin(pv)*step(1e-4,m.a);
+    float g=1.-.9*m.g; gl_FragColor=vec4(clamp(vec2(u,v)*g,-uMax,uMax),0.,1.); }`,
+  { uV:{value:null}, uM:{value:maskTex}, uK:{value:STIR_K}, uPin:{value:new THREE.Vector3()}, uDrag:{value:KAPPA*DT}, uWind:{value:KAPPA*DT*WIND}, uStir:{value:STIR}, uMax:{value:1.9}, uRim:{value:new THREE.Vector2(RIM0,RIM1)} });
+const mDiv = simMat(`uniform sampler2D uV,uM; void main(){ vec2 c=TX(uV,0.,0.).xy; vec2 a=TX(uM,0.,0.).ba; float aR=TX(uM,1.,0.).b, aT=TX(uM,0.,1.).a;
+    gl_FragColor=vec4(aR*TX(uV,1.,0.).x-a.x*c.x+aT*TX(uV,0.,1.).y-a.y*c.y, a.x+a.y+aR+aT, 0., 1.); }`, { uV:{value:null}, uM:{value:maskTex} });
+const mSor = simMat(`uniform sampler2D uP,uD,uM; uniform float uPar,uOm; void main(){ float p=TX(uP,0.,0.).x; vec2 ij=floor(vUv*uN);
+    if(abs(mod(ij.x+ij.y,2.)-uPar)>.5){ gl_FragColor=vec4(p,0.,0.,1.); return; }
+    vec2 d=TX(uD,0.,0.).xy; vec2 a=TX(uM,0.,0.).ba; float aR=TX(uM,1.,0.).b, aT=TX(uM,0.,1.).a;
+    float q=d.y>1e-5 ? (a.x*TX(uP,-1.,0.).x+aR*TX(uP,1.,0.).x+a.y*TX(uP,0.,-1.).x+aT*TX(uP,0.,1.).x-d.x)/d.y : 0.;
+    gl_FragColor=vec4(d.y>1e-5 ? mix(p,q,uOm) : 0.,0.,0.,1.); }`, { uP:{value:null}, uD:{value:D.texture}, uM:{value:maskTex}, uPar:{value:0}, uOm:{value:SOR_W} });
+const mPro = simMat(`uniform sampler2D uP,uV,uM; void main(){ vec2 v=TX(uV,0.,0.).xy; vec2 a=TX(uM,0.,0.).ba; float p=TX(uP,0.,0.).x;
+    gl_FragColor=vec4((v.x-(p-TX(uP,-1.,0.).x))*step(1e-4,a.x), (v.y-(p-TX(uP,0.,-1.).x))*step(1e-4,a.y), 0., 1.); }`, { uP:{value:null}, uV:{value:null}, uM:{value:maskTex} });
+const SEEDS = []; for(let i=0;i<12;i++) SEEDS.push(new THREE.Vector3());
+const mSca = simMat(`uniform sampler2D uS,uV,uW,uM; uniform float uAdv,uF,uKk,uDu,uDv,uShear,uSrc,uDec,uRef,uTdec; uniform vec3 uSeed[12]; uniform vec4 uFill;
+  void main(){ vec2 c=vUv*uN; vec2 vel=vec2(bl(uV,c+vec2(.5,0.)).x, bl(uV,c+vec2(0.,.5)).y); vec2 pb=c-vel*uAdv;
+    vec4 s=bl(uS,pb); vec4 lap=bl(uS,pb+vec2(1.,0.))+bl(uS,pb-vec2(1.,0.))+bl(uS,pb+vec2(0.,1.))+bl(uS,pb-vec2(0.,1.))-4.*s;
+    float w=bl(uW,c+.5).x/uRef; float ag=w*w+dot(vel,vel)/(uRef*uRef)*.0625;
+    float uvv=s.g*s.b*s.b;
+    float U=s.g+uDu*lap.g-uvv+uF*(1.-s.g), Vv=s.b+uDv*lap.b+uvv-(uF+uKk+uShear*min(ag,4.))*s.b;
+    float r=s.r+uAdv*(uSrc*min(w*w*w*w,16.)*(1.-s.r)-uDec*s.r+.03*lap.r), tr=s.a*(1.-uAdv*uTdec);
+    for(int i=0;i<12;i++){ if(uSeed[i].z>.5){ vec2 d=c-uSeed[i].xy*uN; float g=exp(-dot(d,d)/(3.+4.*fract(uSeed[i].x*917.3)))*step(.35,fract(sin(dot(floor(c),vec2(12.9898,78.233)))*43758.5453)+.6*exp(-dot(d,d)/3.)); Vv=max(Vv,.45*g); U=min(U,1.-.5*g); } }
+    if(uFill.w>.5){ vec2 d=c-uFill.xy*uN; if(length(d)<uFill.z*uN) tr=1.; }
+    float sg=texture2D(uM,vUv).r;
+    gl_FragColor=mix(clamp(vec4(r,U,Vv,tr),0.,1.), vec4(0.,1.,0.,0.), sg); }`,
+  { uS:{value:null}, uV:{value:null}, uW:{value:W.texture}, uM:{value:maskTex}, uAdv:{value:1}, uF:{value:GS.F}, uKk:{value:GS.k}, uDu:{value:GS.Du}, uDv:{value:GS.Dv}, uShear:{value:GS.shear},
+    uSrc:{value:SRC*DT/24}, uDec:{value:DT/TAUV}, uRef:{value:UREF/8}, uTdec:{value:0}, uSeed:{value:SEEDS}, uFill:{value:new THREE.Vector4()} });
+
+/* ── the bounds ── */
+const bounds = [];        /* { type:'arc'|'line', x,y,r,start,sw  |  x,y,x2,y2,  s (strength 0..1), closed, id, flash } in units of the square (0..1) */
+let boundId = 0, labDirty = true, stepN = 0, simT = 0, lifted = false, seedQ = [], fillQ = null, lastClose = -1e9;
+const IN = new Uint8Array(N*N), LAB = new Int32Array(N*N), VIS = new Uint8Array(N*N); let regions = [];
+for(let j=0;j<N;j++) for(let i=0;i<N;i++) VIS[j*N+i] = Math.hypot((i+.5)/N-.5,(j+.5)/N-.5)<VISR ? 1 : 0;
+function wrap(i){ return ((i%N)+N)%N; }
+function distBound(b, cx, cy){ /* distance in cells from a point (in cells) to the drawn curve */
+  if(b.type==='line'){ const ax=b.x*N, ay=b.y*N, bx=b.x2*N, by=b.y2*N, dx=bx-ax, dy=by-ay, t=clamp(((cx-ax)*dx+(cy-ay)*dy)/(dx*dx+dy*dy||1),0,1); return Math.hypot(cx-ax-dx*t, cy-ay-dy*t); }
+  const ox=cx-b.x*N, oy=cy-b.y*N, rr=Math.hypot(ox,oy), R=b.r*N;
+  if(b.sw>=TAU-1e-3) return Math.abs(rr-R);
+  let an=(Math.atan2(oy,ox)-b.start)%TAU; if(an<0) an+=TAU;
+  if(an<=b.sw) return Math.abs(rr-R);
+  const e0x=R*Math.cos(b.start), e0y=R*Math.sin(b.start), e1x=R*Math.cos(b.start+b.sw), e1y=R*Math.sin(b.start+b.sw);
+  return Math.min(Math.hypot(ox-e0x,oy-e0y), Math.hypot(ox-e1x,oy-e1y)); }
+function rasterise(){ MK.fill(0);
+  for(const b of bounds){ let x0,x1,y0,y1;
+    if(b.type==='line'){ x0=Math.min(b.x,b.x2)*N-3; x1=Math.max(b.x,b.x2)*N+3; y0=Math.min(b.y,b.y2)*N-3; y1=Math.max(b.y,b.y2)*N+3; }
+    else { x0=(b.x-b.r)*N-3; x1=(b.x+b.r)*N+3; y0=(b.y-b.r)*N-3; y1=(b.y+b.r)*N+3; }
+    for(let j=Math.floor(y0); j<=Math.ceil(y1); j++) for(let i=Math.floor(x0); i<=Math.ceil(x1); i++){ const d=distBound(b,i+.5,j+.5); if(d>=WALL_OUT) continue;
+      const pr=d<=WALL_IN?1:(WALL_OUT-d)/(WALL_OUT-WALL_IN), q=(wrap(j)*N+wrap(i))*4; if(b.s*pr>MK[q]) MK[q]=b.s*pr; }
+    const pins = b.type==='line' ? [[b.x,b.y],[b.x2,b.y2]] : (b.closed ? [[b.x,b.y]] : []);
+    for(const p of pins){ const pi=Math.floor(p[0]*N), pj=Math.floor(p[1]*N); for(let j=pj-5;j<=pj+5;j++) for(let i=pi-5;i<=pi+5;i++){ const dx=i+.5-p[0]*N, dy=j+.5-p[1]*N, g=b.s*Math.exp(-(dx*dx+dy*dy)/5), q=(wrap(j)*N+wrap(i))*4+1; if(g>MK[q]) MK[q]=g; } } }
+  for(let j=0;j<N;j++) for(let i=0;i<N;i++){ const q=(j*N+i)*4, sC=MK[q]; MK[q+2]=1-Math.max(sC,MK[(j*N+wrap(i-1))*4]); MK[q+3]=1-Math.max(sC,MK[(wrap(j-1)*N+i)*4]); }
+  maskTex.needsUpdate=true; labDirty=true; }
+/* which cells are shut in: flood the open faces; the largest connected body of water is "outside" */
+function label(){ LAB.fill(-1); regions=[]; const stack=new Int32Array(N*N); let best=-1, bestN=0;
+  for(let c0=0;c0<N*N;c0++){ if(LAB[c0]>=0 || MK[c0*4]>=.999) continue; const id=regions.length; let n=0, sx=0, sy=0, sp=0; stack[sp++]=c0; LAB[c0]=id;
+    while(sp){ const c=stack[--sp], i=c%N, j=(c/N)|0; n++; sx+=i; sy+=j;
+      const l=j*N+wrap(i-1), r=j*N+wrap(i+1), d=wrap(j-1)*N+i, u=wrap(j+1)*N+i;
+      if(MK[c*4+2]>1e-4 && LAB[l]<0 && MK[l*4]<.999){ LAB[l]=id; stack[sp++]=l; }
+      if(MK[r*4+2]>1e-4 && LAB[r]<0 && MK[r*4]<.999){ LAB[r]=id; stack[sp++]=r; }
+      if(MK[c*4+3]>1e-4 && LAB[d]<0 && MK[d*4]<.999){ LAB[d]=id; stack[sp++]=d; }
+      if(MK[u*4+3]>1e-4 && LAB[u]<0 && MK[u*4]<.999){ LAB[u]=id; stack[sp++]=u; } }
+    regions.push({ id, n, cx:(sx/n+.5)/N, cy:(sy/n+.5)/N, sealed:true }); if(n>bestN){ bestN=n; best=id; } }
+  for(let c=0;c<N*N;c++) IN[c] = (LAB[c]>=0 && LAB[c]!==best) ? 1 : 0;
+  regions = regions.filter(r=>r.id!==best);
+  /* a circle that was closed and is now dissolving is no longer sealed: count its geometric inside, and say so */
+  for(const b of bounds){ if(b.type!=='arc' || !b.closed || b.s>=.999) continue; const R=b.r*N-WALL_OUT; if(R<2) continue; let n=0;
+    for(let j=Math.floor(b.y*N-R); j<=Math.ceil(b.y*N+R); j++) for(let i=Math.floor(b.x*N-R); i<=Math.ceil(b.x*N+R); i++){ if(Math.hypot(i+.5-b.x*N,j+.5-b.y*N)<R){ const c=wrap(j)*N+wrap(i); if(!IN[c]){ IN[c]=2; n++; } } }
+    regions.push({ id:-1, n, cx:b.x, cy:b.y, sealed:false }); }
+  labDirty=false; }
+function addBound(b){ b.id=++boundId; b.s=1; b.flash=0; if(bounds.length>=NB){ let k=0; for(let i=1;i<bounds.length;i++) if(bounds[i].s<bounds[k].s) k=i; bounds.splice(k,1); } bounds.push(b); return b; }
+function closeArc(b, quiet){ b.closed=true; b.sw=TAU; b.flash=1; lastClose=simT; rasterise();
+  if(!quiet){ const R=b.r*N; seedQ.push([b.x,b.y]); if(R>9){ const m=Math.min(9,Math.floor(R*R/40)); for(let i=0;i<m;i++){ const a=rnd()*TAU, q=Math.sqrt(.08+.92*rnd())*(b.r-4.5/N); seedQ.push([b.x+q*Math.cos(a), b.y+q*Math.sin(a)]); } }
+    fillQ=[b.x,b.y,b.r-WALL_OUT/N]; } }
+function addLine(x1,y1,x2,y2){ const b=addBound({ type:'line', x:x1, y:y1, x2, y2, closed:false }); rasterise(); return b; }
+function clearBounds(){ bounds.length=0; rasterise(); }
+
+function step(){
+  for(let m=0;m<6;m++) STIR_K[m].z += STIR_W[m] + (rnd()-.5)*0.012;
+  mCurl.uniforms.uV.value=V[0].texture; pass(mCurl,W);
+  mAdv.uniforms.uV.value=V[0].texture; mAdv.uniforms.uPin.value.set(C.ax,C.ay,(C.pinned&&!lifted)?.92:0); pass(mAdv,V[1]);
+  mDiv.uniforms.uV.value=V[1].texture; pass(mDiv,D);
+  for(let k=0;k<ITERS;k++) for(let par=0;par<2;par++){ mSor.uniforms.uP.value=P[0].texture; mSor.uniforms.uPar.value=par; pass(mSor,P[1]); P.reverse(); }
+  mPro.uniforms.uP.value=P[0].texture; mPro.uniforms.uV.value=V[1].texture; pass(mPro,V[0]);
+  const U=mSca.uniforms; U.uV.value=V[0].texture;
+  for(let i=0;i<12;i++){ const q=seedQ[i]; if(q) SEEDS[i].set(q[0],q[1],1); else SEEDS[i].z=0; } seedQ.length=0;
+  if(fillQ){ U.uFill.value.set(fillQ[0],fillQ[1],fillQ[2],1); fillQ=null; } else U.uFill.value.w=0;
+  for(let k=0;k<GS.sub;k++){ U.uAdv.value=k?0:1; U.uS.value=S[0].texture; pass(mSca,S[1]); S.reverse(); if(!k){ for(let i=0;i<12;i++) SEEDS[i].z=0; U.uFill.value.w=0; } }
+  stepN++; simT+=DT; if(stepN%HEVERY===0) keep();
+  if(C.auto) turnBy(C.auto*AUTO_W*DT);
+  let dirty=false;
+  if(lifted && bounds.length){ const f=Math.pow(2,-DT/HALF); for(let i=bounds.length-1;i>=0;i--){ bounds[i].s*=f; if(bounds[i].s<0.02) bounds.splice(i,1); } dirty=(stepN%2===0)||!bounds.length; }
+  for(const b of bounds) if(b.flash>0) b.flash=Math.max(0,b.flash-DT*.7);
+  if(dirty) rasterise();
+  A.rest += ((sealedCount()>0 ? 0 : 1) - A.rest)*Math.min(1,DT/1.2);
+}
+function sealedCount(){ let n=0; for(const b of bounds) if(b.closed && b.s>=.999) n++; return n; }
+function reset(){ mInit.uniforms.uAmp.value = UREF*1.15/0.55*N/256*0.5; pass(mInit,V[0]); pass(mInitS,S[0]); pass(mInitS,S[1]);
+  [P[0],P[1],W,D,V[1]].forEach(t=>{ renderer.setRenderTarget(t); renderer.setClearColor(0,0); renderer.clear(); }); renderer.setRenderTarget(null);
+  bounds.length=0; rasterise(); stepN=0; simT=0; histN=0; histK=0; }
+
+/* ── the measure: read the fields back and count ── */
+const vb=new Float32Array(N*N*4), sb=new Float32Array(N*N*4); let M=null, mStep=-1;
+const NBIN=25; function vbin(uc,vc){ const sp=Math.hypot(uc,vc)/UREF; if(sp<.1) return 0; const cls=sp<.4?0:sp<1?1:2; let a=Math.atan2(vc,uc); if(a<0) a+=TAU; return 1+cls*8+Math.min(7,Math.floor(a/TAU*8)); }
+function bits(h){ let n=0, H=0; for(let i=0;i<h.length;i++) n+=h[i]; if(!n) return null; for(let i=0;i<h.length;i++) if(h[i]){ const p=h[i]/n; H-=p*Math.log2(p); } return H; }
+/* Spectral entropy in time. Every HDT seconds the seen field (vapour plus pattern) is kept; the last HN pictures span
+   HN*HDT seconds. Over a set of cells: take away the set's mean at each moment (so only the form is left), split each
+   cell's HN values into frequencies (a discrete Fourier transform), add the power up by frequency over the cells, and
+   take the Shannon entropy of the shares, divided by its largest possible value. Ceaseless change spreads its power over
+   the frequencies and scores high; a form that stays puts it all at frequency zero and scores 0. No form at all (flat
+   water, no power) has no score. */
+const HN = 16, HEVERY = 15, HDT = HEVERY*DT; const HIST = []; let histN = 0, histK = 0;
+const HC = [], HS = []; for(let f=0;f<=HN/2;f++){ HC.push(Float64Array.from({length:HN},(_,t)=>Math.cos(TAU*f*t/HN))); HS.push(Float64Array.from({length:HN},(_,t)=>Math.sin(TAU*f*t/HN))); }
+function keep(){ renderer.readRenderTargetPixels(S[0],0,0,N,N,sb); renderer.setRenderTarget(null); let h=HIST[histK]; if(!h) h=HIST[histK]=new Float32Array(N*N); for(let c=0;c<N*N;c++) h[c]=sb[c*4]+1.5*sb[c*4+2]; histK=(histK+1)%HN; histN=Math.min(HN,histN+1); }
+function entropyOfPower(P){ let tot=0, H=0; for(let f=0;f<P.length;f++) tot+=P[f]; if(!(tot>0)) return null; for(let f=0;f<P.length;f++){ const q=P[f]/tot; if(q>0) H-=q*Math.log(q); } return H/Math.log(P.length); }
+function powerOf(series, P){ /* series: HN values of one cell, mean of the set already removed */
+  for(let f=0;f<=HN/2;f++){ let a=0, b=0; const c=HC[f], sn=HS[f]; for(let t=0;t<HN;t++){ a+=series[t]*c[t]; b+=series[t]*sn[t]; } P[f]+=(a*a+b*b)*((f===0||f===HN/2)?1:2); } }
+function timeEntropy(cells){ if(histN<HN || cells.length<12) return { H:null, power:0 }; const mean=new Float64Array(HN), P=new Float64Array(HN/2+1), ser=new Float64Array(HN);
+  for(let t=0;t<HN;t++){ const h=HIST[t]; let m=0; for(let k=0;k<cells.length;k++) m+=h[cells[k]]; mean[t]=m/cells.length; }
+  for(let k=0;k<cells.length;k++){ const c=cells[k]; for(let t=0;t<HN;t++) ser[t]=HIST[t][c]-mean[t]; powerOf(ser,P); }
+  let tot=0; for(let f=0;f<P.length;f++) tot+=P[f]; const pw=tot/(cells.length*HN*HN); return { H:pw>2e-7?entropyOfPower(P):null, power:pw, still:P[0]/(tot||1) }; }
+function readback(){ renderer.readRenderTargetPixels(V[0],0,0,N,N,vb); renderer.readRenderTargetPixels(S[0],0,0,N,N,sb); renderer.setRenderTarget(null); }
+function measure(){ readback(); if(labDirty) label();
+  let keR=0,nR=0,keI=0,nI=0,keO=0,nO=0,dv=0,dvM=0,nF=0,wall=0,cross=0,trI=0,trO=0,pat=0,vapI=0,vapO=0,sealedN=0; const hI=new Float64Array(NBIN), hO=new Float64Array(NBIN);
+  for(let j=0;j<N;j++) for(let i=0;i<N;i++){ const c=j*N+i, q=c*4, cr=j*N+wrap(i+1), ct=wrap(j+1)*N+i, qr=cr*4, qt=ct*4;
+    const aL=MK[q+2], aB=MK[q+3], aR=MK[qr+2], aT=MK[qt+3], u=vb[q], v=vb[q+1], uR=vb[qr], vT=vb[qt+1];
+    if(aL<1e-4) wall=Math.max(wall,Math.abs(u)); if(aB<1e-4) wall=Math.max(wall,Math.abs(v));
+    if(MK[q]>=.999) continue;
+    const d=Math.abs(aR*uR-aL*u+aT*vT-aB*v); dv+=d; if(d>dvM) dvM=d; nF++;
+    const uc=.5*(u+uR), vc=.5*(v+vT), e=.5*(uc*uc+vc*vc), b=vbin(uc,vc);
+    if(IN[c]){ keI+=e; nI++; hI[b]++; trI+=sb[q+3]; vapI+=sb[q]; if(sb[q+2]>.15) pat++; if(IN[c]===1) sealedN++;
+      if(!IN[j*N+wrap(i-1)]) cross+=Math.abs(aL*u); if(!IN[wrap(j-1)*N+i]) cross+=Math.abs(aB*v); if(!IN[cr]) cross+=Math.abs(aR*uR); if(!IN[ct]) cross+=Math.abs(aT*vT); }
+    else { trO+=sb[q+3]; if(VIS[c]){ keO+=e; nO++; hO[b]++; vapO+=sb[q]; } else { keR+=e; nR++; } } }
+  const o={ step:stepN, t:simT, divMean:dv/nF, divMax:dvM, speedOut:Math.sqrt(2*keO/Math.max(1,nO)), wallMax:wall, crossFlux:cross,
+    keRim:keR/Math.max(1,nR), insideCells:nI, sealedCells:sealedN, insideShare:nI/(N*N), keIn:nI?keI/nI:null, keOut:keO/Math.max(1,nO), varietyIn:bits(hI), varietyOut:bits(hO),
+    tracerIn:trI, tracerOut:trO, pattern:nI?pat/nI:null, vapourIn:nI?vapI/nI:null, vapourOut:vapO/Math.max(1,nO), entIn:null, entOut:null, regions:regions.length };
+  o.divRel = o.divMean/Math.max(1e-9,o.speedOut);
+  const ci=[], co=[]; for(let j=0;j<N;j++) for(let i=0;i<N;i++){ const c=j*N+i; if(MK[c*4]>0) continue; if(IN[c]) ci.push(c); else if(VIS[c] && !((i|j)&1)) co.push(c); }
+  const ei=timeEntropy(ci), eo=timeEntropy(co); o.entIn=ei.H; o.entOut=eo.H; o.formIn=ei.power; o.formOut=eo.power; o.history=histN;
+  M=o; mStep=stepN; return o; }
+/* numbers for any disc, walled or not: used by the tests to compare a bound with a phantom of the same size in the storm */
+function probe(x, y, r){ readback(); const R=r*N; let ke=0,n=0,tr=0,pat=0; for(let j=Math.floor(y*N-R);j<=Math.ceil(y*N+R);j++) for(let i=Math.floor(x*N-R);i<=Math.ceil(x*N+R);i++){ if(Math.hypot(i+.5-x*N,j+.5-y*N)>=R) continue;
+    const q=(wrap(j)*N+wrap(i))*4, uc=.5*(vb[q]+vb[(wrap(j)*N+wrap(i+1))*4]), vc=.5*(vb[q+1]+vb[(wrap(j+1)*N+wrap(i))*4+1]); ke+=.5*(uc*uc+vc*vc); tr+=sb[q+3]; if(sb[q+2]>.15) pat++; n++; }
+  let fa=0, fn=0; const m=Math.max(16,Math.round(TAU*R)); for(let k=0;k<m;k++){ const a=k/m*TAU, px=x*N+R*Math.cos(a), py=y*N+R*Math.sin(a), i=wrap(Math.floor(px)), j=wrap(Math.floor(py)), q=(j*N+i)*4;
+    const un=.5*(vb[q]+vb[(j*N+wrap(i+1))*4])*Math.cos(a)+.5*(vb[q+1]+vb[(wrap(j+1)*N+i)*4+1])*Math.sin(a); fa+=Math.abs(un); fn+=un; }
+  let all=0; for(let q=3;q<N*N*4;q+=4) all+=sb[q];
+  return { ke:ke/n, cells:n, tracer:tr, tracerAll:all, pattern:pat/n, fluxAbs:fa/m, fluxNet:fn/m }; }
+
+/* ═════════════════════════ THE COMPASSES ═════════════════════════ */
+const AUTO_W = 1.7;       /* radians a second when the piece turns the foot for you */
+const C = { ax:.5, ay:.52, th:-.9, R:.1, pinned:false, mode:'circle', arc:null, a0:0, cum:0, cmin:0, cmax:0, lastR:0, auto:0, bx:.6, by:.5, drag:false, track:false, down:1 };
+const A = { rest:1, ctx:null, on:false };
+let hole=[1.25,1.05], playing=!STILL, look=0, lookT=0, noteKey='', aboutOpen=false, dirtyDraw=true, frame=0;
+function inPlay(x,y){ const wx=(x-.5)*2*SHALF/(hole[0]*.86), wy=(y-.5)*2*SHALF/(hole[1]*.86), d=Math.hypot(wx,wy); if(d<=1) return [x,y]; return [.5+(x-.5)/d, .5+(y-.5)/d]; }
+function pen(){ return C.mode==='line' && (C.pinned||C.drag) ? [C.bx,C.by] : [C.ax+C.R*Math.cos(C.th), C.ay+C.R*Math.sin(C.th)]; }
+function setDown(){ if(lifted){ lifted=false; ui(); } }
+function startArc(){ C.arc=addBound({ type:'arc', x:C.ax, y:C.ay, r:C.R, start:C.th, sw:0, closed:false }); C.a0=C.th; C.cum=C.cmin=C.cmax=0; C.lastR=0; }
+function turnBy(d){ if(C.mode!=='circle' || !C.pinned) return; setDown(); if(!C.arc || bounds.indexOf(C.arc)<0 || C.arc.closed) startArc();
+  C.cum+=d; C.cmin=Math.min(C.cmin,C.cum); C.cmax=Math.max(C.cmax,C.cum); C.th=C.a0+C.cum; const b=C.arc; b.start=C.a0+C.cmin; b.sw=Math.min(TAU,C.cmax-C.cmin);
+  if(b.sw>=TAU-.03){ closeArc(b); C.arc=null; C.auto=0; if(C.drag) sealedJust=true; say('closed'); chime(); ui(); }
+  else if(Math.abs(b.sw-C.lastR)*b.r*N>=.8){ C.lastR=b.sw; rasterise(); }
+  dirtyDraw=true; }
+function endArc(){ const b=C.arc; C.arc=null; C.auto=0; if(!b || bounds.indexOf(b)<0) return; if(b.sw*b.r*N<3){ bounds.splice(bounds.indexOf(b),1); } else say('arc'); rasterise(); }
+function pinAt(x,y){ endArc(); const p=inPlay(x,y); C.ax=p[0]; C.ay=p[1]; C.pinned=true; C.bx=C.ax+C.R*Math.cos(C.th); C.by=C.ay+C.R*Math.sin(C.th); setDown(); seedQ.push([C.ax,C.ay]); dirtyDraw=true; }
+function unpin(){ endArc(); C.pinned=false; dirtyDraw=true; }
+function ruleLine(){ const dx=(C.bx-C.ax)*N, dy=(C.by-C.ay)*N; if(Math.hypot(dx,dy)<5) return null; setDown(); const b=addLine(C.ax,C.ay,C.bx,C.by); b.flash=1;
+  const L=Math.hypot(dx,dy), nx=-dy/L*3.5/N, ny=dx/L*3.5/N, mx=(C.ax+C.bx)/2, my=(C.ay+C.by)/2; seedQ.push([mx+nx,my+ny],[mx-nx,my-ny]); C.th=Math.atan2(dy,dx); C.R=clamp(L/N,RMIN,RMAX); say('line'); return b; }
+function setMode(m){ if(m===C.mode) return; endArc(); C.mode=m; C.pinned=false; C.bx=C.ax+C.R*Math.cos(C.th); C.by=C.ay+C.R*Math.sin(C.th); say(m==='line'?'lineMode':'start'); ui(); dirtyDraw=true; }
+function setOpen(r){ C.R=clamp(r,RMIN,RMAX); if(C.arc && !C.arc.closed){ endArc(); } $('open').value=C.R; dirtyDraw=true; }
+function turnForMe(){ if(C.mode==='line'){ if(!C.pinned){ C.bx=C.ax+C.R*Math.cos(C.th); C.by=C.ay+C.R*Math.sin(C.th); } ruleLine(); C.pinned=false; ui(); return; }
+  if(!C.pinned) pinAt(C.ax,C.ay);
+  if(!playing){ if(!C.arc) startArc(); const b=C.arc; b.start=C.a0; b.sw=TAU; closeArc(b); C.arc=null; C.th=C.a0; say('closed'); ui(); dirtyDraw=true; return; }
+  C.auto = C.auto ? 0 : 1; ui(); }
+function setLift(on){ if(on===lifted) return; if(on){ endArc(); C.pinned=false; C.auto=0; lifted=true; say('lift'); } else { lifted=false; say('down'); } ui(); dirtyDraw=true; }
+
+/* ── words ── */
+const NOTES = {
+  start:'Press on the deep to set one foot. Keep holding and move round it to turn the other. Close the circle.',
+  lineMode:'Line: press to set one point, drag to the other, and let go.',
+  arc:'An open arc. The storm bends round it, and nothing is shut in.',
+  closed:'<q>One foot he center&rsquo;d, and the other turn&rsquo;d<br>Round through the vast profunditie obscure</q> <cite>Milton, Paradise Lost, Book VII. The circle is closed. Watch the inside.</cite>',
+  line:'<q>He formed a line &amp; a plummet<br>To divide the Abyss beneath.</q> <cite>Blake, The Book of Urizen, chapter VII.</cite>',
+  lift:'<q>The cistern contains: the fountain overflows.</q> <cite>Blake, The Marriage of Heaven and Hell. Lifted: every bound now loses half its strength each '+HALF+' seconds.</cite>',
+  down:'The compasses are down again. What is left of each bound holds at the strength it has.',
+  gone:'Nothing made is kept. The deep has its forms back.',
+  look:'<q>when he set a compass upon the face of the depth</q> <cite>Proverbs 8:27, King James Version. The disc is behind you.</cite>',
+  paused:'Paused.' };
+function say(k){ noteKey=k; $('note').innerHTML=NOTES[k]; }
+$('about').innerHTML = '<button class="x" id="aboutX" type="button">Close</button><h2>The golden compasses</h2>'+
+  '<p>In 1794 William Blake made a print now called The Ancient of Days, the frontispiece to Europe a Prophecy. An old man crouches in a burning disc and reaches down through cloud with a pair of compasses, to measure the dark below. The print is not copied here. You are standing where he is.</p>'+
+  '<h3>Where the compasses come from</h3>'+
+  '<blockquote>When he prepared the heavens, I was there: when he set a compass upon the face of the depth:<cite>Proverbs 8:27, King James Version. Wisdom is speaking.</cite></blockquote>'+
+  '<blockquote>He took the golden Compasses, prepar&rsquo;d\nIn Gods Eternal store, to circumscribe\nThis Universe, and all created things:\nOne foot he center&rsquo;d, and the other turn&rsquo;d\nRound through the vast profunditie obscure,\nAnd said, thus farr extend, thus farr thy bounds,\nThis be thy just Circumference, O World.<cite>John Milton, Paradise Lost, Book VII (1674).</cite></blockquote>'+
+  '<h3>Two readings, and this piece takes neither side</h3>'+
+  '<div class="two"><div><p><b>The bound makes.</b> Nothing can begin in the storm. Draw a circle and the water inside goes still and clear, and a pattern starts to grow that could not have lasted a second outside. Every made thing has an edge.</p>'+
+  '<blockquote>Reason is the bound or outward circumference of Energy.<cite>Blake, The Marriage of Heaven and Hell, plate 4.</cite></blockquote></div>'+
+  '<div><p><b>The bound imprisons.</b> The water inside has stopped moving. Almost all of its motion is gone, and nearly all the different ways it was moving. Blake named the measurer Urizen, and heard the same compasses at work in the streets of London.</p>'+
+  '<blockquote>The mind-forg&rsquo;d manacles I hear<cite>Blake, London, in Songs of Experience.</cite></blockquote>'+
+  '<blockquote>Energy is Eternal Delight<cite>Blake, The Marriage of Heaven and Hell, plate 4.</cite></blockquote></div></div>'+
+  '<p>The panel called The measure shows both at once, from the same water. There is no goal and no score. Lift the compasses and every bound dissolves, and nothing made is kept. Or leave one small circle and watch what lives in it.</p>'+
+  '<h3>What is physically modelled</h3><ul>'+
+  '<li><b>The deep</b> is a real fluid solver running on the graphics card: '+N+' by '+N+' cells of incompressible flow (stable fluids on a staggered grid, with vorticity confinement), stirred by a slow random force and a side wind. It never repeats.</li>'+
+  '<li><b>A bound</b> is a wall inside the solver (an immersed boundary). The solver is told that nothing may cross it, and nothing does. Lifted, a wall loses half its strength every '+HALF+' seconds and the water comes back through it.</li>'+
+  '<li><b>The calm inside</b> is not painted on. The same stirring force acts inside a closed bound. There it mostly turns into pressure against the wall, and a steady drag ('+KAPPA+' a second) takes the rest. A fixed foot is a small patch of strong drag.</li>'+
+  '<li><b>The pattern</b> is the Gray-Scott reaction-diffusion model (F = '+GS.F+', k = '+GS.k+'), carried by the same flow.</li>'+
+  '<li><b>The disc</b> is a black body at 5,772 K, the temperature of the Sun, with limb darkening from the Eddington grey atmosphere: at the edge you see shallower, cooler gas, so the edge is dimmer and redder. Its light is reddened by the cloud it passes through.</li>'+
+  '<li><b>The water</b> reflects the disc by the Fresnel law, with its surface tilted by the solver&rsquo;s own pressure and speed. In a calm circle you see the disc whole, and your own shadow in it.</li></ul>'+
+  '<h3>What is art, not physics</h3><ul>'+
+  '<li>A rule of this piece: stirring kills the pattern. Where the water swirls or runs, the pattern&rsquo;s death rate is raised. That is why it grows only in still water. A seed is set at the centre of each closed bound and wherever a foot is set down.</li>'+
+  '<li>The glowing vapour is made wherever the water swirls and fades in about '+TAUV+' seconds. The clouds are noise, not weather, torn along by the solver&rsquo;s wind. The arm, the streaming light and the colours are drawn.</li>'+
+  '<li>The sound is made in the browser: filtered noise for the wind and two low tones that drift apart in the storm and settle together while a closed bound holds.</li></ul>'+
+  '<h3>The measure</h3><ul>'+
+  '<li><b>Spectral entropy</b> (gained). Take what you see in a square inside the bound, split it into waves, and ask how evenly the power is spread over wavelengths. 1 is all scales alike. A regular pattern has one wavelength and scores low. The storm&rsquo;s figure is the same square measured outside.</li>'+
+  '<li><b>Motion kept</b> (lost). Kinetic energy of the water inside, as a share of the storm&rsquo;s outside.</li>'+
+  '<li><b>Variety of flow</b> (lost). Sort the water inside by speed and direction into 25 bins and count the bits needed to say which bin a parcel is in. Still water needs none.</li>'+
+  '<li>Low entropy is one meaning of order and not the only one. Whether the trade is worth it is not a number.</li></ul>'+
+  '<h3>What this leaves out</h3><p>The third dimension. A free surface and real waves. Real viscosity: the scheme&rsquo;s own smoothing stands in for it. The edges of the square wrap round. The pattern is a textbook model and stands for no real chemistry. Nothing here is a claim about minds or about creation. It is a fluid, a wall and a count.</p>'+
+  '<h3>Keys</h3><p>Arrows move the compasses. Space or Enter sets or frees the fixed foot. With the foot set, left and right turn the other foot and draw. <code>[</code> and <code>]</code> close and open them. <code>M</code> circle or line. <code>T</code> turn for me. <code>L</code> lift. <code>B</code> look back. <code>P</code> pause. Escape goes back to the museum.</p>'+
+  '<p style="color:var(--ink-soft)">Sources: J. Stam, &ldquo;Stable Fluids&rdquo; (1999). R. Fedkiw, J. Stam and H. Jensen, &ldquo;Visual Simulation of Smoke&rdquo; (2001). J. Pearson, &ldquo;Complex Patterns in a Simple System&rdquo;, Science 261 (1993). A. Blunt, &ldquo;Blake&rsquo;s &lsquo;Ancient of Days&rsquo;&rdquo;, Journal of the Warburg Institute 2 (1938).</p>';
+
+/* ── sound (made here, no recordings) ── */
+function audioStart(){ if(A.ctx||TEST) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return; const c=A.ctx=new AC();
+  const buf=c.createBuffer(1,c.sampleRate*3,c.sampleRate), d=buf.getChannelData(0); let b=0; for(let i=0;i<d.length;i++){ b=.985*b+.015*(Math.random()*2-1); d[i]=b*9; }
+  const src=c.createBufferSource(); src.buffer=buf; src.loop=true; A.bp=c.createBiquadFilter(); A.bp.type='bandpass'; A.bp.frequency.value=420; A.bp.Q.value=.7;
+  A.wg=c.createGain(); A.wg.gain.value=0; src.connect(A.bp); A.bp.connect(A.wg); A.out=c.createGain(); A.out.gain.value=0; A.wg.connect(A.out); A.out.connect(c.destination); src.start();
+  A.o1=c.createOscillator(); A.o2=c.createOscillator(); A.o3=c.createOscillator(); A.o1.frequency.value=55; A.o2.frequency.value=82.5; A.o3.frequency.value=110; A.o3.type='triangle';
+  A.tg=c.createGain(); A.tg.gain.value=.16; A.g3=c.createGain(); A.g3.gain.value=0; A.o1.connect(A.tg); A.o2.connect(A.tg); A.o3.connect(A.g3); A.g3.connect(A.tg); A.tg.connect(A.out); A.o1.start(); A.o2.start(); A.o3.start(); }
+function toneNow(){ const r=A.rest; return { restless:r, low:55, upper:82.5*(1+.045*r*(1+.5*Math.sin(simT*.9))), settled:r<.15 }; }
+function audioTick(){ if(!A.ctx) return; const t=A.ctx.currentTime, tn=toneNow(), sp=M?clamp(M.speedOut/UREF,0,2):1, share=M?M.insideShare:0;
+  A.out.gain.setTargetAtTime(A.on&&playing?1:0,t,.25); A.wg.gain.setTargetAtTime(.5*sp*(1-.6*share)*(.75+.25*Math.sin(simT*.37)+.2*Math.sin(simT*1.3)),t,.3);
+  A.bp.frequency.setTargetAtTime(330+260*sp+120*Math.sin(simT*.23),t,.4); A.o2.frequency.setTargetAtTime(tn.upper,t,.5); A.g3.gain.setTargetAtTime(.35*(1-tn.restless),t,.8); }
+function chime(){ if(!A.ctx||!A.on) return; const c=A.ctx, t=c.currentTime; [220,330].forEach((f,i)=>{ const o=c.createOscillator(), g=c.createGain(); o.frequency.value=f; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.09,t+.03+i*.05); g.gain.exponentialRampToValueAtTime(.0005,t+3.2); o.connect(g); g.connect(A.out); o.start(t); o.stop(t+3.4); }); }
+
+/* ═════════════════════════ THE PICTURE ═════════════════════════
+   One ray per pixel, from an eye that looks straight down. It meets, in order: the arm and the two beams; thin streaming
+   light; a slab of cloud (marched, lit from the disc behind you, its extinction stronger for blue light); the deep.
+   The disc: a black body at T_eff = 5772 K under the Eddington grey atmosphere, T(mu)^4 = (3/4) T_eff^4 (mu + 2/3) with
+   mu the cosine of the angle from the centre of the disc (Eddington-Barbier), coloured by Planck's law at 610, 550 and 465 nm
+   relative to a 6504 K white. That gives limb darkening and limb reddening together. Granulation is noise. */
+const CAMY = 2.4;
+const DISP = `precision highp float; varying vec2 vUv;
+uniform sampler2D tV,tS,tP,tW; uniform vec3 uCam,uR,uU,uF,uSun,uH,uPA,uPB,uSh; uniform vec2 uTan,uHole;
+uniform float uT,uS,uN,uVref,uDown,uPinned,uExp,uTipA,uTipB; uniform vec4 uBA[NB]; uniform vec4 uBB[NB];
+const float SUNR=.30, SUNI=46., CY0=.82, CY1=1.5;
+const vec3 GOLD=vec3(1.,.62,.17);
+float h1(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+float vn(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h1(i),h1(i+vec2(1.,0.)),f.x),mix(h1(i+vec2(0.,1.)),h1(i+vec2(1.,1.)),f.x),f.y); }
+float fbm(vec2 p){ float a=.5,s=0.; for(int i=0;i<4;i++){ s+=a*vn(p); p=p*2.03+vec2(17.3,9.1); a*=.5; } return s; }
+float h3(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32); return fract((p.x+p.y)*p.z); }
+float vn3(vec3 p){ vec3 i=floor(p),f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z); }
+float fbm3(vec3 p){ float a=.5,s=0.; for(int i=0;i<OCT;i++){ s+=a*vn3(p); p=p*2.07+vec3(11.3,5.1,7.7); a*=.5; } return s; }
+vec3 planck(float T){ vec3 lam=vec3(.61,.55,.465); return (exp(14388./(lam*6504.))-1.)/(exp(14388./(lam*T))-1.); }
+vec3 disc(vec3 r,float soft,float gran){ float x=acos(clamp(dot(r,uSun),-1.,1.))/SUNR; float e=smoothstep(1.+soft,1.-soft,x); if(e<=0.) return vec3(0.);
+  float mu=sqrt(max(1.-x*x,0.)); float T=5772.*pow(.75*(mu+.6667),.25);
+  if(gran>0.){ vec3 t=r-uSun*dot(r,uSun); vec2 g=vec2(dot(t,uR),dot(t,uU))/SUNR*26.; float c=vn(g+2.*vn(g*.6+uT*.07))+.5*vn(g*2.3-uT*.05); T*=1.+.045*(c-.75)*mu; }
+  return planck(T)*e; }
+vec3 raySeg(vec3 ro,vec3 rd,vec3 a,vec3 b){ vec3 ba=b-a, oa=ro-a; float baba=dot(ba,ba), bard=dot(ba,rd), baoa=dot(ba,oa), rdoa=dot(rd,oa);
+  float s=clamp((baoa-bard*rdoa)/max(baba-bard*bard,1e-6),0.,1.); float t=max(dot(a+ba*s-ro,rd),0.); return vec3(length(ro+rd*t-(a+ba*s)),s,t); }
+/* how much of a ray leaving p escapes past the visitor: a crouched body at the eye, and the reaching arm */
+float bodyVis(vec3 p,vec3 d,float soft){ vec3 c=uCam+vec3(0.,-.02,.16); vec3 oc=(c-p); float t=max(dot(oc,d),0.); vec3 q=(p+d*t-c)/vec3(.5,.36,.4); float v=smoothstep(1.-soft,1.+soft,length(q));
+  vec3 a=raySeg(p,d,uSh,uH); v*=smoothstep(-soft*.3,soft*.3,a.x-mix(.15,.06,a.y)); return v; }
+float cover(vec2 xz){ float r=length(xz/uHole); float n=fbm(xz*1.15+vec2(-uT*.045,3.))-.5; float st=vn(vec2(xz.x*.55-uT*.13,xz.y*3.2))-.5; return smoothstep(.84,1.12,r+n*.95+st*.3); }
+float cdens(vec3 p,vec2 wv){ float c=cover(p.xz+wv*.1); if(c<.01) return 0.; float h=(p.y-CY0)/(CY1-CY0); float prof=4.*h*(1.-h);
+  vec3 q=vec3(p.x*2.3,p.y*3.4,p.z*2.9); q.xz+=wv*.45; q.x-=uT*.21; q.y+=uT*.03; float f=max(0.,fbm3(q)*1.6+c*1.0-1.18); return f*prof*(.3+.7*c)*22.; }
+vec2 flowAt(vec2 xz){ vec2 uv=xz/(2.*uS)+.5; float e=.5/uN; return vec2(texture2D(tV,uv+vec2(e,0.)).x,texture2D(tV,uv+vec2(0.,e)).y)/uVref; }
+vec3 deep(vec3 p,vec3 rd){ vec2 uv=p.xz/(2.*uS)+.5; float e=1./uN; vec4 s=texture2D(tS,uv); vec2 vel=flowAt(p.xz); float sp=length(vel);
+  float w=texture2D(tW,uv+.5*e).x/uVref*5.;
+  vec2 gp=vec2(texture2D(tP,uv+vec2(e,0.)).x-texture2D(tP,uv-vec2(e,0.)).x, texture2D(tP,uv+vec2(0.,e)).x-texture2D(tP,uv-vec2(0.,e)).x)/(uVref*uVref);
+  vec2 gV=vec2(texture2D(tS,uv+vec2(e,0.)).b-texture2D(tS,uv-vec2(e,0.)).b, texture2D(tS,uv+vec2(0.,e)).b-texture2D(tS,uv-vec2(0.,e)).b);
+  float ag=clamp(sp*.5+abs(w)*.5,0.,1.6);
+  float ph=fract(uT*.45), ph2=fract(uT*.45+.5); vec2 q=p.xz*23.;
+  vec2 r1=vec2(vn(q-vel*ph*2.2),vn(q-vel*ph*2.2+41.3))-.5, r2=vec2(vn(q-vel*ph2*2.2+13.7),vn(q-vel*ph2*2.2+71.9))-.5; vec2 rip=mix(r1,r2,abs(2.*ph-1.));
+  vec3 n=normalize(vec3(-(gp.x*2.2+rip.x*ag*.25)-gV.x*3.,1.,-(gp.y*2.2+rip.y*ag*.25)-gV.y*3.));
+  float cv=cover(p.xz); float open=1.-cv; float E=mix(.035,1.,open*open)*mix(.78,1.,bodyVis(p,uSun,.6));
+  vec3 sunC=vec3(1.,.93,.82);
+  /* the water itself: red light is absorbed first, so what comes back from clear water is blue-green */
+  vec3 col=vec3(.002,.011,.03)*E+vec3(.0006,.0012,.004);
+  /* vapour: single scattering, Beer-Lambert through its thickness, drawn out in streaks along the flow */
+  vec2 vd=vel/(sp+.08); float lic=0.; for(int k=-2;k<=2;k++) lic+=vn(p.xz*19.+vd*float(k)*.8-vel*uT*1.1); lic=smoothstep(.25,.75,lic*.2);
+  float rho=max(s.r-.10,0.)*1.5; float tau=rho*3.6*(.35+1.3*lic*min(sp,1.)); float sc=1.-exp(-tau);
+  col+=sunC*E*sc*mix(vec3(.03,.22,.40),vec3(1.,.66,.28),smoothstep(.12,.85,sc))*.7;
+  col+=sunC*E*vec3(1.,.8,.5)*pow(clamp(abs(w)*.55,0.,1.),2.)*sc*.9;
+  /* the measured water keeps a faint milk */
+  col+=E*s.a*vec3(.010,.030,.040);
+  /* the pattern that grows in still water: lit ridges */
+  float cr=smoothstep(.10,.30,s.b), edge=clamp(length(gV)*7.,0.,1.);
+  float lit=clamp(.5+dot(gV,vec2(-.6,-.8))*9.,0.,1.);
+  float ridge=smoothstep(.17,.30,s.b);
+  col=mix(col,E*vec3(.004,.022,.034),cr*.85);
+  col=mix(col,E*vec3(1.,.55,.14)*(.05+.42*lit*lit),ridge*.96);
+  col+=E*vec3(1.,.9,.7)*pow(edge,2.)*lit*ridge*.45+E*vec3(.1,.5,.7)*.12*cr*(1.-ridge);
+  /* the disc in the water: Fresnel mirror, broken by the surface */
+  float F=.02+.98*pow(1.-max(dot(-rd,n),0.),5.); vec3 r=reflect(rd,n);
+  float sg=ag*.34, th=acos(clamp(dot(r,uSun),-1.,1.)); float spark=.03+110.*pow(vn(p.xz*64.-vel*uT*3.)*vn(p.xz*117.+vel*uT*2.+9.),3.);
+  vec3 mir=mix(disc(r,.03,0.), planck(5600.)*exp(-pow(max(th-SUNR*.75,0.),2.)/(2.*sg*sg+1e-4))*(SUNR*SUNR/(SUNR*SUNR+sg*sg*4.))*mix(1.,spark,smoothstep(.05,.3,sg)), smoothstep(.02,.16,sg));
+  col+=mir*vec3(1.,.78,.5)*F*SUNI*.16*bodyVis(p,r,.07+sg*.5)*open*(1.-.8*ridge);
+  /* the bounds: lines of gold light */
+  float g=0., bed=0., ww=1.75/uN*2.*uS; vec2 x=p.xz;
+  for(int i=0;i<NB;i++){ vec4 a=uBA[i], b=uBB[i]; if(a.x<.5) continue; float d;
+    if(a.x<1.5){ vec2 v=x-a.yz; float an=mod(atan(v.y,v.x)-b.x,6.2831853); if(an<=b.y) d=abs(length(v)-a.w);
+      else d=min(length(v-a.w*vec2(cos(b.x),sin(b.x))),length(v-a.w*vec2(cos(b.x+b.y),sin(b.x+b.y)))); }
+    else { vec2 pa=x-a.yz, ba=vec2(a.w,b.x)-a.yz; d=length(pa-ba*clamp(dot(pa,ba)/dot(ba,ba),0.,1.)); }
+    g+=b.z*(smoothstep(.016,.003,d)*2.6+.34*exp(-d*30.))+b.w*exp(-d*7.)*.9; bed=max(bed,b.z*smoothstep(ww*1.25,ww*.55,d)); }
+  col=mix(col,vec3(.05,.027,.008)*E,bed); col+=GOLD*g*(.25+.75*open);
+  /* where a foot touches */
+  float da=length(x-uPA.xz), db=length(x-uPB.xz);
+  col+=GOLD*(uTipA*(.5*exp(-da*26.)+uPinned*.25*exp(-da*7.)*(.6+.4*sin(da*60.-uT*5.)))+uTipB*.4*exp(-db*30.))*2.2;
+  return col; }
+void main(){ vec2 scr=(vUv*2.-1.)*uTan; vec3 rd=normalize(uF+uR*scr.x+uU*scr.y), ro=uCam; vec3 col=vec3(0.); float Tr=1.;
+  float jit=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));
+  if(rd.y<-.02){
+    float t0=(CY1-ro.y)/rd.y, t1=(CY0-ro.y)/rd.y; vec3 pm=ro+rd*(t0+t1)*.5; vec2 wv=flowAt(pm.xz)*smoothstep(3.2,1.6,length(pm.xz));
+    float far=smoothstep(26.,7.,t1);
+    if(cover(pm.xz+wv*.1)>.006){ float dt=(t1-t0)/float(STEPS); float t=t0+dt*jit;
+      for(int i=0;i<STEPS;i++){ vec3 p=ro+rd*t; float d=cdens(p,wv);
+        if(d>.002){ float up=cdens(p+vec3(0.,.16,0.),wv); float h=(CY1-p.y); float ts=(d*.3+up*.8)*h*1.7+up*.15; float spot=exp(-dot(p.xz,p.xz)/5.5);
+          vec3 ext=exp(-ts*vec3(1.,1.5,2.3)); vec3 L=vec3(1.,.90,.74)*ext*3.4*spot*(1.-exp(-d*1.6-.3))+vec3(.022,.011,.012);
+          float a=1.-exp(-d*dt*3.2); col+=Tr*a*L*vec3(.95,.84,.72); Tr*=1.-a; }
+        t+=dt; if(Tr<.02) break; }
+      col*=far; }
+    if(Tr>.012){ float tp=-ro.y/rd.y; vec3 p=ro+rd*tp; col+=Tr*deep(p,rd)*far; }
+    /* streaming light: thin fast vapour between the eye and the cloud, drawn sideways by the wind */
+    float tw=(1.86-ro.y)/rd.y; vec3 pw=ro+rd*tw; float st=vn(vec2(pw.x*.8-uT*1.6,pw.z*38.))*vn(vec2(pw.x*1.3-uT*2.3,pw.z*97.+3.)); st=pow(st,6.)*smoothstep(.45,.85,vn(vec2(pw.x*.9-uT*.9,pw.z*2.6)));
+    col+=vec3(1.,.72,.34)*st*2.4*far;
+  } else {
+    col=disc(rd,.012,1.)*SUNI; float x=acos(clamp(dot(rd,uSun),-1.,1.))/SUNR;
+    col+=vec3(1.,.55,.2)*SUNI*.05*pow(clamp(1.-(x-1.)*.42,0.,1.),5.)*step(1.,x)*(.6+.8*fbm(vec2(atan(dot(rd,uR),dot(rd,uU))*5.,x*2.-uT*.08)));
+    float st=vn(vec2(rd.x*2.-uT*1.1,rd.z*26.))*vn(vec2(rd.x*3.-uT*1.7,rd.z*60.+3.)); col+=vec3(1.,.7,.3)*pow(st,2.6)*30.*(1.-step(x,1.)*.6);
+  }
+  /* the two legs of the compasses: beams of gold light from the hand to the deep */
+  vec3 a=raySeg(ro,rd,uH,uPA), b=raySeg(ro,rd,uH,uPB); float wA=.0045+.004*a.y, wB=.0045+.004*b.y;
+  float ia=wA*wA/(a.x*a.x+wA*wA)*(1.2+a.y)+.10*exp(-a.x*34.)+.02*exp(-a.x*7.), ib=wB*wB/(b.x*b.x+wB*wB)*(1.2+b.y)+.10*exp(-b.x*34.)+.02*exp(-b.x*7.);
+  col+=vec3(1.,.70,.26)*(ia+ib)*3.6*(.45+.55*uDown)*step(.001,a.z+b.z);
+  /* the arm: a shadow against the light, its edge streaming in the wind */
+  vec3 m=raySeg(ro,rd,uSh,uH); if(m.z>0.){ vec3 pa=ro+rd*m.z; vec3 ps=uSh+(uH-uSh)*m.y; float side=smoothstep(-.02,.1,pa.x-ps.x);
+    float tat=fbm(vec2(pa.x*2.6-uT*1.5,pa.z*17.+pa.y*11.)); float rad=mix(.13,.03,pow(m.y,.8)); float d=m.x-rad-side*tat*.15*(1.-.6*m.y);
+    float al=smoothstep(.012,-.012,d); col=mix(col,vec3(.006,.004,.004),al*.97);
+    col+=vec3(1.,.66,.25)*(exp(-abs(d)*46.)*.55+side*pow(tat,3.)*exp(-abs(d)*11.)*1.2)*(1.-al); }
+  gl_FragColor=vec4(col*uExp,1.); }`;
+const STEPS = LOW ? 9 : 16;
+const bA=[], bB=[]; for(let i=0;i<NB;i++){ bA.push(new THREE.Vector4()); bB.push(new THREE.Vector4()); }
+const DU = { tV:{value:null}, tS:{value:null}, tP:{value:null}, tW:{value:W.texture}, uCam:{value:new THREE.Vector3(0,CAMY,0)}, uR:{value:new THREE.Vector3(1,0,0)}, uU:{value:new THREE.Vector3(0,0,-1)}, uF:{value:new THREE.Vector3(0,-1,0)},
+  uSun:{value:new THREE.Vector3(0,1,-.035).normalize()}, uH:{value:new THREE.Vector3()}, uPA:{value:new THREE.Vector3()}, uPB:{value:new THREE.Vector3()}, uSh:{value:new THREE.Vector3(.16,2.38,-1.2)},
+  uTan:{value:new THREE.Vector2(.8,.5)}, uHole:{value:new THREE.Vector2(1.25,1.05)}, uT:{value:0}, uS:{value:SHALF}, uN:{value:N}, uVref:{value:UREF}, uDown:{value:1}, uPinned:{value:0}, uExp:{value:1}, uTipA:{value:1}, uTipB:{value:1}, uBA:{value:bA}, uBB:{value:bB} };
+const mDisp = new THREE.ShaderMaterial({ vertexShader:VS, fragmentShader:'#define NB '+NB+'\n#define STEPS '+STEPS+'\n#define OCT '+(LOW?3:4)+'\n'+DISP, uniforms:DU, depthTest:false, depthWrite:false });
+const mBright = new THREE.ShaderMaterial({ vertexShader:VS, depthTest:false, depthWrite:false, uniforms:{ tC:{value:null}, uPx:{value:new THREE.Vector2()} },
+  fragmentShader:'precision highp float; varying vec2 vUv; uniform sampler2D tC; uniform vec2 uPx; void main(){ vec3 c=vec3(0.); for(int j=0;j<2;j++) for(int i=0;i<2;i++) c+=texture2D(tC,vUv+(vec2(float(i),float(j))*2.-1.)*uPx).rgb; c*=.25; float l=max(c.r,max(c.g,c.b)); gl_FragColor=vec4(min(c*smoothstep(.7,1.8,l),vec3(24.)),1.); }' });
+const mBlur = new THREE.ShaderMaterial({ vertexShader:VS, depthTest:false, depthWrite:false, uniforms:{ tC:{value:null}, uDir:{value:new THREE.Vector2()} },
+  fragmentShader:'precision highp float; varying vec2 vUv; uniform sampler2D tC; uniform vec2 uDir; void main(){ vec3 c=texture2D(tC,vUv).rgb*.227; c+=(texture2D(tC,vUv+uDir*1.385).rgb+texture2D(tC,vUv-uDir*1.385).rgb)*.316; c+=(texture2D(tC,vUv+uDir*3.231).rgb+texture2D(tC,vUv-uDir*3.231).rgb)*.0703; gl_FragColor=vec4(c,1.); }' });
+const mPost = new THREE.ShaderMaterial({ vertexShader:VS, depthTest:false, depthWrite:false, uniforms:{ tC:{value:null}, tB:{value:null}, uT:{value:0} },
+  fragmentShader:`precision highp float; varying vec2 vUv; uniform sampler2D tC,tB; uniform float uT;
+  float h1(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+  void main(){ vec3 c=texture2D(tC,vUv).rgb+texture2D(tB,vUv).rgb*.38; vec2 d=vUv-.5; c*=1.-.9*dot(d,d);
+    c=c*(2.51*c+.03)/(c*(2.43*c+.59)+.14); c=pow(clamp(c,0.,1.),vec3(.4545)); c+=(h1(gl_FragCoord.xy+fract(uT)*91.)-.5)*.022; gl_FragColor=vec4(c,1.); }` });
+let rtScene=null, rtB1=null, rtB2=null, scaleNow=1, budget=(TEST&&TEST.budget)||(LOW?2.2e5:9e5); const BMIN=1.1e5, BMAX=1.8e6;
+function hdrRT(w,h){ const t=new THREE.WebGLRenderTarget(w,h,{ type:THREE.HalfFloatType, format:THREE.RGBAFormat, depthBuffer:false, minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter }); t.texture.generateMipmaps=false; return t; }
+function resize(){ const w=Math.max(1,canvas.clientWidth), h=Math.max(1,canvas.clientHeight); scaleNow=Math.min(Math.min(window.devicePixelRatio||1,2), Math.sqrt(budget/(w*h)));
+  const W2=Math.max(2,Math.round(w*scaleNow)), H2=Math.max(2,Math.round(h*scaleNow)); renderer.setSize(W2,H2,false);
+  [rtScene,rtB1,rtB2].forEach(t=>t&&t.dispose()); rtScene=hdrRT(W2,H2); const bw=Math.max(2,W2>>2), bh=Math.max(2,H2>>2); rtB1=hdrRT(bw,bh); rtB2=hdrRT(bw,bh);
+  const asp=w/h; let tv=.5, th=tv*asp; if(th<.44){ th=.44; tv=th/asp; } DU.uTan.value.set(th,tv);
+  const vis=CAMY; hole=[Math.min(1.3,th*vis*.84), Math.min(1.12,tv*vis*.80)]; DU.uHole.value.set(hole[0],hole[1]); dirtyDraw=true; }
+/* the eye: straight down, or turned right round to the disc */
+const cam={ R:[1,0,0], U:[0,0,-1], F:[0,-1,0], P:[0,CAMY,0] };
+function setCam(){ const a=look*Math.PI*.985, sw=STILL?0:1; const roll=sw*(.010*Math.sin(simT*.71)+.006*Math.sin(simT*1.93));
+  const F=[0,-Math.cos(a),-Math.sin(a)], U0=[0,Math.sin(a),-Math.cos(a)], R0=[1,0,0], cr=Math.cos(roll), sr=Math.sin(roll);
+  cam.F=F; cam.R=[R0[0]*cr+U0[0]*sr, R0[1]*cr+U0[1]*sr, R0[2]*cr+U0[2]*sr]; cam.U=[U0[0]*cr-R0[0]*sr, U0[1]*cr-R0[1]*sr, U0[2]*cr-R0[2]*sr];
+  cam.P=[sw*.012*Math.sin(simT*.53), CAMY, sw*.010*Math.sin(simT*.83)];
+  DU.uCam.value.fromArray(cam.P); DU.uR.value.fromArray(cam.R); DU.uU.value.fromArray(cam.U); DU.uF.value.fromArray(cam.F); }
+function toDeep(clientX, clientY){ const r=canvas.getBoundingClientRect(), sx=((clientX-r.left)/r.width*2-1)*DU.uTan.value.x, sy=(1-(clientY-r.top)/r.height*2)*DU.uTan.value.y;
+  const d=[cam.F[0]+cam.R[0]*sx+cam.U[0]*sy, cam.F[1]+cam.R[1]*sx+cam.U[1]*sy, cam.F[2]+cam.R[2]*sx+cam.U[2]*sy]; if(d[1]>-.05) return null; const t=-cam.P[1]/d[1];
+  return [ (cam.P[0]+d[0]*t)/(2*SHALF)+.5, (cam.P[2]+d[2]*t)/(2*SHALF)+.5 ]; }
+const wx=u=>(u-.5)*2*SHALF;
+function draw(){ setCam(); const p=pen(), ax=wx(C.ax), az=wx(C.ay), bx=wx(p[0]), bz=wx(p[1]), dn=C.down;
+  const hx=.03+.32*(ax+bx)/2, hz=-.34+.32*(az+bz)/2, hy=1.42+.5*(1-dn); DU.uH.value.set(hx,hy,hz);
+  DU.uPA.value.set(hx+(ax-hx)*(.25+.75*dn), (1-dn)*.95, hz+(az-hz)*(.25+.75*dn)); DU.uPB.value.set(hx+(bx-hx)*(.25+.75*dn), (1-dn)*.95, hz+(bz-hz)*(.25+.75*dn));
+  DU.uDown.value=dn; DU.uPinned.value=C.pinned?1:0; DU.uTipA.value=dn*dn; DU.uTipB.value=dn*dn; DU.uT.value=simT; DU.uExp.value=Math.exp(Math.log(.021)*look*look)*1.0;
+  for(let i=0;i<NB;i++){ const b=bounds[i]; if(!b){ bA[i].x=0; continue; } if(b.type==='arc'){ bA[i].set(1,wx(b.x),wx(b.y),b.r*2*SHALF); bB[i].set(b.start,b.sw,b.s,b.flash); } else { bA[i].set(2,wx(b.x),wx(b.y),wx(b.x2)); bB[i].set(wx(b.y2),0,b.s,b.flash); } }
+  DU.tV.value=V[0].texture; DU.tS.value=S[0].texture; DU.tP.value=P[0].texture;
+  pass(mDisp,rtScene);
+  mBright.uniforms.tC.value=rtScene.texture; mBright.uniforms.uPx.value.set(1/rtScene.width,1/rtScene.height); pass(mBright,rtB1);
+  mBlur.uniforms.tC.value=rtB1.texture; mBlur.uniforms.uDir.value.set(1/rtB1.width,0); pass(mBlur,rtB2);
+  mBlur.uniforms.tC.value=rtB2.texture; mBlur.uniforms.uDir.value.set(0,1/rtB1.height); pass(mBlur,rtB1);
+  mBlur.uniforms.tC.value=rtB1.texture; mBlur.uniforms.uDir.value.set(2.2/rtB1.width,0); pass(mBlur,rtB2);
+  mBlur.uniforms.tC.value=rtB2.texture; mBlur.uniforms.uDir.value.set(0,2.2/rtB1.height); pass(mBlur,rtB1);
+  mPost.uniforms.tC.value=rtScene.texture; mPost.uniforms.tB.value=rtB1.texture; mPost.uniforms.uT.value=STILL?0:simT; pass(mPost,null); frame++; dirtyDraw=false; }
+
+/* ── the panel ── */
+const pct=x=>x==null?'none':(x*100<10?(x*100).toFixed(1):Math.round(x*100))+'%', f2=x=>x==null?'none':x.toFixed(2);
+function hud(){ const m=M; if(!m) return; const n=bounds.length, sealed=sealedCount(); let h='';
+  h+='<dd class="big">The measure</dd>';
+  h+='<dt>Bounds drawn</dt><dd>'+n+(sealed?' <small>'+sealed+' closed</small>':'')+'</dd>';
+  h+='<dt>Of the deep, shut in</dt><dd>'+pct(m.insideShare)+'</dd><div class="meter" aria-hidden="true"><i style="width:'+clamp(m.insideShare*400,0,100)+'%"></i></div>';
+  if(m.insideCells){
+    h+='<dd class="sec">Gained inside</dd>';
+    h+='<dt>Spectral entropy<small>1 is formless, 0 is one wavelength</small></dt><dd>'+f2(m.entIn)+'<small>storm '+f2(m.entOut)+'</small></dd>';
+    h+='<dt class="opt">Pattern grown</dt><dd class="opt">'+pct(m.pattern)+'</dd>';
+    h+='<dd class="sec">Lost inside</dd>';
+    h+='<dt>Motion kept<small>kinetic energy, against the storm</small></dt><dd>'+pct(m.keIn/Math.max(1e-12,m.keOut))+'</dd>';
+    h+='<dt>Variety of flow<small>bits</small></dt><dd>'+f2(m.varietyIn)+'<small>storm '+f2(m.varietyOut)+'</small></dd>';
+    if(m.sealedCells<m.insideCells) h+='<dd class="wide">Dissolving: the water is coming back through.</dd>';
+  } else h+='<dd class="wide">'+(n?'Nothing is shut in yet.':'No bounds. The deep is formless: spectral entropy and variety are the storm&rsquo;s own, all of it.')+'</dd>';
+  h+='<dd class="sec opt">The storm outside</dd><dt class="opt">Speed</dt><dd class="opt">'+(m.speedOut/N*60).toFixed(2)+' widths a second</dd>';
+  $('read').innerHTML=h; }
+function ui(){ $('mCircle').setAttribute('aria-pressed',C.mode==='circle'); $('mLine').setAttribute('aria-pressed',C.mode==='line');
+  $('turn').textContent = C.mode==='line' ? 'Rule it for me' : (C.auto ? 'Stop turning' : 'Turn for me');
+  $('lift').setAttribute('aria-pressed',lifted); $('lift').textContent = lifted ? 'Set them down' : 'Lift the compasses';
+  $('look').setAttribute('aria-pressed',lookT>0.5); $('look').textContent = lookT>0.5 ? 'Look down' : 'Look back';
+  $('play').textContent = playing ? 'Pause' : 'Play'; $('sound').setAttribute('aria-pressed',A.on); $('aboutBtn').setAttribute('aria-expanded',aboutOpen); }
+
+/* ── hands ── */
+let ptr=null, lastAng=null;
+canvas.addEventListener('pointerdown', e=>{ if(look>.05) return; const p=toDeep(e.clientX,e.clientY); if(!p) return; canvas.setPointerCapture(e.pointerId); ptr=e.pointerId; canvas.focus({preventScroll:true});
+  pinAt(p[0],p[1]); C.drag=true; C.track=false; lastAng=null; if(C.mode==='line'){ C.bx=C.ax; C.by=C.ay; } e.preventDefault(); });
+canvas.addEventListener('pointermove', e=>{ if(look>.05) return; const p=toDeep(e.clientX,e.clientY); if(!p) return;
+  if(C.drag && e.pointerId===ptr){ if(C.mode==='line'){ const q=inPlay(p[0],p[1]); C.bx=q[0]; C.by=q[1]; }
+    else { const dx=p[0]-C.ax, dy=p[1]-C.ay, d=Math.hypot(dx,dy); if(d>C.R*.3){ const a=Math.atan2(dy,dx); if(lastAng==null){ C.th=a; C.arc=null; lastAng=a; } else { let da=a-lastAng; while(da>Math.PI) da-=TAU; while(da<-Math.PI) da+=TAU; lastAng=a; if(!sealedJust) turnBy(da); } } } }
+  else if(!C.pinned && !lifted && e.pointerType==='mouse'){ const q=inPlay(p[0],p[1]); C.ax=q[0]; C.ay=q[1]; }
+  dirtyDraw=true; });
+let sealedJust=false;
+function pointerEnd(e){ if(e.pointerId!==ptr) return; ptr=null; const wasDrag=C.drag; C.drag=false; sealedJust=false;
+  if(C.mode==='line'){ if(wasDrag){ const b=ruleLine(); C.pinned=false; if(!b){ C.pinned=true; C.bx=C.ax+C.R*Math.cos(C.th); C.by=C.ay+C.R*Math.sin(C.th); } } }
+  else if(lastAng!=null){ endArc(); C.pinned=false; }
+  lastAng=null; ui(); dirtyDraw=true; }
+canvas.addEventListener('pointerup', pointerEnd); canvas.addEventListener('pointercancel', pointerEnd);
+canvas.addEventListener('wheel', e=>{ setOpen(C.R*(e.deltaY>0?.93:1.075)); e.preventDefault(); }, { passive:false });
+$('open').addEventListener('input', e=>setOpen(+e.target.value));
+$('mCircle').onclick=()=>setMode('circle'); $('mLine').onclick=()=>setMode('line');
+$('turn').onclick=turnForMe; $('lift').onclick=()=>setLift(!lifted);
+function setLook(on){ lookT=on?1:0; if(on) say('look'); if(STILL||!playing||TEST){ look=lookT; } ui(); dirtyDraw=true; }
+$('look').onclick=()=>setLook(lookT<.5);
+function setPlay(on){ playing=on; if(!on) C.auto=0; ui(); dirtyDraw=true; }
+$('play').onclick=()=>setPlay(!playing);
+$('sound').onclick=()=>{ A.on=!A.on; if(A.on){ audioStart(); if(A.ctx && A.ctx.state==='suspended') A.ctx.resume(); } ui(); };
+function setAbout(on){ aboutOpen=on; $('about').hidden=!on; ui(); if(on) $('about').focus(); else $('aboutBtn').focus(); }
+$('aboutBtn').onclick=()=>setAbout(!aboutOpen); $('aboutX').onclick=()=>setAbout(false);
+window.addEventListener('keydown', e=>{ const t=e.target, tag=t&&t.tagName;
+  if(e.key==='Escape'){ if(aboutOpen){ setAbout(false); return; } if(tag==='INPUT'||tag==='BUTTON'){ t.blur(); return; } goBack(); return; }
+  if(tag==='INPUT'||tag==='BUTTON'||aboutOpen||e.ctrlKey||e.metaKey||e.altKey) return;
+  const k=e.key, mv=(e.shiftKey?3:1)*.012; let used=true;
+  if(k==='ArrowLeft'||k==='ArrowRight'||k==='ArrowUp'||k==='ArrowDown'){ const dx=k==='ArrowLeft'?-1:k==='ArrowRight'?1:0, dy=k==='ArrowUp'?-1:k==='ArrowDown'?1:0;
+    if(lifted){ }
+    else if(C.pinned && C.mode==='circle'){ if(dx) turnBy(dx*(e.shiftKey?.3:.1)); else setOpen(C.R-dy*.005); }
+    else if(C.pinned && C.mode==='line'){ const q=inPlay(C.bx+dx*mv,C.by+dy*mv); C.bx=q[0]; C.by=q[1]; }
+    else { const q=inPlay(C.ax+dx*mv,C.ay+dy*mv); C.ax=q[0]; C.ay=q[1]; } }
+  else if(k===' '||k==='Enter'){ if(C.mode==='line'){ if(C.pinned){ ruleLine(); C.pinned=false; } else pinAt(C.ax,C.ay); } else { if(C.pinned) unpin(); else pinAt(C.ax,C.ay); } }
+  else if(k==='['||k==='-') setOpen(C.R-.005); else if(k===']'||k==='+'||k==='=') setOpen(C.R+.005);
+  else if(k==='m'||k==='M') setMode(C.mode==='circle'?'line':'circle'); else if(k==='t'||k==='T') turnForMe(); else if(k==='l'||k==='L') setLift(!lifted);
+  else if(k==='b'||k==='B') setLook(lookT<.5); else if(k==='p'||k==='P') setPlay(!playing); else used=false;
+  if(used){ e.preventDefault(); ui(); dirtyDraw=true; } });
+window.addEventListener('resize', resize);
+
+/* ── time ── */
+let hadBounds=false;
+function tick(n){ for(let i=0;i<n;i++){ step(); C.down += ((lifted?0:1)-C.down)*Math.min(1,DT*3.2); look += (lookT-look)*Math.min(1,DT*2.2); }
+  if(hadBounds && !bounds.length && lifted) say('gone'); hadBounds=bounds.length>0; }
+function advance(sec){ const n=Math.max(0,Math.round(sec/DT)); tick(n); measure(); hud(); dirtyDraw=true; return state(); }
+function state(){ if(!M || mStep!==stepN || labDirty) measure(); const p=pen(), tn=toneNow();
+  return { name:'golden-compasses', webgl:true, back:BACK, from:FROM, stop:STOP, low:LOW, still:STILL, N, frame, step:stepN, t:simT, playing, scale:scaleNow, linear:LIN,
+    mode:C.mode, lifted, pinned:C.pinned, opening:C.R, pivot:[C.ax,C.ay], pen:p, penAngle:C.th, turning:!!C.auto, down:C.down, look:lookT, lookNow:look, sound:A.on, about:aboutOpen, note:noteKey,
+    bounds:bounds.map(b=>({ id:b.id, type:b.type, x:b.x, y:b.y, r:b.r, x2:b.x2, y2:b.y2, sweep:b.sw, closed:!!b.closed, strength:b.s })), sealed:sealedCount(),
+    tone:tn, params:{ dt:DT, kappa:KAPPA, half:HALF, uref:UREF, iters:ITERS, F:GS.F, k:GS.k, sorW:SOR_W, wallIn:WALL_IN, wallOut:WALL_OUT }, measure:M }; }
+
+reset(); resize(); say('start'); ui();
+tick(TEST && TEST.warm!=null ? TEST.warm : (LOW?150:110)); measure(); hud();
+window.PIECE = { name:'golden-compasses', state, advance, measure, probe,
+  circle(x,y,r,plain){ const b=addBound({ type:'arc', x, y, r, start:0, sw:TAU, closed:false }); closeArc(b,!!plain); dirtyDraw=true; return b.id; },
+  arc(x,y,r,start,sw){ const b=addBound({ type:'arc', x, y, r, start, sw, closed:false }); rasterise(); return b.id; },
+  line(x1,y1,x2,y2){ return addLine(x1,y1,x2,y2).id; },
+  dye(x,y,r){ fillQ=[x,y,r]; }, seed(x,y){ seedQ.push([x,y]); },
+  lift(on){ setLift(on!==false); }, clear(){ clearBounds(); lifted=false; C.pinned=false; ui(); }, reset(){ reset(); lifted=false; },
+  set(o){ if(o.iters) ITERS=o.iters; if('tracerDecay' in o) mSca.uniforms.uTdec.value=o.tracerDecay; if('pivot' in o){ C.ax=o.pivot[0]; C.ay=o.pivot[1]; } },
+  entropyOf(rows){ /* rows: one array of HN values for each cell */ const P=new Float64Array(HN/2+1), m=new Float64Array(HN); for(const r of rows) for(let t=0;t<HN;t++) m[t]+=r[t]/rows.length; for(const r of rows) powerOf(Float64Array.from(r,(v,t)=>v-m[t]),P); return entropyOfPower(P); },
+  mask(){ return { wall:Array.from({length:N*N},(_,c)=>MK[c*4]), inside:Array.from(IN) }; },
+  shot(){ draw(); renderer.getContext().finish(); hud(); return true; } };
+if(TEST){ draw(); return; }
+
+let lastT=0, acc=0, slowN=0, slowMs=0, hudT=0;
+function loop(now){ requestAnimationFrame(loop); const dt=Math.min(.1,Math.max(0,(now-lastT)/1000)); lastT=now; if(dt<=0) return;
+  if(playing){ acc=Math.min(acc+dt,3*DT); let n=0; while(acc>=DT && n<2){ acc-=DT; n++; } if(n){ tick(n); dirtyDraw=true; } }
+  else { C.down += ((lifted?0:1)-C.down)*.2; if(Math.abs(look-lookT)>.001){ look=lookT; dirtyDraw=true; } }
+  hudT+=dt; if(hudT>.5 && (playing||dirtyDraw)){ hudT=0; measure(); hud(); audioTick(); }
+  if(!dirtyDraw) return; draw();
+  slowN++; slowMs+=dt*1000; if(slowN>=20){ const ms=slowMs/slowN; slowN=0; slowMs=0;
+    if(ms>40 && budget>BMIN){ budget=Math.max(BMIN,budget*.75); resize(); } else if(ms<19 && budget<BMAX && scaleNow<Math.min(window.devicePixelRatio||1,2)){ budget=Math.min(BMAX,budget*1.15); resize(); } } }
+draw(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

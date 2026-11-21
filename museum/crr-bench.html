@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Six Lines in Clay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: full-bleed stage, quiet film-slate controls pinned to the corners */
+  --studio:#0c0d10;
+  --ink:#f3ecdf;
+  --ink-soft:rgba(243,236,223,.72);
+  --panel:rgba(14,15,19,.62);
+  --line:rgba(243,236,223,.22);
+  --accent:#ff7a3c;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+body{transition:opacity .35s}
+body.leaving{opacity:0}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;outline:none}
+#stage.dragging{cursor:grabbing}
+#stage:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.head{position:fixed;left:20px;top:16px;right:300px;pointer-events:none;text-shadow:0 1px 10px rgba(0,0,0,.55)}
+.head h1{font:600 clamp(22px,3.2vw,34px)/1.05 var(--display);margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.head p{font:400 13px/1.45 var(--mono);margin:0;color:var(--ink-soft);max-width:54ch}
+button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);
+  border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--ink-soft)}
+button[aria-pressed="true"]{background:var(--ink);color:#15161a;border-color:var(--ink)}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,.sheet:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#back{position:fixed;right:20px;top:16px;background:var(--panel);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);z-index:3}
+.bar{position:fixed;left:16px;right:16px;bottom:16px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font:400 12.5px/1 var(--mono)}
+.card{margin:0 0 10px}
+.card .k{font:600 19px/1.15 var(--display);margin:0 0 5px}
+.card .k span{font:400 12px/1 var(--mono);color:var(--accent);margin-right:10px;letter-spacing:.02em}
+.card p{font:400 12.5px/1.5 var(--mono);margin:0;color:var(--ink);max-width:150ch}
+.card p em{font-style:normal;color:var(--ink-soft)}
+.row{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.steps{display:inline-flex;gap:4px}
+.steps button{padding:8px 0;width:32px;text-align:center}
+.steps button:last-child{width:auto;padding:8px 11px}
+#play{min-width:74px}
+#next{background:var(--accent);border-color:var(--accent);color:#1a0d05}
+.sl{display:inline-flex;align-items:center;gap:8px;color:var(--ink-soft);white-space:nowrap}
+.sl input{width:104px;accent-color:var(--accent);height:22px;margin:0}
+.sl output{color:var(--ink);font-variant-numeric:tabular-nums;min-width:3.2ch}
+.read{position:fixed;right:20px;top:60px;margin:0;display:grid;grid-template-columns:auto auto;gap:5px 14px;padding:12px 14px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  font:400 12.5px/1.25 var(--mono);font-variant-numeric:tabular-nums;pointer-events:none;max-width:min(300px,calc(100vw - 32px))}
+.read dt{color:var(--ink-soft);margin:0}.read dd{margin:0;text-align:right;white-space:nowrap}
+.read dt small{display:block;font-size:10.5px;opacity:.75}
+.read .big{font:600 22px/1 var(--display);grid-column:1/-1;text-align:left;margin-bottom:2px}
+.read .sec{grid-column:1/-1;text-align:left;color:var(--ink-soft);border-top:1px solid var(--line);padding-top:6px;margin-top:2px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.read .note{grid-column:1/-1;color:var(--accent);text-align:left;white-space:normal}
+.sheet{position:fixed;background:rgba(14,15,19,.86);border:1px solid var(--line);border-radius:14px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  padding:16px 18px;overflow:auto;font:400 12.5px/1.55 var(--mono);z-index:2}
+.sheet h2{font:600 21px/1.15 var(--display);margin:0 0 8px}
+.sheet h3{font:500 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:14px 0 4px}
+.sheet p{margin:0 0 8px}.sheet ul{margin:0 0 8px;padding-left:18px}.sheet li{margin:0 0 3px}
+.sheet table{border-collapse:collapse;width:100%;margin:0 0 8px}
+.sheet td,.sheet th{border-top:1px solid var(--line);padding:4px 8px 4px 0;text-align:left;vertical-align:top;font-weight:400}
+.sheet th{color:var(--ink-soft)}
+.sheet code{font:inherit;color:#ffd9a8}
+#final{left:20px;top:84px;width:min(540px,calc(100vw - 40px));padding:14px 18px;line-height:1.45}
+#final td,#final th{padding:2px 10px 2px 0}#final p,#final ul{margin-bottom:6px}#final li{margin-bottom:1px}
+#about{right:20px;top:60px;width:min(560px,calc(100vw - 32px));z-index:4}
+#about .x{float:right;margin:0 0 8px 12px}
+@media (max-width:760px){.head p{display:none}.head{right:150px}.head h1{font-size:20px}
+  .read{top:52px;left:12px;right:auto;font-size:11px;padding:8px 10px;gap:3px 10px}.read dt small{display:none}.read .big{font-size:17px}
+  #back{right:12px;top:12px;padding:8px 10px;font-size:11.5px}
+  .bar{left:8px;right:8px;bottom:8px;padding:9px 10px}.card .k{font-size:16px}.card p{font-size:11.5px;line-height:1.42}
+  .sl input{width:84px}button{padding:8px 10px;font-size:11.5px}.steps button{width:27px}
+  #final{left:8px;top:50px;width:calc(100vw - 16px)}#about{right:8px;top:50px;width:calc(100vw - 16px)}}
+#fail{position:fixed;inset:0;display:none;place-items:center;padding:24px;text-align:center;font:400 15px/1.5 var(--mono)}
+</style>
+</head>
+<body>
+<canvas id="stage" tabindex="0" aria-label="A clay ring with a yellow bead on it, on a wooden bench, animated in stop motion. Drag the bead round the ring, or use the left and right arrow keys to move it."></canvas>
+<div class="head">
+  <h1>Six Lines in Clay</h1>
+  <p>Coherence, Rupture, Regeneration, worked by hand.</p>
+</div>
+<button id="back" type="button">Back to the museum</button>
+<dl class="read" id="read"></dl>
+<div class="sheet" id="final" role="region" aria-label="What is new in it, and what is not" tabindex="0" hidden></div>
+<div class="sheet" id="about" role="dialog" aria-label="About this piece" tabindex="-1" hidden></div>
+<div class="bar" id="bar">
+  <div class="card" aria-live="polite"><div class="k" id="cardK"></div><p id="cardP"></p></div>
+  <div class="row">
+    <span class="steps" role="group" aria-label="Steps" id="steps"></span>
+    <button id="next" type="button">Next</button>
+    <button id="play" type="button">Pause</button>
+    <label class="sl" id="lsigma">Ruler step &sigma; <input id="sigma" type="range" min="0.1" max="0.8" step="0.05" value="0.3"><output id="osigma"></output></label>
+    <label class="sl" id="lq">Keep q <input id="q" type="range" min="0" max="0.95" step="0.05" value="0.6"><output id="oq"></output></label>
+    <button id="motor" type="button" aria-pressed="false">Motor</button>
+    <label class="sl" id="lhill">Hill A <input id="hill" type="range" min="0" max="1.5" step="0.05" value="1"><output id="ohill"></output></label>
+    <label class="sl" id="ltau">Push &tau; <input id="tau" type="range" min="1.6" max="4" step="0.1" value="2"><output id="otau"></output></label>
+    <button id="rep2" type="button">Replay at double speed</button>
+    <button id="reph" type="button">Replay at half speed</button>
+    <button id="again" type="button">Start again</button>
+    <button id="aboutBtn" type="button" aria-expanded="false" aria-controls="about">About</button>
+  </div>
+</div>
+<div id="fail">This piece needs WebGL 2, which this browser or device has not made available.</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+const canvas = document.getElementById('stage');
+const HOME = { blake: 'index.html', jooles: 'jooles.html', park: 'park.html' };
+const QS = new URLSearchParams(location.search);
+const FROM = Object.prototype.hasOwnProperty.call(HOME, QS.get('from')) ? QS.get('from') : 'blake';
+const STOP = /^[a-z0-9_:\-]{1,40}$/.test(QS.get('stop')||'') ? QS.get('stop') : 'sixlines';
+const BACK = HOME[FROM] + '#' + STOP;
+const LOW = QS.get('q')==='low';
+const STILL = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function goBack(){ document.body.classList.add('leaving'); setTimeout(()=>{ location.href = BACK; }, 360); }
+document.getElementById('back').onclick = goBack;
+
+/* ───────────────────────── the model: six lines, nothing else ─────────────────────────
+   Source: "A conditional mathematical core" (Phoenix_Egg/CORE/MATHEMATICS.md), sections I to VI.
+   Carrier: unit-covariance Gaussians in the plane with mean (cos s, sin s). Fisher metric g = 1, so the Fisher arc s is the
+   angle, the circumference is ell = 2 pi and a half-turn is a = pi. Distances are intrinsic to the circle.
+   R1  Count      C  = (path travelled)/sigma                         ordinary name: information length
+   R2  Cut        t[n+1] = first time s - s[n] = a                    ordinary name: first-passage time
+   R3  Surplus    S  = C - C* = 2B/sigma, B = backward travel          ordinary name: path length minus chord
+   R4  Physics    zeta ds/dt = tau - dU/ds,  U = A cos s  (no noise)   an added constitutive law: an overdamped driven rotor
+   R5  Seed       m' = q m + (1-q) Phi, Phi = the occasion's Count     ordinary name: exponential (fixed-gain Kalman) filter
+   R6  Cost       Q T >= zeta (a + 2B)^2, Q = integral zeta (ds/dt)^2  ordinary name: thermodynamic length (Cauchy-Schwarz)
+   Parameters: sigma (ruler step), q (how much old seed is kept), tau (push), A (hill), zeta = 1 (friction).
+   Left out: noise, inertia, friction that varies round the ring, any effect of the seed on the motion, curved content. */
+const ELL = 2*Math.PI, HALF = Math.PI, DT = 1/12, SUB = 16;
+function Machine(){ this.sigma=.3; this.q=.6; this.tau=2; this.A=0; this.zeta=1; this.cutting=true; this.reset(); }
+Machine.prototype = {
+  reset(){ this.s=0; this.sCut=0; this.t=0; this.tCut=0; this.L=0; this.P=0; this.B=0; this.Q=0; this.Qt=0; this.N=0; this.Ldone=0; this.occ=[]; this.pure=true; },
+  setp(k,v){ if(k==='tau'||k==='A'||k==='zeta') this.pure=this.pure&&this.t===this.tCut; this[k]=v; },
+  U(s){ return this.A*Math.cos(s); },
+  f(s){ return (this.tau + this.A*Math.sin(s))/this.zeta; },                 // R4: ds/dt = (tau - dU/ds)/zeta
+  seg(ds,dt){ const d=Math.abs(ds); this.s+=ds; this.t+=dt; if(ds>=0) this.P+=d; else this.B+=d; this.L+=d;
+    if(d>0){ const h=this.zeta*ds*ds/dt; this.Q+=h; this.Qt+=h; } },          // heat lost to friction over this piece of path
+  cut(target){ this.s=target;                                                // R2: the cut is a moment; nothing happens "during" it
+    const o={ n:this.N, s0:this.sCut, s1:target, t0:this.tCut, t1:this.t, T:this.t-this.tCut, P:this.P, B:this.B, L:this.P+this.B, Q:this.Q,
+      dU:this.U(target)-this.U(this.sCut), tau:this.tau, A:this.A, zeta:this.zeta, pure:this.pure };
+    this.occ.push(o); if(this.occ.length>1000) this.occ.shift();
+    this.N++; this.Ldone+=o.L; this.sCut=target; this.tCut=this.t; this.P=0; this.B=0; this.Q=0; this.pure=true; },
+  /* a stretch of path given from outside (a hand, or a replay): ds over dt seconds at a steady pace */
+  move(ds,dt){ this.pure=false;
+    while(this.cutting && ds>0 && this.s+ds-this.sCut>=HALF){ const target=this.sCut+HALF, d1=target-this.s, dt1=dt*d1/ds;
+      this.seg(d1,dt1); this.cut(target); this.pure=false; ds-=d1; dt-=dt1; }
+    this.seg(ds,Math.max(dt,0)); },
+  rk(s,h){ const k1=this.f(s), k2=this.f(s+h/2*k1), k3=this.f(s+h/2*k2), k4=this.f(s+h*k3); return s+h/6*(k1+2*k2+2*k3+k4); },
+  /* the driven rotor for dt seconds: classical Runge-Kutta, SUB steps a picture; the first passage is located by Newton's method */
+  rotor(dt){ const h=dt/SUB;
+    for(let i=0;i<SUB;i++){ let rem=h;
+      while(rem>0){ const s1=this.rk(this.s,rem);
+        if(this.cutting && s1-this.sCut>=HALF){ const target=this.sCut+HALF; let hh=rem*(target-this.s)/(s1-this.s);
+          for(let j=0;j<6;j++) hh-=(this.rk(this.s,hh)-target)/this.f(target);
+          hh=Math.min(Math.max(hh,0),rem); this.seg(target-this.s,hh); this.cut(target); rem-=hh; if(rem<1e-14) rem=0; }
+        else { this.seg(s1-this.s,rem); rem=0; } } } },
+  chord(){ const r=((this.s-this.sCut)%ELL+ELL)%ELL; return Math.min(r,ELL-r); },   // shortest way round the circle itself
+  now(){ const L=this.P+this.B, ch=this.chord(), T=this.t-this.tCut;
+    return { C:L/this.sigma, Cstar:ch/this.sigma, S:(L-ch)/this.sigma, T, Q:this.Q, least:T>0?this.zeta*L*L/T:0 }; },
+  Stotal(){ return this.cutting ? (this.Ldone-this.N*HALF)/this.sigma + this.now().S : this.now().S; },
+  view(o){ const sg=this.sigma; return { n:o.n, s0:o.s0, s1:o.s1, t1:o.t1, T:o.T, B:o.B, C:o.L/sg, Cstar:HALF/sg, S:(o.L-HALF)/sg, twoB:2*o.B/sg,
+    Q:o.Q, QT:o.Q*o.T, bound:o.zeta*o.L*o.L, work:o.tau*HALF-o.dU, pure:o.pure, tau:o.tau, A:o.A, zeta:o.zeta,
+    Tmin:o.zeta*HALF/(o.tau+Math.abs(o.A)), Tmax:o.tau>Math.abs(o.A)?o.zeta*HALF/(o.tau-Math.abs(o.A)):Infinity }; },
+  /* R5 on a flat scalar: the prior m0 is "the direct way, no wandering"; w is the share of the lump that came from surplus (its colour) */
+  seeds(){ const m=[HALF/this.sigma], w=[0], phi=[], wp=[];
+    for(const o of this.occ){ const p=o.L/this.sigma, wo=Math.max(0,(o.L-HALF)/o.L), m0=m[m.length-1], m1=this.q*m0+(1-this.q)*p;
+      w.push(m1>0?(this.q*m0*w[w.length-1]+(1-this.q)*p*wo)/m1:0); m.push(m1); phi.push(p); wp.push(wo); }
+    return {m,w,phi,wp}; },
+  snapshot(){ const o={}; for(const k of ['sigma','q','tau','A','zeta','cutting','s','sCut','t','tCut','L','P','B','Q','Qt','N','Ldone','pure']) o[k]=this[k]; o.occ=this.occ.slice(); return o; },
+  restore(o){ const keep={sigma:this.sigma,q:this.q,tau:this.tau,A:this.A,zeta:this.zeta}; Object.assign(this,o,keep); this.occ=o.occ.slice(); }
+};
+function seedRec(m0,phis,q){ let m=m0; for(const p of phis) m=q*m+(1-q)*p; return m; }
+function seedClosed(m0,phis,q){ const n=phis.length; let m=Math.pow(q,n)*m0; for(let j=0;j<n;j++) m+=(1-q)*Math.pow(q,n-1-j)*phis[j]; return m; }
+function summary(m){ return { t:m.t, s:m.s, C:m.L/m.sigma, S:m.Stotal(), N:m.N, Q:m.Qt, cuts:m.occ.map(o=>o.s1), occ:m.occ.map(o=>m.view(o)) }; }
+const LAB = {
+  rotor(p){ p=p||{}; const m=new Machine(); for(const k of ['tau','A','zeta','sigma','q']) if(p[k]!==undefined) m[k]=p[k];
+    const n=p.halfTurns||2; let g=0; while(m.N<n && g++<200000) m.rotor(DT); return summary(m); },
+  path(ds,dt,p){ p=p||{}; const m=new Machine(); for(const k of ['zeta','sigma','q','cutting']) if(p[k]!==undefined) m[k]=p[k];
+    for(const d of ds) m.move(d,dt); const r=summary(m); r.seeds=m.seeds().m; return r; },
+  seedRec, seedClosed
+};
+const M = new Machine();
+if (!window.THREE || !canvas.getContext('webgl2')) { document.getElementById('fail').style.display='grid';
+  window.PIECE={ name:'crr-bench', lab:LAB, state(){ return {frame:0, step:0, webgl:false, back:BACK}; } }; return; }
+
+/* ───────────────────────── noise (CPU) ───────────────────────── */
+function h3(x,y,z){ let n = Math.imul(x|0,374761393) ^ Math.imul(y|0,668265263) ^ Math.imul(z|0,1440662683);
+  n = Math.imul(n ^ (n>>>13), 1274126177); return ((n ^ (n>>>16))>>>0)/4294967296; }
+function vn3(x,y,z){ const xi=Math.floor(x), yi=Math.floor(y), zi=Math.floor(z);
+  let fx=x-xi, fy=y-yi, fz=z-zi; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); fz=fz*fz*(3-2*fz);
+  const a=h3(xi,yi,zi), b=h3(xi+1,yi,zi), c=h3(xi,yi+1,zi), d=h3(xi+1,yi+1,zi),
+        e=h3(xi,yi,zi+1), f=h3(xi+1,yi,zi+1), g=h3(xi,yi+1,zi+1), h=h3(xi+1,yi+1,zi+1);
+  const ab=a+(b-a)*fx, cd=c+(d-c)*fx, ef=e+(f-e)*fx, gh=g+(h-g)*fx;
+  const p=ab+(cd-ab)*fy, q=ef+(gh-ef)*fy; return p+(q-p)*fz; }
+function fbm3(x,y,z){ return vn3(x,y,z)*.55 + vn3(x*2.1+5,y*2.1+3,z*2.1+1)*.3 + vn3(x*4.3+9,y*4.3+7,z*4.3+2)*.15; }
+const rnd=(i,j)=>h3(i,j,77);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const sstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+
+/* ───────────────────────── renderer ───────────────────────── */
+const renderer = new THREE.WebGLRenderer({canvas, antialias:false, alpha:false, powerPreference:'high-performance', preserveDrawingBuffer:true});
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+const HDR = renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float');
+
+/* Contact-hardening soft shadows (PCSS) patched into three's shadow lookup. */
+(function(){
+  const pcss = `
+  float ignoise(vec2 p){ return fract(52.9829189*fract(dot(p, vec2(0.06711056,0.00583715)))); }
+  float pcssShadow(sampler2D sm, vec3 c, float K){
+    float rot = ignoise(gl_FragCoord.xy)*6.2831853;
+    float search = K*0.05, bsum=0., bn=0.;
+    for(int i=0;i<14;i++){ float fi=float(i)+.5; float r=sqrt(fi/14.); float a=fi*2.39996323+rot;
+      float d = unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*search));
+      if(d < c.z-0.0006){ bsum+=d; bn+=1.; } }
+    if(bn<.5) return 1.;
+    float pen = clamp((c.z-bsum/bn)*K, 0.0006, 0.02);
+    float s=0.;
+    for(int i=0;i<28;i++){ float fi=float(i)+.5; float r=sqrt(fi/28.); float a=fi*2.39996323+rot*1.7;
+      s += step(c.z, unpackRGBAToDepth(texture2D(sm, c.xy+vec2(cos(a),sin(a))*r*pen))); }
+    return s/28.;
+  }`;
+  let ch = THREE.ShaderChunk.shadowmap_pars_fragment;
+  ch = ch.replace('#ifdef USE_SHADOWMAP', '#ifdef USE_SHADOWMAP\n'+pcss);
+  ch = ch.replace('#if defined( SHADOWMAP_TYPE_PCF )', 'return pcssShadow(shadowMap, shadowCoord.xyz, shadowRadius);\n#if defined( SHADOWMAP_TYPE_PCF )');
+  THREE.ShaderChunk.shadowmap_pars_fragment = ch;
+})();
+
+/* ───────────────────────── materials ───────────────────────── */
+const shared = { uPolar:{value:0}, uSeed:{value:new THREE.Vector3()}, uShip:{value:new THREE.Vector4()}, uSeaT:{value:0} };
+const GLSL_NOISE = `
+float hash13(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32); return fract((p.x+p.y)*p.z); }
+float vn(vec3 x){ vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash13(i),hash13(i+vec3(1,0,0)),f.x),mix(hash13(i+vec3(0,1,0)),hash13(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash13(i+vec3(0,0,1)),hash13(i+vec3(1,0,1)),f.x),mix(hash13(i+vec3(0,1,1)),hash13(i+vec3(1,1,1)),f.x),f.y),f.z); }`;
+const CLAY_PARS = GLSL_NOISE + `
+uniform mat3 normalMatrix;
+uniform vec3 uSeed; uniform float uBoil, uBump, uSmear, uSpeck, uGlow, uPolar; uniform vec3 uCol2;
+uniform vec4 uBandY; uniform vec3 uBandC[4];
+uniform vec4 uShip; uniform float uSeaT; uniform vec3 uDeep, uMid, uLight, uFoam;
+varying vec3 vObjPos; varying vec3 vObjN;
+#ifdef SEA
+varying vec2 vSea;
+#endif
+float clayH(vec3 p){
+  vec3 q = p + uSeed*uBoil;
+  float h = (vn(q*8.)-.5) + (vn(q*21.+3.)-.5)*.5 + (vn(q*57.+7.)-.5)*.22;
+  vec3 w = q*5.5; float fpMask = smoothstep(.56,.8, vn(w*.8+11.));
+  vec2 cc = fract(w.xy + w.z*.37)-.5;
+  h += sin(length(cc)*52. + vn(q*19.)*7.)*fpMask*.028;
+  h += smoothstep(.8,.95, vn(vec3(q.x*3., q.y*40., q.z*3.)+2.))*-.07;
+  return h;
+}
+vec3 clayNormal(vec3 nView){
+  #ifdef MODE_CLAY
+  vec3 p = vObjPos; float e = .0035;
+  float h0 = clayH(p);
+  vec3 g = vec3(clayH(p+vec3(e,0,0))-h0, clayH(p+vec3(0,e,0))-h0, clayH(p+vec3(0,0,e))-h0)/e;
+  vec3 nO = normalize(vObjN);
+  g -= dot(g,nO)*nO;
+  vec3 nP = normalize(nO - g*uBump*.011);
+  vec3 nV = normalize(normalMatrix*nP);
+  return dot(nV,nView) < 0. ? -nV : nV;
+  #else
+  return nView;
+  #endif
+}
+float clayRough(float r){
+  #ifdef MODE_CLAY
+  float m = vn(vObjPos*6.+uSeed*uBoil+40.);
+  return clamp(r + (m-.5)*.3 - smoothstep(.7,.9,vn(vObjPos*3.+9.))*.14, .2, 1.);
+  #else
+  return r;
+  #endif
+}
+vec3 clayAlbedo(vec3 base){
+  vec3 p = vObjPos; vec3 c = base;
+  #ifdef MODE_CLAY
+    #ifdef BANDS
+      float wob = (vn(p*7.)-.5)*.035 + (vn(p*23.)-.5)*.012;
+      float y = p.y + wob;
+      c = uBandC[0];
+      c = mix(c, uBandC[1], smoothstep(-.004,.004, y-uBandY.x));
+      c = mix(c, uBandC[2], smoothstep(-.004,.004, y-uBandY.y));
+      c = mix(c, uBandC[3], smoothstep(-.004,.004, y-uBandY.z));
+    #endif
+    #ifdef SEA
+      vec2 P = p.xz; vec2 d1 = vec2(.5,.866);
+      float along = dot(P, vec2(d1.y,-d1.x)), across = dot(P,d1);
+      float st  = vn(vec3(along*.9, across*3.6 - uSeaT*.55, 3.+uSeed.x*.2));
+      float st2 = vn(vec3(along*2.3+5., across*8. - uSeaT*.9, 9.+uSeed.y*.2));
+      c = mix(uDeep, uMid, smoothstep(.22,.7,st));
+      c = mix(c, uLight, smoothstep(.5,.82,st2)*.75);
+      float hN = vSea.x;
+      c = mix(c, uDeep*.75, smoothstep(.42,.05,hN)*.55);
+      float nz = vn(vec3(P*6.5, uSeed.y*3.))-.5;
+      float crest = smoothstep(.86,.98, hN + nz*.3);
+      vec2 L = P - uShip.xy;
+      float e = length(vec2(L.x/.98, L.y/.36));
+      float ring = smoothstep(1.42,1.08,e);
+      float b = -L.x - .55; float wake = 0.;
+      if(b>0.){ float arm = exp(-pow((abs(L.y)-(.2+.3*b))/.075,2.))*exp(-b*.5);
+        float churn = exp(-pow(L.y/(.13+.06*b),2.))*exp(-b*.75); wake = max(arm, churn); }
+      float foam = smoothstep(.34,.56, max(ring,wake) + (vn(vec3(P*10., uSeed.z*3.))-.5)*.55);
+      c = mix(c, uFoam, max(crest*.92, foam*.95)*(1.-vSea.y));
+      c = mix(c, uDeep*.9, vSea.y*.6);
+    #endif
+    #ifdef SUN
+      vec3 dn = normalize(p);
+      float gr = vn(p*5.+uSeed*.5)*.6+vn(p*11.+uSeed.yzx*.5)*.4, gr2 = vn(p*13.+uSeed.zxy*.7)*.55+vn(p*29.+3.)*.45;
+      c = mix(vec3(.80,.20,.015), vec3(.95,.45,.03), smoothstep(.3,.7,gr));
+      c = mix(c, vec3(1.,.70,.12), smoothstep(.42,.72,gr2)*.7);
+      float capT = mix(1.03,.74, clamp(abs(uPolar),0.,1.));
+      float cap = smoothstep(capT, capT+.035, abs(dn.y)+(vn(p*5.)-.5)*.1+(vn(p*14.)-.5)*.03);
+      c = mix(c, sign(dn.y)*sign(uPolar)>0. ? vec3(.05,.17,.72) : vec3(.70,.04,.10), cap);
+    #endif
+    float m = vn(p*5.+uSeed*uBoil)*.6 + vn(p*17.+4.)*.4;
+    c *= .86 + .28*m;
+    float s = smoothstep(.6,.8, vn(vec3(p.x*3.,p.y*8.,p.z*3.)+31.));
+    c = mix(c, uCol2, s*uSmear);
+    float sp = smoothstep(.9,.95, vn(p*150.+17.))*step(.75, vn(p*9.+70.));
+    c = mix(c, vec3(.82,.78,.7), sp*.35*uSpeck);
+  #endif
+  #ifdef MODE_WOOD
+    vec2 P = p.xz; float pid = floor(P.y/1.15+.5); float py = fract(P.y/1.15+.5);
+    float gw = vn(vec3(P.x*.5+pid*7., P.y*5., pid));
+    float rings = sin(P.y*46. + gw*9. + vn(vec3(P.x*.25,P.y*1.5,pid*3.))*14.);
+    c = mix(vec3(.25,.14,.07), vec3(.47,.29,.15), .5+.5*rings*.7);
+    c *= .8 + .35*vn(vec3(P.x*8., P.y*160., pid));
+    c *= mix(.45,1., smoothstep(0.,.02,py)*smoothstep(1.,.98,py));
+    c *= base;
+  #endif
+  #ifdef MODE_PAPER
+    float y = clamp((p.y+3.55)/2.5,0.,1.);
+    float br = (vn(vec3(p.x*.5,p.y*5.,1.))-.5)*.08 + (vn(vec3(p.x*3.,p.y*30.,4.))-.5)*.03;
+    y += br;
+    c = mix(vec3(.96,.62,.40), vec3(.93,.80,.68), smoothstep(.04,.2,y));
+    c = mix(c, vec3(.36,.62,.86), smoothstep(.14,.46,y));
+    c = mix(c, vec3(.12,.32,.64), smoothstep(.5,1.,y));
+    c *= .93+.14*vn(p*14.);
+    #ifdef NIGHT
+      float yn = clamp((p.y+8.)/16.,0.,1.) + br;
+      c = mix(vec3(.035,.05,.13), vec3(.012,.018,.06), smoothstep(.1,.9,yn));
+      c *= .85+.3*vn(vec3(p.x*.6,p.y*6.,2.));
+      vec2 hd = p.xy - vec2(0.,-3.1);
+      c += vec3(.55,.2,.03)*exp(-dot(hd,hd)/7.)*.55;
+      float stc = vn(vec3(p.xy*7.,3.));
+      c += vec3(.9,.88,.75)*smoothstep(.9,.95,stc)*step(.5,vn(vec3(p.xy*1.3,8.)))*.9;
+    #endif
+    #ifdef BENCH
+      float yb = clamp((p.y+8.)/16.,0.,1.) + br;
+      c = mix(vec3(.17,.115,.085), vec3(.03,.038,.06), smoothstep(.12,.8,yb));
+      c *= .85+.3*vn(vec3(p.x*.6,p.y*6.,2.));
+      vec2 hb = p.xy - vec2(0.,-3.4);
+      c += vec3(.5,.25,.09)*exp(-dot(hb,hb)/11.)*.3;
+    #endif
+  #endif
+  return c;
+}`;
+function lin(hex){ return new THREE.Color(hex); }
+function mat(o){
+  o = o || {};
+  const mode = o.mode || 'CLAY';
+  const m = new THREE.MeshPhysicalMaterial({ color:o.color!==undefined?o.color:0xffffff, roughness:o.rough!==undefined?o.rough:.56, metalness:0,
+    sheen: mode==='CLAY'?.45:0, sheenRoughness:.5, sheenColor:new THREE.Color(o.color!==undefined?o.color:0xffffff).lerp(new THREE.Color(0xffffff),.5),
+    specularIntensity: o.spec!==undefined?o.spec:.75, envMapIntensity:o.env!==undefined?o.env:1, side:o.side||THREE.FrontSide });
+  if(o.emissive){ m.emissive=new THREE.Color(o.emissive); m.emissiveIntensity=o.emissiveIntensity||1; }
+  const bands = o.bands||null;
+  const u = { uSeed:shared.uSeed, uShip:shared.uShip, uSeaT:shared.uSeaT,
+    uBoil:{value:o.boil||0}, uBump:{value:o.bump!==undefined?o.bump:1}, uSmear:{value:o.smear||0}, uSpeck:{value:o.speck!==undefined?o.speck:1}, uGlow:{value:o.glow||0}, uPolar:shared.uPolar, uCol2:{value:lin(o.color2!==undefined?o.color2:0xffffff)},
+    uBandY:{value:new THREE.Vector4(bands?bands.y[0]:9, bands&&bands.y[1]!==undefined?bands.y[1]:9, bands&&bands.y[2]!==undefined?bands.y[2]:9, 0)},
+    uBandC:{value:[0,1,2,3].map(i=>lin(bands?bands.c[Math.min(i,bands.c.length-1)]:0xffffff))},
+    uDeep:{value:lin(0x0b3a78)}, uMid:{value:lin(0x1668b8)}, uLight:{value:lin(0x2fa3c9)}, uFoam:{value:lin(0xf1eee2)} };
+  m.defines = Object.assign({}, m.defines, {['MODE_'+mode]:''});
+  if(bands) m.defines.BANDS='';
+  if(o.sea) m.defines.SEA='';
+  if(o.sun) m.defines.SUN='';
+  if(o.night) m.defines.NIGHT='';
+  if(o.bench) m.defines.BENCH='';
+  m.userData.u = u;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjPos; varying vec3 vObjN;\n#ifdef SEA\nattribute vec2 aSea; varying vec2 vSea;\n#endif')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObjPos=position; vObjN=normal;\n#ifdef SEA\nvSea=aSea;\n#endif');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\n'+CLAY_PARS)
+      .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = clayAlbedo(diffuseColor.rgb);')
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clayRough(roughnessFactor);')
+      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal = clayNormal(normal);')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb*uGlow;');
+  };
+  m.customProgramCacheKey = () => 'clay|'+mode+'|'+(bands?1:0)+'|'+(o.sea?1:0)+(o.sun?1:0)+(o.night?1:0)+(o.bench?1:0);
+  return m;
+}
+
+/* ───────────────────────── geometry helpers ───────────────────────── */
+function weld(geo){
+  const p=geo.attributes.position, n=new Float32Array(p.count*3), map=new Map(), key=new Array(p.count);
+  for(let i=0;i<p.count;i++){ key[i]=Math.round(p.getX(i)*2e4)+'_'+Math.round(p.getY(i)*2e4)+'_'+Math.round(p.getZ(i)*2e4); if(!map.has(key[i])) map.set(key[i],[0,0,0]); }
+  const idx=geo.index, tri=idx?idx.count/3:p.count/3, a=new THREE.Vector3(), b=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let t=0;t<tri;t++){ const i0=idx?idx.getX(t*3):t*3, i1=idx?idx.getX(t*3+1):t*3+1, i2=idx?idx.getX(t*3+2):t*3+2;
+    a.fromBufferAttribute(p,i0); b.fromBufferAttribute(p,i1); c.fromBufferAttribute(p,i2); b.sub(a); c.sub(a); b.cross(c);
+    for(const i of [i0,i1,i2]){ const m=map.get(key[i]); m[0]+=b.x; m[1]+=b.y; m[2]+=b.z; } }
+  for(let i=0;i<p.count;i++){ const m=map.get(key[i]); const l=Math.hypot(m[0],m[1],m[2])||1; n[i*3]=m[0]/l; n[i*3+1]=m[1]/l; n[i*3+2]=m[2]/l; }
+  geo.setAttribute('normal', new THREE.BufferAttribute(n,3)); return geo;
+}
+let seedC = 1;
+function clayify(geo, amp, freq){
+  const sd = (seedC++)*13.7; weld(geo);
+  const p=geo.attributes.position, n=geo.attributes.normal;
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+    const d=(fbm3(x*freq+sd,y*freq+sd*.7,z*freq+sd*.3)-.5)*2*amp;
+    p.setXYZ(i, x+n.getX(i)*d, y+n.getY(i)*d, z+n.getZ(i)*d); }
+  weld(geo); geo.computeBoundingSphere(); return geo;
+}
+function blob(r, sx, sy, sz, amp, freq, det){
+  const g=new THREE.SphereGeometry(r, det||40, Math.round((det||40)*.7)); g.scale(sx||1,sy||1,sz||1);
+  return clayify(g, amp!==undefined?amp:r*.12, freq||(1.6/r));
+}
+function rbox(w,h,d,r,amp,freq){
+  const s=14, g=new THREE.BoxGeometry(w,h,d,s,s,s), p=g.attributes.position, hx=w/2-r, hy=h/2-r, hz=d/2-r, v=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); c.set(clamp(v.x,-hx,hx),clamp(v.y,-hy,hy),clamp(v.z,-hz,hz)); v.sub(c);
+    if(v.lengthSq()>1e-12){ v.normalize().multiplyScalar(r).add(c); p.setXYZ(i,v.x,v.y,v.z); } }
+  return clayify(g, amp!==undefined?amp:.012, freq||7);
+}
+function lathe(pts, amp, freq, seg){
+  const g=new THREE.LatheGeometry(pts.map(q=>new THREE.Vector2(q[0],q[1])), seg||44); return clayify(g, amp!==undefined?amp:.01, freq||7);
+}
+function grid(nu,nv,fn){
+  const pos=new Float32Array((nu+1)*(nv+1)*3), idx=[]; let k=0; const o=[0,0,0];
+  for(let i=0;i<=nu;i++) for(let j=0;j<=nv;j++){ fn(i/nu,j/nv,o); pos[k++]=o[0]; pos[k++]=o[1]; pos[k++]=o[2]; }
+  for(let i=0;i<nu;i++) for(let j=0;j<nv;j++){ const a=i*(nv+1)+j, b=a+1, c=a+nv+1, d=c+1; idx.push(a,b,c, b,d,c); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3)); g.setIndex(idx); return g;
+}
+function flip(g){ const ix=g.index.array; for(let i=0;i<ix.length;i+=3){ const t=ix[i+1]; ix[i+1]=ix[i+2]; ix[i+2]=t; } return g; }
+function mesh(g,m,x,y,z,parent){ const o=new THREE.Mesh(g,m); o.position.set(x||0,y||0,z||0); o.castShadow=true; o.receiveShadow=true; (parent||scene).add(o); return o; }
+
+/* ───────────────────────── scene ───────────────────────── */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x040507);
+const camera = new THREE.PerspectiveCamera(30, 16/9, .6, 60);
+(function(){
+  const es=new THREE.Scene(); const bm=(c,i)=>{ const m=new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(i), side:THREE.DoubleSide}); m.toneMapped=false; return m; };
+  es.add(new THREE.Mesh(new THREE.SphereGeometry(30,24,16), bm(0x1c1d26,.2)));
+  const add=(w,h,c,i,x,y,z)=>{ const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h), bm(c,i)); p.position.set(x,y,z); p.lookAt(0,0,0); es.add(p); };
+  add(9,7,0xfff0dc,9,-9,9,5); add(7,9,0xbcd0ff,1.6,11,4,6); add(16,5,0xffc890,2.4,2,9,-10); add(30,30,0x4a2f18,.45,0,-6,0);
+  const pm=new THREE.PMREMGenerator(renderer); scene.environment=pm.fromScene(es,.035).texture; pm.dispose();
+})();
+const key = new THREE.DirectionalLight(0xffe7c8, 2.5);
+key.castShadow=true; key.shadow.mapSize.set(LOW?2048:4096, LOW?2048:4096);
+const sc=key.shadow.camera; sc.left=-5.6; sc.right=5.6; sc.top=5.2; sc.bottom=-4.6; sc.near=1; sc.far=26; sc.updateProjectionMatrix();
+key.shadow.bias=-.0006; key.shadow.normalBias=.02; key.shadow.radius=.085*(sc.far-sc.near)/(sc.right-sc.left);
+key.position.set(-7,8.2,5.2); key.target.position.set(0,.4,.9); scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0x9db8ff, 1.0); rim.position.set(5,4.5,-7); scene.add(rim);
+const warm = new THREE.PointLight(0xffb070, 5, 0, 2); warm.position.set(2.4,2.6,3.4); scene.add(warm);
+
+mesh(new THREE.BoxGeometry(34,.4,18,1,1,1), mat({mode:'WOOD', color:0x94806e, rough:.62, spec:.5, env:.8}), 0,-.2,0).castShadow=false;
+mesh(new THREE.PlaneGeometry(36,16,1,1), mat({mode:'PAPER', bench:true, rough:.95, spec:.15, env:.4}), 0,5,-7).castShadow=false;
+
+const C={ blue:0x1f4fd6, red:0xc8202f, cream:0xf2e6cf, teal:0x1f8f8a, orange:0xf0641e, yellow:0xffc21a, slate:0x34474f };
+const cTeal=new THREE.Color(0x23a39c), cOrange=new THREE.Color(C.orange), cCream=new THREE.Color(C.cream);
+const RB=1.5, RR=1.0, RL=5.6, ZR=1.98, ZB=3.02, NSLOT=12;
+const stick=mat({mode:'WOOD', color:0xd9b78a, rough:.7});
+function sbox(w,h,d,r,sx,sy,sz){            // a small rounded slab, light enough to lay by the hundred
+  const g=new THREE.BoxGeometry(w,h,d,sx,sy,sz), p=g.attributes.position, hx=w/2-r, hy=h/2-r, hz=d/2-r, v=new THREE.Vector3(), c=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); c.set(clamp(v.x,-hx,hx),clamp(v.y,-hy,hy),clamp(v.z,-hz,hz)); v.sub(c);
+    if(v.lengthSq()>1e-12){ v.normalize().multiplyScalar(r).add(c); p.setXYZ(i,v.x,v.y,v.z); } }
+  return clayify(g,.004,9);
+}
+const onRing=(s,r,y,o)=>o.set(r*Math.sin(s), y, -r*Math.cos(s));   // s = 0 is the far notch (the top of the hill when the board is tipped)
+
+/* the board: hinged along its near edge, so that tipping it up makes a real hill, U = A cos s */
+const HINGE=new THREE.Group(); HINGE.position.set(0,.06,RB); scene.add(HINGE);
+const BOARD=new THREE.Group(); BOARD.position.set(0,0,-RB); HINGE.add(BOARD);
+mesh(lathe([[0,-.05],[RB-.03,-.05],[RB,-.02],[RB,.02],[RB-.03,.05],[0,.05]],.008,3,72), mat({color:C.slate, color2:0x4d666e, smear:.45, rough:.7}), 0,0,0,BOARD);
+(function(){
+  const h=()=>clayify(new THREE.TorusGeometry(RR,.07,12,56,Math.PI),.009,7);
+  const g1=h(); g1.rotateX(-Math.PI/2); g1.rotateY(-Math.PI/2); weld(g1);
+  const g2=h(); g2.rotateX(-Math.PI/2); g2.rotateY(Math.PI/2); weld(g2);
+  mesh(g1, mat({color:C.blue, color2:0x4a7cff, smear:.4}), 0,.11,0,BOARD);
+  mesh(g2, mat({color:C.red, color2:0xf0505a, smear:.4}), 0,.11,0,BOARD);
+})();
+const NOTCH=[0,1].map(i=>mesh(blob(.115,1,1,1,.01,9,18), mat({color:C.cream}), 0,.13,i?RR:-RR,BOARD));
+mesh(lathe([[0,0],[.2,0],[.21,.06],[.13,.14],[.1,.5],[.07,.56],[0,.58]],.008,6,28), mat({color:C.cream, color2:0xd9c9a8, smear:.5}), 0,.05,0,BOARD);
+const MOTORPIP=mesh(blob(.06,1,1,1,.006,12,14), mat({color:0x5a1a14, glow:0}), 0,.66,0,BOARD);
+const ARM=new THREE.Group(); ARM.position.set(0,.05,0); BOARD.add(ARM);
+(function(){ const a=mesh(new THREE.CylinderGeometry(.022,.026,RR,10), stick, 0,.5,-RR/2,ARM); a.rotation.x=Math.PI/2;
+  mesh(new THREE.CylinderGeometry(.016,.016,.3,8), stick, 0,.36,-RR,ARM); })();
+const BEADM=mat({color:C.yellow, glow:.35});
+const BEAD=mesh(blob(.135,1,1,1,.012,8,24), BEADM, 0,.16,-RR,ARM);
+const KN=[0,1].map(i=>{ const G=new THREE.Group(), s=i*Math.PI-.2; onRing(s,RR+.37,.05,G.position); G.rotation.y=-s; BOARD.add(G);
+  mesh(new THREE.CylinderGeometry(.035,.045,.3,10), stick, 0,.15,0,G);
+  const P=new THREE.Group(); P.position.set(0,.3,0); G.add(P);
+  mesh(sbox(.05,.2,.66,.02,2,4,10), mat({color:0xcfd3d6, color2:0xf4f4f0, smear:.5, rough:.38}), 0,-.02,.36,P);
+  mesh(blob(.06,1,1,1,.006,12,12), mat({color:C.red}), 0,0,0,P); return {G,P}; });
+const STRUT=mesh(new THREE.CylinderGeometry(.035,.04,1,10), stick, 0,0,0);
+const SEEDM=mat({color:C.teal, smear:0, color2:C.orange, bump:1.4}), PINCHM=mat({color:C.teal, smear:0, color2:C.orange, bump:1.4});
+const SEED=mesh(blob(1,1,.85,1,.09,1.3,26), SEEDM, 0,0,0,BOARD), PINCH=mesh(blob(1,1,.85,1,.1,1.4,22), PINCHM, 0,0,0);
+
+/* the ruler: its whole length is one half-turn, so a brick is as long as one step that can be told apart */
+mesh(sbox(RL+.3,.06,.36,.015,24,2,4), mat({mode:'WOOD', color:0xe2c79c, rough:.7}), 0,.03,ZR);
+const CAP=140, D=new THREE.Object3D();
+const brickG=sbox(1,.085,.2,.028,6,3,4);
+const IMD=new THREE.InstancedMesh(brickG, mat({color:0x23a39c, color2:0x5fd0c4, smear:.35}), CAP), IMS=new THREE.InstancedMesh(brickG, mat({color:C.orange, color2:0xffa040, smear:.35}), CAP);
+const IMT=new THREE.InstancedMesh(new THREE.BoxGeometry(.014,.012,.36), new THREE.MeshStandardMaterial({color:0x2a1a0e, roughness:.9}), 40);
+for(const im of [IMD,IMS,IMT]){ im.castShadow=im!==IMT; im.receiveShadow=true; im.frustumCulled=false; scene.add(im); }
+
+/* the settled past, laid along the front of the bench: one ball an occasion, and a ring for what the seed expected of it */
+const SLOT=[]; (function(){ const gb=[0,1,2,3].map(()=>blob(1,1,.92,1,.09,1.3,22)), gr=[0,1].map(()=>clayify(new THREE.TorusGeometry(1,.09,8,44),.02,3)), rm=mat({color:C.cream});
+  for(let i=0;i<NSLOT;i++){ const m=mat({color:C.cream, color2:C.orange, smear:0}), ball=mesh(gb[i%4], m, 0,0,0), ring=mesh(gr[i%2], rm, 0,.012,0);
+    ring.rotation.x=Math.PI/2; ring.castShadow=false; ball.rotation.y=i*2.1; SLOT.push({ball,ring,m}); } })();
+const slotX=i=>-2.75+i*(5.5/(NSLOT-1));
+
+/* the clock of seconds: one turn of the hand is twelve seconds, one picture is a twelfth of a second */
+const CLOCK=new THREE.Group(); CLOCK.position.set(-2.6,0,-1.2); scene.add(CLOCK);
+const HAND=new THREE.Group();
+(function(){ mesh(new THREE.CylinderGeometry(.03,.04,.9,12), stick, 0,.45,0,CLOCK);
+  mesh(blob(.24,1,.42,1,.02,5,26), mat({color:C.cream, color2:0xd9c9a8, smear:.5}), 0,.07,0,CLOCK);
+  const F=new THREE.Group(); F.position.set(0,1.25,0); CLOCK.add(F); F.lookAt(-1.4,6.2,9.5);
+  const g=lathe([[0,-.04],[.5,-.04],[.52,0],[.5,.04],[0,.04]],.008,5,48); g.rotateX(Math.PI/2); weld(g);
+  mesh(g, mat({color:C.cream, color2:0xd9c9a8, smear:.4}), 0,0,0,F);
+  const dk=mat({color:0x2a2622});
+  for(let i=0;i<12;i++){ const a=i/12*ELL; mesh(blob(i%3?.022:.04,1,1,.6,.003,20,10), dk, .42*Math.sin(a),.42*Math.cos(a),.045,F); }
+  HAND.position.set(0,0,.06); F.add(HAND);
+  mesh(sbox(.05,.4,.035,.014,2,6,2), mat({color:C.red}), 0,.17,0,HAND); mesh(blob(.05,1,1,.7,.004,16,12), dk, 0,0,.01,HAND); })();
+
+/* the thermometer: the red column is the heat of this occasion so far; the dark peg is the least it could have been */
+const THERMO=new THREE.Group(); THERMO.position.set(2.6,0,-1.2); scene.add(THERMO);
+const TH=1.5; let FILL, PEG;
+(function(){ mesh(blob(.26,1,.5,1,.02,5,26), mat({color:C.cream, color2:0xd9c9a8, smear:.5}), 0,.09,0,THERMO);
+  mesh(new THREE.CylinderGeometry(.06,.06,TH+.1,14), mat({color:0x8d9498, color2:0xc9cfd2, smear:.5, rough:.4}), 0,.2+TH/2,0,THERMO);
+  mesh(blob(.17,1,1,1,.012,7,22), mat({color:C.red, glow:.12}), 0,.24,0,THERMO);
+  FILL=mesh(clayify(new THREE.CylinderGeometry(.085,.085,1,18,6),.006,8), mat({color:C.red, color2:0xff5a3a, smear:.4, glow:.12}), 0,0,0,THERMO);
+  PEG=mesh(clayify(new THREE.TorusGeometry(.12,.032,8,24),.004,9), mat({color:0x1d1b1a}), 0,0,0,THERMO); PEG.rotation.x=Math.PI/2; })();
+const heatH=q=>1-Math.exp(-q/20);
+
+/* ───────────────────────── the six steps ───────────────────────── */
+const STEPS=[
+ {k:'1 of 6 · R1', t:'The loop and the count', p:'Drag the yellow bead round the ring, either way (or press the left and right arrow keys). For every step it moves that can be told apart, a clay brick is laid on the ruler. That tally is the Count, C: how far it has travelled, not where it has got to. Then slide the ruler step, &sigma;. A coarser ruler lays fewer, fatter bricks for the same journey. <em>Ordinary name: information length. (The bead was nudged a little way to start you off.)</em>'},
+ {k:'2 of 6 · R2', t:'The cut', p:'Two cream notches, half a turn apart. The first time the bead is a half-turn on from the last cut, a knife comes down behind it: one occasion is complete, and a marble is set at the front of the bench. That tally is N. Now there are three clocks: seconds t on the clay clock, change C on the ruler, occasions N on the bench. Go round fast, then slowly, then stop and wait. Then replay your own path at double speed: only the seconds change. <em>Ordinary name: a first-passage time.</em>'},
+ {k:'3 of 6 · R3', t:'Surplus', p:'Before you finish this half-turn, drag the bead back and forth. Every step back has to be walked again, so it costs two bricks, laid in orange in front of the ruler. That orange row is the Surplus, S: the count, less the shortest way. Go straight round and S is 0, however long you take over it. <em>Ordinary name: path length minus the chord, S = C &minus; C* = 2B/&sigma;, where B is the travel backwards.</em>'},
+ {k:'4 of 6 · R5', t:'The seed', p:'At each cut the bricks of the occasion are rolled into a ball, &Phi;: what was just lived. A pinch of it is kneaded into the old seed, m&prime; = q m + (1 &minus; q) &Phi;, and the new lump waits inside the ring where the next loop starts. The ball joins the settled past at the front; its ring is what the seed had expected. Wander on some half-turns and not others, and slide q. Near 0 the seed is only the last occasion; near 1 it hardly listens. There is no universal q. <em>Ordinary name: an exponential filter (a Kalman filter with a fixed gain).</em>'},
+ {k:'5 of 6 · R4', t:'Physics is added', p:'So far nothing has said how many seconds anything takes. Now the board is tipped up, so there is a hill, U = A cos s, and a motor pushes the arm with a steady push &tau;. The bead runs by itself: quick down the blue side, slow up the red. With &tau; = 2 and A = 1 the two half-turns take 1.209200 and 2.418399 seconds, yet C and S are the same for both. The law of motion was brought in from outside. The grammar does not say how long anything takes. <em>Ordinary name: an overdamped driven rotor.</em>'},
+ {k:'6 of 6 · R6', t:'What it costs', p:'The thermometer is the heat lost to friction in this occasion, Q. The dark peg is the least heat possible for the distance covered in the time taken so far. The red can never fall below the peg: Q&middot;T &ge; &zeta; (a + 2B)&sup2;. Turn the push up and watch. Or switch the motor off and hurry the bead by hand, then dither: less time costs more, and so does surplus. <em>Ordinary name: thermodynamic length. Surplus is not entropy: a jerky straight run can cost more than a smooth wander.</em>'},
+ {k:'After the six', t:'What is new in it, and what is not', p:'The bench runs on, with every control out. Clay Sun and the Glad Day tapestry make these same moves on a real record and a real picture. They should be easier to read now.'}
+];
+const $=id=>document.getElementById(id);
+let step=0, motorOn=false, pend=0, replay=null, rec=null, result=null, power=0, frame=0;
+const anim={k:99};
+function newRec(){ rec={snap:M.snapshot(), e:[]}; }
+function totals(){ return { t:M.t-rec.snap.t, L:M.L-rec.snap.L, Sf:M.Stotal()*M.sigma, N:M.N-rec.snap.N, cuts:M.occ.map(o=>o.s1) }; }
+function startReplay(c){ if(replay||!rec||!rec.e.length) return false; const orig=totals(); orig.t=rec.e.length*DT;   // the path as it was made: one entry a picture
+  M.restore(rec.snap); anim.k=99; pend=0;
+  replay={c, u:0, e:rec.e.slice(), orig}; result=null; return true; }
+function endReplay(){ const a=replay.orig, b=totals(), n=Math.min(a.cuts.length,b.cuts.length); let cs=a.cuts.length===b.cuts.length;
+  for(let i=1;i<=n;i++) if(Math.abs(a.cuts[a.cuts.length-i]-b.cuts[b.cuts.length-i])>1e-9) cs=false;
+  result={ c:replay.c, t0:a.t, t1:b.t, sameC:Math.abs(a.L-b.L)<=1e-9*(1+a.L), sameS:Math.abs(a.Sf-b.Sf)<=1e-9*(1+a.Sf), sameN:a.N===b.N, sameCuts:cs }; replay=null; }
+/* one picture: a twelfth of a second on the clay clock */
+function advance(){ const s0=M.s, N0=M.N;
+  if(replay){ let c=replay.c;
+    while(c>1e-12 && replay.u<replay.e.length-1e-9){ const i=Math.floor(replay.u+1e-9), fr=Math.min(c, i+1-replay.u);
+      M.move(replay.e[i]*fr, DT*fr/replay.c); replay.u+=fr; c-=fr; }
+    pend=0; if(replay.u>=replay.e.length-1e-9) endReplay(); }
+  else { if(motorOn) M.rotor(DT); else M.move(clamp(pend,-12,12), DT); pend=0;
+    rec.e.push(M.s-s0); if(rec.e.length>1440) newRec(); }
+  power=M.zeta*Math.pow((M.s-s0)/DT,2);
+  anim.k = M.N!==N0 ? 0 : anim.k+1; frame+=2; }
+function enter(n){ n=clamp(Math.round(n)||1,1,7); const was=step; step=n; replay=null;
+  if(M.cutting!==(n>=2)){ M.cutting=n>=2; M.reset(); anim.k=99; result=null; rec=null; }
+  if(n>=5 && was<5){ M.setp('A',1); M.setp('tau',2); motorOn=true; }
+  if(n<5){ if(M.A!==0) M.setp('A',0); motorOn=false; }
+  if(!rec) newRec(); }
+
+/* ───────────────────────── animation: everything is a function of the machine and the picture count ───────────────────────── */
+const view={yaw:0, pitch:0, zoom:1, focus:null};
+const camTarget=new THREE.Vector3(), tmp=new THREE.Vector3(), tmp2=new THREE.Vector3(), UP=new THREE.Vector3(0,1,0), cA=new THREE.Color(), cB=new THREE.Color();
+let focusDist=9, flash=0, distK=1;
+const ss=u=>{ u=clamp(u,0,1); return u*u*(3-2*u); };
+const rBall=v=>Math.min(.31,.165*Math.cbrt(Math.max(v,0)));            // v = content / (a/sigma): the ruler cancels, the journey stays
+const mixCol=(w,o)=>o.copy(cTeal).lerp(cOrange,clamp(w,0,1)*.55);   // the rest of the surplus shows as orange marbling
+const marble=(m,w)=>{ m.userData.u.uSmear.value=clamp(w*2.4,0,1); };
+function between(o,a,b){ o.position.copy(a).add(b).multiplyScalar(.5); o.scale.set(1,Math.max(a.distanceTo(b),.001),1); o.quaternion.setFromUnitVectors(UP, tmp2.copy(b).sub(a).normalize()); }
+function brick(im,idx,row,i,frac,sp){ const w=sp*.9*frac, on=row===0;
+  D.position.set(-RL/2+i*sp+sp*.05+w/2, (on?.06:0)+.042, on?ZR:ZR+.34+(row-1)*.25+(rnd(i,row+90)-.5)*.02);
+  D.rotation.set(0,(rnd(i,row+95)-.5)*.07*frac,0); D.scale.set(w,1,1); D.updateMatrix(); im.setMatrixAt(idx,D.matrix); }
+function pose(){
+  const fi=frame, st=step, now=M.now(), n=M.N;
+  shared.uSeed.value.set(rnd(fi,1)*40, rnd(fi,2)*40, rnd(fi,3)*40);
+  // the board, the arm and the bead
+  const tilt=Math.asin(clamp(M.A/1.5,0,1)*.9); HINGE.rotation.x=tilt; ARM.rotation.y=-M.s;
+  BEADM.userData.u.uGlow.value = .3 + (st>=6 ? Math.min(1.3, power/26) : 0);
+  MOTORPIP.material.userData.u.uGlow.value = motorOn ? 1.6 : 0; MOTORPIP.material.color.setHex(motorOn?0xff3a20:0x5a1a14);
+  HINGE.updateMatrixWorld(true);
+  STRUT.visible = tilt>.03; if(STRUT.visible) between(STRUT, tmp.set(0,0,-RB*.62), BOARD.localToWorld(new THREE.Vector3(0,-.05,-RB*.8)));
+  // the cut: a knife behind the bead, and one overexposed picture, because the cut has no duration
+  const notch = n>0 ? ((Math.round(M.sCut/Math.PI)%2)+2)%2 : -1, k=anim.k;
+  for(let i=0;i<2;i++){ KN[i].G.visible=NOTCH[i].visible=st>=2; KN[i].P.rotation.x = (i===notch && k<=1) ? .06 : (i===notch && k===2 ? -.55 : -1.15); }
+  flash = st>=2 && k<4 && !STILL ? Math.exp(-k*.9)*(motorOn||replay?.14:.42) : 0;   // gentler when the cuts come by themselves; none if motion is to be reduced
+  // bricks on the ruler
+  const sp=RL*M.sigma/HALF, per=Math.max(1,Math.floor(RL/sp+1e-9)); let nd=0, ns=0;
+  if(!M.cutting){ for(let i=0;i<now.C-.03 && nd<CAP;i++){ const row=Math.floor(i/per); if(row>3) break; brick(IMD,nd++,row,i%per,Math.min(1,now.C-i),sp); } }
+  else { for(let i=0;i<now.Cstar-.03 && nd<CAP;i++) brick(IMD,nd++,0,i,Math.min(1,now.Cstar-i),sp);
+    for(let i=0;i<now.S-.03 && ns<CAP;i++){ const row=1+Math.floor(i/per); if(row>2) break; brick(IMS,ns++,row,i%per,Math.min(1,now.S-i),sp); } }
+  IMD.count=nd; IMS.count=ns; IMD.instanceMatrix.needsUpdate=true; IMS.instanceMatrix.needsUpdate=true;
+  let nt=0; for(let i=0;i*sp<=RL+1e-6 && nt<40;i++){ D.position.set(-RL/2+i*sp,.064,ZR); D.rotation.set(0,0,0); D.scale.set(1,1,1); D.updateMatrix(); IMT.setMatrixAt(nt++,D.matrix); }
+  IMT.count=nt; IMT.instanceMatrix.needsUpdate=true;
+  // the settled past
+  const sd=M.seeds(), off=n-M.occ.length, first=Math.max(0,n-NSLOT), norm=HALF/M.sigma;
+  for(let i=0;i<NSLOT;i++){ const sl=SLOT[i], j=first+i;
+    if(st<2 || j>=n){ sl.ball.visible=sl.ring.visible=false; continue; }
+    const o=M.occ[j-off], v=o.L/HALF; let r=st>=4?rBall(v):.14; const x=slotX(i);
+    sl.ball.visible=true; sl.ball.position.set(x,r*.86,ZB);
+    if(j===n-1 && k<7){ const u=ss(k/7); sl.ball.position.set(x*u, .3*(1-u)+r*.86*u+Math.sin(Math.PI*u)*.55, ZR+(ZB-ZR)*u); r*=Math.min(1,(k+1)/2); }
+    sl.ball.scale.setScalar(r);
+    if(st>=4){ mixCol(sd.wp[j-off], sl.m.color); marble(sl.m, sd.wp[j-off]); } else { sl.m.color.copy(cCream); marble(sl.m,0); }
+    sl.ring.visible = st>=4 && !(j===n-1 && k<7); sl.ring.position.set(x,.012,ZB); sl.ring.scale.setScalar(rBall(sd.m[j-off]/norm)+.035); }
+  // the seed: old lump and new pinch, kneaded in proportion q
+  const idx=M.occ.length, rl=v=>.2*Math.cbrt(Math.max(v,0)/norm);
+  SEED.visible=PINCH.visible=false;
+  if(st>=4){ const mNow=sd.m[idx], wNow=sd.w[idx], P1=onRing(M.sCut,.6,.05,new THREE.Vector3()), tx=Math.cos(M.sCut), tz=Math.sin(M.sCut);
+    let rA=rl(mNow), rP=0, oa=0, op=0; mixCol(wNow,SEEDM.color); marble(SEEDM,wNow); SEED.position.copy(P1);
+    if(idx>0 && k<10){ const mo=sd.m[idx-1], phi=sd.phi[idx-1];
+      rP=rl((1-M.q)*phi); mixCol(sd.w[idx-1],cA); mixCol(sd.wp[idx-1],cB); marble(PINCHM,sd.wp[idx-1]); marble(SEEDM, k<6?sd.w[idx-1]:wNow);
+      if(k<6){ const u=ss(k/6); rA=rl(mo*(1-(1-M.q)*u)); oa=-rP; op=rA;
+        onRing(M.sCut-Math.PI,.6,.05,tmp); SEED.position.lerpVectors(tmp,P1,u); SEED.position.x+=tx*oa*u; SEED.position.z+=tz*oa*u; SEEDM.color.copy(cA); PINCHM.color.copy(cB);
+        tmp.set(P1.x+tx*op, .05+rP*.8, P1.z+tz*op); BOARD.localToWorld(tmp); PINCH.position.set(tmp.x*u, .3*(1-u)+tmp.y*u+Math.sin(Math.PI*u)*.7, ZR+(tmp.z-ZR)*u); }
+      else { const u=ss((k-6)/4); rA=rl(M.q*mo+(mNow-M.q*mo)*u); oa=-rP*(1-u); op=rA*(1-u); rP*=1-.5*u;
+        SEED.position.x+=tx*oa; SEED.position.z+=tz*oa; SEEDM.color.copy(cA).lerp(mixCol(wNow,cB.clone()),u); PINCHM.color.copy(cB).lerp(SEEDM.color,u);
+        tmp.set(P1.x+tx*op, .05+rP*.8, P1.z+tz*op); BOARD.localToWorld(tmp); PINCH.position.copy(tmp); }
+      PINCH.visible=rP>.02; PINCH.scale.setScalar(Math.max(rP,.001)); }
+    SEED.visible=rA>.02; SEED.scale.setScalar(Math.max(rA,.001)); SEED.position.y=.05+rA*.72; }
+  // the two other clocks' furniture
+  CLOCK.visible=st>=2; HAND.rotation.z=-ELL*(M.t/12);
+  THERMO.visible=st>=6; if(st>=6){ const f=heatH(now.Q), g=heatH(now.least); FILL.scale.set(1,Math.max(TH*f,.002),1); FILL.position.y=.2+TH*f/2; PEG.position.y=.2+TH*g; }
+  // camera
+  camTarget.set(0,.35,.95);
+  const base=tmp.set(0,4.35,8.3), r=base.length()*view.zoom*distK, pit0=Math.asin(base.y/base.length());
+  const yaw=view.yaw, pit=clamp(pit0+view.pitch,.12,1.35);
+  camera.position.set(camTarget.x+r*Math.sin(yaw)*Math.cos(pit), camTarget.y+r*Math.sin(pit), camTarget.z+r*Math.cos(yaw)*Math.cos(pit));
+  camera.lookAt(camTarget); camera.updateMatrixWorld();
+  const fp=view.focus || tmp.set(0,.25,.7);
+  const dir=camera.getWorldDirection(tmp2);
+  focusDist=Math.max(1, fp.clone().sub(camera.position).dot(dir));
+  key.intensity=2.5*(1+(rnd(fi,40)-.5)*.035);
+  return fi;
+}
+
+/* ───────────────────────── post: ambient occlusion → lens blur → film ───────────────────────── */
+const postScene=new THREE.Scene(), postCam=new THREE.Camera();
+const tri=new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1,-1,0, 3,-1,0, -1,3,0]),3)));
+tri.frustumCulled=false; postScene.add(tri);
+const VS='varying vec2 vUv; void main(){ vUv=position.xy*.5+.5; gl_Position=vec4(position.xy,0.,1.); }';
+const pm=(fs,u)=>new THREE.ShaderMaterial({vertexShader:VS, fragmentShader:fs, uniforms:u, depthTest:false, depthWrite:false});
+const DEPTH=`uniform sampler2D tDepth; uniform float uNear,uFar; uniform vec2 uProj,uOff;
+float linZ(vec2 uv){ float d=texture2D(tDepth,uv).x; return (uNear*uFar)/(uFar-d*(uFar-uNear)); }
+vec3 vpos(vec2 uv){ float z=linZ(uv); vec2 n=uv*2.-1.; return vec3((n.x+uOff.x)/uProj.x*z, (n.y+uOff.y)/uProj.y*z, -z); }`;
+const U={ tDepth:{value:null}, uNear:{value:.6}, uFar:{value:40}, uProj:{value:new THREE.Vector2()}, uOff:{value:new THREE.Vector2()}, uRes:{value:new THREE.Vector2()} };
+const aoMat=pm(DEPTH+`uniform vec2 uRes; varying vec2 vUv;
+void main(){ vec3 C=vpos(vUv); vec3 n=normalize(cross(dFdx(C),dFdy(C)));
+  float R=.24, ssr=R*uProj.y*.5/(-C.z);
+  float rot=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853, sum=0.;
+  for(int i=0;i<22;i++){ float a=(float(i)+.5)/22.; float ang=a*6.2831853*7.+rot; float r=ssr*a;
+    vec3 v=vpos(vUv+vec2(cos(ang)*uRes.y/uRes.x,sin(ang))*r)-C; float vv=dot(v,v), vn=dot(v,n);
+    float f=max(1.-vv/(R*R),0.); sum+=f*f*f*max((vn+C.z*.0025)/(vv+.0004),0.); }
+  gl_FragColor=vec4(vec3(max(0.,1.-sum*5.*R/22.*1.9)),1.); }`, Object.assign({},U));
+const prepMat=pm(DEPTH+`uniform sampler2D tColor,tAO; uniform vec2 uRes; uniform float uFocus,uAperture; varying vec2 vUv;
+void main(){ float z=linZ(vUv); float ao=0., w=0.;
+  for(int x=-2;x<2;x++) for(int y=-2;y<2;y++){ vec2 o=(vec2(float(x),float(y))+.5)/uRes; float zz=linZ(vUv+o);
+    float k=max(0.,1.-abs(zz-z)/(.03*z)); ao+=texture2D(tAO,vUv+o).r*k; w+=k; }
+  ao = w>0. ? ao/w : 1.;
+  vec3 c=texture2D(tColor,vUv).rgb; c*=mix(vec3(.16,.13,.14), vec3(1.), pow(ao,1.25));
+  gl_FragColor=vec4(c, clamp((1./uFocus-1./z)*uAperture,-1.,1.)); }`, Object.assign({tColor:{value:null}, tAO:{value:null}, uFocus:{value:5}, uAperture:{value:6}},U));
+const dofMat=pm(`uniform sampler2D tPrep; uniform vec2 uRes; uniform float uMaxPx,uStep; varying vec2 vUv;
+void main(){ vec4 c0=texture2D(tPrep,vUv); float cs=abs(c0.a)*uMaxPx; vec3 acc=c0.rgb; float tot=1.; float r=uStep;
+  float ang=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))))*6.2831853;
+  for(int i=0;i<260;i++){ if(r>uMaxPx) break; ang+=2.39996323;
+    vec4 s=texture2D(tPrep, vUv+vec2(cos(ang),sin(ang))*r/uRes); float ss=abs(s.a)*uMaxPx;
+    if(s.a>c0.a) ss=clamp(ss,0.,cs*2.);
+    float m=smoothstep(r-.5,r+.5,ss); acc+=mix(acc/tot,s.rgb,m); tot+=1.; r+=uStep/r; }
+  gl_FragColor=vec4(acc/tot,1.); }`, {tPrep:{value:null}, uRes:U.uRes, uMaxPx:{value:20}, uStep:{value:1.3}});
+const finMat=pm(`uniform sampler2D tDof; uniform vec2 uRes; uniform vec3 uFilm; uniform float uExpo,uFlash; varying vec2 vUv;
+float h(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+void main(){ vec2 uv=vUv+uFilm.xy/uRes; vec2 d=uv-.5; float r2=dot(d,d);
+  vec2 ca=d*r2*.012;
+  vec3 c=vec3(texture2D(tDof,uv+ca).r, texture2D(tDof,uv).g, texture2D(tDof,uv-ca).b);
+  vec3 glow=textureLod(tDof,uv,4.).rgb*.5+textureLod(tDof,uv,6.).rgb*.5;
+  c=mix(c,glow,.07)+max(glow-.9,0.)*.12;
+  c*=uExpo*(1.-r2*.95);
+  c+=vec3(1.,.72,.42)*uFlash*(.25+r2*2.);
+  c=aces(c*vec3(1.03,1.,.97));
+  c=pow(c,vec3(1./2.2));
+  c=mix(c, c*c*(3.-2.*c), .22);
+  float g=h(gl_FragCoord.xy+uFilm.z*91.7)-.5; float l=dot(c,vec3(.3,.6,.1));
+  c+=g*.038*(1.-.6*l);
+  gl_FragColor=vec4(c,1.); }`, {tDof:{value:null}, uRes:U.uRes, uFilm:{value:new THREE.Vector3()}, uExpo:{value:1}, uFlash:{value:0}});
+
+let rt=null, budget=TEST&&TEST.budget ? TEST.budget : (LOW ? 4.2e5 : 2.1e6), msaa=LOW?0:4;
+function build(){
+  const cw=canvas.clientWidth||window.innerWidth, chh=canvas.clientHeight||window.innerHeight, dpr=Math.min(window.devicePixelRatio||1,2);
+  const scale=Math.min(dpr, Math.sqrt(budget/(cw*chh)));
+  renderer.setPixelRatio(scale); renderer.setSize(cw,chh,false);
+  const w=Math.max(2,Math.floor(cw*scale)), h=Math.max(2,Math.floor(chh*scale));
+  if(rt) for(const k in rt) rt[k].dispose();
+  const T=HDR?THREE.HalfFloatType:THREE.UnsignedByteType;
+  const dt=new THREE.DepthTexture(w,h); dt.type=THREE.UnsignedIntType; dt.minFilter=dt.magFilter=THREE.NearestFilter;
+  rt={ scene:new THREE.WebGLRenderTarget(w,h,{type:T, samples:msaa, depthTexture:dt}),
+       ao:new THREE.WebGLRenderTarget(w,h,{type:THREE.UnsignedByteType}),
+       prep:new THREE.WebGLRenderTarget(w,h,{type:T}),
+       dof:new THREE.WebGLRenderTarget(w,h,{type:T, generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter}) };
+  const asp=cw/chh;
+  U.uRes.value.set(w,h); camera.aspect=asp; camera.fov = asp<1 ? 52 : (asp<1.4 ? 38 : 30); camera.updateProjectionMatrix();
+  fit();
+}
+/* keep the bench clear of the words: pull back until everything fits in the free part of the screen, then shift the lens to centre it there */
+const fitCam=new THREE.PerspectiveCamera(), fitV=new THREE.Vector3();
+function fit(){
+  const cw=canvas.clientWidth||window.innerWidth, chh=canvas.clientHeight||window.innerHeight, wide=cw>760;
+  const padR=wide?readEl.offsetWidth+30:0, padT=wide?64:(readEl.offsetTop+readEl.offsetHeight+4), padB=$('bar').offsetHeight+24;
+  const padL=wide&&step===7?finalEl.offsetWidth+30:0;
+  finalEl.style.maxHeight=Math.max(120,chh-finalEl.offsetTop-padB+6)+'px'; aboutEl.style.maxHeight=Math.max(160,chh-(wide?76:58))+'px';
+  readEl.style.visibility=!wide&&step===7?'hidden':'';
+  const fw=clamp((cw-padR-padL)/cw,.3,1)*.97, fh=clamp((chh-padT-padB)/chh,.2,1)*.95;
+  const tilt=Math.asin(clamp(M.A/1.5,0,1)*.9), ty=.06+2*RB*Math.sin(tilt), tz=RB-2*RB*Math.cos(tilt);
+  const pts=[[-2.95,0,ZB+.3],[2.95,0,ZB+.3],[-3.1,.1,0],[3.1,.1,0],[-RB,ty/2+.2,0],[RB,ty/2+.2,0],[0,ty+.55,tz]];
+  if(step>=2) pts.push([-3.05,1.8,-1.2]); if(step>=6) pts.push([3.0,1.85,-1.2]);
+  fitCam.fov=camera.fov; fitCam.aspect=cw/chh; fitCam.near=.6; fitCam.far=80; fitCam.updateProjectionMatrix();
+  let lo=5, hi=60, yc=0;
+  const tryD=d=>{ fitCam.position.set(0,.35+d*4.35/9.37,.95+d*8.3/9.37); fitCam.lookAt(0,.35,.95); fitCam.updateMatrixWorld(); fitCam.matrixWorldInverse.copy(fitCam.matrixWorld).invert();
+    let xm=0, y0=9, y1=-9; for(const q of pts){ fitV.set(q[0],q[1],q[2]).project(fitCam); xm=Math.max(xm,Math.abs(fitV.x)); y0=Math.min(y0,fitV.y); y1=Math.max(y1,fitV.y); }
+    yc=(y0+y1)/2; return xm<=fw && (y1-y0)/2<=fh; };
+  for(let i=0;i<24;i++){ const mid=(lo+hi)/2; if(tryD(mid)) hi=mid; else lo=mid; }
+  tryD(hi); distK=hi/9.37;
+  camera.setViewOffset(cw,chh, cw/2-(padL+(cw-padL-padR)/2), (chh/2-yc*chh/2)-(padT+(chh-padT-padB)/2), cw,chh);
+}
+function draw(){
+  const fi=pose();
+  renderer.setRenderTarget(rt.scene); renderer.render(scene,camera);
+  const P=camera.projectionMatrix.elements;
+  for(const m of [aoMat,prepMat]){ m.uniforms.tDepth.value=rt.scene.depthTexture; m.uniforms.uNear.value=camera.near; m.uniforms.uFar.value=camera.far; m.uniforms.uProj.value.set(P[0],P[5]); m.uniforms.uOff.value.set(P[8],P[9]); m.uniforms.uRes.value.copy(U.uRes.value); }
+  tri.material=aoMat; renderer.setRenderTarget(rt.ao); renderer.render(postScene,postCam);
+  prepMat.uniforms.tColor.value=rt.scene.texture; prepMat.uniforms.tAO.value=rt.ao.texture;
+  prepMat.uniforms.uFocus.value=focusDist; prepMat.uniforms.uAperture.value=2.8;
+  tri.material=prepMat; renderer.setRenderTarget(rt.prep); renderer.render(postScene,postCam);
+  dofMat.uniforms.tPrep.value=rt.prep.texture; dofMat.uniforms.uMaxPx.value=U.uRes.value.y*.021; dofMat.uniforms.uStep.value=Math.max(1.1, U.uRes.value.y/820);
+  tri.material=dofMat; renderer.setRenderTarget(rt.dof); renderer.render(postScene,postCam);
+  finMat.uniforms.tDof.value=rt.dof.texture;
+  finMat.uniforms.uFilm.value.set((rnd(fi,50)-.5)*1.2,(rnd(fi,51)-.5)*1.2,rnd(fi,52)*100);
+  finMat.uniforms.uExpo.value=1.06*(1+(rnd(fi,53)-.5)*.03);
+  finMat.uniforms.uFlash.value=flash;
+  tri.material=finMat; renderer.setRenderTarget(null); renderer.render(postScene,postCam);
+}
+
+/* ───────────────────────── words and numbers ───────────────────────── */
+const readEl=$('read'), playBtn=$('play'), aboutEl=$('about'), finalEl=$('final');
+let playing=!STILL, dirty=true, acc=0, last=0, slow=0;
+const fx=(v,d)=>Number.isFinite(v)?(Math.abs(v)<5e-9?0:v).toFixed(d):'none yet';
+function lastPure(par){ for(let i=M.occ.length-1;i>=0;i--){ const o=M.occ[i]; if(o.pure && o.A===M.A && o.tau===M.tau && ((Math.round(o.s0/Math.PI)%2)+2)%2===par) return M.view(o); } return null; }
+function readout(){
+  const st=step, now=M.now(), sd=M.seeds(), lastO=M.occ.length?M.view(M.occ[M.occ.length-1]):null, R=[];
+  const row=(a,b,sub)=>R.push('<dt>'+a+(sub?'<small>'+sub+'</small>':'')+'</dt><dd>'+b+'</dd>'), sec=t=>R.push('<dd class="sec">'+t+'</dd>');
+  R.push('<dd class="big">'+(st===1?'The loop':'Occasion '+(M.N+1))+'</dd>');
+  if(st===1){ row('Bead', fx(((M.s/ELL)%1+1)%1,2)+' of a turn'); row('Ruler step &sigma;', fx(M.sigma,2)); row('Count C', fx(now.C,2), 'information length');
+    if(now.C>4*Math.max(1,Math.floor(HALF/M.sigma+1e-9))) R.push('<dd class="note">The bench is full of bricks. The count goes on. Start again to clear it.</dd>'); }
+  else {
+    sec('Three clocks');
+    row('Seconds t', fx(M.t,2)); row('Change C', fx(M.L/M.sigma,2), 'information length'); row('Occasions N', M.N, 'first passages');
+    if(st<=4||st===7){ sec('This occasion'); row('Count C', fx(now.C,2)); if(st>=3){ row('Shortest C*', fx(now.Cstar,2)); row('Surplus S', fx(now.S,2), 'path minus chord'); } }
+    if(st===4||st===7){ sec('Carried'); row('Seed m', fx(sd.m[sd.m.length-1],2), 'exponential filter'); row('Last lived &Phi;', sd.phi.length?fx(sd.phi[sd.phi.length-1],2):'none yet'); row('Kept, q', fx(M.q,2)); }
+    if(st===5){ const d=lastPure(0), u=lastPure(1); sec('Last half-turns by motor');
+      row('Down, 0 to &pi;', d?fx(d.T,6)+' s':'none yet', 'first-passage time'); row('Up, &pi; to 2&pi;', u?fx(u.T,6)+' s':'none yet');
+      row('Count, each', d||u?fx((d||u).C,2):'none yet'); row('Surplus, each', d||u?fx((d||u).S,2):'none yet'); }
+    if(st===6){ sec('This occasion'); row('Heat Q', fx(now.Q,3), 'friction'); row('Least possible', fx(now.least,3), '&zeta;(path)&sup2;/time');
+      sec('Last occasion'); row('Time T', lastO?fx(lastO.T,3)+' s':'none yet'); row('Heat Q', lastO?fx(lastO.Q,3):'none yet');
+      row('Q&middot;T', lastO?fx(lastO.QT,3):'none yet'); row('&zeta;(a+2B)&sup2;', lastO?fx(lastO.bound,3):'none yet', 'thermodynamic length');
+      if(lastO&&lastO.pure) row('&tau;a &minus; &Delta;U', fx(lastO.work,3), 'work in, less the climb'); }
+    if(replay) R.push('<dd class="note">Replaying your path at '+(replay.c>1?'double':'half')+' speed.</dd>');
+    else if(result) R.push('<dd class="note">Your path took '+fx(result.t0,2)+' s as you made it and '+fx(result.t1,2)+' s replayed at '+(result.c>1?'double':'half')+' speed. '
+      +(result.sameC&&result.sameS&&result.sameN&&result.sameCuts?'C, S, N and every cut came out the same.':'Something differed, which should not happen.')+'</dd>');
+  }
+  readEl.innerHTML=R.join('');
+  if(!aboutEl.hidden) aboutVals();
+  if(st===7) $('fnow').innerHTML='On this bench now. Ruler: &sigma; = '+fx(M.sigma,2)+'. Clocks: t = '+fx(M.t,1)+' s, C = '+fx(M.L/M.sigma,1)+', N = '+M.N+'. History: q = '+fx(M.q,2)+', seed m = '+fx(sd.m[sd.m.length-1],2)+'.';
+}
+finalEl.innerHTML='<h2>What is new in it, and what is not</h2><p>Very little of this is new mathematics.</p>'
+ +'<table><tr><th>On the bench</th><th>Its ordinary name</th></tr><tr><td>Count C</td><td>information length</td></tr><tr><td>The cut</td><td>a first-passage time</td></tr>'
+ +'<tr><td>Surplus S</td><td>path length minus the chord</td></tr><tr><td>Seed m</td><td>on flat ground, an exponential (Kalman) filter</td></tr><tr><td>What it costs</td><td>thermodynamic length</td></tr></table>'
+ +'<p>CRR puts them in one sentence and asks three questions of anything:</p>'
+ +'<ul><li><b>Which ruler?</b> What counts as a change that can be told apart.</li><li><b>Which clock?</b> Seconds, change, or occasions. They need not agree.</li><li><b>What history is carried?</b> The seed, and how much of the old one is kept. There is no universal q.</li></ul>'
+ +'<p id="fnow"></p>'
+ +'<p>It is a grammar for asking questions, not a law. The hill and the motor were brought in from outside. A rotor equation and a moving average give every number on this bench without the CRR names, and nothing here is a prediction.</p>'
+ +'<p><b>Its record as a predictor is thin. Its record as a source of questions is better.</b></p>'
+;
+aboutEl.innerHTML='<button class="x" id="aboutX" type="button">Close</button><h2>About this bench</h2>'
+ +'<p>Everything that moves here is computed from six lines, set out in the museum&rsquo;s paper &ldquo;A conditional mathematical core&rdquo; (sections I to VI). The clay is a picture of the numbers.</p>'
+ +'<h3>The model</h3><table>'
+ +'<tr><td>Loop</td><td>A state read as a phase s on a circle. Here the circle is a family of bell curves (Gaussians) of unit spread whose centre goes round a unit circle. Neighbours are equally hard to tell apart everywhere, so the distance s is simply the angle: all the way round is 2&pi;, a half-turn is a = &pi;.</td></tr>'
+ +'<tr><td>R1 Count</td><td><code>C = (1/&sigma;) &int; |ds|</code>, the path travelled in steps of &sigma;. Ordinary name: information length.</td></tr>'
+ +'<tr><td>R2 Cut</td><td><code>t<sub>n+1</sub> = first t with s(t) &minus; s(t<sub>n</sub>) = a</code>. N counts the cuts. Ordinary name: first-passage time.</td></tr>'
+ +'<tr><td>R3 Surplus</td><td><code>S = C &minus; C* = 2B/&sigma; &ge; 0</code>, with C* = a/&sigma; and B the travel backwards. Ordinary name: path length minus chord.</td></tr>'
+ +'<tr><td>R4 Physics</td><td><code>&zeta; ds/dt = &tau; &minus; dU/ds</code>, <code>U = A cos s</code>, no noise. Then <code>T = &int; &zeta;/(&tau; + A sin s) ds</code> over the half-turn, and <code>&zeta;a/(&tau;+A) &le; T &le; &zeta;a/(&tau;&minus;A)</code>. Replaying a path faster or slower changes only t. Ordinary name: an overdamped driven rotor.</td></tr>'
+ +'<tr><td>R5 Seed</td><td><code>m&prime; = q m + (1 &minus; q) &Phi;</code>. On this bench &Phi; is the Count of the occasion just finished and the first seed is the direct way, a/&sigma;: both are this bench&rsquo;s choices. Ordinary name: exponential smoothing, the fixed-gain case of a Kalman filter.</td></tr>'
+ +'<tr><td>R6 Cost</td><td><code>Q&middot;T &ge; &zeta; (a + 2B)&sup2;</code>, with <code>Q = &int; &zeta; (ds/dt)&sup2; dt</code>; for the motor alone <code>Q = &tau;a &minus; &Delta;U</code>. Ordinary name: thermodynamic length (the Cauchy&ndash;Schwarz inequality).</td></tr></table>'
+ +'<h3>The values now</h3><table id="avals"></table>'
+ +'<h3>How it is worked out</h3><p>The clay clock counts pictures: twelve a second, each a twelfth of a second of bench time. Your hand is read once a picture and taken to move at a steady pace in between. The motor is integrated by the classical Runge&ndash;Kutta method, sixteen steps a picture, and the moment of each cut is found by Newton&rsquo;s method. With &tau; = 2, A = 1, &zeta; = 1 the half-turns should take 2&pi;/(3&radic;3) = 1.209200 s and 4&pi;/(3&radic;3) = 2.418399 s.</p>'
+ +'<h3>What this leaves out</h3><ul>'
+ +'<li>Noise, inertia, and friction that changes round the ring. The paper allows all three. Here &zeta; = 1 throughout.</li>'
+ +'<li>Any effect of the seed on the motion. On this bench the seed is carried and does nothing. A claim that the past shapes the next occasion needs a coupling fixed in advance, and a test.</li>'
+ +'<li>Curved content. The mixing rule is exact for a plain number. On a circle the weighted mean need not even be unique.</li>'
+ +'<li>Other rulers. Measured straight across the family of all bell curves, not round the ring, a half-turn is shorter than &pi;, and a straight run round the ring would then show a surplus. &ldquo;S = 0 if you never turn back&rdquo; holds only for distance measured along the loop itself.</li>'
+ +'<li>Choosing &sigma;. It should be fixed from separate data before anything is counted. Here it is a slider.</li>'
+ +'<li>Your hand between pictures. A wobble quicker than a twelfth of a second is not seen. Moved by hand, the heat is that of dragging the bead against friction &zeta; at the pace your hand was read.</li></ul>'
+ +'<h3>What it is not</h3><p>CRR is a grammar for asking questions: which ruler, which clock, what history is carried. Very little of it is new mathematics, and nothing on this bench shows it doing better than its ordinary rivals. Its record as a predictor is thin. Its record as a source of questions is better.</p>';
+function aboutVals(){ const now=M.now(), sd=M.seeds(), d=lastPure(0), u=lastPure(1), o=M.occ.length?M.view(M.occ[M.occ.length-1]):null, r=(a,b)=>'<tr><td>'+a+'</td><td>'+b+'</td></tr>';
+  $('avals').innerHTML=r('&sigma;, q', fx(M.sigma,2)+', '+fx(M.q,2))+r('&tau;, A, &zeta;', fx(M.tau,2)+', '+fx(M.A,2)+', '+fx(M.zeta,2)+(motorOn?' (motor on)':' (motor off)'))
+   +r('a, C* = a/&sigma;', fx(HALF,6)+', '+fx(HALF/M.sigma,4))
+   +r('t, C, N', fx(M.t,3)+' s, '+fx(M.L/M.sigma,4)+', '+M.N)
+   +r('This occasion: C, C*, S', fx(now.C,4)+', '+fx(now.Cstar,4)+', '+fx(now.S,4))
+   +r('Seed m; last &Phi;', fx(sd.m[sd.m.length-1],4)+'; '+(sd.phi.length?fx(sd.phi[sd.phi.length-1],4):'none yet'))
+   +r('Motor half-turns: down, up', (d?fx(d.T,6)+' s':'none yet')+', '+(u?fx(u.T,6)+' s':'none yet'))
+   +r('Bounds on T at these settings', M.A<M.tau?fx(M.zeta*HALF/(M.tau+M.A),6)+' to '+fx(M.zeta*HALF/(M.tau-M.A),6)+' s':'none')
+   +r('Last occasion: Q, T, Q&middot;T', o?fx(o.Q,4)+', '+fx(o.T,4)+', '+fx(o.QT,4):'none yet')
+   +r('Its bound &zeta;(a+2B)&sup2;', o?fx(o.bound,4):'none yet')
+   +r('Its &tau;a &minus; &Delta;U', o&&o.pure?fx(o.work,4):'not a motor-only occasion'); }
+function openAbout(on){ aboutEl.hidden=!on; $('aboutBtn').setAttribute('aria-expanded',on); if(on){ aboutVals(); aboutEl.focus(); } else $('aboutBtn').focus(); }
+$('aboutBtn').onclick=()=>openAbout(aboutEl.hidden); $('aboutX').onclick=()=>openAbout(false);
+
+/* ───────────────────────── controls ───────────────────────── */
+const stepsEl=$('steps');
+STEPS.forEach((s,i)=>{ const b=document.createElement('button'); b.type='button'; b.textContent=i<6?String(i+1):'What is new'; b.setAttribute('aria-label',(i<6?'Step '+(i+1)+': ':'After the six: ')+s.t); b.onclick=()=>go(i+1); stepsEl.appendChild(b); });
+const SL={ sigma:['sigma',v=>{ M.sigma=v; }], q:['q',v=>{ M.q=v; }], hill:['A',v=>{ M.setp('A',v); }], tau:['tau',v=>{ M.setp('tau',v); }] };
+function ui(){ const st=step, s=STEPS[st-1];
+  $('cardK').innerHTML='<span>'+s.k+'</span>'+s.t; $('cardP').innerHTML=s.p;
+  [...stepsEl.children].forEach((b,i)=>b.setAttribute('aria-pressed',i===st-1));
+  $('next').hidden=st===7; $('next').textContent=st===6?'What is new?':'Next';
+  $('lsigma').hidden=!(st<=3||st===7); $('lq').hidden=!(st===4||st===7);
+  $('motor').hidden=$('lhill').hidden=$('ltau').hidden=st<5; $('rep2').hidden=$('reph').hidden=!(st===2||st===3||st===6);
+  finalEl.hidden=st!==7; $('motor').setAttribute('aria-pressed',motorOn);
+  for(const id in SL){ const el=$(id), v=M[SL[id][0]]; if(id!=='hill'||st>=5){ el.value=v; } $('o'+id).textContent=(+el.value).toFixed(2); }
+  playBtn.textContent=playing?'Pause':'Play';
+  readout(); build(); dirty=true; }
+function go(n){ enter(n); ui(); }
+for(const id in SL) $(id).oninput=()=>{ SL[id][1](+$(id).value); if(id==='hill') fit(); $('o'+id).textContent=(+$(id).value).toFixed(2); readout(); dirty=true; };
+$('next').onclick=()=>go(step+1);
+playBtn.onclick=()=>{ playing=!playing; playBtn.textContent=playing?'Pause':'Play'; };
+$('motor').onclick=()=>{ if(step<5) return; motorOn=!motorOn; M.pure=M.pure&&M.t===M.tCut; $('motor').setAttribute('aria-pressed',motorOn); dirty=true; };
+$('again').onclick=()=>{ replay=null; result=null; M.reset(); anim.k=99; pend=0; newRec(); readout(); dirty=true; };
+function doReplay(c){ if(startReplay(c)){ playing=true; playBtn.textContent='Pause'; readout(); dirty=true; } }
+$('rep2').onclick=()=>doReplay(2); $('reph').onclick=()=>doReplay(.5);
+function nudge(d){ if(motorOn||replay) return; pend+=d; if(!playing){ playing=true; playBtn.textContent='Pause'; } }
+addEventListener('keydown',e=>{ const tg=e.target, tag=tg&&tg.tagName;
+  if(e.code==='Escape'){ if(!aboutEl.hidden){ openAbout(false); return; } const a=document.activeElement; if(!a||a===document.body||a===canvas) goBack(); return; }
+  if(tag==='INPUT') return;
+  if(e.code==='Space' && tag!=='BUTTON'){ e.preventDefault(); playBtn.click(); }
+  if(e.code==='ArrowRight'||e.code==='ArrowLeft'){ e.preventDefault(); nudge((e.code==='ArrowRight'?1:-1)*Math.PI/24); } });
+const ray=new THREE.Raycaster(), plane=new THREE.Plane(), nrm=new THREE.Vector3(), hitP=new THREE.Vector3();
+function ringAngle(e,loose){ const b=canvas.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2((e.clientX-b.left)/b.width*2-1, -((e.clientY-b.top)/b.height*2-1)), camera);
+  BOARD.updateWorldMatrix(true,false); nrm.set(0,1,0).transformDirection(BOARD.matrixWorld); plane.setFromNormalAndCoplanarPoint(nrm, BOARD.localToWorld(hitP.set(0,.12,0)));
+  if(!ray.ray.intersectPlane(plane,hitP)) return null; BOARD.worldToLocal(hitP); const r=Math.hypot(hitP.x,hitP.z);
+  if(!loose && (r<.5||r>1.5)) return null; return Math.atan2(hitP.x,-hitP.z); }
+let down=null, moved=false, grab=null;
+canvas.addEventListener('pointerdown',e=>{ canvas.setPointerCapture(e.pointerId); const a=(motorOn||replay)?null:ringAngle(e,false);
+  if(a!==null){ grab={a}; canvas.classList.add('dragging'); return; } down={x:e.clientX,y:e.clientY}; moved=false; });
+canvas.addEventListener('pointermove',e=>{
+  if(grab){ const a=ringAngle(e,true); if(a!==null){ let d=a-grab.a; d-=Math.round(d/ELL)*ELL; grab.a=a; nudge(d); } return; }
+  if(!down) return; const dx=e.clientX-down.x, dy=e.clientY-down.y;
+  if(!moved && Math.hypot(dx,dy)<5) return; moved=true; canvas.classList.add('dragging');
+  view.yaw=clamp(view.yaw-dx*.005,-1.0,1.0); view.pitch=clamp(view.pitch+dy*.004,-.35,.6); down={x:e.clientX,y:e.clientY}; dirty=true; });
+canvas.addEventListener('pointerup',e=>{ canvas.classList.remove('dragging'); if(grab){ grab=null; return; }
+  if(down&&!moved){ const b=canvas.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2((e.clientX-b.left)/b.width*2-1, -((e.clientY-b.top)/b.height*2-1)), camera);
+    const hit=ray.intersectObjects(scene.children,true)[0]; if(hit){ view.focus=hit.point.clone(); dirty=true; } } down=null; });
+canvas.addEventListener('pointercancel',()=>{ down=null; grab=null; canvas.classList.remove('dragging'); });
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); view.zoom=clamp(view.zoom*Math.exp(e.deltaY*.0012),.5,1.6); dirty=true; },{passive:false});
+addEventListener('resize',()=>{ build(); dirty=true; });
+
+/* ───────────────────────── start, test hook, playback ───────────────────────── */
+enter(/^[1-7]$/.test(QS.get('step')||'') ? +QS.get('step') : 1);
+if(step===1){ for(let i=0;i<14;i++){ pend=.09; advance(); } }       // a nudge to start: 1.26 of arc in 14 pictures
+ui();
+window.PIECE={ name:'crr-bench', lab:LAB,
+  state(){ const now=M.now(), sd=M.seeds(), o=M.occ.length?M.view(M.occ[M.occ.length-1]):null, d=lastPure(0), u=lastPure(1);
+    return { frame, step, playing, motor:motorOn, replaying:!!replay, replayed:result, s:M.s, sCut:M.sCut, t:M.t, sigma:M.sigma, q:M.q, tau:M.tau, A:M.A, zeta:M.zeta,
+      C:M.L/M.sigma, Cocc:now.C, Cstar:now.Cstar, S:now.S, Stotal:M.Stotal(), N:M.N, m:sd.m[sd.m.length-1], phi:sd.phi.length?sd.phi[sd.phi.length-1]:null,
+      Q:now.Q, least:now.least, Tdown:d?d.T:null, Tup:u?u.T:null, last:o, back:BACK, low:LOW, pixels:U.uRes.value.x*U.uRes.value.y }; },
+  occasions(){ return M.occ.map(o=>M.view(o)); }, seeds(){ return M.seeds(); },
+  go, drag(ds){ if(!motorOn&&!replay) pend+=ds; },
+  xy(s){ BOARD.updateWorldMatrix(true,false); const v=BOARD.localToWorld(onRing(s,RR,.12,new THREE.Vector3())).project(camera), b=canvas.getBoundingClientRect(); return {x:b.left+(v.x+1)/2*b.width, y:b.top+(1-v.y)/2*b.height}; }, tick(n){ for(let i=0;i<(n||1);i++) advance(); readout(); dirty=true; return this.state(); } };
+if(TEST){ window.__clay={ shot(f,v){ if(v) Object.assign(view,v); if(typeof f==='number') frame=f; draw(); renderer.getContext().finish(); return true; } }; return; }
+function tick(t){ requestAnimationFrame(tick);
+  const dt=Math.min(t-last,250); last=t;
+  if(playing){ acc+=dt; const per=1000*DT; if(acc>=per){ acc=acc%per; advance(); readout(); dirty=true; } }
+  if(dirty){ dirty=false; const t0=performance.now(); draw(); renderer.getContext().finish(); const ms=performance.now()-t0;
+    // if a picture takes longer than its slot, shoot at a lower resolution
+    if(ms>1000*DT*.85){ if(++slow>5 && budget>5e5){ budget*=.72; slow=0; build(); dirty=true; } } else slow=Math.max(0,slow-1); }
+}
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
