@@ -7,7 +7,7 @@ Alexander Sabine: educator (early years to higher education), simulation designe
 
 ## Look (match the existing pages exactly in spirit)
 Read these first for quality, conventions and tone: `index.html` (the hero shader, windows, stitched figure), `fish-tank.html`, `duet.html`, `growing-up.html`, `workshop.html`.
-- Palette: paper `#fffdf8`, wash `#f8f3e4`, ink `#14202a`, soft `#4d5a61`, hairline `#d9cfae`, gold `#b98619`, gold leaf `#e0ae35`, viridian `#0d7a70`, deep viridian `#0a5651`.
+- Palette: paper `#fffdf8`, wash `#fcf6e0`, ink `#14202a`, soft `#4d5a61`, hairline `#d9cfae`, gold `#b98619`, gold leaf `#e0ae35`, viridian `#0d7a70`, deep viridian `#0a5651`.
 - Type: headings and quotations in "IM Fell English" (italic for verse), labels in "IM Fell English SC" with letter-spacing, body "Source Serif 4". Load from Google Fonts as the other pages do.
 - Square corners everywhere (`border-radius:0`). Hairline borders. Pictures sit in a "plate": 1px hairline border with a gold inner rule (see `.plate` in `duet.html`).
 - The simulation itself should be the most beautiful thing you can make: physically plausible light, real materials, depth, restraint. Subtle, not showy. Photoreal where the subject allows; where a painterly look is asked for, make it painterly on purpose.
