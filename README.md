@@ -1,6 +1,6 @@
 # Coherence–Rupture–Regeneration (CRR)
 
-> **Site structure, November 2026.** `index.html` is now the home page for Alexander Sabine's pedagogical simulation design: the Museum, two films in clay, the clay studio and a symposium talk. The CRR research programme is unchanged and starts at `crr.html` (the former home page). The whole Museum is hosted on the site in `museum/` (`museum/index.html` is the Blake museum, `museum/jooles.html` the lab), with the films as MP4 in `museum/films/`. It is a built copy: the sources are kept in a separate repository.
+> **Site structure, November 2026.** `index.html` is the home page for Alexander Sabine's pedagogical simulation design: the Museum, the films in clay, the clay studio, a symposium talk, and the lessons with Blake in *Learning at the Edges*. The CRR research programme is unchanged and starts at `crr.html` (the former home page). The whole Museum is hosted on the site in `museum/` (`museum/index.html` is the Blake museum, `museum/jooles.html` the lab), with the films as MP4 in `museum/films/` and their pictures in `museum/img/`. It is a built copy: the sources are kept in a separate repository. This repository is published at https://www.temporalgrammar.ai/ (the primary address, used in `sitemap.xml` and the page's canonical link) and mirrored at https://www.cohere.org.uk/. `LICENSE` and `MARK.md` state ownership.
 
 > *"Eternity is in love with the productions of time."*
 > — William Blake, *The Marriage of Heaven and Hell*
