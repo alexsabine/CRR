@@ -1019,12 +1019,17 @@ const STOPS = [
     facts:['Sixteen children and three scoreboards.', 'After a note by Alexander Sabine on the self-sorting arrays of Zhang, Goldstein and Levin.'],
     sections:[
       { h:'The film', film:['films/more-than-one-ruler.mp4?v=1', 'img/more-than-one-ruler.jpg', 'More Than One Ruler, a three-minute film'], body:[ 'Three minutes on the same line of children: two scorekeepers, sixteen hundred runs, three children glued to the floor, and every ruler in between.' ] },
-      { h:'Try it', try:true, body:[ 'Keep sorting, and watch scoreboard B wobble while A only falls. Then make your own ruler with the slider, from neighbours only to any distance, and find where the backward steps disappear. Glue some children down and shuffle again.' ] },
+      { h:'Try it', try:true, body:[ 'Keep sorting, and watch scoreboard B wobble while A only falls. Then make your own ruler with the slider, from neighbours only to any distance. The arcs over the line show the pairs it counts. Find where the backward steps disappear. Then glue some children down and shuffle again.' ] },
       { h:'The model', body:[
         'A line of children sorts itself by height, and the only allowed move is for two neighbours in the wrong order to swap. Two people keep score. Scorekeeper A counts every pair of children, anywhere in the line, who are in the wrong order. Each swap fixes exactly one such pair, so A’s number falls by one every time and never rises. That is a theorem. Scorekeeper B looks only at children standing next to each other. A swap can fix one neighbour pair and spoil the one next door, so B’s number sometimes rises before it falls.',
         'Watching B, the children seem to accept getting worse in order to get better. In a study of self-sorting arrays this was measured and named delayed gratification. Watching A, they never went backwards at all.',
         'There is an exact identity underneath. On any scoreboard, the distance travelled minus the net progress is twice the total of the backward steps: S = 2B. The delay is the surplus of the path on that ruler. Change the ruler and the surplus changes. On A it is zero.' ],
         cite:'T. Zhang, A. Goldstein and M. Levin, “Classical sorting algorithms as a model of morphogenesis”, Adaptive Behavior 33 (2025). A. Sabine, “Delayed gratification in self-sorting arrays depends on the ruler” (October 2026).' },
+      { h:'The mathematics', body:[
+        'Take a ruler that counts wrong pairs up to w places apart. Two neighbours swap: a taller child on the left, a shorter one on the right. That pair is mended, which takes one off the count. Now look w places to the left of the pair, and w places to the right. If the child standing there has a height between the two who swapped, one wrong pair has just come within the ruler’s reach, and the count goes up by one. So each swap changes the count by −1, plus one for the left if it applies, plus one for the right.',
+        'Everything on the board follows from that line. With neighbours only, w is 1, both sides can apply, and the change is −1, 0 or +1: scoreboard B can step back. A ruler that sees every pair has nobody beyond its reach, so the change is exactly −1: scoreboard A cannot. In between, a step back needs a child w places away on both sides at once. In a line of sixteen that is impossible once w reaches eight. A ruler that sees half the line can never step back.',
+        'The published patience score is built on B alone. Pair each setback, a run of rises, with the recovery that follows it. The score is the mean of recovery ÷ setback, less one. Glue children to the floor and the line is cut into short pieces that sort alone. The board runs five hundred plain lines for each amount of glue and prints both numbers. The steps back become fewer. The score goes up. A mean of ratios can do that, and no child has changed its rule.' ],
+        cite:'The rule for a ruler of reach w, and the half-line bound, were worked out for this board. The board’s own runs are an illustration.' },
       { h:'Created and discovered', body:[
         'Now sort out what was made from what was found. The ruler was made. Which quantity gets called progress is a choice, and your slider offers thirteen more of them. What the ruler then shows was found. Nobody coded the wobble, and it turns up the same way every time. The lemmas hold whoever looks.',
         'So the pattern is real, and it lives in the pair: the line and the ruler. Of a child’s first treasured thing Winnicott asked that we never put the question “Did you conceive of this or was it presented to you from without?” He wanted the paradox “accepted and tolerated and respected”, and not resolved. Here that means refusing both easy answers: “it is only the ruler”, and “it is the children’s own patience”.',
@@ -3427,40 +3432,54 @@ function buildGallery() {
     },
 
     rulers(g) {
-      const N = 16; let a = [], hist = [], glued = 0, fixed = new Set(), run = false, acc = 0, w = 4, last = -1, runBtn = null;
+      const N = 16, PUR = '#7a5aa0', SOFT = 'rgba(28,34,51,.7)'; let a = [], hist = [], glued = 0, fixed = new Set(), run = false, acc = 0, w = 4, last = -1, runBtn = null, stats = null;
+      const num = (txt, x, y, px, col, align) => { g.font = 'italic ' + px + 'px Georgia,"Iowan Old Style",Palatino,serif'; g.fillStyle = col || INK; g.textAlign = align || 'left'; g.textBaseline = 'alphabetic'; g.fillText(txt, x, y); };
       const within = (arr, d) => { let c = 0; for (let i = 0; i < N; i++) for (let j = i + 1; j <= Math.min(N - 1, i + d); j++) if (arr[i] > arr[j]) c++; return c; };
-      function shuffle() { a = [...Array(N).keys()]; for (let i = N - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } fixed = new Set(); while (fixed.size < glued) fixed.add(2 + Math.floor(Math.random() * (N - 4))); hist = [a.slice()]; last = -1; }
-      function swap() { const c = []; for (let i = 0; i < N - 1; i++) if (a[i] > a[i + 1] && !fixed.has(i) && !fixed.has(i + 1)) c.push(i); if (!c.length) { run = false; if (runBtn) runBtn.setAttribute('aria-pressed', false); return; } const i = c[Math.floor(Math.random() * c.length)]; [a[i], a[i + 1]] = [a[i + 1], a[i]]; last = i; hist.push(a.slice()); }
+      const deal = k => { const p = [...Array(N).keys()]; for (let i = N - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; } const f = new Set(); while (f.size < k) f.add(2 + Math.floor(Math.random() * (N - 4))); return [p, f]; };
+      const open_ = (p, f) => { const c = []; for (let i = 0; i < N - 1; i++) if (p[i] > p[i + 1] && !f.has(i) && !f.has(i + 1)) c.push(i); return c; };
+      // The published statistic on a trace: pair each setback (a run of rises) with the recovery after it, and take the mean of recovery / setback, less one.
+      const patience = tr => { const runs = []; for (let i = 1; i < tr.length; i++) { const d = tr[i] - tr[i - 1]; if (!d) continue; if (runs.length && (runs[runs.length - 1] > 0) === (d > 0)) runs[runs.length - 1] += d; else runs.push(d); } let k = 0, sum = 0, n = 0; while (k < runs.length && runs[k] < 0) k++; for (; k + 1 < runs.length; k += 2) { sum += -runs[k + 1] / runs[k] - 1; n++; } return n ? sum / n : null; };
+      function survey() { stats = []; for (let k = 0; k < 4; k++) { let ps = 0, pn = 0, back = 0; const R = 500; for (let r = 0; r < R; r++) { const [p, f] = deal(k), tr = [within(p, 1)]; for (;;) { const c = open_(p, f); if (!c.length) break; const i = c[Math.floor(Math.random() * c.length)]; [p[i], p[i + 1]] = [p[i + 1], p[i]]; tr.push(within(p, 1)); } for (let i = 1; i < tr.length; i++) if (tr[i] > tr[i - 1]) back++; const q = patience(tr); if (q != null) { ps += q; pn++; } } stats.push([ps / Math.max(1, pn), back / R]); } }
+      function shuffle() { [a, fixed] = deal(glued); hist = [a.slice()]; last = -1; }
+      function swap() { const c = open_(a, fixed); if (!c.length) { run = false; if (runBtn) runBtn.setAttribute('aria-pressed', false); return; } const i = c[Math.floor(Math.random() * c.length)]; [a[i], a[i + 1]] = [a[i + 1], a[i]]; last = i; hist.push(a.slice()); }
       shuffle();
-      function panel(y, title, d, col) {
+      function panel(y, title, d, col, never) {
         const s = hist.map(h => within(h, d)), mx = Math.max(1, ...s); let rises = 0, travel = 0; for (let i = 1; i < s.length; i++) { travel += Math.abs(s[i] - s[i - 1]); if (s[i] > s[i - 1]) rises += s[i] - s[i - 1]; }
-        cap(g, title, 716, y, 20, col); cap(g, '' + s[s.length - 1], 1000, y, 26, col, 'right');
-        g.strokeStyle = 'rgba(28,34,51,.18)'; g.lineWidth = 1; g.strokeRect(716, y + 10, 284, 86);
-        const X = i => 716 + (s.length > 1 ? i * 284 / Math.max(40, s.length - 1) : 0), Y = v => y + 92 - 78 * v / mx;
+        cap(g, title, 716, y, 20, col); num('' + s[s.length - 1], 1000, y, 24, col, 'right');
+        g.strokeStyle = 'rgba(28,34,51,.18)'; g.lineWidth = 1; g.strokeRect(716, y + 10, 284, 80);
+        const X = i => 716 + (s.length > 1 ? i * 284 / Math.max(40, s.length - 1) : 0), Y = v => y + 86 - 72 * v / mx;
         for (let i = 1; i < s.length; i++) { g.beginPath(); g.moveTo(X(i - 1), Y(s[i - 1])); g.lineTo(X(i), Y(s[i])); g.strokeStyle = s[i] > s[i - 1] ? RED : col; g.lineWidth = s[i] > s[i - 1] ? 3.4 : 2; g.stroke(); }
-        cap(g, rises ? 'went backwards by ' + rises + ' in all' : 'never went backwards', 716, y + 118, 17.5, rises ? RED : 'rgba(28,34,51,.7)');
+        if (rises) num('stepped back ' + rises + ' in all', 716, y + 110, 16, RED); else cap(g, never, 716, y + 110, 17, SOFT);
         return { rises, travel, net:s[0] - s[s.length - 1] };
       }
       return {
         step(dt) {
           if (run) { acc += dt * 7; while (acc >= 1) { acc--; swap(); } }
+          if (!stats) survey();
           g.fillStyle = PAPER; g.fillRect(0, 0, 1024, 640);
-          cap(g, 'A line of children sorts itself by height.', 30, 50, 27); cap(g, 'Only neighbours may swap. Touch the board for one swap.', 30, 80, 20, 'rgba(28,34,51,.7)');
+          cap(g, 'A line of children sorts itself by height.', 30, 46, 27); cap(g, 'Only neighbours in the wrong order may swap. Touch the board for one swap.', 30, 74, 19, SOFT);
+          const X = i => 52 + i * 40, H = v => 40 + v * 9.4, BY = 318;
+          // what your ruler counts: an arc over every wrong pair within its reach
+          g.lineWidth = 1.2; g.strokeStyle = 'rgba(122,90,160,.5)';
+          for (let i = 0; i < N; i++) for (let j = i + 1; j <= Math.min(N - 1, i + w); j++) if (a[i] > a[j]) { const top = BY - Math.max(H(a[i]), H(a[j])) - 30, r = (X(j) - X(i)) / 2; g.beginPath(); g.ellipse(X(i) + r, top, r, 10 + r * .32, 0, Math.PI, TAU); g.stroke(); }
           a.forEach((v, i) => {
-            const x = 52 + i * 40, h = 46 + v * 10.5, hot = i === last || i === last + 1, col = fixed.has(i) ? GOLD : hot ? RED : INK;
-            g.fillStyle = col; g.fillRect(x - 10, 330 - h, 20, h); g.beginPath(); g.arc(x, 330 - h - 12, 10, 0, TAU); g.fill();
-            if (fixed.has(i)) { g.fillRect(x - 16, 330, 32, 7); }
-            if (i < N - 1 && a[i] > a[i + 1]) { g.fillStyle = RED; g.beginPath(); g.moveTo(x + 20, 346); g.lineTo(x + 14, 358); g.lineTo(x + 26, 358); g.fill(); }
+            const x = X(i), h = H(v), hot = i === last || i === last + 1, col = fixed.has(i) ? GOLD : hot ? RED : INK;
+            g.fillStyle = col; g.fillRect(x - 10, BY - h, 20, h); g.beginPath(); g.arc(x, BY - h - 12, 10, 0, TAU); g.fill();
+            if (fixed.has(i)) { g.fillRect(x - 16, BY, 32, 7); }
+            if (i < N - 1 && a[i] > a[i + 1]) { g.fillStyle = RED; g.beginPath(); g.moveTo(x + 20, BY + 14); g.lineTo(x + 14, BY + 26); g.lineTo(x + 26, BY + 26); g.fill(); }
           });
-          g.strokeStyle = 'rgba(28,34,51,.3)'; g.lineWidth = 1; g.beginPath(); g.moveTo(30, 331); g.lineTo(684, 331); g.stroke();
-          cap(g, 'red marks: neighbours in the wrong order' + (glued ? '   ·   gold: glued to the floor' : ''), 30, 384, 17.5, 'rgba(28,34,51,.7)');
-          const A = panel(52, 'A · every wrong pair', N - 1, TEAL), B = panel(238, 'B · wrong neighbours only', 1, INK), Y = panel(424, w === 1 ? 'Yours · neighbours' : w >= N - 1 ? 'Yours · any distance' : 'Yours · pairs up to ' + w + ' apart', w, '#7a5aa0');
-          cap(g, 'Swaps so far: ' + (hist.length - 1), 30, 430, 24, GOLD);
-          cap(g, 'On B the path travelled ' + B.travel + ' to get ' + B.net + ' closer.', 30, 470, 21);
-          cap(g, 'Surplus S = ' + B.travel + ' − ' + B.net + ' = ' + (B.travel - B.net) + (B.net >= 0 ? ' = 2 × ' + B.rises + ', twice the backward steps.' : ''), 30, 500, 21);
-          cap(g, 'On A the surplus is ' + (A.travel - A.net) + '. Always.', 30, 530, 21, TEAL);
-          cap(g, B.rises ? 'Same children, same swaps. The “patience” is on one scoreboard only.' : 'Keep sorting, and watch scoreboard B.', 30, 580, 22, RED);
-          cap(g, 'The ruler was made. What it then shows is found.', 30, 612, 22, GOLD);
+          g.strokeStyle = 'rgba(28,34,51,.3)'; g.lineWidth = 1; g.beginPath(); g.moveTo(30, BY + 1); g.lineTo(684, BY + 1); g.stroke();
+          cap(g, 'red marks: wrong neighbours   ·   arcs: the wrong pairs your ruler counts' + (glued ? '   ·   gold: glued' : ''), 30, BY + 48, 16.5, SOFT);
+          const A = panel(52, 'A · every wrong pair', N - 1, TEAL, 'cannot step back'), B = panel(232, 'B · wrong neighbours only', 1, INK, 'has not stepped back yet');
+          panel(412, w === 1 ? 'Yours · neighbours' : w >= N - 1 ? 'Yours · any distance' : 'Yours · pairs up to ' + w + ' apart', w, PUR, 2 * w >= N ? 'cannot step back: it sees half the line' : 'has not stepped back yet');
+          num('Swaps so far: ' + (hist.length - 1), 30, 404, 21, GOLD);
+          num('A counts wrong pairs anywhere. Every swap: A falls by exactly 1.', 30, 434, 17.5, TEAL);
+          num('B counts wrong neighbours. Every swap: B changes by −1, 0 or +1.', 30, 459, 17.5, INK);
+          num('On any ruler:  distance travelled − net progress = 2 × steps back.', 30, 490, 17.5, INK);
+          num('B:  ' + B.travel + ' − ' + (B.net < 0 ? '(' + B.net + ')' : B.net) + ' = ' + (B.travel - B.net) + ' = 2 × ' + B.rises, 54, 515, 17.5, RED); num('A:  ' + A.travel + ' − ' + A.net + ' = 0', 330, 515, 17.5, TEAL);
+          num('The patience score, on B:  mean of (recovery ÷ setback) − 1.', 30, 546, 17.5, INK);
+          num('500 plain lines each, glued 0 · 1 · 2 · 3:   score ' + stats.map(q => q[0].toFixed(2)).join(' · ') + '    steps back ' + stats.map(q => q[1].toFixed(1)).join(' · '), 30, 570, 15.5, SOFT);
+          cap(g, 'The ruler was made. What it then shows is found.', 30, 614, 22, GOLD);
         },
         down() { swap(); },
         controls(box) {
