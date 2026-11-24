@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standing on the block</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="Three rooms from the metaphysical lens: two lanterns that only touching can tell apart, a corridor that lays itself under your feet and is the same object whether it grew or was always there, and a frosted pane where a little memory lets you see the present best.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --studio:#030406;
+  --ink:#f3ecdf;
+  --ink-soft:rgba(243,236,223,.72);
+  --panel:rgba(10,12,18,.58);
+  --line:rgba(243,236,223,.22);
+  --accent:#ff7a3c;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--studio);color:var(--ink);overflow:hidden}
+body{transition:opacity .35s}
+body.leaving{opacity:0}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;outline:none;transition:opacity .22s}
+#stage.dragging{cursor:grabbing}
+#stage:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.head{position:fixed;left:20px;top:16px;right:300px;pointer-events:none;text-shadow:0 1px 10px rgba(0,0,0,.8)}
+.head h1{font:600 clamp(22px,3.2vw,34px)/1.05 var(--display);margin:0 0 6px;letter-spacing:-.01em}
+.head p{font:400 13px/1.45 var(--mono);margin:0;color:var(--ink-soft);max-width:54ch}
+button{font:500 12.5px/1 var(--mono);color:var(--ink);background:transparent;border:1px solid var(--line);
+  border-radius:999px;padding:9px 13px;cursor:pointer;white-space:nowrap;touch-action:manipulation}
+button:hover{border-color:var(--ink-soft)}
+button:disabled{opacity:.4;cursor:default}
+button[aria-pressed="true"]{background:var(--ink);color:#15161a;border-color:var(--ink)}
+button:focus-visible,input:focus-visible,.sheet:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#back{position:fixed;right:20px;top:16px;background:var(--panel);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);z-index:3}
+.bar{position:fixed;left:16px;right:16px;bottom:16px;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font:400 12.5px/1 var(--mono);z-index:2}
+.note{margin:0 0 9px;font:400 13px/1.45 var(--mono);color:var(--ink);min-height:1.45em}
+.note b{font-weight:500;color:var(--accent);margin-right:8px}
+.row{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.row + .row{margin-top:9px}
+.hold{user-select:none;-webkit-user-select:none}
+.tab[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#1a0d05}
+.sl{display:inline-flex;align-items:center;gap:8px;color:var(--ink-soft);white-space:nowrap}
+.sl input{width:150px;accent-color:var(--accent);height:22px;margin:0}
+.sl output{color:var(--ink);font-variant-numeric:tabular-nums;min-width:5ch}
+.read{position:fixed;right:20px;top:60px;margin:0;display:grid;grid-template-columns:auto auto;gap:5px 14px;padding:12px 14px;
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  font:400 12.5px/1.25 var(--mono);font-variant-numeric:tabular-nums;pointer-events:none;width:min(300px,calc(100vw - 32px))}
+.read dt{color:var(--ink-soft);margin:0}.read dd{margin:0;text-align:right;white-space:nowrap}
+.read dt small{display:block;font-size:10.5px;opacity:.75}
+.read .big{font:600 22px/1 var(--display);grid-column:1/-1;text-align:left;margin-bottom:2px}
+.read .sec{grid-column:1/-1;text-align:left;color:var(--ink-soft);border-top:1px solid var(--line);padding-top:6px;margin-top:2px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.read .wide{grid-column:1/-1;text-align:left;white-space:normal}
+.read .rule{grid-column:1/-1;text-align:left;white-space:normal;color:var(--accent)}
+.read table{border-collapse:collapse;width:100%}.read td,.read th{padding:2px 0;text-align:right;font-weight:400}.read th{color:var(--ink-soft)}.read td:first-child,.read th:first-child{text-align:left}
+.read svg{display:block;width:100%;height:auto}
+.hit{color:var(--accent)}
+#wall{position:fixed;left:20px;top:104px;width:min(300px,26vw);margin:0;pointer-events:none;text-align:left;
+  font:400 15.5px/1.55 var(--display);font-style:italic;color:rgba(243,236,223,.88);text-shadow:0 1px 12px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9);letter-spacing:.005em}
+#wall cite{display:block;font:400 10.5px/1.4 var(--mono);font-style:normal;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-top:6px}
+#cards{position:fixed;left:20px;right:340px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:700px;pointer-events:none;z-index:1}
+#cards .c{min-width:0;background:rgba(243,236,223,.94);color:#1b1a17;border-radius:6px;padding:11px 13px;font:400 12px/1.45 var(--mono);box-shadow:0 8px 30px rgba(0,0,0,.6)}
+#cards .c h3{font:600 16px/1.15 var(--display);margin:0 0 4px}
+#cards .c code{display:block;font:500 12.5px/1.3 var(--mono);word-break:break-all;margin:5px 0;padding:5px 6px;background:rgba(0,0,0,.08);border-radius:4px}
+#cards .c span{color:#5c574e}
+#cards .s{grid-column:1/-1;text-align:center;font:400 12.5px/1.45 var(--mono);color:var(--ink);text-shadow:0 1px 8px #000;margin:0}
+.sheet{position:fixed;background:rgba(10,12,18,.9);border:1px solid var(--line);border-radius:14px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  padding:16px 18px;overflow:auto;font:400 12.5px/1.55 var(--mono);z-index:4}
+.sheet h2{font:600 21px/1.15 var(--display);margin:0 0 8px}
+.sheet h3{font:500 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:14px 0 4px}
+.sheet p{margin:0 0 8px}.sheet ul{margin:0 0 8px;padding-left:18px}.sheet li{margin:0 0 3px}
+.sheet table{border-collapse:collapse;width:100%;margin:0 0 8px}
+.sheet td,.sheet th{border-top:1px solid var(--line);padding:5px 8px 5px 0;text-align:right;vertical-align:top;font-weight:400;font-variant-numeric:tabular-nums}
+.sheet td:first-child,.sheet th:first-child{text-align:left}
+.sheet th{color:var(--ink-soft)}
+.sheet code{font:inherit;color:#ffd9a8}
+.sheet blockquote{margin:0 0 10px;padding:2px 0 2px 12px;border-left:2px solid var(--accent);font:400 14.5px/1.5 var(--display);font-style:italic}
+.sheet .x{float:right;margin:0 0 8px 12px}
+.sheet .soft{color:var(--ink-soft)}
+.sheet .bad{color:#ffb08a}
+#card{left:20px;top:60px;width:min(700px,calc(100vw - 40px))}
+#about{right:20px;top:60px;width:min(600px,calc(100vw - 32px))}
+@media (max-width:1000px){#wall{font-size:13px;width:24vw}}
+@media (max-width:760px){.head p{display:none}.head{right:150px}.head h1{font-size:20px}
+  .read{top:auto;left:8px;right:8px;width:auto;font-size:11px;padding:7px 10px;gap:2px 10px;grid-template-columns:auto auto}.read dt small{display:none}.read .big{font-size:16px}
+  .read .opt{display:none}
+  #wall{left:12px;right:12px;width:auto;top:44px;font-size:12px;line-height:1.4}
+  #back{right:12px;top:12px;padding:8px 10px;font-size:11.5px}
+  .bar{left:8px;right:8px;bottom:8px;padding:8px 9px}.note{font-size:11.5px;line-height:1.4;margin-bottom:7px}
+  .row{gap:6px 6px}.row + .row{margin-top:7px}
+  .sl input{width:110px}button{padding:7px 9px;font-size:11px}
+  #cards{left:8px;right:8px;gap:6px}#cards .c{padding:7px 8px;font-size:10px}#cards .c h3{font-size:14px}#cards .c span{display:none}#cards .c code{font-size:9.5px;padding:4px}#cards .s{font-size:11px}
+  #card{left:8px;top:50px;width:calc(100vw - 16px)}#about{right:8px;top:50px;width:calc(100vw - 16px)}}
+#fail{position:fixed;left:16px;right:16px;top:120px;display:none;text-align:center;font:400 15px/1.5 var(--mono)}
+</style>
+</head>
+<body>
+<canvas id="stage" tabindex="0" aria-label="Three dark rooms. Room one: two brass lanterns blinking on a bench, each beside a ledger, with a pen and a candle snuffer. Room two: a stone corridor seen in first person that lays itself slab by slab at your feet out of light, with a long lamp-lit colonnade behind and darkness ahead; hold the up arrow or W to walk. Room three: a tall frosted window, with a thread of light receding behind it and a small turning ring below. Drag to look about. Keys 1, 2 and 3 change room."></canvas>
+<div class="head">
+  <h1>Standing on the block</h1>
+  <p id="sub"></p>
+</div>
+<button id="back" type="button">Back to the museum</button>
+<blockquote id="wall" hidden>I carry mass. So I experience time. The fep smooths it. Crr is ontological empty now. Like it feels like I'm remembering this. Lucky to be here. You know...constrained to have an experience at all. Otherwise I'd be everywhere all at once or nowhere at all.<cite>The museum's owner, during the colloquy</cite></blockquote>
+<dl class="read" id="read" aria-label="The numbers of this room"></dl>
+<div id="cards" aria-live="polite" hidden></div>
+<div class="sheet" id="card" role="dialog" aria-label="The card for this room" tabindex="-1" hidden></div>
+<div class="sheet" id="about" role="dialog" aria-label="About this piece" tabindex="-1" hidden></div>
+<div class="sheet" id="readings" role="dialog" aria-label="Five readings of these rooms" tabindex="-1" hidden>
+ <button type="button" id="readClose" style="float:right">Close</button>
+ <h2>Five readings</h2>
+ <p><em>Added on 24 November 2026, when this piece was put back. These are ways of reading the three rooms. None of them is a finding, and nothing in the rooms is evidence about the world.</em></p>
+ <h3>1. Enduring and inheriting</h3>
+ <p>Room one. Two lanterns keep the same uneven rhythm. In one, something lasts from blink to blink. The other ends at every blink and leaves a note, and the next blink is worked out from the notes. Watching cannot tell you which is which. A self that lasts and a self that is remade each moment from its own record would look the same from outside.</p>
+ <h3>2. The record and the pen</h3>
+ <p>Room one again. The forger's pen changes only the lantern that runs on its record. The ember lantern does not care what is written about it. A thing that steers by its own record is only as sound as the record. When people do the forging, to hit a target, this goes by the name of Goodhart's law.</p>
+ <h3>3. Growing block and block</h3>
+ <p>Room two. The corridor laid slab by slab under your feet, and the same corridor made all at once, have the same fingerprint to the last digit. From inside the walk you cannot tell whether the future is being made or was already there.</p>
+ <h3>4. Made and found</h3>
+ <p>Room two, from the walker's side. Each slab is made by your step. The whole was there to be found. Both are true of the same stones. Winnicott said of a child's first treasured thing that we agree never to ask whether it was made or found. Blake has it from the other side: &ldquo;Eternity is in love with the productions of time.&rdquo;</p>
+ <h3>5. What did not insist</h3>
+ <p>At every join in the corridor stands a frame with a lamp, and in the frame there is nothing. The museum's owner reads that nothing as a giving-way: something that does not insist on being, so that the next slab can be. In his words, &ldquo;It is not, so everything else can be.&rdquo;</p>
+ <p>This last is a position, not a result. Room one shows why nothing here could count against it. It has its own book on the metaphysics shelf of the library, <em>What did not insist</em>, marked untestable.</p>
+ <p><small>Winnicott, <em>Playing and Reality</em> (1971), from memory. Blake, <em>The Marriage of Heaven and Hell</em>, plate 7.</small></p>
+</div>
+<div class="bar" id="bar">
+  <p class="note" id="note" aria-live="polite"></p>
+  <div class="row" id="rowTabs">
+    <button id="tab1" class="tab" type="button" aria-pressed="true">1 The forger's room</button>
+    <button id="tab2" class="tab" type="button" aria-pressed="false">2 On the block</button>
+    <button id="tab3" class="tab" type="button" aria-pressed="false">3 The thick present</button>
+    <button id="play" type="button">Pause</button>
+    <button id="sound" type="button" aria-pressed="false">Sound</button>
+    <button id="cardBtn" type="button" aria-expanded="false" aria-controls="card">The card</button>
+    <button id="readBtn" type="button" aria-expanded="false" aria-controls="readings">Readings</button>
+ <button id="aboutBtn" type="button" aria-expanded="false" aria-controls="about">About</button>
+  </div>
+  <div class="row" id="row1">
+    <button id="penL" type="button" aria-pressed="false">Pen: left ledger</button>
+    <button id="penR" type="button" aria-pressed="false">Pen: right ledger</button>
+    <button id="snuffL" type="button" aria-pressed="false">Snuffer: left flame</button>
+    <button id="snuffR" type="button" aria-pressed="false">Snuffer: right flame</button>
+    <button id="lensBtn" type="button">Run the lens's test here</button>
+  </div>
+  <div class="row" id="row2" hidden>
+    <button id="fwd" class="hold" type="button" aria-label="Walk forward (hold)">Walk &#9654;</button>
+    <button id="auto" type="button" aria-pressed="false">Walk for me</button>
+    <button id="look" type="button" aria-pressed="false">Look back</button>
+    <button id="many" type="button" aria-pressed="false">Many walkers</button>
+    <button id="outside" type="button" aria-pressed="false" disabled>Step outside</button>
+    <button id="again" type="button">Start again</button>
+  </div>
+  <div class="row" id="row3" hidden>
+    <label class="sl">Keep q <input id="q" type="range" min="0" max="300" step="1" value="40" aria-label="How much you keep from before, q, from 0 to 0.999"><output id="oq"></output></label>
+    <label class="sl">Mass M <input id="mass" type="range" min="0" max="3" step="0.25" value="0" aria-label="Mass of the rotor, from 0 to 3"><output id="om"></output></label>
+    <label class="sl">Frost on the pane <input id="frost" type="range" min="0" max="1" step="0.05" value="1" aria-label="Noise of the pane, from 0 (perfect) to 1"><output id="of"></output></label>
+  </div>
+</div>
+<div id="fail">This piece needs WebGL 2 for its pictures, which this browser or device has not made available. The numbers, the cards and the controls still work.</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const TEST = window.__TEST || null;
+const canvas = document.getElementById('stage');
+const HOME = { blake: 'index.html', jooles: 'jooles.html', park: 'park.html', library: 'library.html' };
+const QS = new URLSearchParams(location.search);
+const FROM = Object.prototype.hasOwnProperty.call(HOME, QS.get('from')) ? QS.get('from') : 'library';
+const STOP = /^[a-z0-9_:\-]{1,40}$/.test(QS.get('stop')||'') ? QS.get('stop') : 'block';
+/* behind the library a piece returns to #deep-<slug>; elsewhere to the stop it came from */
+const BACK = HOME[FROM] + '#' + (FROM==='library' && STOP.indexOf('deep-')!==0 ? 'deep-' : '') + STOP;
+const LOW = QS.get('q')==='low';
+const STILL = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function goBack(){ document.body.classList.add('leaving'); setTimeout(()=>{ location.href = BACK; }, 360); }
+document.getElementById('back').onclick = goBack;
+const $ = id => document.getElementById(id);
+const TAU = Math.PI*2, clamp=(x,a,b)=>Math.min(b,Math.max(a,x)), smooth=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+
+/* ───────────────────────── the models ─────────────────────────
+   Everything here is a toy from the library's colloquy, metaphysical lens. Sources, all in MUSEUM/library/colloquy/:
+     lab/metaphysical/rival_readings.py     the four worlds of what crosses a cut, the mimic, forging and scrubbing, growing against block
+     lab/metaphysical/r2_thick_present.py   toy 1 (a drifting world seen through a noisy ruler) and toy 2 (the inertial rotor)
+     round2-mathematical.md, section 1      the linear Gaussian twins
+   The loop (rival_readings.py; the flat rotor of MATHEMATICS.md R4 with its optional correlated force):
+     zeta(m) ds/dt = 1 + eta + slow,   d eta = -0.3 eta dt + sd sqrt(0.6) dW,   Euler, dt = 0.01,   cut when s has gained pi (R2),
+     content Phi = the gap T,  seed m' = q m + (1 - q) Phi (R5),  zeta(m) = 1 + kappa tanh(m - pi).
+     W  'inherit': eta redrawn at each cut, q = 0.7, kappa = 0.2, sd = 0.35.           (the lens's variant V-metaphysical-1)
+     E2 'mimic'  : eta (sd 0.32) redrawn at each cut; a slow force (sd 0.15, rate 0.02) that is never redrawn; kappa = 0.   (first, failed tuning)
+     E2r         : the same with sd 0.33, slow sd 0.125, rate 0.03.                    (the lens's follow-up tuning, made after the miss)
+     forge: the seed is fed a gap taken from another replica.  scrub: every force is redrawn at the cut.
+   The random numbers are this page's own (mulberry32 and Box-Muller, one set of streams per replica), not numpy's, so the numbers
+   agree with the lens's to about the second decimal and not digit for digit. */
+/*LAB-BEGIN*/
+const LAB=(function(){
+  const PI=Math.PI, A=PI, DRIVE=1.0, LAM=0.3, SD=0.35, DT=0.01, WIN=20, BURN=20, SQDT=Math.sqrt(DT);
+  const WORLDS={
+    R:  {q:0,   kappa:0,   redraw:true,  two:false, sd:SD,   ssd:0,     slam:0},
+    B:  {q:0,   kappa:0.2, redraw:true,  two:false, sd:SD,   ssd:0,     slam:0},
+    W:  {q:0.7, kappa:0.2, redraw:true,  two:false, sd:SD,   ssd:0,     slam:0},
+    E:  {q:0,   kappa:0,   redraw:false, two:false, sd:SD,   ssd:0,     slam:0},
+    E2: {q:0,   kappa:0,   redraw:true,  two:true,  sd:0.32, ssd:0.15,  slam:0.02},
+    E2r:{q:0,   kappa:0,   redraw:true,  two:true,  sd:0.33, ssd:0.125, slam:0.03}};
+  function mix(a){ a|=0; a^=a>>>16; a=Math.imul(a,0x85ebca6b); a^=a>>>13; a=Math.imul(a,0xc2b2ae35); a^=a>>>16; return a>>>0; }
+  function stream(seed,rep,k){ return mix(Math.imul(seed+1,0x9E3779B1)^Math.imul(rep+1,0x85EBCA77)^Math.imul(k+1,0xC2B2AE3D)); }
+  function uni(a){ a|=0; return function(){ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+  function gauss(seed){ const u=uni(seed); let spare=0, has=false;
+    return function(){ if(has){ has=false; return spare; } let a=u(); if(a<1e-300) a=1e-300; const r=Math.sqrt(-2*Math.log(a)), th=2*PI*u(); spare=r*Math.sin(th); has=true; return r*Math.cos(th); }; }
+  /* An ensemble of loops of one world. Every replica has its own three noise streams (force, redraw, slow force), so replicas can be
+     stepped in any order. opt.block: draw every random number first, onto tapes, and then only read them out. */
+  function Ens(world,nrep,seed,opt){ opt=opt||{}; const P=WORLDS[world], nocc=opt.nocc||0, two=P.two;
+    const s=new Float64Array(nrep), m=new Float64Array(nrep).fill(A/DRIVE), zeta=new Float64Array(nrep), eta=new Float64Array(nrep), slow=new Float64Array(nrep),
+      t=new Float64Array(nrep), tlast=new Float64Array(nrep), count=new Int32Array(nrep), k=new Int32Array(nrep), recent=new Float64Array(nrep*WIN), v=new Float64Array(nrep);
+    const nuF=P.sd*Math.sqrt(2*LAM)*SQDT, nuS=P.ssd*Math.sqrt(2*P.slam*DT), fu=uni(stream(seed,nrep+7,3));
+    const E={world:world, P:P, nrep:nrep, nocc:nocc, forge:!!opt.forge, scrub:!!opt.scrub, block:!!opt.block, s:s, m:m, zeta:zeta, eta:eta, slow:slow, t:t, tlast:tlast, count:count, v:v,
+      gaps:[], vexit:[], pool:[], source:null, onCut:null};
+    const n1=[], n2=[], n3=[];
+    for(let i=0;i<nrep;i++){ const g1=gauss(stream(seed,i,0)), g2=gauss(stream(seed,i,1)), g3=gauss(stream(seed,i,2));
+      if(opt.block){ const max=Math.floor(nocc*A/DRIVE/DT*1.6), T1=new Float64Array(max), T2=new Float64Array(nocc+2), T3=new Float64Array(two?max+1:0); let a=0,b=0,c=0;
+        for(let j=0;j<T1.length;j++) T1[j]=g1(); for(let j=0;j<T2.length;j++) T2[j]=g2(); for(let j=0;j<T3.length;j++) T3[j]=g3();
+        const over=()=>{ throw new Error('not enough steps on the tape'); };
+        n1.push(()=>a<T1.length?T1[a++]:over()); n2.push(()=>b<T2.length?T2[b++]:over()); n3.push(()=>c<T3.length?T3[c++]:over()); }
+      else { n1.push(g1); n2.push(g2); n3.push(g3); }
+      E.gaps.push([]); E.vexit.push([]); eta[i]=P.sd*n2[i](); slow[i]=two?P.ssd*n3[i]():0; zeta[i]=1+P.kappa*Math.tanh(m[i]-A); }
+    /* one step of DT for replica i; returns 1 if it cut */
+    E.step=function(i){ if(nocc && count[i]>=nocc) return 0;
+      const xi=n1[i](), vv=(DRIVE+eta[i]+slow[i])/zeta[i]; v[i]=vv;
+      s[i]+=vv*DT; recent[i*WIN+(k[i]%WIN)]=vv; k[i]++;
+      eta[i]+=-LAM*eta[i]*DT+nuF*xi;
+      if(two) slow[i]+=-P.slam*slow[i]*DT+nuS*n3[i]();
+      t[i]+=DT;
+      if(s[i]<A) return 0;
+      const T=t[i]-tlast[i]; let ve=0; for(let j=0;j<WIN;j++) ve+=recent[i*WIN+j]; ve/=WIN;
+      E.gaps[i].push(T); E.vexit[i].push(ve); E.pool.push(T);
+      let phi=T, forged=false;
+      if(E.forge){ const src=(E.source||E).pool; phi=src[Math.floor(fu()*src.length)]; forged=true; }   /* a gap from somewhere else */
+      const mOld=m[i]; m[i]=P.q*m[i]+(1-P.q)*phi; zeta[i]=1+P.kappa*Math.tanh(m[i]-A);
+      s[i]-=A; tlast[i]=t[i]; count[i]++;
+      if(P.redraw || E.scrub) eta[i]=P.sd*n2[i]();
+      if(E.scrub && two) slow[i]=P.ssd*n3[i]();
+      if(E.onCut) E.onCut(i,T,phi,forged,mOld);
+      return 1; };
+    return E; }
+  function run(world,o){ o=o||{}; const nrep=o.nrep||300, nocc=o.nocc||130, E=Ens(world,nrep,o.seed===undefined?11:o.seed,{nocc:nocc,forge:o.forge,scrub:o.scrub,block:o.block}), order=o.order||'lockstep';
+    if(order==='serial'){ for(let i=0;i<nrep;i++) while(E.count[i]<nocc) E.step(i); }
+    else if(order==='reverse'){ for(let i=nrep-1;i>=0;i--) while(E.count[i]<nocc) E.step(i); }
+    else if(order==='shuffled'){ const u=uni(977); let live=[]; for(let i=0;i<nrep;i++) live.push(i);
+      while(live.length){ const j=Math.floor(u()*live.length), i=live[j], burst=1+Math.floor(u()*900); for(let b=0;b<burst && E.count[i]<nocc;b++) E.step(i); if(E.count[i]>=nocc) live.splice(j,1); } }
+    else { let live=1; while(live){ live=0; for(let i=0;i<nrep;i++) if(E.count[i]<nocc){ E.step(i); live++; } } }
+    return E; }
+  function kept(E,burn){ burn=burn===undefined?BURN:burn; return E.gaps.map(g=>g.slice(burn)); }
+  function pooled(x,y){ let mx=0,my=0; const n=x.length; for(let i=0;i<n;i++){ mx+=x[i]; my+=y[i]; } mx/=n; my/=n; let a=0,b=0,c=0; for(let i=0;i<n;i++){ const p=x[i]-mx, q=y[i]-my; a+=p*q; b+=p*p; c+=q*q; } return a/Math.sqrt(b*c); }
+  function lagc(g,kk){ const x=[], y=[]; for(const r of g) for(let n=0;n+kk<r.length;n++){ x.push(r[n]); y.push(r[n+kk]); } return pooled(x,y); }
+  function stats(E,burn){ const g=kept(E,burn); let n=0, sum=0, ss=0; for(const r of g) for(const x of r){ n++; sum+=x; } const mean=sum/n; for(const r of g) for(const x of r) ss+=(x-mean)*(x-mean);
+    const r1=lagc(g,1), r2=lagc(g,2); return {n:n, mean:mean, cv:Math.sqrt(ss/n)/mean, lag1:r1, lag2:r2, lag3:lagc(g,3), lag4:lagc(g,4), pacf2:(r2-r1*r1)/(1-r1*r1)}; }
+  function maxLagGap(a,b){ return Math.max(Math.abs(a.lag1-b.lag1),Math.abs(a.lag2-b.lag2),Math.abs(a.lag3-b.lag3),Math.abs(a.lag4-b.lag4)); }
+  function gapBytes(E,burn){ const g=kept(E,burn===undefined?BURN:burn); let n=0; for(const r of g) n+=r.length; const f=new Float64Array(n); let o=0; for(const r of g) for(const x of r) f[o++]=x; return new Uint8Array(f.buffer); }
+  /* SHA-256 (FIPS 180-4), written out here so that the page needs nothing from outside */
+  function sha256(bytes){ const K=[]; let n=2, c=0; const fr=x=>((x-Math.floor(x))*4294967296)>>>0; const H=[];
+    while(c<64){ let pr=true; for(let d=2;d*d<=n;d++) if(n%d===0){ pr=false; break; } if(pr){ if(c<8) H.push(fr(Math.sqrt(n))); K.push(fr(Math.cbrt(n))); c++; } n++; }
+    const L=bytes.length, N=((L+9+63)>>6)<<6, M=new Uint8Array(N); M.set(bytes); M[L]=0x80; const bits=L*8; M[N-4]=bits>>>24; M[N-3]=bits>>>16&255; M[N-2]=bits>>>8&255; M[N-1]=bits&255;
+    const hi=Math.floor(L/536870912); M[N-5]=hi&255; M[N-6]=hi>>>8&255;
+    const w=new Uint32Array(64), rr=(x,k)=>(x>>>k)|(x<<(32-k));
+    for(let o=0;o<N;o+=64){ for(let i=0;i<16;i++) w[i]=(M[o+4*i]<<24|M[o+4*i+1]<<16|M[o+4*i+2]<<8|M[o+4*i+3])>>>0;
+      for(let i=16;i<64;i++){ const s0=rr(w[i-15],7)^rr(w[i-15],18)^(w[i-15]>>>3), s1=rr(w[i-2],17)^rr(w[i-2],19)^(w[i-2]>>>10); w[i]=(w[i-16]+s0+w[i-7]+s1)>>>0; }
+      let a=H[0],b=H[1],cc=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
+      for(let i=0;i<64;i++){ const S1=rr(e,6)^rr(e,11)^rr(e,25), ch=(e&f)^(~e&g), t1=(h+S1+ch+K[i]+w[i])>>>0, S0=rr(a,2)^rr(a,13)^rr(a,22), mj=(a&b)^(a&cc)^(b&cc), t2=(S0+mj)>>>0;
+        h=g; g=f; f=e; e=(d+t1)>>>0; d=cc; cc=b; b=a; a=(t1+t2)>>>0; }
+      H[0]=(H[0]+a)>>>0; H[1]=(H[1]+b)>>>0; H[2]=(H[2]+cc)>>>0; H[3]=(H[3]+d)>>>0; H[4]=(H[4]+e)>>>0; H[5]=(H[5]+f)>>>0; H[6]=(H[6]+g)>>>0; H[7]=(H[7]+h)>>>0; }
+    return H.map(x=>('00000000'+x.toString(16)).slice(-8)).join(''); }
+  /* The mathematical lens's twins (round two, section 1): a seed world and an enduring world with the same law, in the linear Gaussian case. */
+  function twinTheory(q,b){ const phi=q+(1-q)*b, r1=(1-phi*q)*(phi-q)/(1+q*q-2*phi*q); return {phi:phi, readVar:q/phi, stateVar:(1-q/phi)*(1-q*phi), acf:[r1,r1*phi,r1*phi*phi], variance:(1+q*q-2*phi*q)/(1-phi*phi)}; }
+  function moments(y){ const n=y.length; let mu=0; for(const x of y) mu+=x; mu/=n; let c0=0,c1=0,c2=0,c3=0,m4=0; for(let i=0;i<n;i++){ const d=y[i]-mu; c0+=d*d; m4+=d*d*d*d; if(i+1<n) c1+=d*(y[i+1]-mu); if(i+2<n) c2+=d*(y[i+2]-mu); if(i+3<n) c3+=d*(y[i+3]-mu); }
+    return {acf:[c1/c0,c2/c0,c3/c0], variance:c0/n, kurt:(m4/n)/((c0/n)*(c0/n))}; }
+  function twins(q,b,n,seed){ n=n||200000; const th=twinTheory(q,b), g=gauss(stream(seed||5,0,0)), h=gauss(stream(seed||5,1,0)), y1=new Float64Array(n), y2=new Float64Array(n);
+    let m=0; for(let i=0;i<n;i++){ const T=b*m+g(); y1[i]=T; m=q*m+(1-q)*T; }
+    let x=0; const sw=Math.sqrt(Math.max(th.stateVar,0)), sv=Math.sqrt(th.readVar); for(let i=0;i<n;i++){ x=th.phi*x+sw*h(); y2[i]=x+sv*h(); }
+    return {theory:th, seed:moments(y1.subarray(1000)), endure:moments(y2.subarray(1000)), exists:th.stateVar>0 && th.readVar>0 && th.phi>0 && th.phi<1}; }
+  /* r2_thick_present.py, toy 1: a drifting world, a noisy ruler, one number kept */
+  const QS=[0.0,0.5,0.7,0.8,0.85,0.9,0.93,0.95,0.97,0.99,0.999], STEP=0.1;
+  function toy1(noise,n,seed,qs){ n=n||200000; qs=qs||QS; const gw=gauss(stream(seed===undefined?21:seed,0,0)), gx=gauss(stream(seed===undefined?21:seed,1,0)), w=new Float64Array(n), x=new Float64Array(n); let c=0;
+    for(let i=0;i<n;i++){ c+=STEP*gw(); w[i]=c; x[i]=c+noise*gx(); }
+    const mse=[]; for(const q of qs){ let cur=x[0], e=0; for(let i=0;i<n;i++){ cur=q*cur+(1-q)*x[i]; if(i>=2000){ const d=cur-w[i]; e+=d*d; } } mse.push(e/(n-2000)); }
+    let bi=0; for(let j=1;j<qs.length;j++) if(mse[j]<mse[bi]) bi=j;
+    const o={qs:qs.slice(), mse:mse, best_q:qs[bi], best_mse:mse[bi], mean_age_at_best:qs[bi]/(1-qs[bi])}; const i0=qs.indexOf(0), i9=qs.indexOf(0.999); if(i0>=0) o.ratio_q0=mse[i0]/mse[bi]; if(i9>=0) o.ratio_q999=mse[i9]/mse[bi]; return o; }
+  function mseTheory(q,noise){ return q>=1?Infinity:(q*q*STEP*STEP+(1-q)*(1-q)*noise*noise)/(1-q*q); }      /* steady state of the error recursion */
+  function bestQ(noise){ if(noise<=0) return 0; const r=STEP*STEP/(noise*noise); return 1-(-r+Math.sqrt(r*r+4*r))/2; }  /* one minus the steady Kalman gain */
+  /* toy 2: section IV's inertial rotor with constant coefficients, M s'' + s' = tau + eta */
+  const R2={lam:5.0, sd:1.2, tau:1.0, dt:0.005, rec:10};
+  function Rotor(M,nrep,seed){ const g=[], s=new Float64Array(nrep), v=new Float64Array(nrep).fill(R2.tau), eta=new Float64Array(nrep), tl=new Float64Array(nrep), t=new Float64Array(nrep), k=new Int32Array(nrep), rec=new Float64Array(nrep*R2.rec);
+    const nu=R2.sd*Math.sqrt(2*R2.lam*R2.dt), Ro={M:M, nrep:nrep, s:s, v:v, eta:eta, t:t, gaps:[], ve:[], onCut:null};
+    for(let i=0;i<nrep;i++){ g.push(gauss(stream(seed,i,0))); eta[i]=R2.sd*g[i](); Ro.gaps.push([]); Ro.ve.push([]); }
+    Ro.step=function(i){ const M=Ro.M; if(M>0) v[i]+=(R2.tau+eta[i]-v[i])/M*R2.dt; else v[i]=R2.tau+eta[i];
+      s[i]+=v[i]*R2.dt; rec[i*R2.rec+(k[i]%R2.rec)]=v[i]; k[i]++; eta[i]+=-R2.lam*eta[i]*R2.dt+nu*g[i](); t[i]+=R2.dt;
+      if(s[i]<PI) return 0; let ve=0; for(let j=0;j<R2.rec;j++) ve+=rec[i*R2.rec+j]; ve/=R2.rec; const T=t[i]-tl[i]; Ro.gaps[i].push(T); Ro.ve[i].push(ve); tl[i]=t[i]; s[i]-=PI; if(Ro.onCut) Ro.onCut(i,T,ve); return 1; };
+    return Ro; }
+  function toy2(M,nrep,T,seed){ nrep=nrep||300; T=T||400; const Ro=Rotor(M,nrep,seed===undefined?21:seed), n=Math.floor(T/R2.dt); for(let kk=0;kk<n;kk++) for(let i=0;i<nrep;i++) Ro.step(i);
+    const g0=[], g1=[], v0=[]; for(let i=0;i<nrep;i++){ const g=Ro.gaps[i], ve=Ro.ve[i]; for(let j=5;j+1<g.length;j++){ g0.push(g[j]); g1.push(g[j+1]); v0.push(ve[j]); } }
+    let mu=0; for(const x of g0) mu+=x; mu/=g0.length; let ss=0; for(const x of g0) ss+=(x-mu)*(x-mu);
+    return {M:M, n:g0.length, mean:mu, cv:Math.sqrt(ss/g0.length)/mu, lag1:pooled(g0,g1), corr_speed:pooled(v0,g1)}; }
+  /* what the metaphysical lens recorded (rival_readings.json and r2_thick_present.json), for comparison on the cards */
+  const LENS={ W:{mean:3.6231,cv:0.3529,lag:[0.1354,0.1237,0.1042,0.0929],pacf2:0.1074}, E2:{mean:3.3537,cv:0.3815,lag:[0.1936,0.1815,0.1587,0.1516],pacf2:0.1496},
+    E2r:{mean:3.366,cv:0.3704,lag:[0.1287,0.1129,0.1071,0.0975],pacf2:0.0979}, Wforged:{lag:[0.0263,0.0073,0.0144,0.004]}, R:{lag:[-0.0016,0.0016,-0.0005,-0.0031]},
+    followupGap:0.0108, P8:false, hash:'aed2610b5abe0aa6',
+    toy1:{best_q:0.9, age:9.0, ratio_q0:10.5, ratio_q999:56.4, mse:[1.0039,0.3375,0.1864,0.1291,0.1073,0.0956,0.1011,0.1199,0.1784,0.5248,5.3969], perfect_best_q:0},
+    toy2:{0:{cv:0.4214,lag1:0.0019,corr:-0.1183}, 1:{cv:0.378,lag1:0.1392,corr:-0.4043}, 3:{cv:0.2844,lag1:0.4278,corr:-0.6639}}, T5:false };
+  return {A:A, DT:DT, BURN:BURN, WORLDS:WORLDS, Ens:Ens, run:run, stats:stats, kept:kept, lagc:lagc, pooled:pooled, maxLagGap:maxLagGap, gapBytes:gapBytes, sha256:sha256, twins:twins, twinTheory:twinTheory,
+    QS:QS, toy1:toy1, mseTheory:mseTheory, bestQ:bestQ, R2:R2, Rotor:Rotor, toy2:toy2, LENS:LENS, gauss:gauss, uni:uni, stream:stream};
+})();
+/*LAB-END*/
+
+/* ───────────────────────── room 1: the forger's room ───────────────────────── */
+const VIS1=1.6, CROWD_N=(TEST&&TEST.crowd)||(LOW?80:120), CROWD_RATE=20, SETTLE=6, NEED=3000;
+const R1=(function(){
+  const flip = TEST ? !!TEST.flip : Math.random()<.5;            /* which side holds the record is not told in advance */
+  const o={worlds:flip?['E2r','W']:['W','E2r'], pen:-1, snuff:-1, vis:[], crowd:[], acc:[], ledger:[[],[]], blinks:[0,0], lastCut:[-9,-9], lastKind:[0,0], events:[], t:0,
+    carry:[0,0], ccarry:0, table:[{},{}], lens:null, revealed:false};
+  function fresh(){ return {n:0,sx:0,sy:0,sxx:0,syy:0,sxy:0,g:0,sg:0,sgg:0,prev:new Float64Array(CROWD_N),since:new Int32Array(CROWD_N)}; }
+  for(let j=0;j<2;j++){ const c=LAB.Ens(o.worlds[j],CROWD_N,101+j), v=LAB.Ens(o.worlds[j],1,201+j), a=fresh(); a.since.fill(SETTLE-20); v.source=c; o.crowd.push(c); o.vis.push(v); o.acc.push(a);
+    c.onCut=function(i,T){ const a=o.acc[j]; if(a.since[i]>=SETTLE){ const x=a.prev[i]; a.n++; a.sx+=x; a.sy+=T; a.sxx+=x*x; a.syy+=T*T; a.sxy+=x*T; a.g++; a.sg+=T; a.sgg+=T*T; } a.prev[i]=T; a.since[i]++; };
+    v.onCut=function(i,T,phi,forged){ const L=o.ledger[j]; L.push({n:v.count[0],T:T,phi:phi,forged:forged,m:v.m[0]}); if(L.length>9) L.shift();
+      o.blinks[j]++; o.lastCut[j]=o.t; o.lastKind[j]=(v.scrub?2:0)+(forged?1:0); o.events.push({type:'blink',j:j,forged:forged,snuffed:v.scrub}); }; }
+  o.cond=j=>(o.pen===j?(o.snuff===j?'both':'pen'):(o.snuff===j?'snuff':'plain'));
+  o.echo=function(j){ const a=o.acc[j]; if(a.n<30) return null; const cov=a.sxy/a.n-(a.sx/a.n)*(a.sy/a.n), vx=a.sxx/a.n-(a.sx/a.n)**2, vy=a.syy/a.n-(a.sy/a.n)**2;
+    const mu=a.sg/a.g; return {r:cov/Math.sqrt(vx*vy), n:a.n, se:1/Math.sqrt(a.n), mean:mu, cv:Math.sqrt(Math.max(a.sgg/a.g-mu*mu,0))/mu}; };
+  /* a tool is in one place at a time: -1 at rest, 0 on the left lantern, 1 on the right */
+  o.setTool=function(kind,j){ if(o[kind]===j) j=-1; o[kind]=j; const key=kind==='pen'?'forge':'scrub';
+    for(let x=0;x<2;x++){ const on=(j===x); if(o.vis[x][key]!==on){ o.vis[x][key]=on; o.crowd[x][key]=on; o.acc[x]=fresh(); } } };
+  function note(){ for(let j=0;j<2;j++){ const e=o.echo(j), c=o.cond(j); if(e && e.n>=200 && c!=='both') o.table[j][c]={r:e.r,n:e.n,se:e.se}; }
+    o.revealed=[0,1].every(j=>['plain','pen','snuff'].every(c=>o.table[j][c] && o.table[j][c].n>=NEED)); }
+  /* a tool 'answers' if the echo moved by more than 0.05 and by more than two and a half standard errors of the difference */
+  o.answers=function(j,c){ const p=o.table[j].plain, x=o.table[j][c]; if(!p||!x||p.n<NEED||x.n<NEED) return null; const d=Math.abs(x.r-p.r); return d>0.05 && d>2.5*Math.sqrt(p.se*p.se+x.se*x.se); };
+  o.crowdRun=function(tu){ o.ccarry+=tu/LAB.DT; const n=Math.floor(o.ccarry); o.ccarry-=n; for(let k=0;k<n;k++) for(let j=0;j<2;j++){ const c=o.crowd[j]; for(let i=0;i<CROWD_N;i++) c.step(i); } note(); };
+  o.advance=function(dt){ o.t+=dt; for(let j=0;j<2;j++){ o.carry[j]+=dt*VIS1/LAB.DT; while(o.carry[j]>=1){ o.vis[j].step(0); o.carry[j]--; } } o.crowdRun(dt*CROWD_RATE); };
+  /* the lens's own test, at the lens's own size (300 replicas, 130 occasions, the first 20 dropped) */
+  o.lensSteps=[['W',{}],['E2',{}],['E2r',{}],['W',{forge:true}],['E2r',{scrub:true}]];
+  o.lensDone=function(res){ const L={W:res[0],E2:res[1],E2r:res[2],Wforged:res[3],E2rScrubbed:res[4]}; L.gapFirst=LAB.maxLagGap(L.E2,L.W); L.gapRetuned=LAB.maxLagGap(L.E2r,L.W);
+    L.P8=L.gapFirst<0.04; o.lens=L; return L; };
+  o.lensTest=function(){ return o.lensDone(o.lensSteps.map(s=>LAB.stats(LAB.run(s[0],s[1])))); };
+  o.crowdRun(TEST&&TEST.warm!==undefined?TEST.warm:60);   /* let the copies settle before anyone looks */
+  return o;
+})();
+
+/* ───────────────────────── room 2: standing on the block ───────────────────────── */
+const NOCC=(TEST&&TEST.nocc)||60, NWALK=12, SEED2=5, WALK=5, HURRY=2.4;
+const R2=(function(){
+  const o={many:false, look:false, auto:false, outside:false, events:[]};
+  o.reset=function(){ o.ens=LAB.Ens('W',NWALK,SEED2,{nocc:NOCC}); o.cuts=[]; o.seeds=[]; o.carry=new Float64Array(NWALK); o.tr=0; o.finished=false; o.grown=null; o.block=null; o.outside=false; o.events=[]; o.endT=-1;
+    for(let i=0;i<NWALK;i++){ o.cuts.push([0]); o.seeds.push([o.ens.m[i]]); }
+    o.ens.onCut=function(i,T){ o.cuts[i].push(o.ens.t[i]); o.seeds[i].push(o.ens.m[i]); if(i===0) o.events.push({type:'slab',n:o.ens.count[0],T:T,m:o.ens.m[0]}); }; };
+  /* the other walkers keep their own time; these paces are arbitrary, and nothing measured depends on them */
+  o.pace=k=>3.4+3.4*(.5+.5*Math.sin(o.tr*.13*(1+.37*k)+k*1.7));
+  function measure(g){ let s=0; for(const x of g) s+=x; return {slabs:g.length, total:s, mean:s/g.length, lag1:LAB.lagc([g],1)}; }
+  function finish(){ o.finished=true; o.endT=o.tr; const g=o.ens.gaps[0];
+    o.grown=Object.assign({hash:LAB.sha256(new Uint8Array(new Float64Array(g).buffer))},measure(g));
+    const B=LAB.Ens('W',1,SEED2,{nocc:NOCC,block:true}); while(B.count[0]<NOCC) B.step(0);     /* the same corridor made all at once */
+    o.block=Object.assign({hash:LAB.sha256(new Uint8Array(new Float64Array(B.gaps[0]).buffer))},measure(B.gaps[0]));
+    o.events.push({type:'end'}); }
+  o.advance=function(dt,walk){ o.tr+=dt; for(let k=0;k<NWALK;k++){ o.carry[k]+=dt*(k===0?walk:o.pace(k))/LAB.DT; const n=Math.floor(o.carry[k]); o.carry[k]-=n; for(let i=0;i<n;i++) o.ens.step(k); }
+    if(!o.finished && o.ens.count[0]>=NOCC) finish(); };
+  o.finishNow=function(){ while(o.ens.count[0]<NOCC) o.ens.step(0); if(!o.finished) finish(); };
+  o.reset(); return o;
+})();
+
+/* ───────────────────────── room 3: the thick present ───────────────────────── */
+const HIST=8192, OBS_RATE=8, ROT_RATE=1.4, NV=560;
+const R3=(function(){
+  const o={k:40, noise:1, M:0, n:0, t:0, carry:0, rcarry:0, events:[], cutsT:[], cutsV:[], vh:new Float32Array(NV), vn:0, rk:0, cache:{}, rcache:{}};
+  const W=new Float64Array(HIST), Z=new Float64Array(HIST), gw=LAB.gauss(LAB.stream(31,0,0)), gz=LAB.gauss(LAB.stream(31,1,0)); let w=0;
+  o.qOf=k=>k<=0?0:Math.round((1-Math.pow(10,-3*k/300))*1e4)/1e4;      /* the slider is even in the logarithm of 1 - q */
+  o.q=o.qOf(o.k);
+  o.stepWorld=function(){ w+=0.1*gw(); W[o.n%HIST]=w; Z[o.n%HIST]=gz(); o.n++; };
+  for(let i=0;i<HIST;i++) o.stepWorld();
+  o.w=k=>W[((o.n-1-k)%HIST+HIST)%HIST];                               /* the world k steps ago */
+  o.x=k=>{ const i=((o.n-1-k)%HIST+HIST)%HIST; return W[i]+o.noise*Z[i]; };   /* the reading taken k steps ago, through this pane */
+  /* what is held now, for any q: the seed rule run over the stored readings, oldest first */
+  o.m=function(q){ q=q===undefined?o.q:q; let i=o.n%HIST, cur=W[i]+o.noise*Z[i]; for(let c=0;c<HIST;c++){ cur=q*cur+(1-q)*(W[i]+o.noise*Z[i]); i++; if(i===HIST) i=0; } return cur; };
+  o.measured=function(){ const key=o.q+'|'+o.noise; if(!(key in o.cache)) o.cache[key]=LAB.toy1(o.noise,200000,21,[o.q]).mse[0]; return o.cache[key]; };
+  o.rot=LAB.Rotor(0,1,77); o.rot.onCut=function(i,T,ve){ o.cutsT.push(o.rot.t[0]); o.cutsV.push(ve); if(o.cutsT.length>24){ o.cutsT.shift(); o.cutsV.shift(); } o.events.push({type:'rcut',T:T}); };
+  o.setM=function(M){ o.M=M; o.rot.M=M; };
+  o.rstat=function(M){ M=M===undefined?o.M:M; if(!(M in o.rcache)) o.rcache[M]=LAB.toy2(M,(TEST&&TEST.rreps)||20,400,21); return o.rcache[M]; };
+  o.advance=function(dt){ o.t+=dt; o.carry+=dt*OBS_RATE; while(o.carry>=1){ o.stepWorld(); o.carry--; o.events.push({type:'reading'}); }
+    o.rcarry+=dt*ROT_RATE/LAB.R2.dt; while(o.rcarry>=1){ o.rot.step(0); o.rcarry--; if((o.rk++)%5===0){ o.vh[o.vn%NV]=o.rot.v[0]; o.vn++; } } };
+  return o;
+})();
+
+/* ───────────────────────── what the page shares whether or not it can draw ───────────────────────── */
+let room = /^[123]$/.test(QS.get('room')||'') ? +QS.get('room') : 1;
+let playing=!STILL, frame=0, vt=0, soundOn=false, dirty=true;
+const input={fwd:0, held:0, hurry:false, yawL:0, yawR:0};
+const SND={blink:0, slab:0, cut:0, end:0};
+const walkNow=()=> R2.finished||R2.outside ? 0 : ((input.fwd||input.held) ? WALK*(input.hurry?HURRY:1) : (R2.auto?WALK:0));
+
+/* sound: WebAudio only, made on the first press of Sound */
+const AU={ctx:null};
+function audioStart(){ if(AU.ctx||TEST) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+  try{ const c=new AC(); AU.ctx=c; AU.master=c.createGain(); AU.master.gain.value=.5; AU.master.connect(c.destination);
+    const nb=c.createBuffer(1,c.sampleRate*2,c.sampleRate), d=nb.getChannelData(0); let b0=0; for(let i=0;i<d.length;i++){ const w=Math.random()*2-1; b0=.97*b0+.03*w; d[i]=w*.3+b0*3; } AU.noise=nb;
+    AU.dg=c.createGain(); AU.dg.gain.value=0; AU.dg.connect(AU.master); [55,82.6,110.3].forEach((f,i)=>{ const o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.value=f; g.gain.value=.5/(1+i); o.connect(g); g.connect(AU.dg); o.start(); });
+  }catch(e){ AU.ctx=null; } }
+function tone(fr,vol,dur,type,slide){ const c=AU.ctx; if(!c||!soundOn) return; const t=c.currentTime, o=c.createOscillator(), g=c.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(fr,t); if(slide) o.frequency.exponentialRampToValueAtTime(slide,t+dur);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.012); g.gain.exponentialRampToValueAtTime(.0005,t+dur); o.connect(g); g.connect(AU.master); o.start(t); o.stop(t+dur+.05); }
+function hiss(fr,vol,dur){ const c=AU.ctx; if(!c||!soundOn) return; const t=c.currentTime, s=c.createBufferSource(); s.buffer=AU.noise; const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=fr; f.Q.value=1.1; const g=c.createGain();
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.015); g.gain.exponentialRampToValueAtTime(.001,t+dur); s.connect(f); f.connect(g); g.connect(AU.master); s.start(t,Math.random()*1.5,dur+.05); }
+function sBlink(ev){ SND.blink++; tone(ev.j?523.25:392,.05,1.1); if(ev.forged) hiss(2600,.05,.18); if(ev.snuffed) hiss(420,.09,.3); }
+function sSlab(ev){ SND.slab++; tone(74,.16,.28,'sine',44); tone(196*Math.pow(2,Math.round(clamp((ev.m-3)/1.4,0,1)*7)/12),.04,1.6); hiss(900,.05,.14); }
+function sRcut(){ SND.cut++; tone(880,.018,.25); }
+function sEnd(){ SND.end++; [196,293.66,392,587.33].forEach((f,i)=>tone(f*(1+(i%2?.002:-.002)),.06/(1+i*.4),5)); }
+function sDrone(){ const c=AU.ctx; if(!c) return; AU.dg.gain.setTargetAtTime(soundOn&&playing?(room===2?.05:.022):0,c.currentTime,.6); }
+
+/* words */
+const noteEl=$('note'); let noteKey='', noteT=-9;
+function say(key,html,force){ if(key===noteKey) return; if(!force && vt-noteT<3.5) return; noteKey=key; noteT=vt; noteEl.innerHTML=html; if(typeof layout==='function') layout(); }
+const f2=x=>(x<0?'−':'')+Math.abs(x).toFixed(2), f3=x=>(x<0?'−':'')+Math.abs(x).toFixed(3), f1=x=>(x<0?'−':'')+Math.abs(x).toFixed(1);
+const SUB={1:'Room 1. The forger’s room. Two lanterns, one rhythm. Watching will not tell them apart.',
+           2:'Room 2. A corridor that lays itself under your feet. Lit behind you, dark ahead.',
+           3:'Room 3. The thick present. A drifting world, a frosted pane, and what you keep.'};
+const SIDE=['Left','Right'];
+const readEl=$('read'); let readT=-9;
+function echoCell(c){ return c ? f2(c.r) : '·'; }
+function curve(){ /* error against memory: mean square error on a log scale, against the slider (even in log(1 - q)) */
+  const Wd=268, Hd=64, X=k=>4+k/300*(Wd-8), Y=v=>Hd-6-(Math.log10(clamp(v,1e-3,10))+3)/4*(Hd-12); let d='';
+  for(let k=0;k<=300;k+=3){ const v=LAB.mseTheory(R3.qOf(k),R3.noise); d+=(k?'L':'M')+X(k).toFixed(1)+' '+Y(Math.max(v,1e-3)).toFixed(1); }
+  const kb=R3.noise>0?Math.round(-100*Math.log10(1-LAB.bestQ(R3.noise))):0, qn=R3.q;
+  return '<svg viewBox="0 0 '+Wd+' '+Hd+'" role="img" aria-label="Typical error against how much you keep. It is lowest in between."><path d="'+d+'" fill="none" stroke="rgba(243,236,223,.7)" stroke-width="1.3"/>'+
+    '<line x1="'+X(kb)+'" x2="'+X(kb)+'" y1="4" y2="'+(Hd-4)+'" stroke="rgba(243,236,223,.25)" stroke-dasharray="2 3"/>'+
+    '<circle cx="'+X(R3.k)+'" cy="'+Y(Math.max(LAB.mseTheory(qn,R3.noise),1e-3))+'" r="4" fill="#ff7a3c"/></svg>'+
+    '<span style="color:var(--ink-soft);font-size:10.5px">error (up) against memory (right); the dashed line is the best</span>'; }
+function hud(force){ if(!force && vt-readT<.2 && playing) return; readT=vt; let h='';
+  if(room===1){ const e=[R1.echo(0),R1.echo(1)];
+    h='<div class="big">Two lanterns</div>';
+    for(let j=0;j<2;j++) h+='<dt>'+SIDE[j]+': echo now<small>'+(j?'from '+(e[j]?e[j].n:0)+' pairs of gaps':'how much one gap tells of the next')+'</small></dt><dd>'+(e[j]?f2(e[j].r)+' ± '+e[j].se.toFixed(2):'·')+'</dd>';
+    h+='<dt class="opt">Average gap</dt><dd class="opt">'+(e[0]?f2(e[0].mean):'·')+' · '+(e[1]?f2(e[1].mean):'·')+'</dd>'+
+       '<dt class="opt">Blinks seen</dt><dd class="opt">'+R1.blinks[0]+' · '+R1.blinks[1]+'</dd>'+
+       '<div class="sec">What touching did to the echo</div><div class="wide"><table><tr><th></th><th>alone</th><th>pen</th><th>snuffer</th></tr>';
+    for(let j=0;j<2;j++){ const t=R1.table[j]; h+='<tr><td>'+SIDE[j]+'</td><td>'+echoCell(t.plain)+'</td><td'+(R1.answers(j,'pen')?' class="hit"':'')+'>'+echoCell(t.pen)+'</td><td'+(R1.answers(j,'snuff')?' class="hit"':'')+'>'+echoCell(t.snuff)+'</td></tr>'; }
+    h+='</table></div><div class="rule">'+(R1.revealed ? verdict() : 'Try each tool on each lantern, and wait for the count to pass '+NEED+'.')+'</div>'; }
+  else if(room===2){ const E=R2.ens, n=E.count[0], g=E.gaps[0];
+    h='<div class="big">'+(R2.finished?'The far end':'Slab '+(n+1)+' <span style="font:400 12.5px var(--mono);color:var(--ink-soft)">of '+NOCC+'</span>')+'</div>'+
+      '<dt>Time walked<small>the corridor is as long as this</small></dt><dd>'+f1(E.t[0])+'</dd>'+
+      '<dt>This slab so far</dt><dd>'+(R2.finished?'·':f2(E.t[0]-E.tlast[0]))+'</dd>'+
+      '<dt>Last slab<small>one finished occasion</small></dt><dd>'+(g.length?f2(g[g.length-1]):'·')+'</dd>'+
+      '<dt class="opt">Seed carried m</dt><dd class="opt">'+f2(E.m[0])+'</dd>'+
+      '<dt>Ahead of the edge</dt><dd>nothing yet</dd>';
+    if(R2.many){ let lo=1e9, hi=0; for(let k=0;k<NWALK;k++){ lo=Math.min(lo,E.t[k]); hi=Math.max(hi,E.t[k]); } h+='<div class="sec">Twelve walkers</div><dt>Their edges stand at</dt><dd>'+f1(lo)+' to '+f1(hi)+'</dd><div class="wide" style="color:var(--ink-soft)">Each has a leading edge of their own. There is no one edge for all.</div>'; }
+    h+='<div class="rule">'+(R2.finished?'Grown or always there: the same hash.':'The past is stone. The edge is light.')+'</div>'; }
+  else { const q=R3.q, m=R3.m(), err=m-R3.w(0), mse=LAB.mseTheory(q,R3.noise), bq=LAB.bestQ(R3.noise), bm=LAB.mseTheory(bq,R3.noise), ms=TEST?null:R3.measured(), rs=R3.rcache[R3.M];
+    h='<div class="big">q = '+(q>=.99?q.toFixed(3):q.toFixed(2))+'</div>'+
+      '<dt>What you hold is about<small>mean age q / (1 − q)</small></dt><dd>'+(q<=0?'0':(q/(1-q)<10?f1(q/(1-q)):Math.round(q/(1-q))))+' steps old</dd>'+
+      '<dt>You are off by, now</dt><dd>'+f2(Math.abs(err))+'</dd>'+
+      '<dt>Typical error<small>formula · measured</small></dt><dd>'+f2(Math.sqrt(mse))+(ms===null?'':' · '+f2(Math.sqrt(ms)))+'</dd>'+
+      '<dt class="opt">Error squared, against best</dt><dd class="opt">'+(bm>0?(mse/bm<10?f1(mse/bm):Math.round(mse/bm))+' times':(mse>0?'the best is exact':'exact'))+'</dd>'+
+      '<dt>Best q for this pane</dt><dd>q = '+f2(bq)+'</dd><div class="wide opt">'+curve()+'</div>'+
+      '<div class="sec">Mass (the ring below)</div><dt>Spread of gaps<small>standard deviation / mean</small></dt><dd>'+(rs?f2(rs.cv):'counting…')+'</dd>'+
+      '<dt>Speed at a cut<small>against the next gap</small></dt><dd>'+(rs?f2(rs.corr_speed):'·')+'</dd>'; }
+  readEl.innerHTML=h; }
+function verdict(){ const out=[]; for(let j=0;j<2;j++){ const p=R1.answers(j,'pen'), s=R1.answers(j,'snuff'); out.push(SIDE[j]+' lantern: '+(p&&!s?'answers only to the pen. Its future reads the ledger.':s&&!p?'answers only to the snuffer. Something in the flame endures.':p&&s?'answers to both.':'answers to neither.')); } return out.join('<br>'); }
+
+/* the cards */
+let TWIN=null;
+const lagRow=(name,a,cls)=>'<tr'+(cls?' class="'+cls+'"':'')+'><td>'+name+'</td>'+a.map(x=>'<td>'+(typeof x==='number'?f3(x):x)+'</td>').join('')+'</tr>';
+function card1(){ const L=LAB.LENS, P=R1.lens; if(!TWIN) TWIN=LAB.twins(0.7,0.5,120000,5); const tw=TWIN, none=LAB.twinTheory(0.7,-0.3);
+  let h='<button class="x" type="button" data-close="card">Close</button><h2>The forger’s room</h2>'+
+  '<p>Two lanterns blink with the same uneven rhythm. They are two toy worlds built by the metaphysical lens of the library’s colloquy.</p>'+
+  '<ul><li><b>A record is inherited.</b> Each gap between blinks is written in the ledger. A running mix of the ledger (the seed, keeping 0.7 of the old each time) sets the pace of the next gap. Everything else is drawn afresh at the dark instant. Nothing but the record gets across.</li>'+
+  '<li><b>Something endures.</b> Nothing reads the ledger. A slow ember inside the flame simply lasts from blink to blink.</li></ul>'+
+  '<h3>Watching</h3><p>A list of gaps cannot say which lantern is which. The table gives the echo: the correlation between a gap and the gap one, two, three and four later, over 33,000 gaps.</p>'+
+  '<table><tr><th></th><th>lag 1</th><th>lag 2</th><th>lag 3</th><th>lag 4</th></tr>'+
+  lagRow('Record, lens’s run',L.W.lag)+lagRow('Ember (second tuning), lens’s run',L.E2r.lag)+lagRow('Ember (first tuning), lens’s run',L.E2.lag,'bad');
+  if(P) h+=lagRow('Record, run on this page',[P.W.lag1,P.W.lag2,P.W.lag3,P.W.lag4])+lagRow('Ember (second tuning), this page',[P.E2r.lag1,P.E2r.lag2,P.E2r.lag3,P.E2r.lag4])+lagRow('Ember (first tuning), this page',[P.E2.lag1,P.E2.lag2,P.E2.lag3,P.E2.lag4],'bad');
+  h+='</table>'+(P?'':'<p class="soft">Press “Run the lens’s test here” to work the same table out on this page, with this page’s own random numbers. It takes a few seconds.</p>')+
+  '<p><b>A prediction that failed.</b> The lens wrote down, before scoring it, that its first ember lantern would match the record lantern within 0.04 at each of the four lags. It did not: it came out about 0.06 too high at every lag'+(P?' (on this page the largest miss is '+f3(P.gapFirst)+', so the prediction '+(P.P8?'would have held here':'fails here too')+')':'')+'. The lantern on this bench is a second tuning, made after seeing the miss. It comes within '+f3(L.followupGap)+' in the lens’s run'+(P?' and within '+f3(P.gapRetuned)+' on this page':'')+'. The lens says plainly that this is not a passed prediction: “a mimic exists, but I did not hit it blind.”</p>'+
+  '<p class="soft">Their average tempo differs a little (about 3.6 time units against 3.4). The lens tuned the echo, not the tempo. Tempo cannot say which kind of world you have either: the drive is a free dial in both.</p>'+
+  '<h3>Touching</h3><p><b>The forger’s pen</b> writes a gap from somewhere else into the ledger in place of the true one. <b>The snuffer</b> puts the flame out at the dark instant and relights it, so everything inside the flame is drawn afresh. Each lantern answers to one tool only. In the lens’s run, forging took the record lantern’s echo from 0.135 to 0.026'+(P?' (on this page, to '+f3(P.Wforged.lag1)+')':'')+'. Scrubbing leaves it alone, because that lantern redraws its flame at every blink anyway. For the ember lantern it is the other way round: there is no reader of the ledger to fool, and scrubbing'+(P?' takes its echo to '+f3(P.E2rScrubbed.lag1)+' on this page.':' takes its echo to nothing, by construction.')+'</p>'+
+  '<p>So, in this toy, observation could not say what persists, and an intervention did.</p>'+
+  '<p class="soft">The numbers beside the lanterns come from '+CROWD_N+' unseen copies of each lantern, run fast, counted from the moment you last moved a tool. The lantern you see is one more copy at walking pace.</p>'+
+  '<h3>The twins (from the mathematical lens)</h3><p>Is the likeness an accident of tuning? In the simplest case it is exact. Take a seed world where the gap is a straight-line function of the seed plus Gaussian noise, with keep q and slope b. Whenever b lies between 0 and 1, there is an enduring world (a hidden state that lasts, read through noise) whose list of gaps follows the same law at every order, not only in its echoes. Worked here for q = 0.7, b = 0.5, over 120,000 steps:</p>'+
+  '<table><tr><th></th><th>lag 1</th><th>lag 2</th><th>lag 3</th><th>variance</th></tr>'+lagRow('Seed world',tw.seed.acf.concat([tw.seed.variance]))+lagRow('Enduring twin',tw.endure.acf.concat([tw.endure.variance]))+lagRow('Formula',tw.theory.acf.concat([tw.theory.variance]))+'</table>'+
+  '<p>Outside that range there is no twin: for b = −0.3 the twin would need a state variance of '+f3(none.stateVar)+', which is not a variance. For lanterns like the two on the bench, whose gaps are waiting times and not Gaussian, the mathematical lens could show the match only for echoes, and says so.</p>'+
+  '<h3>What this is not</h3><p>The record lantern is CRR’s seed with one rule added by the lens (the redraw), so it is the lens’s variant, not the owner’s CRR. Neither lantern is a claim about any real thing. The fair lesson is narrow: a seed that fits a list of gaps is not evidence that anything perished, and a hidden lasting state that fits is not evidence that anything endured.</p>';
+  return h; }
+function card2(){ const g=R2.grown, b=R2.block;
+  return '<button class="x" type="button" data-close="card">Close</button><h2>Standing on the block</h2>'+
+  '<p>The corridor lays itself under you. Each slab is one finished occasion of a toy loop (the record lantern of room 1), and it is as long as that occasion took. The frame at each joint is the cut: a moment, with nothing in it. Each lamp takes its colour from the seed carried across that cut. Ahead of the leading edge the page holds nothing at all: the next random number has not been drawn.</p>'+
+  '<h3>From outside</h3><p>At the far end you see the same corridor as one finished object. The page then makes it a second time, all at once: every random number is drawn before the first step and only read out afterwards. Two cards, one hash'+(g?' ('+g.hash.slice(0,16)+')':'')+'. Every measurement taken inside the walk is the same: '+(g?g.slabs+' slabs, total length '+g.total.toFixed(4)+' against '+b.total.toFixed(4)+', echo '+f3(g.lag1)+' against '+f3(b.lag1)+'.':'the number of slabs, their lengths, their echo.')+'</p>'+
+  '<p>It had to come out so. The toy has no term that could tell a corridor that grew from one that was always there. The lens says of this check that it “cannot fail unless I blunder”. That is the point of the room, and it is also why the room is not evidence for either picture.</p>'+
+  '<h3>What Phoenix says</h3><p>Phoenix is the owner’s own record of CRR. It files the growing block (the past has content, the future has none) as <b>ONTOLOGY</b>: an interpretation, a stance. It records that every experiment run so far comes out byte-identical under a growing block and under a plain block, and marks the question <b>NOT DECIDABLE</b>. Of commitments of this kind it says: “intact because it has not been tested”.</p>'+
+  '<p><b>The growing block did not fail.</b> What failed in Phoenix’s record were formal bridges built near it: the half-turn cut as an empty, predictive event, and a regeneration law with no free dial. Untested is not failed. It is a stance you may stand on. This room cannot tell you whether to.</p>'+
+  '<h3>Many walkers</h3><p>Press “Many walkers” and eleven more corridors appear, each with a walker keeping their own time. Each has a leading edge of their own, and nothing in the room picks out one edge for all of them. The toy does not need one: it can move the walkers on in any order, each at any pace, and every corridor comes out the same (the tests check this with hashes). This is CRR’s local now: an edge for each loop, and no edge for the world.</p>'+
+  '<p class="soft">These walkers never touch. If they signalled one another with a delay, “who cut first” might depend on where you stand. The lens leaves that as an open question, and so does this room. The other walkers’ paces are arbitrary.</p>'; }
+function card3(){ const L=LAB.LENS.toy1, mine=LAB.toy1(1,200000,21), per=LAB.toy1(0,200000,21); let rows='';
+  for(let i=0;i<LAB.QS.length;i++) rows+='<tr><td>'+LAB.QS[i]+'</td><td>'+L.mse[i].toFixed(4)+'</td><td>'+mine.mse[i].toFixed(4)+'</td><td>'+LAB.mseTheory(LAB.QS[i],1).toFixed(4)+'</td><td>'+per.mse[i].toFixed(4)+'</td></tr>';
+  const T=LAB.LENS.toy2; let rr=''; for(const M of [0,1,3]){ const c=R3.rcache[M]; rr+='<tr><td>'+M+'</td><td>'+T[M].cv.toFixed(2)+'</td><td>'+(c?c.cv.toFixed(2):'·')+'</td><td>'+f2(T[M].corr)+'</td><td>'+(c?f2(c.corr_speed):'·')+'</td></tr>'; }
+  return '<button class="x" type="button" data-close="card">Close</button><h2>The thick present</h2>'+
+  '<blockquote>I carry mass. So I experience time. The fep smooths it. Crr is ontological empty now. Like it feels like I\'m remembering this. Lucky to be here. You know...constrained to have an experience at all. Otherwise I\'d be everywhere all at once or nowhere at all.</blockquote>'+
+  '<p>The museum’s owner wrote this during the colloquy. The metaphysical lens read it as two claims that do not quarrel. The edge of the block has no content: that is about what there is. No finite being meets that edge bare; what it has is always inherited: that is about experience. Then the lens built a toy of the second claim. You are standing in it.</p>'+
+  '<h3>The pane</h3><p>A world value drifts (a random walk, 0.1 a step). You see it only through a frosted pane: every reading is off by about 1. You keep one number, by CRR’s seed rule: new = q × old + (1 − q) × reading. The bright bar is that number. The soft band round it is your typical error. The lit beads behind the pane are the moments you still hold, each as bright as it counts.</p>'+
+  '<ul><li><b>No memory, q = 0.</b> You have only the noisy instant. The bar jitters. This is the owner’s “nowhere”. The lens found the error '+L.ratio_q0+' times the best (here '+mine.ratio_q0.toFixed(1)+').</li>'+
+  '<li><b>Endless memory, q = 0.999.</b> You hold an average of everything you ever saw: a smear of all times. “Everywhere all at once.” The lens found '+L.ratio_q999+' times the best (here '+mine.ratio_q999.toFixed(1)+'; the formula gives '+(LAB.mseTheory(.999,1)/LAB.mseTheory(.9,1)).toFixed(1)+').</li>'+
+  '<li><b>In between, q = 0.9.</b> Here you see the world best. What you hold is on average 9 steps old. The best available now is a memory: “it feels like I’m remembering this”.</li>'+
+  '<li><b>Clear the pane.</b> With no frost the best q is 0. An observer with a perfect ruler has no use for a past.</li></ul>'+
+  '<table><tr><th>q</th><th>lens’s run</th><th>this page</th><th>formula</th><th>clear pane</th></tr>'+rows+'</table>'+
+  '<p class="soft">Mean square error in knowing the present value, 200,000 steps. This is standard filtering (J. F. Muth, 1960; the steady Kalman filter; both from memory). The formula is (0.01 q² + frost² (1 − q)²) / (1 − q²); it puts the best q at 0.905.</p>'+
+  '<h3>Mass</h3><p>CRR’s plain rotor has no mass. Section IV of the owner’s core file gives an inertial form. The lens ran it with a constant mass M: <code>M s″ + s′ = drive + noise</code>, with a cut at every half-turn. The ring below the pane is that rotor, and the strip beside it is its speed, with a tick at each cut.</p>'+
+  '<table><tr><th>M</th><th>spread, lens</th><th>spread, here</th><th>speed at cut against next gap, lens</th><th>here</th></tr>'+rr+'</table>'+
+  '<p>Heavier, and the gaps steady: the spread falls from 0.42 to 0.28 as M goes from 0 to 3. And the speed at a cut tells you the next gap. Momentum is a second thing that runs straight through every cut. So in the toy, mass smooths and carries.</p>'+
+  '<p><b>A prediction that failed.</b> The lens expected the rotor with no mass to carry nothing across the cut (a correlation within 0.05 of zero). It found −0.12. Its “fast” noise still lasts about 0.2 time units, so even the massless rotor carries a little.</p>'+
+  '<h3>What resists</h3><p>In the lens’s own words:</p>'+
+  '<blockquote>The box has no term for experience, so every step from “filter” to “feels” is the owner’s, not the mathematics’. “The fep smooths it” is an analogy to inference over a window; nothing in R1 to R6 derives it. And the toy shows that finitude makes a <em>good estimator</em>. It does not show that it makes a perspective.</blockquote>'+
+  '<p>Two more cautions from the colloquy. The seed in CRR updates only at cuts, while felt time does not come in steps. And the short lag in perception follows from any finite body under any view of time, so it cannot count in favour of the growing block. The contemplative lens ends where the owner does: “lucky to be here” is a fair thing to say from inside it.</p>'; }
+function buildAbout(){ $('about').innerHTML='<button class="x" type="button" data-close="about">Close</button><h2>About this piece</h2>'+
+  '<p><b>Toy models of one lens’s argument and of the owner’s picture. Not evidence about the world.</b></p>'+
+  '<p>Coherence, Rupture, Regeneration (CRR) is the framework of the museum’s owner. The library behind this door held a colloquy on it through six lenses. This piece builds the two rooms the metaphysical lens proposed, and its answer to a note the owner wrote. Nothing here shows CRR to be right or wrong.</p>'+
+  '<h3>The models</h3><ul>'+
+  '<li><b>The loop</b> (rooms 1 and 2): a phase driven at rate 1 by a correlated random force, <code>ζ(m) ds/dt = 1 + η</code>, with a cut each time the phase has gained π. The gap is the content; the seed is <code>m′ = q m + (1 − q) gap</code>; friction <code>ζ = 1 + κ tanh(m − π)</code>. Record lantern: η redrawn at every cut, q = 0.7, κ = 0.2. Ember lantern: κ = 0, a fast force redrawn at every cut (spread 0.33) and a slow one that is never redrawn (spread 0.125, rate 0.03). Euler steps of 0.01.</li>'+
+  '<li><b>The corridor</b> (room 2): twelve copies of the record loop, seed 5, sixty occasions each, one metre for about 1.1 time units. The hash is SHA-256 of the sixty gaps as 64-bit numbers.</li>'+
+  '<li><b>The pane</b> (room 3): random walk, step 0.1; reading noise 1 (the frost slider scales it); the seed rule above with the reading as content; eight steps a second; the last 8,192 readings are kept so that any q can be shown from the same past.</li>'+
+  '<li><b>The rotor</b> (room 3): <code>M s″ + s′ = 1 + η</code>, η with rate 5 and spread 1.2, Euler steps of 0.005, a cut each half-turn.</li></ul>'+
+  '<h3>What this leaves out</h3><p>Any term for experience: the pane makes you a good estimator and nothing more. Any test against the world: no data are used in this piece. The lens’s other checks on the two lanterns (the fitted seed, and the speed just before a cut) are not rerun here. Walkers who affect one another. A seed that updates between cuts. Mass that varies with the phase, which the owner’s inertial form allows. The random numbers are this page’s own, so its figures match the lens’s to about the second decimal and not digit for digit. Which lantern stands on which side is chosen afresh on each visit. Nothing is stored or sent.</p>'+
+  '<h3>Sources</h3><p>The colloquy’s papers and scripts in the library: the metaphysical lens, rounds one and two (<code>rival_readings.py</code>, <code>r2_thick_present.py</code>); the mathematical lens, round two (the twins); the synthesis, “On the owner’s own picture”. Phoenix: the metaphysical core review of 7 October 2026 and its status paragraph. J. F. Muth, Journal of the American Statistical Association 55 (1960) and R. E. Kalman, Journal of Basic Engineering 82 (1960), both from memory. The growing block is usually credited to C. D. Broad (1923), also from memory. Sound is made in the browser. Drawn with three.js (MIT licence).</p>'; }
+buildAbout();
+const CARD={1:card1,2:card2,3:card3};
+const SHEETS=['card','about'], BTN={card:'cardBtn',about:'aboutBtn'};
+function sheet(id,on,quiet){ for(const k of SHEETS){ const show=(k===id)&&on; $(k).hidden=!show; $(BTN[k]).setAttribute('aria-expanded',show?'true':'false'); }
+  if(on){ if(id==='card') $('card').innerHTML=CARD[room](); const bar=$('bar').offsetHeight+28; $(id).style.maxHeight=Math.max(180,window.innerHeight-60-bar)+'px'; if(!quiet) $(id).focus(); } else if(!quiet) $(BTN[id]).focus(); layout(); }
+function openSheet(){ for(const k of SHEETS) if(!$(k).hidden) return k; return null; }
+for(const k of SHEETS) $(BTN[k]).onclick=()=>sheet(k,$(k).hidden);
+document.addEventListener('click',e=>{ const c=e.target&&e.target.getAttribute&&e.target.getAttribute('data-close'); if(c) sheet(c,false); });
+function showCards(){ const g=R2.grown, b=R2.block, el=$('cards'); if(!(room===2 && R2.finished && R2.outside && g)){ el.hidden=true; return; }
+  const one=(t,s,x)=>'<div class="c"><h3>'+t+'</h3><span>'+s+'</span><code>'+x.hash.slice(0,32)+'<br>'+x.hash.slice(32)+'</code>'+x.slabs+' slabs · length '+x.total.toFixed(3)+' · echo '+f3(x.lag1)+'</div>';
+  el.innerHTML=one('Grown','Laid slab by slab as you walked. Each random number was drawn when it was needed.',g)+one('Always there','Made all at once. Every random number was drawn before the first step.',b)+
+    '<p class="s">'+(g.hash===b.hash?'The same hash. No measurement taken inside the walk tells them apart. Which one you are standing on is a stance.':'The hashes differ. That would be a fault in this page.')+'</p>'; el.hidden=false; layout(); }
+function layout(){ const bh=$('bar').offsetHeight, narrow=window.innerWidth<=760; readEl.style.bottom=narrow?(bh+16)+'px':''; $('cards').style.bottom=(bh+(narrow?12:30))+'px';
+  readEl.style.visibility=(narrow && (!$('cards').hidden || openSheet()))?'hidden':''; }
+
+/* controls */
+let onRoom=null, onReset=null;
+function setPlay(v){ playing=v; $('play').textContent=playing?'Pause':'Play'; dirty=true; }
+$('play').onclick=()=>setPlay(!playing);
+$('sound').onclick=()=>{ soundOn=!soundOn; if(soundOn) audioStart(); if(AU.ctx&&AU.ctx.state==='suspended') AU.ctx.resume(); $('sound').setAttribute('aria-pressed',soundOn?'true':'false'); };
+function tools(){ $('penL').setAttribute('aria-pressed',R1.pen===0?'true':'false'); $('penR').setAttribute('aria-pressed',R1.pen===1?'true':'false'); $('snuffL').setAttribute('aria-pressed',R1.snuff===0?'true':'false'); $('snuffR').setAttribute('aria-pressed',R1.snuff===1?'true':'false'); }
+function setTool(kind,j){ R1.setTool(kind,j); tools(); if(!playing) setPlay(true); dirty=true; hud(true);
+  const at=R1[kind]; say(kind+at+R1.t.toFixed(1), at<0 ? '<b>'+(kind==='pen'?'Pen':'Snuffer')+'</b>Put down. The count starts again.'
+    : kind==='pen' ? '<b>Pen</b>At each blink of the '+SIDE[at].toLowerCase()+' lantern, a gap from somewhere else is written in its ledger. Watch its echo.'
+    : '<b>Snuffer</b>At each dark instant the '+SIDE[at].toLowerCase()+' flame is put out and relit, so nothing inside it lasts. Watch its echo.',true); }
+$('penL').onclick=()=>setTool('pen',0); $('penR').onclick=()=>setTool('pen',1); $('snuffL').onclick=()=>setTool('snuff',0); $('snuffR').onclick=()=>setTool('snuff',1);
+let lensBusy=false;
+$('lensBtn').onclick=function(){ if(lensBusy) return; if(R1.lens){ sheet('card',true); return; } lensBusy=true; const res=[], names=['the record lantern','the first ember lantern','the second ember lantern','the forged record','the scrubbed ember']; let i=0;
+  (function next(){ if(i>=R1.lensSteps.length){ R1.lensDone(res); lensBusy=false; $('lensBtn').textContent='The lens’s test: see the table'; say('lensdone','<b>Done</b>Five worlds, 33,000 gaps each. The first ember lantern misses by '+f3(R1.lens.gapFirst)+', as it did for the lens. The table is on the card.',true); sheet('card',true,true); return; }
+    say('lens'+i,'<b>Working</b>Running '+names[i]+' ('+(i+1)+' of 5)…',true); setTimeout(()=>{ const s=R1.lensSteps[i]; res.push(LAB.stats(LAB.run(s[0],s[1]))); i++; next(); },60); })(); };
+function setAuto(v){ R2.auto=v; if(v && !playing) setPlay(true); $('auto').setAttribute('aria-pressed',v?'true':'false'); }
+$('auto').onclick=()=>setAuto(!R2.auto);
+$('look').onclick=()=>{ R2.look=!R2.look; $('look').setAttribute('aria-pressed',R2.look?'true':'false'); dirty=true; };
+$('many').onclick=()=>{ R2.many=!R2.many; $('many').setAttribute('aria-pressed',R2.many?'true':'false'); dirty=true; hud(true);
+  if(R2.many) say('many'+vt,'<b>Local now</b>Eleven more walkers, each keeping their own time. Each has a leading edge. There is no one edge for all.',true); };
+function setOutside(v){ if(v && !R2.finished) return; R2.outside=v; $('outside').setAttribute('aria-pressed',v?'true':'false'); showCards(); dirty=true;
+  if(v) say('outside','<b>From outside</b>The same corridor, as one finished object. It was made again all at once. Two cards, one hash.',true); }
+$('outside').onclick=()=>setOutside(!R2.outside);
+$('again').onclick=()=>{ R2.reset(); setAuto(false); $('outside').disabled=true; setOutside(false); R2.look=false; $('look').setAttribute('aria-pressed','false'); if(onReset) onReset(); showCards(); dirty=true; hud(true);
+  say('start2'+vt,'<b>Walk</b>Hold Walk, or the up arrow. The floor is laid only as far as you have gone.',true); };
+function holdBtn(id){ const b=$(id); const on=()=>{ input.held=1; if(!playing) setPlay(true); }, off=()=>{ input.held=0; };
+  b.addEventListener('pointerdown',e=>{ on(); try{ b.setPointerCapture(e.pointerId); }catch(_){} }); b.addEventListener('pointerup',off); b.addEventListener('pointercancel',off); b.addEventListener('lostpointercapture',off);
+  b.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){ on(); e.preventDefault(); } }); b.addEventListener('keyup',e=>{ if(e.key===' '||e.key==='Enter') off(); }); b.addEventListener('blur',off); }
+holdBtn('fwd');
+let rotorTimer=0;
+function rotorStat(){ clearTimeout(rotorTimer); if(R3.M in R3.rcache) return; if(TEST){ return; } rotorTimer=setTimeout(()=>{ R3.rstat(); hud(true); },260); }
+function setOut(){ $('oq').textContent=R3.q>=.99?R3.q.toFixed(3):R3.q.toFixed(2); $('om').textContent=R3.M.toFixed(2); $('of').textContent=R3.noise.toFixed(2); }
+function tellQ(){ const q=R3.q, bq=LAB.bestQ(R3.noise);
+  if(R3.noise<=0) say('clear'+(q<=0),'<b>Clear pane</b>'+(q<=0?'Nothing between you and the world, and nothing kept. You are exactly right. An observer like this needs no past.':'The pane is perfect now, so everything you keep from before only holds you back. The best q is 0.'),true);
+  else if(q<=0.02) say('q0','<b>Nowhere</b>No memory. You have only the noisy instant, and the bar jitters with it.',true);
+  else if(q>=0.995) say('q1','<b>Everywhere at once</b>Near-endless memory. You hold an average of all you ever saw: a smear of all times, far from where the world is now.',true);
+  else if(Math.abs(q-bq)<0.03) say('qb','<b>Here</b>About '+Math.round(q/(1-q))+' steps of past. You see the world best here, and what you see is slightly in the past.',true);
+  else if(q<bq) say('qlo','<b>Thin</b>Too little kept. The frost shakes the picture more than the world moves.',true);
+  else say('qhi','<b>Thick</b>Too much kept. The picture is steady, and it is of where the world used to be.',true); }
+$('q').oninput=e=>{ R3.k=+e.target.value; R3.q=R3.qOf(R3.k); setOut(); tellQ(); dirty=true; hud(true); };
+$('frost').oninput=e=>{ R3.noise=+e.target.value; setOut(); tellQ(); dirty=true; hud(true); };
+$('mass').oninput=e=>{ R3.setM(+e.target.value); setOut(); rotorStat(); dirty=true; hud(true);
+  say('m'+R3.M, R3.M<=0 ? '<b>No mass</b>The plain rotor. Its speed is whatever the noise is this instant, and the gaps are ragged.' : '<b>Mass '+R3.M.toFixed(2)+'</b>The speed can no longer jump. It sails through each cut, and the gaps steady.',true); };
+function setRoom(n,quiet){ if(n===room && !quiet) return; const go=()=>{ room=n; for(let i=1;i<=3;i++){ $('tab'+i).setAttribute('aria-pressed',i===n?'true':'false'); $('row'+i).hidden=i!==n; }
+    $('sub').textContent=SUB[n]; $('wall').hidden=n!==3; const o=openSheet(); if(o==='card') $('card').innerHTML=CARD[n](); if(n===3) rotorStat(); showCards(); layout(); if(onRoom) onRoom(); dirty=true; hud(true);
+    if(n===1) say('r1'+vt,'<b>Watch</b>Two lanterns blink with the same uneven rhythm. One hands on a written record. In the other something simply lasts. Which is which?',true);
+    if(n===2) say('r2'+vt, R2.finished?'<b>The far end</b>Step outside to see the walk as one finished thing.':'<b>Walk</b>Hold Walk, or the up arrow. The floor is laid only as far as you have gone.',true);
+    if(n===3) say('r3'+vt,'<b>Look</b>Amber bar: what you hold. White bead: the world now. Blue: your last readings. The beads going back are the world\u2019s past, each lit by how much it still counts. Now move Keep q.',true); canvas.style.opacity=1; };
+  if(quiet||TEST||STILL){ go(); } else { canvas.style.opacity=0; setTimeout(go,230); } }
+for(let i=1;i<=3;i++) $('tab'+i).onclick=()=>setRoom(i);
+let yaw=0, pitch=0, drag=null;
+canvas.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY,yaw:yaw,pitch:pitch}; canvas.classList.add('dragging'); try{ canvas.setPointerCapture(e.pointerId); }catch(_){} canvas.focus(); });
+canvas.addEventListener('pointermove',e=>{ if(!drag) return; const lim=room===2?1.5:.3; yaw=clamp(drag.yaw-(e.clientX-drag.x)*.004,-lim,lim); pitch=clamp(drag.pitch-(e.clientY-drag.y)*.003,-.35,.35); dirty=true; });
+function dragEnd(){ drag=null; canvas.classList.remove('dragging'); }
+canvas.addEventListener('pointerup',dragEnd); canvas.addEventListener('pointercancel',dragEnd); canvas.addEventListener('lostpointercapture',dragEnd);
+function free(){ const a=document.activeElement; return !a || a===document.body || a===canvas; }
+window.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ const o=openSheet(); if(o){ sheet(o,false); return; } if(free()) goBack(); return; }
+  if(e.key==='Shift') input.hurry=true;
+  if(!free()) return; const k=e.key.toLowerCase(); let used=true;
+  if(k==='1'||k==='2'||k==='3') setRoom(+k);
+  else if((k==='arrowup'||k==='w') && room===2){ input.fwd=1; if(!playing) setPlay(true); }
+  else if(k==='arrowleft'||k==='a') input.yawL=1; else if(k==='arrowright'||k==='d') input.yawR=1;
+  else if(k==='b' && room===2) $('look').click(); else if(k===' ') $('play').click(); else used=false;
+  if(used) e.preventDefault(); });
+window.addEventListener('keyup',e=>{ const k=e.key.toLowerCase(); if(e.key==='Shift') input.hurry=false; if(k==='arrowup'||k==='w') input.fwd=0; if(k==='arrowleft'||k==='a') input.yawL=0; if(k==='arrowright'||k==='d') input.yawR=0; });
+window.addEventListener('blur',()=>{ input.fwd=input.yawL=input.yawR=input.held=0; input.hurry=false; });
+window.addEventListener('resize',layout);
+
+/* model events, and the clock */
+let onBlink=null, onSlab=null;
+function drain(){
+  for(const ev of R1.events){ if(room===1) sBlink(ev); if(onBlink) onBlink(ev); } R1.events.length=0;
+  for(const ev of R2.events){ if(ev.type==='slab'){ sSlab(ev); if(onSlab) onSlab(ev);
+      if(ev.n===1) say('slab1','<b>A cut</b>One occasion is finished. It is stone now, and a frame stands where it ended. There is nothing in the frame.',true);
+      else if(ev.n===4) say('slab4','<b>Look back</b>Everything behind you is lit and settled. Ahead there is no floor, because nothing there has happened.');
+      else if(ev.n===Math.floor(NOCC/2)) say('half','<b>Half way</b>The lamps take their colour from what was carried over each cut: a mix of the old and the slab just laid.'); }
+    else if(ev.type==='end'){ sEnd(); setAuto(false); $('outside').disabled=false; say('end','<b>The far end</b>Sixty slabs. Now see the same walk from outside.',true); setTimeout(()=>{ if(R2.finished && !R2.outside) setOutside(true); }, TEST?0:2600); } }
+  R2.events.length=0;
+  for(const ev of R3.events){ if(ev.type==='rcut' && room===3) sRcut(); } R3.events.length=0; }
+function advance(sec){ const n=Math.max(1,Math.round(sec*120)), h=sec/n;
+  for(let i=0;i<n;i++){ if(room===1) R1.advance(h); else if(room===2) R2.advance(h,walkNow()); else R3.advance(h); }
+  vt+=sec; drain(); }
+
+function baseState(){ const e=[R1.echo(0),R1.echo(1)], E=R2.ens, q=R3.q;
+  return { name:'deep-block', frame:frame, step:R1.blinks[0]+R1.blinks[1]+E.count[0]+R3.n, room:room, playing:playing, still:STILL, low:LOW, back:BACK, from:FROM, stop:STOP, sound:soundOn, snd:Object.assign({},SND), sheet:openSheet(), note:noteKey,
+    r1:{ worlds:R1.worlds.slice(), pen:R1.pen, snuff:R1.snuff, echo:e.map(x=>x?x.r:null), pairs:e.map(x=>x?x.n:0), mean:e.map(x=>x?x.mean:null), cv:e.map(x=>x?x.cv:null), blinks:R1.blinks.slice(), cond:[R1.cond(0),R1.cond(1)],
+      table:JSON.parse(JSON.stringify(R1.table)), answers:[0,1].map(j=>({pen:R1.answers(j,'pen'),snuff:R1.answers(j,'snuff')})), revealed:R1.revealed, crowd:CROWD_N, lens:R1.lens, ledger:R1.ledger.map(L=>L.map(x=>Object.assign({},x))) },
+    r2:{ t:E.t[0], N:E.count[0], nocc:NOCC, m:E.m[0], sNow:E.s[0], finished:R2.finished, outside:R2.outside, many:R2.many, look:R2.look, auto:R2.auto, walk:walkNow(), edges:Array.from(E.t), counts:Array.from(E.count),
+      cuts:R2.cuts[0].slice(), grown:R2.grown, block:R2.block, same:!!(R2.grown&&R2.block&&R2.grown.hash===R2.block.hash), cards:!$('cards').hidden },
+    r3:{ k:R3.k, q:q, age:q/(1-q), noise:R3.noise, M:R3.M, n:R3.n, m:R3.m(), w:R3.w(0), err:R3.m()-R3.w(0), mseTheory:LAB.mseTheory(q,R3.noise), bestQ:LAB.bestQ(R3.noise), rotorT:R3.rot.t[0], rotorCuts:R3.rot.gaps[0].length, rotorV:R3.rot.v[0], wall:!$('wall').hidden } }; }
+const API={ name:'deep-block', lab:LAB, R1:R1, R2:R2, R3:R3,
+  advance(sec){ advance(sec); hud(true); dirty=true; return baseState(); },
+  room(n){ setRoom(n,true); return baseState(); },
+  tool(kind,j){ setTool(kind,j); return baseState(); },
+  crowd(tu){ R1.crowdRun(tu); hud(true); return baseState(); },
+  lensTest(){ const L=R1.lensTest(); hud(true); return L; },
+  finish(){ R2.finishNow(); drain(); hud(true); dirty=true; return baseState(); },
+  measured(){ return R3.measured(); }, rotorStat(M){ const r=R3.rstat(M); hud(true); return r; },
+  held(q){ return R3.m(q); },
+  state:baseState };
+
+/* ───────────────────────── drawing ───────────────────────── */
+const gl2 = (function(){ try{ return !!document.createElement('canvas').getContext('webgl2'); }catch(e){ return false; } })();
+let draw=null, resize=null, scaleNow=1, budget=TEST&&TEST.budget?TEST.budget:(LOW?3.0e5:1.9e6); const BMAX=LOW?4.2e5:2.6e6, BMIN=1.1e5;
+API.webgl=!!(gl2 && window.THREE);
+if(API.webgl) (function(){
+const THREE=window.THREE;
+const renderer=new THREE.WebGLRenderer({canvas, antialias:false, alpha:false, powerPreference:'high-performance', preserveDrawingBuffer:true});
+renderer.toneMapping=THREE.NoToneMapping; renderer.setClearColor(0x000000,1);
+const HDR=!!renderer.getContext().getExtension('EXT_color_buffer_float') || !!renderer.getContext().getExtension('EXT_color_buffer_half_float');
+const NOISE=`
+float h13(vec3 p){ p=fract(p*.1031); p+=dot(p,p.zyx+31.32); return fract((p.x+p.y)*p.z); }
+float vn(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(mix(h13(i),h13(i+vec3(1,0,0)),f.x),mix(h13(i+vec3(0,1,0)),h13(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(h13(i+vec3(0,0,1)),h13(i+vec3(1,0,1)),f.x),mix(h13(i+vec3(0,1,1)),h13(i+vec3(1,1,1)),f.x),f.y),f.z); }
+float fbm(vec3 p){ float a=.5,s=0.; for(int i=0;i<4;i++){ s+=a*vn(p); p=p*2.03+7.1; a*=.5; } return s; }
+vec3 ramp(float u){ return u<.5?mix(vec3(.42,.6,1.),vec3(1.,.76,.42),u*2.):mix(vec3(1.,.76,.42),vec3(1.,.36,.22),u*2.-1.); }`;
+const rampJS=u=>{ const a=[.42,.6,1], b=[1,.76,.42], c=[1,.36,.22], t=u<.5?u*2:u*2-1, p=u<.5?a:b, q=u<.5?b:c; return [p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,p[2]+(q[2]-p[2])*t]; };
+const seedU=m=>clamp((m-2.85)/1.6,0,1);
+
+/* the last passes: a soft bloom at two widths, tone mapping, a little vignette and grain */
+const pScene=new THREE.Scene(), pCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1), quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2)); quad.frustumCulled=false; pScene.add(quad);
+const PVS=`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`;
+const pm=(u,fs)=>new THREE.ShaderMaterial({depthTest:false, depthWrite:false, uniforms:u, vertexShader:PVS, fragmentShader:fs});
+const mBright=pm({tC:{value:null},uPx:{value:new THREE.Vector2()},uTh:{value:1}},`uniform sampler2D tC; uniform vec2 uPx; uniform float uTh; varying vec2 vUv;
+  void main(){ vec3 c=(texture2D(tC,vUv+uPx*vec2(-1.,-1.)).rgb+texture2D(tC,vUv+uPx*vec2(1.,-1.)).rgb+texture2D(tC,vUv+uPx*vec2(-1.,1.)).rgb+texture2D(tC,vUv+uPx).rgb)*.25;
+    c=min(c,vec3(30.)); float l=max(c.r,max(c.g,c.b)); gl_FragColor=vec4(c*smoothstep(uTh*.5,uTh*1.7,l),1.); }`);
+const mBlur=pm({tC:{value:null},uDir:{value:new THREE.Vector2()}},`uniform sampler2D tC; uniform vec2 uDir; varying vec2 vUv;
+  void main(){ vec3 c=texture2D(tC,vUv).rgb*.227; c+=(texture2D(tC,vUv+uDir*1.385).rgb+texture2D(tC,vUv-uDir*1.385).rgb)*.316; c+=(texture2D(tC,vUv+uDir*3.231).rgb+texture2D(tC,vUv-uDir*3.231).rgb)*.0703; gl_FragColor=vec4(c,1.); }`);
+const mFinal=pm({tC:{value:null},tB:{value:null},tB2:{value:null},uBloom:{value:1},uExpo:{value:1.3},uTime:{value:0}},`uniform sampler2D tC,tB,tB2; uniform float uBloom,uExpo,uTime; varying vec2 vUv;
+  vec3 aces(vec3 x){ return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.); }
+  float hh(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+  void main(){ vec3 c=texture2D(tC,vUv).rgb+(texture2D(tB,vUv).rgb*.55+texture2D(tB2,vUv).rgb*.8)*uBloom; vec2 q=vUv-.5; c*=uExpo*(1.-dot(q,q)*.85);
+    c=aces(c); c=pow(c,vec3(1./2.2)); c+=(hh(gl_FragCoord.xy+uTime*61.)-.5)*.02; gl_FragColor=vec4(c,1.); }`);
+let rt=null, bA=null, bB=null, cA=null, cB=null, PXH=700;
+const cams={1:new THREE.PerspectiveCamera(38,1,.05,60), 2:new THREE.PerspectiveCamera(68,1,.08,1500), 3:new THREE.PerspectiveCamera(40,1,.1,120)};
+function mkRT(w,h,depth){ const t=new THREE.WebGLRenderTarget(Math.max(2,w),Math.max(2,h),{type:HDR?THREE.HalfFloatType:THREE.UnsignedByteType, depthBuffer:!!depth, minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter}); return t; }
+resize=function(){ const cw=canvas.clientWidth||window.innerWidth, ch=canvas.clientHeight||window.innerHeight, dpr=Math.min(window.devicePixelRatio||1,2);
+  const scale=Math.min(dpr,Math.sqrt(budget/(cw*ch))); scaleNow=scale; renderer.setPixelRatio(scale); renderer.setSize(cw,ch,false);
+  const w=Math.max(2,Math.floor(cw*scale)), h=Math.max(2,Math.floor(ch*scale)); PXH=h;
+  for(const t of [rt,bA,bB,cA,cB]) if(t) t.dispose();
+  rt=mkRT(w,h,true); bA=mkRT(w/3|0,h/3|0); bB=mkRT(w/3|0,h/3|0); cA=mkRT(w/9|0,h/9|0); cB=mkRT(w/9|0,h/9|0);
+  for(const k in cams){ cams[k].aspect=cw/ch; cams[k].updateProjectionMatrix(); } layout(); dirty=true; };
+window.addEventListener('resize',resize);
+function pass(mat,target){ quad.material=mat; renderer.setRenderTarget(target); renderer.render(pScene,pCam); }
+function show(scene,camera,expo,bloom,th){ renderer.setRenderTarget(rt); renderer.render(scene,camera);
+  mBright.uniforms.tC.value=rt.texture; mBright.uniforms.uPx.value.set(.5/rt.width,.5/rt.height); mBright.uniforms.uTh.value=th; pass(mBright,bA);
+  mBlur.uniforms.tC.value=bA.texture; mBlur.uniforms.uDir.value.set(1/bA.width,0); pass(mBlur,bB);
+  mBlur.uniforms.tC.value=bB.texture; mBlur.uniforms.uDir.value.set(0,1/bA.height); pass(mBlur,bA);
+  mBlur.uniforms.tC.value=bA.texture; mBlur.uniforms.uDir.value.set(1/cA.width,0); pass(mBlur,cA);
+  mBlur.uniforms.tC.value=cA.texture; mBlur.uniforms.uDir.value.set(0,1/cA.height); pass(mBlur,cB);
+  mBlur.uniforms.tC.value=cB.texture; mBlur.uniforms.uDir.value.set(1.6/cA.width,0); pass(mBlur,cA);
+  mFinal.uniforms.tC.value=rt.texture; mFinal.uniforms.tB.value=bA.texture; mFinal.uniforms.tB2.value=cA.texture; mFinal.uniforms.uBloom.value=bloom; mFinal.uniforms.uExpo.value=expo; mFinal.uniforms.uTime.value=STILL?0:vt; pass(mFinal,null); }
+function vfov(cam,base,baseAspect){ /* keep the same width in view on a narrow screen by opening the lens, up to a point, and then stepping back */
+  const a=cam.aspect, want=a>=baseAspect?base:2*Math.atan(Math.tan(base*Math.PI/360)*baseAspect/a)*180/Math.PI; const f=Math.min(want,74); if(cam.fov!==f){ cam.fov=f; cam.updateProjectionMatrix(); }
+  return Math.tan(want*Math.PI/360)/Math.tan(f*Math.PI/360); }
+const halfH=cam=>PXH/(2*Math.tan(cam.fov*Math.PI/360));
+
+/* small helpers for hand-made textures */
+function hash2(i,j){ let h=Math.imul(i,374761393)+Math.imul(j,668265263)|0; h=Math.imul(h^h>>>13,1274126177); return ((h^h>>>16)>>>0)/4294967296; }
+function vn2(x,y){ const i=Math.floor(x), j=Math.floor(y); let fx=x-i, fy=y-j; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy); return (hash2(i,j)*(1-fx)+hash2(i+1,j)*fx)*(1-fy)+(hash2(i,j+1)*(1-fx)+hash2(i+1,j+1)*fx)*fy; }
+function fbm2(x,y){ let a=.5,s=0; for(let o=0;o<4;o++){ s+=a*vn2(x,y); x=x*2.03+7.1; y=y*2.03+3.3; a*=.5; } return s; }
+function madeTex(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d'), im=x.createImageData(w,h);
+  for(let j=0;j<h;j++) for(let i=0;i<w;i++){ const v=fn(i/w,j/h), o=(j*w+i)*4; im.data[o]=v[0]; im.data[o+1]=v[1]; im.data[o+2]=v[2]; im.data[o+3]=255; }
+  x.putImageData(im,0,0); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; return t; }
+const TS=LOW||TEST?128:256;
+const woodTex=madeTex(TS*2,TS,(u,v)=>{ const g=fbm2(u*5,v*46), r=.5+.5*Math.sin((v*17+fbm2(u*2.2,v*3)*5)*6.283), k=.42+.5*g+.16*r, p=vn2(u*400,v*90)*.12; return [78*k+20*p,46*k+10*p,25*k+4*p]; });
+const plasterTex=madeTex(TS,TS,(u,v)=>{ const k=.62+.5*fbm2(u*7,v*7)+.1*vn2(u*90,v*90); return [92*k,84*k,76*k]; });
+const mesh=(g,m,x,y,z,parent)=>{ const o=new THREE.Mesh(g,m); o.position.set(x||0,y||0,z||0); if(parent) parent.add(o); return o; };
+const HALO_VS=`uniform float uH,uF; attribute vec3 aC; attribute float aS; varying vec3 vC; void main(){ vec4 mv=viewMatrix*modelMatrix*vec4(position,1.); gl_Position=projectionMatrix*mv; float ps=aS*uH/max(-mv.z,.3); float fd=uF*length(mv.xyz); vC=aC*min(1.,ps*ps/6.)*exp(-fd*fd); gl_PointSize=clamp(ps,2.,uH*.5); }`;
+const HALO_FS=`varying vec3 vC; void main(){ vec2 d=gl_PointCoord-.5; float r2=dot(d,d)*4.; float a=exp(-r2*8.)*.9+exp(-r2*2.4)*.14; a*=smoothstep(1.,.7,r2); gl_FragColor=vec4(vC*a,1.); }`;
+function haloPoints(n){ const g=new THREE.BufferGeometry(), P=new Float32Array(n*3), C=new Float32Array(n*3), S=new Float32Array(n);
+  g.setAttribute('position',new THREE.BufferAttribute(P,3).setUsage(THREE.DynamicDrawUsage)); g.setAttribute('aC',new THREE.BufferAttribute(C,3).setUsage(THREE.DynamicDrawUsage)); g.setAttribute('aS',new THREE.BufferAttribute(S,1).setUsage(THREE.DynamicDrawUsage));
+  const o=new THREE.Points(g,new THREE.ShaderMaterial({uniforms:{uH:{value:700},uF:{value:0}}, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, vertexShader:HALO_VS, fragmentShader:HALO_FS})); o.frustumCulled=false; o.renderOrder=5;
+  o.userData={P:P,C:C,S:S,n:0, put(x,y,z,c,g2,s){ const k=this.n; if(k>=n) return; P[k*3]=x; P[k*3+1]=y; P[k*3+2]=z; C[k*3]=c[0]*g2; C[k*3+1]=c[1]*g2; C[k*3+2]=c[2]*g2; S[k]=s; this.n++; },
+    done(){ g.setDrawRange(0,this.n); g.attributes.position.needsUpdate=true; g.attributes.aC.needsUpdate=true; g.attributes.aS.needsUpdate=true; this.n=0; }}; return o; }
+
+/* ── room 1: a bench, two lanterns, two ledgers, a pen and a snuffer ── */
+const S1=new THREE.Scene();
+const r1={};
+(function(){ const wood=new THREE.MeshStandardMaterial({map:woodTex, roughness:.5, metalness:0}), brass=new THREE.MeshStandardMaterial({color:new THREE.Color(.50,.36,.14), roughness:.34, metalness:.55}),
+    dark=new THREE.MeshStandardMaterial({color:new THREE.Color(.03,.027,.025), roughness:.6}), plaster=new THREE.MeshStandardMaterial({map:plasterTex, roughness:.96});
+  woodTex.repeat.set(1.5,1); mesh(new THREE.BoxGeometry(3.6,.08,1.2),wood,0,.86,.05,S1); mesh(new THREE.BoxGeometry(3.6,.16,.05),wood,0,.76,.62,S1);
+  plasterTex.repeat.set(3,2); mesh(new THREE.PlaneGeometry(9,5),plaster,0,1.6,-.62,S1);
+  S1.add(new THREE.HemisphereLight(new THREE.Color(.5,.6,.9),new THREE.Color(.1,.08,.06),.05)); { const fill=new THREE.PointLight(new THREE.Color(.8,.85,1),.5,0,2); fill.position.set(.3,2.6,1.6); S1.add(fill); }
+  const blob=(function(){ const c=document.createElement('canvas'); c.width=c.height=64; const x=c.getContext('2d'), g=x.createRadialGradient(32,32,2,32,32,31); g.addColorStop(0,'rgba(0,0,0,.85)'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.fillRect(0,0,64,64); return new THREE.CanvasTexture(c); })();
+  const shadow=(x,z,sx,sz)=>{ const m=mesh(new THREE.PlaneGeometry(sx,sz),new THREE.MeshBasicMaterial({map:blob, transparent:true, depthWrite:false}),x,.9015,z,S1); m.rotation.x=-Math.PI/2; return m; };
+  r1.flame=[]; r1.glass=[]; r1.light=[]; r1.tex=[]; r1.ctx=[]; r1.lanX=[-.66,.66]; r1.ledX=[-.23,.23];
+  for(let j=0;j<2;j++){ const G=new THREE.Group(); G.position.set(r1.lanX[j],.9,-.06); S1.add(G); shadow(r1.lanX[j],-.06,.34,.34);
+    mesh(new THREE.CylinderGeometry(.088,.098,.03,28),brass,0,.015,0,G); mesh(new THREE.CylinderGeometry(.03,.04,.05,16),brass,0,.05,0,G);
+    for(let i=0;i<4;i++){ const a=i/4*TAU+.785; mesh(new THREE.CylinderGeometry(.0055,.0055,.27,6),brass,Math.cos(a)*.078,.165,Math.sin(a)*.078,G); }
+    mesh(new THREE.CylinderGeometry(.092,.092,.014,28),brass,0,.3,0,G); mesh(new THREE.ConeGeometry(.098,.075,28),brass,0,.345,0,G); mesh(new THREE.CylinderGeometry(.028,.034,.04,16),brass,0,.395,0,G);
+    const ring=mesh(new THREE.TorusGeometry(.04,.005,8,24),brass,0,.455,0,G);
+    r1.glass.push(mesh(new THREE.CylinderGeometry(.072,.072,.262,28,1,true),new THREE.MeshBasicMaterial({color:0x000000, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}),0,.165,0,G));
+    const fl=mesh(new THREE.SphereGeometry(.017,14,10),new THREE.MeshBasicMaterial({color:0xffffff}),0,.115,0,G); fl.scale.set(1,2.1,1); r1.flame.push(fl);
+    const L=new THREE.PointLight(new THREE.Color(1,.62,.3),1,0,2); L.position.set(0,.24,0); G.add(L); r1.light.push(L);
+    /* the ledger, lying open and tipped towards you */
+    const B=new THREE.Group(); B.position.set(r1.ledX[j],1.118,-.36); B.rotation.x=-.2; B.rotation.y=j?-.16:.16; S1.add(B); shadow(r1.ledX[j],-.3,.5,.3);
+    mesh(new THREE.BoxGeometry(.36,.45,.016),dark,0,0,-.012,B);
+    const c=document.createElement('canvas'); c.width=320; c.height=400; const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; r1.tex.push(t); r1.ctx.push(c.getContext('2d'));
+    mesh(new THREE.PlaneGeometry(.32,.41),new THREE.MeshStandardMaterial({map:t, roughness:.92}),0,0,0,B); }
+  /* the pen: its tip is the origin, the holder runs along +y */
+  r1.pen=new THREE.Group(); mesh(new THREE.CylinderGeometry(.0052,.0036,.17,8),dark,0,.115,0,r1.pen); mesh(new THREE.ConeGeometry(.0042,.03,8),brass,0,.015,0,r1.pen).rotation.x=Math.PI; S1.add(r1.pen);
+  /* the snuffer: the mouth of its cup is the origin, the handle runs up and away */
+  r1.snuff=new THREE.Group(); mesh(new THREE.ConeGeometry(.036,.058,20,1,true),new THREE.MeshStandardMaterial({color:new THREE.Color(.50,.36,.14), roughness:.34, metalness:.55, side:THREE.DoubleSide}),0,.029,0,r1.snuff);
+  { const h=mesh(new THREE.CylinderGeometry(.0034,.0034,.3,6),brass,.11,.13,0,r1.snuff); h.rotation.z=-.86; } S1.add(r1.snuff);
+  mesh(new THREE.CylinderGeometry(.03,.034,.04,16),dark,0,.92,.16,S1); shadow(0,.16,.2,.2);       /* the ink pot */
+  r1.penRest={p:new THREE.Vector3(-.16,.912,.3), q:new THREE.Quaternion().setFromEuler(new THREE.Euler(0,.35,Math.PI/2-.03))};
+  r1.snuffRest={p:new THREE.Vector3(.05,.94,.34), q:new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2,0,.5))};
+  r1.pen.position.copy(r1.penRest.p); r1.pen.quaternion.copy(r1.penRest.q); r1.snuff.position.copy(r1.snuffRest.p); r1.snuff.quaternion.copy(r1.snuffRest.q);
+  r1.dirty=[true,true]; })();
+function drawLedger(j){ const x=r1.ctx[j], L=R1.ledger[j]; const g=x.createLinearGradient(0,0,320,400); g.addColorStop(0,'#efe5cd'); g.addColorStop(1,'#d9cba9'); x.fillStyle=g; x.fillRect(0,0,320,400);
+  x.strokeStyle='rgba(60,40,20,.28)'; x.lineWidth=1; for(let i=0;i<10;i++){ x.beginPath(); x.moveTo(18,70+i*34); x.lineTo(302,70+i*34); x.stroke(); }
+  x.strokeStyle='rgba(150,40,30,.45)'; x.beginPath(); x.moveTo(74,20); x.lineTo(74,388); x.stroke();
+  x.fillStyle='#2b2118'; x.font='600 21px Georgia, serif'; x.textAlign='left'; x.fillText('Ledger of gaps',22,40);
+  x.font='500 23px ui-monospace, Menlo, Consolas, monospace';
+  for(let i=0;i<L.length;i++){ const e=L[i], y=96+i*34; x.textAlign='right'; x.fillStyle='rgba(43,33,24,.55)'; x.font='500 16px ui-monospace, Menlo, Consolas, monospace'; x.fillText(String(e.n),66,y); x.font='500 23px ui-monospace, Menlo, Consolas, monospace';
+    if(e.forged){ x.fillStyle='rgba(43,33,24,.5)'; x.fillText(e.T.toFixed(2),150,y); x.strokeStyle='#b23a1c'; x.lineWidth=2; x.beginPath(); x.moveTo(90,y-8); x.lineTo(154,y-6); x.stroke(); x.fillStyle='#b23a1c'; x.fillText(e.phi.toFixed(2),226,y); }
+    else { x.fillStyle='#2b2118'; x.fillText(e.T.toFixed(2),150,y); }
+    x.fillStyle=e.forged?'rgba(178,58,28,.75)':'rgba(43,33,24,.6)'; x.fillRect(240,y-13,Math.min(60,e.phi*9),9); }
+  r1.tex[j].needsUpdate=true; r1.dirty[j]=false; }
+onBlink=ev=>{ r1.dirty[ev.j]=true; };
+const V=new THREE.Vector3(), V2=new THREE.Vector3(), Q=new THREE.Quaternion(), EU=new THREE.Euler();
+function draw1(dt){ const cam=cams[1], back=vfov(cam,38,1.5), ease=TEST||STILL?1:1-Math.exp(-dt*7);
+  const pan=cam.aspect>1.25?.24:0; cam.position.set(pan+Math.sin(yaw)*.5,1.34+pitch*.4,1.98*back+(back-1)*.4); V.set(pan,1.1+(cam.aspect<1?-.8*back:0),0); cam.lookAt(V);
+  for(let j=0;j<2;j++){ const v=R1.vis[j], since=R1.t-R1.lastCut[j], kind=R1.lastKind[j], darkFor=(kind&2)?.42:.12, ph=v.s[0]/LAB.A;
+    let f=.22+.78*Math.pow(clamp(ph,0,1),1.3); if(since<darkFor) f=(kind&2)?.004:.03; else f*=1+1.1*Math.exp(-(since-darkFor)*6);
+    if(!STILL) f*=1+.04*Math.sin(vt*11.3+j*2.)+.03*Math.sin(vt*17.9+j);
+    r1.flame[j].material.color.setRGB(9*f,5.2*f,1.9*f); r1.flame[j].scale.set(1,1.5+.9*f,1); r1.glass[j].material.color.setRGB(.10*f,.055*f,.02*f); r1.light[j].intensity=.95*f;
+    if(r1.dirty[j]) drawLedger(j); }
+  /* the tools go to the lantern they are used on, and work at each blink */
+  { const at=R1.pen, T=r1.pen; if(at<0){ V.copy(r1.penRest.p); Q.copy(r1.penRest.q); } else { const since=R1.t-R1.lastCut[at], wr=since<.7?Math.sin(since*34)*.012*(1-since/.7):0, row=Math.min(R1.ledger[at].length,9);
+      V.set(r1.ledX[at]+.03+wr,1.285-.0375*row+(since<.7?0:.006),-.325-.0076*(row-4.5)+(since<.7?0:.02)); Q.setFromEuler(EU.set(1.15,0,-.45)); }
+    T.position.lerp(V,ease); T.quaternion.slerp(Q,ease); }
+  { const at=R1.snuff, T=r1.snuff; if(at<0){ V.copy(r1.snuffRest.p); Q.copy(r1.snuffRest.q); } else { const since=R1.t-R1.lastCut[at], dip=since<.42?Math.sin(Math.min(1,since/.42)*Math.PI):0;
+      V.set(r1.lanX[at],.9+.5-.085*dip,-.06); Q.setFromEuler(EU.set(0,at?Math.PI:0,0)); }
+    T.position.lerp(V,ease); T.quaternion.slerp(Q,ease); }
+  show(S1,cam,1.25,.9,1.3); }
+
+/* ── room 2: the corridor ── */
+const S2=new THREE.Scene(), ZS=0.9, WL=3.2, LANES=[0,-7,7,-14,14,-21,21,-28,28,-35,35,-42];
+const r2={out:0, lookE:0, bob:0};
+const MAXI=NWALK*((NOCC+2)*6+3);
+(function(){ const geo=new THREE.BoxGeometry(1,1,1); r2.aI=new THREE.InstancedBufferAttribute(new Float32Array(MAXI*4),4).setUsage(THREE.DynamicDrawUsage); r2.aL=new THREE.InstancedBufferAttribute(new Float32Array(MAXI*4),4).setUsage(THREE.DynamicDrawUsage);
+  geo.setAttribute('aI',r2.aI); geo.setAttribute('aL',r2.aL);
+  r2.U={uTime:{value:0}, uFog:{value:.0075}, uEdgeP:{value:new THREE.Vector3()}, uEdgeC:{value:new THREE.Color(0,0,0)}};
+  const vs=`attribute vec4 aI; attribute vec4 aL; varying vec3 vW; varying vec3 vN; varying vec3 vE; varying vec4 vI; varying vec4 vL;
+    void main(){ vec4 wp=modelMatrix*instanceMatrix*vec4(position,1.); vW=wp.xyz; vec3 sc=vec3(length(instanceMatrix[0].xyz),length(instanceMatrix[1].xyz),length(instanceMatrix[2].xyz));
+      vE=(.5-abs(position))*sc; vN=normalize(mat3(modelMatrix)*normal); vI=aI; vL=aL; gl_Position=projectionMatrix*viewMatrix*wp; }`;
+  const fs=NOISE+`uniform float uTime,uFog,uDim; uniform vec3 uEdgeP,uEdgeC; varying vec3 vW; varying vec3 vN; varying vec3 vE; varying vec4 vI; varying vec4 vL;
+    void lamp(vec3 P, vec3 col, float fall, vec3 N, vec3 Vd, float rough, inout vec3 Ld, inout vec3 Ls){ vec3 dl=P-vW; float d2=dot(dl,dl); vec3 l=dl*inversesqrt(d2); float att=1./(1.+d2*fall), nd=max(dot(N,l),0.);
+      Ld+=col*att*nd; Ls+=col*att*pow(max(dot(N,normalize(l+Vd)),0.),mix(110.,16.,rough))*(1.-rough)*1.5*step(.0001,nd); }
+    void main(){ float d=-vW.z, k=vI.x-d; if(k<0.) discard;
+      vec3 N=normalize(vN); float ed=abs(N.x)>.5?min(vE.y,vE.z):(abs(N.y)>.5?min(vE.x,vE.z):min(vE.x,vE.y));
+      vec3 p=vW; float n1=fbm(p*1.6+vI.w*13.), n2=vn(p*10.), n3=vn(p*41.);
+      vec2 tc=abs(N.y)>.5?vW.xz/vec2(.85,1.15):(abs(N.x)>.5?vW.zy/vec2(.78,.31):vW.xy/vec2(.6,.31)); float row=floor(tc.y); tc.x+=.5*mod(row,2.)+.23*h13(vec3(row,7.,1.));
+      vec2 cell=floor(tc), fc=fract(tc); float tone=h13(vec3(cell,3.)), mort=smoothstep(0.,.03,min(min(fc.x,1.-fc.x)*.8,min(fc.y,1.-fc.y)*.31*(abs(N.y)>.5?3.5:1.)));
+      vec3 alb=mix(vec3(.13,.128,.127),vec3(.24,.235,.228),n1*.45+tone*.55)*(.8+.26*n2+.14*n3); alb*=mix(.3,1.,smoothstep(0.,.035,ed))*mix(.42,1.,mort);
+      N=normalize(N+(vec3(vn(p*6.),vn(p*6.+5.),vn(p*6.+9.))-.5)*.2);
+      vec3 Vd=normalize(cameraPosition-vW); float rough=clamp(.12+.5*n2+.3*tone,0.,1.);
+      vec3 Ld=vec3(.0045,.006,.011)*(.55+.45*N.y), Ls=vec3(0.);
+      if(vL.w>=0.) lamp(vec3(vL.x,2.95,-vL.y),mix(ramp(vL.w),vec3(1.,.9,.8),.4)*2.6,.13,N,Vd,rough,Ld,Ls);
+      if(vI.z>=0.) lamp(vec3(vL.x,2.95,-vL.z),mix(ramp(vI.z),vec3(1.,.9,.8),.4)*2.6,.13,N,Vd,rough,Ld,Ls);
+      lamp(uEdgeP,uEdgeC,.3,N,Vd,rough,Ld,Ls);
+      vec3 col=alb*Ld+Ls*.8;
+      /* stone forming out of light at the leading edge: nearest the edge it is still light, a little behind it has cooled to stone */
+      vec3 hot=vec3(1.,.62,.3); float heat=exp(-k/1.25);
+      float nf=fbm(p*2.6+vec3(0.,0.,uTime*.12));
+      float form=smoothstep(.04+nf*.3,.2+nf*.95,k);
+      float grain=vn(p*23.+vec3(0.,uTime*1.4,0.));
+      vec3 light=vec3(1.,.8,.52)*(.5+2.4*grain*grain*grain)*smoothstep(0.,.06,k)+vec3(1.,.93,.8)*2.2*exp(-k*16.);
+      col=mix(light,col+hot*heat*heat*(.15+.85*n2*n2)*.5,form);
+      col+=ramp(clamp(vL.w,0.,1.))*vI.y*(.5+.5*n2);
+      float dist=distance(vW,cameraPosition); col=mix(col,vec3(.0012,.0016,.0028),1.-exp(-uFog*uFog*dist*dist)); gl_FragColor=vec4(col*uDim,1.); }`;
+  const mk=dim=>new THREE.ShaderMaterial({uniforms:Object.assign({uDim:{value:dim}},r2.U), vertexShader:vs, fragmentShader:fs, side:THREE.DoubleSide});
+  r2.stone=new THREE.InstancedMesh(geo,mk(1),MAXI); r2.stone.frustumCulled=false; r2.stone.instanceMatrix.setUsage(THREE.DynamicDrawUsage); S2.add(r2.stone);
+  /* a black mirror below: the same stone drawn again upside down and dim, as still water would show it */
+  const G=new THREE.Group(); G.scale.y=-1; G.position.y=-2*WL; S2.add(G); r2.mirror=new THREE.InstancedMesh(geo,mk(.2),MAXI); r2.mirror.instanceMatrix=r2.stone.instanceMatrix; r2.mirror.frustumCulled=false; G.add(r2.mirror);
+  r2.halo=haloPoints(NWALK*(NOCC+2)+4); S2.add(r2.halo); r2.halo2=haloPoints(NWALK*(NOCC+2)+4); r2.halo2.position.y=-2*WL; r2.halo2.scale.y=-1; S2.add(r2.halo2);
+  /* motes of light that drift in from the dark and settle on the edge */
+  const NSP=LOW?120:420, sg=new THREE.BufferGeometry(), sp=new Float32Array(NSP*3), ss=new Float32Array(NSP*4); for(let i=0;i<NSP;i++){ ss[i*4]=hash2(i,1)*2-1; ss[i*4+1]=hash2(i,2); ss[i*4+2]=hash2(i,3); ss[i*4+3]=hash2(i,4); }
+  sg.setAttribute('position',new THREE.BufferAttribute(sp,3)); sg.setAttribute('aSeed',new THREE.BufferAttribute(ss,4));
+  r2.sparks=new THREE.Points(sg,new THREE.ShaderMaterial({uniforms:{uTime:{value:0},uEdge:{value:0},uH:{value:700},uOn:{value:1}}, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+    vertexShader:`uniform float uTime,uEdge,uH,uOn; attribute vec4 aSeed; varying vec3 vC;
+      void main(){ float ph=fract(aSeed.w+uTime*(.07+.1*aSeed.z)), a=1.-ph;
+        vec3 p=vec3(aSeed.x*1.72+.3*sin(aSeed.w*91.+uTime*.6)*a, .03+aSeed.y*aSeed.y*3.*a+.1*sin(uTime*1.1+aSeed.w*40.)*a, -(uEdge+a*a*4.2-.2));
+        vec4 mv=viewMatrix*vec4(p,1.); gl_Position=projectionMatrix*mv; float ps=(.014+.03*ph)*uH/max(-mv.z,.3); gl_PointSize=clamp(ps,1.2,14.);
+        vC=vec3(1.,.8,.52)*(.06+1.1*ph*ph)*smoothstep(0.,.1,ph)*smoothstep(1.,.94,ph)*uOn*min(1.,ps*ps/3.); }`,
+    fragmentShader:`varying vec3 vC; void main(){ vec2 d=gl_PointCoord-.5; float r2=dot(d,d)*4.; gl_FragColor=vec4(vC*exp(-r2*5.)*smoothstep(1.,.6,r2),1.); }`})); r2.sparks.frustumCulled=false; S2.add(r2.sparks);
+  r2.born={}; })();
+onSlab=ev=>{}; onReset=()=>{ r2.out=0; r2.lookE=0; };
+function fill2(hs){ const E=R2.ens, M=r2.stone.instanceMatrix.array, AI=r2.aI.array, AL=r2.aL.array, H=r2.halo.userData, H2=r2.halo2.userData; let n=0;
+  const put=(x,y,z,sx,sy,sz,edge,glow,uB,rnd,lane,zA,zB,uA)=>{ if(n>=MAXI) return; const o=n*16; M[o]=sx; M[o+1]=0; M[o+2]=0; M[o+3]=0; M[o+4]=0; M[o+5]=sy; M[o+6]=0; M[o+7]=0; M[o+8]=0; M[o+9]=0; M[o+10]=sz; M[o+11]=0; M[o+12]=x; M[o+13]=y; M[o+14]=z; M[o+15]=1;
+    const q=n*4; AI[q]=edge; AI[q+1]=glow; AI[q+2]=uB; AI[q+3]=rnd; AL[q]=lane; AL[q+1]=zA; AL[q+2]=zB; AL[q+3]=uA; n++; };
+  const slab=(lane,zA,zB,edge,uA,uB,rnd)=>{ const len=zB-zA; if(len<.004) return; const zc=-(zA+zB)/2; put(lane,-.25,zc,3.4,.5,len,edge,0,uB,rnd,lane,zA,zB,uA); put(lane-1.6,.47,zc,.2,.94,len,edge,0,uB,rnd+.3,lane,zA,zB,uA); put(lane+1.6,.47,zc,.2,.94,len,edge,0,uB,rnd+.6,lane,zA,zB,uA); };
+  for(let k=0;k<NWALK;k++){ if(k>0 && !R2.many) break; const lane=LANES[k], cuts=R2.cuts[k], seeds=R2.seeds[k], t=E.t[k], done=E.count[k]>=NOCC, edge=t*ZS+(done?(k===0?Math.min(40,(R2.tr-R2.endT)*1.5):40):0);   /* a finished corridor cools */
+    slab(lane,-5,0,edge+1e-3,-1,seedU(seeds[0]),k*.37);
+    for(let i=0;i<cuts.length;i++){ const zA=cuts[i]*ZS, last=i===cuts.length-1, u=seedU(seeds[i]);
+      if(!(last && done)) slab(lane,zA,last?edge:cuts[i+1]*ZS,edge+1e-3,u,last?-1:seedU(seeds[i+1]),i*.618+k*.37);
+      const r=i===0||STILL?1:smooth(0,1.5,t-cuts[i]), glow=(1-r)*1.2, c=rampJS(u);
+      put(lane-1.86,1.6*r-.02,-zA,.26,3.2*r,.26,1e9,glow,-1,i*.21,lane,zA,zA,u); put(lane+1.86,1.6*r-.02,-zA,.26,3.2*r,.26,1e9,glow,-1,i*.21+.5,lane,zA,zA,u);
+      if(r>.7){ const l=smooth(.7,1,r); put(lane,3.3,-zA,3.98*l,.24,.3,1e9,glow,-1,i*.21+.8,lane,zA,zA,u); }
+      H.put(lane,3.1,-zA,c,2.6*r,.3*hs); H2.put(lane,3.1,-zA,c,.6*r,.3*hs); } }
+  r2.stone.count=n; r2.mirror.count=n; r2.stone.instanceMatrix.needsUpdate=true; r2.aI.needsUpdate=true; r2.aL.needsUpdate=true; r2.count=n; }
+function draw2(dt){ const cam=cams[2], E=R2.ens, edge=E.t[0]*ZS, walking=walkNow()>0 && playing, inst=TEST||STILL;
+  r2.out+=((R2.outside?1:0)-r2.out)*(inst?1:Math.min(1,dt*.9)); if(Math.abs((R2.outside?1:0)-r2.out)<.002) r2.out=R2.outside?1:0; else dirty=true;
+  r2.lookE+=((R2.look?Math.PI:0)-r2.lookE)*(inst?1:Math.min(1,dt*4)); if(Math.abs((R2.look?Math.PI:0)-r2.lookE)>.004) dirty=true;
+  if(walking && !STILL) r2.bob+=dt*walkNow()/WALK;
+  yaw=clamp(yaw+(input.yawL-input.yawR)*1.4*dt,-1.5,1.5);
+  const e=r2.out*r2.out*(3-2*r2.out), ya=yaw+r2.lookE, by=STILL?0:Math.sin(r2.bob*TAU/.62)*.028*(walking?1:0), narrow=cam.aspect<1;
+  const pz=-(edge-3.7), dx=-Math.sin(ya), dz=-Math.cos(ya), py=1.62+by;
+  /* outside: stand off the far end, high up, and look back along the whole length */
+  const spread=R2.many?42:0, far=(narrow?1.5:1), Lc=Math.max(edge,30), tx=(narrow?.05:-.066)*Lc-spread*.2, ty=(narrow?-.12:-.25)*Lc, tz=-.6*Lc,
+    ox=tx+(.286*Lc+spread*.7+Math.sin(vt*.05)*4*(STILL?0:1))*far, oy=ty+(.36*Lc+spread*.3)*far, oz=tz-.62*Lc*far;
+  cam.position.set(ox*e, py+(oy-py)*e, pz+(oz-pz)*e);
+  V.set(dx*(1-e)+tx*e, (py-.3+pitch-(narrow?.5:0))*(1-e)+ty*e, (pz+dz)*(1-e)+tz*e); cam.lookAt(V);
+  const f=(narrow?84:68)-(narrow?30:18)*e; if(Math.abs(cam.fov-f)>.01){ cam.fov=f; cam.updateProjectionMatrix(); }
+  fill2(1+5*e); r2.halo.material.uniforms.uH.value=halfH(cam); r2.halo2.material.uniforms.uH.value=halfH(cam); r2.halo.material.uniforms.uF.value=r2.halo2.material.uniforms.uF.value=.0075-.0048*e; r2.halo.userData.done(); r2.halo2.userData.done();
+  r2.U.uTime.value=STILL?0:vt; r2.U.uFog.value=.0075-.0048*e; r2.U.uEdgeP.value.set(0,.45,-edge-.1); const g=R2.finished?0:(walking?1.0:.6); r2.U.uEdgeC.value.setRGB(g,g*.8,g*.52);
+  const sp=r2.sparks.material.uniforms; sp.uTime.value=STILL?3.1:vt; sp.uEdge.value=edge; sp.uH.value=halfH(cam); sp.uOn.value=R2.finished?0:(walking?1:.45);
+  show(S2,cam,1.25+.9*e,.85+.3*e,1.15-.4*e); }
+
+/* ── room 3: the pane, the thread behind it, and the ring ── */
+const S3=new THREE.Scene(), PW=4.4, PH=2.5, PY=1.95, XS=.7, NTH=LOW?700:1500, NF=10;
+const r3={c:R3.w(0)};
+(function(){ const plaster=new THREE.MeshStandardMaterial({map:plasterTex, roughness:.96}), iron=new THREE.MeshStandardMaterial({color:new THREE.Color(.02,.02,.022), roughness:.5, metalness:.3}), stone=new THREE.MeshStandardMaterial({color:new THREE.Color(.05,.048,.046), roughness:.55});
+  const top=PY+PH/2, bot=PY-PH/2;
+  mesh(new THREE.BoxGeometry(6,7,.3),plaster,-(PW/2+3),3,-.15,S3); mesh(new THREE.BoxGeometry(6,7,.3),plaster,PW/2+3,3,-.15,S3); mesh(new THREE.BoxGeometry(PW,4,.3),plaster,0,top+2,-.15,S3); mesh(new THREE.BoxGeometry(PW,bot,.3),plaster,0,bot/2,-.15,S3);
+  mesh(new THREE.BoxGeometry(PW+.16,.06,.1),iron,0,top+.03,.03,S3); mesh(new THREE.BoxGeometry(PW+.16,.06,.1),iron,0,bot-.03,.03,S3); mesh(new THREE.BoxGeometry(.06,PH,.1),iron,-PW/2-.03,PY,.03,S3); mesh(new THREE.BoxGeometry(.06,PH,.1),iron,PW/2+.03,PY,.03,S3);
+  mesh(new THREE.BoxGeometry(PW+.5,.05,.3),stone,0,bot-.085,.12,S3);
+  { const fl=mesh(new THREE.PlaneGeometry(16,9),stone,0,0,3.5,S3); fl.rotation.x=-Math.PI/2; }
+  S3.add(new THREE.HemisphereLight(new THREE.Color(.5,.6,.9),new THREE.Color(.1,.08,.06),.07));
+  r3.warm=new THREE.PointLight(new THREE.Color(1,.74,.5),14,0,2); r3.warm.position.set(-1.5,4.2,4.5); S3.add(r3.warm);
+  r3.cool=new THREE.PointLight(new THREE.Color(.55,.7,1),1,0,2); r3.cool.position.set(0,PY,.9); S3.add(r3.cool);
+  r3.thread=haloPoints(NTH+2); r3.thread.renderOrder=1; S3.add(r3.thread);
+  r3.fl=[]; for(let i=0;i<NF;i++) r3.fl.push(new THREE.Vector2(0,1));
+  r3.pane=mesh(new THREE.PlaneGeometry(PW,PH),new THREE.ShaderMaterial({transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, uniforms:{uFl:{value:r3.fl}, uM:{value:0}, uBand:{value:.3}, uFrost:{value:1}, uTime:{value:0}, uOff:{value:0}},
+    vertexShader:`varying vec2 vP; void main(){ vP=position.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+    fragmentShader:'#define NF '+NF+'\n'+NOISE+`uniform vec2 uFl[NF]; uniform float uM,uBand,uFrost,uTime,uOff; varying vec2 vP;
+      void main(){ float fr=fbm(vec3(vP*2.2,1.+uTime*.02))*.75+fbm(vec3(vP*9.,3.))*.25;
+        vec3 c=vec3(.02,.03,.046)*uFrost*(.1+1.9*fr*fr);
+        float ys=exp(-(vP.y+.55)*(vP.y+.55)/.09);
+        for(int i=0;i<NF;i++){ float dx=vP.x-uFl[i].x; c+=vec3(.5,.68,1.)*exp(-dx*dx/(.0007+.0035*uFrost))*(1.-uFl[i].y)*(1.-uFl[i].y)*ys*1.5; }
+        float db=vP.x-uM, edgeY=smoothstep(1.25,1.05,abs(vP.y));
+        c+=vec3(1.,.6,.28)*(exp(-db*db/(2.*uBand*uBand+.0004))*.11*edgeY+exp(-db*db/.0005)*2.6*edgeY*(.75+.25*fr))*(1.-.6*uOff);
+        gl_FragColor=vec4(c,1.); }`}),0,PY,0,S3); r3.pane.renderOrder=3;
+  /* the rotor: a ring on the wall under the pane, a bead that goes round it, and a strip of its speed with a tick at each cut */
+  r3.ring=new THREE.Group(); r3.ring.position.set(1.78,.36,.04); S3.add(r3.ring);
+  mesh(new THREE.TorusGeometry(.25,.008,8,64),new THREE.MeshBasicMaterial({color:new THREE.Color(.22,.2,.17)}),0,0,0,r3.ring);
+  for(const s of [1,-1]) mesh(new THREE.BoxGeometry(.012,.09,.012),new THREE.MeshBasicMaterial({color:new THREE.Color(.9,.8,.6)}),0,.25*s,0,r3.ring);
+  r3.bead=mesh(new THREE.SphereGeometry(1,16,12),new THREE.MeshBasicMaterial({color:new THREE.Color(3.2,1.9,.8)}),0,.25,0,r3.ring);
+  const lg=new THREE.BufferGeometry(); r3.vp=new Float32Array(NV*3); lg.setAttribute('position',new THREE.BufferAttribute(r3.vp,3).setUsage(THREE.DynamicDrawUsage)); r3.vline=new THREE.Line(lg,new THREE.LineBasicMaterial({color:new THREE.Color(1.25,.78,.36)})); r3.vline.frustumCulled=false; S3.add(r3.vline);
+  const tg=new THREE.BufferGeometry(); r3.tp=new Float32Array(26*2*3); tg.setAttribute('position',new THREE.BufferAttribute(r3.tp,3).setUsage(THREE.DynamicDrawUsage)); r3.ticks=new THREE.LineSegments(tg,new THREE.LineBasicMaterial({color:new THREE.Color(.5,.62,.85)})); r3.ticks.frustumCulled=false; S3.add(r3.ticks);
+  r3.dots=haloPoints(26); S3.add(r3.dots);
+  const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.BufferAttribute(new Float32Array([-2.1,.2,.02,1.38,.2,.02,-2.1,.29,.02,1.38,.29,.02]),3)); S3.add(new THREE.LineSegments(bg,new THREE.LineBasicMaterial({color:new THREE.Color(.09,.09,.1)}))); })();
+function draw3(dt){ const cam=cams[3], back=vfov(cam,40,1.5), narrow=cam.aspect<1, T=r3.thread.userData, q=R3.q;
+  cam.position.set(Math.sin(yaw)*1.6,1.6+pitch,8*back); V.set(0,1.54+(narrow?-1.7*back:0),0); cam.lookAt(V);
+  const wn=R3.w(0); r3.c+=(wn-r3.c)*(TEST||STILL?1:Math.min(1,dt*.25)); const c=r3.c, frac=clamp(R3.carry,0,1), uH=halfH(cam);
+  /* the world's own past, receding: bead k is the world k steps ago, lit by how much that moment still counts in what you hold */
+  for(let i=NTH-1;i>=0;i--){ const k=Math.min(HIST-1,Math.round((HIST-1)*Math.pow(i/(NTH-1),2.4))), far=Math.pow((k+frac)/(HIST-1),.42), dep=.3+2.6*far, wt=Math.pow(q,k);
+    T.put((R3.w(k)-c)*XS/(1+2.2*far),1.3+1.72*far,-dep,[.3+.7*wt,.4+.36*wt,.62-.32*wt],.16+2.4*wt,(.05+.06*wt)/(1+far)); }
+  T.put((wn-c)*XS,1.3,-.28,[1,1,1],2.,.14); r3.thread.material.uniforms.uH.value=uH; T.done();
+  const m=R3.m(), u=r3.pane.material.uniforms, mx=(m-c)*XS, lim=PW/2-.06;
+  for(let i=0;i<NF;i++) r3.fl[i].set(clamp((R3.x(i)-c)*XS,-lim-.5,lim+.5),clamp((i+frac)/NF,0,1));
+  u.uM.value=clamp(mx,-lim,lim); u.uOff.value=Math.abs(mx)>lim?1:0; u.uBand.value=Math.sqrt(LAB.mseTheory(Math.min(q,.9995),R3.noise))*XS; u.uFrost.value=R3.noise; u.uTime.value=STILL?0:vt; r3.cool.intensity=.25+.9*R3.noise;
+  /* the rotor */
+  const ro=R3.rot, th=Math.PI/2-(Math.PI*ro.gaps[0].length+ro.s[0]), br=.016+.013*R3.M; r3.bead.position.set(.25*Math.cos(th),.25*Math.sin(th),.02); r3.bead.scale.setScalar(br);
+  const x1=1.38, span=3.48, yv=v=>.2+clamp(v,-1.2,3.6)*.09, vp=r3.vp, n=Math.min(R3.vn,NV);
+  for(let i=0;i<NV;i++){ const j=Math.min(i,n-1), v=n?R3.vh[((R3.vn-1-j)%NV+NV)%NV]:1; vp[i*3]=x1-j/NV*span; vp[i*3+1]=yv(v); vp[i*3+2]=.02; } r3.vline.geometry.attributes.position.needsUpdate=true;
+  const tp=r3.tp, D=r3.dots.userData; let nt=0; for(let i=0;i<R3.cutsT.length && nt<26;i++){ const age=ro.t[0]-R3.cutsT[i]; if(age>14) continue; const x=x1-age/14*span; tp[nt*6]=x; tp[nt*6+1]=.08; tp[nt*6+2]=.02; tp[nt*6+3]=x; tp[nt*6+4]=.56; tp[nt*6+5]=.02; nt++; D.put(x,yv(R3.cutsV[i]),.03,[1,.7,.35],1.6,.07); }
+  r3.ticks.geometry.setDrawRange(0,nt*2); r3.ticks.geometry.attributes.position.needsUpdate=true; r3.dots.material.uniforms.uH.value=uH; D.done();
+  show(S3,cam,1.25,1.0,1.1); }
+
+draw=function(dt){ if(room===1) draw1(dt); else if(room===2) draw2(dt); else draw3(dt); frame++; };
+resize();
+API.state=function(){ const s=baseState(); s.webgl=true; s.scale=scaleNow; s.hdr=HDR; s.r2.instances=r2.count||0; s.r2.out=r2.out; return s; };
+})();
+if(!API.webgl){ $('fail').style.display='block'; canvas.style.display='none'; }
+
+setOut(); tools(); setPlay(playing); setRoom(room,true); layout();
+window.PIECE=API;
+API.shot=function(){ if(draw){ draw(1/30); const gl=canvas.getContext('webgl2'); if(gl) gl.finish(); } hud(true); return true; };
+if(TEST){ window.__block={ shot:API.shot }; API.shot(); return; }
+let lastT=0, slowN=0;
+function loop(now){ requestAnimationFrame(loop); const dt=Math.min(.1,Math.max(0,(now-lastT)/1000)); lastT=now; if(dt<=0) return;
+  if(playing) advance(dt); sDrone();
+  if(!playing && !dirty && !(input.yawL||input.yawR)) return; dirty=false;
+  if(draw) draw(dt); hud();
+  if(resize){ slowN++; if(slowN>24){ slowN=0; const ms=dt*1000; if(ms>42 && budget>BMIN){ budget=Math.max(BMIN,budget*.8); resize(); } else if(ms<19 && budget<BMAX && scaleNow<Math.min(window.devicePixelRatio||1,2)){ budget=Math.min(BMAX,budget*1.12); resize(); } } } }
+requestAnimationFrame(loop);
+})();
+</script>
+<script>
+/* the Readings card, added when the piece was put back: a plain sheet, opened and closed here */
+(function(){ var b=document.getElementById('readBtn'), r=document.getElementById('readings'), c=document.getElementById('readClose'); if(!b||!r) return;
+  function set(on){ r.hidden=!on; b.setAttribute('aria-expanded', on?'true':'false'); if(on){ ['card','about'].forEach(function(id){ var e=document.getElementById(id); if(e) e.hidden=true; }); r.scrollTop=0; r.focus({preventScroll:true}); } }
+  b.addEventListener('click', function(){ set(r.hidden); }); c.addEventListener('click', function(){ set(false); b.focus(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !r.hidden){ e.stopPropagation(); set(false); b.focus(); } }, true);
+  ['cardBtn','aboutBtn','tab1','tab2','tab3'].forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener('click', function(){ set(false); }); });
+})();
+</script>
+</body>
+</html>

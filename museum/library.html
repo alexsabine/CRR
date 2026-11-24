@@ -21137,6 +21137,143 @@ window.LIBRARY.add({
 
 </script>
 <!-- ROOMS:END -->
+<script>
+/* What did not insist. A book of the owner's own position, kept at his request on the metaphysics shelf. It is a position and not a check: there is no script and no results file.
+   The cartoon: on the left, small figures walk a loop round an empty middle and hand a light on at a gate with nothing in it. On the right the slider lets the middle be born:
+   it grows and dreams, and the others are pressed to the wall and go dim. Nothing in the picture is evidence. */
+(function () {
+  // ---- small hand-drawn kit (each room carries its own copy) ----
+  const PAPER = '#f1e6cf', PALE = '#f8f0df', INK = '#2b2118', RED = '#a8392b', GOLD = '#b8862b', BLUE = '#3f5873', GREEN = '#5f7f4a', GREY = '#8a7d6b';
+  const FONT = '"Patrick Hand", "Segoe Print", "Comic Sans MS", cursive', TAU = Math.PI * 2;
+  let BEAT = 0, FS = 1, PORT = false;                        // the line "boils" six times a second; PORT: a tall (phone) canvas
+  const hash = (k) => { const x = Math.sin(k * 127.1 + BEAT * 311.7) * 43758.5453; return x - Math.floor(x); };
+  const fix = (k) => { const x = Math.sin(k * 91.7 + 13.3) * 43758.5453; return x - Math.floor(x); };   // does not boil
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, f) => a + (b - a) * f;
+  const ease = (f) => { f = clamp(f, 0, 1); return f * f * (3 - 2 * f); };
+  const num = (v, d) => (typeof v === 'number' && isFinite(v)) ? v : d;
+  /* The picture is two square panels, 300 by 300 each. On a wide canvas they sit side by side; on a tall one
+     (a phone) they are stacked, so each stays large enough to read. */
+  function begin(ctx, w, h, t) {
+    BEAT = Math.floor(num(t, 0) * 6); PORT = h > w * 1.05;
+    ctx.fillStyle = PAPER; ctx.fillRect(0, 0, w, h);
+    const bw = PORT ? 320 : 640, bh = PORT ? 624 : 330, k = Math.min(w / bw, h / bh);
+    FS = clamp(1 / k, 1, 1.4); ctx.translate((w - bw * k) / 2, (h - bh * k) / 2); ctx.scale(k, k);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.fillStyle = 'rgba(120,90,40,0.06)';
+    for (let i = 0; i < 40; i++) ctx.fillRect(fix(i) * bw, fix(i + 99) * bh, 3 + fix(i + 7) * 26, 1);
+  }
+  function panel(ctx, i, draw) { ctx.save(); if (PORT) ctx.translate(10, 6 + i * 312); else ctx.translate(14 + i * 312, 15); draw(); ctx.restore(); }
+  function path(ctx, pts, key, wob, close) {                 // a wobbly path through points; long stretches get extra joints
+    const a = wob === undefined ? 1.1 : wob; ctx.beginPath(); let n = 0;
+    const put = (x, y) => { const px = x + (hash(key + n * 3.1) - .5) * 2 * a, py = y + (hash(key + n * 5.7 + 1) - .5) * 2 * a; if (n) ctx.lineTo(px, py); else ctx.moveTo(px, py); n++; };
+    for (let i = 0; i < pts.length; i++) {
+      if (i) { const p = pts[i - 1], q = pts[i], m = Math.min(12, Math.floor(Math.hypot(q[0] - p[0], q[1] - p[1]) / 26)); for (let j = 1; j <= m; j++) put(lerp(p[0], q[0], j / (m + 1)), lerp(p[1], q[1], j / (m + 1))); }
+      put(pts[i][0], pts[i][1]);
+    }
+    if (close) ctx.closePath();
+  }
+  function line(ctx, pts, key, col, lw, wob) { path(ctx, pts, key, wob); ctx.strokeStyle = col || INK; ctx.lineWidth = lw || 2; ctx.stroke(); }
+  function shape(ctx, pts, key, fill, col, lw, wob) { path(ctx, pts, key, wob, true); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (col !== null) { ctx.strokeStyle = col || INK; ctx.lineWidth = lw || 2; ctx.stroke(); } }
+  function blob(ctx, x, y, rx, ry, key, fill, col, lw) {     // a wobbly oval
+    ctx.beginPath();
+    for (let i = 0; i <= 16; i++) { const a = i / 16 * TAU, f = 1 + (hash(key + (i % 16) * 2.3) - .5) * .1; const px = x + Math.cos(a) * rx * f, py = y + Math.sin(a) * ry * f; if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (col !== null) { ctx.strokeStyle = col || INK; ctx.lineWidth = lw || 2; ctx.stroke(); }
+  }
+  function label(ctx, txt, x, y, size, col, align) { ctx.fillStyle = col || INK; ctx.font = ((size || 13) * FS).toFixed(1) + 'px ' + FONT; ctx.textAlign = align || 'center'; ctx.fillText(String(txt), x, y); }
+  function face(ctx, x, y, r, mood, look, key) {             // two eyes and a mouth; mood -1 glum .. 1 glad; look -1 .. 1
+    const lx = (look || 0) * r * .12, blink = (BEAT % 23) === 0;
+    for (const sx of [-1, 1]) { if (blink) line(ctx, [[x + sx * r * .34 - r * .1, y - r * .1], [x + sx * r * .34 + r * .1, y - r * .1]], key + sx, INK, 1.6, .2); else { ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x + sx * r * .34 + lx, y - r * .1, Math.max(1.2, r * .09), 0, TAU); ctx.fill(); } }
+    const m = num(mood, .5); line(ctx, [[x - r * .28, y + r * .3], [x, y + r * .3 + m * r * .2], [x + r * .28, y + r * .3]], key + 5, INK, 1.6, .3);
+  }
+  function arrow(ctx, x0, y0, x1, y1, key, col, lw) { const a = Math.atan2(y1 - y0, x1 - x0); line(ctx, [[x0, y0], [x1, y1]], key, col, lw); line(ctx, [[x1 - 8 * Math.cos(a - .5), y1 - 8 * Math.sin(a - .5)], [x1, y1], [x1 - 8 * Math.cos(a + .5), y1 - 8 * Math.sin(a + .5)]], key + 9, col, lw, .4); }
+  function person(ctx, x, y, s, key, step, col, mood) {      // a little walker: feet at (x, y), height about 40 s
+    const sw = Math.sin(num(step, 0)) * 6 * s;
+    line(ctx, [[x, y - 16 * s], [x - sw, y]], key, INK, 2, .5); line(ctx, [[x, y - 16 * s], [x + sw, y]], key + 1, INK, 2, .5);
+    line(ctx, [[x, y - 16 * s], [x, y - 30 * s]], key + 2, INK, 2.2, .5);
+    line(ctx, [[x - 8 * s, y - 22 * s + sw * .3], [x, y - 27 * s], [x + 8 * s, y - 22 * s - sw * .3]], key + 3, INK, 1.8, .5);
+    blob(ctx, x, y - 37 * s, 8 * s, 8 * s, key + 4, col || PALE, INK, 1.8); face(ctx, x, y - 37 * s, 8 * s, num(mood, .4), 0, key + 6);
+  }
+  function tick(ctx, x, y, s, key, col) { line(ctx, [[x - 6 * s, y], [x - 2 * s, y + 5 * s], [x + 7 * s, y - 7 * s]], key, col || GREEN, 2.6, .5); }
+  function cross(ctx, x, y, s, key, col) { line(ctx, [[x - 6 * s, y - 6 * s], [x + 6 * s, y + 6 * s]], key, col || RED, 2.6, .5); line(ctx, [[x + 6 * s, y - 6 * s], [x - 6 * s, y + 6 * s]], key + 1, col || RED, 2.6, .5); }
+  function frame(ctx, key) { shape(ctx, [[2, 2], [298, 3], [297, 298], [3, 297]], key, 'rgba(248,240,223,0.55)', GREY, 1.2, 1.2); }
+  function ring(ctx, be, time, key) {
+    const cx = 150, cy = 158, R = lerp(92, 138, ease(be)), n = 7;
+    /* the gate at the top of the loop: two posts and a lintel, and nothing in it */
+    const gy = cy - R; line(ctx, [[cx - 15, gy + 20], [cx - 15, gy - 16]], key + 1, INK, 2.2, .5); line(ctx, [[cx + 15, gy + 20], [cx + 15, gy - 16]], key + 2, INK, 2.2, .5); line(ctx, [[cx - 20, gy - 16], [cx + 20, gy - 16]], key + 3, INK, 2.2, .5);
+    /* the loop itself, faint */
+    ctx.setLineDash([3, 8]); ctx.strokeStyle = 'rgba(43,33,24,' + (.35 * (1 - .6 * be)).toFixed(2) + ')'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    /* the middle */
+    if (be < .02) { ctx.setLineDash([2, 7]); ctx.strokeStyle = 'rgba(43,33,24,.28)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, 20, 0, TAU); ctx.stroke(); ctx.setLineDash([]); }
+    else { const r = lerp(16, 112, ease(be)); ctx.fillStyle = 'rgba(244,200,96,' + (.10 + .16 * be).toFixed(2) + ')'; ctx.beginPath(); ctx.arc(cx, cy, r * 1.18, 0, TAU); ctx.fill(); blob(ctx, cx, cy, r, r * .94, key + 20, '#f3d9a2', INK, 2);
+      /* asleep, and dreaming */ for (const sx of [-1, 1]) line(ctx, [[cx + sx * r * .34 - r * .13, cy - r * .08], [cx + sx * r * .34, cy - r * .02], [cx + sx * r * .34 + r * .13, cy - r * .08]], key + 30 + sx, INK, 1.8, .4);
+      line(ctx, [[cx - r * .12, cy + r * .3], [cx, cy + r * .34], [cx + r * .12, cy + r * .3]], key + 33, INK, 1.6, .4); }
+    /* the walkers, and the light each carries */
+    for (let k = 0; k < n; k++) { const u = (k / n + time * .035) % 1, a = -Math.PI / 2 + u * TAU, x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R * (1 - .1 * be), sq = 1 - .62 * ease(be), w0 = 10, h0 = 14 * sq + 1.5;
+      const du = Math.min(u, 1 - u), near = Math.exp(-Math.pow(du * 20, 2)), lit = (1 - ease(be)) * (.55 + .45 * near);
+      if (lit > .03) { ctx.fillStyle = 'rgba(244,200,96,' + (.5 * lit).toFixed(2) + ')'; ctx.beginPath(); ctx.arc(x, y - h0 - 5, 9 + 7 * near, 0, TAU); ctx.fill(); }
+      blob(ctx, x, y, w0, h0, key + 40 + k * 3, [BLUE, GREEN, RED, GOLD, GREY, BLUE, GREEN][k], INK, 1.8); if (sq > .6) face(ctx, x, y - 2, 9, 1 - 1.6 * be, Math.cos(a + Math.PI / 2), key + 60 + k);
+      if (lit > .03) blob(ctx, x, y - h0 - 5, 3.2, 3.6, key + 80 + k, '#f4cf6a', INK, 1.2); }
+  }
+  window.LIBRARY.add({
+    slug: 'ow-what-did-not-insist', title: 'What did not insist', shelf: 'metaphysics', verdict: 'untestable',
+    spine: 'What did not insist',
+    oneLine: 'A position, not a check. Everything that is, is with others, and is because something did not insist on being.',
+    mapping: [
+      ['loop', 'A life, or any one turn of it. Nobody chose to start theirs.'],
+      ['phase', 'Where you are in it.'],
+      ['count C', 'Not used.'],
+      ['cut', 'The gap where one turn ends and the next begins. Nothing is in it. This book reads that nothing as a giving-way.'],
+      ['surplus', 'Not used.'],
+      ['seed', 'What is handed on. Each of us arrives into a past made by others, and can only pass the room on.']
+    ],
+    prediction: 'None. The position says nothing that an observation could contradict.',
+    baseline: 'Older statements of a like thought: the tzimtzum of Lurianic Kabbalah, Simone Weil on creation as withdrawal, Winnicott on holding without impingement.',
+    result: 'No check was run, and none could be. Laid beside CRR, the claims sit with the seed, the loop and the cut. The claim that nothing is real alone is not in CRR as given.',
+    numbers: {},
+    text: [
+      'This book holds the museum owner\'s own position, written down on 24 November 2026. It is kept here because he asked for it to be. It is marked untestable because it is.',
+      'It has four parts. Everyone arrives unchosen, into a past made by others. What is real for one is real only with others, and there is no ground outside those relations. The ground is not a being among beings: it is what refrains from being so that others can be, and it does not experience. That refraining is love. It cannot be repaid. It can only be passed on, by making room.',
+      'His picture for it is a child who was never born. A born child enters time and would fill it. In his words: “It is not, so everything else can be.”',
+      'Beside CRR. Arriving into a past made by others is the seed in plain words. A loop has no first point, which is half of the second claim. The other half, that many systems need one another, CRR does not state. The third claim sits on the cut. CRR\'s cut is a first passage with nothing in it, and nothing regenerates without it. This book reads that emptiness as a giving-way. CRR itself says only that the cut is empty.',
+      'One difference. CRR\'s cut comes at every turn. The position sounds like once, before everything. They agree if it is the same absence each time.',
+      'The picture. On the left, small figures walk a loop round an empty middle and hand a light on at the gate. On the right, the slider lets the middle be born. It grows and dreams, and the others are pressed to the wall and go dim. Slide it back and they return.'
+    ],
+    limits: [
+      'This is a position to live by. It is not a finding, and nothing here is evidence for it.',
+      'The book beside it, “Two worlds, one list of gaps”, shows why. Watching cannot tell a thing that endures from one that is remade, so no observation could count against this either.',
+      'The reading of the cut as a giving-way is added by this book. It is not among CRR\'s rules.',
+      'The older statements are named as neighbours, from memory. The position was not derived from them.',
+      'There is no check script and no results file. Nobody but the owner has read this book.'
+    ],
+    sources: [
+      'The museum owner, in conversation, 24 November 2026.',
+      'Phoenix_Egg/CORE/MATHEMATICS.md, R2 (the cut) and R5 (the seed).',
+      'Isaac Luria on tzimtzum, as recorded by Hayyim Vital. Simone Weil, Gravity and Grace (1947). D. W. Winnicott, The Maturational Processes and the Facilitating Environment (1965). All cited from memory.'
+    ],
+    controls: [{ key: 'be', label: 'Let it be born: 0 not at all, 1 wholly', min: 0, max: 1, value: 0, step: 0.01 }],
+    cartoon(ctx, w, h, t, s) {
+      begin(ctx, w, h, t); const time = num(t, 0), be = clamp(num(s.be, 0), 0, 1); s._b = lerp(num(s._b, be), be, .12);
+      panel(ctx, 0, () => { ring(ctx, 0, time, 100); label(ctx, 'room was made', 150, 292, 14, GREY); });
+      panel(ctx, 1, () => { ring(ctx, s._b, time, 400); label(ctx, s._b < .02 ? 'the same, until it is born' : 'it insists', 150, 292, 14, s._b < .02 ? GREY : RED); });
+    }
+  });
+})();
+</script>
+<script>
+/* The passage behind the fire is not open to visitors yet. It opens only in a browser that has been given the word (library.html?hearth=the-word), and stays open there.
+   Only a fingerprint of the word is kept on this page. This hides the passage; it does not lock the pages behind it, which anyone with their address could still open. */
+(function () {
+  var MARK = '6eb84c989a027b2f0e61e38c430cf1604ddc78117b636f6b4e2a67bc181624bc', KEY = 'hearth', ok = false; try { ok = localStorage.getItem(KEY) === MARK; } catch (e) {}
+  window.HEARTH_OPEN = ok;
+  var q = new URLSearchParams(location.search), w = q.get('hearth'); if (w === null) return;
+  q.delete('hearth'); var clean = location.pathname + (q.toString() ? '?' + q : '') + location.hash;
+  if (w === 'shut') { try { localStorage.removeItem(KEY); } catch (e) {} location.replace(clean); return; }
+  if (!(window.crypto && crypto.subtle && window.TextEncoder)) return;
+  crypto.subtle.digest('SHA-256', new TextEncoder().encode(w)).then(function (d) { var h = Array.prototype.map.call(new Uint8Array(d), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    if (h === MARK) { try { localStorage.setItem(KEY, MARK); } catch (e) {} } location.replace(clean); });
+})();
+</script>
 <!-- DEEP:BEGIN (rewritten by tools/build_index.py from deep-*.html; do not edit by hand) -->
 <script>window.LIBRARY_DEEP = [
  {
@@ -21144,7 +21281,13 @@ window.LIBRARY.add({
   "file": "deep-pause.html",
   "title": "The true pause",
   "description": "Two small agents and one pause switch: what the Phoenix record says about a pause with nothing in it, with its numbers worked again in front of you, and a still room to sit in."
- }
+ },
+  {
+    "slug": "block",
+    "file": "deep-block.html",
+    "title": "Standing on the block",
+    "description": "Two lanterns that blink alike, a corridor that lays itself under your feet, and a frosted pane. Put back on 24 November 2026 with a new card of readings: enduring and inheriting, the record and the pen, growing block and block, made and found, and what did not insist."
+  }
 ];</script>
 <!-- DEEP:END -->
 <!-- COLLOQUY:BEGIN (rewritten by tools/build_index.py from colloquy/*.md; do not edit by hand) -->
@@ -21547,7 +21690,7 @@ const STUDIO_BASE = '';
     }
     B.appendChild(el('h3', null, 'Elsewhere in the library'));
     const g2 = el('div', 'cat'); g2.id = 'cat-else';
-    for (const o of [['ledger', 'The ledger', 'How every check came out'], ['cellar', 'Papers from the cellar', 'Carried over from the old CRR room'], ['colloquy', 'The colloquy', papers().length + ' papers on the lectern'], ['deep', 'Behind the fire', deepList().length + ' doorways']]) {
+    for (const o of [['ledger', 'The ledger', 'How every check came out'], ['cellar', 'Papers from the cellar', 'Carried over from the old CRR room'], ['colloquy', 'The colloquy', papers().length + ' papers on the lectern']].concat(window.HEARTH_OPEN ? [['deep', 'Behind the fire', deepList().length + ' doorways']] : [])) {
       const b = el('button', null, o[1]); b.dataset.sheet = o[0]; b.appendChild(el('small', null, o[2])); b.onclick = () => ui.openSheet(o[0]); g2.appendChild(b); }
     B.appendChild(g2);
   };
@@ -21622,7 +21765,7 @@ const STUDIO_BASE = '';
 
   /* ───────────── sheets ───────────── */
   let sheetFocus = null;
-  ui.openSheet = function (id) {
+  ui.openSheet = function (id) { if (id === 'deep' && !window.HEARTH_OPEN) return;
     if (ui.current) ui.close();
     if (ui.sheet) ui.closeSheet(true); else sheetFocus = document.activeElement;
     if (id === 'ledger') ui.fillLedger(); if (id === 'cat') ui.fillCatalogue(); if (id === 'deep') fillDeep(); if (id === 'colloquy') fillColloquy();
@@ -22220,7 +22363,7 @@ const STUDIO_BASE = '';
       look(yaw, pitch) { view.yaw = yaw; if (pitch !== undefined) view.pitch = pitch; },
       jump(x, z) { const p = clampPos(x, z); view.x = p[0]; view.z = p[1]; view.tx = null; },
       pushLadder, pickAt, act,
-      openFire(on) { backWant = on ? 1 : 0; }, fireOpen() { return backOpen; },
+      openFire(on) { backWant = on && window.HEARTH_OPEN ? 1 : 0; }, fireOpen() { return backOpen; },
       screenOfRose() { placeCamera(); camera.updateMatrixWorld(true); const v = rose.position.clone().project(camera), r = canvas.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; },
       screenOf(slug) { const b = bookBySlug[slug]; if (!b) return null; placeCamera(); camera.updateMatrixWorld(true); const v = b.mesh.position.clone().project(camera), r = canvas.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height, front: v.z < 1 }; },
       state() { return { frame, pixels, budget: Math.round(budget), ms: Math.round(ms), x: view.x, z: view.z, yaw: view.yaw, pitch: view.pitch, ladder: ladderX, books: books.length, filler: filler.length }; }
